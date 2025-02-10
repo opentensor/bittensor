@@ -1,58 +1,40 @@
-import time
+import asyncio
 
 import numpy as np
 import pytest
 
-import asyncio
-
-from bittensor.core.subtensor import Subtensor
-from bittensor.utils.balance import Balance
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
-    add_stake,
-    register_subnet,
+    sudo_set_admin_utils,
     sudo_set_hyperparameter_bool,
     sudo_set_hyperparameter_values,
-    wait_interval,
+    wait_epoch,
 )
-from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
 
 
 @pytest.mark.asyncio
-async def test_commit_and_reveal_weights_legacy(local_chain):
+async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wallet):
     """
     Tests the commit/reveal weights mechanism with subprocess disabled (CR1.0)
 
     Steps:
         1. Register a subnet through Alice
-        2. Register Alice's neuron and add stake
-        3. Enable commit-reveal mechanism on the subnet
-        4. Lower the commit_reveal interval and rate limit
-        5. Commit weights and verify
-        6. Wait interval & reveal weights and verify
+        2. Enable commit-reveal mechanism on the subnet
+        3. Lower the commit_reveal interval and rate limit
+        4. Commit weights and verify
+        5. Wait interval & reveal weights and verify
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    netuid = 1
+    netuid = 2
+
     print("Testing test_commit_and_reveal_weights")
+
     # Register root as Alice
-    keypair, alice_wallet = setup_wallet("//Alice")
-    assert register_subnet(local_chain, alice_wallet), "Unable to register the subnet"
+    assert subtensor.register_subnet(alice_wallet), "Unable to register the subnet"
 
-    # Verify subnet 1 created successfully
-    assert local_chain.query(
-        "SubtensorModule", "NetworksAdded", [1]
-    ).serialize(), "Subnet wasn't created successfully"
-
-    subtensor = Subtensor(network="ws://localhost:9945")
-
-    # Register Alice to the subnet
-    assert subtensor.burned_register(
-        alice_wallet, netuid
-    ), "Unable to register Alice as a neuron"
-
-    # Stake to become to top neuron after the first epoch
-    add_stake(local_chain, alice_wallet, Balance.from_tao(100_000))
+    # Verify subnet 2 created successfully
+    assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
     # Enable commit_reveal on the subnet
     assert sudo_set_hyperparameter_bool(
@@ -66,15 +48,6 @@ async def test_commit_and_reveal_weights_legacy(local_chain):
     assert subtensor.get_subnet_hyperparameters(
         netuid=netuid,
     ).commit_reveal_weights_enabled, "Failed to enable commit/reveal"
-
-    # Lower the commit_reveal interval
-    assert sudo_set_hyperparameter_values(
-        local_chain,
-        alice_wallet,
-        call_function="sudo_set_commit_reveal_weights_interval",
-        call_params={"netuid": netuid, "interval": "1"},
-        return_error_message=True,
-    )
 
     assert (
         subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_period == 1
@@ -96,6 +69,18 @@ async def test_commit_and_reveal_weights_legacy(local_chain):
         subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
     ), "Failed to set weights_rate_limit"
     assert subtensor.weights_rate_limit(netuid=netuid) == 0
+
+    # Increase subnet tempo so we have enought time to commit and reveal weights
+    sudo_set_admin_utils(
+        local_chain,
+        alice_wallet,
+        call_function="sudo_set_tempo",
+        call_params={
+            "netuid": netuid,
+            "tempo": 100,
+        },
+        return_error_message=True,
+    )
 
     # Commit-reveal values
     uids = np.array([0], dtype=np.int64)
@@ -136,9 +121,7 @@ async def test_commit_and_reveal_weights_legacy(local_chain):
     assert periods > 0, "Invalid RevealPeriodEpochs"
 
     # Wait until the reveal block range
-    await wait_interval(
-        subtensor.get_subnet_hyperparameters(netuid=netuid).tempo, subtensor
-    )
+    await wait_epoch(subtensor, netuid)
 
     # Reveal weights
     success, message = subtensor.reveal_weights(
@@ -152,8 +135,6 @@ async def test_commit_and_reveal_weights_legacy(local_chain):
     )
 
     assert success is True
-
-    time.sleep(10)
 
     # Query the Weights storage map
     revealed_weights = subtensor.query_module(
@@ -172,7 +153,7 @@ async def test_commit_and_reveal_weights_legacy(local_chain):
 
 
 @pytest.mark.asyncio
-async def test_commit_weights_uses_next_nonce(local_chain):
+async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wallet):
     """
     Tests that commiting weights doesn't re-use a nonce in the transaction pool.
 
@@ -186,26 +167,13 @@ async def test_commit_weights_uses_next_nonce(local_chain):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    netuid = 1
+    netuid = 2
     print("Testing test_commit_and_reveal_weights")
     # Register root as Alice
-    keypair, alice_wallet = setup_wallet("//Alice")
-    assert register_subnet(local_chain, alice_wallet), "Unable to register the subnet"
+    assert subtensor.register_subnet(alice_wallet), "Unable to register the subnet"
 
     # Verify subnet 1 created successfully
-    assert local_chain.query(
-        "SubtensorModule", "NetworksAdded", [1]
-    ).serialize(), "Subnet wasn't created successfully"
-
-    subtensor = Subtensor(network="ws://localhost:9945")
-
-    # Register Alice to the subnet
-    assert subtensor.burned_register(
-        alice_wallet, netuid
-    ), "Unable to register Alice as a neuron"
-
-    # Stake to become to top neuron after the first epoch
-    add_stake(local_chain, alice_wallet, Balance.from_tao(100_000))
+    assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
     # Enable commit_reveal on the subnet
     assert sudo_set_hyperparameter_bool(
@@ -219,15 +187,6 @@ async def test_commit_weights_uses_next_nonce(local_chain):
     assert subtensor.get_subnet_hyperparameters(
         netuid=netuid,
     ).commit_reveal_weights_enabled, "Failed to enable commit/reveal"
-
-    # Lower the commit_reveal interval
-    assert sudo_set_hyperparameter_values(
-        local_chain,
-        alice_wallet,
-        call_function="sudo_set_commit_reveal_weights_interval",
-        call_params={"netuid": netuid, "interval": "1"},
-        return_error_message=True,
-    )
 
     assert (
         subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_period == 1
