@@ -109,7 +109,7 @@ async def wait_interval(
     subtensor: "Subtensor",
     netuid: int = 1,
     reporting_interval: int = 1,
-    sleep=0.25,
+    sleep: float = 0.25,
 ):
     """
     Waits until the next tempo interval starts for a specific subnet.
