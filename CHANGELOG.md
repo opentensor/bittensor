@@ -1,5 +1,43 @@
 # Changelog
 
+## 9.0.0rc5 /2025-02-07
+* Fix InfoBase + dataclasses @roman-opentensor in https://github.com/opentensor/bittensor/pull/2649
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.0.0rc4...v9.0.0rc5
+
+## 9.0.0rc4 /2025-02-07
+* Fix for extra fields from chain data by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2647
+* Adds get_all_commitments and fixes commitment tests and query_map @thewhaleking in https://github.com/opentensor/bittensor/pull/2644
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.0.0rc2...v9.0.0rc3
+
+## 9.0.0rc3 /2025-02-06
+
+## What's Changed
+* Adds methods to better accommodate the new websocket implementation (long-lived) by @thewhaleking in https://github.com/opentensor/bittensor/commit/3c44be177edef8a799c2c9dc5e49916723cab5c2
+* Adds latent-lite network by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2641
+* Updates async-substrate-interface to 1.0.0rc12 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/commit/9d0b008e6163c84ed9267423324f30c3ec8af289
+* Bringing meta fields to a common form with float values float(TAO) instead of Balance and Tensor by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2642
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.0.0rc2...v9.0.0rc3
+
+## 9.0.0rc2 /2025-02-05
+
+## What's Changed
+* Small bug fixes and improvements by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2637
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.0.0rc1...v9.0.0rc2
+
+## 9.0.0rc1 /2025-02-05
+
+## What's Changed
+* Uses revamped Async Substrate Interface
+* Compatibility with Rao changes added
+* Completely revamped Async Subtensor introduced
+* Numerous improvements, bug fixes, and deprecations
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.5.1...v9.0.0rc1
+
 ## 8.5.2 /2025-01-17
 
 ## What's Changed

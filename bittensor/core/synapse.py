@@ -1,20 +1,3 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the "Software"), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
 import base64
 import json
 import sys
@@ -103,7 +86,8 @@ class TerminalInfo(BaseModel):
     TerminalInfo encapsulates detailed information about a network synapse (node) involved in a communication process.
 
     This class serves as a metadata carrier,
-    providing essential details about the state and configuration of a terminal during network interactions. This is a crucial class in the Bittensor framework.
+    providing essential details about the state and configuration of a terminal during network interactions. This is a
+     crucial class in the Bittensor framework.
 
     The TerminalInfo class contains information such as HTTP status codes and messages, processing times,
     IP addresses, ports, Bittensor version numbers, and unique identifiers. These details are vital for
@@ -114,16 +98,23 @@ class TerminalInfo(BaseModel):
     is used as a helper class for Synapses.
 
     Args:
-        status_code (int): HTTP status code indicating the result of a network request. Essential for identifying the outcome of network interactions.
-        status_message (str): Descriptive message associated with the status code, providing additional context about the request's result.
-        process_time (float): Time taken by the terminal to process the call, important for performance monitoring and optimization.
+        status_code (int): HTTP status code indicating the result of a network request. Essential for identifying the
+            outcome of network interactions.
+        status_message (str): Descriptive message associated with the status code, providing additional context about
+            the request's result.
+        process_time (float): Time taken by the terminal to process the call, important for performance monitoring and
+            optimization.
         ip (str): IP address of the terminal, crucial for network routing and data transmission.
         port (int): Network port used by the terminal, key for establishing network connections.
-        version (int): Bittensor version running on the terminal, ensuring compatibility between different nodes in the network.
-        nonce (int): Unique, monotonically increasing number for each terminal, aiding in identifying and ordering network interactions.
+        version (int): Bittensor version running on the terminal, ensuring compatibility between different nodes in the
+            network.
+        nonce (int): Unique, monotonically increasing number for each terminal, aiding in identifying and ordering
+            network interactions.
         uuid (str): Unique identifier for the terminal, fundamental for network security and identification.
-        hotkey (str): Encoded hotkey string of the terminal wallet, important for transaction and identity verification in the network.
-        signature (str): Digital signature verifying the tuple of nonce, axon_hotkey, dendrite_hotkey, and uuid, critical for ensuring data authenticity and security.
+        hotkey (str): Encoded hotkey string of the terminal wallet, important for transaction and identity verification
+            in the network.
+        signature (str): Digital signature verifying the tuple of nonce, axon_hotkey, dendrite_hotkey, and uuid,
+            critical for ensuring data authenticity and security.
 
     Usage::
 
@@ -147,9 +138,11 @@ class TerminalInfo(BaseModel):
         ip_address = terminal_info.ip
         processing_duration = terminal_info.process_time
 
-        # TerminalInfo can be used to monitor and verify network interactions, ensuring proper communication and security within the Bittensor network.
+        # TerminalInfo can be used to monitor and verify network interactions, ensuring proper communication and
+        security within the Bittensor network.
 
-    TerminalInfo plays a pivotal role in providing transparency and control over network operations, making it an indispensable tool for developers and users interacting with the Bittensor ecosystem.
+    TerminalInfo plays a pivotal role in providing transparency and control over network operations, making it an
+    indispensable tool for developers and users interacting with the Bittensor ecosystem.
     """
 
     model_config = ConfigDict(validate_assignment=True)
@@ -387,7 +380,9 @@ class Synapse(BaseModel):
         By default, if a subclass does not provide its own implementation of this method, the
         Synapse's deserialize method will be used, returning the object instance as-is.
 
-        In its default form, this method simply returns the instance of the Synapse itself without any modifications. Subclasses of Synapse can override this method to add specific deserialization behaviors, such as converting serialized data back into complex object types or performing additional data integrity checks.
+        In its default form, this method simply returns the instance of the Synapse itself without any modifications.
+        Subclasses of Synapse can override this method to add specific deserialization behaviors, such as converting
+        serialized data back into complex object types or performing additional data integrity checks.
 
         Example::
 
@@ -602,10 +597,13 @@ class Synapse(BaseModel):
 
         Process:
 
-        1. Basic Information: It starts by including the ``name`` and ``timeout`` of the Synapse, which are fundamental for identifying the query and managing its lifespan on the network.
-        2. Complex Objects: The method serializes the ``axon`` and ``dendrite`` objects, if present, into strings. This serialization is crucial for preserving the state and structure of these objects over the network.
+        1. Basic Information: It starts by including the ``name`` and ``timeout`` of the Synapse, which are fundamental
+        for identifying the query and managing its lifespan on the network.
+        2. Complex Objects: The method serializes the ``axon`` and ``dendrite`` objects, if present, into strings. This
+        serialization is crucial for preserving the state and structure of these objects over the network.
         3. Encoding: Non-optional complex objects are serialized and encoded in base64, making them safe for HTTP transport.
-        4. Size Metrics: The method calculates and adds the size of headers and the total object size, providing valuable information for network bandwidth management.
+        4. Size Metrics: The method calculates and adds the size of headers and the total object size, providing
+        valuable information for network bandwidth management.
 
         Example Usage::
 
@@ -614,7 +612,8 @@ class Synapse(BaseModel):
             # headers now contains a dictionary representing the Synapse instance
 
         Returns:
-            dict: A dictionary containing key-value pairs representing the Synapse's properties, suitable for HTTP communication.
+            dict: A dictionary containing key-value pairs representing the Synapse's properties, suitable for HTTP
+            communication.
         """
         # Initializing headers with 'name' and 'timeout'
         headers = {"name": self.name, "timeout": str(self.timeout)}
@@ -691,7 +690,8 @@ class Synapse(BaseModel):
             # hash_value is the SHA3-256 hash of the serialized body of the Synapse instance
 
         Returns:
-            str: The SHA3-256 hash as a hexadecimal string, providing a fingerprint of the Synapse instance's data for integrity checks.
+            str: The SHA3-256 hash as a hexadecimal string, providing a fingerprint of the Synapse instance's data for
+                integrity checks.
         """
         hashes = []
 
@@ -729,7 +729,8 @@ class Synapse(BaseModel):
     @classmethod
     def parse_headers_to_inputs(cls, headers: dict) -> dict:
         """
-        Interprets and transforms a given dictionary of headers into a structured dictionary, facilitating the reconstruction of Synapse objects.
+        Interprets and transforms a given dictionary of headers into a structured dictionary, facilitating the
+        reconstruction of Synapse objects.
 
         This method is essential for parsing network-transmitted
         data back into a Synapse instance, ensuring data consistency and integrity.
@@ -751,7 +752,8 @@ class Synapse(BaseModel):
             # inputs now contains a structured representation of Synapse properties based on the headers
 
         Note:
-            This is handled automatically when calling :func:`Synapse.from_headers(headers)` and does not need to be called directly.
+            This is handled automatically when calling :func:`Synapse.from_headers(headers)` and does not need to be
+                called directly.
 
         Args:
             headers (dict): The headers dictionary to parse.
@@ -820,7 +822,8 @@ class Synapse(BaseModel):
     @classmethod
     def from_headers(cls, headers: dict) -> "Synapse":
         """
-        Constructs a new Synapse instance from a given headers dictionary, enabling the re-creation of the Synapse's state as it was prior to network transmission.
+        Constructs a new Synapse instance from a given headers dictionary, enabling the re-creation of the Synapse's
+        state as it was prior to network transmission.
 
         This method is a key part of the
         deserialization process in the Bittensor network, allowing nodes to accurately reconstruct Synapse
@@ -840,7 +843,8 @@ class Synapse(BaseModel):
             headers (dict): The dictionary of headers containing serialized Synapse information.
 
         Returns:
-            bittensor.core.synapse.Synapse: A new instance of Synapse, reconstructed from the parsed header information, replicating the original instance's state.
+            bittensor.core.synapse.Synapse: A new instance of Synapse, reconstructed from the parsed header information,
+                replicating the original instance's state.
         """
 
         # Get the inputs dictionary from the headers

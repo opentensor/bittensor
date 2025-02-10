@@ -1,36 +1,21 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
 """
 This module defines the `AxonInfo` class, a data structure used to represent information about an axon endpoint
 in the bittensor network.
 """
 
-import json
 from dataclasses import asdict, dataclass
 from typing import Any, Union
 
+import netaddr
+from async_substrate_interface.utils import json
+from bittensor.core.chain_data.info_base import InfoBase
 from bittensor.utils import networking
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
 
 
 @dataclass
-class AxonInfo:
+class AxonInfo(InfoBase):
     """
     The `AxonInfo` class represents information about an axon endpoint in the bittensor network. This includes
     properties such as IP address, ports, and relevant keys.
@@ -97,6 +82,21 @@ class AxonInfo:
             return AxonInfo(0, "", 0, 0, "", "").to_string()
 
     @classmethod
+    def _from_dict(cls, data):
+        """Returns a AxonInfo object from decoded chain data."""
+        return AxonInfo(
+            version=data["version"],
+            ip=str(netaddr.IPAddress(data["ip"])),
+            port=data["port"],
+            ip_type=data["ip_type"],
+            placeholder1=data["placeholder1"],
+            placeholder2=data["placeholder2"],
+            protocol=data["protocol"],
+            hotkey=data["hotkey"],
+            coldkey=data["coldkey"],
+        )
+
+    @classmethod
     def from_string(cls, json_string: str) -> "AxonInfo":
         """
         Creates an `AxonInfo` object from its string representation using JSON.
@@ -105,7 +105,8 @@ class AxonInfo:
             json_string (str): The JSON string representation of the AxonInfo object.
 
         Returns:
-            AxonInfo: An instance of AxonInfo created from the JSON string. If decoding fails, returns a default `AxonInfo` object with default values.
+            AxonInfo: An instance of AxonInfo created from the JSON string. If decoding fails, returns a default
+                `AxonInfo` object with default values.
 
         Raises:
             json.JSONDecodeError: If there is an error in decoding the JSON string.

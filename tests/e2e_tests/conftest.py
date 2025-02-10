@@ -7,12 +7,14 @@ import time
 import threading
 
 import pytest
-from substrateinterface import SubstrateInterface
+from async_substrate_interface import SubstrateInterface
+from bittensor.core.subtensor import Subtensor
 
 from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.e2e_test_utils import (
     clone_or_update_templates,
     install_templates,
+    setup_wallet,
     template_path,
     uninstall_templates,
 )
@@ -103,3 +105,26 @@ def local_chain(request):
     # uninstall templates
     logging.info("uninstalling neuron templates")
     uninstall_templates(template_path)
+
+
+@pytest.fixture
+def subtensor(local_chain):
+    return Subtensor(network="ws://localhost:9945")
+
+
+@pytest.fixture
+def alice_wallet():
+    keypair, wallet = setup_wallet("//Alice")
+    return wallet
+
+
+@pytest.fixture
+def bob_wallet():
+    keypair, wallet = setup_wallet("//Bob")
+    return wallet
+
+
+@pytest.fixture
+def dave_wallet():
+    keypair, wallet = setup_wallet("//Dave")
+    return wallet
