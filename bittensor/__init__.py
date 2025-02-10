@@ -21,6 +21,7 @@ from .core.settings import __version__, version_split, DEFAULTS, DEFAULT_NETWORK
 from .core.async_subtensor import AsyncSubtensor
 from .utils.btlogging import logging
 from .utils.deprecated import *
+from .utils.runtime_browser import runtime_browser as runtime
 
 
 async def async_subtensor(network: str = DEFAULT_NETWORK) -> AsyncSubtensor:
