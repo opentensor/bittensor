@@ -104,6 +104,10 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     logging.console.info(
         f"Checking if window is too low with Current block: {current_block}, next tempo: {upcoming_tempo}"
     )
+
+    # Wait for 2 tempos to pass as CR3 only reveals weights after 2 tempos
+    subtensor.wait_for_block(20)
+
     # Lower than this might mean weights will get revealed before we can check them
     if upcoming_tempo - current_block < 3:
         await wait_interval(
@@ -179,7 +183,6 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     # Fetch weights on the chain as they should be revealed now
     revealed_weights_ = subtensor.weights(netuid=netuid)
 
-    time.sleep(10)
     print("revealed weights", revealed_weights_)
     revealed_weights = revealed_weights_[0][1]
     # Assert correct weights were revealed
