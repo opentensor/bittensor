@@ -163,13 +163,17 @@ class DendriteMixin:
             self._session = aiohttp.ClientSession()
         return self._session
 
-    def close_session(self):
+    def close_session(self, using_new_loop: bool = False):
         """
         Closes the internal `aiohttp <https://github.com/aio-libs/aiohttp>`_ client session synchronously.
 
         This method ensures the proper closure and cleanup of the aiohttp client session, releasing any
         resources like open connections and internal buffers. It is crucial for preventing resource leakage
         and should be called when the dendrite instance is no longer in use, especially in synchronous contexts.
+
+        Arguments:
+            using_new_loop: A flag to determine whether this has been called with a new event loop rather than
+                the default. This will indicate whether to close this event loop at the end of this call.
 
         Note:
             This method utilizes asyncio's event loop to close the session asynchronously from a synchronous context.
@@ -188,6 +192,8 @@ class DendriteMixin:
         if self._session:
             loop = asyncio.get_event_loop()
             loop.run_until_complete(self._session.close())
+            if using_new_loop:
+                loop.close()
             self._session = None
 
     async def aclose_session(self):
@@ -374,16 +380,20 @@ class DendriteMixin:
                 category=DeprecationWarning,
             )
         result = None
+        use_new_loop = False
         try:
             loop = asyncio.get_event_loop()
             result = loop.run_until_complete(self.forward(*args, **kwargs))
-        except Exception:
+        except Exception as e:
+            logging.debug(
+                f"Exception encountered while running Dendrite.query initially: {e}"
+            )
             new_loop = asyncio.new_event_loop()
             asyncio.set_event_loop(new_loop)
             result = new_loop.run_until_complete(self.forward(*args, **kwargs))
-            new_loop.close()
+            use_new_loop = True
         finally:
-            self.close_session()
+            self.close_session(using_new_loop=use_new_loop)
             return result  # type: ignore
 
     async def forward(
