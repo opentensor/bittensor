@@ -1,49 +1,72 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
 import ast
-from collections import namedtuple
 import hashlib
+from collections import namedtuple
 from typing import Any, Literal, Union, Optional, TYPE_CHECKING
 from urllib.parse import urlparse
 
 import scalecodec
+from async_substrate_interface.utils import (
+    hex_to_bytes,
+)
 from bittensor_wallet import Keypair
-from substrateinterface.utils import ss58
+from bittensor_wallet.errors import KeyFileError, PasswordError
+from scalecodec import ss58_decode, is_valid_ss58_address as _is_valid_ss58_address
 
 from bittensor.core.settings import SS58_FORMAT
 from bittensor.utils.btlogging import logging
-from bittensor_wallet.errors import KeyFileError, PasswordError
 from .registration import torch, use_torch
 from .version import version_checking, check_version, VersionCheckError
 
 if TYPE_CHECKING:
-    from bittensor.utils.async_substrate_interface import AsyncSubstrateInterface
-    from substrateinterface import SubstrateInterface
     from bittensor_wallet import Wallet
+
+
+# redundant aliases
+logging = logging
+torch = torch
+use_torch = use_torch
+version_checking = version_checking
+check_version = check_version
+VersionCheckError = VersionCheckError
+ss58_decode = ss58_decode
+hex_to_bytes = hex_to_bytes
+
 
 RAOPERTAO = 1e9
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
 
-Certificate = str
-
-
 UnlockStatus = namedtuple("UnlockStatus", ["success", "message"])
+
+
+class Certificate(str):
+    def __new__(cls, data: Union[str, dict]):
+        if isinstance(data, dict):
+            tuple_ascii = data["public_key"][0]
+            string = chr(data["algorithm"]) + "".join(chr(i) for i in tuple_ascii)
+        else:
+            string = data
+        return str.__new__(cls, string)
+
+
+def _decode_hex_identity_dict(info_dictionary: dict[str, Any]) -> dict[str, Any]:
+    # TODO why does this exist alongside `decode_hex_identity_dict`?
+    """Decodes a dictionary of hexadecimal identities."""
+    decoded_info = {}
+    for k, v in info_dictionary.items():
+        if isinstance(v, dict):
+            item = next(iter(v.values()))
+        else:
+            item = v
+
+        if isinstance(item, tuple):
+            try:
+                decoded_info[k] = bytes(item).decode()
+            except UnicodeDecodeError:
+                print(f"Could not decode: {k}: {item}")
+        else:
+            decoded_info[k] = item
+    return decoded_info
 
 
 def ss58_to_vec_u8(ss58_address: str) -> list[int]:
@@ -180,7 +203,7 @@ def format_error_message(error_message: Union[dict, Exception]) -> str:
                     elif all(x in d for x in ["code", "message", "data"]):
                         new_error_message = d
                         break
-            except ValueError:
+            except (ValueError, TypeError, SyntaxError, MemoryError, RecursionError):
                 pass
         if new_error_message is None:
             return_val = " ".join(error_message.args)
@@ -218,7 +241,6 @@ def format_error_message(error_message: Union[dict, Exception]) -> str:
     return f"Subtensor returned `{err_name}({err_type})` error. This means: `{err_description}`."
 
 
-# Subnet 24 uses this function
 def is_valid_ss58_address(address: str) -> bool:
     """
     Checks if the given address is a valid ss58 address.
@@ -230,9 +252,9 @@ def is_valid_ss58_address(address: str) -> bool:
         True if the address is a valid ss58 address for Bittensor, False otherwise.
     """
     try:
-        return ss58.is_valid_ss58_address(
+        return _is_valid_ss58_address(
             address, valid_ss58_format=SS58_FORMAT
-        ) or ss58.is_valid_ss58_address(
+        ) or _is_valid_ss58_address(
             address, valid_ss58_format=42
         )  # Default substrate ss58 format (legacy)
     except IndexError:
@@ -298,7 +320,8 @@ def decode_hex_identity_dict(info_dictionary) -> dict[str, Any]:
     """
     Decodes hex-encoded strings in a dictionary.
 
-    This function traverses the given dictionary, identifies hex-encoded strings, and decodes them into readable strings. It handles nested dictionaries and lists within the dictionary.
+    This function traverses the given dictionary, identifies hex-encoded strings, and decodes them into readable
+        strings. It handles nested dictionaries and lists within the dictionary.
 
     Args:
         info_dictionary (dict): The dictionary containing hex-encoded strings to decode.
@@ -317,7 +340,7 @@ def decode_hex_identity_dict(info_dictionary) -> dict[str, Any]:
         {'name': 'john', 'additional': [('data', 'data')]}
     """
 
-    def get_decoded(data: str) -> str:
+    def get_decoded(data: str) -> Optional[str]:
         """Decodes a hex-encoded string."""
         try:
             return bytes.fromhex(data[2:]).decode()
@@ -387,14 +410,3 @@ def unlock_key(wallet: "Wallet", unlock_type="coldkey") -> "UnlockStatus":
     except KeyFileError:
         err_msg = f"{unlock_type.capitalize()} keyfile is corrupt, non-writable, or non-readable, or non-existent."
         return UnlockStatus(False, err_msg)
-
-
-def hex_to_bytes(hex_str: str) -> bytes:
-    """
-    Converts a hex-encoded string into bytes. Handles 0x-prefixed and non-prefixed hex-encoded strings.
-    """
-    if hex_str.startswith("0x"):
-        bytes_result = bytes.fromhex(hex_str[2:])
-    else:
-        bytes_result = bytes.fromhex(hex_str)
-    return bytes_result

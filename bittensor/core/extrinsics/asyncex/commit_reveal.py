@@ -1,3 +1,5 @@
+"""This module provides async functionality for commit reveal in the Bittensor network."""
+
 from typing import Optional, Union, TYPE_CHECKING
 
 import numpy as np
@@ -5,7 +7,6 @@ from bittensor_commit_reveal import get_encrypted_commit
 from numpy.typing import NDArray
 
 from bittensor.core.settings import version_as_int
-from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 
@@ -25,10 +26,11 @@ async def _do_commit_reveal_v3(
     wait_for_finalization: bool = False,
 ) -> tuple[bool, Optional[str]]:
     """
-    Executes the commit-reveal phase 3 for a given netuid and commit, and optionally waits for extrinsic inclusion or finalization.
+    Executes the commit-reveal phase 3 for a given netuid and commit, and optionally waits for extrinsic inclusion or
+    finalization.
 
     Arguments:
-        subtensor: An instance of the Subtensor class.
+        subtensor: An instance of the AsyncSubtensor class.
         wallet: Wallet An instance of the Wallet class containing the user's keypair.
         netuid: int The network unique identifier.
         commit  bytes The commit data in bytes format.
@@ -37,7 +39,8 @@ async def _do_commit_reveal_v3(
         wait_for_finalization: bool, optional Flag indicating whether to wait for the extrinsic to be finalized.
 
     Returns:
-        A tuple where the first element is a boolean indicating success or failure, and the second element is an optional string containing error message if any.
+        A tuple where the first element is a boolean indicating success or failure, and the second element is an
+            optional string containing error message if any.
     """
     logging.info(
         f"Committing weights hash [blue]{commit.hex()}[/blue] for subnet #[blue]{netuid}[/blue] with "
@@ -53,25 +56,9 @@ async def _do_commit_reveal_v3(
             "reveal_round": reveal_round,
         },
     )
-    extrinsic = await subtensor.substrate.create_signed_extrinsic(
-        call=call,
-        keypair=wallet.hotkey,
+    return await subtensor.sign_and_send_extrinsic(
+        call, wallet, wait_for_inclusion, wait_for_finalization, sign_with="hotkey"
     )
-
-    response = await subtensor.substrate.submit_extrinsic(
-        subtensor=subtensor,
-        extrinsic=extrinsic,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
-
-    if not wait_for_finalization and not wait_for_inclusion:
-        return True, "Not waiting for finalization or inclusion."
-
-    if await response.is_success:
-        return True, None
-
-    return False, format_error_message(await response.error_message)
 
 
 async def commit_reveal_v3_extrinsic(
@@ -88,7 +75,7 @@ async def commit_reveal_v3_extrinsic(
     Commits and reveals weights for given subtensor and wallet with provided uids and weights.
 
     Arguments:
-        subtensor: The Subtensor instance.
+        subtensor: The AsyncSubtensor instance.
         wallet: The wallet to use for committing and revealing.
         netuid: The id of the network.
         uids: The uids to commit.
@@ -98,7 +85,8 @@ async def commit_reveal_v3_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction. Default is False.
 
     Returns:
-        tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure, and the second element is a message associated with the result.
+        tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure, and the second
+            element is a message associated with the result
     """
     try:
         # Convert uids and weights
@@ -110,12 +98,12 @@ async def commit_reveal_v3_extrinsic(
         # Reformat and normalize.
         uids, weights = convert_weights_and_uids_for_emit(uids, weights)
 
-        current_block = await subtensor.substrate.get_block_number(None)
-        subnet_hyperparameters = await subtensor.get_subnet_hyperparameters(netuid)
-        tempo = subnet_hyperparameters.tempo
-        subnet_reveal_period_epochs = (
-            subnet_hyperparameters.commit_reveal_weights_interval
+        current_block = await subtensor.substrate.get_block(None)
+        subnet_hyperparameters = await subtensor.get_subnet_hyperparameters(
+            netuid, block_hash=current_block["header"]["hash"]
         )
+        tempo = subnet_hyperparameters.tempo
+        subnet_reveal_period_epochs = subnet_hyperparameters.commit_reveal_period
 
         # Encrypt `commit_hash` with t-lock and `get reveal_round`
         commit_for_reveal, reveal_round = get_encrypted_commit(
@@ -123,7 +111,7 @@ async def commit_reveal_v3_extrinsic(
             weights=weights,
             version_key=version_key,
             tempo=tempo,
-            current_block=current_block,
+            current_block=current_block["header"]["number"],
             netuid=netuid,
             subnet_reveal_period_epochs=subnet_reveal_period_epochs,
         )
