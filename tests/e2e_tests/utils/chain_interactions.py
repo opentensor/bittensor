@@ -12,7 +12,6 @@ from bittensor.utils.btlogging import logging
 if TYPE_CHECKING:
     from bittensor import Wallet
     from bittensor.core.subtensor import Subtensor
-    from bittensor.utils.balance import Balance
     from async_substrate_interface import SubstrateInterface, ExtrinsicReceipt
 
 
@@ -68,44 +67,6 @@ def sudo_set_hyperparameter_values(
     return response.is_success
 
 
-def add_stake(
-    substrate: "SubstrateInterface", wallet: "Wallet", amount: "Balance"
-) -> bool:
-    """
-    Adds stake to a hotkey using SubtensorModule. Mimics command of adding stake
-    """
-    stake_call = substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="add_stake",
-        call_params={"hotkey": wallet.hotkey.ss58_address, "amount_staked": amount.rao},
-    )
-    extrinsic = substrate.create_signed_extrinsic(
-        call=stake_call, keypair=wallet.coldkey
-    )
-    response = substrate.submit_extrinsic(
-        extrinsic, wait_for_finalization=True, wait_for_inclusion=True
-    )
-    return response.is_success
-
-
-def register_subnet(substrate: "SubstrateInterface", wallet: "Wallet") -> bool:
-    """
-    Registers a subnet on the chain using wallet. Mimics register subnet command.
-    """
-    register_call = substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="register_network",
-        call_params={"immunity_period": 0, "reg_allowed": True},
-    )
-    extrinsic = substrate.create_signed_extrinsic(
-        call=register_call, keypair=wallet.coldkey
-    )
-    response = substrate.submit_extrinsic(
-        extrinsic, wait_for_finalization=True, wait_for_inclusion=True
-    )
-    return response.is_success
-
-
 async def wait_epoch(subtensor: "Subtensor", netuid: int = 1):
     """
     Waits for the next epoch to start on a specific subnet.
@@ -144,7 +105,11 @@ def next_tempo(current_block: int, tempo: int, netuid: int) -> int:
 
 
 async def wait_interval(
-    tempo: int, subtensor: "Subtensor", netuid: int = 1, reporting_interval: int = 10
+    tempo: int,
+    subtensor: "Subtensor",
+    netuid: int = 1,
+    reporting_interval: int = 1,
+    sleep: float = 0.25,
 ):
     """
     Waits until the next tempo interval starts for a specific subnet.
@@ -159,8 +124,8 @@ async def wait_interval(
 
     while current_block < next_tempo_block_start:
         await asyncio.sleep(
-            1
-        )  # Wait for 1 second before checking the block number again
+            sleep,
+        )  # Wait before checking the block number again
         current_block = subtensor.get_current_block()
         if last_reported is None or current_block - last_reported >= reporting_interval:
             last_reported = current_block
