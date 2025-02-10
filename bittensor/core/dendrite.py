@@ -385,7 +385,9 @@ class DendriteMixin:
             loop = asyncio.get_event_loop()
             result = loop.run_until_complete(self.forward(*args, **kwargs))
         except Exception as e:
-            logging.debug(f"Exception encountered while running Dendrite.query initially: {e}")
+            logging.debug(
+                f"Exception encountered while running Dendrite.query initially: {e}"
+            )
             new_loop = asyncio.new_event_loop()
             asyncio.set_event_loop(new_loop)
             result = new_loop.run_until_complete(self.forward(*args, **kwargs))
