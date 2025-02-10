@@ -90,7 +90,7 @@ jobs:
 
       - name: Setup subtensor repo
         working-directory: ${{ github.workspace }}/subtensor
-        run: git checkout main
+        run: git checkout testnet
 
       - name: Run tests
         run: |
