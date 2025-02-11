@@ -8,10 +8,6 @@ from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_admin_utils,
     wait_epoch,
 )
-from tests.e2e_tests.utils.e2e_test_utils import (
-    template_path,
-    templates_repo,
-)
 
 """
 Verifies:
@@ -35,7 +31,7 @@ Verifies:
 
 
 @pytest.mark.asyncio
-async def test_subtensor_extrinsics(subtensor, alice_wallet, bob_wallet):
+async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wallet):
     """
     Tests subtensor extrinsics
 
@@ -163,13 +159,13 @@ async def test_subtensor_extrinsics(subtensor, alice_wallet, bob_wallet):
     cmd = " ".join(
         [
             f"{sys.executable}",
-            f'"{template_path}{templates_repo}/validator.py"',
+            f'"{templates}/validator.py"',
             "--netuid",
             str(netuid),
             "--subtensor.network",
             "local",
             "--subtensor.chain_endpoint",
-            "ws://localhost:9945",
+            "ws://localhost:9944",
             "--wallet.path",
             alice_wallet.path,
             "--wallet.name",

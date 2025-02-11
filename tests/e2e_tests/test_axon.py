@@ -4,14 +4,10 @@ import sys
 import pytest
 
 from bittensor.utils import networking
-from tests.e2e_tests.utils.e2e_test_utils import (
-    template_path,
-    templates_repo,
-)
 
 
 @pytest.mark.asyncio
-async def test_axon(subtensor, alice_wallet):
+async def test_axon(subtensor, templates, alice_wallet):
     """
     Test the Axon mechanism and successful registration on the network.
 
@@ -53,13 +49,13 @@ async def test_axon(subtensor, alice_wallet):
     cmd = " ".join(
         [
             f"{sys.executable}",
-            f'"{template_path}{templates_repo}/miner.py"',
+            f'"{templates}/miner.py"',
             "--netuid",
             str(netuid),
             "--subtensor.network",
             "local",
             "--subtensor.chain_endpoint",
-            "ws://localhost:9945",
+            "ws://localhost:9944",
             "--wallet.path",
             alice_wallet.path,
             "--wallet.name",
