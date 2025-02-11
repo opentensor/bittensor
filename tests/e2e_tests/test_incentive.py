@@ -52,12 +52,16 @@ async def test_incentive(local_chain, subtensor, alice_wallet, bob_wallet):
 
     # Get current miner/validator stats
     alice_neuron = metagraph.neurons[0]
+
+    time.sleep(20)
     assert alice_neuron.validator_permit is True
     assert alice_neuron.dividends == 0
     assert alice_neuron.stake.tao > 0
     assert alice_neuron.validator_trust == 0
 
     bob_neuron = metagraph.neurons[1]
+
+    time.sleep(20)
     assert bob_neuron.incentive == 0
     assert bob_neuron.consensus == 0
     assert bob_neuron.rank == 0
@@ -82,7 +86,7 @@ async def test_incentive(local_chain, subtensor, alice_wallet, bob_wallet):
             "--subtensor.network",
             "local",
             "--subtensor.chain_endpoint",
-            "ws://localhost:9945",
+            local_chain.chain_endpoint,
             "--wallet.path",
             bob_wallet.path,
             "--wallet.name",
