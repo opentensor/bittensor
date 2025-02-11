@@ -19,7 +19,7 @@ from bittensor.core.chain_data import (
     MetagraphInfoPool,
     MetagraphInfoParams,
 )
-
+from bittensor.utils import determine_chain_endpoint_and_network
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
 from bittensor.utils.weight_utils import (
@@ -141,26 +141,6 @@ def latest_block_path(dir_path: str) -> str:
         raise ValueError(f"Metagraph not found at: {dir_path}")
     else:
         return latest_file_full_path
-
-
-def determine_chain_endpoint_and_network(network: str) -> tuple[str, str]:
-    """
-    Determine the chain endpoint and network name from the passed arg
-
-    Args:
-        network: The network name (e.g. 'finney', 'test') or
-            chain endpoint (e.g. wss://entrypoint-finney.opentensor.ai:443)
-
-    Returns:
-        (network name, chain endpoint)
-    """
-    pathless_network = network[:-1] if network.endswith("/") else network
-    if pathless_network in settings.NETWORK_MAP:
-        return pathless_network, settings.NETWORK_MAP[pathless_network]
-    elif pathless_network in settings.REVERSE_NETWORK_MAP:
-        return settings.REVERSE_NETWORK_MAP[pathless_network], pathless_network
-    else:
-        return "unknown", network
 
 
 class MetagraphMixin(ABC):
