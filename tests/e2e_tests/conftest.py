@@ -7,12 +7,14 @@ import time
 import threading
 
 import pytest
-from substrateinterface import SubstrateInterface
+from async_substrate_interface import SubstrateInterface
+from bittensor.core.subtensor import Subtensor
 
 from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.e2e_test_utils import (
     clone_or_update_templates,
     install_templates,
+    setup_wallet,
     template_path,
     uninstall_templates,
 )
@@ -47,13 +49,6 @@ def local_chain(request):
 
     # Pattern match indicates node is compiled and ready
     pattern = re.compile(r"Imported #1")
-
-    # install neuron templates
-    logging.info("downloading and installing neuron templates from github")
-    # commit with subnet-template-repo changes for rust wallet
-    templates_dir = clone_or_update_templates()
-    install_templates(templates_dir)
-
     timestamp = int(time.time())
 
     def wait_for_node_start(process, pattern):
@@ -85,7 +80,7 @@ def local_chain(request):
     wait_for_node_start(process, pattern)
 
     # Run the test, passing in substrate interface
-    yield SubstrateInterface(url="ws://127.0.0.1:9945")
+    yield SubstrateInterface(url="ws://127.0.0.1:9944")
 
     # Terminate the process group (includes all child processes)
     os.killpg(os.getpgid(process.pid), signal.SIGTERM)
@@ -100,6 +95,40 @@ def local_chain(request):
     # Ensure the process has terminated
     process.wait()
 
-    # uninstall templates
+
+@pytest.fixture
+def templates():
+    logging.info("downloading and installing neuron templates from github")
+
+    templates_dir = clone_or_update_templates()
+
+    install_templates(templates_dir)
+
+    yield templates_dir
+
     logging.info("uninstalling neuron templates")
+
     uninstall_templates(template_path)
+
+
+@pytest.fixture
+def subtensor(local_chain):
+    return Subtensor(network="ws://localhost:9944")
+
+
+@pytest.fixture
+def alice_wallet():
+    keypair, wallet = setup_wallet("//Alice")
+    return wallet
+
+
+@pytest.fixture
+def bob_wallet():
+    keypair, wallet = setup_wallet("//Bob")
+    return wallet
+
+
+@pytest.fixture
+def dave_wallet():
+    keypair, wallet = setup_wallet("//Dave")
+    return wallet

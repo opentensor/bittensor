@@ -1,13 +1,9 @@
-from bittensor.core.subtensor import Subtensor
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.chain_interactions import (
-    add_stake,
-    register_subnet,
     sudo_set_hyperparameter_bool,
     sudo_set_hyperparameter_values,
 )
-from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
 
 
 def liquid_alpha_call_params(netuid: int, alpha_values: str):
@@ -19,7 +15,7 @@ def liquid_alpha_call_params(netuid: int, alpha_values: str):
     }
 
 
-def test_liquid_alpha(local_chain):
+def test_liquid_alpha(local_chain, subtensor, alice_wallet):
     """
     Test the liquid alpha mechanism
 
@@ -33,24 +29,26 @@ def test_liquid_alpha(local_chain):
         AssertionError: If any of the checks or verifications fail
     """
     u16_max = 65535
-    netuid = 1
+    netuid = 2
     logging.console.info("Testing test_liquid_alpha_enabled")
 
     # Register root as Alice
-    keypair, alice_wallet = setup_wallet("//Alice")
-    register_subnet(local_chain, alice_wallet), "Unable to register the subnet"
+    assert subtensor.register_subnet(alice_wallet), "Unable to register the subnet"
 
-    # Verify subnet 1 created successfully
-    assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
+    # Verify subnet created successfully
+    assert subtensor.subnet_exists(netuid)
 
     # Register a neuron (Alice) to the subnet
-    subtensor = Subtensor(network="ws://localhost:9945")
     assert subtensor.burned_register(
         alice_wallet, netuid
     ), "Unable to register Alice as a neuron"
 
     # Stake to become to top neuron after the first epoch
-    add_stake(local_chain, alice_wallet, Balance.from_tao(100_000))
+    subtensor.add_stake(
+        alice_wallet,
+        netuid=netuid,
+        amount=Balance.from_tao(10_000),
+    )
 
     # Assert liquid alpha is disabled
     assert (
@@ -77,7 +75,7 @@ def test_liquid_alpha(local_chain):
     ), "Unable to enable liquid alpha"
 
     assert subtensor.get_subnet_hyperparameters(
-        netuid=1
+        netuid,
     ).liquid_alpha_enabled, "Failed to enable liquid alpha"
 
     # Attempt to set alpha high & low after enabling the hyperparameter
@@ -90,10 +88,10 @@ def test_liquid_alpha(local_chain):
         call_params=call_params,
     ), "Unable to set alpha_values"
     assert (
-        subtensor.get_subnet_hyperparameters(netuid=1).alpha_high == 54099
+        subtensor.get_subnet_hyperparameters(netuid).alpha_high == 54099
     ), "Failed to set alpha high"
     assert (
-        subtensor.get_subnet_hyperparameters(netuid=1).alpha_low == 87
+        subtensor.get_subnet_hyperparameters(netuid).alpha_low == 87
     ), "Failed to set alpha low"
 
     # Testing alpha high upper and lower bounds
@@ -169,10 +167,10 @@ def test_liquid_alpha(local_chain):
     ), "Unable to set liquid alpha values"
 
     assert (
-        subtensor.get_subnet_hyperparameters(netuid=1).alpha_high == 53083
+        subtensor.get_subnet_hyperparameters(netuid).alpha_high == 53083
     ), "Failed to set alpha high"
     assert (
-        subtensor.get_subnet_hyperparameters(netuid=1).alpha_low == 6553
+        subtensor.get_subnet_hyperparameters(netuid).alpha_low == 6553
     ), "Failed to set alpha low"
 
     # Disable Liquid Alpha
@@ -181,6 +179,6 @@ def test_liquid_alpha(local_chain):
     ), "Unable to disable liquid alpha"
 
     assert (
-        subtensor.get_subnet_hyperparameters(netuid=1).liquid_alpha_enabled is False
+        subtensor.get_subnet_hyperparameters(netuid).liquid_alpha_enabled is False
     ), "Failed to disable liquid alpha"
     logging.console.info("✅ Passed test_liquid_alpha")

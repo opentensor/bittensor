@@ -43,8 +43,10 @@ def clone_or_update_templates(specific_commit=None):
     """
     install_dir = template_path
     repo_mapping = {
-        templates_repo: "https://github.com/opentensor/bittensor-subnet-template.git",
+        templates_repo: "https://github.com/opentensor/subnet-template.git",
     }
+
+    cwd = os.getcwd()
 
     os.makedirs(install_dir, exist_ok=True)
     os.chdir(install_dir)
@@ -69,16 +71,16 @@ def clone_or_update_templates(specific_commit=None):
         subprocess.run(["git", "checkout", specific_commit], check=True)
         os.chdir("..")
 
-    return install_dir + templates_repo + "/"
+    os.chdir(cwd)
+
+    return install_dir + templates_repo
 
 
 def install_templates(install_dir):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", install_dir])
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."])
 
 
 def uninstall_templates(install_dir):
-    subprocess.check_call(
-        [sys.executable, "-m", "pip", "uninstall", "bittensor_subnet_template", "-y"]
-    )
+    subprocess.check_call([sys.executable, "-m", "pip", "uninstall", "bittensor", "-y"])
     # Delete everything in directory
     shutil.rmtree(install_dir)

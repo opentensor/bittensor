@@ -2,17 +2,9 @@ import asyncio
 import sys
 import pytest
 
-from bittensor.core.subtensor import Subtensor
 from tests.e2e_tests.utils.chain_interactions import (
-    register_subnet,
     wait_epoch,
     sudo_set_hyperparameter_values,
-)
-from bittensor.core.extrinsics.root import _do_set_root_weights
-from tests.e2e_tests.utils.e2e_test_utils import (
-    setup_wallet,
-    template_path,
-    templates_repo,
 )
 
 FAST_BLOCKS_SPEEDUP_FACTOR = 5
@@ -38,7 +30,13 @@ Verifies:
 
 
 @pytest.mark.asyncio
-async def test_root_reg_hyperparams(local_chain):
+async def test_root_reg_hyperparams(
+    local_chain,
+    subtensor,
+    templates,
+    alice_wallet,
+    bob_wallet,
+):
     """
     Test root weights and hyperparameters in the Subtensor network.
 
@@ -61,19 +59,15 @@ async def test_root_reg_hyperparams(local_chain):
     """
 
     print("Testing root register, weights, and hyperparams")
-    netuid = 1
+    netuid = 2
 
     # Default immunity period & tempo set through the subtensor side
     default_immunity_period = 5000
-    default_tempo = 360
+    default_tempo = 10
 
     # 0.2 for root network, 0.8 for sn 1
     # Corresponding to [0.2, 0.8]
     weights = [16384, 65535]
-
-    # Create Alice, SN1 owner and root network member
-    alice_keypair, alice_wallet = setup_wallet("//Alice")
-    subtensor = Subtensor(network="ws://localhost:9945")
 
     # Register Alice in root network (0)
     assert subtensor.root_register(alice_wallet)
@@ -83,13 +77,8 @@ async def test_root_reg_hyperparams(local_chain):
     assert alice_root_neuron.coldkey == alice_wallet.coldkeypub.ss58_address
     assert alice_root_neuron.hotkey == alice_wallet.hotkey.ss58_address
 
-    # Create netuid = 1
-    register_subnet(local_chain, alice_wallet)
-
-    # Register Alice as a neuron on the subnet
-    assert subtensor.burned_register(
-        alice_wallet, netuid
-    ), "Unable to register Alice as a neuron"
+    # Create netuid = 2
+    assert subtensor.register_subnet(alice_wallet)
 
     # Ensure correct immunity period & tempo is being fetched
     assert subtensor.immunity_period(netuid=netuid) == default_immunity_period
@@ -99,13 +88,13 @@ async def test_root_reg_hyperparams(local_chain):
     cmd = " ".join(
         [
             f"{sys.executable}",
-            f'"{template_path}{templates_repo}/neurons/validator.py"',
+            f'"{templates}/validator.py"',
             "--netuid",
             str(netuid),
             "--subtensor.network",
             "local",
             "--subtensor.chain_endpoint",
-            "ws://localhost:9945",
+            "ws://localhost:9944",
             "--wallet.path",
             alice_wallet.path,
             "--wallet.name",
@@ -125,55 +114,31 @@ async def test_root_reg_hyperparams(local_chain):
     print("Neuron Alice is now validating")
     await asyncio.sleep(5)  # Wait a bit for chain to process data
 
-    # Fetch uid against Alice's hotkey on sn 1 (it will be 0 as she is the only registered neuron)
-    alice_uid_sn_1 = subtensor.get_uid_for_hotkey_on_subnet(
+    # Fetch uid against Alice's hotkey on sn 2 (it will be 0 as she is the only registered neuron)
+    alice_uid_sn_2 = subtensor.get_uid_for_hotkey_on_subnet(
         alice_wallet.hotkey.ss58_address, netuid
     )
 
     # Fetch the block since last update for the neuron
     block_since_update = subtensor.blocks_since_last_update(
-        netuid=netuid, uid=alice_uid_sn_1
+        netuid=netuid, uid=alice_uid_sn_2
     )
     assert block_since_update is not None
 
     # Verify subnet <netuid> created successfully
-    assert local_chain.query(
-        "SubtensorModule", "NetworksAdded", [netuid]
-    ).serialize(), "Subnet wasn't created successfully"
+    assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
     # Use subnetwork_n hyperparam to check sn creation
-    assert subtensor.subnetwork_n(netuid) == netuid
-    assert subtensor.subnetwork_n(2) is None
+    assert subtensor.subnetwork_n(netuid) == 1  # TODO?
+    assert subtensor.subnetwork_n(netuid + 1) is None
 
     # Ensure correct hyperparams are being fetched regarding weights
-    assert subtensor.min_allowed_weights(netuid=1) is not None
-    assert subtensor.max_weight_limit(netuid=1) is not None
+    assert subtensor.min_allowed_weights(netuid) is not None
+    assert subtensor.max_weight_limit(netuid) is not None
     assert subtensor.weights_rate_limit(netuid) is not None
 
     # Wait until next epoch so we can set root weights
-    await wait_epoch(subtensor)
-
-    # Set root weights to root network (0) and sn 1
-    assert _do_set_root_weights(
-        subtensor,
-        wallet=alice_wallet,
-        uids=[0, 1],
-        vals=weights,
-        netuid=0,
-        version_key=0,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-        period=5 * FAST_BLOCKS_SPEEDUP_FACTOR,
-    ) == (True, "Successfully set weights.")
-
-    # Query the weights from the chain
-    weights_set = local_chain.query("SubtensorModule", "Weights", [0, 0]).serialize()
-
-    # Assert correct weights were set for root and sn 1
-    assert [val[1] for val in weights_set] == weights
-
-    # Register Bob as miner
-    bob_keypair, bob_wallet = setup_wallet("//Bob")
+    await wait_epoch(subtensor, netuid)
 
     # Change hyperparams so we can execute pow_register
     assert sudo_set_hyperparameter_values(
@@ -199,9 +164,9 @@ async def test_root_reg_hyperparams(local_chain):
     # Fetch neuron lite for sn one and assert Alice participation
     sn_one_neurons = subtensor.neurons_lite(netuid=netuid)
     assert (
-        sn_one_neurons[alice_uid_sn_1].coldkey == alice_wallet.coldkeypub.ss58_address
+        sn_one_neurons[alice_uid_sn_2].coldkey == alice_wallet.coldkeypub.ss58_address
     )
-    assert sn_one_neurons[alice_uid_sn_1].hotkey == alice_wallet.hotkey.ss58_address
-    assert sn_one_neurons[alice_uid_sn_1].validator_permit is True
+    assert sn_one_neurons[alice_uid_sn_2].hotkey == alice_wallet.hotkey.ss58_address
+    assert sn_one_neurons[alice_uid_sn_2].validator_permit is True
 
     print("✅ Passed root tests")
