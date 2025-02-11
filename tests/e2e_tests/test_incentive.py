@@ -49,7 +49,7 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     # Get current miner/validator stats
     alice_neuron = metagraph.neurons[0]
 
-    time.sleep(20)
+    time.sleep(30)
     assert alice_neuron.validator_permit is True
     assert alice_neuron.dividends == 0
     assert alice_neuron.stake.tao > 0
@@ -57,7 +57,7 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
 
     bob_neuron = metagraph.neurons[1]
 
-    time.sleep(20)
+    time.sleep(30)
     assert bob_neuron.incentive == 0
     assert bob_neuron.consensus == 0
     assert bob_neuron.rank == 0
