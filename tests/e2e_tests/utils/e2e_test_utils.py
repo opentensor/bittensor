@@ -77,7 +77,7 @@ def clone_or_update_templates(specific_commit=None):
 
 
 def install_templates(install_dir):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "."])
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."])
 
 
 def uninstall_templates(install_dir):
