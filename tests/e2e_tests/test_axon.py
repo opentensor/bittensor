@@ -55,7 +55,7 @@ async def test_axon(subtensor, templates, alice_wallet):
             "--subtensor.network",
             "local",
             "--subtensor.chain_endpoint",
-            "ws://localhost:9945",
+            "ws://localhost:9944",
             "--wallet.path",
             alice_wallet.path,
             "--wallet.name",

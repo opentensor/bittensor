@@ -165,7 +165,7 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
             "--subtensor.network",
             "local",
             "--subtensor.chain_endpoint",
-            "ws://localhost:9945",
+            "ws://localhost:9944",
             "--wallet.path",
             alice_wallet.path,
             "--wallet.name",
