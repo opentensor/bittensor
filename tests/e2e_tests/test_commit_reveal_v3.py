@@ -1,26 +1,23 @@
 import re
+import time
 
 import numpy as np
 import pytest
 from bittensor.utils.btlogging import logging
-from bittensor.core.subtensor import Subtensor
 from bittensor.utils.balance import Balance
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
-    add_stake,
-    register_subnet,
+    sudo_set_admin_utils,
     sudo_set_hyperparameter_bool,
     sudo_set_hyperparameter_values,
     wait_interval,
-    sudo_set_admin_utils,
     next_tempo,
 )
-from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
 
 
 @pytest.mark.parametrize("local_chain", [False], indirect=True)
 @pytest.mark.asyncio
-async def test_commit_and_reveal_weights_cr3(local_chain):
+async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_wallet):
     """
     Tests the commit/reveal weights mechanism (CR3)
 
@@ -35,31 +32,16 @@ async def test_commit_and_reveal_weights_cr3(local_chain):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    netuid = 1
+    netuid = 2
     logging.console.info("Testing test_commit_and_reveal_weights")
 
     # Register root as Alice
-    keypair, alice_wallet = setup_wallet("//Alice")
-    assert register_subnet(local_chain, alice_wallet), "Unable to register the subnet"
+    assert subtensor.register_subnet(alice_wallet), "Unable to register the subnet"
 
-    # Verify subnet 1 created successfully
-    assert local_chain.query(
-        "SubtensorModule", "NetworksAdded", [1]
-    ).serialize(), "Subnet wasn't created successfully"
+    # Verify subnet 2 created successfully
+    assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
-    logging.console.info("Subnet 1 is registered")
-
-    subtensor = Subtensor(network="ws://localhost:9945")
-
-    # Register Alice to the subnet
-    assert subtensor.burned_register(
-        alice_wallet, netuid
-    ), "Unable to register Alice as a neuron"
-    logging.console.info("Registered Alice to subnet 1")
-
-    # Stake to become to top neuron after the first epoch
-    add_stake(local_chain, alice_wallet, Balance.from_tao(100_000))
-    logging.console.info("Stake added by Alice")
+    logging.console.info("Subnet 2 is registered")
 
     # Enable commit_reveal on the subnet
     assert sudo_set_hyperparameter_bool(
@@ -95,12 +77,15 @@ async def test_commit_and_reveal_weights_cr3(local_chain):
     # Change the tempo of the subnet from default 360
     # Since this is in normal blocks, this is necessary
     tempo_set = 10
-    assert sudo_set_admin_utils(
-        local_chain,
-        alice_wallet,
-        call_function="sudo_set_tempo",
-        call_params={"netuid": netuid, "tempo": tempo_set},
-        return_error_message=True,
+    assert (
+        sudo_set_admin_utils(
+            local_chain,
+            alice_wallet,
+            call_function="sudo_set_tempo",
+            call_params={"netuid": netuid, "tempo": tempo_set},
+            return_error_message=True,
+        )[0]
+        is True
     )
     tempo = subtensor.get_subnet_hyperparameters(netuid=netuid).tempo
     assert tempo_set == tempo
@@ -119,6 +104,10 @@ async def test_commit_and_reveal_weights_cr3(local_chain):
     logging.console.info(
         f"Checking if window is too low with Current block: {current_block}, next tempo: {upcoming_tempo}"
     )
+
+    # Wait for 2 tempos to pass as CR3 only reveals weights after 2 tempos
+    subtensor.wait_for_block(20)
+
     # Lower than this might mean weights will get revealed before we can check them
     if upcoming_tempo - current_block < 3:
         await wait_interval(
@@ -192,8 +181,10 @@ async def test_commit_and_reveal_weights_cr3(local_chain):
     )
 
     # Fetch weights on the chain as they should be revealed now
-    revealed_weights = subtensor.weights(netuid=netuid)[0][1]
+    revealed_weights_ = subtensor.weights(netuid=netuid)
 
+    print("revealed weights", revealed_weights_)
+    revealed_weights = revealed_weights_[0][1]
     # Assert correct weights were revealed
     assert weight_uids[0] == revealed_weights[0][0]
     assert weight_vals[0] == revealed_weights[0][1]

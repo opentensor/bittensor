@@ -1,21 +1,22 @@
-from typing import TypedDict
+from bittensor.core.chain_data.utils import decode_account_id
 
 
 # Senate / Proposal data
-class ProposalVoteData(TypedDict):
-    """
-    This TypedDict represents the data structure for a proposal vote in the Senate.
-
-    Attributes:
-        index (int): The index of the proposal.
-        threshold (int): The threshold required for the proposal to pass.
-        ayes (List[str]): List of senators who voted 'aye'.
-        nays (List[str]): List of senators who voted 'nay'.
-        end (int): The ending timestamp of the voting period.
-    """
-
+class ProposalVoteData:
     index: int
     threshold: int
     ayes: list[str]
     nays: list[str]
     end: int
+
+    def __init__(self, proposal_dict: dict) -> None:
+        self.index = proposal_dict["index"]
+        self.threshold = proposal_dict["threshold"]
+        self.ayes = self.decode_ss58_tuples(proposal_dict["ayes"])
+        self.nays = self.decode_ss58_tuples(proposal_dict["nays"])
+        self.end = proposal_dict["end"]
+
+    @staticmethod
+    def decode_ss58_tuples(line: tuple):
+        """Decodes a tuple of ss58 addresses formatted as bytes tuples."""
+        return [decode_account_id(line[x][0]) for x in range(len(line))]

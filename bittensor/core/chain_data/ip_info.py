@@ -1,7 +1,6 @@
 from dataclasses import dataclass
-from typing import Optional, Any, Union
+from typing import Any, Union
 
-from bittensor.core.chain_data.utils import from_scale_encoding, ChainDataType
 from bittensor.utils import networking as net
 from bittensor.utils.registration import torch, use_torch
 
@@ -31,33 +30,11 @@ class IPInfo:
         }
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: list[int]) -> Optional["IPInfo"]:
-        """Returns a IPInfo object from a ``vec_u8``."""
-        if len(vec_u8) == 0:
-            return None
-
-        decoded = from_scale_encoding(vec_u8, ChainDataType.IPInfo)
-        if decoded is None:
-            return None
-
-        return IPInfo.fix_decoded_values(decoded)
-
-    @classmethod
-    def list_from_vec_u8(cls, vec_u8: list[int]) -> list["IPInfo"]:
-        """Returns a list of IPInfo objects from a ``vec_u8``."""
-        decoded = from_scale_encoding(vec_u8, ChainDataType.IPInfo, is_vec=True)
-
-        if decoded is None:
-            return []
-
-        return [IPInfo.fix_decoded_values(d) for d in decoded]
-
-    @classmethod
-    def fix_decoded_values(cls, decoded: dict) -> "IPInfo":
-        """Returns a SubnetInfo object from a decoded IPInfo dictionary."""
+    def _from_dict(cls, decoded: dict) -> "IPInfo":
+        """Returns a IPInfo object from decoded chain data."""
         return IPInfo(
-            ip=net.int_to_ip(decoded["ip"]),
             ip_type=decoded["ip_type_and_protocol"] >> 4,
+            ip=net.int_to_ip(decoded["ip"]),
             protocol=decoded["ip_type_and_protocol"] & 0xF,
         )
 

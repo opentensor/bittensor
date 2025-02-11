@@ -1,7 +1,7 @@
 import pytest
 from bittensor.core import async_subtensor
 from bittensor_wallet import Wallet
-from bittensor.core.extrinsics import async_weights
+from bittensor.core.extrinsics.asyncex import weights as async_weights
 
 
 @pytest.fixture(autouse=True)
@@ -56,7 +56,7 @@ async def test_do_set_weights_success(subtensor, mocker):
 
     # Asserts
     assert result is True
-    assert message == "Successfully set weights."
+    assert message is None
 
 
 @pytest.mark.asyncio
@@ -79,7 +79,7 @@ async def test_do_set_weights_failure(subtensor, mocker):
 
     fake_response.process_events = mocker.AsyncMock()
 
-    fake_response.error_message = mocker.Mock()
+    fake_response.error_message = mocker.AsyncMock(return_value="Error occurred")()
     fake_response.process_events = mocker.AsyncMock()
 
     mocked_format_error_message = mocker.Mock()
@@ -108,7 +108,7 @@ async def test_do_set_weights_failure(subtensor, mocker):
 
     # Asserts
     assert result is False
-    mocked_format_error_message.assert_called_once_with(fake_response.error_message)
+    mocked_format_error_message.assert_called_once_with("Error occurred")
     assert message == mocked_format_error_message.return_value
 
 
@@ -146,7 +146,7 @@ async def test_do_set_weights_no_waiting(subtensor, mocker):
 
     # Asserts
     assert result is True
-    assert message == "Not waiting for finalization or inclusion."
+    assert message is None
 
 
 @pytest.mark.asyncio
@@ -336,7 +336,7 @@ async def test_do_commit_weights_failure(subtensor, mocker):
     fake_response = mocker.Mock()
     fake_response.is_success = fake_is_success()
     fake_response.process_events = mocker.AsyncMock()
-    fake_response.error_message = "Error occurred"
+    fake_response.error_message = mocker.AsyncMock(return_value="Error occurred")()
 
     mocked_format_error_message = mocker.Mock(return_value="Formatted error")
     mocker.patch.object(
@@ -363,7 +363,7 @@ async def test_do_commit_weights_failure(subtensor, mocker):
 
     # Asserts
     assert result is False
-    mocked_format_error_message.assert_called_once_with(fake_response.error_message)
+    mocked_format_error_message.assert_called_once_with("Error occurred")
     assert message == "Formatted error"
 
 
@@ -460,7 +460,7 @@ async def test_commit_weights_extrinsic_success(subtensor, mocker):
         wait_for_finalization=True,
     )
     assert result is True
-    assert message == "Successfully committed weights."
+    assert message == "✅ [green]Successfully committed weights.[green]"
 
 
 @pytest.mark.asyncio

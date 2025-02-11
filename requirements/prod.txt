@@ -2,9 +2,6 @@ wheel
 setuptools~=70.0.0
 aiohttp~=3.9
 asyncstdlib~=3.13.0
-async-property==0.2.2
-bittensor-cli
-bt-decode==0.4.0
 colorama~=0.4.6
 fastapi~=0.110.1
 munch~=2.5.0
@@ -22,8 +19,9 @@ rich
 pydantic>=2.3, <3
 python-Levenshtein
 scalecodec==1.2.11
-substrate-interface~=1.7.9
 uvicorn
 websockets>=14.1
 bittensor-commit-reveal>=0.2.0
-bittensor-wallet>=3.0.0
+bittensor-wallet>=3.0.2
+async-substrate-interface>=1.0.0rc13
+bittensor-cli>=9.0.0rc1
