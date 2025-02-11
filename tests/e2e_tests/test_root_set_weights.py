@@ -6,10 +6,6 @@ from tests.e2e_tests.utils.chain_interactions import (
     wait_epoch,
     sudo_set_hyperparameter_values,
 )
-from tests.e2e_tests.utils.e2e_test_utils import (
-    template_path,
-    templates_repo,
-)
 
 FAST_BLOCKS_SPEEDUP_FACTOR = 5
 
@@ -34,7 +30,13 @@ Verifies:
 
 
 @pytest.mark.asyncio
-async def test_root_reg_hyperparams(local_chain, subtensor, alice_wallet, bob_wallet):
+async def test_root_reg_hyperparams(
+    local_chain,
+    subtensor,
+    templates,
+    alice_wallet,
+    bob_wallet,
+):
     """
     Test root weights and hyperparameters in the Subtensor network.
 
@@ -86,13 +88,13 @@ async def test_root_reg_hyperparams(local_chain, subtensor, alice_wallet, bob_wa
     cmd = " ".join(
         [
             f"{sys.executable}",
-            f'"{template_path}{templates_repo}/validator.py"',
+            f'"{templates}/validator.py"',
             "--netuid",
             str(netuid),
             "--subtensor.network",
             "local",
             "--subtensor.chain_endpoint",
-            "ws://localhost:9945",
+            "ws://localhost:9944",
             "--wallet.path",
             alice_wallet.path,
             "--wallet.name",

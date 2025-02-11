@@ -290,14 +290,6 @@ async def move_stake_extrinsic(
         bool: True if the move was successful, False otherwise.
     """
     amount.set_unit(netuid=origin_netuid)
-    # Verify ownership of origin hotkey
-    origin_owner = await subtensor.get_hotkey_owner(origin_hotkey)
-    if origin_owner != wallet.coldkeypub.ss58_address:
-        logging.error(
-            f":cross_mark: [red]Failed[/red]: Origin hotkey: {origin_hotkey} does not belong to the coldkey owner: "
-            f"{wallet.coldkeypub.ss58_address}"
-        )
-        return False
 
     # Check sufficient stake
     stake_in_origin, stake_in_destination = await _get_stake_in_origin_and_dest(
