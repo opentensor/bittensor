@@ -34,7 +34,12 @@ from bittensor.core.extrinsics.serving import do_serve_axon
 from bittensor.core.settings import version_as_int
 from bittensor.core.subtensor import Subtensor
 from bittensor.core.types import AxonServeCallParams
-from bittensor.utils import Certificate, u16_normalized_float, u64_normalized_float
+from bittensor.utils import (
+    Certificate,
+    u16_normalized_float,
+    u64_normalized_float,
+    determine_chain_endpoint_and_network,
+)
 from bittensor.utils.balance import Balance
 
 U16_MAX = 65535
@@ -280,9 +285,7 @@ def test_determine_chain_endpoint_and_network(
     network, expected_network, expected_endpoint
 ):
     # Act
-    result_network, result_endpoint = Subtensor.determine_chain_endpoint_and_network(
-        network
-    )
+    result_network, result_endpoint = determine_chain_endpoint_and_network(network)
 
     # Assert
     assert result_network == expected_network
