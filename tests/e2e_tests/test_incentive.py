@@ -1,5 +1,6 @@
 import asyncio
 import sys
+import time
 
 import pytest
 
@@ -140,8 +141,10 @@ async def test_incentive(local_chain, subtensor, alice_wallet, bob_wallet):
 
     # Get current emissions and validate that Alice has gotten tao
     alice_neuron = metagraph.neurons[0]
+    time.sleep(5)
+
     assert alice_neuron.validator_permit is True
-    assert alice_neuron.dividends == 1
+    assert alice_neuron.dividends == 1.0
     assert alice_neuron.stake.tao > 0
     assert alice_neuron.validator_trust == 1
 
