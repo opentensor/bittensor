@@ -7,6 +7,7 @@ from bittensor.utils.btlogging import logging
 from bittensor.core import settings
 from bittensor.core.config import Config
 from bittensor.core.chain_data import NeuronInfo, NeuronInfoLite
+from bittensor.utils import determine_chain_endpoint_and_network
 
 
 class SubtensorMixin(ABC):
@@ -95,8 +96,8 @@ class SubtensorMixin(ABC):
                 if check:
                     network = config_network
 
-        evaluated_network, evaluated_endpoint = (
-            SubtensorMixin.determine_chain_endpoint_and_network(network)
+        evaluated_network, evaluated_endpoint = determine_chain_endpoint_and_network(
+            network
         )
 
         return networking.get_formatted_ws_endpoint_url(
@@ -165,41 +166,6 @@ class SubtensorMixin(ABC):
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
-
-    @staticmethod
-    def determine_chain_endpoint_and_network(
-        network: str,
-    ) -> tuple[Optional[str], Optional[str]]:
-        """Determines the chain endpoint and network from the passed network or chain_endpoint.
-
-        Arguments:
-            network (str): The network flag. The choices are: ``finney`` (main network), ``archive`` (archive network
-                +300 blocks), ``local`` (local running network), ``test`` (test network).
-
-        Returns:
-            tuple[Optional[str], Optional[str]]: The network and chain endpoint flag. If passed, overrides the
-                ``network`` argument.
-        """
-
-        if network is None:
-            return None, None
-        if network in settings.NETWORKS:
-            return network, settings.NETWORK_MAP[network]
-
-        substrings_map = {
-            "entrypoint-finney.opentensor.ai": ("finney", settings.FINNEY_ENTRYPOINT),
-            "test.finney.opentensor.ai": ("test", settings.FINNEY_TEST_ENTRYPOINT),
-            "archive.chain.opentensor.ai": ("archive", settings.ARCHIVE_ENTRYPOINT),
-            "subvortex": ("subvortex", settings.SUBVORTEX_ENTRYPOINT),
-            "127.0.0.1": ("local", settings.LOCAL_ENTRYPOINT),
-            "localhost": ("local", settings.LOCAL_ENTRYPOINT),
-        }
-
-        for substring, result in substrings_map.items():
-            if substring in network:
-                return result
-
-        return "unknown", network
 
 
 class AxonServeCallParams:
