@@ -539,6 +539,15 @@ class MetagraphMixin(ABC):
 
                 metagraph = Metagraph(netuid=123, network="finney", lite=True, sync=True)
         """
+        self.lite = lite
+        self.subtensor = subtensor
+        self.should_sync = sync
+        self.netuid = netuid
+        self.network, self.chain_endpoint = determine_chain_endpoint_and_network(
+            network
+        )
+        self.neurons = []
+        self.axons: list[AxonInfo] = []
 
     def __str__(self) -> str:
         """
@@ -1047,10 +1056,6 @@ class TorchMetagraph(MetagraphMixin, BaseClass):
         """
         BaseClass.__init__(self)
         MetagraphMixin.__init__(self, netuid, network, lite, sync, subtensor)
-        self.netuid = netuid
-        self.network, self.chain_endpoint = determine_chain_endpoint_and_network(
-            network
-        )
         self._dtype_registry = {
             "int64": torch.int64,
             "float32": torch.float32,
@@ -1111,10 +1116,6 @@ class TorchMetagraph(MetagraphMixin, BaseClass):
         self.uids = torch.nn.Parameter(
             torch.tensor([], dtype=torch.int64), requires_grad=False
         )
-        self.axons: list[AxonInfo] = []
-        self.neurons = []
-        self.subtensor = subtensor
-        self.should_sync = sync
         self.alpha_stake = torch.nn.Parameter(
             torch.tensor([], dtype=torch.float32), requires_grad=False
         )
@@ -1243,9 +1244,6 @@ class NonTorchMetagraph(MetagraphMixin):
         self.tao_stake: Tensor = np.array([], dtype=np.int64)
         self.stake: Tensor = np.array([], dtype=np.int64)
         self.total_stake: Tensor = np.array([], dtype=np.int64)
-
-        self.axons: list[AxonInfo] = []
-        self.neurons = []
         self.subtensor = subtensor
         self.should_sync = sync
 
@@ -1347,7 +1345,7 @@ class AsyncMetagraph(NumpyOrTorch):
     async def sync(
         self,
         block: Optional[int] = None,
-        lite: bool = True,
+        lite: Optional[bool] = None,
         subtensor: Optional["AsyncSubtensor"] = None,
     ):
         """
@@ -1358,8 +1356,9 @@ class AsyncMetagraph(NumpyOrTorch):
         Args:
             block (Optional[int]): A specific block number to synchronize with. If None, the metagraph syncs with the
                 latest block. This allows for historical analysis or specific state examination of the network.
-            lite (bool): If True, a lite version of the metagraph is used for quicker synchronization. This is
+            lite (Optional[bool]): If True, a lite version of the metagraph is used for quicker synchronization. This is
                 beneficial when full detail is not necessary, allowing for reduced computational and time overhead.
+                Defaults to `True`.
             subtensor (Optional[bittensor.core.subtensor.Subtensor]): An instance of the subtensor class from Bittensor,
                 providing an interface to the underlying blockchain data. If provided, this instance is used for data
                 retrieval during synchronization.
@@ -1394,6 +1393,9 @@ class AsyncMetagraph(NumpyOrTorch):
 
                 metagraph.sync(block=history_block, lite=False, subtensor=subtensor)
         """
+        if lite is None:
+            lite = self.lite
+
         subtensor = await self._initialize_subtensor(subtensor)
 
         if (
@@ -1612,8 +1614,14 @@ class AsyncMetagraph(NumpyOrTorch):
                 )
                 return subnet_state
 
-            self.alpha_stake = subnet_state.alpha_stake
-            self.tao_stake = [b * 0.018 for b in subnet_state.tao_stake]
+            self.alpha_stake = self._create_tensor(
+                [b.tao for b in subnet_state.alpha_stake],
+                dtype=self._dtype_registry["float32"],
+            )
+            self.tao_stake = self._create_tensor(
+                [b.tao * 0.018 for b in subnet_state.tao_stake],
+                dtype=self._dtype_registry["float32"],
+            )
             self.total_stake = self.stake = self._create_tensor(
                 [stake.tao for stake in subnet_state.total_stake],
                 dtype=self._dtype_registry["float32"],
@@ -1645,7 +1653,7 @@ class Metagraph(NumpyOrTorch):
     def sync(
         self,
         block: Optional[int] = None,
-        lite: bool = True,
+        lite: Optional[bool] = None,
         subtensor: Optional["Subtensor"] = None,
     ):
         """
@@ -1656,8 +1664,9 @@ class Metagraph(NumpyOrTorch):
         Args:
             block (Optional[int]): A specific block number to synchronize with. If None, the metagraph syncs with the
                 latest block. This allows for historical analysis or specific state examination of the network.
-            lite (bool): If True, a lite version of the metagraph is used for quicker synchronization. This is
+            lite (Optional[bool]): If True, a lite version of the metagraph is used for quicker synchronization. This is
                 beneficial when full detail is not necessary, allowing for reduced computational and time overhead.
+                Defaults to `True`.
             subtensor (Optional[bittensor.core.subtensor.Subtensor]): An instance of the subtensor class from Bittensor,
                 providing an interface to the underlying blockchain data. If provided, this instance is used for data
                 retrieval during synchronization.
@@ -1692,6 +1701,8 @@ class Metagraph(NumpyOrTorch):
 
                 metagraph.sync(block=history_block, lite=False, subtensor=subtensor)
         """
+        if lite is None:
+            lite = self.lite
 
         # Initialize subtensor
         subtensor = self._initialize_subtensor(subtensor=subtensor)
