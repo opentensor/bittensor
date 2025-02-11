@@ -42,6 +42,7 @@ if typing.TYPE_CHECKING:
 
 
 Tensor = Union["torch.nn.Parameter", NDArray]
+ROOT_TAO_STAKES_WEIGHT = 0.018
 
 
 METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
@@ -1619,7 +1620,7 @@ class AsyncMetagraph(NumpyOrTorch):
                 dtype=self._dtype_registry["float32"],
             )
             self.tao_stake = self._create_tensor(
-                [b.tao * 0.018 for b in subnet_state.tao_stake],
+                [b.tao * ROOT_TAO_STAKES_WEIGHT for b in subnet_state.tao_stake],
                 dtype=self._dtype_registry["float32"],
             )
             self.total_stake = self.stake = self._create_tensor(
@@ -1923,7 +1924,7 @@ class Metagraph(NumpyOrTorch):
                 dtype=self._dtype_registry["float32"],
             )
             self.tao_stake = self._create_tensor(
-                [b.tao * 0.018 for b in subnet_state.tao_stake],
+                [b.tao * ROOT_TAO_STAKES_WEIGHT for b in subnet_state.tao_stake],
                 dtype=self._dtype_registry["float32"],
             )
             self.total_stake = self.stake = self._create_tensor(
