@@ -94,7 +94,7 @@ async def test_root_reg_hyperparams(
             "--subtensor.network",
             "local",
             "--subtensor.chain_endpoint",
-            "ws://localhost:9945",
+            "ws://localhost:9944",
             "--wallet.path",
             alice_wallet.path,
             "--wallet.name",

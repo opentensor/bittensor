@@ -114,7 +114,7 @@ async def test_dendrite(local_chain, subtensor, templates, alice_wallet, bob_wal
             "--subtensor.network",
             "local",
             "--subtensor.chain_endpoint",
-            "ws://localhost:9945",
+            "ws://localhost:9944",
             "--wallet.path",
             bob_wallet.path,
             "--wallet.name",

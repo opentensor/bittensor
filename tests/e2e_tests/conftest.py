@@ -80,7 +80,7 @@ def local_chain(request):
     wait_for_node_start(process, pattern)
 
     # Run the test, passing in substrate interface
-    yield SubstrateInterface(url="ws://127.0.0.1:9945")
+    yield SubstrateInterface(url="ws://127.0.0.1:9944")
 
     # Terminate the process group (includes all child processes)
     os.killpg(os.getpgid(process.pid), signal.SIGTERM)
@@ -113,7 +113,7 @@ def templates():
 
 @pytest.fixture
 def subtensor(local_chain):
-    return Subtensor(network="ws://localhost:9945")
+    return Subtensor(network="ws://localhost:9944")
 
 
 @pytest.fixture
