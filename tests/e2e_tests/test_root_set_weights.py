@@ -30,7 +30,13 @@ Verifies:
 
 
 @pytest.mark.asyncio
-async def test_root_reg_hyperparams(local_chain, subtensor, templates, alice_wallet, bob_wallet):
+async def test_root_reg_hyperparams(
+    local_chain,
+    subtensor,
+    templates,
+    alice_wallet,
+    bob_wallet,
+):
     """
     Test root weights and hyperparameters in the Subtensor network.
 
