@@ -10,14 +10,10 @@ from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_hyperparameter_values,
     wait_epoch,
 )
-from tests.e2e_tests.utils.e2e_test_utils import (
-    template_path,
-    templates_repo,
-)
 
 
 @pytest.mark.asyncio
-async def test_dendrite(local_chain, subtensor, alice_wallet, bob_wallet):
+async def test_dendrite(local_chain, subtensor, templates, alice_wallet, bob_wallet):
     """
     Test the Dendrite mechanism
 
@@ -112,7 +108,7 @@ async def test_dendrite(local_chain, subtensor, alice_wallet, bob_wallet):
     cmd = " ".join(
         [
             f"{sys.executable}",
-            f'"{template_path}{templates_repo}/validator.py"',
+            f'"{templates}/validator.py"',
             "--netuid",
             str(netuid),
             "--subtensor.network",

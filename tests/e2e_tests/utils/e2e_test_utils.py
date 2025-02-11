@@ -73,7 +73,7 @@ def clone_or_update_templates(specific_commit=None):
 
     os.chdir(cwd)
 
-    return install_dir + templates_repo + "/"
+    return install_dir + templates_repo
 
 
 def install_templates(install_dir):
