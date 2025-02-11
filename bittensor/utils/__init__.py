@@ -12,6 +12,7 @@ from bittensor_wallet import Keypair
 from bittensor_wallet.errors import KeyFileError, PasswordError
 from scalecodec import ss58_decode, is_valid_ss58_address as _is_valid_ss58_address
 
+from bittensor.core import settings
 from bittensor.core.settings import SS58_FORMAT
 from bittensor.utils.btlogging import logging
 from .registration import torch, use_torch
@@ -410,3 +411,38 @@ def unlock_key(wallet: "Wallet", unlock_type="coldkey") -> "UnlockStatus":
     except KeyFileError:
         err_msg = f"{unlock_type.capitalize()} keyfile is corrupt, non-writable, or non-readable, or non-existent."
         return UnlockStatus(False, err_msg)
+
+
+def determine_chain_endpoint_and_network(
+    network: str,
+) -> tuple[Optional[str], Optional[str]]:
+    """Determines the chain endpoint and network from the passed network or chain_endpoint.
+
+    Arguments:
+        network (str): The network flag. The choices are: ``finney`` (main network), ``archive`` (archive network
+            +300 blocks), ``local`` (local running network), ``test`` (test network).
+
+    Returns:
+        tuple[Optional[str], Optional[str]]: The network and chain endpoint flag. If passed, overrides the
+            ``network`` argument.
+    """
+
+    if network is None:
+        return None, None
+    if network in settings.NETWORKS:
+        return network, settings.NETWORK_MAP[network]
+
+    substrings_map = {
+        "entrypoint-finney.opentensor.ai": ("finney", settings.FINNEY_ENTRYPOINT),
+        "test.finney.opentensor.ai": ("test", settings.FINNEY_TEST_ENTRYPOINT),
+        "archive.chain.opentensor.ai": ("archive", settings.ARCHIVE_ENTRYPOINT),
+        "subvortex": ("subvortex", settings.SUBVORTEX_ENTRYPOINT),
+        "127.0.0.1": ("local", network),
+        "localhost": ("local", network),
+    }
+
+    for substring, result in substrings_map.items():
+        if substring in network and validate_chain_endpoint(network):
+            return result
+
+    return "unknown", network
