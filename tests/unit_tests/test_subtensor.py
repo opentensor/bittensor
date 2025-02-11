@@ -274,8 +274,10 @@ def test_argument_error_handling(monkeypatch, parser):
             "archive",
             settings.ARCHIVE_ENTRYPOINT,
         ),
-        ("127.0.0.1", "local", settings.LOCAL_ENTRYPOINT),
-        ("localhost", "local", settings.LOCAL_ENTRYPOINT),
+        ("127.0.0.1", "local", "127.0.0.1"),
+        ("localhost", "local", "localhost"),
+        ("ws://127.0.0.1:9945", "local", "ws://127.0.0.1:9945"),
+        ("ws://localhost:9945", "local", "ws://localhost:9945"),
         # Edge cases
         (None, None, None),
         ("unknown", "unknown", "unknown"),
