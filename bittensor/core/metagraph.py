@@ -19,7 +19,7 @@ from bittensor.core.chain_data import (
     MetagraphInfoPool,
     MetagraphInfoParams,
 )
-
+from bittensor.utils import determine_chain_endpoint_and_network
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
 from bittensor.utils.weight_utils import (
@@ -42,6 +42,7 @@ if typing.TYPE_CHECKING:
 
 
 Tensor = Union["torch.nn.Parameter", NDArray]
+ROOT_TAO_STAKES_WEIGHT = 0.018
 
 
 METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
@@ -142,26 +143,6 @@ def latest_block_path(dir_path: str) -> str:
         return latest_file_full_path
 
 
-def determine_chain_endpoint_and_network(network: str) -> tuple[str, str]:
-    """
-    Determine the chain endpoint and network name from the passed arg
-
-    Args:
-        network: The network name (e.g. 'finney', 'test') or
-            chain endpoint (e.g. wss://entrypoint-finney.opentensor.ai:443)
-
-    Returns:
-        (network name, chain endpoint)
-    """
-    pathless_network = network[:-1] if network.endswith("/") else network
-    if pathless_network in settings.NETWORK_MAP:
-        return pathless_network, settings.NETWORK_MAP[pathless_network]
-    elif pathless_network in settings.REVERSE_NETWORK_MAP:
-        return settings.REVERSE_NETWORK_MAP[pathless_network], pathless_network
-    else:
-        return "unknown", network
-
-
 class MetagraphMixin(ABC):
     """
     The metagraph class is a core component of the Bittensor network, representing the neural graph that forms the
@@ -258,6 +239,11 @@ class MetagraphMixin(ABC):
     _dtype_registry = {"int64": np.int64, "float32": np.float32, "bool": bool}
 
     # metagraph_info fields
+    name: str
+    symbol: str
+    network_registered_at: int
+    num_uids: int
+    max_uids: int
     identities: list[Optional["ChainIdentity"]]
     identity: Optional["SubnetIdentity"]
     pruning_score: list[float]
@@ -537,6 +523,15 @@ class MetagraphMixin(ABC):
 
                 metagraph = Metagraph(netuid=123, network="finney", lite=True, sync=True)
         """
+        self.lite = lite
+        self.subtensor = subtensor
+        self.should_sync = sync
+        self.netuid = netuid
+        self.network, self.chain_endpoint = determine_chain_endpoint_and_network(
+            network
+        )
+        self.neurons = []
+        self.axons: list[AxonInfo] = []
 
     def __str__(self) -> str:
         """
@@ -937,6 +932,11 @@ class MetagraphMixin(ABC):
             metagraph_info (MetagraphInfo): An instance of the MetagraphInfo class containing the data to be applied to
                 the current object.
         """
+        self.name = metagraph_info.name
+        self.symbol = metagraph_info.symbol
+        self.network_registered_at = metagraph_info.network_registered_at
+        self.num_uids = metagraph_info.num_uids
+        self.max_uids = metagraph_info.max_uids
         self.identities = metagraph_info.identities
         self.identity = metagraph_info.identity
         self.pruning_score = metagraph_info.pruning_score
@@ -1043,10 +1043,6 @@ class TorchMetagraph(MetagraphMixin, BaseClass):
         """
         BaseClass.__init__(self)
         MetagraphMixin.__init__(self, netuid, network, lite, sync, subtensor)
-        self.netuid = netuid
-        self.network, self.chain_endpoint = determine_chain_endpoint_and_network(
-            network
-        )
         self._dtype_registry = {
             "int64": torch.int64,
             "float32": torch.float32,
@@ -1107,10 +1103,6 @@ class TorchMetagraph(MetagraphMixin, BaseClass):
         self.uids = torch.nn.Parameter(
             torch.tensor([], dtype=torch.int64), requires_grad=False
         )
-        self.axons: list[AxonInfo] = []
-        self.neurons = []
-        self.subtensor = subtensor
-        self.should_sync = sync
         self.alpha_stake = torch.nn.Parameter(
             torch.tensor([], dtype=torch.float32), requires_grad=False
         )
@@ -1239,9 +1231,6 @@ class NonTorchMetagraph(MetagraphMixin):
         self.tao_stake: Tensor = np.array([], dtype=np.int64)
         self.stake: Tensor = np.array([], dtype=np.int64)
         self.total_stake: Tensor = np.array([], dtype=np.int64)
-
-        self.axons: list[AxonInfo] = []
-        self.neurons = []
         self.subtensor = subtensor
         self.should_sync = sync
 
@@ -1343,7 +1332,7 @@ class AsyncMetagraph(NumpyOrTorch):
     async def sync(
         self,
         block: Optional[int] = None,
-        lite: bool = True,
+        lite: Optional[bool] = None,
         subtensor: Optional["AsyncSubtensor"] = None,
     ):
         """
@@ -1354,8 +1343,9 @@ class AsyncMetagraph(NumpyOrTorch):
         Args:
             block (Optional[int]): A specific block number to synchronize with. If None, the metagraph syncs with the
                 latest block. This allows for historical analysis or specific state examination of the network.
-            lite (bool): If True, a lite version of the metagraph is used for quicker synchronization. This is
+            lite (Optional[bool]): If True, a lite version of the metagraph is used for quicker synchronization. This is
                 beneficial when full detail is not necessary, allowing for reduced computational and time overhead.
+                Defaults to `True`.
             subtensor (Optional[bittensor.core.subtensor.Subtensor]): An instance of the subtensor class from Bittensor,
                 providing an interface to the underlying blockchain data. If provided, this instance is used for data
                 retrieval during synchronization.
@@ -1390,6 +1380,9 @@ class AsyncMetagraph(NumpyOrTorch):
 
                 metagraph.sync(block=history_block, lite=False, subtensor=subtensor)
         """
+        if lite is None:
+            lite = self.lite
+
         subtensor = await self._initialize_subtensor(subtensor)
 
         if (
@@ -1608,8 +1601,14 @@ class AsyncMetagraph(NumpyOrTorch):
                 )
                 return subnet_state
 
-            self.alpha_stake = subnet_state.alpha_stake
-            self.tao_stake = [b * 0.018 for b in subnet_state.tao_stake]
+            self.alpha_stake = self._create_tensor(
+                [b.tao for b in subnet_state.alpha_stake],
+                dtype=self._dtype_registry["float32"],
+            )
+            self.tao_stake = self._create_tensor(
+                [b.tao * ROOT_TAO_STAKES_WEIGHT for b in subnet_state.tao_stake],
+                dtype=self._dtype_registry["float32"],
+            )
             self.total_stake = self.stake = self._create_tensor(
                 [stake.tao for stake in subnet_state.total_stake],
                 dtype=self._dtype_registry["float32"],
@@ -1641,7 +1640,7 @@ class Metagraph(NumpyOrTorch):
     def sync(
         self,
         block: Optional[int] = None,
-        lite: bool = True,
+        lite: Optional[bool] = None,
         subtensor: Optional["Subtensor"] = None,
     ):
         """
@@ -1652,8 +1651,9 @@ class Metagraph(NumpyOrTorch):
         Args:
             block (Optional[int]): A specific block number to synchronize with. If None, the metagraph syncs with the
                 latest block. This allows for historical analysis or specific state examination of the network.
-            lite (bool): If True, a lite version of the metagraph is used for quicker synchronization. This is
+            lite (Optional[bool]): If True, a lite version of the metagraph is used for quicker synchronization. This is
                 beneficial when full detail is not necessary, allowing for reduced computational and time overhead.
+                Defaults to `True`.
             subtensor (Optional[bittensor.core.subtensor.Subtensor]): An instance of the subtensor class from Bittensor,
                 providing an interface to the underlying blockchain data. If provided, this instance is used for data
                 retrieval during synchronization.
@@ -1688,6 +1688,8 @@ class Metagraph(NumpyOrTorch):
 
                 metagraph.sync(block=history_block, lite=False, subtensor=subtensor)
         """
+        if lite is None:
+            lite = self.lite
 
         # Initialize subtensor
         subtensor = self._initialize_subtensor(subtensor=subtensor)
@@ -1908,7 +1910,7 @@ class Metagraph(NumpyOrTorch):
                 dtype=self._dtype_registry["float32"],
             )
             self.tao_stake = self._create_tensor(
-                [b.tao * 0.018 for b in subnet_state.tao_stake],
+                [b.tao * ROOT_TAO_STAKES_WEIGHT for b in subnet_state.tao_stake],
                 dtype=self._dtype_registry["float32"],
             )
             self.total_stake = self.stake = self._create_tensor(
