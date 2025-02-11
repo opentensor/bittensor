@@ -260,6 +260,9 @@ class MetagraphMixin(ABC):
     # metagraph_info fields
     name: str
     symbol: str
+    network_registered_at: int
+    num_uids: int
+    max_uids: int
     identities: list[Optional["ChainIdentity"]]
     identity: Optional["SubnetIdentity"]
     pruning_score: list[float]
@@ -941,6 +944,9 @@ class MetagraphMixin(ABC):
         """
         self.name = metagraph_info.name
         self.symbol = metagraph_info.symbol
+        self.network_registered_at = metagraph_info.network_registered_at
+        self.num_uids = metagraph_info.num_uids
+        self.max_uids = metagraph_info.max_uids
         self.identities = metagraph_info.identities
         self.identity = metagraph_info.identity
         self.pruning_score = metagraph_info.pruning_score
