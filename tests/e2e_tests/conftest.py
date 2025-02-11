@@ -49,13 +49,6 @@ def local_chain(request):
 
     # Pattern match indicates node is compiled and ready
     pattern = re.compile(r"Imported #1")
-
-    # install neuron templates
-    logging.info("downloading and installing neuron templates from github")
-    # commit with subnet-template-repo changes for rust wallet
-    templates_dir = clone_or_update_templates()
-    install_templates(templates_dir)
-
     timestamp = int(time.time())
 
     def wait_for_node_start(process, pattern):
@@ -102,8 +95,19 @@ def local_chain(request):
     # Ensure the process has terminated
     process.wait()
 
-    # uninstall templates
+
+@pytest.fixture
+def templates():
+    logging.info("downloading and installing neuron templates from github")
+
+    templates_dir = clone_or_update_templates()
+
+    install_templates(templates_dir)
+
+    yield templates_dir
+
     logging.info("uninstalling neuron templates")
+
     uninstall_templates(template_path)
 
 
