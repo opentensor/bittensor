@@ -258,6 +258,8 @@ class MetagraphMixin(ABC):
     _dtype_registry = {"int64": np.int64, "float32": np.float32, "bool": bool}
 
     # metagraph_info fields
+    name: str
+    symbol: str
     identities: list[Optional["ChainIdentity"]]
     identity: Optional["SubnetIdentity"]
     pruning_score: list[float]
@@ -937,6 +939,8 @@ class MetagraphMixin(ABC):
             metagraph_info (MetagraphInfo): An instance of the MetagraphInfo class containing the data to be applied to
                 the current object.
         """
+        self.name = metagraph_info.name
+        self.symbol = metagraph_info.symbol
         self.identities = metagraph_info.identities
         self.identity = metagraph_info.identity
         self.pruning_score = metagraph_info.pruning_score
