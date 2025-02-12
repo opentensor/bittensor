@@ -2581,8 +2581,8 @@ class AsyncSubtensor(SubtensorMixin):
             bool: True if the target block was reached, False if timeout occurred.
 
         Example:
-            >>> await subtensor.wait_for_block() # Waits for next block
-            >>> await subtensor.wait_for_block(block=1234) # Waits for specific block
+            await subtensor.wait_for_block() # Waits for next block
+            await subtensor.wait_for_block(block=1234) # Waits for specific block
         """
 
         async def handler(block_data: dict):
