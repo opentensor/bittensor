@@ -22,11 +22,6 @@ class SubtensorMixin(ABC):
         return self.__str__()
 
     def _check_and_log_network_settings(self):
-        if self.network == settings.NETWORKS[3]:  # local
-            logging.warning(
-                ":warning: Verify your local subtensor is running on port [blue]9944[/blue]."
-            )
-
         if (
             self.network == "finney"
             or self.chain_endpoint == settings.FINNEY_ENTRYPOINT
@@ -37,11 +32,6 @@ class SubtensorMixin(ABC):
             logging.debug(
                 "We strongly encourage running a local subtensor node whenever possible. "
                 "This increases decentralization and resilience of the network."
-            )
-            # TODO: remove or apply this warning as updated default endpoint?
-            logging.debug(
-                "In a future release, local subtensor will become the default endpoint. "
-                "To get ahead of this change, please run a local subtensor node and point to it."
             )
 
     @staticmethod  # TODO can this be a class method?
