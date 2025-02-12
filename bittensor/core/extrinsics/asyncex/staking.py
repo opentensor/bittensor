@@ -118,7 +118,7 @@ async def add_stake_extrinsic(
             wait_for_finalization,
             nonce_key="coldkeypub",
             sign_with="coldkey",
-            use_nonce=True
+            use_nonce=True,
         )
         if staking_response is True:  # If we successfully staked.
             # We only wait here if we expect finalization.
@@ -308,7 +308,7 @@ async def add_stake_multiple_extrinsic(
                 wait_for_finalization,
                 nonce_key="coldkeypub",
                 sign_with="coldkey",
-                use_nonce=True
+                use_nonce=True,
             )
 
             if staking_response is True:  # If we successfully staked.

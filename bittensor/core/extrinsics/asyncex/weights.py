@@ -52,8 +52,13 @@ async def _do_commit_weights(
         },
     )
     return await subtensor.sign_and_send_extrinsic(
-        call, wallet, wait_for_inclusion, wait_for_finalization, use_nonce=True,
-        nonce_key="hotkey", sign_with="hotkey"
+        call,
+        wallet,
+        wait_for_inclusion,
+        wait_for_finalization,
+        use_nonce=True,
+        nonce_key="hotkey",
+        sign_with="hotkey",
     )
 
 
@@ -150,8 +155,13 @@ async def _do_reveal_weights(
         },
     )
     return await subtensor.sign_and_send_extrinsic(
-        call, wallet, wait_for_inclusion, wait_for_finalization,
-        sign_with="hotkey", nonce_key="hotkey", use_nonce=True,
+        call,
+        wallet,
+        wait_for_inclusion,
+        wait_for_finalization,
+        sign_with="hotkey",
+        nonce_key="hotkey",
+        use_nonce=True,
     )
 
 
@@ -257,8 +267,14 @@ async def _do_set_weights(
         },
     )
     return await subtensor.sign_and_send_extrinsic(
-        call, wallet, wait_for_inclusion, wait_for_finalization, period=period,
-        use_nonce=True, nonce_key="hotkey", sign_with="hotkey"
+        call,
+        wallet,
+        wait_for_inclusion,
+        wait_for_finalization,
+        period=period,
+        use_nonce=True,
+        nonce_key="hotkey",
+        sign_with="hotkey",
     )
 
 

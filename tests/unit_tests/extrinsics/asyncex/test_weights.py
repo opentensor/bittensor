@@ -56,7 +56,7 @@ async def test_do_set_weights_success(subtensor, mocker):
 
     # Asserts
     assert result is True
-    assert message is None
+    assert message is ""
 
 
 @pytest.mark.asyncio
@@ -146,7 +146,7 @@ async def test_do_set_weights_no_waiting(subtensor, mocker):
 
     # Asserts
     assert result is True
-    assert message is None
+    assert message is ""
 
 
 @pytest.mark.asyncio
@@ -316,7 +316,7 @@ async def test_do_commit_weights_success(subtensor, mocker):
 
     # Asserts
     assert result is True
-    assert message is None
+    assert message is ""
 
 
 @pytest.mark.asyncio
@@ -399,7 +399,7 @@ async def test_do_commit_weights_no_waiting(subtensor, mocker):
 
     # Asserts
     assert result is True
-    assert message is None
+    assert message is ""
 
 
 @pytest.mark.asyncio

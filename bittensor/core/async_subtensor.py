@@ -2685,7 +2685,7 @@ class AsyncSubtensor(SubtensorMixin):
         sign_with: str = "coldkey",
         use_nonce: bool = False,
         period: Optional[int] = None,
-        nonce_key: str = "hotkey"
+        nonce_key: str = "hotkey",
     ) -> tuple[bool, str]:
         """
         Helper method to sign and submit an extrinsic call to chain.
@@ -2712,14 +2712,14 @@ class AsyncSubtensor(SubtensorMixin):
                 raise AttributeError(
                     f"'nonce_key' must be either 'coldkey', 'hotkey' or 'coldkeypub', not '{nonce_key}'"
                 )
-            next_nonce = await self.substrate.get_account_next_index(getattr(wallet, nonce_key).ss58_address)
+            next_nonce = await self.substrate.get_account_next_index(
+                getattr(wallet, nonce_key).ss58_address
+            )
             extrinsic_data["nonce"] = next_nonce
         if period is not None:
             extrinsic_data["era"] = {"period": period}
 
-        extrinsic = await self.substrate.create_signed_extrinsic(
-            **extrinsic_data
-        )
+        extrinsic = await self.substrate.create_signed_extrinsic(**extrinsic_data)
         try:
             response = await self.substrate.submit_extrinsic(
                 extrinsic,
