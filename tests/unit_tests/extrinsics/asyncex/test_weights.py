@@ -84,7 +84,7 @@ async def test_do_set_weights_failure(subtensor, mocker):
 
     mocked_format_error_message = mocker.Mock()
     mocker.patch.object(
-        async_weights, "format_error_message", mocked_format_error_message
+        async_subtensor, "format_error_message", mocked_format_error_message
     )
 
     mocker.patch.object(subtensor.substrate, "compose_call", return_value=fake_call)
@@ -340,7 +340,7 @@ async def test_do_commit_weights_failure(subtensor, mocker):
 
     mocked_format_error_message = mocker.Mock(return_value="Formatted error")
     mocker.patch.object(
-        async_weights, "format_error_message", mocked_format_error_message
+        async_subtensor, "format_error_message", mocked_format_error_message
     )
 
     mocker.patch.object(subtensor.substrate, "compose_call", return_value=fake_call)

@@ -9,9 +9,6 @@ import bittensor.utils.weight_utils as weight_utils
 from bittensor.core.settings import version_as_int
 from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
-from bittensor.core.extrinsics.utils import (
-    async_sign_and_send_with_nonce as sign_and_send_with_nonce,
-)
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -54,8 +51,9 @@ async def _do_commit_weights(
             "commit_hash": commit_hash,
         },
     )
-    return await sign_and_send_with_nonce(
-        subtensor, call, wallet, wait_for_inclusion, wait_for_finalization
+    return await subtensor.sign_and_send_extrinsic(
+        call, wallet, wait_for_inclusion, wait_for_finalization, use_nonce=True,
+        nonce_key="hotkey", sign_with="hotkey"
     )
 
 
@@ -151,8 +149,9 @@ async def _do_reveal_weights(
             "version_key": version_key,
         },
     )
-    return await sign_and_send_with_nonce(
-        subtensor, call, wallet, wait_for_inclusion, wait_for_finalization
+    return await subtensor.sign_and_send_extrinsic(
+        call, wallet, wait_for_inclusion, wait_for_finalization,
+        sign_with="hotkey", nonce_key="hotkey", use_nonce=True,
     )
 
 
@@ -257,8 +256,9 @@ async def _do_set_weights(
             "version_key": version_key,
         },
     )
-    return await sign_and_send_with_nonce(
-        subtensor, call, wallet, wait_for_inclusion, wait_for_finalization, period
+    return await subtensor.sign_and_send_extrinsic(
+        call, wallet, wait_for_inclusion, wait_for_finalization, period=period,
+        use_nonce=True, nonce_key="hotkey", sign_with="hotkey"
     )
 
 
