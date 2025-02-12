@@ -63,9 +63,9 @@ def test_do_commit_weights(subtensor, mocker):
     assert kwargs["keypair"] == fake_wallet.hotkey
 
     subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        extrinsic=subtensor.substrate.create_signed_extrinsic.return_value,
+        subtensor.substrate.create_signed_extrinsic.return_value,
         wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=1,
+        wait_for_finalization=wait_for_finalization,
     )
 
     mocked_format_error_message.assert_called_once_with(
@@ -95,7 +95,7 @@ def test_do_reveal_weights(subtensor, mocker):
 
     mocked_format_error_message = mocker.Mock()
     mocker.patch(
-        "bittensor.core.extrinsics.utils.format_error_message",
+        "bittensor.core.subtensor.format_error_message",
         mocked_format_error_message,
     )
 
@@ -132,7 +132,7 @@ def test_do_reveal_weights(subtensor, mocker):
     )
 
     subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        extrinsic=subtensor.substrate.create_signed_extrinsic.return_value,
+        subtensor.substrate.create_signed_extrinsic.return_value,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
     )
