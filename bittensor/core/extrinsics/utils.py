@@ -28,14 +28,15 @@ async def async_sign_and_send_with_nonce(
     wait_for_finalization: bool,
     period: Optional[int] = None,
     nonce_key: str = "hotkey",
+    signing_key: str = "hotkey",
 ):
     """
     Signs an extrinsic call with the wallet keypair (default hotkey), adding an optional era for period
     """
     keypair = getattr(wallet, nonce_key)
     next_nonce = await subtensor.substrate.get_account_next_index(keypair.ss58_address)
-
-    extrinsic_data = {"call": call, "keypair": wallet.hotkey, "nonce": next_nonce}
+    signing_keypair = getattr(wallet, signing_key)
+    extrinsic_data = {"call": call, "keypair": signing_keypair, "nonce": next_nonce}
     if period is not None:
         extrinsic_data["era"] = {"period": period}
 
@@ -66,12 +67,14 @@ def sign_and_send_with_nonce(
     wait_for_inclusion,
     wait_for_finalization,
     nonce_key: str = "hotkey",
+    signing_key: str = "hotkey",
 ):
     keypair = getattr(wallet, nonce_key)
     next_nonce = subtensor.substrate.get_account_next_index(keypair.ss58_address)
+    signing_keypair = getattr(wallet, signing_key)
     extrinsic = subtensor.substrate.create_signed_extrinsic(
         call=call,
-        keypair=wallet.hotkey,
+        keypair=signing_keypair,
         nonce=next_nonce,
     )
     response = subtensor.substrate.submit_extrinsic(
