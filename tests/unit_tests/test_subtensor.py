@@ -3050,3 +3050,37 @@ def test_connection_limit(mocker):
     with pytest.raises(websockets.InvalidStatus):
         for i in range(2):
             Subtensor("test")
+
+
+def test_set_subnet_identity(mocker, subtensor):
+    """Verify that subtensor method `set_subnet_identity` calls proper function with proper arguments."""
+    # Preps
+    fake_wallet = mocker.Mock()
+    fake_netuid = 123
+    fake_subnet_identity = mocker.MagicMock()
+
+    mocked_extrinsic = mocker.patch.object(
+        subtensor_module, "set_subnet_identity_extrinsic"
+    )
+
+    # Call
+    result = subtensor.set_subnet_identity(
+        wallet=fake_wallet, netuid=fake_netuid, subnet_identity=fake_subnet_identity
+    )
+
+    # Asserts
+    mocked_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        subnet_name=fake_subnet_identity.subnet_name,
+        github_repo=fake_subnet_identity.github_repo,
+        subnet_contact=fake_subnet_identity.subnet_contact,
+        subnet_url=fake_subnet_identity.subnet_url,
+        discord=fake_subnet_identity.discord,
+        description=fake_subnet_identity.description,
+        additional=fake_subnet_identity.additional,
+        wait_for_finalization=True,
+        wait_for_inclusion=False,
+    )
+    assert result == mocked_extrinsic.return_value
