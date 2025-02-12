@@ -107,6 +107,7 @@ async def unstake_extrinsic(
             wait_for_inclusion,
             wait_for_finalization,
             nonce_key="coldkeypub",
+            signing_key="coldkey",
         )
 
         if staking_response is True:  # If we successfully unstaked.
@@ -277,6 +278,7 @@ async def unstake_multiple_extrinsic(
                 wait_for_inclusion,
                 wait_for_finalization,
                 nonce_key="coldkeypub",
+                signing_key="coldkey",
             )
 
             if staking_response is True:  # If we successfully unstaked.
