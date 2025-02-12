@@ -460,7 +460,7 @@ async def set_subnet_identity_extrinsic(
     Set the identity information for a given subnet.
 
     Arguments:
-        subtensor (Subtensor): An instance of the Subtensor class to interact with the blockchain.
+        subtensor (AsyncSubtensor): An instance of the Subtensor class to interact with the blockchain.
         wallet (Wallet): A wallet instance used to sign and submit the extrinsic.
         netuid (int): The unique ID for the subnet.
         subnet_name (str): The name of the subnet to assign the identity information.
