@@ -808,7 +808,8 @@ class Synapse(BaseModel):
                     logging.error(f"Error while parsing 'input_obj' header {key}: {e}")
                     continue
             else:
-                logging.warning(f"Unexpected header key encountered: {key}")
+                # setting this to warning fills up logs unnecessarily
+                logging.trace(f"Unexpected header key encountered: {key}")
 
         # Assign the remaining known headers directly
         inputs_dict["timeout"] = headers.get("timeout", None)
