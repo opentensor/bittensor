@@ -1,6 +1,6 @@
 """Module with helper functions for extrinsics."""
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from async_substrate_interface.errors import SubstrateRequestException
 
@@ -17,7 +17,66 @@ if TYPE_CHECKING:
     )
     from bittensor.core.subtensor import Subtensor
     from bittensor.core.chain_data import StakeInfo
-    from scalecodec.types import GenericExtrinsic
+    from scalecodec.types import GenericExtrinsic, GenericCall
+
+
+async def async_sign_and_send_with_nonce(
+    subtensor: "AsyncSubtensor",
+    call: "GenericCall",
+    wallet: "Wallet",
+    wait_for_inclusion: bool,
+    wait_for_finalization: bool,
+    period: Optional[int] = None,
+):
+    """
+    Signs an extrinsic call with the wallet hotkey, adding an optional era for period
+    """
+    next_nonce = await subtensor.substrate.get_account_next_index(
+        wallet.hotkey.ss58_address
+    )
+
+    extrinsic_data = {"call": call, "keypair": wallet.hotkey, "nonce": next_nonce}
+    if period is not None:
+        extrinsic_data["era"] = {"period": period}
+
+    extrinsic = await subtensor.substrate.create_signed_extrinsic(**extrinsic_data)
+    response = await subtensor.substrate.submit_extrinsic(
+        extrinsic=extrinsic,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+
+    if not wait_for_finalization and not wait_for_inclusion:
+        return True, None
+
+    if await response.is_success:
+        return True, None
+
+    return False, format_error_message(await response.error_message)
+
+
+def sign_and_send_with_nonce(
+    subtensor: "Subtensor", call, wallet, wait_for_inclusion, wait_for_finalization
+):
+    next_nonce = subtensor.substrate.get_account_next_index(wallet.hotkey.ss58_address)
+    extrinsic = subtensor.substrate.create_signed_extrinsic(
+        call=call,
+        keypair=wallet.hotkey,
+        nonce=next_nonce,
+    )
+    response = subtensor.substrate.submit_extrinsic(
+        extrinsic=extrinsic,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+
+    if not wait_for_finalization and not wait_for_inclusion:
+        return True, None
+
+    if response.is_success:
+        return True, None
+
+    return False, format_error_message(response.error_message)
 
 
 def submit_extrinsic(

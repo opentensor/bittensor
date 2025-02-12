@@ -2,36 +2,13 @@
 
 from typing import TYPE_CHECKING, Optional
 
+from bittensor.core.extrinsics.utils import sign_and_send_with_nonce
 from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.subtensor import Subtensor
-
-
-def sign_and_send_with_nonce(
-    subtensor: "Subtensor", call, wallet, wait_for_inclusion, wait_for_finalization
-):
-    next_nonce = subtensor.substrate.get_account_next_index(wallet.hotkey.ss58_address)
-    extrinsic = subtensor.substrate.create_signed_extrinsic(
-        call=call,
-        keypair=wallet.hotkey,
-        nonce=next_nonce,
-    )
-    response = subtensor.substrate.submit_extrinsic(
-        extrinsic=extrinsic,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
-
-    if not wait_for_finalization and not wait_for_inclusion:
-        return True, None
-
-    if response.is_success:
-        return True, None
-
-    return False, format_error_message(response.error_message)
 
 
 def _do_commit_weights(
