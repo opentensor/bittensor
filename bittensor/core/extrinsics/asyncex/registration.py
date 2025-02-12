@@ -433,7 +433,7 @@ async def register_subnet_extrinsic(
     await response.process_events()
     if not await response.is_success:
         logging.error(
-            f"Failed to register subnet: {format_error_message(await response.error_message, subtensor.substrate)}"
+            f"Failed to register subnet: {format_error_message(await response.error_message)}"
         )
         return False
 
