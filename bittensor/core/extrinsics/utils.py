@@ -27,38 +27,48 @@ async def async_sign_and_send_with_nonce(
     wait_for_inclusion: bool,
     wait_for_finalization: bool,
     period: Optional[int] = None,
+    nonce_key: str = "hotkey",
 ):
     """
-    Signs an extrinsic call with the wallet hotkey, adding an optional era for period
+    Signs an extrinsic call with the wallet keypair (default hotkey), adding an optional era for period
     """
-    next_nonce = await subtensor.substrate.get_account_next_index(
-        wallet.hotkey.ss58_address
-    )
+    keypair = getattr(wallet, nonce_key)
+    next_nonce = await subtensor.substrate.get_account_next_index(keypair.ss58_address)
 
     extrinsic_data = {"call": call, "keypair": wallet.hotkey, "nonce": next_nonce}
     if period is not None:
         extrinsic_data["era"] = {"period": period}
 
     extrinsic = await subtensor.substrate.create_signed_extrinsic(**extrinsic_data)
-    response = await subtensor.substrate.submit_extrinsic(
-        extrinsic=extrinsic,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
 
-    if not wait_for_finalization and not wait_for_inclusion:
-        return True, None
+    try:
+        response = await subtensor.substrate.submit_extrinsic(
+            extrinsic=extrinsic,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
 
-    if await response.is_success:
-        return True, None
+        if not wait_for_finalization and not wait_for_inclusion:
+            return True, None
 
-    return False, format_error_message(await response.error_message)
+        if await response.is_success:
+            return True, None
+
+        return False, format_error_message(await response.error_message)
+    except SubstrateRequestException as e:
+        return False, format_error_message(e)
 
 
 def sign_and_send_with_nonce(
-    subtensor: "Subtensor", call, wallet, wait_for_inclusion, wait_for_finalization
+    subtensor: "Subtensor",
+    call,
+    wallet,
+    wait_for_inclusion,
+    wait_for_finalization,
+    nonce_key: str = "hotkey",
 ):
-    next_nonce = subtensor.substrate.get_account_next_index(wallet.hotkey.ss58_address)
+    keypair = getattr(wallet, nonce_key)
+    next_nonce = subtensor.substrate.get_account_next_index(keypair.ss58_address)
     extrinsic = subtensor.substrate.create_signed_extrinsic(
         call=call,
         keypair=wallet.hotkey,
