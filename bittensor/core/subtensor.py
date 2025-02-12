@@ -21,6 +21,7 @@ from bittensor.core.chain_data import (
     StakeInfo,
     SubnetHyperparameters,
     WeightCommitInfo,
+    SubnetIdentity,
     SubnetInfo,
     decode_account_id,
 )
@@ -60,6 +61,7 @@ from bittensor.core.extrinsics.unstaking import (
     unstake_extrinsic,
     unstake_multiple_extrinsic,
 )
+from bittensor.core.extrinsics.registration import set_subnet_identity_extrinsic
 from bittensor.core.metagraph import Metagraph
 from bittensor.core.settings import (
     version_as_int,
@@ -2524,6 +2526,44 @@ class Subtensor(SubtensorMixin):
             version_key=version_key,
             wait_for_finalization=wait_for_finalization,
             wait_for_inclusion=wait_for_inclusion,
+        )
+
+    def set_subnet_identity(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        subnet_identity: SubnetIdentity,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+    ) -> tuple[bool, str]:
+        """
+        Sets the identity of a subnet for a specific wallet and network.
+
+        Arguments:
+            wallet (Wallet): The wallet instance that will authorize the transaction.
+            netuid (int): The unique ID of the network on which the operation takes place.
+            subnet_identity (SubnetIdentity): The identity data of the subnet including attributes like name, GitHub
+                repository, contact, URL, discord, description, and any additional metadata.
+            wait_for_inclusion (bool): Indicates if the function should wait for the transaction to be included in the block.
+            wait_for_finalization (bool): Indicates if the function should wait for the transaction to reach finalization.
+
+        Returns:
+            tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
+             operation, and the second element is a message providing additional information.
+        """
+        return set_subnet_identity_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            subnet_name=subnet_identity.subnet_name,
+            github_repo=subnet_identity.github_repo,
+            subnet_contact=subnet_identity.subnet_contact,
+            subnet_url=subnet_identity.subnet_url,
+            discord=subnet_identity.discord,
+            description=subnet_identity.description,
+            additional=subnet_identity.additional,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
         )
 
     def set_weights(
