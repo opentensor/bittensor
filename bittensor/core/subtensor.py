@@ -41,6 +41,7 @@ from bittensor.core.extrinsics.registration import (
     burned_register_extrinsic,
     register_extrinsic,
     register_subnet_extrinsic,
+    set_subnet_identity_extrinsic
 )
 from bittensor.core.extrinsics.root import (
     root_register_extrinsic,
@@ -61,7 +62,6 @@ from bittensor.core.extrinsics.unstaking import (
     unstake_extrinsic,
     unstake_multiple_extrinsic,
 )
-from bittensor.core.extrinsics.registration import set_subnet_identity_extrinsic
 from bittensor.core.metagraph import Metagraph
 from bittensor.core.settings import (
     version_as_int,
