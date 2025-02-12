@@ -1,5 +1,14 @@
 # Changelog
 
+## 9.0.0rc6 /2025-02-11
+* Using one determine_chain_endpoint_and_network by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2661
+* Tests: separate templates fixture by @zyzniewski-reef  in https://github.com/opentensor/bittensor/pull/2660
+* add name and symbol fields to metagraph by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2658
+* Metagraph Improvements by @thewhaleking in https://github.com/opentensor/bittensor/pull/2659
+* feat/roman/add-subnet-identity-with-subnet-creation by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2662
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.0.0rc5...v9.0.0rc6
+
 ## 9.0.0rc5 /2025-02-07
 * Fix InfoBase + dataclasses @roman-opentensor in https://github.com/opentensor/bittensor/pull/2649
 
