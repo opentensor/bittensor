@@ -447,3 +447,134 @@ async def test_register_extrinsic_max_attempts_reached(subtensor, mocker):
         wait_for_finalization=True,
     )
     assert result is False
+
+
+@pytest.mark.asyncio
+async def test_set_subnet_identity_extrinsic_is_success(subtensor, mocker):
+    """Verify that set_subnet_identity_extrinsic calls the correct functions and returns the correct result."""
+    # Preps
+    wallet = mocker.MagicMock(autospec=Wallet)
+    netuid = 123
+    subnet_name = "mock_subnet_name"
+    github_repo = "mock_github_repo"
+    subnet_contact = "mock_subnet_contact"
+    subnet_url = "mock_subnet_url"
+    discord = "mock_discord"
+    description = "mock_description"
+    additional = "mock_additional"
+
+    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+
+    fake_response = mocker.Mock()
+    fake_response.is_success = mocker.AsyncMock(return_value=True)()
+    mocked_submit_extrinsic = mocker.patch.object(
+        subtensor.substrate, "submit_extrinsic", return_value=fake_response
+    )
+
+    # Call
+    result = await async_registration.set_subnet_identity_extrinsic(
+        subtensor=subtensor,
+        wallet=wallet,
+        netuid=netuid,
+        subnet_name=subnet_name,
+        github_repo=github_repo,
+        subnet_contact=subnet_contact,
+        subnet_url=subnet_url,
+        discord=discord,
+        description=description,
+        additional=additional,
+    )
+
+    # Asserts
+    mocked_compose_call.assert_awaited_once_with(
+        call_module="SubtensorModule",
+        call_function="set_subnet_identity",
+        call_params={
+            "hotkey": wallet.hotkey.ss58_address,
+            "netuid": netuid,
+            "subnet_name": subnet_name,
+            "github_repo": github_repo,
+            "subnet_contact": subnet_contact,
+            "subnet_url": subnet_url,
+            "discord": discord,
+            "description": description,
+            "additional": additional,
+        },
+    )
+    mocked_submit_extrinsic.assert_awaited_once_with(
+        call=mocked_compose_call.return_value,
+        wallet=wallet,
+        wait_for_inclusion=False,
+        wait_for_finalization=True,
+    )
+
+    assert result == (True, "Identities for subnet 123 are set.")
+
+
+@pytest.mark.asyncio
+async def test_set_subnet_identity_extrinsic_is_failed(subtensor, mocker):
+    """Verify that set_subnet_identity_extrinsic calls the correct functions and returns False with bad result."""
+    # Preps
+    wallet = mocker.MagicMock(autospec=Wallet)
+    netuid = 123
+    subnet_name = "mock_subnet_name"
+    github_repo = "mock_github_repo"
+    subnet_contact = "mock_subnet_contact"
+    subnet_url = "mock_subnet_url"
+    discord = "mock_discord"
+    description = "mock_description"
+    additional = "mock_additional"
+    fake_error_message = "error message"
+
+    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+
+    fake_response = mocker.Mock()
+    fake_response.is_success = mocker.AsyncMock(return_value=False)()
+    fake_response.error_message = mocker.AsyncMock(return_value=fake_error_message)()
+    mocked_submit_extrinsic = mocker.patch.object(
+        subtensor.substrate, "submit_extrinsic", return_value=fake_response
+    )
+
+    # Call
+    result = await async_registration.set_subnet_identity_extrinsic(
+        subtensor=subtensor,
+        wallet=wallet,
+        netuid=netuid,
+        subnet_name=subnet_name,
+        github_repo=github_repo,
+        subnet_contact=subnet_contact,
+        subnet_url=subnet_url,
+        discord=discord,
+        description=description,
+        additional=additional,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    # Asserts
+    mocked_compose_call.assert_awaited_once_with(
+        call_module="SubtensorModule",
+        call_function="set_subnet_identity",
+        call_params={
+            "hotkey": wallet.hotkey.ss58_address,
+            "netuid": netuid,
+            "subnet_name": subnet_name,
+            "github_repo": github_repo,
+            "subnet_contact": subnet_contact,
+            "subnet_url": subnet_url,
+            "discord": discord,
+            "description": description,
+            "additional": additional,
+        },
+    )
+    mocked_submit_extrinsic.assert_awaited_once_with(
+        call=mocked_compose_call.return_value,
+        wallet=wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    assert result == (
+        False,
+        f"Failed to set identity for subnet {netuid}: {fake_error_message}",
+    )
