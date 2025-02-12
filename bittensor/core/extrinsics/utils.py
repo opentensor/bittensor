@@ -20,51 +20,11 @@ if TYPE_CHECKING:
     from scalecodec.types import GenericExtrinsic, GenericCall
 
 
-async def async_sign_and_send_with_nonce(
-    subtensor: "AsyncSubtensor",
+def sign_and_send_with_nonce(
+    subtensor: "Subtensor",
     call: "GenericCall",
     wallet: "Wallet",
     wait_for_inclusion: bool,
-    wait_for_finalization: bool,
-    period: Optional[int] = None,
-    nonce_key: str = "hotkey",
-    signing_key: str = "hotkey",
-):
-    """
-    Signs an extrinsic call with the wallet keypair (default hotkey), adding an optional era for period
-    """
-    keypair = getattr(wallet, nonce_key)
-    next_nonce = await subtensor.substrate.get_account_next_index(keypair.ss58_address)
-    signing_keypair = getattr(wallet, signing_key)
-    extrinsic_data = {"call": call, "keypair": signing_keypair, "nonce": next_nonce}
-    if period is not None:
-        extrinsic_data["era"] = {"period": period}
-
-    extrinsic = await subtensor.substrate.create_signed_extrinsic(**extrinsic_data)
-
-    try:
-        response = await subtensor.substrate.submit_extrinsic(
-            extrinsic=extrinsic,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
-
-        if not wait_for_finalization and not wait_for_inclusion:
-            return True, None
-
-        if await response.is_success:
-            return True, None
-
-        return False, format_error_message(await response.error_message)
-    except SubstrateRequestException as e:
-        return False, format_error_message(e)
-
-
-def sign_and_send_with_nonce(
-    subtensor: "Subtensor",
-    call,
-    wallet,
-    wait_for_inclusion,
     wait_for_finalization,
     nonce_key: str = "hotkey",
     signing_key: str = "hotkey",

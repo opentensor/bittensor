@@ -2,7 +2,7 @@ import time
 from typing import Optional, TYPE_CHECKING, Sequence
 
 from bittensor.core.errors import StakeError, NotRegisteredError
-from bittensor.core.extrinsics.utils import get_old_stakes, sign_and_send_with_nonce
+from bittensor.core.extrinsics.utils import get_old_stakes
 from bittensor.utils import unlock_key
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -106,14 +106,9 @@ def add_stake_extrinsic(
                 "netuid": netuid,
             },
         )
-        staking_response, err_msg = sign_and_send_with_nonce(
-            subtensor,
-            call,
-            wallet,
-            wait_for_inclusion,
-            wait_for_finalization,
-            nonce_key="coldkeypub",
-            signing_key="coldkey",
+        staking_response, err_msg = subtensor.sign_and_send_extrinsic(
+            call, wallet, wait_for_inclusion, wait_for_finalization,
+            use_nonce=True, sign_with="coldkey", nonce_key="coldkeypub"
         )
         if staking_response is True:  # If we successfully staked.
             # We only wait here if we expect finalization.
@@ -285,14 +280,9 @@ def add_stake_multiple_extrinsic(
                     "netuid": netuid,
                 },
             )
-            staking_response, err_msg = sign_and_send_with_nonce(
-                subtensor,
-                call,
-                wallet,
-                wait_for_inclusion,
-                wait_for_finalization,
-                nonce_key="coldkeypub",
-                signing_key="coldkey",
+            staking_response, err_msg = subtensor.sign_and_send_extrinsic(
+                call, wallet, wait_for_inclusion, wait_for_finalization,
+                use_nonce=True, nonce_key="coldkeypub", sign_with="coldkey"
             )
 
             if staking_response is True:  # If we successfully staked.

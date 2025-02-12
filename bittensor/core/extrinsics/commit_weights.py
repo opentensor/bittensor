@@ -2,7 +2,6 @@
 
 from typing import TYPE_CHECKING, Optional
 
-from bittensor.core.extrinsics.utils import sign_and_send_with_nonce
 from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
 
@@ -45,9 +44,9 @@ def _do_commit_weights(
             "commit_hash": commit_hash,
         },
     )
-
-    return sign_and_send_with_nonce(
-        subtensor, call, wallet, wait_for_inclusion, wait_for_finalization
+    return subtensor.sign_and_send_extrinsic(
+        call, wallet, wait_for_inclusion, wait_for_finalization,
+        use_nonce=True, sign_with="hotkey", nonce_key="hotkey"
     )
 
 
@@ -141,8 +140,9 @@ def _do_reveal_weights(
             "version_key": version_key,
         },
     )
-    return sign_and_send_with_nonce(
-        subtensor, call, wallet, wait_for_inclusion, wait_for_finalization
+    return subtensor.sign_and_send_extrinsic(
+        call, wallet, wait_for_inclusion, wait_for_finalization,
+        use_nonce=True, sign_with="hotkey", nonce_key="hotkey"
     )
 
 

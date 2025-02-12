@@ -48,6 +48,9 @@ def test_unstake_extrinsic(mocker):
         fake_wallet,
         True,
         True,
+        sign_with="coldkey",
+        nonce_key="coldkeypub",
+        use_nonce=True
     )
 
 
@@ -112,4 +115,7 @@ def test_unstake_multiple_extrinsic(mocker):
         fake_wallet,
         True,
         True,
+        sign_with="coldkey",
+        nonce_key="coldkeypub",
+        use_nonce=True
     )
