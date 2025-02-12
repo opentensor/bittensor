@@ -1,5 +1,4 @@
 import asyncio
-import sys
 import pytest
 
 from tests.e2e_tests.utils.chain_interactions import (
@@ -84,46 +83,19 @@ async def test_root_reg_hyperparams(
     assert subtensor.immunity_period(netuid=netuid) == default_immunity_period
     assert subtensor.tempo(netuid=netuid) == default_tempo
 
-    # Prepare to run Alice as validator
-    cmd = " ".join(
-        [
-            f"{sys.executable}",
-            f'"{templates}/validator.py"',
-            "--netuid",
-            str(netuid),
-            "--subtensor.network",
-            "local",
-            "--subtensor.chain_endpoint",
-            "ws://localhost:9944",
-            "--wallet.path",
-            alice_wallet.path,
-            "--wallet.name",
-            alice_wallet.name,
-            "--wallet.hotkey",
-            "default",
-            "--logging.trace",
-        ]
-    )
+    async with templates.validator(alice_wallet, netuid):
+        await asyncio.sleep(5)  # Wait a bit for chain to process data
 
-    # Run Alice as validator in the background
-    await asyncio.create_subprocess_shell(
-        cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-    print("Neuron Alice is now validating")
-    await asyncio.sleep(5)  # Wait a bit for chain to process data
+        # Fetch uid against Alice's hotkey on sn 2 (it will be 0 as she is the only registered neuron)
+        alice_uid_sn_2 = subtensor.get_uid_for_hotkey_on_subnet(
+            alice_wallet.hotkey.ss58_address, netuid
+        )
 
-    # Fetch uid against Alice's hotkey on sn 2 (it will be 0 as she is the only registered neuron)
-    alice_uid_sn_2 = subtensor.get_uid_for_hotkey_on_subnet(
-        alice_wallet.hotkey.ss58_address, netuid
-    )
-
-    # Fetch the block since last update for the neuron
-    block_since_update = subtensor.blocks_since_last_update(
-        netuid=netuid, uid=alice_uid_sn_2
-    )
-    assert block_since_update is not None
+        # Fetch the block since last update for the neuron
+        block_since_update = subtensor.blocks_since_last_update(
+            netuid=netuid, uid=alice_uid_sn_2
+        )
+        assert block_since_update is not None
 
     # Verify subnet <netuid> created successfully
     assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
