@@ -41,7 +41,7 @@ from bittensor.core.extrinsics.registration import (
     burned_register_extrinsic,
     register_extrinsic,
     register_subnet_extrinsic,
-    set_subnet_identity_extrinsic
+    set_subnet_identity_extrinsic,
 )
 from bittensor.core.extrinsics.root import (
     root_register_extrinsic,
