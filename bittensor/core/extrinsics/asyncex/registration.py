@@ -430,7 +430,6 @@ async def register_subnet_extrinsic(
     if not wait_for_finalization and not wait_for_inclusion:
         return True
 
-    await response.process_events()
     if not await response.is_success:
         logging.error(
             f"Failed to register subnet: {format_error_message(await response.error_message)}"
@@ -441,3 +440,78 @@ async def register_subnet_extrinsic(
         ":white_heavy_check_mark: [green]Successfully registered subnet[/green]"
     )
     return True
+
+
+async def set_subnet_identity_extrinsic(
+    subtensor: "AsyncSubtensor",
+    wallet: "Wallet",
+    netuid: int,
+    subnet_name: str,
+    github_repo: str,
+    subnet_contact: str,
+    subnet_url: str,
+    discord: str,
+    description: str,
+    additional: str,
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = True,
+) -> tuple[bool, str]:
+    """
+    Set the identity information for a given subnet.
+
+    Arguments:
+        subtensor (Subtensor): An instance of the Subtensor class to interact with the blockchain.
+        wallet (Wallet): A wallet instance used to sign and submit the extrinsic.
+        netuid (int): The unique ID for the subnet.
+        subnet_name (str): The name of the subnet to assign the identity information.
+        github_repo (str): URL of the GitHub repository related to the subnet.
+        subnet_contact (str): Subnet's contact information, e.g., email or contact link.
+        subnet_url (str): The URL of the subnet's primary web portal.
+        discord (str): Discord server or contact for the subnet.
+        description (str): A textual description of the subnet.
+        additional (str): Any additional metadata or information related to the subnet.
+        wait_for_inclusion (bool): Whether to wait for the extrinsic inclusion in a block (default: False).
+        wait_for_finalization (bool): Whether to wait for the extrinsic finalization in a block (default: True).
+
+    Returns:
+        tuple[bool, str]: A tuple where the first element indicates success or failure (True/False), and the second
+            element contains a descriptive message.
+    """
+
+    if not (unlock := unlock_key(wallet)).success:
+        logging.error(unlock.message)
+        return False, unlock.message
+
+    call = await subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="set_subnet_identity",
+        call_params={
+            "hotkey": wallet.hotkey.ss58_address,
+            "netuid": netuid,
+            "subnet_name": subnet_name,
+            "github_repo": github_repo,
+            "subnet_contact": subnet_contact,
+            "subnet_url": subnet_url,
+            "discord": discord,
+            "description": description,
+            "additional": additional,
+        },
+    )
+
+    success, message = await subtensor.sign_and_send_extrinsic(
+        call=call,
+        wallet=wallet,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+
+    if success:
+        logging.success(
+            f":white_heavy_check_mark: [green]Identities for subnet[/green] [blue]{netuid}[/blue] [green]are set.[/green]"
+        )
+        return True, f"Identities for subnet {netuid} are set."
+    else:
+        logging.error(
+            f":cross_mark: Failed to set identity for subnet [blue]{netuid}[/blue]: {message}"
+        )
+        return False, f"Failed to set identity for subnet {netuid}: {message}"
