@@ -489,6 +489,9 @@ def set_subnet_identity_extrinsic(
         wait_for_finalization=wait_for_finalization,
     )
 
+    if not wait_for_finalization and not wait_for_inclusion:
+        return True, f"Identities for subnet {netuid} are sent to the chain."
+
     if success:
         logging.success(
             f":white_heavy_check_mark: [green]Identities for subnet[/green] [blue]{netuid}[/blue] [green]are set.[/green]"
