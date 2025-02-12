@@ -6,6 +6,9 @@ from bittensor.utils import unlock_key
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.core.extrinsics.utils import get_old_stakes
+from bittensor.core.extrinsics.utils import (
+    async_sign_and_send_with_nonce as sign_and_send_with_nonce,
+)
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -111,8 +114,8 @@ async def add_stake_extrinsic(
                 "netuid": netuid,
             },
         )
-        staking_response, err_msg = await subtensor.sign_and_send_extrinsic(
-            call, wallet, wait_for_inclusion, wait_for_finalization
+        staking_response, err_msg = await sign_and_send_with_nonce(
+            subtensor, call, wallet, wait_for_inclusion, wait_for_finalization
         )
         if staking_response is True:  # If we successfully staked.
             # We only wait here if we expect finalization.
@@ -295,8 +298,8 @@ async def add_stake_multiple_extrinsic(
                     "netuid": netuid,
                 },
             )
-            staking_response, err_msg = await subtensor.sign_and_send_extrinsic(
-                call, wallet, wait_for_inclusion, wait_for_finalization
+            staking_response, err_msg = await sign_and_send_with_nonce(
+                subtensor, call, wallet, wait_for_inclusion, wait_for_finalization
             )
 
             if staking_response is True:  # If we successfully staked.
