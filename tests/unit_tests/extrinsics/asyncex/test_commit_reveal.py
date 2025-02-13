@@ -1,10 +1,11 @@
 from bittensor.core import async_subtensor as subtensor_module
 from bittensor.core.chain_data import SubnetHyperparameters
 from bittensor.core.async_subtensor import AsyncSubtensor
-from bittensor.core.extrinsics import async_commit_reveal
+from bittensor.core.extrinsics.asyncex import commit_reveal as async_commit_reveal
 import pytest
 import torch
 import numpy as np
+from bittensor_wallet import Wallet
 
 
 @pytest.fixture
@@ -42,7 +43,7 @@ def hyperparams():
         max_validators=0,
         adjustment_alpha=0,
         difficulty=0,
-        commit_reveal_weights_interval=0,
+        commit_reveal_period=0,
         commit_reveal_weights_enabled=True,
         alpha_high=0,
         alpha_low=0,
@@ -54,7 +55,7 @@ def hyperparams():
 async def test_do_commit_reveal_v3_success(mocker, subtensor):
     """Test successful commit-reveal with wait for finalization."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=subtensor_module.Wallet)
+    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_commit = b"fake_commit"
     fake_reveal_round = 1
@@ -90,19 +91,18 @@ async def test_do_commit_reveal_v3_success(mocker, subtensor):
         call=mocked_compose_call.return_value, keypair=fake_wallet.hotkey
     )
     mocked_submit_extrinsic.assert_awaited_once_with(
-        subtensor=subtensor,
-        extrinsic=mocked_create_signed_extrinsic.return_value,
+        mocked_create_signed_extrinsic.return_value,
         wait_for_inclusion=False,
         wait_for_finalization=False,
     )
-    assert result == (True, "Not waiting for finalization or inclusion.")
+    assert result == (True, "")
 
 
 @pytest.mark.asyncio
 async def test_do_commit_reveal_v3_failure_due_to_error(mocker, subtensor):
     """Test commit-reveal fails due to an error in submission."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=subtensor_module.Wallet)
+    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_commit = b"fake_commit"
     fake_reveal_round = 1
@@ -121,7 +121,9 @@ async def test_do_commit_reveal_v3_failure_due_to_error(mocker, subtensor):
     )
 
     mocked_format_error_message = mocker.patch.object(
-        async_commit_reveal, "format_error_message", return_value="Formatted error"
+        subtensor_module,
+        "format_error_message",
+        return_value="Formatted error",
     )
 
     # Call
@@ -149,8 +151,7 @@ async def test_do_commit_reveal_v3_failure_due_to_error(mocker, subtensor):
         call=mocked_compose_call.return_value, keypair=fake_wallet.hotkey
     )
     mocked_submit_extrinsic.assert_awaited_once_with(
-        subtensor=subtensor,
-        extrinsic=mocked_create_signed_extrinsic.return_value,
+        mocked_create_signed_extrinsic.return_value,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -164,7 +165,7 @@ async def test_commit_reveal_v3_extrinsic_success_with_torch(
 ):
     """Test successful commit-reveal with torch tensors."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=subtensor_module.Wallet)
+    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_uids = torch.tensor([1, 2, 3], dtype=torch.int64)
     fake_weights = torch.tensor([0.1, 0.2, 0.7], dtype=torch.float32)
@@ -192,7 +193,9 @@ async def test_commit_reveal_v3_extrinsic_success_with_torch(
         async_commit_reveal, "_do_commit_reveal_v3", return_value=(True, "Success")
     )
     mock_block = mocker.patch.object(
-        subtensor.substrate, "get_block_number", return_value=1
+        subtensor.substrate,
+        "get_block",
+        return_value={"header": {"number": 1, "hash": "fakehash"}},
     )
     mock_hyperparams = mocker.patch.object(
         subtensor,
@@ -220,11 +223,11 @@ async def test_commit_reveal_v3_extrinsic_success_with_torch(
     mocked_get_encrypted_commit.assert_called_once_with(
         uids=mocked_uids,
         weights=mocked_weights,
-        subnet_reveal_period_epochs=mock_hyperparams.return_value.commit_reveal_weights_interval,
+        subnet_reveal_period_epochs=mock_hyperparams.return_value.commit_reveal_period,
         version_key=async_commit_reveal.version_as_int,
         tempo=mock_hyperparams.return_value.tempo,
         netuid=fake_netuid,
-        current_block=mock_block.return_value,
+        current_block=mock_block.return_value["header"]["number"],
     )
     mock_do_commit_reveal_v3.assert_awaited_once_with(
         subtensor=subtensor,
@@ -243,7 +246,7 @@ async def test_commit_reveal_v3_extrinsic_success_with_numpy(
 ):
     """Test successful commit-reveal with numpy arrays."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=subtensor_module.Wallet)
+    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_uids = np.array([1, 2, 3], dtype=np.int64)
     fake_weights = np.array([0.1, 0.2, 0.7], dtype=np.float32)
@@ -291,7 +294,7 @@ async def test_commit_reveal_v3_extrinsic_response_false(
 ):
     """Test unsuccessful commit-reveal with torch."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=subtensor_module.Wallet)
+    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_uids = torch.tensor([1, 2, 3], dtype=torch.int64)
     fake_weights = torch.tensor([0.1, 0.2, 0.7], dtype=torch.float32)
@@ -348,7 +351,7 @@ async def test_commit_reveal_v3_extrinsic_response_false(
 async def test_commit_reveal_v3_extrinsic_exception(mocker, subtensor):
     """Test exception handling in commit-reveal."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=subtensor_module.Wallet)
+    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_uids = [1, 2, 3]
     fake_weights = [0.1, 0.2, 0.7]
