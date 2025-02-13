@@ -1,51 +1,45 @@
-from bittensor.core.subtensor import Subtensor
 from bittensor.utils.balance import Balance
-from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
 from bittensor import logging
 
 logging.set_trace()
 
 
-def test_transfer(local_chain):
+def test_transfer(subtensor, alice_wallet):
     """
     Test the transfer mechanism on the chain
 
     Steps:
-        1. Create a wallet for Alice
-        2. Calculate existing balance and transfer 2 Tao
-        3. Calculate balance after transfer call and verify calculations
+        1. Calculate existing balance and transfer 2 Tao
+        2. Calculate balance after transfer call and verify calculations
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
 
     print("Testing test_transfer")
 
-    # Set up Alice wallet
-    keypair, wallet = setup_wallet("//Alice")
-    subtensor = Subtensor(network="ws://localhost:9945")
     transfer_value = Balance.from_tao(2)
     dest_coldkey = "5GpzQgpiAKHMWNSH3RN4GLf96GVTDct9QxYEFAY7LWcVzTbx"
 
     # Fetch transfer fee
     transfer_fee = subtensor.get_transfer_fee(
-        wallet=wallet,
+        wallet=alice_wallet,
         dest=dest_coldkey,
         value=transfer_value,
     )
 
     # Account details before transfer
-    balance_before = subtensor.get_balance(wallet.coldkeypub.ss58_address)
+    balance_before = subtensor.get_balance(alice_wallet.coldkeypub.ss58_address)
 
     # Transfer Tao
     assert subtensor.transfer(
-        wallet=wallet,
+        wallet=alice_wallet,
         dest=dest_coldkey,
         amount=transfer_value,
         wait_for_finalization=True,
         wait_for_inclusion=True,
     )
     # Account details after transfer
-    balance_after = subtensor.get_balance(wallet.coldkeypub.ss58_address)
+    balance_after = subtensor.get_balance(alice_wallet.coldkeypub.ss58_address)
 
     # Assert correct transfer calculations
     assert (

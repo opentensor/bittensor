@@ -1,20 +1,3 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
 """
 The Bittensor Compatibility Module is designed to ensure seamless integration and functionality with legacy versions of
 the Bittensor framework, specifically up to and including version 7.3.0. This module addresses changes and deprecated
@@ -24,6 +7,7 @@ features in recent versions, allowing users to maintain compatibility with older
 import importlib
 import sys
 
+from bittensor_wallet import Keypair  # noqa: F401
 from bittensor_wallet.errors import KeyFileError  # noqa: F401
 from bittensor_wallet.keyfile import (  # noqa: F401
     serialized_keypair_to_keyfile_data,
@@ -42,23 +26,33 @@ from bittensor_wallet.keyfile import (  # noqa: F401
     Keyfile,
 )
 from bittensor_wallet.wallet import display_mnemonic_msg, Wallet  # noqa: F401
-from bittensor_wallet import Keypair  # noqa: F401
 
 from bittensor.core import settings
 from bittensor.core.async_subtensor import AsyncSubtensor
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import (  # noqa: F401
     AxonInfo,
+    ChainIdentity,
+    DelegateInfo,
+    DelegateInfoLite,
+    DynamicInfo,
+    IPInfo,
+    MetagraphInfo,
+    MetagraphInfoEmissions,
+    MetagraphInfoParams,
+    MetagraphInfoPool,
     NeuronInfo,
     NeuronInfoLite,
     PrometheusInfo,
-    DelegateInfo,
-    StakeInfo,
-    SubnetInfo,
-    SubnetHyperparameters,
-    IPInfo,
     ProposalCallData,
     ProposalVoteData,
+    ScheduledColdkeySwapInfo,
+    StakeInfo,
+    SubnetHyperparameters,
+    SubnetIdentity,
+    SubnetInfo,
+    SubnetState,
+    WeightCommitInfo,
 )
 from bittensor.core.config import (  # noqa: F401
     InvalidConfigFile,
@@ -112,9 +106,13 @@ from bittensor.utils import (  # noqa: F401
     get_hash,
 )
 from bittensor.utils.balance import Balance as Balance  # noqa: F401
-from bittensor.utils.mock.subtensor_mock import MockSubtensor as MockSubtensor  # noqa: F401
+from bittensor.utils.balance import tao, rao
 from bittensor.utils.btlogging import logging
+from bittensor.utils.mock.subtensor_mock import MockSubtensor as MockSubtensor  # noqa: F401
 from bittensor.utils.subnets import SubnetsAPI  # noqa: F401
+
+tao = tao
+rao = rao
 
 # Backwards compatibility with previous bittensor versions.
 async_subtensor = AsyncSubtensor

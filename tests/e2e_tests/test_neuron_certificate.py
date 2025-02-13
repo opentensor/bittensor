@@ -1,18 +1,13 @@
 import pytest
-from bittensor.core.subtensor import Subtensor
 from bittensor.core.axon import Axon
 from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.chain_interactions import (
     wait_interval,
-    register_subnet,
-)
-from tests.e2e_tests.utils.e2e_test_utils import (
-    setup_wallet,
 )
 
 
 @pytest.mark.asyncio
-async def test_neuron_certificate(local_chain):
+async def test_neuron_certificate(subtensor, alice_wallet):
     """
     Tests the metagraph
 
@@ -24,18 +19,13 @@ async def test_neuron_certificate(local_chain):
         AssertionError: If any of the checks or verifications fail
     """
     logging.info("Testing neuron_certificate")
-    netuid = 1
+    netuid = 2
 
     # Register root as Alice - the subnet owner and validator
-    alice_keypair, alice_wallet = setup_wallet("//Alice")
-    register_subnet(local_chain, alice_wallet)
+    assert subtensor.register_subnet(alice_wallet)
 
     # Verify subnet <netuid> created successfully
-    assert local_chain.query(
-        "SubtensorModule", "NetworksAdded", [netuid]
-    ).serialize(), "Subnet wasn't created successfully"
-
-    subtensor = Subtensor(network="ws://localhost:9945")
+    assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
     # Register Alice as a neuron on the subnet
     assert subtensor.burned_register(
@@ -52,7 +42,8 @@ async def test_neuron_certificate(local_chain):
     # Verify we are getting the correct certificate
     assert (
         subtensor.get_neuron_certificate(
-            netuid=netuid, hotkey=alice_keypair.ss58_address
+            netuid=netuid,
+            hotkey=alice_wallet.hotkey.ss58_address,
         )
         == encoded_certificate
     )

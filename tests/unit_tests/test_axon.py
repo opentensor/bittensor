@@ -1,41 +1,20 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
-
 import asyncio
 import contextlib
 import re
-import threading
 import time
 from dataclasses import dataclass
 from typing import Any, Optional, Tuple
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import aiohttp
 import fastapi
 import netaddr
 import pydantic
 import pytest
-import uvicorn
 from fastapi.testclient import TestClient
 from starlette.requests import Request
 
-from bittensor.core.axon import Axon, AxonMiddleware, FastAPIThreadedServer
+from bittensor.core.axon import AxonMiddleware, Axon
 from bittensor.core.errors import RunException
 from bittensor.core.settings import version_as_int
 from bittensor.core.stream import StreamingSynapse
@@ -306,16 +285,16 @@ async def test_verify_body_integrity_happy_path(
 
 
 @pytest.mark.parametrize(
-    "body, expected_exception_message",
+    "body, expected_exception_name",
     [
-        (b"", "Expecting value: line 1 column 1 (char 0)"),  # Empty body
-        (b"not_json", "Expecting value: line 1 column 1 (char 0)"),  # Non-JSON body
+        (b"", "JSONDecodeError"),  # Empty body
+        (b"not_json", "JSONDecodeError"),  # Non-JSON body
     ],
     ids=["empty_body", "non_json_body"],
 )
 @pytest.mark.asyncio
 async def test_verify_body_integrity_edge_cases(
-    mock_request, axon_instance, body, expected_exception_message
+    mock_request, axon_instance, body, expected_exception_name
 ):
     # Arrange
     mock_request.body.return_value = body
@@ -323,9 +302,7 @@ async def test_verify_body_integrity_edge_cases(
     # Act & Assert
     with pytest.raises(Exception) as exc_info:
         await axon_instance.verify_body_integrity(mock_request)
-    assert expected_exception_message in str(
-        exc_info.value
-    ), "Expected specific exception message."
+    assert exc_info.typename == expected_exception_name, "Expected specific exception"
 
 
 @pytest.mark.parametrize(
