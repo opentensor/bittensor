@@ -105,7 +105,10 @@ async def test_init_if_unknown_network_is_not_valid(mocker):
 def test__str__return(subtensor):
     """Simply tests the result if printing subtensor instance."""
     # Asserts
-    assert str(subtensor) == "Network: test, Chain: wss://test.finney.opentensor.ai:443"
+    assert (
+        str(subtensor)
+        == "Network: finney, Chain: wss://entrypoint-finney.opentensor.ai:443"
+    )
 
 
 @pytest.mark.asyncio
