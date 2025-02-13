@@ -42,7 +42,7 @@ if typing.TYPE_CHECKING:
 
 
 Tensor = Union["torch.nn.Parameter", NDArray]
-ROOT_TAO_STAKES_WEIGHT = 0.018
+ROOT_TAO_STAKES_WEIGHT = 0.18
 
 
 METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
