@@ -14,42 +14,6 @@ if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.async_subtensor import AsyncSubtensor
     from bittensor.utils.registration import torch
-    from scalecodec.types import GenericCall
-
-
-async def sign_and_send_with_nonce(
-    subtensor: "AsyncSubtensor",
-    call: "GenericCall",
-    wallet: "Wallet",
-    wait_for_inclusion: bool,
-    wait_for_finalization: bool,
-    period: Optional[int] = None,
-):
-    """
-    Signs an extrinsic call with the wallet hotkey, adding an optional era for period
-    """
-    next_nonce = await subtensor.substrate.get_account_next_index(
-        wallet.hotkey.ss58_address
-    )
-
-    extrinsic_data = {"call": call, "keypair": wallet.hotkey, "nonce": next_nonce}
-    if period is not None:
-        extrinsic_data["era"] = {"period": period}
-
-    extrinsic = await subtensor.substrate.create_signed_extrinsic(**extrinsic_data)
-    response = await subtensor.substrate.submit_extrinsic(
-        extrinsic=extrinsic,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
-
-    if not wait_for_finalization and not wait_for_inclusion:
-        return True, None
-
-    if await response.is_success:
-        return True, None
-
-    return False, format_error_message(await response.error_message)
 
 
 async def _do_commit_weights(
@@ -87,8 +51,14 @@ async def _do_commit_weights(
             "commit_hash": commit_hash,
         },
     )
-    return await sign_and_send_with_nonce(
-        subtensor, call, wallet, wait_for_inclusion, wait_for_finalization
+    return await subtensor.sign_and_send_extrinsic(
+        call,
+        wallet,
+        wait_for_inclusion,
+        wait_for_finalization,
+        use_nonce=True,
+        nonce_key="hotkey",
+        sign_with="hotkey",
     )
 
 
@@ -184,8 +154,14 @@ async def _do_reveal_weights(
             "version_key": version_key,
         },
     )
-    return await sign_and_send_with_nonce(
-        subtensor, call, wallet, wait_for_inclusion, wait_for_finalization
+    return await subtensor.sign_and_send_extrinsic(
+        call,
+        wallet,
+        wait_for_inclusion,
+        wait_for_finalization,
+        sign_with="hotkey",
+        nonce_key="hotkey",
+        use_nonce=True,
     )
 
 
@@ -290,8 +266,15 @@ async def _do_set_weights(
             "version_key": version_key,
         },
     )
-    return await sign_and_send_with_nonce(
-        subtensor, call, wallet, wait_for_inclusion, wait_for_finalization, period
+    return await subtensor.sign_and_send_extrinsic(
+        call,
+        wallet,
+        wait_for_inclusion,
+        wait_for_finalization,
+        period=period,
+        use_nonce=True,
+        nonce_key="hotkey",
+        sign_with="hotkey",
     )
 
 

@@ -10,7 +10,7 @@ from bittensor.core.chain_data.info_base import InfoBase
 from bittensor.core.chain_data.utils import decode_account_id
 
 from bittensor.core.chain_data.subnet_identity import SubnetIdentity
-from bittensor.utils.balance import Balance
+from bittensor.utils.balance import Balance, fixed_to_float
 
 
 @dataclass
@@ -38,6 +38,7 @@ class DynamicInfo(InfoBase):
     network_registered_at: int
     subnet_volume: Balance
     subnet_identity: Optional[SubnetIdentity]
+    moving_price: float
 
     @classmethod
     def _from_dict(cls, decoded: dict) -> "DynamicInfo":
@@ -120,6 +121,7 @@ class DynamicInfo(InfoBase):
             network_registered_at=int(decoded["network_registered_at"]),
             subnet_identity=subnet_identity,
             subnet_volume=subnet_volume,
+            moving_price=fixed_to_float(decoded["moving_price"]),
         )
 
     def tao_to_alpha(self, tao: Union[Balance, float, int]) -> Balance:

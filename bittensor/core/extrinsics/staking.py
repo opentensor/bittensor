@@ -107,7 +107,13 @@ def add_stake_extrinsic(
             },
         )
         staking_response, err_msg = subtensor.sign_and_send_extrinsic(
-            call, wallet, wait_for_inclusion, wait_for_finalization
+            call,
+            wallet,
+            wait_for_inclusion,
+            wait_for_finalization,
+            use_nonce=True,
+            sign_with="coldkey",
+            nonce_key="coldkeypub",
         )
         if staking_response is True:  # If we successfully staked.
             # We only wait here if we expect finalization.
@@ -280,7 +286,13 @@ def add_stake_multiple_extrinsic(
                 },
             )
             staking_response, err_msg = subtensor.sign_and_send_extrinsic(
-                call, wallet, wait_for_inclusion, wait_for_finalization
+                call,
+                wallet,
+                wait_for_inclusion,
+                wait_for_finalization,
+                use_nonce=True,
+                nonce_key="coldkeypub",
+                sign_with="coldkey",
             )
 
             if staking_response is True:  # If we successfully staked.

@@ -98,7 +98,13 @@ async def unstake_extrinsic(
             },
         )
         staking_response, err_msg = await subtensor.sign_and_send_extrinsic(
-            call, wallet, wait_for_inclusion, wait_for_finalization
+            call,
+            wallet,
+            wait_for_inclusion,
+            wait_for_finalization,
+            nonce_key="coldkeypub",
+            sign_with="coldkey",
+            use_nonce=True,
         )
 
         if staking_response is True:  # If we successfully unstaked.
@@ -261,8 +267,15 @@ async def unstake_multiple_extrinsic(
                     "netuid": netuid,
                 },
             )
+
             staking_response, err_msg = await subtensor.sign_and_send_extrinsic(
-                call, wallet, wait_for_inclusion, wait_for_finalization
+                call,
+                wallet,
+                wait_for_inclusion,
+                wait_for_finalization,
+                nonce_key="coldkeypub",
+                sign_with="coldkey",
+                use_nonce=True,
             )
 
             if staking_response is True:  # If we successfully unstaked.

@@ -10,30 +10,6 @@ if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
 
 
-def sign_and_send_with_nonce(
-    subtensor: "Subtensor", call, wallet, wait_for_inclusion, wait_for_finalization
-):
-    next_nonce = subtensor.substrate.get_account_next_index(wallet.hotkey.ss58_address)
-    extrinsic = subtensor.substrate.create_signed_extrinsic(
-        call=call,
-        keypair=wallet.hotkey,
-        nonce=next_nonce,
-    )
-    response = subtensor.substrate.submit_extrinsic(
-        extrinsic=extrinsic,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
-
-    if not wait_for_finalization and not wait_for_inclusion:
-        return True, None
-
-    if response.is_success:
-        return True, None
-
-    return False, format_error_message(response.error_message)
-
-
 def _do_commit_weights(
     subtensor: "Subtensor",
     wallet: "Wallet",
@@ -68,9 +44,14 @@ def _do_commit_weights(
             "commit_hash": commit_hash,
         },
     )
-
-    return sign_and_send_with_nonce(
-        subtensor, call, wallet, wait_for_inclusion, wait_for_finalization
+    return subtensor.sign_and_send_extrinsic(
+        call,
+        wallet,
+        wait_for_inclusion,
+        wait_for_finalization,
+        use_nonce=True,
+        sign_with="hotkey",
+        nonce_key="hotkey",
     )
 
 
@@ -164,8 +145,14 @@ def _do_reveal_weights(
             "version_key": version_key,
         },
     )
-    return sign_and_send_with_nonce(
-        subtensor, call, wallet, wait_for_inclusion, wait_for_finalization
+    return subtensor.sign_and_send_extrinsic(
+        call,
+        wallet,
+        wait_for_inclusion,
+        wait_for_finalization,
+        use_nonce=True,
+        sign_with="hotkey",
+        nonce_key="hotkey",
     )
 
 
