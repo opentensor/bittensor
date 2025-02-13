@@ -20,38 +20,6 @@ if TYPE_CHECKING:
     from scalecodec.types import GenericExtrinsic, GenericCall
 
 
-def sign_and_send_with_nonce(
-    subtensor: "Subtensor",
-    call: "GenericCall",
-    wallet: "Wallet",
-    wait_for_inclusion: bool,
-    wait_for_finalization,
-    nonce_key: str = "hotkey",
-    signing_key: str = "hotkey",
-):
-    keypair = getattr(wallet, nonce_key)
-    next_nonce = subtensor.substrate.get_account_next_index(keypair.ss58_address)
-    signing_keypair = getattr(wallet, signing_key)
-    extrinsic = subtensor.substrate.create_signed_extrinsic(
-        call=call,
-        keypair=signing_keypair,
-        nonce=next_nonce,
-    )
-    response = subtensor.substrate.submit_extrinsic(
-        extrinsic=extrinsic,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
-
-    if not wait_for_finalization and not wait_for_inclusion:
-        return True, None
-
-    if response.is_success:
-        return True, None
-
-    return False, format_error_message(response.error_message)
-
-
 def submit_extrinsic(
     subtensor: "Subtensor",
     extrinsic: "GenericExtrinsic",
