@@ -1,5 +1,4 @@
 import asyncio
-import sys
 
 import pytest
 
@@ -155,41 +154,12 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
         alice_wallet.hotkey.ss58_address, netuid=netuid
     )
 
-    # Prepare to run Alice as validator
-    cmd = " ".join(
-        [
-            f"{sys.executable}",
-            f'"{templates}/validator.py"',
-            "--netuid",
-            str(netuid),
-            "--subtensor.network",
-            "local",
-            "--subtensor.chain_endpoint",
-            "ws://localhost:9944",
-            "--wallet.path",
-            alice_wallet.path,
-            "--wallet.name",
-            alice_wallet.name,
-            "--wallet.hotkey",
-            "default",
-            "--logging.trace",
-        ]
-    )
+    async with templates.validator(alice_wallet, netuid):
+        await asyncio.sleep(
+            5
+        )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
 
-    # Run Alice as validator in the background
-    await asyncio.create_subprocess_shell(
-        cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-    print("Neuron Alice is now validating")
-
-    await asyncio.sleep(
-        5
-    )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
-
-    await wait_epoch(subtensor, netuid)
-    # await wait_epoch(subtensor, netuid)
+        await wait_epoch(subtensor, netuid)
 
     # Verify neuron info is updated after running as a validator
     # neuron_info = subtensor.get_neuron_for_pubkey_and_subnet(
