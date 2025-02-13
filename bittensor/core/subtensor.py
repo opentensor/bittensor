@@ -78,6 +78,7 @@ from bittensor.utils import (
     u16_normalized_float,
     _decode_hex_identity_dict,
     Certificate,
+    u64_normalized_float,
 )
 from bittensor.utils.balance import (
     Balance,
@@ -678,7 +679,7 @@ class Subtensor(SubtensorMixin):
 
     def get_children(
         self, hotkey: str, netuid: int, block: Optional[int] = None
-    ) -> tuple[bool, list, str]:
+    ) -> tuple[bool, list[tuple[float, str]], str]:
         """
         This method retrieves the children of a given hotkey and netuid. It queries the SubtensorModule's ChildKeys
             storage function to get the children and formats them before returning as a tuple.
@@ -704,8 +705,8 @@ class Subtensor(SubtensorMixin):
                 for proportion, child in children.value:
                     # Convert U64 to int
                     formatted_child = decode_account_id(child[0])
-                    int_proportion = int(proportion)
-                    formatted_children.append((int_proportion, formatted_child))
+                    normalized_proportion = u64_normalized_float(proportion)
+                    formatted_children.append((normalized_proportion, formatted_child))
                 return True, formatted_children, ""
             else:
                 return True, [], ""
