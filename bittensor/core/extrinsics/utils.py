@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     )
     from bittensor.core.subtensor import Subtensor
     from bittensor.core.chain_data import StakeInfo
-    from scalecodec.types import GenericExtrinsic, GenericCall
+    from scalecodec.types import GenericExtrinsic
 
 
 def submit_extrinsic(
