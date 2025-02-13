@@ -1,11 +1,12 @@
 import pytest
+from bittensor_wallet import Wallet
 
 from bittensor.core import subtensor as subtensor_module
 from bittensor.core.settings import version_as_int
 from bittensor.core.subtensor import Subtensor
 from bittensor.core.extrinsics.commit_weights import (
-    do_commit_weights,
-    do_reveal_weights,
+    _do_commit_weights,
+    _do_reveal_weights,
 )
 
 
@@ -30,12 +31,15 @@ def test_do_commit_weights(subtensor, mocker):
 
     subtensor.substrate.submit_extrinsic.return_value.is_success = None
 
-    mocked_format_error_message = mocker.MagicMock()
-    subtensor_module.format_error_message = mocked_format_error_message
+    mocked_format_error_message = mocker.Mock()
+    mocker.patch(
+        "bittensor.core.subtensor.format_error_message",
+        mocked_format_error_message,
+    )
 
     # Call
-    result = do_commit_weights(
-        self=subtensor,
+    result = _do_commit_weights(
+        subtensor=subtensor,
         wallet=fake_wallet,
         netuid=netuid,
         commit_hash=commit_hash,
@@ -64,19 +68,21 @@ def test_do_commit_weights(subtensor, mocker):
         wait_for_finalization=wait_for_finalization,
     )
 
-    subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
+    mocked_format_error_message.assert_called_once_with(
+        subtensor.substrate.submit_extrinsic.return_value.error_message,
+    )
 
     assert result == (
         False,
-        subtensor.substrate.submit_extrinsic.return_value.error_message,
+        mocked_format_error_message.return_value,
     )
 
 
 def test_do_reveal_weights(subtensor, mocker):
     """Verifies that the `_do_reveal_weights` method interacts with the right substrate methods."""
     # Preps
-    fake_wallet = mocker.MagicMock()
-    fake_wallet.hotkey = "hotkey"
+    fake_wallet = mocker.MagicMock(autospec=Wallet)
+    fake_wallet.hotkey.ss58_address = "hotkey"
 
     netuid = 1
     uids = [1, 2, 3, 4]
@@ -87,12 +93,15 @@ def test_do_reveal_weights(subtensor, mocker):
 
     subtensor.substrate.submit_extrinsic.return_value.is_success = None
 
-    mocked_format_error_message = mocker.MagicMock()
-    subtensor_module.format_error_message = mocked_format_error_message
+    mocked_format_error_message = mocker.Mock()
+    mocker.patch(
+        "bittensor.core.subtensor.format_error_message",
+        mocked_format_error_message,
+    )
 
     # Call
-    result = do_reveal_weights(
-        self=subtensor,
+    result = _do_reveal_weights(
+        subtensor=subtensor,
         wallet=fake_wallet,
         netuid=netuid,
         uids=uids,
@@ -117,7 +126,9 @@ def test_do_reveal_weights(subtensor, mocker):
     )
 
     subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value, keypair=fake_wallet.hotkey
+        call=subtensor.substrate.compose_call.return_value,
+        keypair=fake_wallet.hotkey,
+        nonce=subtensor.substrate.get_account_next_index.return_value,
     )
 
     subtensor.substrate.submit_extrinsic.assert_called_once_with(
@@ -126,9 +137,11 @@ def test_do_reveal_weights(subtensor, mocker):
         wait_for_finalization=wait_for_finalization,
     )
 
-    subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
+    mocked_format_error_message.assert_called_once_with(
+        subtensor.substrate.submit_extrinsic.return_value.error_message,
+    )
 
     assert result == (
         False,
-        subtensor.substrate.submit_extrinsic.return_value.error_message,
+        mocked_format_error_message.return_value,
     )

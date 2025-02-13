@@ -1,20 +1,3 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
 """Conversion for weight between chain representation and np.array or torch.Tensor"""
 
 import hashlib
@@ -22,10 +5,9 @@ import typing
 from typing import Union, Optional
 
 import numpy as np
-
+from bittensor_wallet import Keypair
 from numpy.typing import NDArray
 from scalecodec import U16, ScaleBytes, Vec
-from bittensor_wallet import Keypair
 
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import legacy_torch_api_compat, torch, use_torch
@@ -93,7 +75,8 @@ def convert_weight_uids_and_vals_to_tensor(
     n: int, uids: list[int], weights: list[int]
 ) -> Union[NDArray[np.float32], "torch.FloatTensor"]:
     """
-    Converts weights and uids from chain representation into a np.array (inverse operation from convert_weights_and_uids_for_emit).
+    Converts weights and uids from chain representation into a np.array (inverse operation from
+    convert_weights_and_uids_for_emit).
 
     Args:
         n (int): number of neurons on network.
@@ -122,7 +105,9 @@ def convert_weight_uids_and_vals_to_tensor(
 def convert_root_weight_uids_and_vals_to_tensor(
     n: int, uids: list[int], weights: list[int], subnets: list[int]
 ) -> Union[NDArray[np.float32], "torch.FloatTensor"]:
-    """Converts root weights and uids from chain representation into a np.array or torch FloatTensor (inverse operation from convert_weights_and_uids_for_emit)
+    """Converts root weights and uids from chain representation into a np.array or torch FloatTensor
+    (inverse operation from convert_weights_and_uids_for_emit)
+
     Args:
         n (int): number of neurons on network.
         uids (list[int]): Tensor of uids as destinations for passed weights.
@@ -240,18 +225,23 @@ def process_weights_for_netuid(
     tuple[NDArray[np.int64], NDArray[np.float32]],
 ]:
     """
-    Processes weight tensors for a given subnet id using the provided weight and UID arrays, applying constraints and normalization based on the subtensor and metagraph data. This function can handle both NumPy arrays and PyTorch tensors.
+    Processes weight tensors for a given subnet id using the provided weight and UID arrays, applying constraints
+    and normalization based on the subtensor and metagraph data. This function can handle both NumPy arrays and PyTorch
+    tensors.
 
     Args:
         uids (Union[NDArray[np.int64], "torch.Tensor"]): Array of unique identifiers of the neurons.
         weights (Union[NDArray[np.float32], "torch.Tensor"]): Array of weights associated with the user IDs.
         netuid (int): The network uid to process weights for.
         subtensor (Subtensor): Subtensor instance to access blockchain data.
-        metagraph (Optional[Metagraph]): Metagraph instance for additional network data. If None, it is fetched from the subtensor using the netuid.
+        metagraph (Optional[Metagraph]): Metagraph instance for additional network data. If None, it is fetched from
+            the subtensor using the netuid.
         exclude_quantile (int): Quantile threshold for excluding lower weights. Defaults to ``0``.
 
     Returns:
-        Union[tuple["torch.Tensor", "torch.FloatTensor"], tuple[NDArray[np.int64], NDArray[np.float32]]]: tuple containing the array of user IDs and the corresponding normalized weights. The data type of the return matches the type of the input weights (NumPy or PyTorch).
+        Union[tuple["torch.Tensor", "torch.FloatTensor"], tuple[NDArray[np.int64], NDArray[np.float32]]]: tuple
+            containing the array of user IDs and the corresponding normalized weights. The data type of the return
+            matches the type of the input weights (NumPy or PyTorch).
     """
 
     logging.debug("process_weights_for_netuid()")
