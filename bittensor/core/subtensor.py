@@ -6,6 +6,7 @@ import numpy as np
 import requests
 import scalecodec
 from async_substrate_interface.errors import SubstrateRequestException
+from async_substrate_interface.types import ScaleObj
 from async_substrate_interface.sync_substrate import SubstrateInterface
 from async_substrate_interface.utils import json
 from numpy.typing import NDArray
@@ -77,6 +78,7 @@ from bittensor.utils import (
     u16_normalized_float,
     _decode_hex_identity_dict,
     Certificate,
+    u64_normalized_float,
 )
 from bittensor.utils.balance import (
     Balance,
@@ -91,7 +93,6 @@ from bittensor.utils.weight_utils import generate_weight_hash
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from async_substrate_interface.sync_substrate import QueryMapResult
-    from async_substrate_interface.types import ScaleObj
     from scalecodec.types import GenericCall
 
 
@@ -678,7 +679,7 @@ class Subtensor(SubtensorMixin):
 
     def get_children(
         self, hotkey: str, netuid: int, block: Optional[int] = None
-    ) -> tuple[bool, list, str]:
+    ) -> tuple[bool, list[tuple[float, str]], str]:
         """
         This method retrieves the children of a given hotkey and netuid. It queries the SubtensorModule's ChildKeys
             storage function to get the children and formats them before returning as a tuple.
@@ -704,8 +705,8 @@ class Subtensor(SubtensorMixin):
                 for proportion, child in children.value:
                     # Convert U64 to int
                     formatted_child = decode_account_id(child[0])
-                    int_proportion = int(proportion)
-                    formatted_children.append((int_proportion, formatted_child))
+                    normalized_proportion = u64_normalized_float(proportion)
+                    formatted_children.append((normalized_proportion, formatted_child))
                 return True, formatted_children, ""
             else:
                 return True, [], ""
@@ -1280,6 +1281,28 @@ class Subtensor(SubtensorMixin):
         return [stake for stake in stakes if stake.stake > 0]
 
     get_stake_info_for_coldkey = get_stake_for_coldkey
+
+    def get_stake_for_hotkey(
+        self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
+    ) -> Balance:
+        """
+        Retrieves the stake information for a given hotkey.
+
+        Args:
+            hotkey_ss58: The SS58 address of the hotkey.
+            netuid: The subnet ID to query for.
+            block: The block number at which to query the stake information. Do not specify if also specifying
+                block_hash or reuse_block
+        """
+        hotkey_alpha_query = self.query_subtensor(
+            name="TotalHotkeyAlpha", params=[hotkey_ss58, netuid], block=block
+        )
+        hotkey_alpha = cast(ScaleObj, hotkey_alpha_query)
+        balance = Balance.from_rao(hotkey_alpha.value)
+        balance.set_unit(netuid=netuid)
+        return balance
+
+    get_hotkey_stake = get_stake_for_hotkey
 
     def get_subnet_burn_cost(self, block: Optional[int] = None) -> Optional[Balance]:
         """
@@ -2029,6 +2052,9 @@ class Subtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         sign_with: str = "coldkey",
+        use_nonce: bool = False,
+        period: Optional[int] = None,
+        nonce_key: str = "hotkey",
     ) -> tuple[bool, str]:
         """
         Helper method to sign and submit an extrinsic call to chain.
@@ -2043,14 +2069,27 @@ class Subtensor(SubtensorMixin):
         Returns:
             (success, error message)
         """
-        if sign_with not in ("coldkey", "hotkey", "coldkeypub"):
+        possible_keys = ("coldkey", "hotkey", "coldkeypub")
+        if sign_with not in possible_keys:
             raise AttributeError(
                 f"'sign_with' must be either 'coldkey', 'hotkey' or 'coldkeypub', not '{sign_with}'"
             )
 
-        extrinsic = self.substrate.create_signed_extrinsic(
-            call=call, keypair=getattr(wallet, sign_with)
-        )
+        signing_keypair = getattr(wallet, sign_with)
+        extrinsic_data = {"call": call, "keypair": signing_keypair}
+        if use_nonce:
+            if nonce_key not in possible_keys:
+                raise AttributeError(
+                    f"'nonce_key' must be either 'coldkey', 'hotkey' or 'coldkeypub', not '{nonce_key}'"
+                )
+            next_nonce = self.substrate.get_account_next_index(
+                getattr(wallet, nonce_key).ss58_address
+            )
+            extrinsic_data["nonce"] = next_nonce
+        if period is not None:
+            extrinsic_data["era"] = {"period": period}
+
+        extrinsic = self.substrate.create_signed_extrinsic(**extrinsic_data)
         try:
             response = self.substrate.submit_extrinsic(
                 extrinsic,

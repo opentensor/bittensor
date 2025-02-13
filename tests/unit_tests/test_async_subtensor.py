@@ -3,6 +3,7 @@ import unittest.mock as mock
 import pytest
 from bittensor_wallet import Wallet
 
+from bittensor import u64_normalized_float
 from bittensor.core import async_subtensor
 from bittensor.core.async_subtensor import AsyncSubtensor
 from bittensor.core.chain_data.stake_info import StakeInfo
@@ -1765,8 +1766,8 @@ async def test_get_children_success(subtensor, mocker):
     mocker.patch.object(async_subtensor, "decode_account_id", mocked_decode_account_id)
 
     expected_formatted_children = [
-        (1000, "decoded_child_key_1"),
-        (2000, "decoded_child_key_2"),
+        (u64_normalized_float(1000), "decoded_child_key_1"),
+        (u64_normalized_float(2000), "decoded_child_key_2"),
     ]
 
     # Call

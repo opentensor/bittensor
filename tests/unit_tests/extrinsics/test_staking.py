@@ -1,4 +1,5 @@
 from bittensor.core.extrinsics import staking
+from bittensor.core.extrinsics import utils
 from bittensor.utils.balance import Balance
 
 
@@ -48,6 +49,9 @@ def test_add_stake_extrinsic(mocker):
         fake_wallet,
         True,
         True,
+        nonce_key="coldkeypub",
+        sign_with="coldkey",
+        use_nonce=True,
     )
 
 
@@ -132,4 +136,7 @@ def test_add_stake_multiple_extrinsic(mocker):
         fake_wallet,
         True,
         True,
+        nonce_key="coldkeypub",
+        sign_with="coldkey",
+        use_nonce=True,
     )
