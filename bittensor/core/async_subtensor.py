@@ -1665,6 +1665,40 @@ class AsyncSubtensor(SubtensorMixin):
 
     get_stake_info_for_coldkey = get_stake_for_coldkey
 
+    async def get_stake_for_hotkey(
+        self,
+        hotkey_ss58: str,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Balance:
+        """
+        Retrieves the stake information for a given hotkey.
+
+        Args:
+            hotkey_ss58: The SS58 address of the hotkey.
+            netuid: The subnet ID to query for.
+            block: The block number at which to query the stake information. Do not specify if also specifying
+                block_hash or reuse_block
+            block_hash: The hash of the blockchain block number for the query. Do not specify if also specifying block
+                or reuse_block
+            reuse_block: Whether to reuse for this query the last-used block. Do not specify if also specifying block
+                or block_hash.
+        """
+        hotkey_alpha_query = await self.query_subtensor(
+            name="TotalHotkeyAlpha",
+            params=[hotkey_ss58, netuid],
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        balance = Balance.from_rao(hotkey_alpha_query.value)
+        balance.set_unit(netuid=netuid)
+        return balance
+
+    get_hotkey_stake = get_stake_for_hotkey
+
     async def get_subnet_burn_cost(
         self,
         block: Optional[int] = None,
