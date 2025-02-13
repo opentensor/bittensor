@@ -1,20 +1,23 @@
 import asyncio
 import contextlib
 import re
+import threading
 import time
 from dataclasses import dataclass
 from typing import Any, Optional, Tuple
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import aiohttp
 import fastapi
 import netaddr
 import pydantic
 import pytest
+import uvicorn
 from fastapi.testclient import TestClient
 from starlette.requests import Request
 
-from bittensor.core.axon import AxonMiddleware, Axon
+from bittensor.core.axon import Axon, AxonMiddleware, FastAPIThreadedServer
 from bittensor.core.errors import RunException
 from bittensor.core.settings import version_as_int
 from bittensor.core.stream import StreamingSynapse
