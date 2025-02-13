@@ -1,3 +1,5 @@
+import asyncio
+import contextlib
 import os
 import shutil
 import subprocess
@@ -43,8 +45,10 @@ def clone_or_update_templates(specific_commit=None):
     """
     install_dir = template_path
     repo_mapping = {
-        templates_repo: "https://github.com/opentensor/bittensor-subnet-template.git",
+        templates_repo: "https://github.com/opentensor/subnet-template.git",
     }
+
+    cwd = os.getcwd()
 
     os.makedirs(install_dir, exist_ok=True)
     os.chdir(install_dir)
@@ -69,16 +73,78 @@ def clone_or_update_templates(specific_commit=None):
         subprocess.run(["git", "checkout", specific_commit], check=True)
         os.chdir("..")
 
-    return install_dir + templates_repo + "/"
+    os.chdir(cwd)
+
+    return install_dir + templates_repo
 
 
 def install_templates(install_dir):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", install_dir])
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."])
 
 
 def uninstall_templates(install_dir):
-    subprocess.check_call(
-        [sys.executable, "-m", "pip", "uninstall", "bittensor_subnet_template", "-y"]
-    )
+    subprocess.check_call([sys.executable, "-m", "pip", "uninstall", "bittensor", "-y"])
     # Delete everything in directory
     shutil.rmtree(install_dir)
+
+
+class Templates:
+    def __init__(self):
+        self.dir = clone_or_update_templates()
+
+    def __enter__(self):
+        install_templates(self.dir)
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        uninstall_templates(self.dir)
+
+    @contextlib.asynccontextmanager
+    async def miner(self, wallet, netuid):
+        process = await asyncio.create_subprocess_exec(
+            sys.executable,
+            f"{self.dir}/miner.py",
+            "--netuid",
+            str(netuid),
+            "--subtensor.network",
+            "local",
+            "--subtensor.chain_endpoint",
+            "ws://localhost:9944",
+            "--wallet.path",
+            wallet.path,
+            "--wallet.name",
+            wallet.name,
+            "--wallet.hotkey",
+            "default",
+        )
+
+        yield
+
+        process.terminate()
+
+        await process.wait()
+
+    @contextlib.asynccontextmanager
+    async def validator(self, wallet, netuid):
+        process = await asyncio.create_subprocess_exec(
+            sys.executable,
+            f"{self.dir}/validator.py",
+            "--netuid",
+            str(netuid),
+            "--subtensor.network",
+            "local",
+            "--subtensor.chain_endpoint",
+            "ws://localhost:9944",
+            "--wallet.path",
+            wallet.path,
+            "--wallet.name",
+            wallet.name,
+            "--wallet.hotkey",
+            "default",
+        )
+
+        yield
+
+        process.terminate()
+
+        await process.wait()

@@ -3,22 +3,17 @@ import pytest
 
 import asyncio
 
-from bittensor.core.subtensor import Subtensor
 from bittensor.utils.balance import Balance
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
-from bittensor.core.extrinsics import utils
 from tests.e2e_tests.utils.chain_interactions import (
-    add_stake,
-    register_subnet,
     sudo_set_hyperparameter_bool,
     sudo_set_hyperparameter_values,
     sudo_set_admin_utils,
 )
-from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
 
 
 @pytest.mark.asyncio
-async def test_set_weights_uses_next_nonce(local_chain):
+async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet):
     """
     Tests that setting weights doesn't re-use a nonce in the transaction pool.
 
@@ -32,11 +27,8 @@ async def test_set_weights_uses_next_nonce(local_chain):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    netuids = [1, 2]
-    utils.EXTRINSIC_SUBMISSION_TIMEOUT = 12  # handle fast blocks
+    netuids = [2, 3]
     print("Testing test_set_weights_uses_next_nonce")
-    # Register root as Alice
-    keypair, alice_wallet = setup_wallet("//Alice")
 
     # Lower the network registration rate limit and cost
     sudo_set_admin_utils(
@@ -54,40 +46,27 @@ async def test_set_weights_uses_next_nonce(local_chain):
         call_params={"interval": "1"},  # 1 block # reduce lock every block
         return_error_message=True,
     )
+
     # Try to register the subnets
     for _ in netuids:
-        assert register_subnet(
-            local_chain, alice_wallet
+        assert subtensor.register_subnet(
+            alice_wallet,
+            wait_for_inclusion=True,
+            wait_for_finalization=True,
         ), "Unable to register the subnet"
 
     # Verify all subnets created successfully
-    assert local_chain.query(
-        "SubtensorModule", "NetworksAdded", [3]
-    ).serialize(), "Subnet wasn't created successfully"
-
-    subtensor = Subtensor(network="ws://localhost:9945")
-
     for netuid in netuids:
-        # Allow registration on the subnet
-        assert sudo_set_hyperparameter_values(
-            local_chain,
-            alice_wallet,
-            "sudo_set_network_registration_allowed",
-            {"netuid": netuid, "registration_allowed": True},
-            return_error_message=True,
-        )
-
-    # This should give a gap for the calls above to be included in the chain
-    await asyncio.sleep(2)
-
-    for netuid in netuids:
-        # Register Alice to the subnet
-        assert subtensor.burned_register(
-            alice_wallet, netuid
-        ), f"Unable to register Alice as a neuron on SN{netuid}"
+        assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
     # Stake to become to top neuron after the first epoch
-    add_stake(local_chain, alice_wallet, Balance.from_tao(100_000))
+    for netuid in netuids:
+        subtensor.add_stake(
+            alice_wallet,
+            alice_wallet.hotkey.ss58_address,
+            netuid,
+            Balance.from_tao(10_000),
+        )
 
     # Set weight hyperparameters per subnet
     for netuid in netuids:

@@ -1,20 +1,3 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
 from collections.abc import Mapping
 from dataclasses import dataclass
 from hashlib import sha256
@@ -22,20 +5,19 @@ from types import SimpleNamespace
 from typing import Any, Optional, Union, TypedDict
 from unittest.mock import MagicMock, patch
 
+from async_substrate_interface import SubstrateInterface
 from bittensor_wallet import Wallet
-from substrateinterface.base import SubstrateInterface
-from websockets.sync.client import ClientConnection
 
+import bittensor.core.subtensor as subtensor_module
 from bittensor.core.chain_data import (
     NeuronInfo,
     NeuronInfoLite,
     PrometheusInfo,
     AxonInfo,
 )
-from bittensor.core.types import AxonServeCallParams, PrometheusServeCallParams
 from bittensor.core.errors import ChainQueryError
 from bittensor.core.subtensor import Subtensor
-import bittensor.core.subtensor as subtensor_module
+from bittensor.core.types import AxonServeCallParams, PrometheusServeCallParams
 from bittensor.utils import RAOPERTAO, u16_normalized_float
 from bittensor.utils.balance import Balance
 
@@ -168,6 +150,21 @@ class MockChainState(TypedDict):
     SubtensorModule: MockSubtensorState
 
 
+class ReusableCoroutine:
+    def __init__(self, coroutine):
+        self.coroutine = coroutine
+
+    def __await__(self):
+        return self.reset().__await__()
+
+    def reset(self):
+        return self.coroutine()
+
+
+async def _async_block():
+    return 1
+
+
 class MockSubtensor(Subtensor):
     """
     A Mock Subtensor class for running tests.
@@ -255,21 +252,19 @@ class MockSubtensor(Subtensor):
 
     def __init__(self, *args, **kwargs) -> None:
         mock_substrate_interface = MagicMock(autospec=SubstrateInterface)
-        mock_websocket = MagicMock(autospec=ClientConnection)
-        mock_websocket.close_code = None
         with patch.object(
             subtensor_module,
             "SubstrateInterface",
             return_value=mock_substrate_interface,
         ):
-            super().__init__(websocket=mock_websocket)
+            super().__init__()
             self.__dict__ = __GLOBAL_MOCK_STATE__
 
             if not hasattr(self, "chain_state") or getattr(self, "chain_state") is None:
                 self.setup()
 
-    def get_block_hash(self, block_id: int) -> str:
-        return "0x" + sha256(str(block_id).encode()).hexdigest()[:64]
+    def get_block_hash(self, block: Optional[int] = None) -> str:
+        return "0x" + sha256(str(block).encode()).hexdigest()[:64]
 
     def create_subnet(self, netuid: int) -> None:
         subtensor_state = self.chain_state["SubtensorModule"]
@@ -777,7 +772,7 @@ class MockSubtensor(Subtensor):
         trust = u16_normalized_float(trust)
         validator_trust = u16_normalized_float(validator_trust)
         dividends = u16_normalized_float(dividends)
-        prometheus_info = PrometheusInfo.fix_decoded_values(prometheus_info)
+        prometheus_info = PrometheusInfo.from_dict(prometheus_info)
         axon_info_ = AxonInfo.from_neuron_info(
             {"hotkey": hotkey, "coldkey": coldkey, "axon_info": axon_info_}
         )
