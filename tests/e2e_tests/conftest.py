@@ -12,11 +12,8 @@ from bittensor.core.subtensor import Subtensor
 
 from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.e2e_test_utils import (
-    clone_or_update_templates,
-    install_templates,
+    Templates,
     setup_wallet,
-    template_path,
-    uninstall_templates,
 )
 
 
@@ -38,15 +35,6 @@ def local_chain(request):
     # Compile commands to send to process
     cmds = shlex.split(f"{script_path} {args}")
 
-    # Start new node process
-    process = subprocess.Popen(
-        cmds,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        preexec_fn=os.setsid,
-    )
-
     # Pattern match indicates node is compiled and ready
     pattern = re.compile(r"Imported #1")
     timestamp = int(time.time())
@@ -61,7 +49,7 @@ def local_chain(request):
             # 10 min as timeout
             if int(time.time()) - timestamp > 10 * 60:
                 print("Subtensor not started in time")
-                return
+                raise TimeoutError
             if pattern.search(line):
                 print("Node started!")
                 break
@@ -77,38 +65,35 @@ def local_chain(request):
         reader_thread = threading.Thread(target=read_output, daemon=True)
         reader_thread.start()
 
-    wait_for_node_start(process, pattern)
+    with subprocess.Popen(
+        cmds,
+        start_new_session=True,
+        stderr=subprocess.STDOUT,
+        stdout=subprocess.PIPE,
+        text=True,
+    ) as process:
+        try:
+            wait_for_node_start(process, pattern)
+        except TimeoutError:
+            raise
+        else:
+            yield SubstrateInterface(url="ws://127.0.0.1:9944")
+        finally:
+            # Terminate the process group (includes all child processes)
+            os.killpg(os.getpgid(process.pid), signal.SIGTERM)
 
-    # Run the test, passing in substrate interface
-    yield SubstrateInterface(url="ws://127.0.0.1:9944")
-
-    # Terminate the process group (includes all child processes)
-    os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-
-    # Give some time for the process to terminate
-    time.sleep(1)
-
-    # If the process is not terminated, send SIGKILL
-    if process.poll() is None:
-        os.killpg(os.getpgid(process.pid), signal.SIGKILL)
-
-    # Ensure the process has terminated
-    process.wait()
+            try:
+                process.wait(1)
+            except subprocess.TimeoutExpired:
+                # If the process is not terminated, send SIGKILL
+                os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+                process.wait()
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def templates():
-    logging.info("downloading and installing neuron templates from github")
-
-    templates_dir = clone_or_update_templates()
-
-    install_templates(templates_dir)
-
-    yield templates_dir
-
-    logging.info("uninstalling neuron templates")
-
-    uninstall_templates(template_path)
+    with Templates() as templates:
+        yield templates
 
 
 @pytest.fixture

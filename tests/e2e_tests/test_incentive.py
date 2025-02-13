@@ -1,5 +1,4 @@
 import asyncio
-import sys
 import time
 
 import pytest
@@ -72,72 +71,16 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
         return_error_message=True,
     )
 
-    # Prepare to run Bob as miner
-    cmd = " ".join(
-        [
-            f"{sys.executable}",
-            f'"{templates}/miner.py"',
-            "--netuid",
-            str(netuid),
-            "--subtensor.network",
-            "local",
-            "--subtensor.chain_endpoint",
-            local_chain.chain_endpoint,
-            "--wallet.path",
-            bob_wallet.path,
-            "--wallet.name",
-            bob_wallet.name,
-            "--wallet.hotkey",
-            "default",
-            "--logging.trace",
-        ]
-    )
+    async with templates.miner(bob_wallet, netuid):
+        async with templates.validator(alice_wallet, netuid):
+            # wait for the Validator to process and set_weights
+            await asyncio.sleep(5)
 
-    # Run Bob as miner in the background
-    await asyncio.create_subprocess_shell(
-        cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-    print("Neuron Bob is now mining")
+            # Wait until next epoch
+            await wait_epoch(subtensor, netuid)
 
-    # Prepare to run Alice as validator
-    cmd = " ".join(
-        [
-            f"{sys.executable}",
-            f'"{templates}/validator.py"',
-            "--netuid",
-            str(netuid),
-            "--subtensor.network",
-            "local",
-            "--subtensor.chain_endpoint",
-            "ws://localhost:9944",
-            "--wallet.path",
-            alice_wallet.path,
-            "--wallet.name",
-            alice_wallet.name,
-            "--wallet.hotkey",
-            "default",
-            "--logging.trace",
-        ]
-    )
-
-    # Run Alice as validator in the background
-    await asyncio.create_subprocess_shell(
-        cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-    print("Neuron Alice is now validating")
-
-    # wait for the Validator to process and set_weights
-    await asyncio.sleep(5)
-
-    # Wait until next epoch
-    await wait_epoch(subtensor, netuid)
-
-    # Refresh metagraph
-    metagraph = subtensor.metagraph(netuid)
+            # Refresh metagraph
+            metagraph = subtensor.metagraph(netuid)
 
     # Get current emissions and validate that Alice has gotten tao
     alice_neuron = metagraph.neurons[0]
