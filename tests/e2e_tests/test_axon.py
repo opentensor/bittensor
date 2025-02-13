@@ -1,5 +1,4 @@
 import asyncio
-import sys
 
 import pytest
 
@@ -45,42 +44,14 @@ async def test_axon(subtensor, templates, alice_wallet):
     assert old_axon.port == 0, f"Expected port 0, but got {old_axon.port}"
     assert old_axon.ip_type == 0, f"Expected IP type 0, but got {old_axon.ip_type}"
 
-    # Prepare to run the miner
-    cmd = " ".join(
-        [
-            f"{sys.executable}",
-            f'"{templates}/miner.py"',
-            "--netuid",
-            str(netuid),
-            "--subtensor.network",
-            "local",
-            "--subtensor.chain_endpoint",
-            "ws://localhost:9944",
-            "--wallet.path",
-            alice_wallet.path,
-            "--wallet.name",
-            alice_wallet.name,
-            "--wallet.hotkey",
-            "default",
-        ]
-    )
+    async with templates.miner(alice_wallet, netuid):
+        # Waiting for 5 seconds for metagraph to be updated
+        await asyncio.sleep(5)
 
-    # Run the miner in the background
-    await asyncio.create_subprocess_shell(
-        cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-
-    print("Neuron Alice is now mining")
-
-    # Waiting for 5 seconds for metagraph to be updated
-    await asyncio.sleep(5)
-
-    # Refresh the metagraph
-    metagraph = subtensor.metagraph(netuid)
-    updated_axon = metagraph.axons[0]
-    external_ip = networking.get_external_ip()
+        # Refresh the metagraph
+        metagraph = subtensor.metagraph(netuid)
+        updated_axon = metagraph.axons[0]
+        external_ip = networking.get_external_ip()
 
     # Assert updated attributes
     assert (

@@ -1,5 +1,4 @@
 import asyncio
-import sys
 
 import pytest
 
@@ -104,39 +103,13 @@ async def test_dendrite(local_chain, subtensor, templates, alice_wallet, bob_wal
     assert bob_neuron.validator_trust == 0.0
     assert bob_neuron.pruning_score == 0
 
-    # Prepare to run the validator
-    cmd = " ".join(
-        [
-            f"{sys.executable}",
-            f'"{templates}/validator.py"',
-            "--netuid",
-            str(netuid),
-            "--subtensor.network",
-            "local",
-            "--subtensor.chain_endpoint",
-            "ws://localhost:9944",
-            "--wallet.path",
-            bob_wallet.path,
-            "--wallet.name",
-            bob_wallet.name,
-            "--wallet.hotkey",
-            "default",
-        ]
-    )
+    async with templates.validator(bob_wallet, netuid):
+        await asyncio.sleep(5)  # wait for 5 seconds for the Validator to process
 
-    # Run the validator in the background
-    await asyncio.create_subprocess_shell(
-        cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-    logging.console.info("Neuron Alice is now validating")
-    await asyncio.sleep(5)  # wait for 5 seconds for the Validator to process
+        await wait_epoch(subtensor, netuid=netuid)
 
-    await wait_epoch(subtensor, netuid=netuid)
-
-    # Refresh metagraph
-    metagraph = subtensor.metagraph(netuid)
+        # Refresh metagraph
+        metagraph = subtensor.metagraph(netuid)
 
     # Refresh validator neuron
     updated_neuron = metagraph.neurons[1]
