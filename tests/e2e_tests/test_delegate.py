@@ -1,0 +1,334 @@
+import pytest
+
+from bittensor.core.chain_data.delegate_info import DelegateInfo
+from bittensor.utils.balance import Balance
+from bittensor.utils.delegates_details import DelegatesDetails
+from tests.e2e_tests.utils.chain_interactions import (
+    decrease_take,
+    increase_take,
+    registry_set_identity,
+    sudo_set_admin_utils,
+)
+
+
+DEFAULT_DELEGATE_TAKE = 0.179995422293431
+
+
+def test_identity(subtensor, alice_wallet, bob_wallet):
+    """
+    Tests:
+    - Check Delegate's default identity
+    - Update Delegate's identity
+    """
+
+    identities = subtensor.get_delegate_identities()
+
+    assert alice_wallet.hotkey.ss58_address not in identities
+
+    # Replace hotkey as it's the same as coldkey.
+    # It's required to edit identity later.
+    # Otherwise only subnet owner can do this.
+    alice_wallet.set_hotkey(
+        keypair=bob_wallet.hotkey,
+        encrypt=False,
+        overwrite=True,
+    )
+
+    subtensor.root_register(
+        alice_wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    identities = subtensor.get_delegate_identities()
+
+    assert alice_wallet.hotkey.ss58_address not in identities
+
+    success, error = registry_set_identity(
+        subtensor,
+        alice_wallet,
+        alice_wallet.hotkey.ss58_address,
+        display=b"Alice Display",
+        web=b"https://bittensor.com/",
+    )
+
+    assert error == ""
+    assert success is True
+
+    identities = subtensor.get_delegate_identities()
+
+    assert alice_wallet.hotkey.ss58_address in identities
+
+    alice_identity = identities[alice_wallet.hotkey.ss58_address]
+
+    assert alice_identity == DelegatesDetails(
+        additional=[],
+        display="Alice Display",
+        email="",
+        image="",
+        legal="",
+        pgp_fingerprint=None,
+        riot="",
+        twitter="",
+        web="https://bittensor.com/",
+    )
+
+
+def test_change_take(subtensor, alice_wallet):
+    """
+    Tests:
+    - Get default Delegate's take once registered in root subnet
+    - Increase and decreased Delegate's take
+    - Try corner cases (increase/decrease beyond allowed min/max)
+    """
+
+    success, error = decrease_take(
+        subtensor,
+        alice_wallet,
+        0.1,
+    )
+
+    assert success is False
+    assert "`HotKeyAccountNotExists(Module)`" in error
+
+    subtensor.root_register(
+        alice_wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    assert (
+        subtensor.get_delegate_take(alice_wallet.hotkey.ss58_address)
+        == DEFAULT_DELEGATE_TAKE
+    )
+
+    success, error = increase_take(
+        subtensor,
+        alice_wallet,
+        0.5,
+    )
+
+    assert success is False
+    assert "`DelegateTakeTooHigh(Module)`" in error
+
+    # increase_take but try to change from 0.18 to 0.1
+    success, error = increase_take(
+        subtensor,
+        alice_wallet,
+        0.1,
+    )
+
+    assert "`DelegateTakeTooLow(Module)`" in error
+    assert success is False
+
+    success, error = decrease_take(
+        subtensor,
+        alice_wallet,
+        0.1,
+    )
+
+    assert success is True
+    assert error == ""
+
+    take = subtensor.get_delegate_take(alice_wallet.hotkey.ss58_address)
+
+    assert take == 0.09999237048905166
+
+    success, error = increase_take(
+        subtensor,
+        alice_wallet,
+        0.15,
+    )
+
+    assert success is True
+    assert error == ""
+
+    take = subtensor.get_delegate_take(alice_wallet.hotkey.ss58_address)
+
+    assert take == 0.14999618524452582
+
+
+@pytest.mark.asyncio
+async def test_delegates(subtensor, alice_wallet, bob_wallet):
+    """
+    Tests:
+    - Check default Delegates
+    - Register Delegates
+    - Check if Hotkey is a Delegate
+    - Nominator Staking
+    """
+
+    assert subtensor.get_delegates() == []
+    assert subtensor.get_delegated(alice_wallet.coldkey.ss58_address) == []
+    assert subtensor.get_delegate_by_hotkey(alice_wallet.hotkey.ss58_address) is None
+    assert subtensor.get_delegate_by_hotkey(bob_wallet.hotkey.ss58_address) is None
+
+    assert subtensor.is_hotkey_delegate(alice_wallet.hotkey.ss58_address) is False
+    assert subtensor.is_hotkey_delegate(bob_wallet.hotkey.ss58_address) is False
+
+    subtensor.root_register(
+        alice_wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    subtensor.root_register(
+        bob_wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    assert subtensor.is_hotkey_delegate(alice_wallet.hotkey.ss58_address) is True
+    assert subtensor.is_hotkey_delegate(bob_wallet.hotkey.ss58_address) is True
+
+    alice_delegate = subtensor.get_delegate_by_hotkey(alice_wallet.hotkey.ss58_address)
+
+    assert alice_delegate == DelegateInfo(
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        total_stake=Balance(0),
+        nominators=[],
+        owner_ss58=alice_wallet.coldkey.ss58_address,
+        take=DEFAULT_DELEGATE_TAKE,
+        validator_permits=(),
+        registrations=(0,),
+        return_per_1000=Balance(0),
+        total_daily_return=Balance(0),
+    )
+
+    bob_delegate = subtensor.get_delegate_by_hotkey(bob_wallet.hotkey.ss58_address)
+
+    assert bob_delegate == DelegateInfo(
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
+        total_stake=Balance(0),
+        nominators=[],
+        owner_ss58=bob_wallet.coldkey.ss58_address,
+        take=DEFAULT_DELEGATE_TAKE,
+        validator_permits=(),
+        registrations=(0,),
+        return_per_1000=Balance(0),
+        total_daily_return=Balance(0),
+    )
+
+    delegates = subtensor.get_delegates()
+
+    assert delegates == [
+        bob_delegate,
+        alice_delegate,
+    ]
+
+    assert subtensor.get_delegated(alice_wallet.coldkey.ss58_address) == [
+        (
+            bob_delegate,
+            Balance(0),
+        ),
+        (
+            alice_delegate,
+            Balance(0),
+        ),
+    ]
+
+    subtensor.add_stake(
+        bob_wallet,
+        alice_wallet.hotkey.ss58_address,
+        netuid=0,
+        amount=Balance.from_tao(10_000),
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    assert subtensor.get_delegated(alice_wallet.coldkey.ss58_address) == [
+        (
+            DelegateInfo(
+                hotkey_ss58=bob_wallet.hotkey.ss58_address,
+                total_stake=Balance(0),
+                nominators=[],
+                owner_ss58=bob_wallet.coldkey.ss58_address,
+                take=DEFAULT_DELEGATE_TAKE,
+                validator_permits=(),
+                registrations=(0,),
+                return_per_1000=Balance(0),
+                total_daily_return=Balance(0),
+            ),
+            Balance.from_tao(9_999.99995),
+        ),
+        (
+            DelegateInfo(
+                hotkey_ss58=alice_wallet.hotkey.ss58_address,
+                total_stake=Balance(0),
+                nominators=[],
+                owner_ss58=alice_wallet.coldkeypub.ss58_address,
+                take=DEFAULT_DELEGATE_TAKE,
+                validator_permits=(),
+                registrations=(0,),
+                return_per_1000=Balance(0),
+                total_daily_return=Balance(0),
+            ),
+            Balance(0),
+        ),
+    ]
+
+
+def test_nominator_min_required_stake(local_chain, subtensor, alice_wallet, bob_wallet):
+    """
+    Tests:
+    - Check default NominatorMinRequiredStake
+    - Add Stake to Nominate
+    - Update NominatorMinRequiredStake
+    - Check Nominator is removed
+    """
+
+    minimum_required_stake = subtensor.get_minimum_required_stake()
+
+    assert minimum_required_stake == Balance(0)
+
+    subtensor.root_register(
+        alice_wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    subtensor.root_register(
+        bob_wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    success = subtensor.add_stake(
+        alice_wallet,
+        bob_wallet.hotkey.ss58_address,
+        netuid=0,
+        amount=Balance.from_tao(10_000),
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    assert success is True
+
+    stake = subtensor.get_stake(
+        alice_wallet.coldkey.ss58_address,
+        bob_wallet.hotkey.ss58_address,
+        netuid=0,
+    )
+
+    assert stake == Balance.from_tao(9_999.99995)
+
+    # this will trigger clear_small_nominations
+    sudo_set_admin_utils(
+        local_chain,
+        alice_wallet,
+        call_function="sudo_set_nominator_min_required_stake",
+        call_params={
+            "min_stake": "100000000000000",
+        },
+        return_error_message=True,
+    )
+
+    minimum_required_stake = subtensor.get_minimum_required_stake()
+
+    assert minimum_required_stake == Balance.from_tao(100_000)
+
+    stake = subtensor.get_stake(
+        alice_wallet.coldkey.ss58_address,
+        bob_wallet.hotkey.ss58_address,
+        netuid=0,
+    )
+
+    assert stake == Balance(0)

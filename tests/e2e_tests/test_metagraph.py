@@ -2,8 +2,12 @@ import os.path
 import shutil
 import time
 
+from bittensor.core.chain_data.metagraph_info import MetagraphInfo
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
+from tests.e2e_tests.utils.chain_interactions import ANY_BALANCE
+
+NULL_KEY = tuple(bytearray(32))
 
 
 def neuron_to_dict(neuron):
@@ -171,3 +175,233 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     ), "Neurons don't match after save and load"
 
     logging.console.info("✅ Passed test_metagraph")
+
+
+def test_metagraph_info(subtensor, alice_wallet):
+    """
+    Tests:
+    - Check MetagraphInfo
+    - Register Neuron
+    - Register Subnet
+    - Check MetagraphInfo is updated
+    """
+
+    metagraph_info = subtensor.get_metagraph_info(netuid=1, block=1)
+
+    assert metagraph_info == MetagraphInfo(
+        netuid=1,
+        name="apex",
+        symbol="α",
+        identity=None,
+        network_registered_at=0,
+        owner_hotkey=(NULL_KEY,),
+        owner_coldkey=(NULL_KEY,),
+        block=1,
+        tempo=100,
+        last_step=0,
+        blocks_since_last_step=1,
+        subnet_emission=Balance(0),
+        alpha_in=Balance.from_tao(10),
+        alpha_out=Balance.from_tao(2),
+        tao_in=ANY_BALANCE,
+        alpha_out_emission=Balance.from_tao(1),
+        alpha_in_emission=Balance(0),
+        tao_in_emission=Balance(0),
+        pending_alpha_emission=Balance.from_tao(0.820004577),
+        pending_root_emission=Balance(0),
+        subnet_volume=Balance(0),
+        moving_price=Balance.from_tao(0.000003000),
+        rho=10,
+        kappa=32767,
+        min_allowed_weights=0.0,
+        max_weights_limit=1.0,
+        weights_version=0,
+        weights_rate_limit=100,
+        activity_cutoff=5000,
+        max_validators=64,
+        num_uids=1,
+        max_uids=256,
+        burn=Balance.from_tao(1),
+        difficulty=5.421010862427522e-13,
+        registration_allowed=True,
+        pow_registration_allowed=False,
+        immunity_period=4096,
+        min_difficulty=5.421010862427522e-13,
+        max_difficulty=0.25,
+        min_burn=Balance.from_tao(0.0005),
+        max_burn=Balance.from_tao(100),
+        adjustment_alpha=0.0,
+        adjustment_interval=100,
+        target_regs_per_interval=2,
+        max_regs_per_block=1,
+        serving_rate_limit=50,
+        commit_reveal_weights_enabled=False,
+        commit_reveal_period=1,
+        liquid_alpha_enabled=False,
+        alpha_high=0.9000076295109484,
+        alpha_low=0.7000076295109483,
+        bonds_moving_avg=4.87890977618477e-14,
+        hotkeys=["5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"],
+        coldkeys=["5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"],
+        identities={},
+        axons=(
+            {
+                "block": 0,
+                "version": 0,
+                "ip": 0,
+                "port": 0,
+                "ip_type": 0,
+                "protocol": 0,
+                "placeholder1": 0,
+                "placeholder2": 0,
+            },
+        ),
+        active=(True,),
+        validator_permit=(False,),
+        pruning_score=[0.0],
+        last_update=(0,),
+        emission=[Balance(0)],
+        dividends=[0.0],
+        incentives=[0.0],
+        consensus=[0.0],
+        trust=[0.0],
+        rank=[0.0],
+        block_at_registration=(0,),
+        alpha_stake=[ANY_BALANCE],
+        tao_stake=[Balance(0)],
+        total_stake=[ANY_BALANCE],
+        tao_dividends_per_hotkey=[
+            ("5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM", Balance(0))
+        ],
+        alpha_dividends_per_hotkey=[
+            ("5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM", Balance(0))
+        ],
+    )
+
+    metagraph_infos = subtensor.get_all_metagraphs_info(block=1)
+
+    assert metagraph_infos == [
+        MetagraphInfo(
+            netuid=0,
+            name="root",
+            symbol="Τ",
+            identity=None,
+            network_registered_at=0,
+            owner_hotkey=(NULL_KEY,),
+            owner_coldkey=(NULL_KEY,),
+            block=1,
+            tempo=100,
+            last_step=0,
+            blocks_since_last_step=1,
+            subnet_emission=Balance(0),
+            alpha_in=Balance(0),
+            alpha_out=Balance(0),
+            tao_in=Balance(0),
+            alpha_out_emission=Balance(0),
+            alpha_in_emission=Balance(0),
+            tao_in_emission=Balance(0),
+            pending_alpha_emission=Balance(0),
+            pending_root_emission=Balance(0),
+            subnet_volume=Balance(0),
+            moving_price=Balance(0),
+            rho=10,
+            kappa=32767,
+            min_allowed_weights=0.0,
+            max_weights_limit=1.0,
+            weights_version=0,
+            weights_rate_limit=100,
+            activity_cutoff=5000,
+            max_validators=64,
+            num_uids=0,
+            max_uids=64,
+            burn=Balance.from_tao(1),
+            difficulty=5.421010862427522e-13,
+            registration_allowed=True,
+            pow_registration_allowed=False,
+            immunity_period=4096,
+            min_difficulty=5.421010862427522e-13,
+            max_difficulty=0.25,
+            min_burn=Balance.from_tao(0.0005),
+            max_burn=Balance.from_tao(100),
+            adjustment_alpha=0.0,
+            adjustment_interval=100,
+            target_regs_per_interval=1,
+            max_regs_per_block=1,
+            serving_rate_limit=50,
+            commit_reveal_weights_enabled=False,
+            commit_reveal_period=1,
+            liquid_alpha_enabled=False,
+            alpha_high=0.9000076295109484,
+            alpha_low=0.7000076295109483,
+            bonds_moving_avg=4.87890977618477e-14,
+            hotkeys=[],
+            coldkeys=[],
+            identities={},
+            axons=(),
+            active=(),
+            validator_permit=(),
+            pruning_score=[],
+            last_update=(),
+            emission=[],
+            dividends=[],
+            incentives=[],
+            consensus=[],
+            trust=[],
+            rank=[],
+            block_at_registration=(),
+            alpha_stake=[],
+            tao_stake=[],
+            total_stake=[],
+            tao_dividends_per_hotkey=[],
+            alpha_dividends_per_hotkey=[],
+        ),
+        metagraph_info,
+    ]
+
+    subtensor.burned_register(
+        alice_wallet,
+        netuid=1,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    metagraph_info = subtensor.get_metagraph_info(netuid=1)
+
+    assert metagraph_info.num_uids == 2
+    assert metagraph_info.hotkeys == [
+        "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
+        alice_wallet.hotkey.ss58_address,
+    ]
+    assert metagraph_info.coldkeys == [
+        "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
+        alice_wallet.coldkey.ss58_address,
+    ]
+    assert metagraph_info.tao_dividends_per_hotkey == [
+        ("5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM", Balance(0)),
+        (alice_wallet.hotkey.ss58_address, Balance(0)),
+    ]
+    assert metagraph_info.alpha_dividends_per_hotkey == [
+        ("5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM", Balance(0)),
+        (alice_wallet.hotkey.ss58_address, Balance(0)),
+    ]
+
+    subtensor.register_subnet(
+        alice_wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    block = subtensor.get_current_block()
+    metagraph_info = subtensor.get_metagraph_info(netuid=2, block=block)
+
+    assert metagraph_info.owner_coldkey == (tuple(alice_wallet.hotkey.public_key),)
+    assert metagraph_info.owner_hotkey == (tuple(alice_wallet.coldkey.public_key),)
+
+    metagraph_infos = subtensor.get_all_metagraphs_info(block)
+
+    assert len(metagraph_infos) == 3
+    assert metagraph_infos[-1] == metagraph_info
+
+    metagraph_info = subtensor.get_metagraph_info(netuid=3)
+
+    assert metagraph_info is None

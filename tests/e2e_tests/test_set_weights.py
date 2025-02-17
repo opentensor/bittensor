@@ -78,9 +78,9 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
             netuid,
         ), "Unable to enable commit reveal on the subnet"
 
-        assert not subtensor.get_subnet_hyperparameters(
-            netuid=netuid,
-        ).commit_reveal_weights_enabled, "Failed to enable commit/reveal"
+        assert not subtensor.commit_reveal_enabled(
+            netuid,
+        ), "Failed to enable commit/reveal"
 
         assert (
             subtensor.weights_rate_limit(netuid=netuid) > 0
@@ -97,6 +97,7 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
         assert (
             subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
         ), "Failed to set weights_rate_limit"
+        assert subtensor.get_hyperparameter("WeightsSetRateLimit", netuid) == 0
         assert subtensor.weights_rate_limit(netuid=netuid) == 0
 
     # Weights values

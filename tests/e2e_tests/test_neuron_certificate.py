@@ -1,9 +1,6 @@
 import pytest
 from bittensor.core.axon import Axon
 from bittensor.utils.btlogging import logging
-from tests.e2e_tests.utils.chain_interactions import (
-    wait_interval,
-)
 
 
 @pytest.mark.asyncio
@@ -35,9 +32,13 @@ async def test_neuron_certificate(subtensor, alice_wallet):
     # Serve Alice's axon with a certificate
     axon = Axon(wallet=alice_wallet)
     encoded_certificate = "?FAKE_ALICE_CERT"
-    axon.serve(netuid=netuid, subtensor=subtensor, certificate=encoded_certificate)
-
-    await wait_interval(tempo=1, subtensor=subtensor, netuid=netuid)
+    subtensor.serve_axon(
+        netuid,
+        axon,
+        certificate=encoded_certificate,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
 
     # Verify we are getting the correct certificate
     assert (
