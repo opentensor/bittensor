@@ -45,9 +45,7 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
         netuid,
     ), "Unable to enable commit reveal on the subnet"
 
-    assert subtensor.get_subnet_hyperparameters(
-        netuid=netuid,
-    ).commit_reveal_weights_enabled, "Failed to enable commit/reveal"
+    assert subtensor.commit_reveal_enabled(netuid), "Failed to enable commit/reveal"
 
     assert (
         subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_period == 1
@@ -114,11 +112,9 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
     assert commit_block > 0, f"Invalid block number: {commit_block}"
 
     # Query the WeightCommitRevealInterval storage map
-    reveal_periods = subtensor.query_module(
-        module="SubtensorModule", name="RevealPeriodEpochs", params=[netuid]
-    )
-    periods = reveal_periods
-    assert periods > 0, "Invalid RevealPeriodEpochs"
+    assert (
+        subtensor.get_subnet_reveal_period_epochs(netuid) > 0
+    ), "Invalid RevealPeriodEpochs"
 
     # Wait until the reveal block range
     await wait_epoch(subtensor, netuid)
@@ -187,9 +183,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
         netuid,
     ), "Unable to enable commit reveal on the subnet"
 
-    assert subtensor.get_subnet_hyperparameters(
-        netuid=netuid,
-    ).commit_reveal_weights_enabled, "Failed to enable commit/reveal"
+    assert subtensor.commit_reveal_enabled(netuid), "Failed to enable commit/reveal"
 
     assert (
         subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_period == 1
