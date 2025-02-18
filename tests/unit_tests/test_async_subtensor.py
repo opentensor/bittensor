@@ -2684,7 +2684,7 @@ async def test_get_all_neuron_certificates(mocker, subtensor):
     mocked_query_map_subtensor = mocker.AsyncMock()
     mocker.patch.object(subtensor.substrate, "query_map", mocked_query_map_subtensor)
     await subtensor.get_all_neuron_certificates(fake_netuid)
-    mocked_query_map_subtensor.assert_called_once_with(
+    mocked_query_map_subtensor.assert_awaited_once_with(
         module="SubtensorModule",
         storage_function="NeuronCertificates",
         params=[fake_netuid],
