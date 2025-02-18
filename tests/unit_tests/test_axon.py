@@ -31,7 +31,7 @@ from bittensor.utils.axon_utils import (
 )
 
 
-def test_attach_initial():
+def test_attach_initial(mock_get_external_ip):
     # Create a mock AxonServer instance
     server = Axon()
 
@@ -76,7 +76,7 @@ def test_attach_initial():
         server.attach(forward_fn, blacklist_fn, priority_fn, wrong_verify_fn)
 
 
-def test_attach():
+def test_attach(mock_get_external_ip):
     # Create a mock AxonServer instance
     server = Axon()
 
@@ -149,7 +149,7 @@ def mock_request():
 
 
 @pytest.fixture
-def axon_instance():
+def axon_instance(mock_get_external_ip):
     axon = Axon()
     axon.required_hash_fields = {"test_endpoint": ["field1", "field2"]}
     axon.forward_class_types = {
@@ -334,7 +334,7 @@ async def test_verify_body_integrity_error_cases(
         (MockInfo(), "MockInfoString", "edge_case_empty_string"),
     ],
 )
-def test_to_string(info_return, expected_output, test_id):
+def test_to_string(info_return, expected_output, test_id, mock_get_external_ip):
     # Arrange
     axon = Axon()
     with patch.object(axon, "info", return_value=info_return):
@@ -363,7 +363,9 @@ def test_to_string(info_return, expected_output, test_id):
         ),
     ],
 )
-def test_valid_ipv4_and_ipv6_address(ip, port, expected_ip_type, test_id):
+def test_valid_ipv4_and_ipv6_address(
+    ip, port, expected_ip_type, test_id, mock_get_external_ip
+):
     # Arrange
     hotkey = MockHotkey("5EemgxS7cmYbD34esCFoBgUZZC8JdnGtQvV5Qw3QFUCRRtGP")
     coldkey = MockHotkey("5EemgxS7cmYbD34esCFoBgUZZC8JdnGtQvV5Qw3QFUCRRtGP")
@@ -436,7 +438,14 @@ def test_invalid_ip_address(ip, port, expected_exception):
     ],
 )
 def test_axon_str_representation(
-    ip, port, ss58_address, started, forward_fns, expected_str, test_id
+    ip,
+    port,
+    ss58_address,
+    started,
+    forward_fns,
+    expected_str,
+    test_id,
+    mock_get_external_ip,
 ):
     # Arrange
     hotkey = MockHotkey(ss58_address)
