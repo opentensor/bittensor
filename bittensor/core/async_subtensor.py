@@ -1504,6 +1504,7 @@ class AsyncSubtensor(SubtensorMixin):
         query_certificates = await self.query_map(
             module="SubtensorModule",
             name="NeuronCertificates",
+            params=[netuid],
             block=block,
             block_hash=block_hash,
             reuse_block=reuse_block,
