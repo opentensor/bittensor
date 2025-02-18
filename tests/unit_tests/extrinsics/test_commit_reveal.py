@@ -6,17 +6,6 @@ from bittensor_wallet import Wallet
 from bittensor.core import subtensor as subtensor_module
 from bittensor.core.chain_data import SubnetHyperparameters
 from bittensor.core.extrinsics import commit_reveal
-from bittensor.core.subtensor import Subtensor
-
-
-@pytest.fixture
-def subtensor(mocker):
-    fake_substrate = mocker.MagicMock()
-    fake_substrate.websocket.sock.getsockopt.return_value = 0
-    mocker.patch.object(
-        subtensor_module, "SubstrateInterface", return_value=fake_substrate
-    )
-    yield Subtensor()
 
 
 @pytest.fixture
