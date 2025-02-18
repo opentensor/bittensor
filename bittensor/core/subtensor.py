@@ -1141,6 +1141,7 @@ class Subtensor(SubtensorMixin):
         query_certificates = self.query_map(
             module="SubtensorModule",
             name="NeuronCertificates",
+            params=[netuid],
             block=block,
         )
         output = {}
