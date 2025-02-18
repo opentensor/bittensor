@@ -167,6 +167,9 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
+    # Wait for 2 tempos to pass as CR3 only reveals weights after 2 tempos
+    subtensor.wait_for_block(20)
+
     netuid = 2
     print("Testing test_commit_and_reveal_weights")
     # Register root as Alice
