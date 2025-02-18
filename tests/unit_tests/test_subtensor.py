@@ -3060,3 +3060,16 @@ def test_set_subnet_identity(mocker, subtensor):
         wait_for_inclusion=False,
     )
     assert result == mocked_extrinsic.return_value
+
+
+def test_get_all_neuron_certificates(mocker, subtensor):
+    fake_netuid = 12
+    mocked_query_map_subtensor = mocker.MagicMock()
+    mocker.patch.object(subtensor.substrate, "query_map", mocked_query_map_subtensor)
+    subtensor.get_all_neuron_certificates(fake_netuid)
+    mocked_query_map_subtensor.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="NeuronCertificates",
+        params=[fake_netuid],
+        block_hash=None,
+    )

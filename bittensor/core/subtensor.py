@@ -1123,6 +1123,32 @@ class Subtensor(SubtensorMixin):
             return None
         return None
 
+    def get_all_neuron_certificates(
+        self, netuid: int, block: Optional[int] = None
+    ) -> dict[str, Certificate]:
+        """
+        Retrieves the TLS certificates for neurons within a specified subnet (netuid) of the Bittensor network.
+
+        Arguments:
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query.
+
+        Returns:
+            {ss58: Certificate} for the key/Certificate pairs on the subnet
+
+        This function is used for certificate discovery for setting up mutual tls communication between neurons.
+        """
+        query_certificates = self.query_map(
+            module="SubtensorModule",
+            name="NeuronCertificates",
+            params=[netuid],
+            block=block,
+        )
+        output = {}
+        for key, item in query_certificates:
+            output[decode_account_id(key)] = Certificate(item.value)
+        return output
+
     def get_neuron_for_pubkey_and_subnet(
         self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
     ) -> Optional["NeuronInfo"]:
