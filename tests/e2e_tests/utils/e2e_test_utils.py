@@ -78,8 +78,9 @@ def clone_or_update_templates(specific_commit=None):
     return install_dir + templates_repo
 
 
-def install_templates(install_dir):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."])
+def install_bittensor():
+    bittensor_fp = os.path.dirname(os.path.dirname(os.path.abspath(bittensor.__file__)))
+    subprocess.check_call([sys.executable, "-m", "pip", "install", bittensor_fp])
 
 
 def uninstall_templates(install_dir):
@@ -93,7 +94,7 @@ class Templates:
         self.dir = clone_or_update_templates()
 
     def __enter__(self):
-        install_templates(self.dir)
+        install_bittensor()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
