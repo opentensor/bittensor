@@ -16,6 +16,7 @@ from typing import NamedTuple
 
 from statemachine import State, StateMachine
 
+from bittensor.core.settings import READ_ONLY
 from bittensor.core.config import Config
 from bittensor.utils.btlogging.console import BittensorConsole
 from .defines import (
@@ -584,9 +585,12 @@ class LoggingMachine(StateMachine, Logger):
             default_logging_info = os.getenv("BT_LOGGING_INFO") or False
             default_logging_trace = os.getenv("BT_LOGGING_TRACE") or False
             default_logging_record_log = os.getenv("BT_LOGGING_RECORD_LOG") or False
-            default_logging_logging_dir = os.getenv(
-                "BT_LOGGING_LOGGING_DIR"
-            ) or os.path.join("~", ".bittensor", "miners")
+            default_logging_logging_dir = (
+                None
+                if READ_ONLY
+                else os.getenv("BT_LOGGING_LOGGING_DIR")
+                or os.path.join("~", ".bittensor", "miners")
+            )
             parser.add_argument(
                 "--" + prefix_str + "logging.debug",
                 action="store_true",
