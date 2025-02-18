@@ -29,7 +29,7 @@ def dummy(synapse: SynapseDummy) -> SynapseDummy:
 
 
 @pytest.fixture
-def setup_dendrite():
+def setup_dendrite(mock_get_external_ip):
     # Assuming bittensor.Wallet() returns a wallet object
     user_wallet = get_mock_wallet()
     dendrite_obj = Dendrite(user_wallet)
@@ -51,7 +51,10 @@ def axon_info():
 @pytest.fixture(scope="session")
 def setup_axon():
     wallet = get_mock_wallet()
-    axon = Axon(wallet)
+    axon = Axon(
+        wallet,
+        external_ip="192.168.1.1",
+    )
     axon.attach(forward_fn=dummy)
     axon.start()
     yield axon
@@ -103,7 +106,7 @@ class AsyncMock(Mock):
         return self().__await__()
 
 
-def test_dendrite_create_wallet():
+def test_dendrite_create_wallet(mock_get_external_ip):
     d = Dendrite(get_mock_wallet())
     d = Dendrite(get_mock_wallet().hotkey)
     d = Dendrite(get_mock_wallet().coldkeypub)
@@ -111,7 +114,7 @@ def test_dendrite_create_wallet():
 
 
 @pytest.mark.asyncio
-async def test_forward_many():
+async def test_forward_many(mock_get_external_ip):
     n = 10
     d = Dendrite(wallet=get_mock_wallet())
     d.call = AsyncMock()
@@ -128,7 +131,7 @@ async def test_forward_many():
     assert len([resp]) == 1
 
 
-def test_pre_process_synapse():
+def test_pre_process_synapse(mock_get_external_ip):
     d = Dendrite(wallet=get_mock_wallet())
     s = Synapse()
     synapse = d.preprocess_synapse_for_request(
