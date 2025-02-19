@@ -1597,7 +1597,10 @@ class AsyncMetagraph(NumpyOrTorch):
                 dtype=self._dtype_registry["float32"],
             )
             self.tao_stake = self._create_tensor(
-                [b.tao * settings.ROOT_TAO_STAKE_WEIGHT for b in subnet_state.tao_stake],
+                [
+                    b.tao * settings.ROOT_TAO_STAKE_WEIGHT
+                    for b in subnet_state.tao_stake
+                ],
                 dtype=self._dtype_registry["float32"],
             )
             self.total_stake = self.stake = self._create_tensor(
@@ -1901,7 +1904,10 @@ class Metagraph(NumpyOrTorch):
                 dtype=self._dtype_registry["float32"],
             )
             self.tao_stake = self._create_tensor(
-                [b.tao * settings.ROOT_TAO_STAKE_WEIGHT for b in subnet_state.tao_stake],
+                [
+                    b.tao * settings.ROOT_TAO_STAKE_WEIGHT
+                    for b in subnet_state.tao_stake
+                ],
                 dtype=self._dtype_registry["float32"],
             )
             self.total_stake = self.stake = self._create_tensor(
