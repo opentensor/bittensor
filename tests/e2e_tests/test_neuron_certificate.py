@@ -48,5 +48,8 @@ async def test_neuron_certificate(subtensor, alice_wallet):
         )
         == encoded_certificate
     )
+    all_certs_query = subtensor.get_all_neuron_certificates(netuid=netuid)
+    assert alice_wallet.hotkey.ss58_address in all_certs_query.keys()
+    assert all_certs_query[alice_wallet.hotkey.ss58_address] == encoded_certificate
 
     logging.info("✅ Passed test_neuron_certificate")
