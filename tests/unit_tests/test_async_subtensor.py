@@ -144,7 +144,7 @@ async def test_async_subtensor_aenter_connection_refused_error(
     # Preps
     fake_async_substrate = mocker.AsyncMock(
         autospec=async_subtensor.AsyncSubstrateInterface,
-        __aenter__=mocker.AsyncMock(side_effect=error),
+        initialize=mocker.AsyncMock(side_effect=error),
     )
     mocker.patch.object(
         async_subtensor, "AsyncSubstrateInterface", return_value=fake_async_substrate
@@ -157,7 +157,7 @@ async def test_async_subtensor_aenter_connection_refused_error(
             pass
 
     # Asserts
-    fake_async_substrate.__aenter__.assert_called_once()
+    fake_async_substrate.initialize.assert_called_once()
 
 
 @pytest.mark.asyncio
