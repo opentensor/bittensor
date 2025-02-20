@@ -53,8 +53,13 @@ class Balance:
         return self.tao
 
     def __str__(self):
-        """Returns the Balance object as a string in the format "symbolvalue", where the value is in tao."""
-        return f"{self.unit}{float(self.tao):,.9f}"
+        """
+        Returns the Balance object as a string in the format "symbolvalue", where the value is in tao.
+        """
+        if self.unit == units[0]:
+            return f"{self.unit}{float(self.tao):,.9f}"
+        else:
+            return f"\u200e{float(self.tao):,.9f}{self.unit}\u200e"
 
     def __rich__(self):
         int_tao, fract_tao = format(float(self.tao), "f").split(".")

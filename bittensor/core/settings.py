@@ -1,4 +1,4 @@
-__version__ = "9.0.0"
+__version__ = "9.0.1"
 
 import os
 import re
@@ -6,6 +6,9 @@ from pathlib import Path
 
 from munch import munchify
 
+ROOT_TAO_STAKE_WEIGHT = 0.18
+
+READ_ONLY = os.getenv("READ_ONLY") == "1"
 
 HOME_DIR = Path.home()
 USER_BITTENSOR_DIR = HOME_DIR / ".bittensor"
@@ -13,9 +16,10 @@ WALLETS_DIR = USER_BITTENSOR_DIR / "wallets"
 MINERS_DIR = USER_BITTENSOR_DIR / "miners"
 
 
-# Create dirs if they don't exist
-WALLETS_DIR.mkdir(parents=True, exist_ok=True)
-MINERS_DIR.mkdir(parents=True, exist_ok=True)
+if not READ_ONLY:
+    # Create dirs if they don't exist
+    WALLETS_DIR.mkdir(parents=True, exist_ok=True)
+    MINERS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Bittensor networks name
 NETWORKS = ["finney", "test", "archive", "local", "subvortex", "rao", "latent-lite"]

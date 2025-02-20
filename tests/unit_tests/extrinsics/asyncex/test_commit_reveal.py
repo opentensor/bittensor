@@ -11,7 +11,7 @@ from bittensor_wallet import Wallet
 @pytest.fixture
 def subtensor(mocker):
     fake_substrate = mocker.AsyncMock()
-    fake_substrate.websocket.sock.getsockopt.return_value = 0
+    fake_substrate.websocket.socket.getsockopt.return_value = 0
     mocker.patch.object(
         subtensor_module, "AsyncSubstrateInterface", return_value=fake_substrate
     )

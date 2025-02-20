@@ -73,7 +73,7 @@ def call_params_with_certificate():
     return params
 
 
-def test_methods_comparable(mocker):
+def test_methods_comparable(mock_substrate_interface):
     """Verifies that methods in sync and async Subtensors are comparable."""
     # Preps
     subtensor = Subtensor(_mock=True)
@@ -142,9 +142,7 @@ def test_serve_axon_with_external_ip_set():
     assert axon_info.ip == external_ip
 
 
-def test_serve_axon_with_external_port_set():
-    external_ip: str = "2001:0db8:85a3:0000:0000:8a2e:0370:7334"
-
+def test_serve_axon_with_external_port_set(mock_get_external_ip):
     internal_port: int = 1234
     external_port: int = 5678
 
@@ -179,14 +177,10 @@ def test_serve_axon_with_external_port_set():
         config=mock_config,
     )
 
-    with mock.patch(
-        "bittensor.utils.networking.get_external_ip", return_value=external_ip
-    ):
-        # mock the get_external_ip function to return the external ip
-        mock_subtensor.serve_axon(
-            netuid=-1,
-            axon=mock_axon_with_external_port_set,
-        )
+    mock_subtensor.serve_axon(
+        netuid=-1,
+        axon=mock_axon_with_external_port_set,
+    )
 
     mock_serve_axon.assert_called_once()
     # verify that the axon is served to the network with the external port
@@ -292,24 +286,6 @@ def test_determine_chain_endpoint_and_network(
     # Assert
     assert result_network == expected_network
     assert result_endpoint == expected_endpoint
-
-
-@pytest.fixture
-def subtensor(mocker):
-    fake_substrate = mocker.MagicMock()
-    fake_substrate.websocket.sock.getsockopt.return_value = 0
-    mocker.patch.object(
-        subtensor_module, "SubstrateInterface", return_value=fake_substrate
-    )
-    mocker.patch.object(
-        sync_substrate,
-        "connect",
-        return_value=mocker.MagicMock(),
-    )
-    fake_websocket = mocker.MagicMock()
-    fake_websocket.client.connect.return_value = 0
-    # mocker.patch.object(subtensor_module, "ws_client", return_value=fake_websocket)
-    return Subtensor()
 
 
 @pytest.fixture
@@ -3084,3 +3060,16 @@ def test_set_subnet_identity(mocker, subtensor):
         wait_for_inclusion=False,
     )
     assert result == mocked_extrinsic.return_value
+
+
+def test_get_all_neuron_certificates(mocker, subtensor):
+    fake_netuid = 12
+    mocked_query_map_subtensor = mocker.MagicMock()
+    mocker.patch.object(subtensor.substrate, "query_map", mocked_query_map_subtensor)
+    subtensor.get_all_neuron_certificates(fake_netuid)
+    mocked_query_map_subtensor.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="NeuronCertificates",
+        params=[fake_netuid],
+        block_hash=None,
+    )
