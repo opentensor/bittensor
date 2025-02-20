@@ -173,8 +173,8 @@ class AsyncSubtensor(SubtensorMixin):
             f"[magenta]Connecting to Substrate:[/magenta] [blue]{self}[/blue][magenta]...[/magenta]"
         )
         try:
-            async with self.substrate:
-                return self
+            await self.substrate.initialize()
+            return self
         except TimeoutError:
             logging.error(
                 f"[red]Error[/red]: Timeout occurred connecting to substrate."
