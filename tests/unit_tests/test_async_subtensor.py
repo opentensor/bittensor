@@ -157,7 +157,7 @@ async def test_async_subtensor_aenter_connection_refused_error(
             pass
 
     # Asserts
-    fake_async_substrate.initialize.assert_called_once()
+    fake_async_substrate.initialize.assert_awaited_once()
 
 
 @pytest.mark.asyncio
