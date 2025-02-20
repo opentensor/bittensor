@@ -42,7 +42,6 @@ if typing.TYPE_CHECKING:
 
 
 Tensor = Union["torch.nn.Parameter", NDArray]
-ROOT_TAO_STAKES_WEIGHT = 0.18
 
 
 METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
@@ -771,14 +770,6 @@ class MetagraphMixin(ABC):
         )
         self.validator_trust = self._create_tensor(
             [neuron.validator_trust for neuron in self.neurons],
-            dtype=self._dtype_registry["float32"],
-        )
-        self.total_stake = self._create_tensor(
-            [neuron.total_stake.tao for neuron in self.neurons],
-            dtype=self._dtype_registry["float32"],
-        )
-        self.stake = self._create_tensor(
-            [neuron.stake.tao for neuron in self.neurons],
             dtype=self._dtype_registry["float32"],
         )
         self.axons = [n.axon_info for n in self.neurons]
@@ -1606,7 +1597,10 @@ class AsyncMetagraph(NumpyOrTorch):
                 dtype=self._dtype_registry["float32"],
             )
             self.tao_stake = self._create_tensor(
-                [b.tao * ROOT_TAO_STAKES_WEIGHT for b in subnet_state.tao_stake],
+                [
+                    b.tao * settings.ROOT_TAO_STAKE_WEIGHT
+                    for b in subnet_state.tao_stake
+                ],
                 dtype=self._dtype_registry["float32"],
             )
             self.total_stake = self.stake = self._create_tensor(
@@ -1634,7 +1628,7 @@ class Metagraph(NumpyOrTorch):
         subtensor: Optional["Subtensor"] = None,
     ):
         super().__init__(netuid, network, lite, sync, subtensor)
-        if sync:
+        if self.should_sync:
             self.sync()
 
     def sync(
@@ -1910,7 +1904,10 @@ class Metagraph(NumpyOrTorch):
                 dtype=self._dtype_registry["float32"],
             )
             self.tao_stake = self._create_tensor(
-                [b.tao * ROOT_TAO_STAKES_WEIGHT for b in subnet_state.tao_stake],
+                [
+                    b.tao * settings.ROOT_TAO_STAKE_WEIGHT
+                    for b in subnet_state.tao_stake
+                ],
                 dtype=self._dtype_registry["float32"],
             )
             self.total_stake = self.stake = self._create_tensor(

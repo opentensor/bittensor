@@ -173,8 +173,8 @@ class AsyncSubtensor(SubtensorMixin):
             f"[magenta]Connecting to Substrate:[/magenta] [blue]{self}[/blue][magenta]...[/magenta]"
         )
         try:
-            async with self.substrate:
-                return self
+            await self.substrate.initialize()
+            return self
         except TimeoutError:
             logging.error(
                 f"[red]Error[/red]: Timeout occurred connecting to substrate."
@@ -1478,6 +1478,41 @@ class AsyncSubtensor(SubtensorMixin):
         except AttributeError:
             return None
         return None
+
+    async def get_all_neuron_certificates(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> dict[str, Certificate]:
+        """
+        Retrieves the TLS certificates for neurons within a specified subnet (netuid) of the Bittensor network.
+
+        Arguments:
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
+                reuse_block.
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            {ss58: Certificate} for the key/Certificate pairs on the subnet
+
+        This function is used for certificate discovery for setting up mutual tls communication between neurons.
+        """
+        query_certificates = await self.query_map(
+            module="SubtensorModule",
+            name="NeuronCertificates",
+            params=[netuid],
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        output = {}
+        async for key, item in query_certificates:
+            output[decode_account_id(key)] = Certificate(item.value)
+        return output
 
     async def get_neuron_for_pubkey_and_subnet(
         self,
