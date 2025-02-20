@@ -128,9 +128,8 @@ async def test_async_subtensor_magic_methods(mocker):
         pass
 
     # Asserts
-    fake_async_substrate.__aenter__.assert_called_once()
-    fake_async_substrate.__aexit__.assert_called_once()
-    fake_async_substrate.close.assert_awaited_once()
+    fake_async_substrate.initialize.assert_called_once()
+    fake_async_substrate.close.assert_called_once()
 
 
 @pytest.mark.parametrize(
