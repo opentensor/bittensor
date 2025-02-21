@@ -1,5 +1,4 @@
 import asyncio
-import time
 
 import pytest
 
@@ -51,7 +50,6 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     # Get current miner/validator stats
     alice_neuron = metagraph.neurons[0]
 
-    time.sleep(30)
     assert alice_neuron.validator_permit is True
     assert alice_neuron.dividends == 0
     assert alice_neuron.stake.tao > 0
@@ -59,7 +57,6 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
 
     bob_neuron = metagraph.neurons[1]
 
-    time.sleep(30)
     assert bob_neuron.incentive == 0
     assert bob_neuron.consensus == 0
     assert bob_neuron.rank == 0
@@ -77,15 +74,9 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     async with templates.miner(bob_wallet, netuid):
         async with templates.validator(alice_wallet, netuid):
             # wait for the Validator to process and set_weights
-            await asyncio.sleep(5)
+            await asyncio.sleep(30)
 
             # Wait until next epoch
-            await wait_epoch(subtensor, netuid)
-
-            # Wait few seconds for metagraph to update
-            await asyncio.sleep(5)
-
-            # Wait another epoch
             await wait_epoch(subtensor, netuid)
 
             # Refresh metagraph
@@ -93,7 +84,6 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
 
     # Get current emissions and validate that Alice has gotten tao
     alice_neuron = metagraph.neurons[0]
-    time.sleep(5)
 
     assert alice_neuron.validator_permit is True
     assert alice_neuron.dividends == 1.0
