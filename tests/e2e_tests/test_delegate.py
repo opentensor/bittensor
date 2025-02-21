@@ -1,6 +1,7 @@
 import pytest
 
 from bittensor.core.chain_data.delegate_info import DelegateInfo
+from bittensor.core.subtensor import Subtensor
 from bittensor.utils.balance import Balance
 from bittensor.utils.delegates_details import DelegatesDetails
 from tests.e2e_tests.utils.chain_interactions import (
@@ -214,7 +215,9 @@ async def test_delegates(subtensor, alice_wallet, bob_wallet):
         total_daily_return=Balance(0),
     )
 
-    delegates = subtensor.get_delegates(block)
+    subtensor2 = Subtensor(network="ws://localhost:9944")
+
+    delegates = subtensor2.get_delegates(block)
 
     assert delegates == [
         bob_delegate,
