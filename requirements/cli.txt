@@ -1,0 +1,1 @@
+bittensor-cli>=9.0.0
