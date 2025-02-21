@@ -8,24 +8,25 @@ from os import path
 from setuptools import setup, find_packages
 
 
-def read_requirements(path):
-    requirements = []
+def read_requirements(path_):
+    requirements_ = []
 
-    with pathlib.Path(path).open() as requirements_txt:
+    with pathlib.Path(path_).open() as requirements_txt:
         for line in requirements_txt:
             if line.startswith("git+"):
                 pkg_name = re.search(r"egg=([a-zA-Z0-9_-]+)", line.strip()).group(1)
-                requirements.append(pkg_name + " @ " + line.strip())
+                requirements_.append(pkg_name + " @ " + line.strip())
             else:
-                requirements.append(line.strip())
+                requirements_.append(line.strip())
 
-    return requirements
+    return requirements_
 
 
 requirements = read_requirements("requirements/prod.txt")
 extra_requirements_dev = read_requirements("requirements/dev.txt")
 extra_requirements_cubit = read_requirements("requirements/cubit.txt")
 extra_requirements_torch = read_requirements("requirements/torch.txt")
+extra_requirements_cli = read_requirements("requirements/cli.txt")
 
 here = path.abspath(path.dirname(__file__))
 
@@ -62,6 +63,7 @@ setup(
     extras_require={
         "dev": extra_requirements_dev + extra_requirements_torch,
         "torch": extra_requirements_torch,
+        "cli": extra_requirements_cli,
     },
     classifiers=[
         "Development Status :: 3 - Alpha",
