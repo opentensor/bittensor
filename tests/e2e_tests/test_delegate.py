@@ -180,7 +180,11 @@ async def test_delegates(subtensor, alice_wallet, bob_wallet):
     assert subtensor.is_hotkey_delegate(alice_wallet.hotkey.ss58_address) is True
     assert subtensor.is_hotkey_delegate(bob_wallet.hotkey.ss58_address) is True
 
-    alice_delegate = subtensor.get_delegate_by_hotkey(alice_wallet.hotkey.ss58_address)
+    block = subtensor.get_current_block()
+
+    alice_delegate = subtensor.get_delegate_by_hotkey(
+        alice_wallet.hotkey.ss58_address, block
+    )
 
     assert alice_delegate == DelegateInfo(
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
@@ -194,7 +198,9 @@ async def test_delegates(subtensor, alice_wallet, bob_wallet):
         total_daily_return=Balance(0),
     )
 
-    bob_delegate = subtensor.get_delegate_by_hotkey(bob_wallet.hotkey.ss58_address)
+    bob_delegate = subtensor.get_delegate_by_hotkey(
+        bob_wallet.hotkey.ss58_address, block
+    )
 
     assert bob_delegate == DelegateInfo(
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
@@ -208,7 +214,7 @@ async def test_delegates(subtensor, alice_wallet, bob_wallet):
         total_daily_return=Balance(0),
     )
 
-    delegates = subtensor.get_delegates()
+    delegates = subtensor.get_delegates(block)
 
     assert delegates == [
         bob_delegate,
