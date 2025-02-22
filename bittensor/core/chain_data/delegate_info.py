@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Optional, Union
+from typing import Optional, Union
 
 from bittensor.core.chain_data.info_base import InfoBase
 from bittensor.core.chain_data.utils import decode_account_id
@@ -8,28 +8,20 @@ from bittensor.utils.balance import Balance
 
 
 @dataclass
-class DelegateInfo(InfoBase):
-    """
-    Dataclass for delegate information. For a lighter version of this class, see ``DelegateInfoLite``.
+class DelegateInfoBase(InfoBase):
+    """Base class containing common delegate information fields.
 
-    Args:
-        hotkey_ss58 (str): Hotkey of the delegate for which the information is being fetched.
-        total_stake (int): Total stake of the delegate.
-        nominators (dict[str, dict[int, Balance]]): List of nominators of the delegate and their stake.
+    Attributes:
+        hotkey_ss58 (str): Hotkey of delegate.
+        owner_ss58 (str): Coldkey of owner.
         take (float): Take of the delegate as a percentage.
-        owner_ss58 (str): Coldkey of the owner.
-        registrations (list[int]): List of subnets that the delegate is registered on.
         validator_permits (list[int]): List of subnets that the delegate is allowed to validate on.
-        return_per_1000 (int): Return per 1000 TAO, for the delegate over a day.
-        total_daily_return (int): Total daily return of the delegate.
-        netuid (int): Netuid of the subnet.
+        registrations (list[int]): List of subnets that the delegate is registered on.
+        return_per_1000 (Balance): Return per 1000 tao of the delegate over a day.
+        total_daily_return (Balance): Total daily return of the delegate.
     """
 
     hotkey_ss58: str  # Hotkey of delegate
-    total_stake: Balance  # Total stake of the delegate
-    nominators: dict[
-        str, dict[int, Balance]
-    ]  # list of nominators of the delegate and their stake
     owner_ss58: str  # Coldkey of owner
     take: float  # Take of the delegate as a percentage
     validator_permits: list[
@@ -38,20 +30,36 @@ class DelegateInfo(InfoBase):
     registrations: list[int]  # list of subnets that the delegate is registered on
     return_per_1000: Balance  # Return per 1000 tao of the delegate over a day
     total_daily_return: Balance  # Total daily return of the delegate
-    netuid: Optional[int] = None
+
+
+@dataclass
+class DelegateInfo(DelegateInfoBase):
+    """
+    Dataclass for delegate information.
+
+    Additional Attributes:
+        total_stake (dict[int, Balance]): Total stake of the delegate mapped by netuid.
+        nominators (dict[str, dict[int, Balance]]): Mapping of nominator SS58 addresses to their stakes per subnet.
+    """
+
+    total_stake: dict[int, Balance]  # Total stake of the delegate by netuid and stake
+    nominators: dict[
+        str, dict[int, Balance]
+    ]  # Mapping of nominator addresses to their stakes per subnet
 
     @classmethod
-    def _from_dict(cls, decoded: Union[dict, tuple]) -> "DelegateInfo":
+    def _from_dict(cls, decoded: Union[dict, tuple]) -> Optional["DelegateInfo"]:
         hotkey = decode_account_id(decoded.get("delegate_ss58"))
         owner = decode_account_id(decoded.get("owner_ss58"))
 
         nominators = {}
         total_stake_by_netuid = {}
-        for nominator in decoded.get("nominators", []):
-            nominator_ss58 = decode_account_id(nominator[0])
+
+        for raw_nominator, raw_stakes in decoded.get("nominators", []):
+            nominator_ss58 = decode_account_id(raw_nominator)
             stakes = {
-                int(netuid): Balance.from_rao(stake).set_unit(netuid)
-                for netuid, stake in nominator[1]
+                int(netuid): Balance.from_rao(stake_amt).set_unit(int(netuid))
+                for (netuid, stake_amt) in raw_stakes
             }
             nominators[nominator_ss58] = stakes
 
@@ -72,14 +80,38 @@ class DelegateInfo(InfoBase):
             total_daily_return=Balance.from_rao(decoded.get("total_daily_return")),
         )
 
+
+@dataclass
+class DelegatedInfo(DelegateInfoBase):
+    """
+    Dataclass for delegated information. This class represents a delegate's information
+    specific to a particular subnet.
+
+    Additional Attributes:
+        netuid (int): Network ID of the subnet.
+        stake (Balance): Stake amount for this specific delegation.
+    """
+
+    netuid: int
+    stake: Balance
+
     @classmethod
-    def delegated_list_from_dicts(
-        cls, delegates_decoded: list[Any]
-    ) -> list["DelegateInfo"]:
-        all_delegates = []
-        for delegate, (netuid, stake) in delegates_decoded:
-            instance = DelegateInfo.from_dict(delegate)
-            instance.netuid = int(netuid)
-            instance.total_stake = Balance.from_rao(int(stake)).set_unit(int(netuid))
-            all_delegates.append(instance)
-        return all_delegates
+    def _from_dict(
+        cls, decoded: tuple[dict, tuple[int, int]]
+    ) -> Optional["DelegatedInfo"]:
+        delegate_info, (netuid, stake) = decoded
+        hotkey = decode_account_id(delegate_info.get("delegate_ss58"))
+        owner = decode_account_id(delegate_info.get("owner_ss58"))
+        return cls(
+            hotkey_ss58=hotkey,
+            owner_ss58=owner,
+            take=u16_normalized_float(delegate_info.get("take")),
+            validator_permits=list(delegate_info.get("validator_permits", [])),
+            registrations=list(delegate_info.get("registrations", [])),
+            return_per_1000=Balance.from_rao(delegate_info.get("return_per_1000")),
+            total_daily_return=Balance.from_rao(
+                delegate_info.get("total_daily_return")
+            ),
+            netuid=int(netuid),
+            stake=Balance.from_rao(int(stake)).set_unit(int(netuid)),
+        )
