@@ -1,6 +1,6 @@
 import pytest
 
-from bittensor.core.chain_data.delegate_info import DelegateInfo
+from bittensor.core.chain_data.delegate_info import DelegateInfo, DelegatedInfo
 from bittensor.utils.balance import Balance
 from bittensor.utils.delegates_details import DelegatesDetails
 from tests.e2e_tests.utils.chain_interactions import (
@@ -184,28 +184,28 @@ async def test_delegates(subtensor, alice_wallet, bob_wallet):
 
     assert alice_delegate == DelegateInfo(
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
-        total_stake=Balance(0),
-        nominators=[],
         owner_ss58=alice_wallet.coldkey.ss58_address,
         take=DEFAULT_DELEGATE_TAKE,
-        validator_permits=(),
-        registrations=(0,),
+        validator_permits=[],
+        registrations=[0],
         return_per_1000=Balance(0),
         total_daily_return=Balance(0),
+        total_stake={},
+        nominators={},
     )
 
     bob_delegate = subtensor.get_delegate_by_hotkey(bob_wallet.hotkey.ss58_address)
 
     assert bob_delegate == DelegateInfo(
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
-        total_stake=Balance(0),
-        nominators=[],
         owner_ss58=bob_wallet.coldkey.ss58_address,
         take=DEFAULT_DELEGATE_TAKE,
-        validator_permits=(),
-        registrations=(0,),
+        validator_permits=[],
+        registrations=[0],
         return_per_1000=Balance(0),
         total_daily_return=Balance(0),
+        total_stake={},
+        nominators={},
     )
 
     delegates = subtensor.get_delegates()
@@ -215,16 +215,7 @@ async def test_delegates(subtensor, alice_wallet, bob_wallet):
         alice_delegate,
     ]
 
-    assert subtensor.get_delegated(alice_wallet.coldkey.ss58_address) == [
-        (
-            bob_delegate,
-            Balance(0),
-        ),
-        (
-            alice_delegate,
-            Balance(0),
-        ),
-    ]
+    assert subtensor.get_delegated(bob_wallet.coldkey.ss58_address) == []
 
     subtensor.add_stake(
         bob_wallet,
@@ -235,34 +226,17 @@ async def test_delegates(subtensor, alice_wallet, bob_wallet):
         wait_for_finalization=True,
     )
 
-    assert subtensor.get_delegated(alice_wallet.coldkey.ss58_address) == [
-        (
-            DelegateInfo(
-                hotkey_ss58=bob_wallet.hotkey.ss58_address,
-                total_stake=Balance(0),
-                nominators=[],
-                owner_ss58=bob_wallet.coldkey.ss58_address,
-                take=DEFAULT_DELEGATE_TAKE,
-                validator_permits=(),
-                registrations=(0,),
-                return_per_1000=Balance(0),
-                total_daily_return=Balance(0),
-            ),
-            Balance.from_tao(9_999.99995),
-        ),
-        (
-            DelegateInfo(
-                hotkey_ss58=alice_wallet.hotkey.ss58_address,
-                total_stake=Balance(0),
-                nominators=[],
-                owner_ss58=alice_wallet.coldkeypub.ss58_address,
-                take=DEFAULT_DELEGATE_TAKE,
-                validator_permits=(),
-                registrations=(0,),
-                return_per_1000=Balance(0),
-                total_daily_return=Balance(0),
-            ),
-            Balance(0),
+    assert subtensor.get_delegated(bob_wallet.coldkey.ss58_address) == [
+        DelegatedInfo(
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
+            owner_ss58=alice_wallet.coldkey.ss58_address,
+            take=DEFAULT_DELEGATE_TAKE,
+            validator_permits=[],
+            registrations=[0],
+            return_per_1000=Balance(0),
+            total_daily_return=Balance(0),
+            netuid=0,
+            stake=Balance.from_tao(9_999.99995),
         ),
     ]
 
