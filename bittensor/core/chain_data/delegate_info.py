@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Union
+from typing import Optional
 
 from bittensor.core.chain_data.info_base import InfoBase
 from bittensor.core.chain_data.utils import decode_account_id
@@ -48,7 +48,7 @@ class DelegateInfo(DelegateInfoBase):
     ]  # Mapping of nominator addresses to their stakes per subnet
 
     @classmethod
-    def _from_dict(cls, decoded: Union[dict, tuple]) -> Optional["DelegateInfo"]:
+    def _from_dict(cls, decoded: dict) -> Optional["DelegateInfo"]:
         hotkey = decode_account_id(decoded.get("delegate_ss58"))
         owner = decode_account_id(decoded.get("owner_ss58"))
 
