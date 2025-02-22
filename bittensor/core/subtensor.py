@@ -24,6 +24,7 @@ from bittensor.core.chain_data import (
     WeightCommitInfo,
     SubnetIdentity,
     SubnetInfo,
+    DelegatedInfo,
     decode_account_id,
 )
 from bittensor.core.chain_data.utils import decode_metadata
@@ -925,7 +926,7 @@ class Subtensor(SubtensorMixin):
         if not result:
             return []
 
-        return DelegateInfo.delegated_list_from_dicts(result)
+        return DelegatedInfo.list_from_dicts(result)
 
     def get_delegates(self, block: Optional[int] = None) -> list["DelegateInfo"]:
         """
