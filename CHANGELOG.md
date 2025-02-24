@@ -1,5 +1,7 @@
 # Changelog
 
+## 9.0.1 /2025-02-20
+
 ## What's Changed
 * Release/9.0.0 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2671
 * fix e2e test by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2673
