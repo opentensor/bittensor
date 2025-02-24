@@ -232,7 +232,7 @@ def add_stake_multiple_extrinsic(
     total_staking_rao = sum(
         [amount.rao if amount is not None else 0 for amount in new_amounts]
     )
-    old_balance = inital_balance = subtensor.get_balance(
+    old_balance = initial_balance = subtensor.get_balance(
         wallet.coldkeypub.ss58_address, block=block
     )
     if total_staking_rao == 0:
@@ -350,7 +350,7 @@ def add_stake_multiple_extrinsic(
         )
         new_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
         logging.info(
-            f"Balance: [blue]{inital_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
+            f"Balance: [blue]{initial_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
         )
         return True
 
