@@ -73,8 +73,8 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
             # wait for the Validator to process and set_weights
             await asyncio.sleep(5)
 
-            # Wait until next epoch
-            await wait_epoch(subtensor, netuid)
+            # Wait few epochs
+            await wait_epoch(subtensor, netuid, times=4)
 
             # Refresh metagraph
             metagraph = subtensor.metagraph(netuid)
