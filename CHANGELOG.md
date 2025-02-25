@@ -1,5 +1,27 @@
 # Changelog
 
+## 9.0.1 /2025-02-20
+
+## What's Changed
+* Release/9.0.0 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2671
+* fix e2e test by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2673
+* fix e2e test incentive by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2674
+* Add compatibility for read-only systems by @Arthurdw in https://github.com/opentensor/bittensor/pull/2676
+* test: use asynccontextmanager for FastAPI lifespan by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2597
+* test(2472): offline unittests by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2596
+* Removes redundant assignments in Metagraph by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2680
+* Alpha str formatting by @thewhaleking in https://github.com/opentensor/bittensor/pull/2672
+* Add method for fetching all Neuron Certificates on a Netuid by @thewhaleking in https://github.com/opentensor/bittensor/pull/2677
+* Updates tao_stake in MetagraphInfo by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2682
+* fix(2188): configure uvicorn event loop by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2679
+* Refactor AsyncSubtensor aenter logic by @thewhaleking in https://github.com/opentensor/bittensor/pull/2684
+* Backmerge master to staging 900 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2685
+
+## New Contributors
+* @Arthurdw made their first contribution in https://github.com/opentensor/bittensor/pull/2676
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.0.0...v9.0.1
+
 ## 9.0.0 /2025-02-13
 
 ## What's Changed
