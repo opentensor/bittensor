@@ -1,4 +1,3 @@
-import time
 from typing import Optional, TYPE_CHECKING
 
 from bittensor.core.errors import StakeError, NotRegisteredError
