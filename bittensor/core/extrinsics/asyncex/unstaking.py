@@ -281,18 +281,6 @@ async def unstake_multiple_extrinsic(
             if staking_response is True:  # If we successfully unstaked.
                 # We only wait here if we expect finalization.
 
-                if idx < len(hotkey_ss58s) - 1:
-                    # Wait for tx rate limit.
-                    tx_rate_limit_blocks = await subtensor.tx_rate_limit()
-                    if tx_rate_limit_blocks > 0:
-                        logging.info(
-                            f":hourglass: [yellow]Waiting for tx rate limit: "
-                            f"[white]{tx_rate_limit_blocks}[/white] blocks[/yellow]"
-                        )
-                        await asyncio.sleep(
-                            tx_rate_limit_blocks * 12
-                        )  # 12 seconds per block
-
                 if not wait_for_finalization and not wait_for_inclusion:
                     successful_unstakes += 1
                     continue
