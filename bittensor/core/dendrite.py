@@ -877,7 +877,10 @@ class DendriteMixin:
             # ... some operations ...
             del dendrite  # This will implicitly invoke the __del__ method and close the session.
         """
-        self.close_session()
+        try:
+            self.close_session()
+        except RuntimeError:
+            pass
 
 
 # For back-compatibility with torch
