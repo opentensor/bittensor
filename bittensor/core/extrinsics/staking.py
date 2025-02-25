@@ -1,4 +1,3 @@
-import time
 from typing import Optional, TYPE_CHECKING, Sequence
 
 from bittensor.core.errors import StakeError, NotRegisteredError
@@ -297,20 +296,6 @@ def add_stake_multiple_extrinsic(
 
             if staking_response is True:  # If we successfully staked.
                 # We only wait here if we expect finalization.
-
-                if idx < len(hotkey_ss58s) - 1:
-                    # Wait for tx rate limit.
-                    tx_query = subtensor.substrate.query(
-                        module="SubtensorModule", storage_function="TxRateLimit"
-                    )
-                    tx_rate_limit_blocks: int = getattr(tx_query, "value", 0)
-                    if tx_rate_limit_blocks > 0:
-                        logging.error(
-                            f":hourglass: [yellow]Waiting for tx rate limit: [white]{tx_rate_limit_blocks}[/white] "
-                            f"blocks[/yellow]"
-                        )
-                        # 12 seconds per block
-                        time.sleep(tx_rate_limit_blocks * 12)
 
                 if not wait_for_finalization and not wait_for_inclusion:
                     old_balance -= staking_balance
