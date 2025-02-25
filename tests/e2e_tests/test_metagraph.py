@@ -1,4 +1,5 @@
 import os.path
+import re
 import shutil
 import time
 
@@ -405,3 +406,24 @@ def test_metagraph_info(subtensor, alice_wallet):
     metagraph_info = subtensor.get_metagraph_info(netuid=3)
 
     assert metagraph_info is None
+
+
+def test_blocks(subtensor):
+    """
+    Tests:
+    - Get current block
+    - Get block hash
+    - Wait for block
+    """
+
+    block = subtensor.get_current_block()
+
+    assert block == subtensor.block
+
+    block_hash = subtensor.get_block_hash(block)
+
+    assert re.match("0x[a-z0-9]{64}", block_hash)
+
+    subtensor.wait_for_block(block + 10)
+
+    assert subtensor.get_current_block() == block + 10
