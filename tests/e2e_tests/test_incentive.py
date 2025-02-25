@@ -22,9 +22,6 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
         AssertionError: If any of the checks or verifications fail
     """
 
-    # Wait for 2 tempos to spin up chain properly
-    subtensor.wait_for_block(20)
-
     print("Testing test_incentive")
     netuid = 2
 
@@ -74,7 +71,7 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     async with templates.miner(bob_wallet, netuid):
         async with templates.validator(alice_wallet, netuid):
             # wait for the Validator to process and set_weights
-            await asyncio.sleep(30)
+            await asyncio.sleep(5)
 
             # Wait until next epoch
             await wait_epoch(subtensor, netuid)
