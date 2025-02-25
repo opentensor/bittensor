@@ -70,7 +70,7 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
     ), "Failed to set weights_rate_limit"
     assert subtensor.weights_rate_limit(netuid=netuid) == 0
 
-    # Increase subnet tempo so we have enought time to commit and reveal weights
+    # Increase subnet tempo so we have enough time to commit and reveal weights
     sudo_set_admin_utils(
         local_chain,
         alice_wallet,
