@@ -1,4 +1,4 @@
-__version__ = "9.0.0rc5"
+__version__ = "9.0.1"
 
 import os
 import re
@@ -6,6 +6,7 @@ from pathlib import Path
 
 from munch import munchify
 
+ROOT_TAO_STAKE_WEIGHT = 0.18
 
 READ_ONLY = os.getenv("READ_ONLY") == "1"
 

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional, Union
 
+from bittensor.core import settings
 from bittensor.core.chain_data.axon_info import AxonInfo
 from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.info_base import InfoBase
@@ -234,7 +235,10 @@ class MetagraphInfo(InfoBase):
             rank=[u16tf(rk) for rk in decoded.get("rank", [])],
             block_at_registration=decoded["block_at_registration"],
             alpha_stake=[_tbwu(ast, _netuid) for ast in decoded["alpha_stake"]],
-            tao_stake=[_tbwu(ts) for ts in decoded["tao_stake"]],
+            tao_stake=[
+                _tbwu(ts) * settings.ROOT_TAO_STAKE_WEIGHT
+                for ts in decoded["tao_stake"]
+            ],
             total_stake=[_tbwu(ts, _netuid) for ts in decoded["total_stake"]],
             # Dividend break down
             tao_dividends_per_hotkey=[

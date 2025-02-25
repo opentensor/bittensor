@@ -7,7 +7,7 @@ from scalecodec.types import GenericCall
 
 from .axon_info import AxonInfo
 from .chain_identity import ChainIdentity
-from .delegate_info import DelegateInfo
+from .delegate_info import DelegateInfo, DelegatedInfo
 from .delegate_info_lite import DelegateInfoLite
 from .dynamic_info import DynamicInfo
 from .ip_info import IPInfo
@@ -36,6 +36,7 @@ __all__ = [
     AxonInfo,
     ChainIdentity,
     DelegateInfo,
+    DelegatedInfo,
     DelegateInfoLite,
     DynamicInfo,
     IPInfo,
