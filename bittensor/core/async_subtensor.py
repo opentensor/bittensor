@@ -999,7 +999,7 @@ class AsyncSubtensor(SubtensorMixin):
         )
         result = {}
         async for id_, value in query:
-            result[decode_account_id(id_[0])] = decode_account_id(value)
+            result[decode_account_id(id_[0])] = decode_metadata(value)
         return result
 
     async def get_current_weight_commit_info(
