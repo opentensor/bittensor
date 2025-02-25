@@ -880,7 +880,11 @@ class DendriteMixin:
         try:
             self.close_session()
         except RuntimeError:
-            pass
+            if self._session:
+                logging.debug(
+                    "A Dendrite session was unable to be closed during garbage-collection of the Dendrite object. This "
+                    "usually indicates that you were not using the async context manager."
+                )
 
 
 # For back-compatibility with torch
