@@ -128,9 +128,8 @@ async def test_async_subtensor_magic_methods(mocker):
         pass
 
     # Asserts
-    fake_async_substrate.__aenter__.assert_called_once()
-    fake_async_substrate.__aexit__.assert_called_once()
-    fake_async_substrate.close.assert_awaited_once()
+    fake_async_substrate.initialize.assert_called_once()
+    fake_async_substrate.close.assert_called_once()
 
 
 @pytest.mark.parametrize(
@@ -145,7 +144,7 @@ async def test_async_subtensor_aenter_connection_refused_error(
     # Preps
     fake_async_substrate = mocker.AsyncMock(
         autospec=async_subtensor.AsyncSubstrateInterface,
-        __aenter__=mocker.AsyncMock(side_effect=error),
+        initialize=mocker.AsyncMock(side_effect=error),
     )
     mocker.patch.object(
         async_subtensor, "AsyncSubstrateInterface", return_value=fake_async_substrate
@@ -158,7 +157,7 @@ async def test_async_subtensor_aenter_connection_refused_error(
             pass
 
     # Asserts
-    fake_async_substrate.__aenter__.assert_called_once()
+    fake_async_substrate.initialize.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -2676,3 +2675,18 @@ async def test_set_subnet_identity(mocker, subtensor):
         wait_for_inclusion=False,
     )
     assert result == mocked_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_all_neuron_certificates(mocker, subtensor):
+    fake_netuid = 12
+    mocked_query_map_subtensor = mocker.AsyncMock()
+    mocker.patch.object(subtensor.substrate, "query_map", mocked_query_map_subtensor)
+    await subtensor.get_all_neuron_certificates(fake_netuid)
+    mocked_query_map_subtensor.assert_awaited_once_with(
+        module="SubtensorModule",
+        storage_function="NeuronCertificates",
+        params=[fake_netuid],
+        block_hash=None,
+        reuse_block_hash=False,
+    )
