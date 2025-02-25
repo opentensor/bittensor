@@ -63,7 +63,7 @@ def test_hotkeys(subtensor, alice_wallet):
         subtensor.does_hotkey_exist("fake")
 
     assert subtensor.does_hotkey_exist(hotkey) is False
-    # assert subtensor.get_hotkey_owner(hotkey) is False
+    assert subtensor.get_hotkey_owner(hotkey) is None
 
     assert subtensor.is_hotkey_registered(hotkey) is False
     assert subtensor.is_hotkey_registered_any(hotkey) is False
