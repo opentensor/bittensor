@@ -17,11 +17,13 @@
 
 import argparse
 import unittest.mock as mock
+import datetime
 from unittest.mock import MagicMock
 
 import pytest
 from bittensor_wallet import Wallet
 from async_substrate_interface import sync_substrate
+from async_substrate_interface.types import ScaleObj
 import websockets
 
 from bittensor import StakeInfo
@@ -3073,3 +3075,14 @@ def test_get_all_neuron_certificates(mocker, subtensor):
         params=[fake_netuid],
         block_hash=None,
     )
+
+
+def test_get_timestamp(mocker, subtensor):
+    fake_block = 1000
+    mocked_query = mocker.MagicMock(return_value=ScaleObj(1740586018 * 1000))
+    mocker.patch.object(subtensor.substrate, "query", mocked_query)
+    expected_result = datetime.datetime(
+        2025, 2, 26, 16, 6, 58, tzinfo=datetime.timezone.utc
+    )
+    actual_result = subtensor.get_timestamp(block=fake_block)
+    assert expected_result == actual_result
