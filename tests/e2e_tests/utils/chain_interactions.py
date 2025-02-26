@@ -67,7 +67,7 @@ def sudo_set_hyperparameter_values(
     return response.is_success
 
 
-async def wait_epoch(subtensor: "Subtensor", netuid: int = 1):
+async def wait_epoch(subtensor: "Subtensor", netuid: int = 1, times: int = 1):
     """
     Waits for the next epoch to start on a specific subnet.
 
@@ -83,7 +83,7 @@ async def wait_epoch(subtensor: "Subtensor", netuid: int = 1):
         raise Exception("could not determine tempo")
     tempo = q_tempo[0].value
     logging.info(f"tempo = {tempo}")
-    await wait_interval(tempo, subtensor, netuid)
+    await wait_interval(tempo * times, subtensor, netuid)
 
 
 def next_tempo(current_block: int, tempo: int, netuid: int) -> int:
