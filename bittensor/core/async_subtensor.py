@@ -28,6 +28,7 @@ from bittensor.core.chain_data import (
     decode_account_id,
     DynamicInfo,
 )
+from bittensor.core.chain_data.delegate_info import DelegatedInfo
 from bittensor.core.chain_data.utils import decode_metadata
 from bittensor.core.config import Config
 from bittensor.core.errors import SubstrateRequestException
@@ -1220,7 +1221,7 @@ class AsyncSubtensor(SubtensorMixin):
         if not result:
             return []
 
-        return DelegateInfo.delegated_list_from_dicts(result)
+        return DelegatedInfo.list_from_dicts(result)
 
     async def get_delegates(
         self,
