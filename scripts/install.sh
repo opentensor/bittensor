@@ -164,7 +164,7 @@ mac_update_pip() {
 }
 
 mac_install_bittensor() {
-    ohai "Cloning bittensor@text_prompting into ~/.bittensor/bittensor"
+    ohai "Cloning bittensor into ~/.bittensor/bittensor"
     git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git fetch origin master ; git checkout master ; git pull --ff-only ; git reset --hard; git clean -xdf)
     ohai "Installing bittensor"
     $python -m pip install -e ~/.bittensor/bittensor/
