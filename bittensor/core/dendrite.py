@@ -877,7 +877,14 @@ class DendriteMixin:
             # ... some operations ...
             del dendrite  # This will implicitly invoke the __del__ method and close the session.
         """
-        self.close_session()
+        try:
+            self.close_session()
+        except RuntimeError:
+            if self._session:
+                logging.debug(
+                    "A Dendrite session was unable to be closed during garbage-collection of the Dendrite object. This "
+                    "usually indicates that you were not using the async context manager."
+                )
 
 
 # For back-compatibility with torch
