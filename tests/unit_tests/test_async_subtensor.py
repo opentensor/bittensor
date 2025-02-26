@@ -1,6 +1,8 @@
+import datetime
 import unittest.mock as mock
 
 import pytest
+from async_substrate_interface.types import ScaleObj
 from bittensor_wallet import Wallet
 
 from bittensor import u64_normalized_float
@@ -1231,9 +1233,9 @@ async def test_get_delegated_no_block_hash_no_reuse(subtensor, mocker):
     # Preps
     fake_coldkey_ss58 = "fake_ss58_address"
 
-    mocked_delegated_list_from_dicts = mocker.Mock()
-    async_subtensor.DelegateInfo.delegated_list_from_dicts = (
-        mocked_delegated_list_from_dicts
+    mocked_delegated_list_from_dicts = mocker.patch.object(
+        async_subtensor.DelegatedInfo,
+        "list_from_dicts",
     )
 
     # Call
@@ -1259,9 +1261,9 @@ async def test_get_delegated_with_block_hash(subtensor, mocker):
     fake_coldkey_ss58 = "fake_ss58_address"
     fake_block_hash = "fake_block_hash"
 
-    mocked_delegated_list_from_dicts = mocker.Mock()
-    async_subtensor.DelegateInfo.delegated_list_from_dicts = (
-        mocked_delegated_list_from_dicts
+    mocked_delegated_list_from_dicts = mocker.patch.object(
+        async_subtensor.DelegatedInfo,
+        "list_from_dicts",
     )
 
     # Call
@@ -1289,9 +1291,9 @@ async def test_get_delegated_with_reuse_block(subtensor, mocker):
     fake_coldkey_ss58 = "fake_ss58_address"
     reuse_block = True
 
-    mocked_delegated_list_from_dicts = mocker.Mock()
-    async_subtensor.DelegateInfo.delegated_list_from_dicts = (
-        mocked_delegated_list_from_dicts
+    mocked_delegated_list_from_dicts = mocker.patch.object(
+        async_subtensor.DelegatedInfo,
+        "list_from_dicts",
     )
 
     # Call
@@ -2714,3 +2716,15 @@ async def test_get_all_neuron_certificates(mocker, subtensor):
         block_hash=None,
         reuse_block_hash=False,
     )
+
+
+@pytest.mark.asyncio
+async def test_get_timestamp(mocker, subtensor):
+    fake_block = 1000
+    mocked_query = mocker.AsyncMock(return_value=ScaleObj(1740586018 * 1000))
+    mocker.patch.object(subtensor.substrate, "query", mocked_query)
+    expected_result = datetime.datetime(
+        2025, 2, 26, 16, 6, 58, tzinfo=datetime.timezone.utc
+    )
+    actual_result = await subtensor.get_timestamp(block=fake_block)
+    assert expected_result == actual_result
