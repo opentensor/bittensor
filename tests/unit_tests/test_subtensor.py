@@ -383,9 +383,7 @@ def test_blocks_since_last_update_success_calls(subtensor, mocker):
 
     # Assertions
     mocked_get_current_block.assert_called_once()
-    mocked_get_hyperparameter.assert_called_once_with(
-        param_name="LastUpdate", netuid=7
-    )
+    mocked_get_hyperparameter.assert_called_once_with(param_name="LastUpdate", netuid=7)
     assert result == 1
     # if we change the methods logic in the future we have to be make sure the returned type is correct
     assert isinstance(result, int)
