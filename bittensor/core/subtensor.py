@@ -2082,7 +2082,7 @@ class Subtensor(SubtensorMixin):
         Returns:
             datetime object for the timestamp of the block
         """
-        unix = self.query_module("Timestamp", "Now", block=block).value
+        unix = cast(ScaleObj, self.query_module("Timestamp", "Now", block=block)).value
         return datetime.fromtimestamp(unix / 1000, tz=timezone.utc)
 
     # Extrinsics helper ================================================================================================
