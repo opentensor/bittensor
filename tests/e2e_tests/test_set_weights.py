@@ -119,7 +119,7 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
         assert success is True, f"Failed to set weights for subnet {netuid}"
 
     # Wait for the txs to be included in the chain
-    await wait_epoch(subtensor, netuid=netuids[-1])
+    await wait_epoch(subtensor, netuid=netuids[-1], times=4)
 
     for netuid in netuids:
         # Query the Weights storage map for all three subnets
