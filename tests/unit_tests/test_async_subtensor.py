@@ -389,8 +389,10 @@ async def test_get_delegates(subtensor, mocker, fake_result, response):
         autospec=subtensor.query_runtime_api, return_value=fake_result
     )
     subtensor.query_runtime_api = mocked_query_runtime_api
-    mocked_delegate_info_list_from_dicts = mocker.Mock()
-    async_subtensor.DelegateInfo.list_from_dicts = mocked_delegate_info_list_from_dicts
+    mocked_delegate_info_list_from_dicts = mocker.patch.object(
+        async_subtensor.DelegateInfo,
+        "list_from_dicts",
+    )
 
     # Call
     result = await subtensor.get_delegates(block_hash=None, reuse_block=False)
@@ -432,7 +434,11 @@ async def test_get_stake_info_for_coldkey(subtensor, mocker, fake_result, respon
     mocked_stake_info_list_from_dicts = mocker.Mock(
         return_value=[mock_stake_info] if fake_result else []
     )
-    async_subtensor.StakeInfo.list_from_dicts = mocked_stake_info_list_from_dicts
+    mocker.patch.object(
+        async_subtensor.StakeInfo,
+        "list_from_dicts",
+        mocked_stake_info_list_from_dicts,
+    )
 
     # Call
     result = await subtensor.get_stake_info_for_coldkey(
@@ -974,9 +980,8 @@ async def test_neurons_lite(subtensor, mocker, fake_result, response):
     mocked_query_runtime_api = mocker.AsyncMock(return_value=fake_result)
     subtensor.query_runtime_api = mocked_query_runtime_api
 
-    mocked_neuron_info_lite_list_from_dicts = mocker.Mock()
-    async_subtensor.NeuronInfoLite.list_from_dicts = (
-        mocked_neuron_info_lite_list_from_dicts
+    mocked_neuron_info_lite_list_from_dicts = mocker.patch.object(
+        async_subtensor.NeuronInfoLite, "list_from_dicts"
     )
 
     # Call
@@ -1138,11 +1143,14 @@ async def test_neuron_for_uid_happy_path(subtensor, mocker):
     fake_netuid = 2
     fake_block_hash = "block_hash"
 
-    mocked_null_neuron = mocker.Mock()
-    async_subtensor.NeuronInfo.get_null_neuron = mocked_null_neuron
-
-    mocked_neuron_info_from_dict = mocker.Mock()
-    async_subtensor.NeuronInfo.from_dict = mocked_neuron_info_from_dict
+    mocked_null_neuron = mocker.patch.object(
+        async_subtensor.NeuronInfo,
+        "get_null_neuron",
+    )
+    mocked_neuron_info_from_dict = mocker.patch.object(
+        async_subtensor.NeuronInfo,
+        "from_dict",
+    )
 
     # Call
     result = await subtensor.neuron_for_uid(
@@ -1165,8 +1173,10 @@ async def test_neuron_for_uid_with_none_uid(subtensor, mocker):
     fake_netuid = 1
     fake_block_hash = "block_hash"
 
-    mocked_null_neuron = mocker.Mock()
-    async_subtensor.NeuronInfo.get_null_neuron = mocked_null_neuron
+    mocked_null_neuron = mocker.patch.object(
+        async_subtensor.NeuronInfo,
+        "get_null_neuron",
+    )
 
     # Call
     result = await subtensor.neuron_for_uid(
@@ -1186,8 +1196,10 @@ async def test_neuron_for_uid(subtensor, mocker):
     fake_netuid = 2
     fake_block_hash = "block_hash"
 
-    mocked_null_neuron = mocker.Mock()
-    async_subtensor.NeuronInfo.get_null_neuron = mocked_null_neuron
+    mocked_null_neuron = mocker.patch.object(
+        async_subtensor.NeuronInfo,
+        "get_null_neuron",
+    )
 
     # no result in response
     mocked_substrate_runtime_call = mocker.AsyncMock(
@@ -1197,8 +1209,10 @@ async def test_neuron_for_uid(subtensor, mocker):
     )
     subtensor.substrate.runtime_call = mocked_substrate_runtime_call
 
-    mocked_neuron_info_from_dict = mocker.Mock()
-    async_subtensor.NeuronInfo.from_dict = mocked_neuron_info_from_dict
+    mocked_neuron_info_from_dict = mocker.patch.object(
+        async_subtensor.NeuronInfo,
+        "from_dict",
+    )
 
     # Call
     result = await subtensor.neuron_for_uid(
@@ -2173,8 +2187,11 @@ async def test_weights_rate_limit_success(subtensor, mocker):
     fake_netuid = 1
     fake_rate_limit = 10
 
-    mocked_get_hyperparameter = mocker.AsyncMock(return_value=fake_rate_limit)
-    subtensor.get_hyperparameter = mocked_get_hyperparameter
+    mocked_get_hyperparameter = mocker.patch.object(
+        subtensor,
+        "get_hyperparameter",
+        return_value=fake_rate_limit,
+    )
 
     # Call
     result = await subtensor.weights_rate_limit(netuid=fake_netuid)
@@ -2196,8 +2213,11 @@ async def test_weights_rate_limit_none(subtensor, mocker):
     fake_netuid = 1
     fake_result = None
 
-    mocked_get_hyperparameter = mocker.AsyncMock(return_value=fake_result)
-    subtensor.get_hyperparameter = mocked_get_hyperparameter
+    mocked_get_hyperparameter = mocker.patch.object(
+        subtensor,
+        "get_hyperparameter",
+        return_value=fake_result,
+    )
 
     # Call
     result = await subtensor.weights_rate_limit(netuid=fake_netuid)
@@ -2222,10 +2242,11 @@ async def test_blocks_since_last_update_success(subtensor, mocker):
     current_block = 100
     fake_blocks_since_update = current_block - last_update_block
 
-    mocked_get_hyperparameter = mocker.AsyncMock(
-        return_value={fake_uid: last_update_block}
+    mocked_get_hyperparameter = mocker.patch.object(
+        subtensor,
+        "get_hyperparameter",
+        return_value={fake_uid: last_update_block},
     )
-    subtensor.get_hyperparameter = mocked_get_hyperparameter
 
     mocked_get_current_block = mocker.AsyncMock(return_value=current_block)
     subtensor.get_current_block = mocked_get_current_block
@@ -2249,8 +2270,11 @@ async def test_blocks_since_last_update_no_last_update(subtensor, mocker):
     fake_uid = 5
     fake_result = None
 
-    mocked_get_hyperparameter = mocker.AsyncMock(return_value=fake_result)
-    subtensor.get_hyperparameter = mocked_get_hyperparameter
+    mocked_get_hyperparameter = mocker.patch.object(
+        subtensor,
+        "get_hyperparameter",
+        return_value=fake_result,
+    )
 
     # Call
     result = await subtensor.blocks_since_last_update(netuid=fake_netuid, uid=fake_uid)
