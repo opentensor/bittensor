@@ -1,5 +1,6 @@
 import copy
-from datetime import datetime, UTC
+from datetime import datetime, timezone
+
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Iterable, Optional, Union, cast
 
@@ -2082,7 +2083,7 @@ class Subtensor(SubtensorMixin):
             datetime object for the timestamp of the block
         """
         unix = self.query_module("Timestamp", "Now", block=block).value
-        return datetime.fromtimestamp(unix / 1000, tz=UTC)
+        return datetime.fromtimestamp(unix / 1000, tz=timezone.utc)
 
     # Extrinsics helper ================================================================================================
 
