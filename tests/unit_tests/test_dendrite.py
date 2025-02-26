@@ -83,6 +83,17 @@ def test_close(setup_dendrite, setup_axon):
     assert setup_dendrite._session is None
 
 
+def test_garbage_collection(setup_dendrite):
+    del setup_dendrite  # should not raise an error
+
+
+@pytest.mark.asyncio
+async def test_async_garbage_collection(setup_dendrite, setup_axon):
+    async with setup_dendrite as dendrite:
+        assert (await dendrite.session) is not None
+    del setup_dendrite  # should not raise error
+
+
 @pytest.mark.asyncio
 async def test_aclose(setup_dendrite, setup_axon):
     axon = setup_axon
