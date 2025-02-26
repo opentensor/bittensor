@@ -1,6 +1,6 @@
 import asyncio
 import copy
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 import ssl
 from functools import partial
 from typing import Optional, Any, Union, Iterable, TYPE_CHECKING
@@ -2773,7 +2773,7 @@ class AsyncSubtensor(SubtensorMixin):
                 reuse_block=reuse_block,
             )
         ).value
-        return datetime.fromtimestamp(unix / 1000, tz=UTC)
+        return datetime.fromtimestamp(unix / 1000, tz=timezone.utc)
 
     # Extrinsics helper ================================================================================================
 
