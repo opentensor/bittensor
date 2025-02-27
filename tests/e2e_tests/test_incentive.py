@@ -1,5 +1,4 @@
 import asyncio
-import time
 
 import pytest
 
@@ -22,9 +21,6 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-
-    # Wait for 2 tempos to spin up chain properly
-    subtensor.wait_for_block(20)
 
     print("Testing test_incentive")
     netuid = 2
@@ -51,7 +47,6 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     # Get current miner/validator stats
     alice_neuron = metagraph.neurons[0]
 
-    time.sleep(30)
     assert alice_neuron.validator_permit is True
     assert alice_neuron.dividends == 0
     assert alice_neuron.stake.tao > 0
@@ -59,7 +54,6 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
 
     bob_neuron = metagraph.neurons[1]
 
-    time.sleep(30)
     assert bob_neuron.incentive == 0
     assert bob_neuron.consensus == 0
     assert bob_neuron.rank == 0
@@ -79,15 +73,14 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
             # wait for the Validator to process and set_weights
             await asyncio.sleep(5)
 
-            # Wait until next epoch
-            await wait_epoch(subtensor, netuid)
+            # Wait few epochs
+            await wait_epoch(subtensor, netuid, times=4)
 
             # Refresh metagraph
             metagraph = subtensor.metagraph(netuid)
 
     # Get current emissions and validate that Alice has gotten tao
     alice_neuron = metagraph.neurons[0]
-    time.sleep(5)
 
     assert alice_neuron.validator_permit is True
     assert alice_neuron.dividends == 1.0

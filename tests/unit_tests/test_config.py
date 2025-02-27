@@ -4,7 +4,6 @@ import argparse
 
 def test_py_config_parsed_successfully_rust_wallet():
     """Verify that python based config object is successfully parsed with rust-based wallet object."""
-    # Preps
     parser = argparse.ArgumentParser()
 
     bittensor.wallet.add_args(parser)
@@ -14,7 +13,7 @@ def test_py_config_parsed_successfully_rust_wallet():
 
     config = bittensor.config(parser)
 
-    # since we can't apply mocking to rust implewmented object then replace those directly
+    # override config manually since we can't apply mocking to rust objects easily
     config.wallet.name = "new_wallet_name"
     config.wallet.hotkey = "new_hotkey"
     config.wallet.path = "/some/not_default/path"
