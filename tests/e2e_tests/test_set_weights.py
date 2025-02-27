@@ -1,14 +1,13 @@
 import numpy as np
 import pytest
 
-import asyncio
-
 from bittensor.utils.balance import Balance
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_hyperparameter_bool,
     sudo_set_hyperparameter_values,
     sudo_set_admin_utils,
+    wait_epoch,
 )
 
 
@@ -120,7 +119,7 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
         assert success is True, f"Failed to set weights for subnet {netuid}"
 
     # Wait for the txs to be included in the chain
-    await asyncio.sleep(4)
+    await wait_epoch(subtensor, netuid=netuids[-1], times=4)
 
     for netuid in netuids:
         # Query the Weights storage map for all three subnets
@@ -128,7 +127,7 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
             module="SubtensorModule",
             name="Weights",
             params=[netuid, 0],  # Alice should be the only UID
-        )
+        ).value
 
         assert weights is not None, f"Weights not found for subnet {netuid}"
         assert weights == list(
