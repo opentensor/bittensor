@@ -4,6 +4,7 @@ these are not present in btsdk but are required for e2e tests
 """
 
 import asyncio
+import unittest.mock
 from typing import Union, Optional, TYPE_CHECKING
 
 from bittensor.utils.btlogging import logging
@@ -13,6 +14,12 @@ if TYPE_CHECKING:
     from bittensor import Wallet
     from bittensor.core.subtensor import Subtensor
     from async_substrate_interface import SubstrateInterface, ExtrinsicReceipt
+
+
+ANY_BALANCE = unittest.mock.Mock(
+    rao=unittest.mock.ANY,
+    unit=unittest.mock.ANY,
+)
 
 
 def sudo_set_hyperparameter_bool(
@@ -211,3 +218,119 @@ async def root_set_subtensor_hyperparameter_values(
         return response.is_success, response.error_message
 
     return response.is_success, ""
+
+
+def set_children(subtensor, wallet, netuid, children):
+    return subtensor.sign_and_send_extrinsic(
+        subtensor.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="set_children",
+            call_params={
+                "children": children,
+                "hotkey": wallet.hotkey.ss58_address,
+                "netuid": netuid,
+            },
+        ),
+        wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+
+def increase_take(subtensor, wallet, take):
+    return subtensor.sign_and_send_extrinsic(
+        subtensor.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="increase_take",
+            call_params={
+                "hotkey": wallet.hotkey.ss58_address,
+                "take": int(take * 0xFFFF),  # u16 representation of the take
+            },
+        ),
+        wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+
+def decrease_take(subtensor, wallet, take):
+    return subtensor.sign_and_send_extrinsic(
+        subtensor.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="decrease_take",
+            call_params={
+                "hotkey": wallet.hotkey.ss58_address,
+                "take": int(take * 0xFFFF),  # u16 representation of the take
+            },
+        ),
+        wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+
+def registry_set_identity(subtensor, wallet, identified, **info):
+    DEFAULT = {
+        "additional": [[]],
+        "display": {"Raw0": ""},
+        "legal": {"Raw0": ""},
+        "web": {"Raw0": ""},
+        "riot": {"Raw0": ""},
+        "email": {"Raw0": ""},
+        "pgp_fingerprint": None,
+        "image": {"Raw0": ""},
+        "info": {"Raw0": ""},
+        "twitter": {"Raw0": ""},
+    }
+
+    info = DEFAULT.copy() | {
+        key: {
+            f"Raw{len(value)}": value,
+        }
+        for key, value in info.items()
+    }
+
+    return subtensor.sign_and_send_extrinsic(
+        subtensor.substrate.compose_call(
+            call_module="Registry",
+            call_function="set_identity",
+            call_params={
+                "info": info,
+                "identified": identified,
+            },
+        ),
+        wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+
+def set_identity(
+    subtensor,
+    wallet,
+    name="",
+    url="",
+    github_repo="",
+    image="",
+    discord="",
+    description="",
+    additional="",
+):
+    return subtensor.sign_and_send_extrinsic(
+        subtensor.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="set_identity",
+            call_params={
+                "name": name,
+                "url": url,
+                "github_repo": github_repo,
+                "image": image,
+                "discord": discord,
+                "description": description,
+                "additional": additional,
+            },
+        ),
+        wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
