@@ -1,5 +1,6 @@
 import asyncio
 import copy
+from datetime import datetime, timezone
 import ssl
 from functools import partial
 from typing import Optional, Any, Union, Iterable, TYPE_CHECKING
@@ -27,6 +28,7 @@ from bittensor.core.chain_data import (
     decode_account_id,
     DynamicInfo,
 )
+from bittensor.core.chain_data.delegate_info import DelegatedInfo
 from bittensor.core.chain_data.utils import decode_metadata
 from bittensor.core.config import Config
 from bittensor.core.errors import SubstrateRequestException
@@ -1219,7 +1221,7 @@ class AsyncSubtensor(SubtensorMixin):
         if not result:
             return []
 
-        return DelegateInfo.delegated_list_from_dicts(result)
+        return DelegatedInfo.list_from_dicts(result)
 
     async def get_delegates(
         self,
@@ -2743,6 +2745,36 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block=reuse_block,
         )
         return None if call is None else int(call)
+
+    async def get_timestamp(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> datetime:
+        """
+        Retrieves the datetime timestamp for a given block
+
+        Arguments:
+            block: The blockchain block number for the query. Do not specify if specifying block_hash or reuse_block.
+            block_hash: The blockchain block_hash representation of the block id. Do not specify if specifying block
+                or reuse_block.
+            reuse_block: Whether to reuse the last-used blockchain block hash. Do not specify if specifying block or
+                block_hash.
+
+        Returns:
+            datetime object for the timestamp of the block
+        """
+        unix = (
+            await self.query_module(
+                "Timestamp",
+                "Now",
+                block=block,
+                block_hash=block_hash,
+                reuse_block=reuse_block,
+            )
+        ).value
+        return datetime.fromtimestamp(unix / 1000, tz=timezone.utc)
 
     # Extrinsics helper ================================================================================================
 
