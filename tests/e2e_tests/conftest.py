@@ -48,7 +48,7 @@ def local_chain(request):
 
             print(line.strip())
             # 10 min as timeout
-            if int(time.time()) - timestamp > 10 * 60:
+            if int(time.time()) - timestamp > 20 * 60:
                 print("Subtensor not started in time")
                 raise TimeoutError
             if pattern.search(line):
