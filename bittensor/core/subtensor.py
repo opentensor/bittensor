@@ -1,4 +1,6 @@
 import copy
+from datetime import datetime, timezone
+
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Iterable, Optional, Union, cast
 
@@ -754,7 +756,7 @@ class Subtensor(SubtensorMixin):
         )
         result = {}
         for id_, value in query:
-            result[decode_account_id(id_[0])] = decode_account_id(value)
+            result[decode_account_id(id_[0])] = decode_metadata(value)
         return result
 
     def get_current_weight_commit_info(
@@ -2069,6 +2071,19 @@ class Subtensor(SubtensorMixin):
             param_name="WeightsSetRateLimit", netuid=netuid, block=block
         )
         return None if call is None else int(call)
+
+    def get_timestamp(self, block: Optional[int] = None) -> datetime:
+        """
+        Retrieves the datetime timestamp for a given block
+
+        Arguments:
+            block: The blockchain block number for the query.
+
+        Returns:
+            datetime object for the timestamp of the block
+        """
+        unix = cast(ScaleObj, self.query_module("Timestamp", "Now", block=block)).value
+        return datetime.fromtimestamp(unix / 1000, tz=timezone.utc)
 
     # Extrinsics helper ================================================================================================
 

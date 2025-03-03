@@ -8,8 +8,9 @@ import threading
 
 import pytest
 from async_substrate_interface import SubstrateInterface
-from bittensor.core.subtensor import Subtensor
 
+from bittensor.core.async_subtensor import AsyncSubtensor
+from bittensor.core.subtensor import Subtensor
 from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.e2e_test_utils import (
     Templates,
@@ -47,7 +48,7 @@ def local_chain(request):
 
             print(line.strip())
             # 10 min as timeout
-            if int(time.time()) - timestamp > 10 * 60:
+            if int(time.time()) - timestamp > 20 * 60:
                 print("Subtensor not started in time")
                 raise TimeoutError
             if pattern.search(line):
@@ -99,6 +100,11 @@ def templates():
 @pytest.fixture
 def subtensor(local_chain):
     return Subtensor(network="ws://localhost:9944")
+
+
+@pytest.fixture
+def async_subtensor(local_chain):
+    return AsyncSubtensor(network="ws://localhost:9944")
 
 
 @pytest.fixture
