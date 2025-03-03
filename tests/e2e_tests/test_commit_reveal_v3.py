@@ -53,9 +53,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     ), "Unable to enable commit reveal on the subnet"
 
     # Verify commit_reveal was enabled
-    assert subtensor.get_subnet_hyperparameters(
-        netuid=netuid,
-    ).commit_reveal_weights_enabled, "Failed to enable commit/reveal"
+    assert subtensor.commit_reveal_enabled(netuid), "Failed to enable commit/reveal"
     logging.console.info("Commit reveal enabled")
 
     # Change the weights rate limit on the subnet
