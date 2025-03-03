@@ -74,7 +74,7 @@ def test_identity(subtensor, alice_wallet, bob_wallet):
     )
 
 
-def test_change_take(subtensor, alice_wallet):
+def test_change_take(local_chain, subtensor, alice_wallet):
     """
     Tests:
     - Get default Delegate's take once registered in root subnet
@@ -133,6 +133,28 @@ def test_change_take(subtensor, alice_wallet):
     take = subtensor.get_delegate_take(alice_wallet.hotkey.ss58_address)
 
     assert take == 0.09999237048905166
+
+    success, error = increase_take(
+        subtensor,
+        alice_wallet,
+        0.15,
+    )
+
+    assert success is False
+    assert "`DelegateTxRateLimitExceeded(Module)`" in error
+
+    take = subtensor.get_delegate_take(alice_wallet.hotkey.ss58_address)
+
+    assert take == 0.09999237048905166
+
+    sudo_set_admin_utils(
+        local_chain,
+        alice_wallet,
+        call_function="sudo_set_tx_delegate_take_rate_limit",
+        call_params={
+            "tx_rate_limit": 0,
+        },
+    )
 
     success, error = increase_take(
         subtensor,
