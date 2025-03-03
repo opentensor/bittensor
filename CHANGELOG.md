@@ -1,5 +1,20 @@
 # Changelog
 
+## 9.0.2 /2025-02-24
+
+## What's Changed
+* CI: Upgrade rust compiler for E2E tests by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2690
+* Break away cli reqs by @thewhaleking in https://github.com/opentensor/bittensor/pull/2692
+* Updates DelegateInfo chain data by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2683
+* Backmerge main to staging 901 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2689
+* fix: typos in documentation files by @zeevick10 in https://github.com/opentensor/bittensor/pull/2687
+* Removes tx limit in stake_multiple by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2694
+
+## New Contributors
+* @zeevick10 made their first contribution in https://github.com/opentensor/bittensor/pull/2687
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.0.1...v9.0.2
+
 ## 9.0.1 /2025-02-20
 
 ## What's Changed

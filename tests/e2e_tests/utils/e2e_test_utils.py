@@ -78,12 +78,7 @@ def clone_or_update_templates(specific_commit=None):
     return install_dir + templates_repo
 
 
-def install_templates(install_dir):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."])
-
-
 def uninstall_templates(install_dir):
-    subprocess.check_call([sys.executable, "-m", "pip", "uninstall", "bittensor", "-y"])
     # Delete everything in directory
     shutil.rmtree(install_dir)
 
@@ -93,7 +88,6 @@ class Templates:
         self.dir = clone_or_update_templates()
 
     def __enter__(self):
-        install_templates(self.dir)
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):

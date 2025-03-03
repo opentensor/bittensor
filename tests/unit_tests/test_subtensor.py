@@ -17,11 +17,13 @@
 
 import argparse
 import unittest.mock as mock
+import datetime
 from unittest.mock import MagicMock
 
 import pytest
 from bittensor_wallet import Wallet
 from async_substrate_interface import sync_substrate
+from async_substrate_interface.types import ScaleObj
 import websockets
 
 from bittensor import StakeInfo
@@ -367,17 +369,23 @@ def test_blocks_since_last_update_success_calls(subtensor, mocker):
     uid = 7
     mocked_current_block = 2
     mocked_result = {uid: 1}
-    subtensor.get_hyperparameter = mocker.MagicMock(return_value=mocked_result)
-    subtensor.get_current_block = mocker.MagicMock(return_value=mocked_current_block)
+    mocked_get_hyperparameter = mocker.patch.object(
+        subtensor,
+        "get_hyperparameter",
+        return_value=mocked_result,
+    )
+    mocked_get_current_block = mocker.patch.object(
+        subtensor,
+        "get_current_block",
+        return_value=mocked_current_block,
+    )
 
     # Call
     result = subtensor.blocks_since_last_update(netuid=7, uid=uid)
 
     # Assertions
-    subtensor.get_current_block.assert_called_once()
-    subtensor.get_hyperparameter.assert_called_once_with(
-        param_name="LastUpdate", netuid=7
-    )
+    mocked_get_current_block.assert_called_once()
+    mocked_get_hyperparameter.assert_called_once_with(param_name="LastUpdate", netuid=7)
     assert result == 1
     # if we change the methods logic in the future we have to be make sure the returned type is correct
     assert isinstance(result, int)
@@ -386,13 +394,17 @@ def test_blocks_since_last_update_success_calls(subtensor, mocker):
 def test_weights_rate_limit_success_calls(subtensor, mocker):
     """Tests the weights_rate_limit method to ensure it correctly fetches the WeightsSetRateLimit hyperparameter."""
     # Prep
-    subtensor.get_hyperparameter = mocker.MagicMock(return_value=5)
+    mocked_get_hyperparameter = mocker.patch.object(
+        subtensor,
+        "get_hyperparameter",
+        return_value=5,
+    )
 
     # Call
     result = subtensor.weights_rate_limit(netuid=7)
 
     # Assertions
-    subtensor.get_hyperparameter.assert_called_once_with(
+    mocked_get_hyperparameter.assert_called_once_with(
         param_name="WeightsSetRateLimit",
         netuid=7,
         block=None,
@@ -1285,9 +1297,11 @@ def test_subnetwork_n(subtensor, mocker):
     fake_block = 123
     fake_result = 2
 
-    mocked_get_hyperparameter = mocker.MagicMock()
-    mocked_get_hyperparameter.return_value = fake_result
-    subtensor.get_hyperparameter = mocked_get_hyperparameter
+    mocked_get_hyperparameter = mocker.patch.object(
+        subtensor,
+        "get_hyperparameter",
+        return_value=fake_result,
+    )
 
     # Call
     result = subtensor.subnetwork_n(fake_netuid, fake_block)
@@ -1589,11 +1603,13 @@ def test_immunity_period(subtensor, mocker):
     # Preps
     fake_netuid = 1
     fake_block = 123
-    fare_result = 101
+    fake_result = 101
 
-    mocked_get_hyperparameter = mocker.MagicMock()
-    mocked_get_hyperparameter.return_value = fare_result
-    subtensor.get_hyperparameter = mocked_get_hyperparameter
+    mocked_get_hyperparameter = mocker.patch.object(
+        subtensor,
+        "get_hyperparameter",
+        return_value=fake_result,
+    )
 
     # Call
     result = subtensor.immunity_period(netuid=fake_netuid, block=fake_block)
@@ -1638,11 +1654,13 @@ def test_tempo(subtensor, mocker):
     # Preps
     fake_netuid = 1
     fake_block = 123
-    fare_result = 101
+    fake_result = 101
 
-    mocked_get_hyperparameter = mocker.MagicMock()
-    mocked_get_hyperparameter.return_value = fare_result
-    subtensor.get_hyperparameter = mocked_get_hyperparameter
+    mocked_get_hyperparameter = mocker.patch.object(
+        subtensor,
+        "get_hyperparameter",
+        return_value=fake_result,
+    )
 
     # Call
     result = subtensor.tempo(netuid=fake_netuid, block=fake_block)
@@ -1823,8 +1841,11 @@ def test_min_allowed_weights(subtensor, mocker):
     fake_block = 123
     return_value = 10
 
-    mocked_get_hyperparameter = mocker.MagicMock(return_value=return_value)
-    subtensor.get_hyperparameter = mocked_get_hyperparameter
+    mocked_get_hyperparameter = mocker.patch.object(
+        subtensor,
+        "get_hyperparameter",
+        return_value=return_value,
+    )
 
     # Call
     result = subtensor.min_allowed_weights(netuid=fake_netuid, block=fake_block)
@@ -1842,8 +1863,11 @@ def test_max_weight_limit(subtensor, mocker):
     fake_block = 123
     return_value = 100
 
-    mocked_get_hyperparameter = mocker.MagicMock(return_value=return_value)
-    subtensor.get_hyperparameter = mocked_get_hyperparameter
+    mocked_get_hyperparameter = mocker.patch.object(
+        subtensor,
+        "get_hyperparameter",
+        return_value=return_value,
+    )
 
     mocked_u16_normalized_float = mocker.patch.object(
         subtensor_module,
@@ -3073,3 +3097,14 @@ def test_get_all_neuron_certificates(mocker, subtensor):
         params=[fake_netuid],
         block_hash=None,
     )
+
+
+def test_get_timestamp(mocker, subtensor):
+    fake_block = 1000
+    mocked_query = mocker.MagicMock(return_value=ScaleObj(1740586018 * 1000))
+    mocker.patch.object(subtensor.substrate, "query", mocked_query)
+    expected_result = datetime.datetime(
+        2025, 2, 26, 16, 6, 58, tzinfo=datetime.timezone.utc
+    )
+    actual_result = subtensor.get_timestamp(block=fake_block)
+    assert expected_result == actual_result
