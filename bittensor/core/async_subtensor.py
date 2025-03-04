@@ -5,7 +5,6 @@ import ssl
 from functools import partial
 from typing import Optional, Any, Union, Iterable, TYPE_CHECKING
 
-import aiohttp
 import asyncstdlib as a
 import numpy as np
 import scalecodec
@@ -28,6 +27,7 @@ from bittensor.core.chain_data import (
     decode_account_id,
     DynamicInfo,
 )
+from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.delegate_info import DelegatedInfo
 from bittensor.core.chain_data.utils import decode_metadata
 from bittensor.core.config import Config
@@ -68,15 +68,14 @@ from bittensor.core.extrinsics.asyncex.weights import (
     reveal_weights_extrinsic,
 )
 from bittensor.core.metagraph import AsyncMetagraph
-from bittensor.core.settings import version_as_int, TYPE_REGISTRY, DELEGATES_DETAILS_URL
+from bittensor.core.settings import version_as_int, TYPE_REGISTRY
 from bittensor.core.types import ParamWithTypes, SubtensorMixin
 from bittensor.utils import (
+    Certificate,
     decode_hex_identity_dict,
     format_error_message,
     torch,
     u16_normalized_float,
-    _decode_hex_identity_dict,
-    Certificate,
     u64_normalized_float,
 )
 from bittensor.utils.balance import (
@@ -85,7 +84,6 @@ from bittensor.utils.balance import (
     check_and_convert_to_balance,
 )
 from bittensor.utils.btlogging import logging
-from bittensor.utils.delegates_details import DelegatesDetails
 from bittensor.utils.weight_utils import generate_weight_hash
 
 if TYPE_CHECKING:
@@ -1079,11 +1077,9 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> dict[str, "DelegatesDetails"]:
+    ) -> dict[str, ChainIdentity]:
         """
-        Fetches delegates identities from the chain and GitHub. Preference is given to chain data, and missing info is
-            filled-in by the info from GitHub. At some point, we want to totally move away from fetching this info from
-            GitHub, but chain data is still limited in that regard.
+        Fetches delegates identities from the chain.
 
         Arguments:
             block (Optional[int]): The blockchain block number for the query.
@@ -1091,63 +1087,23 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block (bool): Whether to reuse the last-used blockchain block hash.
 
         Returns:
-            Dict {ss58: DelegatesDetails, ...}
+            Dict {ss58: ChainIdentity, ...}
 
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        timeout = aiohttp.ClientTimeout(10.0)
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            identities_info, response = await asyncio.gather(
-                self.substrate.query_map(
-                    module="Registry",
-                    storage_function="IdentityOf",
-                    block_hash=block_hash,
-                    reuse_block_hash=reuse_block,
-                ),
-                session.get(DELEGATES_DETAILS_URL),
+        identities = await self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function="IdentitiesV2",
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+
+        return {
+            decode_account_id(ss58_address[0]): ChainIdentity.from_dict(
+                decode_hex_identity_dict(identity.value),
             )
-
-            all_delegates_details = {}
-            async for ss58_address, identity in identities_info:
-                all_delegates_details.update(
-                    {
-                        decode_account_id(
-                            ss58_address[0]
-                        ): DelegatesDetails.from_chain_data(
-                            decode_hex_identity_dict(identity.value["info"])
-                        )
-                    }
-                )
-
-            if response.ok:
-                all_delegates: dict[str, Any] = await response.json(content_type=None)
-
-                for delegate_hotkey, delegate_details in all_delegates.items():
-                    delegate_info = all_delegates_details.setdefault(
-                        delegate_hotkey,
-                        DelegatesDetails(
-                            display=delegate_details.get("name", ""),
-                            web=delegate_details.get("url", ""),
-                            additional=delegate_details.get("description", ""),
-                            pgp_fingerprint=delegate_details.get("fingerprint", ""),
-                        ),
-                    )
-                    delegate_info.display = (
-                        delegate_info.display or delegate_details.get("name", "")
-                    )
-                    delegate_info.web = delegate_info.web or delegate_details.get(
-                        "url", ""
-                    )
-                    delegate_info.additional = (
-                        delegate_info.additional
-                        or delegate_details.get("description", "")
-                    )
-                    delegate_info.pgp_fingerprint = (
-                        delegate_info.pgp_fingerprint
-                        or delegate_details.get("fingerprint", "")
-                    )
-
-        return all_delegates_details
+            async for ss58_address, identity in identities
+        }
 
     async def get_delegate_take(
         self,
@@ -2424,7 +2380,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> dict:
+    ) -> Optional[ChainIdentity]:
         """
         Queries the identity of a neuron on the Bittensor blockchain using the given key. This function retrieves
             detailed identity information about a specific neuron, which is a crucial aspect of the network's
@@ -2455,12 +2411,16 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
+
         if not identity_info:
-            return {}
+            return None
+
         try:
-            return _decode_hex_identity_dict(identity_info)
+            return ChainIdentity.from_dict(
+                decode_hex_identity_dict(identity_info),
+            )
         except TypeError:
-            return {}
+            return None
 
     async def recycle(
         self,
