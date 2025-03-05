@@ -269,42 +269,6 @@ def decrease_take(subtensor, wallet, take):
     )
 
 
-def registry_set_identity(subtensor, wallet, identified, **info):
-    DEFAULT = {
-        "additional": [[]],
-        "display": {"Raw0": ""},
-        "legal": {"Raw0": ""},
-        "web": {"Raw0": ""},
-        "riot": {"Raw0": ""},
-        "email": {"Raw0": ""},
-        "pgp_fingerprint": None,
-        "image": {"Raw0": ""},
-        "info": {"Raw0": ""},
-        "twitter": {"Raw0": ""},
-    }
-
-    info = DEFAULT.copy() | {
-        key: {
-            f"Raw{len(value)}": value,
-        }
-        for key, value in info.items()
-    }
-
-    return subtensor.sign_and_send_extrinsic(
-        subtensor.substrate.compose_call(
-            call_module="Registry",
-            call_function="set_identity",
-            call_params={
-                "info": info,
-                "identified": identified,
-            },
-        ),
-        wallet,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
-
-
 def set_identity(
     subtensor,
     wallet,

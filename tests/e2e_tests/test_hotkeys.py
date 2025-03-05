@@ -2,51 +2,11 @@ import pytest
 
 from tests.e2e_tests.utils.chain_interactions import (
     set_children,
-    set_identity,
     wait_epoch,
 )
 
 
 SET_CHILDREN_RATE_LIMIT = 150
-
-
-def test_identity(subtensor, alice_wallet):
-    """
-    Tests:
-    - Check default identity
-    - Update identity
-    """
-
-    coldkey = alice_wallet.coldkeypub.ss58_address
-
-    assert subtensor.query_identity(coldkey) == {}
-
-    subtensor.burned_register(
-        alice_wallet,
-        netuid=1,
-    )
-
-    success, error = set_identity(
-        subtensor,
-        alice_wallet,
-        name="Alice",
-        url="https://www.example.com",
-        github_repo="https://github.com/opentensor/bittensor",
-        description="Local Chain",
-    )
-
-    assert error == ""
-    assert success is True
-
-    assert subtensor.query_identity(coldkey) == {
-        "name": "Alice",
-        "url": "https://www.example.com",
-        "github_repo": "https://github.com/opentensor/bittensor",
-        "image": "",
-        "discord": "",
-        "description": "Local Chain",
-        "additional": "",
-    }
 
 
 def test_hotkeys(subtensor, alice_wallet):

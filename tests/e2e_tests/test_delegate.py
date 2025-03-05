@@ -1,12 +1,12 @@
 import pytest
 
+from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.delegate_info import DelegateInfo, DelegatedInfo
 from bittensor.utils.balance import Balance
-from bittensor.utils.delegates_details import DelegatesDetails
 from tests.e2e_tests.utils.chain_interactions import (
     decrease_take,
     increase_take,
-    registry_set_identity,
+    set_identity,
     sudo_set_admin_utils,
 )
 
@@ -21,18 +21,13 @@ def test_identity(subtensor, alice_wallet, bob_wallet):
     - Update Delegate's identity
     """
 
+    identity = subtensor.query_identity(alice_wallet.coldkeypub.ss58_address)
+
+    assert identity is None
+
     identities = subtensor.get_delegate_identities()
 
-    assert alice_wallet.hotkey.ss58_address not in identities
-
-    # Replace hotkey as it's the same as coldkey.
-    # It's required to edit identity later.
-    # Otherwise only subnet owner can do this.
-    alice_wallet.set_hotkey(
-        keypair=bob_wallet.hotkey,
-        encrypt=False,
-        overwrite=True,
-    )
+    assert alice_wallet.coldkey.ss58_address not in identities
 
     subtensor.root_register(
         alice_wallet,
@@ -42,35 +37,46 @@ def test_identity(subtensor, alice_wallet, bob_wallet):
 
     identities = subtensor.get_delegate_identities()
 
-    assert alice_wallet.hotkey.ss58_address not in identities
+    assert alice_wallet.coldkey.ss58_address not in identities
 
-    success, error = registry_set_identity(
+    success, error = set_identity(
         subtensor,
         alice_wallet,
-        alice_wallet.hotkey.ss58_address,
-        display=b"Alice Display",
-        web=b"https://bittensor.com/",
+        name="Alice",
+        url="https://www.example.com",
+        github_repo="https://github.com/opentensor/bittensor",
+        description="Local Chain",
     )
 
     assert error == ""
     assert success is True
 
+    identity = subtensor.query_identity(alice_wallet.coldkeypub.ss58_address)
+
+    assert identity == ChainIdentity(
+        additional="",
+        description="Local Chain",
+        discord="",
+        github="https://github.com/opentensor/bittensor",
+        image="",
+        name="Alice",
+        url="https://www.example.com",
+    )
+
     identities = subtensor.get_delegate_identities()
 
-    assert alice_wallet.hotkey.ss58_address in identities
+    assert alice_wallet.coldkey.ss58_address in identities
 
-    alice_identity = identities[alice_wallet.hotkey.ss58_address]
+    identity = identities[alice_wallet.coldkey.ss58_address]
 
-    assert alice_identity == DelegatesDetails(
-        additional=[],
-        display="Alice Display",
-        email="",
+    assert identity == ChainIdentity(
+        additional="",
+        description="Local Chain",
+        discord="",
+        github="https://github.com/opentensor/bittensor",
         image="",
-        legal="",
-        pgp_fingerprint=None,
-        riot="",
-        twitter="",
-        web="https://bittensor.com/",
+        name="Alice",
+        url="https://www.example.com",
     )
 
 
