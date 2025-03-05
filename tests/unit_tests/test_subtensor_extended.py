@@ -1,4 +1,3 @@
-import json
 import unittest.mock
 from typing import Optional
 
@@ -6,6 +5,7 @@ import pytest
 
 import bittensor.core.subtensor
 from bittensor.core.chain_data.axon_info import AxonInfo
+from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.delegate_info import DelegatedInfo, DelegateInfo
 from bittensor.core.chain_data.dynamic_info import DynamicInfo
 from bittensor.core.chain_data.neuron_info import NeuronInfo
@@ -13,7 +13,6 @@ from bittensor.core.chain_data.neuron_info_lite import NeuronInfoLite
 from bittensor.core.chain_data.prometheus_info import PrometheusInfo
 from bittensor.core.chain_data.stake_info import StakeInfo
 from bittensor.utils.balance import Balance
-from bittensor.utils.delegates_details import DelegatesDetails
 
 
 def assert_submit_signed_extrinsic(
@@ -474,30 +473,18 @@ def test_get_delegate_by_hotkey(mock_substrate, subtensor, mock_delegate_info):
 
 
 def test_get_delegate_identities(mock_substrate, subtensor, mocker):
-    mocker.patch(
-        "bittensor.core.subtensor.requests.get",
-        return_value=mocker.Mock(
-            content=json.dumps(
-                {
-                    "remote_hotkey": {
-                        "name": "REMOTE",
-                    },
-                }
-            ),
-            ok=True,
-        ),
-    )
-
     mock_substrate.query_map.return_value = [
         (
             (tuple(bytearray(32)),),
             mocker.Mock(
                 value={
-                    "info": {
-                        "display": {
-                            "Raw5": (tuple(b"CHAIN"),),
-                        },
-                    },
+                    "additional": "Additional",
+                    "description": "Description",
+                    "discord": "",
+                    "github_repo": "https://github.com/opentensor/bittensor",
+                    "image": "",
+                    "name": "Chain Delegate",
+                    "url": "https://www.example.com",
                 },
             ),
         ),
@@ -506,27 +493,14 @@ def test_get_delegate_identities(mock_substrate, subtensor, mocker):
     result = subtensor.get_delegate_identities()
 
     assert result == {
-        "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM": DelegatesDetails(
-            display="CHAIN",
-            additional=[],
-            web="",
-            legal="",
-            riot="",
-            email="",
-            pgp_fingerprint=None,
+        "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM": ChainIdentity(
+            additional="Additional",
+            description="Description",
+            discord="",
+            github="https://github.com/opentensor/bittensor",
             image="",
-            twitter="",
-        ),
-        "remote_hotkey": DelegatesDetails(
-            display="REMOTE",
-            additional="",
-            web="",
-            legal=None,
-            riot=None,
-            email=None,
-            pgp_fingerprint="",
-            image=None,
-            twitter=None,
+            name="Chain Delegate",
+            url="https://www.example.com",
         ),
     }
 
@@ -1012,15 +986,27 @@ def test_swap_stake(mock_substrate, subtensor, wallet, mocker):
     (
         (
             None,
-            {},
+            None,
         ),
         (
             {
-                "data": 1,
+                "additional": "Additional",
+                "description": "Description",
+                "discord": "",
+                "github_repo": "https://github.com/opentensor/bittensor",
+                "image": "",
+                "name": "Chain Delegate",
+                "url": "https://www.example.com",
             },
-            {
-                "data": 1,
-            },
+            ChainIdentity(
+                additional="Additional",
+                description="Description",
+                discord="",
+                github="https://github.com/opentensor/bittensor",
+                image="",
+                name="Chain Delegate",
+                url="https://www.example.com",
+            ),
         ),
     ),
 )
