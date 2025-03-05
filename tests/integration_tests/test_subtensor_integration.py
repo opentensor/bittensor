@@ -1,7 +1,9 @@
 import os.path
 
 import pytest
+from async_substrate_interface.types import Runtime
 from bt_decode import PortableRegistry, MetadataV15
+from scalecodec.base import RuntimeConfigurationObject
 
 from bittensor import NeuronInfo
 from bittensor.core.chain_data.axon_info import AxonInfo
@@ -34,8 +36,17 @@ async def prepare_test(mocker, seed):
         mocker.Mock(return_value=FakeWebsocket(seed=seed)),
     )
     subtensor = Subtensor("unknown", _mock=True)
+    runtime = Runtime(
+        chain="Bittensor",
+        runtime_config=RuntimeConfigurationObject(),
+        metadata=None,
+        type_registry=None,
+        metadata_v15=metadata_v15,
+        runtime_info={},
+        registry=registry,
+    )
     subtensor.substrate.metadata_v15 = metadata_v15
-    mocker.patch.object(subtensor.substrate, "registry", registry)
+    mocker.patch.object(subtensor.substrate, "runtime", runtime)
     return subtensor
 
 
