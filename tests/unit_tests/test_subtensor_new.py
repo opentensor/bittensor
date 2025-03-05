@@ -639,35 +639,6 @@ def test_get_stake_for_coldkey(mock_substrate, subtensor, mocker):
     )
 
 
-# def test_get_vote_data(substrate, subtensor, mocker):
-#     substrate.query.return_value = {
-#         "ayes": [
-#             tuple(bytearray(32)),
-#         ],
-#         "end": 10,
-#         "index": 1,
-#         "nays": [],
-#         "threshold": 5,
-#     }
-
-#     result = subtensor.get_vote_data("proposal_hash")
-
-#     assert result == ProposalVoteData(
-#         ayes=[],
-#         end=10,
-#         index=1,
-#         nays=[],
-#         threshold=5,
-#     )
-
-#     substrate.query.assert_called_once_with(
-#         module="Triumvirate",
-#         storage_function="Voting",
-#         params=["proposal_hash"],
-#         block_hash=None,
-#     )
-
-
 def test_filter_netuids_by_registered_hotkeys(
     mock_substrate, subtensor, wallet, mocker
 ):
