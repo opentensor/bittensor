@@ -5,12 +5,10 @@ from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Iterable, Optional, Union, cast
 
 import numpy as np
-import requests
 import scalecodec
 from async_substrate_interface.errors import SubstrateRequestException
 from async_substrate_interface.types import ScaleObj
 from async_substrate_interface.sync_substrate import SubstrateInterface
-from async_substrate_interface.utils import json
 from numpy.typing import NDArray
 
 from bittensor.core.async_subtensor import ProposalVoteData
@@ -29,6 +27,7 @@ from bittensor.core.chain_data import (
     DelegatedInfo,
     decode_account_id,
 )
+from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.utils import decode_metadata
 from bittensor.core.config import Config
 from bittensor.core.extrinsics.commit_reveal import commit_reveal_v3_extrinsic
@@ -71,16 +70,14 @@ from bittensor.core.settings import (
     version_as_int,
     SS58_FORMAT,
     TYPE_REGISTRY,
-    DELEGATES_DETAILS_URL,
 )
 from bittensor.core.types import ParamWithTypes, SubtensorMixin
 from bittensor.utils import (
-    torch,
-    format_error_message,
-    decode_hex_identity_dict,
-    u16_normalized_float,
-    _decode_hex_identity_dict,
     Certificate,
+    decode_hex_identity_dict,
+    format_error_message,
+    torch,
+    u16_normalized_float,
     u64_normalized_float,
 )
 from bittensor.utils.balance import (
@@ -90,7 +87,6 @@ from bittensor.utils.balance import (
     check_and_convert_to_balance,
 )
 from bittensor.utils.btlogging import logging
-from bittensor.utils.delegates_details import DelegatesDetails
 from bittensor.utils.weight_utils import generate_weight_hash
 
 if TYPE_CHECKING:
@@ -815,62 +811,29 @@ class Subtensor(SubtensorMixin):
 
     def get_delegate_identities(
         self, block: Optional[int] = None
-    ) -> dict[str, "DelegatesDetails"]:
+    ) -> dict[str, ChainIdentity]:
         """
-        Fetches delegates identities from the chain and GitHub. Preference is given to chain data, and missing info is
-            filled-in by the info from GitHub. At some point, we want to totally move away from fetching this info from
-            GitHub, but chain data is still limited in that regard.
+        Fetches delegates identities from the chain.
 
         Arguments:
             block (Optional[int]): The blockchain block number for the query.
 
         Returns:
-            Dict {ss58: DelegatesDetails, ...}
+            Dict {ss58: ChainIdentity, ...}
 
         """
-        block_hash = self.determine_block_hash(block)
-        response = requests.get(DELEGATES_DETAILS_URL)
-        identities_info = self.substrate.query_map(
-            module="Registry", storage_function="IdentityOf", block_hash=block_hash
+        identities = self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function="IdentitiesV2",
+            block_hash=self.determine_block_hash(block),
         )
 
-        all_delegates_details = {}
-        for ss58_address, identity in identities_info:
-            all_delegates_details.update(
-                {
-                    decode_account_id(
-                        ss58_address[0]
-                    ): DelegatesDetails.from_chain_data(
-                        decode_hex_identity_dict(identity.value["info"])
-                    )
-                }
+        return {
+            decode_account_id(ss58_address[0]): ChainIdentity.from_dict(
+                decode_hex_identity_dict(identity.value),
             )
-        if response.ok:
-            all_delegates: dict[str, Any] = json.loads(response.content)
-
-            for delegate_hotkey, delegate_details in all_delegates.items():
-                delegate_info = all_delegates_details.setdefault(
-                    delegate_hotkey,
-                    DelegatesDetails(
-                        display=delegate_details.get("name", ""),
-                        web=delegate_details.get("url", ""),
-                        additional=delegate_details.get("description", ""),
-                        pgp_fingerprint=delegate_details.get("fingerprint", ""),
-                    ),
-                )
-                delegate_info.display = delegate_info.display or delegate_details.get(
-                    "name", ""
-                )
-                delegate_info.web = delegate_info.web or delegate_details.get("url", "")
-                delegate_info.additional = (
-                    delegate_info.additional or delegate_details.get("description", "")
-                )
-                delegate_info.pgp_fingerprint = (
-                    delegate_info.pgp_fingerprint
-                    or delegate_details.get("fingerprint", "")
-                )
-
-        return all_delegates_details
+            for ss58_address, identity in identities
+        }
 
     def get_delegate_take(
         self, hotkey_ss58: str, block: Optional[int] = None
@@ -1843,7 +1806,9 @@ class Subtensor(SubtensorMixin):
 
         return NeuronInfoLite.list_from_dicts(result)
 
-    def query_identity(self, coldkey_ss58: str, block: Optional[int] = None) -> dict:
+    def query_identity(
+        self, coldkey_ss58: str, block: Optional[int] = None
+    ) -> Optional[ChainIdentity]:
         """
         Queries the identity of a neuron on the Bittensor blockchain using the given key. This function retrieves
             detailed identity information about a specific neuron, which is a crucial aspect of the network's
@@ -1870,12 +1835,16 @@ class Subtensor(SubtensorMixin):
             params=[coldkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
+
         if not identity_info:
-            return {}
+            return None
+
         try:
-            return _decode_hex_identity_dict(identity_info)
+            return ChainIdentity.from_dict(
+                decode_hex_identity_dict(identity_info),
+            )
         except TypeError:
-            return {}
+            return None
 
     def recycle(self, netuid: int, block: Optional[int] = None) -> Optional[Balance]:
         """

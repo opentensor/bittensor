@@ -72,9 +72,6 @@ SS58_FORMAT = 42
 # Wallet ss58 address length
 SS58_ADDRESS_LENGTH = 48
 
-# Raw GitHub url for delegates registry file
-DELEGATES_DETAILS_URL = "https://raw.githubusercontent.com/opentensor/bittensor-delegates/main/public/delegates.json"
-
 # Block Explorers map network to explorer url
 # Must all be polkadotjs explorer urls
 NETWORK_EXPLORER_MAP = {

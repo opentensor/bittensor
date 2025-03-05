@@ -8,6 +8,7 @@ from bittensor_wallet import Wallet
 from bittensor import u64_normalized_float
 from bittensor.core import async_subtensor
 from bittensor.core.async_subtensor import AsyncSubtensor
+from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.stake_info import StakeInfo
 from bittensor.core.chain_data import proposal_vote_data
 from bittensor.utils.balance import Balance
@@ -56,7 +57,7 @@ def test_decode_ss58_tuples_in_proposal_vote_data(mocker):
 def test_decode_hex_identity_dict_with_non_tuple_value():
     """Tests _decode_hex_identity_dict when value is not a tuple."""
     info_dict = {"info": "regular_string"}
-    result = async_subtensor._decode_hex_identity_dict(info_dict)
+    result = async_subtensor.decode_hex_identity_dict(info_dict)
     assert result["info"] == "regular_string"
 
 
@@ -1346,16 +1347,18 @@ async def test_query_identity_successful(subtensor, mocker):
     # Preps
     fake_coldkey_ss58 = "test_key"
     fake_block_hash = "block_hash"
-    fake_identity_info = {"info": {"stake": (b"\x01\x02",)}}
+    fake_identity_info = {
+        "additional": "Additional",
+        "description": "Description",
+        "discord": "",
+        "github_repo": "https://github.com/opentensor/bittensor",
+        "image": "",
+        "name": "Name",
+        "url": "https://www.example.com",
+    }
 
     mocked_query = mocker.AsyncMock(return_value=fake_identity_info)
     subtensor.substrate.query = mocked_query
-
-    mocker.patch.object(
-        async_subtensor,
-        "_decode_hex_identity_dict",
-        return_value={"stake": "01 02"},
-    )
 
     # Call
     result = await subtensor.query_identity(
@@ -1370,7 +1373,15 @@ async def test_query_identity_successful(subtensor, mocker):
         block_hash=fake_block_hash,
         reuse_block_hash=False,
     )
-    assert result == {"stake": "01 02"}
+    assert result == ChainIdentity(
+        additional="Additional",
+        description="Description",
+        discord="",
+        github="https://github.com/opentensor/bittensor",
+        image="",
+        name="Name",
+        url="https://www.example.com",
+    )
 
 
 @pytest.mark.asyncio
@@ -1393,7 +1404,7 @@ async def test_query_identity_no_info(subtensor, mocker):
         block_hash=None,
         reuse_block_hash=False,
     )
-    assert result == {}
+    assert result is None
 
 
 @pytest.mark.asyncio
@@ -1408,7 +1419,7 @@ async def test_query_identity_type_error(subtensor, mocker):
 
     mocker.patch.object(
         async_subtensor,
-        "_decode_hex_identity_dict",
+        "decode_hex_identity_dict",
         side_effect=TypeError,
     )
 
@@ -1423,7 +1434,7 @@ async def test_query_identity_type_error(subtensor, mocker):
         block_hash=None,
         reuse_block_hash=False,
     )
-    assert result == {}
+    assert result is None
 
 
 @pytest.mark.asyncio
@@ -2012,34 +2023,40 @@ async def test_get_delegate_identities(subtensor, mocker):
     """Tests get_delegate_identities with successful data retrieval from both chain and GitHub."""
     # Preps
     fake_block_hash = "block_hash"
-    fake_chain_data = mocker.AsyncMock(
-        return_value=[
-            (
-                ["delegate1_ss58"],
-                mocker.Mock(value={"info": {"name": "Chain Delegate 1"}}),
+    fake_chain_data = [
+        (
+            ["delegate1_ss58"],
+            mocker.Mock(
+                value={
+                    "additional": "",
+                    "description": "",
+                    "discord": "",
+                    "github_repo": "",
+                    "image": "",
+                    "name": "Chain Delegate 1",
+                    "url": "",
+                },
             ),
-            (
-                ["delegate2_ss58"],
-                mocker.Mock(value={"info": {"name": "Chain Delegate 2"}}),
+        ),
+        (
+            ["delegate2_ss58"],
+            mocker.Mock(
+                value={
+                    "additional": "",
+                    "description": "",
+                    "discord": "",
+                    "github_repo": "",
+                    "image": "",
+                    "name": "Chain Delegate 2",
+                    "url": "",
+                },
             ),
-        ]
-    )
-    fake_github_data = {
-        "delegate1_ss58": {
-            "name": "GitHub Delegate 1",
-            "url": "https://delegate1.com",
-            "description": "GitHub description 1",
-            "fingerprint": "fingerprint1",
-        },
-        "delegate3_ss58": {
-            "name": "GitHub Delegate 3",
-            "url": "https://delegate3.com",
-            "description": "GitHub description 3",
-            "fingerprint": "fingerprint3",
-        },
-    }
+        ),
+    ]
 
-    mocked_query_map = mocker.AsyncMock(return_value=fake_chain_data)
+    mocked_query_map = mocker.AsyncMock(
+        **{"return_value.__aiter__.return_value": iter(fake_chain_data)},
+    )
     subtensor.substrate.query_map = mocked_query_map
 
     mocked_decode_account_id = mocker.Mock(side_effect=lambda ss58: ss58)
@@ -2050,27 +2067,19 @@ async def test_get_delegate_identities(subtensor, mocker):
         async_subtensor, "decode_hex_identity_dict", mocked_decode_hex_identity_dict
     )
 
-    mock_response = mocker.Mock()
-    mock_response.ok = True
-    mock_response.json = mocker.AsyncMock(return_value=fake_github_data)
-
-    mock_session_get = mocker.AsyncMock(return_value=mock_response)
-    mocker.patch("aiohttp.ClientSession.get", mock_session_get)
-
     # Call
     result = await subtensor.get_delegate_identities(block_hash=fake_block_hash)
 
     # Asserts
     mocked_query_map.assert_called_once_with(
-        module="Registry",
-        storage_function="IdentityOf",
+        module="SubtensorModule",
+        storage_function="IdentitiesV2",
         block_hash=fake_block_hash,
         reuse_block_hash=False,
     )
-    mock_session_get.assert_called_once_with(async_subtensor.DELEGATES_DETAILS_URL)
 
-    assert result["delegate1_ss58"].display == "GitHub Delegate 1"
-    assert result["delegate3_ss58"].display == "GitHub Delegate 3"
+    assert result["delegate1_ss58"].name == "Chain Delegate 1"
+    assert result["delegate2_ss58"].name == "Chain Delegate 2"
 
 
 @pytest.mark.asyncio
