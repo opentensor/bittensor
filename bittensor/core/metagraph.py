@@ -8,8 +8,18 @@ from os.path import join
 from typing import Optional, Union
 
 import numpy as np
+from async_substrate_interface.errors import SubstrateRequestException
 from numpy.typing import NDArray
 
+from bittensor.core import settings
+from bittensor.core.chain_data import (
+    AxonInfo,
+    SubnetState,
+    MetagraphInfoEmissions,
+    MetagraphInfoPool,
+    MetagraphInfoParams,
+)
+from bittensor.utils import determine_chain_endpoint_and_network
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
 from bittensor.utils.weight_utils import (
@@ -17,12 +27,21 @@ from bittensor.utils.weight_utils import (
     convert_bond_uids_and_vals_to_tensor,
     convert_root_weight_uids_and_vals_to_tensor,
 )
-from . import settings
-from .chain_data import AxonInfo
 
 # For annotation purposes
 if typing.TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
+    from bittensor.core.async_subtensor import AsyncSubtensor
+    from bittensor.core.chain_data import (
+        ChainIdentity,
+        MetagraphInfo,
+        NeuronInfo,
+        NeuronInfoLite,
+        SubnetIdentity,
+    )
+
+
+Tensor = Union["torch.nn.Parameter", NDArray]
 
 
 METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
@@ -30,7 +49,6 @@ METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
     "n",
     "block",
     "stake",
-    "total_stake",
     "ranks",
     "trust",
     "consensus",
@@ -42,10 +60,16 @@ METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
     "last_update",
     "validator_permit",
     "uids",
+    "netuid",
+    "weights",
+    "axons",
+    "neurons",
+    "bonds",
 ]
 """List of keys for the metagraph state dictionary used in NDArray serialization.
 
-This list defines the set of keys expected in the metagraph's state dictionary when serializing and deserializing NumPy ndarray objects. Each key corresponds to a specific attribute or metric associated with the nodes in the metagraph.
+This list defines the set of keys expected in the metagraph's state dictionary when serializing and deserializing NumPy 
+ndarray objects. Each key corresponds to a specific attribute or metric associated with the nodes in the metagraph.
 
 - **version** (`str`): The version identifier of the metagraph state.
 - **n** (`int`): The total number of nodes in the metagraph.
@@ -66,22 +90,25 @@ This list defines the set of keys expected in the metagraph's state dictionary w
 """
 
 
-def get_save_dir(network: str, netuid: int) -> str:
+def get_save_dir(
+    network: str, netuid: int, root_dir: Optional[list[str]] = None
+) -> str:
     """
     Returns a directory path given ``network`` and ``netuid`` inputs.
 
     Args:
         network (str): Network name.
         netuid (int): Network UID.
+        root_dir: list to the file path for the root directory of your metagraph saves (i.e. ['/', 'tmp', 'metagraphs'],
+            defaults to ["~", ".bittensor", "metagraphs"]
 
     Returns:
         str: Directory path.
     """
+    _root_dir = root_dir or ["~", ".bittensor", "metagraphs"]
     return os.path.expanduser(
         os.path.join(
-            "~",
-            ".bittensor",
-            "metagraphs",
+            *_root_dir,
             f"network-{str(network)}",
             f"netuid-{str(netuid)}",
         )
@@ -115,39 +142,27 @@ def latest_block_path(dir_path: str) -> str:
         return latest_file_full_path
 
 
-def determine_chain_endpoint_and_network(network: str) -> tuple[str, str]:
-    """
-    Determine the chain endpoint and network name from the passed arg
-
-    Args:
-        network: The network name (e.g. 'finney', 'test') or
-            chain endpoint (e.g. wss://entrypoint-finney.opentensor.ai:443)
-
-    Returns:
-        (network name, chain endpoint)
-    """
-    pathless_network = network[:-1] if network.endswith("/") else network
-    if pathless_network in settings.NETWORK_MAP:
-        return pathless_network, settings.NETWORK_MAP[pathless_network]
-    elif pathless_network in settings.REVERSE_NETWORK_MAP:
-        return settings.REVERSE_NETWORK_MAP[pathless_network], pathless_network
-    else:
-        return "unknown", network
-
-
 class MetagraphMixin(ABC):
     """
-    The metagraph class is a core component of the Bittensor network, representing the neural graph that forms the backbone of the decentralized machine learning system.
+    The metagraph class is a core component of the Bittensor network, representing the neural graph that forms the
+    backbone of the decentralized machine learning system.
 
-    The metagraph is a dynamic representation of the network's state, capturing the interconnectedness and attributes of neurons (participants) in the Bittensor ecosystem. This class is not just a static structure but a live reflection of the network, constantly updated and synchronized with the state of the blockchain.
+    The metagraph is a dynamic representation of the network's state, capturing the interconnectedness and attributes of
+        neurons (participants) in the Bittensor ecosystem. This class is not just a static structure but a live
+        reflection of the network, constantly updated and synchronized with the state of the blockchain.
 
-    In Bittensor, neurons are akin to nodes in a distributed system, each contributing computational resources and participating in the network's collective intelligence. The metagraph tracks various attributes of these neurons, such as stake, trust, and consensus, which are crucial for the network's incentive mechanisms and the Yuma Consensus algorithm as outlined in the `NeurIPS paper <https://bittensor.com/pdfs/academia/NeurIPS_DAO_Workshop_2022_3_3.pdf>`_. These attributes
-    govern how neurons interact, how they are incentivized, and their roles within the network's
-    decision-making processes.
+    In Bittensor, neurons are akin to nodes in a distributed system, each contributing computational resources and
+        participating in the network's collective intelligence. The metagraph tracks various attributes of these
+        neurons, such as stake, trust, and consensus, which are crucial for the network's incentive mechanisms and the
+        Yuma Consensus algorithm as outlined in the `NeurIPS paper
+        <https://bittensor.com/pdfs/academia/NeurIPS_DAO_Workshop_2022_3_3.pdf>`_. These attributes govern how neurons
+        interact, how they are incentivized, and their roles within the network's decision-making processes.
 
     Args:
         netuid (int): A unique identifier that distinguishes between different instances or versions of the Bittensor network.
         network (str): The name of the network, signifying specific configurations or iterations within the Bittensor ecosystem.
+
+    Attributes:
         version (NDArray): The version number of the network, integral for tracking network updates.
         n (NDArray): The total number of neurons in the network, reflecting its size and complexity.
         block (NDArray): The current block number in the blockchain, crucial for synchronizing with the network's latest state.
@@ -168,8 +183,9 @@ class MetagraphMixin(ABC):
         uids: Unique identifiers for each neuron, essential for network operations.
         axons (List): Details about each neuron's axon, critical for facilitating network communication.
 
-    The metagraph plays a pivotal role in Bittensor's decentralized AI operations, influencing everything from data propagation to reward distribution. It embodies the principles of decentralized governance
-    and collaborative intelligence, ensuring that the network remains adaptive, secure, and efficient.
+    The metagraph plays a pivotal role in Bittensor's decentralized AI operations, influencing everything from data
+        propagation to reward distribution. It embodies the principles of decentralized governance and collaborative
+        intelligence, ensuring that the network remains adaptive, secure, and efficient.
 
     Example:
         Initializing the metagraph to represent the current state of the Bittensor network::
@@ -197,29 +213,74 @@ class MetagraphMixin(ABC):
     netuid: int
     network: str
     version: Union["torch.nn.Parameter", tuple[NDArray]]
-    n: Union["torch.nn.Parameter", NDArray]
-    block: Union["torch.nn.Parameter", NDArray]
-    stake: Union["torch.nn.Parameter", NDArray]
-    total_stake: Union["torch.nn.Parameter", NDArray]
-    ranks: Union["torch.nn.Parameter", NDArray]
-    trust: Union["torch.nn.Parameter", NDArray]
-    consensus: Union["torch.nn.Parameter", NDArray]
-    validator_trust: Union["torch.nn.Parameter", NDArray]
-    incentive: Union["torch.nn.Parameter", NDArray]
-    emission: Union["torch.nn.Parameter", NDArray]
-    dividends: Union["torch.nn.Parameter", NDArray]
-    active: Union["torch.nn.Parameter", NDArray]
-    last_update: Union["torch.nn.Parameter", NDArray]
-    validator_permit: Union["torch.nn.Parameter", NDArray]
-    weights: Union["torch.nn.Parameter", NDArray]
-    bonds: Union["torch.nn.Parameter", NDArray]
-    uids: Union["torch.nn.Parameter", NDArray]
+    n: Tensor
+    neurons: list[Union["NeuronInfo", "NeuronInfoLite"]]
+    block: Tensor
+    ranks: Tensor
+    trust: Tensor
+    consensus: Tensor
+    validator_trust: Tensor
+    incentive: Tensor
+    emission: Tensor
+    dividends: Tensor
+    active: Tensor
+    last_update: Tensor
+    validator_permit: Tensor
+    weights: Tensor
+    bonds: Tensor
+    uids: Tensor
+    alpha_stake: Tensor
+    tao_stake: Tensor
+    stake: Tensor
     axons: list[AxonInfo]
     chain_endpoint: Optional[str]
-    subtensor: Optional["Subtensor"]
+    subtensor: Optional[Union["AsyncSubtensor", "Subtensor"]]
+    _dtype_registry = {"int64": np.int64, "float32": np.float32, "bool": bool}
+
+    # metagraph_info fields
+    name: str
+    symbol: str
+    network_registered_at: int
+    num_uids: int
+    max_uids: int
+    identities: list[Optional["ChainIdentity"]]
+    identity: Optional["SubnetIdentity"]
+    pruning_score: list[float]
+    block_at_registration: list[int]
+    tao_dividends_per_hotkey: list[tuple[str, float]]
+    alpha_dividends_per_hotkey: list[tuple[str, float]]
+    last_step: int
+    tempo: int
+    blocks_since_last_step: int
+    owner_coldkey: str
+    owner_hotkey: str
+
+    hparams: MetagraphInfoParams
+    pool: MetagraphInfoPool
+    emissions: MetagraphInfoEmissions
 
     @property
-    def S(self) -> Union[NDArray, "torch.nn.Parameter"]:
+    def TS(self) -> Tensor:
+        """
+        Represents the tao stake of each neuron in the Bittensor network.
+
+        Returns:
+            Tensor: The list of tao stake of each neuron in the network.
+        """
+        return self.tao_stake
+
+    @property
+    def AS(self) -> Tensor:
+        """
+        Represents the alpha stake of each neuron in the Bittensor network.
+
+        Returns:
+            Tensor: The list of alpha stake of each neuron in the network.
+        """
+        return self.alpha_stake
+
+    @property
+    def S(self) -> Tensor:
         """
         Represents the stake of each neuron in the Bittensor network. Stake is an important concept in the
         Bittensor ecosystem, signifying the amount of network weight (or “stake”) each neuron holds,
@@ -227,12 +288,13 @@ class MetagraphMixin(ABC):
         from the network, playing a crucial role in the distribution of incentives and decision-making processes.
 
         Returns:
-            NDArray: A tensor representing the stake of each neuron in the network. Higher values signify a greater stake held by the respective neuron.
+            Tensor: A tensor representing the stake of each neuron in the network. Higher values signify a greater
+                stake held by the respective neuron.
         """
-        return self.total_stake
+        return self.stake
 
     @property
-    def R(self) -> Union[NDArray, "torch.nn.Parameter"]:
+    def R(self) -> Tensor:
         """
         Contains the ranks of neurons in the Bittensor network. Ranks are determined by the network based
         on each neuron's performance and contributions. Higher ranks typically indicate a greater level of
@@ -240,12 +302,13 @@ class MetagraphMixin(ABC):
         incentives within the network, with higher-ranked neurons receiving more incentive.
 
         Returns:
-            NDArray: A tensor where each element represents the rank of a neuron. Higher values indicate higher ranks within the network.
+            Tensor: A tensor where each element represents the rank of a neuron. Higher values indicate higher ranks
+                within the network.
         """
         return self.ranks
 
     @property
-    def I(self) -> Union[NDArray, "torch.nn.Parameter"]:
+    def I(self) -> Tensor:
         """
         Incentive values of neurons represent the rewards they receive for their contributions to the network.
         The Bittensor network employs an incentive mechanism that rewards neurons based on their
@@ -253,12 +316,13 @@ class MetagraphMixin(ABC):
         trusted contributions are incentivized.
 
         Returns:
-            NDArray: A tensor of incentive values, indicating the rewards or benefits accrued by each neuron based on their contributions and network consensus.
+            Tensor: A tensor of incentive values, indicating the rewards or benefits accrued by each neuron based on
+                their contributions and network consensus.
         """
         return self.incentive
 
     @property
-    def E(self) -> Union[NDArray, "torch.nn.Parameter"]:
+    def E(self) -> Tensor:
         """
         Denotes the emission values of neurons in the Bittensor network. Emissions refer to the distribution or
         release of rewards (often in the form of cryptocurrency) to neurons, typically based on their stake and
@@ -266,12 +330,13 @@ class MetagraphMixin(ABC):
         contributing neurons are appropriately rewarded.
 
         Returns:
-            NDArray: A tensor where each element represents the emission value for a neuron, indicating the amount of reward distributed to that neuron.
+            Tensor: A tensor where each element represents the emission value for a neuron, indicating the amount of
+                reward distributed to that neuron.
         """
         return self.emission
 
     @property
-    def C(self) -> Union[NDArray, "torch.nn.Parameter"]:
+    def C(self) -> Tensor:
         """
         Represents the consensus values of neurons in the Bittensor network. Consensus is a measure of how
         much a neuron's contributions are trusted and agreed upon by the majority of the network. It is
@@ -280,13 +345,14 @@ class MetagraphMixin(ABC):
         are more widely trusted and valued across the network.
 
         Returns:
-            NDArray: A tensor of consensus values, where each element reflects the level of trust and agreement a neuron has achieved within the network.
+            Tensor: A tensor of consensus values, where each element reflects the level of trust and agreement a neuron
+                has achieved within the network.
 
         """
         return self.consensus
 
     @property
-    def T(self) -> Union[NDArray, "torch.nn.Parameter"]:
+    def T(self) -> Tensor:
         """
         Represents the trust values assigned to each neuron in the Bittensor network. Trust is a key metric that
         reflects the reliability and reputation of a neuron based on its past behavior and contributions. It is
@@ -297,12 +363,13 @@ class MetagraphMixin(ABC):
         has in others. A higher value in the trust matrix suggests a stronger trust relationship between neurons.
 
         Returns:
-            NDArray: A tensor of trust values, where each element represents the trust level of a neuron. Higher values denote a higher level of trust within the network.
+            Tensor: A tensor of trust values, where each element represents the trust level of a neuron. Higher values
+                denote a higher level of trust within the network.
         """
         return self.trust
 
     @property
-    def Tv(self) -> Union[NDArray, "torch.nn.Parameter"]:
+    def Tv(self) -> Tensor:
         """
         Contains the validator trust values of neurons in the Bittensor network. Validator trust is specifically
         associated with neurons that act as validators within the network. This specialized form of trust reflects
@@ -313,24 +380,26 @@ class MetagraphMixin(ABC):
         determining the validators' influence and responsibilities in these critical functions.
 
         Returns:
-            NDArray: A tensor of validator trust values, specifically applicable to neurons serving as validators, where higher values denote greater trustworthiness in their validation roles.
+            Tensor: A tensor of validator trust values, specifically applicable to neurons serving as validators, where
+                higher values denote greater trustworthiness in their validation roles.
         """
         return self.validator_trust
 
     @property
-    def D(self) -> Union[NDArray, "torch.nn.Parameter"]:
+    def D(self) -> Tensor:
         """
         Represents the dividends received by neurons in the Bittensor network. Dividends are a form of reward or
         distribution, typically given to neurons based on their stake, performance, and contribution to the network.
         They are an integral part of the network's incentive structure, encouraging active and beneficial participation.
 
         Returns:
-            NDArray: A tensor of dividend values, where each element indicates the dividends received by a neuron, reflecting their share of network rewards.
+            Tensor: A tensor of dividend values, where each element indicates the dividends received by a neuron,
+                reflecting their share of network rewards.
         """
         return self.dividends
 
     @property
-    def B(self) -> Union[NDArray, "torch.nn.Parameter"]:
+    def B(self) -> Tensor:
         """
         Bonds in the Bittensor network represent a speculative reward mechanism where neurons can accumulate
         bonds in other neurons. Bonds are akin to investments or stakes in other neurons, reflecting a belief in
@@ -338,25 +407,28 @@ class MetagraphMixin(ABC):
         among neurons while providing an additional layer of incentive.
 
         Returns:
-            NDArray: A tensor representing the bonds held by each neuron, where each value signifies the proportion of bonds owned by one neuron in another.
+            Tensor: A tensor representing the bonds held by each neuron, where each value signifies the proportion of
+                bonds owned by one neuron in another.
         """
         return self.bonds
 
     @property
-    def W(self) -> Union[NDArray, "torch.nn.Parameter"]:
+    def W(self) -> Tensor:
         """
         Represents the weights assigned to each neuron in the Bittensor network. In the context of Bittensor,
         weights are crucial for determining the influence and interaction between neurons. Each neuron is responsible
         for setting its weights, which are then recorded on a digital ledger. These weights are reflective of the
         neuron's assessment or judgment of other neurons in the network.
 
-        The weight matrix :math:`W = [w_{ij}]` is a key component of the network's architecture, where the :math:`i^{th}` row is set by
-        neuron :math:`i` and represents its weights towards other neurons. These weights influence the ranking and incentive
-        mechanisms within the network. Higher weights from a neuron towards another can imply greater trust or value
-        placed on that neuron's contributions.
+        The weight matrix :math:`W = [w_{ij}]` is a key component of the network's architecture, where the :math:
+        `i^{th}` row is set by neuron :math:`i` and represents its weights towards other neurons. These weights
+        influence the ranking and incentive mechanisms within the network. Higher weights from a neuron towards another
+        can imply greater trust or value placed on that neuron's contributions.
 
         Returns:
-            NDArray: A tensor of inter-peer weights, where each element :math:`w_{ij}` represents the weight assigned by neuron :math:`i` to neuron :math:`j`. This matrix is fundamental to the network's functioning, influencing the distribution of incentives and the inter-neuronal dynamics.
+            Tensor: A tensor of inter-peer weights, where each element :math:`w_{ij}` represents the weight assigned by
+                neuron :math:`i` to neuron :math:`j`. This matrix is fundamental to the network's functioning,
+                influencing the distribution of incentives and the inter-neuronal dynamics.
         """
         return self.weights
 
@@ -365,16 +437,20 @@ class MetagraphMixin(ABC):
         """
         Represents a list of ``hotkeys`` for each neuron in the Bittensor network.
 
-        Hotkeys are unique identifiers used by neurons for active participation in the network, such as sending and receiving information or
-        transactions. They are akin to public keys in cryptographic systems and are essential for identifying and authenticating neurons within the network's operations.
+        Hotkeys are unique identifiers used by neurons for active participation in the network, such as sending and
+        receiving information or transactions. They are akin to public keys in cryptographic systems and are essential
+        for identifying and authenticating neurons within the network's operations.
 
         Returns:
             List[str]: A list of hotkeys, with each string representing the hotkey of a corresponding neuron.
 
-            These keys are crucial for the network's security and integrity, ensuring proper identification and authorization of network participants.
+            These keys are crucial for the network's security and integrity, ensuring proper identification and
+                authorization of network participants.
 
         Note:
-            While the `NeurIPS paper <https://bittensor.com/pdfs/academia/NeurIPS_DAO_Workshop_2022_3_3.pdf>`_ may not explicitly detail the concept of hotkeys, they are a fundamental  of decentralized networks for secure and authenticated interactions.
+            While the `NeurIPS paper <https://bittensor.com/pdfs/academia/NeurIPS_DAO_Workshop_2022_3_3.pdf>`_ may not
+                explicitly detail the concept of hotkeys, they are a fundamental  of decentralized networks for secure
+                and authenticated interactions.
         """
         return [axon.hotkey for axon in self.axons]
 
@@ -383,14 +459,17 @@ class MetagraphMixin(ABC):
         """
         Contains a list of ``coldkeys`` for each neuron in the Bittensor network.
 
-        Coldkeys are similar to hotkeys but are typically used for more secure, offline activities such as storing assets or offline signing of transactions. They are an important aspect of a neuron's security, providing an additional layer of protection for sensitive operations and assets.
+        Coldkeys are similar to hotkeys but are typically used for more secure, offline activities such as storing
+        assets or offline signing of transactions. They are an important aspect of a neuron's security, providing an
+        additional layer of protection for sensitive operations and assets.
 
         Returns:
-            List[str]: A list of coldkeys, each string representing the coldkey of a neuron. These keys play a vital role in the secure management of assets and sensitive operations within the network.
+            List[str]: A list of coldkeys, each string representing the coldkey of a neuron. These keys play a vital
+                role in the secure management of assets and sensitive operations within the network.
 
         Note:
             The concept of coldkeys, while not explicitly covered in the NeurIPS paper, is a standard practice in
-            blockchain and decentralized networks for enhanced security and asset protection.
+                blockchain and decentralized networks for enhanced security and asset protection.
         """
         return [axon.coldkey for axon in self.axons]
 
@@ -402,12 +481,15 @@ class MetagraphMixin(ABC):
         IP addresses are fundamental for the network's peer-to-peer communication infrastructure.
 
         Returns:
-            List[str]: A list of IP addresses, with each string representing the address of a neuron. These addresses enable the decentralized, distributed nature of the network, facilitating direct communication and data exchange among neurons.
+            List[str]: A list of IP addresses, with each string representing the address of a neuron. These addresses
+                enable the decentralized, distributed nature of the network, facilitating direct communication and data
+                exchange among neurons.
 
         Note:
             While IP addresses are a basic aspect of network communication, specific details about their use in
-            the Bittensor network may not be covered in the `NeurIPS paper <https://bittensor.com/pdfs/academia/NeurIPS_DAO_Workshop_2022_3_3.pdf>`_. They are, however, integral to the
-            functioning of any distributed network.
+            the Bittensor network may not be covered in the `NeurIPS paper
+            <https://bittensor.com/pdfs/academia/NeurIPS_DAO_Workshop_2022_3_3.pdf>`_. They are, however, integral to
+            the functioning of any distributed network.
         """
         return [axon.ip_str() for axon in self.axons]
 
@@ -418,33 +500,48 @@ class MetagraphMixin(ABC):
         network: str = settings.DEFAULT_NETWORK,
         lite: bool = True,
         sync: bool = True,
-        subtensor: "Subtensor" = None,
+        subtensor: Optional[Union["AsyncSubtensor", "Subtensor"]] = None,
     ):
         """
-        Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the provided arguments.
-        This method is the entry point for creating a metagraph object,
-        which is a central component in representing the state of the Bittensor network.
+        Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the
+        provided arguments. This method is the entry point for creating a metagraph object, which is a central component
+        in representing the state of the Bittensor network.
 
         Args:
-            netuid (int): The unique identifier for the network, distinguishing this instance of the metagraph within potentially multiple network configurations.
-            network (str): The name of the network, which can indicate specific configurations or versions of the Bittensor network.
-            lite (bool): A flag indicating whether to use a lite version of the metagraph. The lite version may contain less detailed information but can be quicker to initialize and sync.
-            sync (bool): A flag indicating whether to synchronize the metagraph with the network upon initialization. Synchronization involves updating the metagraph's parameters to reflect the current state of the network.
+            netuid (int): The unique identifier for the network, distinguishing this instance of the metagraph within
+                potentially multiple network configurations.
+            network (str): The name of the network, which can indicate specific configurations or versions of the
+                Bittensor network.
+            lite (bool): A flag indicating whether to use a lite version of the metagraph. The lite version may contain
+                less detailed information but can be quicker to initialize and sync.
+            sync (bool): A flag indicating whether to synchronize the metagraph with the network upon initialization.
+                Synchronization involves updating the metagraph's parameters to reflect the current state of the network.
 
         Example:
             Initializing a metagraph object for the Bittensor network with a specific network UID::
 
-                metagraph = metagraph(netuid=123, network="finney", lite=True, sync=True)
-
+                metagraph = Metagraph(netuid=123, network="finney", lite=True, sync=True)
         """
+        self.lite = lite
+        self.subtensor = subtensor
+        self.should_sync = sync
+        self.netuid = netuid
+        self.network, self.chain_endpoint = determine_chain_endpoint_and_network(
+            network
+        )
+        self.neurons = []
+        self.axons: list[AxonInfo] = []
 
     def __str__(self) -> str:
         """
-        Provides a human-readable string representation of the metagraph object. This representation includes key identifiers and attributes of the metagraph, making it easier to quickly understand
-        the state and configuration of the metagraph in a simple format.
+        Provides a human-readable string representation of the metagraph object. This representation includes key
+        identifiers and attributes of the metagraph, making it easier to quickly understand the state and configuration
+        of the metagraph in a simple format.
 
         Returns:
-            str: A string that succinctly represents the metagraph, including its network UID, the total number of neurons (n), the current block number, and the network's name. This format is particularly useful for logging, debugging, and displaying the metagraph in a concise manner.
+            str: A string that succinctly represents the metagraph, including its network UID, the total number of
+                neurons (n), the current block number, and the network's name. This format is particularly useful
+                for logging, debugging, and displaying the metagraph in a concise manner.
 
         Example:
             When printing the metagraph object or using it in a string context, this method is automatically invoked::
@@ -455,11 +552,13 @@ class MetagraphMixin(ABC):
 
     def __repr__(self) -> str:
         """
-        Provides a detailed string representation of the metagraph object, intended for unambiguous understanding and debugging purposes. This method simply calls the :func:`__str__` method, ensuring
-        consistency between the informal and formal string representations of the metagraph.
+        Provides a detailed string representation of the metagraph object, intended for unambiguous understanding and
+        debugging purposes. This method simply calls the :func:`__str__` method, ensuring consistency between the
+        informal and formal string representations of the metagraph.
 
         Returns:
-            str: The same string representation as provided by the :func:`__str__` method, detailing the metagraph's key attributes including network UID, number of neurons, block number, and network name.
+            str: The same string representation as provided by the :func:`__str__` method, detailing the metagraph's key
+                attributes including network UID, number of neurons, block number, and network name.
 
         Example:
             The :func:`__repr__` output can be used in debugging to get a clear and concise description of the metagraph::
@@ -471,10 +570,9 @@ class MetagraphMixin(ABC):
 
     def metadata(self) -> dict:
         """
-        Retrieves the metadata of the metagraph, providing key information about the current state of the
-        Bittensor network. This metadata includes details such as the network's unique identifier (``netuid``),
-        the total number of neurons (``n``), the current block number, the network's name, and the version of
-        the Bittensor network.
+        Retrieves the metadata of the metagraph, providing key information about the current state of the Bittensor
+        network. This metadata includes details such as the network's unique identifier (``netuid``), the total number
+        of neurons (``n``), the current block number, the network's name, and the version of the Bittensor network.
 
         Returns:
             dict: A dictionary containing essential metadata about the metagraph, including:
@@ -486,7 +584,8 @@ class MetagraphMixin(ABC):
             - ``version``: The version number of the Bittensor software.
 
         Note:
-            This metadata is crucial for understanding the current state and configuration of the network, as well as for tracking its evolution over time.
+            This metadata is crucial for understanding the current state and configuration of the network, as well as
+                for tracking its evolution over time.
         """
         return {
             "netuid": self.netuid,
@@ -503,8 +602,6 @@ class MetagraphMixin(ABC):
             "version": self.version,
             "n": self.n,
             "block": self.block,
-            "stake": self.stake,
-            "total_stake": self.total_stake,
             "ranks": self.ranks,
             "trust": self.trust,
             "consensus": self.consensus,
@@ -520,145 +617,23 @@ class MetagraphMixin(ABC):
             "uids": self.uids,
             "axons": self.axons,
             "neurons": self.neurons,
+            "alpha_stake": self.alpha_stake,
+            "tao_stake": self.tao_stake,
+            "stake": self.stake,
         }
 
-    def sync(
-        self,
-        block: Optional[int] = None,
-        lite: bool = True,
-        subtensor: Optional["Subtensor"] = None,
-    ):
-        """
-        Synchronizes the metagraph with the Bittensor network's current state. It updates the metagraph's attributes to reflect the latest data from the network, ensuring the metagraph represents the most current state of the network.
-
-        Args:
-            block (Optional[int]): A specific block number to synchronize with. If None, the metagraph syncs with the latest block. This allows for historical analysis or specific state examination of the network.
-            lite (bool): If True, a lite version of the metagraph is used for quicker synchronization. This is beneficial when full detail is not necessary, allowing for reduced computational and time overhead.
-            subtensor (Optional[bittensor.core.subtensor.Subtensor]): An instance of the subtensor class from Bittensor, providing an interface to the underlying blockchain data. If provided, this instance is used for data retrieval during synchronization.
-
-        Example:
-            Sync the metagraph with the latest block from the subtensor, using the lite version for efficiency::
-
-                from bittensor.core.subtensor import Subtensor
-
-                subtensor = Subtensor()
-                metagraph.sync(subtensor=subtensor)
-
-            Sync with a specific block number for detailed analysis::
-
-                from bittensor.core.subtensor import Subtensor
-
-                subtensor = Subtensor()
-                metagraph.sync(block=12345, lite=False, subtensor=subtensor)
-
-        NOTE:
-            If attempting to access data beyond the previous 300 blocks, you **must** use the ``archive`` network for subtensor. Light nodes are configured only to store the previous 300 blocks if connecting to finney or test networks.
-
-            For example::
-
-                from bittensor.core.subtensor import Subtensor
-
-                subtensor = Subtensor(network='archive')
-                current_block = subtensor.get_current_block()
-                history_block = current_block - 1200
-
-                metagraph.sync(block=history_block, lite=False, subtensor=subtensor)
-        """
-
-        # Initialize subtensor
-        subtensor = self._initialize_subtensor(subtensor)
-
-        if (
-            subtensor.chain_endpoint != settings.ARCHIVE_ENTRYPOINT
-            or subtensor.network != "archive"
-        ):
-            cur_block = subtensor.get_current_block()
-            if block and block < (cur_block - 300):
-                logging.warning(
-                    "Attempting to sync longer than 300 blocks ago on a non-archive node. Please use the 'archive' "
-                    "network for subtensor and retry."
-                )
-
-        # Assign neurons based on 'lite' flag
-        self._assign_neurons(block, lite, subtensor)
-
-        # Set attributes for metagraph
-        self._set_metagraph_attributes(block, subtensor)
-
-        # If not a 'lite' version, compute and set weights and bonds for each neuron
-        if not lite:
-            self._set_weights_and_bonds(subtensor=subtensor)
-
-    def _initialize_subtensor(self, subtensor: "Subtensor"):
-        """
-        Initializes the subtensor to be used for syncing the metagraph.
-
-        This method ensures that a subtensor instance is available and properly set up for data retrieval during the synchronization process.
-
-        If no subtensor is provided, this method is responsible for creating a new instance of the subtensor, configured according to the current network settings.
-
-        Args:
-            subtensor (bittensor.core.subtensor.Subtensor): The subtensor instance provided for initialization. If ``None``, a new subtensor instance is created using the current network configuration.
-
-        Returns:
-            subtensor (bittensor.core.subtensor.Subtensor): The initialized subtensor instance, ready to be used for syncing the metagraph.
-
-        Internal Usage:
-            Used internally during the sync process to ensure a valid subtensor instance is available::
-
-                subtensor = self._initialize_subtensor(subtensor)
-        """
-        if subtensor and subtensor != self.subtensor:
-            self.subtensor = subtensor
-        if not subtensor and self.subtensor:
-            subtensor = self.subtensor
-        if not subtensor:
-            # TODO: Check and test the initialization of the new subtensor
-            # Lazy import due to circular import (subtensor -> metagraph, metagraph -> subtensor)
-            from bittensor.core.subtensor import Subtensor
-
-            subtensor = Subtensor(network=self.chain_endpoint)
-            self.subtensor = subtensor
-        return subtensor
-
-    def _assign_neurons(self, block: int, lite: bool, subtensor: "Subtensor"):
-        """
-        Assigns neurons to the metagraph based on the provided block number and the lite flag.
-
-        This method is responsible for fetching and setting the neuron data in the metagraph, which includes neuron attributes like UID, stake, trust, and other relevant information.
-
-        Args:
-            block (int): The block number for which the neuron data needs to be fetched. If ``None``, the latest block data is used.
-            lite (bool): A boolean flag indicating whether to use a lite version of the neuron data. The lite version typically includes essential information and is quicker to fetch and process.
-            subtensor (bittensor.core.subtensor.Subtensor): The subtensor instance used for fetching neuron data from the network.
-
-        Internal Usage:
-            Used internally during the sync process to fetch and set neuron data::
-
-                from bittensor.core.subtensor import Subtensor
-
-                block = 12345
-                lite = False
-                subtensor = Subtensor()
-                self._assign_neurons(block, lite, subtensor)
-        """
-        if lite:
-            self.neurons = subtensor.neurons_lite(block=block, netuid=self.netuid)
-        else:
-            self.neurons = subtensor.neurons(block=block, netuid=self.netuid)
-        self.lite = lite
-
     @staticmethod
-    def _create_tensor(data, dtype) -> Union[NDArray, "torch.nn.Parameter"]:
+    def _create_tensor(data, dtype) -> Tensor:
         """
-        Creates a numpy array with the given data and data type. This method is a utility function used internally to encapsulate data into a np.array, making it compatible with the metagraph's numpy model structure.
+        Creates a numpy array with the given data and data type. This method is a utility function used internally to
+        encapsulate data into a np.array, making it compatible with the metagraph's numpy model structure.
 
         Args:
             data: The data to be included in the tensor. This could be any numeric data, like stakes, ranks, etc.
             dtype: The data type for the tensor, typically a numpy data type like ``np.float32`` or ``np.int64``.
 
         Returns:
-            A tensor parameter encapsulating the provided data.
+            Tensor: A tensor parameter encapsulating the provided data.
 
         Internal Usage:
             Used internally to create tensor parameters for various metagraph attributes::
@@ -672,45 +647,19 @@ class MetagraphMixin(ABC):
             else np.array(data, dtype=dtype)
         )
 
-    def _set_weights_and_bonds(self, subtensor: "Optional[Subtensor]" = None):
+    def _process_weights_or_bonds(self, data, attribute: str) -> Tensor:
         """
-        Computes and sets the weights and bonds for each neuron in the metagraph. This method is responsible for processing the raw weight and bond data obtained from the network and converting it into a structured format suitable for the metagraph model.
-
-        Args:
-            subtensor: The subtensor instance used for fetching weights and bonds data. If ``None``, the weights and bonds are not updated.
-
-        Internal Usage:
-            Used internally during the sync process to update the weights and bonds of the neurons::
-
-                self._set_weights_and_bonds(subtensor=subtensor)
-        """
-        # TODO: Check and test the computation of weights and bonds
-        if self.netuid == 0:
-            self.weights = self._process_root_weights(
-                [neuron.weights for neuron in self.neurons],
-                "weights",
-                subtensor,
-            )
-        else:
-            self.weights = self._process_weights_or_bonds(
-                [neuron.weights for neuron in self.neurons], "weights"
-            )
-            self.bonds = self._process_weights_or_bonds(
-                [neuron.bonds for neuron in self.neurons], "bonds"
-            )
-
-    def _process_weights_or_bonds(
-        self, data, attribute: str
-    ) -> Union[NDArray, "torch.nn.Parameter"]:
-        """
-        Processes the raw weights or bonds data and converts it into a structured tensor format. This method handles the transformation of neuron connection data (``weights`` or ``bonds``) from a list or other unstructured format into a tensor that can be utilized within the metagraph model.
+        Processes the raw weights or bonds data and converts it into a structured tensor format. This method handles the
+        transformation of neuron connection data (``weights`` or ``bonds``) from a list or other unstructured format
+        into a tensor that can be utilized within the metagraph model.
 
         Args:
             data: The raw weights or bonds data to be processed. This data typically comes from the subtensor.
-            attribute: A string indicating whether the data is ``weights`` or ``bonds``, which determines the specific processing steps to be applied.
+            attribute: A string indicating whether the data is ``weights`` or ``bonds``, which determines the specific
+                processing steps to be applied.
 
         Returns:
-            A tensor parameter encapsulating the processed weights or bonds data.
+            Tensor: A tensor parameter encapsulating the processed weights or bonds data.
 
         Internal Usage:
             Used internally to process and set weights or bonds for the neurons::
@@ -741,7 +690,7 @@ class MetagraphMixin(ABC):
                             len(self.neurons), list(uids), list(values)
                         ).astype(np.float32)
                     )
-        tensor_param: Union["torch.nn.Parameter", NDArray] = (
+        tensor_param: Tensor = (
             (
                 torch.nn.Parameter(torch.stack(data_array), requires_grad=False)
                 if len(data_array)
@@ -760,69 +709,80 @@ class MetagraphMixin(ABC):
             )
         return tensor_param
 
-    @abstractmethod
-    def _set_metagraph_attributes(self, block, subtensor):
-        pass
-
-    def _process_root_weights(
-        self, data: list, attribute: str, subtensor: "Subtensor"
-    ) -> Union[NDArray, "torch.nn.Parameter"]:
+    def _set_metagraph_attributes(self, block: int):
         """
-        Specifically processes the root weights data for the metagraph. This method is similar to :func:`_process_weights_or_bonds` but is tailored for processing root weights, which have a different structure and significance in the network.
+        Sets various attributes of the metagraph based on the latest network data fetched from the subtensor. This
+        method updates parameters like the number of neurons, block number, stakes, trusts, ranks, and other
+        neuron-specific information.
 
         Args:
-            data (list): The raw root weights data to be processed.
-            attribute (str): A string indicating the attribute type, here it's typically ``weights``.
-            subtensor (bittensor.core.subtensor.Subtensor): The subtensor instance used for additional data and context needed in processing.
-
-        Returns:
-            A tensor parameter encapsulating the processed root weights data.
+            block (int): The block number for which the metagraph attributes need to be set.
 
         Internal Usage:
-            Used internally to process and set root weights for the metagraph::
+            Used internally during the sync process to update the metagraph's attributes::
 
-                self.root_weights = self._process_root_weights(raw_root_weights_data, "weights", subtensor)
+                self._set_metagraph_attributes(block)
         """
-        data_array = []
-        n_subnets = subtensor.get_total_subnets() or 0
-        subnets = subtensor.get_subnets()
-        for item in data:
-            if len(item) == 0:
-                if use_torch():
-                    data_array.append(torch.zeros(n_subnets))
-                else:
-                    data_array.append(np.zeros(n_subnets, dtype=np.float32))
-            else:
-                uids, values = zip(*item)
-                # TODO: Validate and test the conversion of uids and values to tensor
-                data_array.append(
-                    convert_root_weight_uids_and_vals_to_tensor(
-                        n_subnets, list(uids), list(values), subnets
-                    )
-                )
-
-        tensor_param: Union[NDArray, "torch.nn.Parameter"] = (
-            (
-                torch.nn.Parameter(torch.stack(data_array), requires_grad=False)
-                if len(data_array)
-                else torch.nn.Parameter()
-            )
-            if use_torch()
-            else (
-                np.stack(data_array)
-                if len(data_array)
-                else np.array([], dtype=np.float32)
-            )
+        self.n = self._create_tensor(
+            len(self.neurons), dtype=self._dtype_registry["int64"]
         )
-        if len(data_array) == 0:
-            logging.warning(
-                f"Empty {attribute}_array on metagraph.sync(). The '{attribute}' tensor is empty."
-            )
-        return tensor_param
+        self.version = self._create_tensor(
+            [settings.version_as_int], dtype=self._dtype_registry["int64"]
+        )
+        self.block = self._create_tensor(block, dtype=self._dtype_registry["int64"])
+        self.uids = self._create_tensor(
+            [neuron.uid for neuron in self.neurons], dtype=self._dtype_registry["int64"]
+        )
+        self.trust = self._create_tensor(
+            [neuron.trust for neuron in self.neurons],
+            dtype=self._dtype_registry["float32"],
+        )
+        self.consensus = self._create_tensor(
+            [neuron.consensus for neuron in self.neurons],
+            dtype=self._dtype_registry["float32"],
+        )
+        self.incentive = self._create_tensor(
+            [neuron.incentive for neuron in self.neurons],
+            dtype=self._dtype_registry["float32"],
+        )
+        self.dividends = self._create_tensor(
+            [neuron.dividends for neuron in self.neurons],
+            dtype=self._dtype_registry["float32"],
+        )
+        self.ranks = self._create_tensor(
+            [neuron.rank for neuron in self.neurons],
+            dtype=self._dtype_registry["float32"],
+        )
+        self.emission = self._create_tensor(
+            [neuron.emission for neuron in self.neurons],
+            dtype=self._dtype_registry["float32"],
+        )
+        self.active = self._create_tensor(
+            [neuron.active for neuron in self.neurons],
+            dtype=self._dtype_registry["int64"],
+        )
+        self.last_update = self._create_tensor(
+            [neuron.last_update for neuron in self.neurons],
+            dtype=self._dtype_registry["int64"],
+        )
+        self.validator_permit = self._create_tensor(
+            [neuron.validator_permit for neuron in self.neurons], dtype=bool
+        )
+        self.validator_trust = self._create_tensor(
+            [neuron.validator_trust for neuron in self.neurons],
+            dtype=self._dtype_registry["float32"],
+        )
+        self.axons = [n.axon_info for n in self.neurons]
 
-    def save(self) -> "Metagraph":
+    def save(self, root_dir: Optional[list[str]] = None) -> "MetagraphMixin":
         """
-        Saves the current state of the metagraph to a file on disk. This function is crucial for persisting the current state of the network's metagraph, which can later be reloaded or analyzed. The save operation includes all neuron attributes and parameters, ensuring a complete snapshot of the metagraph's state.
+        Saves the current state of the metagraph to a file on disk. This function is crucial for persisting the current
+            state of the network's metagraph, which can later be reloaded or analyzed. The save operation includes all
+            neuron attributes and parameters, ensuring a complete snapshot of the metagraph's state.
+
+        Args:
+            root_dir: list to the file path for the root directory of your metagraph saves
+                (i.e. ['/', 'tmp', 'metagraphs'], defaults to ["~", ".bittensor", "metagraphs"]
 
         Returns:
             metagraph (bittensor.core.metagraph.Metagraph): The metagraph instance after saving its state.
@@ -842,7 +802,7 @@ class MetagraphMixin(ABC):
 
                 metagraph.load_from_path(dir_path)
         """
-        save_directory = get_save_dir(self.network, self.netuid)
+        save_directory = get_save_dir(self.network, self.netuid, root_dir=root_dir)
         os.makedirs(save_directory, exist_ok=True)
         if use_torch():
             graph_filename = f"{save_directory}/block-{self.block.item()}.pt"
@@ -858,45 +818,63 @@ class MetagraphMixin(ABC):
                 pickle.dump(state_dict, graph_file)
         return self
 
-    def load(self):
+    def load(self, root_dir: Optional[list[str]] = None) -> None:
         """
-        Loads the state of the metagraph from the default save directory. This method is instrumental for restoring the metagraph to its last saved state. It automatically identifies the save directory based on the ``network`` and ``netuid`` properties of the metagraph, locates the latest block file in that directory, and loads all metagraph parameters from it.
+        Loads the state of the metagraph from the default save directory. This method is instrumental for restoring the
+        metagraph to its last saved state. It automatically identifies the save directory based on the ``network`` and
+        ``netuid`` properties of the metagraph, locates the latest block file in that directory, and loads all metagraph
+        parameters from it.
 
         This functionality is particularly beneficial when continuity in the state of the metagraph is necessary
         across different runtime sessions, or after a restart of the system. It ensures that the metagraph reflects
         the exact state it was in at the last save point, maintaining consistency in the network's representation.
 
-        The method delegates to ``load_from_path``, supplying it with the directory path constructed from the metagraph's current ``network`` and ``netuid`` properties. This abstraction simplifies the process of loading the metagraph's state for the user, requiring no direct path specifications.
+        The method delegates to ``load_from_path``, supplying it with the directory path constructed from the
+        metagraph's current ``network`` and ``netuid`` properties. This abstraction simplifies the process of loading
+        the metagraph's state for the user, requiring no direct path specifications.
+
+        Args:
+            root_dir: list to the file path for the root directory of your metagraph saves
+                (i.e. ['/', 'tmp', 'metagraphs'], defaults to ["~", ".bittensor", "metagraphs"]
 
         Returns:
-            metagraph (bittensor.core.metagraph.Metagraph): The metagraph instance after loading its state from the default directory.
+            metagraph (bittensor.core.metagraph.Metagraph): The metagraph instance after loading its state from the
+                default directory.
 
         Example:
             Load the metagraph state from the last saved snapshot in the default directory::
 
                 metagraph.load()
 
-            After this operation, the metagraph's parameters and neuron data are restored to their state at the time of the last save in the default directory.
+            After this operation, the metagraph's parameters and neuron data are restored to their state at the time of
+            the last save in the default directory.
 
         Note:
-            The default save directory is determined based on the metagraph's ``network`` and ``netuid`` attributes. It is important to ensure that these attributes are set correctly and that the default save directory contains the appropriate state files for the metagraph.
+            The default save directory is determined based on the metagraph's ``network`` and ``netuid`` attributes. It
+            is important to ensure that these attributes are set correctly and that the default save directory contains
+            the appropriate state files for the metagraph.
         """
-        self.load_from_path(get_save_dir(self.network, self.netuid))
+        self.load_from_path(get_save_dir(self.network, self.netuid, root_dir=root_dir))
 
     @abstractmethod
-    def load_from_path(self, dir_path: str) -> "Metagraph":
+    def load_from_path(self, dir_path: str) -> "AsyncMetagraph":
         """
-        Loads the state of the metagraph from a specified directory path. This method is crucial for restoring the metagraph to a specific state based on saved data. It locates the latest block file in the given
-        directory and loads all metagraph parameters from it. This is particularly useful for analyses that require historical states of the network or for restoring previous states of the metagraph in different
-        execution environments.
+        Loads the state of the metagraph from a specified directory path. This method is crucial for restoring the
+        metagraph to a specific state based on saved data. It locates the latest block file in the given directory and
+        loads all metagraph parameters from it. This is particularly useful for analyses that require historical states
+        of the network or for restoring previous states of the metagraph in different execution environments.
 
-        The method first identifies the latest block file in the specified directory, then loads the metagraph state including neuron attributes and parameters from this file. This ensures that the metagraph is accurately reconstituted to reflect the network state at the time of the saved block.
+        The method first identifies the latest block file in the specified directory, then loads the metagraph state
+        including neuron attributes and parameters from this file. This ensures that the metagraph is accurately
+        reconstituted to reflect the network state at the time of the saved block.
 
         Args:
-            dir_path (str): The directory path where the metagraph's state files are stored. This path should contain one or more saved state files, typically named in a format that includes the block number.
+            dir_path (str): The directory path where the metagraph's state files are stored. This path should contain
+                one or more saved state files, typically named in a format that includes the block number.
 
         Returns:
-            metagraph (bittensor.core.metagraph.Metagraph): The metagraph instance after loading its state from the specified directory path.
+            metagraph (bittensor.core.metagraph.AsyncMetagraph): The metagraph instance after loading its state from the
+                specified directory path.
 
         Example:
             Load the metagraph state from a specific directory::
@@ -904,7 +882,8 @@ class MetagraphMixin(ABC):
                 dir_path = "/path/to/saved/metagraph/states"
                 metagraph.load_from_path(dir_path)
 
-            The metagraph is now restored to the state it was in at the time of the latest saved block in the specified directory.
+            The metagraph is now restored to the state it was in at the time of the latest saved block in the specified
+            directory.
 
         Note:
             This method assumes that the state files in the specified directory are correctly formatted and
@@ -936,32 +915,115 @@ class MetagraphMixin(ABC):
                 setattr(new_instance, key, value)
         return new_instance
 
+    def _apply_metagraph_info_mixin(self, metagraph_info: "MetagraphInfo"):
+        """
+        Updates the attributes of the current object with data from a provided MetagraphInfo instance.
 
-BaseClass: Union["torch.nn.Module", object] = torch.nn.Module if use_torch() else object
+        Args:
+            metagraph_info (MetagraphInfo): An instance of the MetagraphInfo class containing the data to be applied to
+                the current object.
+        """
+        self.name = metagraph_info.name
+        self.symbol = metagraph_info.symbol
+        self.network_registered_at = metagraph_info.network_registered_at
+        self.num_uids = metagraph_info.num_uids
+        self.max_uids = metagraph_info.max_uids
+        self.identities = metagraph_info.identities
+        self.identity = metagraph_info.identity
+        self.pruning_score = metagraph_info.pruning_score
+        self.block_at_registration = metagraph_info.block_at_registration
+        self.tao_dividends_per_hotkey = [
+            (h, d.tao) for (h, d) in metagraph_info.tao_dividends_per_hotkey
+        ]
+        self.alpha_dividends_per_hotkey = [
+            (a, d.tao) for (a, d) in metagraph_info.alpha_dividends_per_hotkey
+        ]
+        self.last_step = metagraph_info.last_step
+        self.tempo = metagraph_info.tempo
+        self.blocks_since_last_step = metagraph_info.blocks_since_last_step
+        self.owner_coldkey = metagraph_info.owner_coldkey
+        self.owner_hotkey = metagraph_info.owner_hotkey
+
+        self.hparams = MetagraphInfoParams(
+            activity_cutoff=metagraph_info.activity_cutoff,
+            adjustment_alpha=metagraph_info.adjustment_alpha,
+            adjustment_interval=metagraph_info.adjustment_interval,
+            alpha_high=metagraph_info.alpha_high,
+            alpha_low=metagraph_info.alpha_low,
+            bonds_moving_avg=metagraph_info.bonds_moving_avg,
+            burn=metagraph_info.burn.tao,
+            commit_reveal_period=metagraph_info.commit_reveal_period,
+            commit_reveal_weights_enabled=metagraph_info.commit_reveal_weights_enabled,
+            difficulty=metagraph_info.difficulty,
+            immunity_period=metagraph_info.immunity_period,
+            kappa=metagraph_info.kappa,
+            liquid_alpha_enabled=metagraph_info.liquid_alpha_enabled,
+            max_burn=metagraph_info.max_burn.tao,
+            max_difficulty=metagraph_info.max_difficulty,
+            max_regs_per_block=metagraph_info.max_regs_per_block,
+            max_validators=metagraph_info.max_validators,
+            max_weights_limit=metagraph_info.max_weights_limit,
+            min_allowed_weights=metagraph_info.min_allowed_weights,
+            min_burn=metagraph_info.min_burn.tao,
+            min_difficulty=metagraph_info.min_difficulty,
+            pow_registration_allowed=metagraph_info.pow_registration_allowed,
+            registration_allowed=metagraph_info.registration_allowed,
+            rho=metagraph_info.rho,
+            serving_rate_limit=metagraph_info.serving_rate_limit,
+            target_regs_per_interval=metagraph_info.target_regs_per_interval,
+            tempo=metagraph_info.tempo,
+            weights_rate_limit=metagraph_info.weights_rate_limit,
+            weights_version=metagraph_info.weights_version,
+        )
+        self.pool = MetagraphInfoPool(
+            alpha_out=metagraph_info.alpha_out.tao,
+            alpha_in=metagraph_info.alpha_in.tao,
+            tao_in=metagraph_info.tao_in.tao,
+            subnet_volume=metagraph_info.subnet_volume.tao,
+            moving_price=metagraph_info.moving_price.tao,
+        )
+        self.emissions = MetagraphInfoEmissions(
+            alpha_out_emission=metagraph_info.alpha_out_emission.tao,
+            alpha_in_emission=metagraph_info.alpha_in_emission.tao,
+            subnet_emission=metagraph_info.subnet_emission.tao,
+            tao_in_emission=metagraph_info.tao_in_emission.tao,
+            pending_alpha_emission=metagraph_info.pending_alpha_emission.tao,
+            pending_root_emission=metagraph_info.pending_root_emission.tao,
+        )
+
+
+if use_torch():
+    BaseClass = torch.nn.Module
+else:
+    BaseClass = object
 """
 Base class that extends :class:`torch.nn.Module` if PyTorch is used; otherwise, it defaults to object.
 """
 
 
-class TorchMetaGraph(MetagraphMixin, BaseClass):
+class TorchMetagraph(MetagraphMixin, BaseClass):
     def __init__(
         self,
         netuid: int,
         network: str = settings.DEFAULT_NETWORK,
         lite: bool = True,
         sync: bool = True,
-        subtensor: "Subtensor" = None,
+        subtensor: Optional[Union["AsyncSubtensor", "Subtensor"]] = None,
     ):
         """
-        Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the provided arguments.
-        This class requires Torch to be installed.
-        This method is the entry point for creating a metagraph object, which is a central component in representing the state of the Bittensor network.
+        Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the
+        provided arguments. This class requires Torch to be installed. This method is the entry point for creating a
+        metagraph object, which is a central component in representing the state of the Bittensor network.
 
         Args:
-            netuid (int): The unique identifier for the network, distinguishing this instance of the metagraph within potentially multiple network configurations.
-            network (str): The name of the network, which can indicate specific configurations or versions of the Bittensor network.
-            lite (bool): A flag indicating whether to use a lite version of the metagraph. The lite version may contain less detailed information but can be quicker to initialize and sync.
-            sync (bool): A flag indicating whether to synchronize the metagraph with the network upon initialization. Synchronization involves updating the metagraph's parameters to reflect the current state of the network.
+            netuid (int): The unique identifier for the network, distinguishing this instance of the metagraph within
+                potentially multiple network configurations.
+            network (str): The name of the network, which can indicate specific configurations or versions of the
+                Bittensor network.
+            lite (bool): A flag indicating whether to use a lite version of the metagraph. The lite version may contain
+                less detailed information but can be quicker to initialize and sync.
+            sync (bool): A flag indicating whether to synchronize the metagraph with the network upon initialization.
+                Synchronization involves updating the metagraph's parameters to reflect the current state of the network.
 
         Example:
             Initializing a metagraph object for the Bittensor network with a specific network UID::
@@ -970,12 +1032,13 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
 
                 metagraph = Metagraph(netuid=123, network="finney", lite=True, sync=True)
         """
-        torch.nn.Module.__init__(self)
+        BaseClass.__init__(self)
         MetagraphMixin.__init__(self, netuid, network, lite, sync, subtensor)
-        self.netuid = netuid
-        self.network, self.chain_endpoint = determine_chain_endpoint_and_network(
-            network
-        )
+        self._dtype_registry = {
+            "int64": torch.int64,
+            "float32": torch.float32,
+            "bool": torch.bool,
+        }
         self.version = torch.nn.Parameter(
             torch.tensor([settings.version_as_int], dtype=torch.int64),
             requires_grad=False,
@@ -1031,78 +1094,14 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
         self.uids = torch.nn.Parameter(
             torch.tensor([], dtype=torch.int64), requires_grad=False
         )
-        self.axons: list[AxonInfo] = []
-        self.subtensor = subtensor
-        if sync:
-            self.sync(block=None, lite=lite, subtensor=subtensor)
+        self.alpha_stake = torch.nn.Parameter(
+            torch.tensor([], dtype=torch.float32), requires_grad=False
+        )
+        self.tao_stake = torch.nn.Parameter(
+            torch.tensor([], dtype=torch.float32), requires_grad=False
+        )
 
-    def _set_metagraph_attributes(self, block: int, subtensor: "Subtensor"):
-        """
-        Sets various attributes of the metagraph based on the latest network data fetched from the subtensor.
-
-        This method updates parameters like the number of neurons, block number, stakes, trusts, ranks, and other neuron-specific information.
-
-        Args:
-            block (int): The block number for which the metagraph attributes need to be set. If ``None``, the latest block data is used.
-            subtensor (bittensor.core.subtensor.Subtensor): The subtensor instance used for fetching the latest network data.
-
-        Internal Usage:
-            Used internally during the sync process to update the metagraph's attributes::
-
-                from bittensor.core.subtensor import Subtensor
-
-                subtensor = Subtensor()
-                block = subtensor.get_current_block()
-
-                self._set_metagraph_attributes(block, subtensor)
-        """
-        self.n = self._create_tensor(len(self.neurons), dtype=torch.int64)
-        self.version = self._create_tensor([settings.version_as_int], dtype=torch.int64)
-        self.block = self._create_tensor(
-            block if block else subtensor.block, dtype=torch.int64
-        )
-        self.uids = self._create_tensor(
-            [neuron.uid for neuron in self.neurons], dtype=torch.int64
-        )
-        self.trust = self._create_tensor(
-            [neuron.trust for neuron in self.neurons], dtype=torch.float32
-        )
-        self.consensus = self._create_tensor(
-            [neuron.consensus for neuron in self.neurons], dtype=torch.float32
-        )
-        self.incentive = self._create_tensor(
-            [neuron.incentive for neuron in self.neurons], dtype=torch.float32
-        )
-        self.dividends = self._create_tensor(
-            [neuron.dividends for neuron in self.neurons], dtype=torch.float32
-        )
-        self.ranks = self._create_tensor(
-            [neuron.rank for neuron in self.neurons], dtype=torch.float32
-        )
-        self.emission = self._create_tensor(
-            [neuron.emission for neuron in self.neurons], dtype=torch.float32
-        )
-        self.active = self._create_tensor(
-            [neuron.active for neuron in self.neurons], dtype=torch.int64
-        )
-        self.last_update = self._create_tensor(
-            [neuron.last_update for neuron in self.neurons], dtype=torch.int64
-        )
-        self.validator_permit = self._create_tensor(
-            [neuron.validator_permit for neuron in self.neurons], dtype=torch.bool
-        )
-        self.validator_trust = self._create_tensor(
-            [neuron.validator_trust for neuron in self.neurons], dtype=torch.float32
-        )
-        self.total_stake = self._create_tensor(
-            [neuron.total_stake.tao for neuron in self.neurons], dtype=torch.float32
-        )
-        self.stake = self._create_tensor(
-            [neuron.stake for neuron in self.neurons], dtype=torch.float32
-        )
-        self.axons = [n.axon_info for n in self.neurons]
-
-    def load_from_path(self, dir_path: str) -> "Metagraph":
+    def load_from_path(self, dir_path: str) -> "MetagraphMixin":
         """
         Loads the metagraph state from a specified directory path.
 
@@ -1110,9 +1109,9 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
             dir_path (str): The directory path where the state file is located.
 
         Returns:
-            metagraph (bittensor.core.metagraph.Metagraph): The current metagraph instance with the loaded state.
+            metagraph (bittensor.core.metagraph.AsyncMetagraph): The current metagraph instance with the loaded state.
 
-        Example::
+        Example:
 
             from bittensor.core.metagraph import Metagraph
 
@@ -1173,18 +1172,22 @@ class NonTorchMetagraph(MetagraphMixin):
         network: str = settings.DEFAULT_NETWORK,
         lite: bool = True,
         sync: bool = True,
-        subtensor: "Subtensor" = None,
+        subtensor: Optional[Union["AsyncSubtensor", "Subtensor"]] = None,
     ):
         """
-        Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the provided arguments.
-        This class doesn't require installed Torch.
-        This method is the entry point for creating a metagraph object, which is a central component in representing the state of the Bittensor network.
+        Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the
+        provided arguments. This class doesn't require installed Torch. This method is the entry point for creating a
+        metagraph object, which is a central component in representing the state of the Bittensor network.
 
         Args:
-            netuid (int): The unique identifier for the network, distinguishing this instance of the metagraph within potentially multiple network configurations.
-            network (str): The name of the network, which can indicate specific configurations or versions of the Bittensor network.
-            lite (bool): A flag indicating whether to use a lite version of the metagraph. The lite version may contain less detailed information but can be quicker to initialize and sync.
-            sync (bool): A flag indicating whether to synchronize the metagraph with the network upon initialization. Synchronization involves updating the metagraph's parameters to reflect the current state of the network.
+            netuid (int): The unique identifier for the network, distinguishing this instance of the metagraph within
+                potentially multiple network configurations.
+            network (str): The name of the network, which can indicate specific configurations or versions of the
+                Bittensor network.
+            lite (bool): A flag indicating whether to use a lite version of the metagraph. The lite version may contain
+                less detailed information but can be quicker to initialize and sync.
+            sync (bool): A flag indicating whether to synchronize the metagraph with the network upon initialization.
+                Synchronization involves updating the metagraph's parameters to reflect the current state of the network.
 
         Example:
             Initializing a metagraph object for the Bittensor network with a specific network UID::
@@ -1193,18 +1196,15 @@ class NonTorchMetagraph(MetagraphMixin):
 
                 metagraph = Metagraph(netuid=123, network="finney", lite=True, sync=True)
         """
-        # super(metagraph, self).__init__()
         MetagraphMixin.__init__(self, netuid, network, lite, sync, subtensor)
 
         self.netuid = netuid
         self.network, self.chain_endpoint = determine_chain_endpoint_and_network(
             network
         )
-        self.version = (np.array([settings.version_as_int], dtype=np.int64),)
+        self.version = np.array([settings.version_as_int], dtype=np.int64)
         self.n = np.array([0], dtype=np.int64)
         self.block = np.array([0], dtype=np.int64)
-        self.stake = np.array([], dtype=np.float32)
-        self.total_stake = np.array([], dtype=np.float32)
         self.ranks = np.array([], dtype=np.float32)
         self.trust = np.array([], dtype=np.float32)
         self.consensus = np.array([], dtype=np.float32)
@@ -1218,74 +1218,14 @@ class NonTorchMetagraph(MetagraphMixin):
         self.weights = np.array([], dtype=np.float32)
         self.bonds = np.array([], dtype=np.int64)
         self.uids = np.array([], dtype=np.int64)
-        self.axons: list[AxonInfo] = []
+        self.alpha_stake: Tensor = np.array([], dtype=np.int64)
+        self.tao_stake: Tensor = np.array([], dtype=np.int64)
+        self.stake: Tensor = np.array([], dtype=np.int64)
+        self.total_stake: Tensor = np.array([], dtype=np.int64)
         self.subtensor = subtensor
-        if sync:
-            self.sync(block=None, lite=lite, subtensor=subtensor)
+        self.should_sync = sync
 
-    def _set_metagraph_attributes(self, block: int, subtensor: "Subtensor"):
-        """
-        Sets various attributes of the metagraph based on the latest network data fetched from the subtensor.
-
-        This method updates parameters like the number of neurons, block number, stakes, trusts, ranks, and other neuron-specific information.
-
-        Args:
-            block (int): The block number for which the metagraph attributes need to be set. If ``None``, the latest block data is used.
-            subtensor (bittensor.core.subtensor.Subtensor): The subtensor instance used for fetching the latest network data.
-
-        Internal Usage:
-            Used internally during the sync process to update the metagraph's attributes::
-
-                self._set_metagraph_attributes(block, subtensor)
-        """
-        # TODO: Check and test the setting of each attribute
-        self.n = self._create_tensor(len(self.neurons), dtype=np.int64)
-        self.version = self._create_tensor([settings.version_as_int], dtype=np.int64)
-        self.block = self._create_tensor(
-            block if block else subtensor.block, dtype=np.int64
-        )
-        self.uids = self._create_tensor(
-            [neuron.uid for neuron in self.neurons], dtype=np.int64
-        )
-        self.trust = self._create_tensor(
-            [neuron.trust for neuron in self.neurons], dtype=np.float32
-        )
-        self.consensus = self._create_tensor(
-            [neuron.consensus for neuron in self.neurons], dtype=np.float32
-        )
-        self.incentive = self._create_tensor(
-            [neuron.incentive for neuron in self.neurons], dtype=np.float32
-        )
-        self.dividends = self._create_tensor(
-            [neuron.dividends for neuron in self.neurons], dtype=np.float32
-        )
-        self.ranks = self._create_tensor(
-            [neuron.rank for neuron in self.neurons], dtype=np.float32
-        )
-        self.emission = self._create_tensor(
-            [neuron.emission for neuron in self.neurons], dtype=np.float32
-        )
-        self.active = self._create_tensor(
-            [neuron.active for neuron in self.neurons], dtype=np.int64
-        )
-        self.last_update = self._create_tensor(
-            [neuron.last_update for neuron in self.neurons], dtype=np.int64
-        )
-        self.validator_permit = self._create_tensor(
-            [neuron.validator_permit for neuron in self.neurons], dtype=bool
-        )
-        self.validator_trust = self._create_tensor(
-            [neuron.validator_trust for neuron in self.neurons], dtype=np.float32
-        )
-        self.total_stake = self._create_tensor(
-            [neuron.total_stake.tao for neuron in self.neurons], dtype=np.float32
-        )
-        self.stake = self._create_tensor(
-            [neuron.stake for neuron in self.neurons], dtype=np.float32
-        )
-        self.axons = [n.axon_info for n in self.neurons]
-
-    def load_from_path(self, dir_path: str) -> "Metagraph":
+    def load_from_path(self, dir_path: str) -> "MetagraphMixin":
         """
         Loads the state of the Metagraph from a specified directory path.
 
@@ -1293,7 +1233,8 @@ class NonTorchMetagraph(MetagraphMixin):
             dir_path (str): The directory path where the metagraph's state file is located.
 
         Returns:
-            metagraph (:func:`bittensor.core.metagraph.Metagraph`): An instance of the Metagraph with the state loaded from the file.
+            metagraph (:func:`bittensor.core.metagraph.AsyncMetagraph`): An instance of the Metagraph with the state
+                loaded from the file.
 
         Raises:
             pickle.UnpicklingError: If there is an error unpickling the state file.
@@ -1326,7 +1267,6 @@ class NonTorchMetagraph(MetagraphMixin):
         self.block = state_dict["block"]
         self.uids = state_dict["uids"]
         self.stake = state_dict["stake"]
-        self.total_stake = state_dict["total_stake"]
         self.ranks = state_dict["ranks"]
         self.trust = state_dict["trust"]
         self.consensus = state_dict["consensus"]
@@ -1346,9 +1286,660 @@ class NonTorchMetagraph(MetagraphMixin):
         return self
 
 
-Metagraph = TorchMetaGraph if use_torch() else NonTorchMetagraph
+if use_torch():
+    NumpyOrTorch = TorchMetagraph
+else:
+    NumpyOrTorch = NonTorchMetagraph
 """Metagraph class that uses :class:`TorchMetaGraph` if PyTorch is available; otherwise, it falls back to :class:`NonTorchMetagraph`.
 
 - **With PyTorch**: When `use_torch()` returns `True`, `Metagraph` is set to :class:`TorchMetaGraph`, which utilizes PyTorch functionalities.
 - **Without PyTorch**: When `use_torch()` returns `False`, `Metagraph` is set to :class:`NonTorchMetagraph`, which does not rely on PyTorch.
 """
+
+
+class AsyncMetagraph(NumpyOrTorch):
+    """
+    TODO docstring. Advise user to use `async_metagraph` factory fn if they want to sync at init
+    """
+
+    def __init__(
+        self,
+        netuid: int,
+        network: str = settings.DEFAULT_NETWORK,
+        lite: bool = True,
+        sync: bool = True,
+        subtensor: Optional["AsyncSubtensor"] = None,
+    ):
+        super().__init__(netuid, network, lite, sync, subtensor)
+
+    async def __aenter__(self):
+        if self.should_sync:
+            await self.sync(block=None, lite=self.lite, subtensor=self.subtensor)
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+    async def sync(
+        self,
+        block: Optional[int] = None,
+        lite: Optional[bool] = None,
+        subtensor: Optional["AsyncSubtensor"] = None,
+    ):
+        """
+        Synchronizes the metagraph with the Bittensor network's current state. It updates the metagraph's attributes to
+            reflect the latest data from the network, ensuring the metagraph represents the most current state of the
+            network.
+
+        Args:
+            block (Optional[int]): A specific block number to synchronize with. If None, the metagraph syncs with the
+                latest block. This allows for historical analysis or specific state examination of the network.
+            lite (Optional[bool]): If True, a lite version of the metagraph is used for quicker synchronization. This is
+                beneficial when full detail is not necessary, allowing for reduced computational and time overhead.
+                Defaults to `True`.
+            subtensor (Optional[bittensor.core.subtensor.Subtensor]): An instance of the subtensor class from Bittensor,
+                providing an interface to the underlying blockchain data. If provided, this instance is used for data
+                retrieval during synchronization.
+
+        Example:
+            Sync the metagraph with the latest block from the subtensor, using the lite version for efficiency::
+
+                from bittensor.core.subtensor import Subtensor
+
+                subtensor = Subtensor()
+                metagraph.sync(subtensor=subtensor)
+
+            Sync with a specific block number for detailed analysis::
+
+                from bittensor.core.subtensor import Subtensor
+
+                subtensor = Subtensor()
+                metagraph.sync(block=12345, lite=False, subtensor=subtensor)
+
+        NOTE:
+            If attempting to access data beyond the previous 300 blocks, you **must** use the ``archive`` network for
+                subtensor. Light nodes are configured only to store the previous 300 blocks if connecting to finney or
+                test networks.
+
+            For example::
+
+                from bittensor.core.subtensor import Subtensor
+
+                subtensor = Subtensor(network='archive')
+                current_block = subtensor.get_current_block()
+                history_block = current_block - 1200
+
+                metagraph.sync(block=history_block, lite=False, subtensor=subtensor)
+        """
+        if lite is None:
+            lite = self.lite
+
+        subtensor = await self._initialize_subtensor(subtensor)
+
+        if (
+            subtensor.chain_endpoint != settings.ARCHIVE_ENTRYPOINT
+            or subtensor.network != "archive"
+        ):
+            cur_block = await subtensor.get_current_block()
+            if block and block < (cur_block - 300):
+                logging.warning(
+                    "Attempting to sync longer than 300 blocks ago on a non-archive node. Please use the 'archive' "
+                    "network for subtensor and retry."
+                )
+        if block is None:
+            block = await subtensor.get_current_block()
+
+        # Assign neurons based on 'lite' flag
+        await self._assign_neurons(block, lite, subtensor)
+
+        # Set attributes for metagraph
+        self._set_metagraph_attributes(block)
+
+        # If not a 'lite' version, compute and set weights and bonds for each neuron
+        if not lite:
+            await self._set_weights_and_bonds(subtensor=subtensor)
+
+        # Fills in the stake associated attributes of a class instance from a chain response.
+        await self._get_all_stakes_from_chain(block=block)
+
+        # apply MetagraphInfo data to instance
+        await self._apply_metagraph_info()
+
+    async def _initialize_subtensor(
+        self, subtensor: "AsyncSubtensor"
+    ) -> "AsyncSubtensor":
+        """
+        Initializes the subtensor to be used for syncing the metagraph.
+
+        This method ensures that a subtensor instance is available and properly set up for data retrieval during the
+        synchronization process.
+
+        If no subtensor is provided, this method is responsible for creating a new instance of the subtensor, configured
+        according to the current network settings.
+
+        Args:
+            subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The subtensor instance provided for
+                initialization. If ``None``, a new subtensor instance is created using the current network configuration.
+
+        Returns:
+            subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The initialized subtensor instance, ready to be
+                used for syncing the metagraph.
+
+        Internal Usage:
+            Used internally during the sync process to ensure a valid subtensor instance is available::
+
+                subtensor = await self._initialize_subtensor(subtensor)
+        """
+        if subtensor and subtensor != self.subtensor:
+            self.subtensor = subtensor
+        if not subtensor and self.subtensor:
+            subtensor = self.subtensor
+        if not subtensor:
+            # Lazy import due to circular import (subtensor -> metagraph, metagraph -> subtensor)
+            from bittensor.core.async_subtensor import AsyncSubtensor
+
+            async with AsyncSubtensor(network=self.chain_endpoint) as subtensor:
+                self.subtensor = subtensor
+        return subtensor
+
+    async def _assign_neurons(
+        self, block: int, lite: bool, subtensor: "AsyncSubtensor"
+    ):
+        """
+        Assigns neurons to the metagraph based on the provided block number and the lite flag.
+
+        This method is responsible for fetching and setting the neuron data in the metagraph, which includes neuron
+        attributes like UID, stake, trust, and other relevant information.
+
+        Args:
+            block (int): The block number for which the neuron data needs to be fetched. If ``None``, the latest block
+                data is used.
+            lite (bool): A boolean flag indicating whether to use a lite version of the neuron data. The lite version
+                typically includes essential information and is quicker to fetch and process.
+            subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The subtensor instance used for fetching neuron
+                data from the network.
+
+        Internal Usage:
+            Used internally during the sync process to fetch and set neuron data::
+
+                from bittensor.core.subtensor import Subtensor
+
+                block = 12345
+                lite = False
+                subtensor = Subtensor()
+                self._assign_neurons(block, lite, subtensor)
+        """
+        if lite:
+            self.neurons = await subtensor.neurons_lite(block=block, netuid=self.netuid)
+
+        else:
+            self.neurons = await subtensor.neurons(block=block, netuid=self.netuid)
+        self.lite = lite
+
+    async def _set_weights_and_bonds(
+        self, subtensor: Optional["AsyncSubtensor"] = None
+    ):
+        """
+        Computes and sets the weights and bonds for each neuron in the metagraph. This method is responsible for
+        processing the raw weight and bond data obtained from the network and converting it into a structured format
+        suitable for the metagraph model.
+
+        Args:
+            subtensor: The subtensor instance used for fetching weights and bonds data. If ``None``, the weights and
+                bonds are not updated.
+
+        Internal Usage:
+            Used internally during the sync process to update the weights and bonds of the neurons::
+
+                self._set_weights_and_bonds(subtensor=subtensor)
+        """
+        # TODO: Check and test the computation of weights and bonds
+        if self.netuid == 0:
+            self.weights = await self._process_root_weights(
+                [neuron.weights for neuron in self.neurons],
+                "weights",
+                subtensor,
+            )
+        else:
+            self.weights = self._process_weights_or_bonds(
+                [neuron.weights for neuron in self.neurons], "weights"
+            )
+            self.bonds = self._process_weights_or_bonds(
+                [neuron.bonds for neuron in self.neurons], "bonds"
+            )
+
+    async def _process_root_weights(
+        self, data: list, attribute: str, subtensor: "AsyncSubtensor"
+    ) -> Union[NDArray, "torch.nn.Parameter"]:
+        """
+        Specifically processes the root weights data for the metagraph. This method is similar to :func:`_process_weights_or_bonds`
+        but is tailored for processing root weights, which have a different structure and significance in the network.
+
+        Args:
+            data (list): The raw root weights data to be processed.
+            attribute (str): A string indicating the attribute type, here it's typically ``weights``.
+            subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The subtensor instance used for additional data
+                and context needed in processing.
+
+        Returns:
+            A tensor parameter encapsulating the processed root weights data.
+
+        Internal Usage:
+            Used internally to process and set root weights for the metagraph::
+
+                self.root_weights = self._process_root_weights(raw_root_weights_data, "weights", subtensor)
+        """
+        data_array = []
+        n_subnets = await subtensor.get_total_subnets() or 0
+        subnets = await subtensor.get_subnets()
+        for item in data:
+            if len(item) == 0:
+                if use_torch():
+                    data_array.append(torch.zeros(n_subnets))
+                else:
+                    data_array.append(np.zeros(n_subnets, dtype=np.float32))
+            else:
+                uids, values = zip(*item)
+                # TODO: Validate and test the conversion of uids and values to tensor
+                data_array.append(
+                    convert_root_weight_uids_and_vals_to_tensor(
+                        n_subnets, list(uids), list(values), subnets
+                    )
+                )
+
+        tensor_param: Union[NDArray, "torch.nn.Parameter"] = (
+            (
+                torch.nn.Parameter(torch.stack(data_array), requires_grad=False)
+                if len(data_array)
+                else torch.nn.Parameter()
+            )
+            if use_torch()
+            else (
+                np.stack(data_array)
+                if len(data_array)
+                else np.array([], dtype=np.float32)
+            )
+        )
+        if len(data_array) == 0:
+            logging.warning(
+                f"Empty {attribute}_array on metagraph.sync(). The '{attribute}' tensor is empty."
+            )
+        return tensor_param
+
+    async def _get_all_stakes_from_chain(self, block: int):
+        """Fills in the stake associated attributes of a class instance from a chain response."""
+        try:
+            result = await self.subtensor.query_runtime_api(
+                runtime_api="SubnetInfoRuntimeApi",
+                method="get_subnet_state",
+                params=[self.netuid],
+                block=block,
+            )
+
+            if result is None:
+                logging.debug(
+                    f"Unable to retrieve subnet state for netuid `{self.netuid}`."
+                )
+                return []
+
+            subnet_state: "SubnetState" = SubnetState.from_dict(result)
+
+            if self.netuid == 0:
+                self.total_stake = self.stake = self.tao_stake = self.alpha_stake = (
+                    self._create_tensor(
+                        [stake.tao for stake in subnet_state.tao_stake],
+                        dtype=self._dtype_registry["float32"],
+                    )
+                )
+                return subnet_state
+
+            self.alpha_stake = self._create_tensor(
+                [b.tao for b in subnet_state.alpha_stake],
+                dtype=self._dtype_registry["float32"],
+            )
+            self.tao_stake = self._create_tensor(
+                [
+                    b.tao * settings.ROOT_TAO_STAKE_WEIGHT
+                    for b in subnet_state.tao_stake
+                ],
+                dtype=self._dtype_registry["float32"],
+            )
+            self.total_stake = self.stake = self._create_tensor(
+                [stake.tao for stake in subnet_state.total_stake],
+                dtype=self._dtype_registry["float32"],
+            )
+            return subnet_state
+        except (SubstrateRequestException, AttributeError) as e:
+            logging.debug(e)
+
+    async def _apply_metagraph_info(self):
+        """Retrieves metagraph information for a specific subnet and applies it using a mixin."""
+        metagraph_info = await self.subtensor.get_metagraph_info(self.netuid)
+        if metagraph_info:
+            self._apply_metagraph_info_mixin(metagraph_info=metagraph_info)
+
+
+class Metagraph(NumpyOrTorch):
+    def __init__(
+        self,
+        netuid: int,
+        network: str = settings.DEFAULT_NETWORK,
+        lite: bool = True,
+        sync: bool = True,
+        subtensor: Optional["Subtensor"] = None,
+    ):
+        super().__init__(netuid, network, lite, sync, subtensor)
+        if self.should_sync:
+            self.sync()
+
+    def sync(
+        self,
+        block: Optional[int] = None,
+        lite: Optional[bool] = None,
+        subtensor: Optional["Subtensor"] = None,
+    ):
+        """
+        Synchronizes the metagraph with the Bittensor network's current state. It updates the metagraph's attributes to
+            reflect the latest data from the network, ensuring the metagraph represents the most current state of the
+            network.
+
+        Args:
+            block (Optional[int]): A specific block number to synchronize with. If None, the metagraph syncs with the
+                latest block. This allows for historical analysis or specific state examination of the network.
+            lite (Optional[bool]): If True, a lite version of the metagraph is used for quicker synchronization. This is
+                beneficial when full detail is not necessary, allowing for reduced computational and time overhead.
+                Defaults to `True`.
+            subtensor (Optional[bittensor.core.subtensor.Subtensor]): An instance of the subtensor class from Bittensor,
+                providing an interface to the underlying blockchain data. If provided, this instance is used for data
+                retrieval during synchronization.
+
+        Example:
+            Sync the metagraph with the latest block from the subtensor, using the lite version for efficiency::
+
+                from bittensor.core.subtensor import Subtensor
+
+                subtensor = Subtensor()
+                metagraph.sync(subtensor=subtensor)
+
+            Sync with a specific block number for detailed analysis::
+
+                from bittensor.core.subtensor import Subtensor
+
+                subtensor = Subtensor()
+                metagraph.sync(block=12345, lite=False, subtensor=subtensor)
+
+        NOTE:
+            If attempting to access data beyond the previous 300 blocks, you **must** use the ``archive`` network for
+                subtensor. Light nodes are configured only to store the previous 300 blocks if connecting to finney or
+                test networks.
+
+            For example::
+
+                from bittensor.core.subtensor import Subtensor
+
+                subtensor = Subtensor(network='archive')
+                current_block = subtensor.get_current_block()
+                history_block = current_block - 1200
+
+                metagraph.sync(block=history_block, lite=False, subtensor=subtensor)
+        """
+        if lite is None:
+            lite = self.lite
+
+        # Initialize subtensor
+        subtensor = self._initialize_subtensor(subtensor=subtensor)
+
+        if (
+            subtensor.chain_endpoint != settings.ARCHIVE_ENTRYPOINT
+            or subtensor.network != "archive"
+        ):
+            cur_block = subtensor.get_current_block()
+            if block and block < (cur_block - 300):
+                logging.warning(
+                    "Attempting to sync longer than 300 blocks ago on a non-archive node. Please use the 'archive' "
+                    "network for subtensor and retry."
+                )
+
+        if block is None:
+            block = subtensor.get_current_block()
+
+        # Assign neurons based on 'lite' flag
+        self._assign_neurons(block, lite, subtensor)
+
+        # Set attributes for metagraph
+        self._set_metagraph_attributes(block)
+
+        # If not a 'lite' version, compute and set weights and bonds for each neuron
+        if not lite:
+            self._set_weights_and_bonds(subtensor=subtensor)
+
+        # Fills in the stake associated attributes of a class instance from a chain response.
+        self._get_all_stakes_from_chain(block=block)
+
+        # apply MetagraphInfo data to instance
+        self._apply_metagraph_info()
+
+    def _initialize_subtensor(self, subtensor: "Subtensor") -> "Subtensor":
+        """
+        Initializes the subtensor to be used for syncing the metagraph.
+
+        This method ensures that a subtensor instance is available and properly set up for data retrieval during the
+        synchronization process.
+
+        If no subtensor is provided, this method is responsible for creating a new instance of the subtensor, configured
+        according to the current network settings.
+
+        Args:
+            subtensor (bittensor.core.subtensor.Subtensor): The subtensor instance provided for
+                initialization. If ``None``, a new subtensor instance is created using the current network configuration.
+
+        Returns:
+            subtensor (bittensor.core.subtensor.Subtensor): The initialized subtensor instance, ready to be
+                used for syncing the metagraph.
+
+        Internal Usage:
+            Used internally during the sync process to ensure a valid subtensor instance is available::
+
+                subtensor = self._initialize_subtensor(subtensor)
+        """
+        if subtensor and subtensor != self.subtensor:
+            self.subtensor = subtensor
+        if not subtensor and self.subtensor:
+            subtensor = self.subtensor
+        if not subtensor:
+            # Lazy import due to circular import (subtensor -> metagraph, metagraph -> subtensor)
+            from bittensor.core.subtensor import Subtensor
+
+            subtensor = Subtensor(network=self.chain_endpoint)
+
+            self.subtensor = subtensor
+        return subtensor
+
+    def _assign_neurons(self, block: int, lite: bool, subtensor: "Subtensor"):
+        """
+        Assigns neurons to the metagraph based on the provided block number and the lite flag.
+
+        This method is responsible for fetching and setting the neuron data in the metagraph, which includes neuron
+        attributes like UID, stake, trust, and other relevant information.
+
+        Args:
+            block (int): The block number for which the neuron data needs to be fetched. If ``None``, the latest block
+                data is used.
+            lite (bool): A boolean flag indicating whether to use a lite version of the neuron data. The lite version
+                typically includes essential information and is quicker to fetch and process.
+            subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The subtensor instance used for fetching neuron
+                data from the network.
+
+        Internal Usage:
+            Used internally during the sync process to fetch and set neuron data::
+
+                from bittensor.core.subtensor import Subtensor
+
+                block = 12345
+                lite = False
+                subtensor = Subtensor()
+                self._assign_neurons(block, lite, subtensor)
+        """
+        if lite:
+            self.neurons = subtensor.neurons_lite(block=block, netuid=self.netuid)
+
+        else:
+            self.neurons = subtensor.neurons(block=block, netuid=self.netuid)
+        self.lite = lite
+
+    def _set_weights_and_bonds(self, subtensor: Optional["Subtensor"] = None):
+        """
+        Computes and sets the weights and bonds for each neuron in the metagraph. This method is responsible for
+        processing the raw weight and bond data obtained from the network and converting it into a structured format
+        suitable for the metagraph model.
+
+        Args:
+            subtensor: The subtensor instance used for fetching weights and bonds data. If ``None``, the weights and
+                bonds are not updated.
+
+        Internal Usage:
+            Used internally during the sync process to update the weights and bonds of the neurons::
+
+                self._set_weights_and_bonds(subtensor=subtensor)
+        """
+        if self.netuid == 0:
+            self.weights = self._process_root_weights(
+                [neuron.weights for neuron in self.neurons],
+                "weights",
+                subtensor,
+            )
+        else:
+            self.weights = self._process_weights_or_bonds(
+                [neuron.weights for neuron in self.neurons], "weights"
+            )
+            self.bonds = self._process_weights_or_bonds(
+                [neuron.bonds for neuron in self.neurons], "bonds"
+            )
+
+    def _process_root_weights(
+        self, data: list, attribute: str, subtensor: "Subtensor"
+    ) -> Union[NDArray, "torch.nn.Parameter"]:
+        """
+        Specifically processes the root weights data for the metagraph. This method is similar to :func:`_process_weights_or_bonds`
+        but is tailored for processing root weights, which have a different structure and significance in the network.
+
+        Args:
+            data (list): The raw root weights data to be processed.
+            attribute (str): A string indicating the attribute type, here it's typically ``weights``.
+            subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The subtensor instance used for additional data
+                and context needed in processing.
+
+        Returns:
+            A tensor parameter encapsulating the processed root weights data.
+
+        Internal Usage:
+            Used internally to process and set root weights for the metagraph::
+
+                self.root_weights = self._process_root_weights(raw_root_weights_data, "weights", subtensor)
+        """
+        data_array = []
+        n_subnets = subtensor.get_total_subnets() or 0
+        subnets = subtensor.get_subnets()
+        for item in data:
+            if len(item) == 0:
+                if use_torch():
+                    data_array.append(torch.zeros(n_subnets))
+                else:
+                    data_array.append(np.zeros(n_subnets, dtype=np.float32))
+            else:
+                uids, values = zip(*item)
+                # TODO: Validate and test the conversion of uids and values to tensor
+                data_array.append(
+                    convert_root_weight_uids_and_vals_to_tensor(
+                        n_subnets, list(uids), list(values), subnets
+                    )
+                )
+
+        tensor_param: Union[NDArray, "torch.nn.Parameter"] = (
+            (
+                torch.nn.Parameter(torch.stack(data_array), requires_grad=False)
+                if len(data_array)
+                else torch.nn.Parameter()
+            )
+            if use_torch()
+            else (
+                np.stack(data_array)
+                if len(data_array)
+                else np.array([], dtype=np.float32)
+            )
+        )
+        if len(data_array) == 0:
+            logging.warning(
+                f"Empty {attribute}_array on metagraph.sync(). The '{attribute}' tensor is empty."
+            )
+        return tensor_param
+
+    def _get_all_stakes_from_chain(self, block: int):
+        """Fills in the stake associated attributes of a class instance from a chain response."""
+        try:
+            result = self.subtensor.query_runtime_api(
+                runtime_api="SubnetInfoRuntimeApi",
+                method="get_subnet_state",
+                params=[self.netuid],
+                block=block,
+            )
+
+            if result is None:
+                logging.debug(
+                    f"Unable to retrieve subnet state for netuid `{self.netuid}`."
+                )
+                return []
+
+            subnet_state: "SubnetState" = SubnetState.from_dict(result)
+
+            if self.netuid == 0:
+                self.total_stake = self.stake = self.tao_stake = self.alpha_stake = (
+                    self._create_tensor(
+                        [stake.tao for stake in subnet_state.tao_stake],
+                        dtype=self._dtype_registry["float32"],
+                    )
+                )
+                return subnet_state
+
+            self.alpha_stake = self._create_tensor(
+                [b.tao for b in subnet_state.alpha_stake],
+                dtype=self._dtype_registry["float32"],
+            )
+            self.tao_stake = self._create_tensor(
+                [
+                    b.tao * settings.ROOT_TAO_STAKE_WEIGHT
+                    for b in subnet_state.tao_stake
+                ],
+                dtype=self._dtype_registry["float32"],
+            )
+            self.total_stake = self.stake = self._create_tensor(
+                [stake.tao for stake in subnet_state.total_stake],
+                dtype=self._dtype_registry["float32"],
+            )
+            return subnet_state
+        except (SubstrateRequestException, AttributeError) as e:
+            logging.debug(e)
+
+    def _apply_metagraph_info(self):
+        """Retrieves metagraph information for a specific subnet and applies it using a mixin."""
+        metagraph_info = self.subtensor.get_metagraph_info(self.netuid)
+        if metagraph_info:
+            self._apply_metagraph_info_mixin(metagraph_info=metagraph_info)
+
+
+async def async_metagraph(
+    netuid: int,
+    network: str = settings.DEFAULT_NETWORK,
+    lite: bool = True,
+    sync: bool = True,
+    subtensor: "AsyncSubtensor" = None,
+) -> "AsyncMetagraph":
+    """
+    Factory function to create an instantiated AsyncMetagraph, mainly for the ability to use sync at instantiation.
+    """
+    metagraph_ = AsyncMetagraph(
+        netuid=netuid, network=network, lite=lite, sync=sync, subtensor=subtensor
+    )
+    if sync:
+        await metagraph_.sync()
+    return metagraph_

@@ -1,7 +1,6 @@
 """This module provides utilities for solving Proof-of-Work (PoW) challenges in Bittensor network."""
 
 import binascii
-from dataclasses import dataclass
 import functools
 import hashlib
 import math
@@ -10,10 +9,11 @@ import os
 import random
 import subprocess
 import time
+from dataclasses import dataclass
 from datetime import timedelta
 from multiprocessing.queues import Queue as QueueType
 from queue import Empty, Full
-from typing import Any, Callable, Optional, Union, TYPE_CHECKING
+from typing import Callable, Optional, Union, TYPE_CHECKING
 
 import numpy
 from Crypto.Hash import keccak
@@ -113,7 +113,9 @@ def _create_seal_hash(block_and_hotkey_hash_bytes: bytes, nonce: int) -> bytes:
     Create a cryptographic seal hash from the given block and hotkey hash bytes and nonce.
 
     This function generates a seal hash by combining the given block and hotkey hash bytes with a nonce.
-    It first converts the nonce to a byte representation, then concatenates it with the first 64 hex characters of the block and hotkey hash bytes. The result is then hashed using SHA-256 followed by the Keccak-256 algorithm to produce the final seal hash.
+    It first converts the nonce to a byte representation, then concatenates it with the first 64 hex characters of the
+    block and hotkey hash bytes. The result is then hashed using SHA-256 followed by the Keccak-256 algorithm to produce
+    the final seal hash.
 
     Args:
         block_and_hotkey_hash_bytes (bytes): The combined hash bytes of the block and hotkey.
@@ -189,13 +191,23 @@ class _SolverBase(mp.Process):
         proc_num (int): The number of the process being created.
         num_proc (int): The total number of processes running.
         update_interval (int): The number of nonces to try to solve before checking for a new block.
-        finished_queue (multiprocessing.Queue): The queue to put the process number when a process finishes each update_interval. Used for calculating the average time per update_interval across all processes.
+        finished_queue (multiprocessing.Queue): The queue to put the process number when a process finishes each
+            update_interval. Used for calculating the average time per update_interval across all processes.
         solution_queue (multiprocessing.Queue): The queue to put the solution the process has found during the pow solve.
-        stopEvent (multiprocessing.Event): The event to set by the main process when all the solver processes should stop. The solver process will check for the event after each update_interval. The solver process will stop when the event is set. Used to stop the solver processes when a solution is found.
-        curr_block (multiprocessing.Array): The array containing this process's current block hash. The main process will set the array to the new block hash when a new block is finalized in the network. The solver process will get the new block hash from this array when newBlockEvent is set.
-        curr_block_num (multiprocessing.Value): The value containing this process's current block number. The main process will set the value to the new block number when a new block is finalized in the network. The solver process will get the new block number from this value when newBlockEvent is set.
-        curr_diff (multiprocessing.Array): The array containing this process's current difficulty. The main process will set the array to the new difficulty when a new block is finalized in the network. The solver process will get the new difficulty from this array when newBlockEvent is set.
-        check_block (multiprocessing.Lock): The lock to prevent this process from getting the new block data while the main process is updating the data.
+        stopEvent (multiprocessing.Event): The event to set by the main process when all the solver processes should
+            stop. The solver process will check for the event after each update_interval. The solver process will stop
+            when the event is set. Used to stop the solver processes when a solution is found.
+        curr_block (multiprocessing.Array): The array containing this process's current block hash. The main process
+            will set the array to the new block hash when a new block is finalized in the network. The solver process
+            will get the new block hash from this array when newBlockEvent is set.
+        curr_block_num (multiprocessing.Value): The value containing this process's current block number. The main
+            process will set the value to the new block number when a new block is finalized in the network. The
+            solver process will get the new block number from this value when newBlockEvent is set.
+        curr_diff (multiprocessing.Array): The array containing this process's current difficulty. The main process will
+            set the array to the new difficulty when a new block is finalized in the network. The solver process will
+            get the new difficulty from this array when newBlockEvent is set.
+        check_block (multiprocessing.Lock): The lock to prevent this process from getting the new block data while the
+            main process is updating the data.
         limit (int): The limit of the pow solve for a valid solution.
     """
 
@@ -458,7 +470,8 @@ def update_curr_block(
     """
     Update the current block data with the provided block information and difficulty.
 
-    This function updates the current block and its difficulty in a thread-safe manner. It sets the current block number, hashes the block with the hotkey, updates the current block bytes, and packs the difficulty.
+    This function updates the current block and its difficulty in a thread-safe manner. It sets the current block
+    number, hashes the block with the hotkey, updates the current block bytes, and packs the difficulty.
 
     Arguments:
         curr_diff: Shared array to store the current difficulty.
@@ -575,7 +588,7 @@ def _solve_for_difficulty_fast(
     Solves the POW for registration using multiprocessing.
 
     Args:
-        subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance to connect to for block information and to submit.
+        subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance.
         wallet (bittensor_wallet.Wallet): wallet to use for registration.
         netuid (int): The netuid of the subnet to register to.
         output_in_place (bool): If true, prints the status in place. Otherwise, prints the status on a new line.
@@ -585,8 +598,11 @@ def _solve_for_difficulty_fast(
         alpha_ (float): The alpha for the EWMA for the hash_rate calculation.
         log_verbose (bool): If true, prints more verbose logging of the registration metrics.
 
-    Note: The hash rate is calculated as an exponentially weighted moving average in order to make the measure more robust.
-    Note: We can also modify the update interval to do smaller blocks of work, while still updating the block information after a different number of nonces, to increase the transparency of the process while still keeping the speed.
+    Note: The hash rate is calculated as an exponentially weighted moving average in order to make the measure more
+        robust.
+    Note: We can also modify the update interval to do smaller blocks of work, while still updating the block
+        information after a different number of nonces, to increase the transparency of the process while still
+        keeping the speed.
     """
     if num_processes is None:
         # get the number of allowed processes for this process
@@ -763,7 +779,7 @@ def _get_block_with_retry(subtensor: "Subtensor", netuid: int) -> tuple[int, int
     Gets the current block number, difficulty, and block hash from the substrate node.
 
     Args:
-        subtensor (bittensor.core.subtensor.Subtensor): The subtensor object to use to get the block number, difficulty, and block hash.
+        subtensor (bittensor.core.subtensor.Subtensor): The subtensor instance.
         netuid (int): The netuid of the network to get the block number, difficulty, and block hash from.
 
     Returns:
@@ -874,7 +890,8 @@ def _solve_for_difficulty_fast_cuda(
         output_in_place (bool) If true, prints the output in place, otherwise prints to new lines.
         update_interval (int): The number of nonces to try before checking for more blocks.
         tpb (int): The number of threads per block. CUDA param that should match the GPU capability
-        dev_id (Union[list[int], int]): The CUDA device IDs to execute the registration on, either a single device or a list of devices.
+        dev_id (Union[list[int], int]): The CUDA device IDs to execute the registration on, either a single device or a
+            list of devices.
         n_samples (int): The number of samples of the hash_rate to keep for the EWMA.
         alpha_ (float): The alpha for the EWMA for the hash_rate calculation.
         log_verbose (bool): If true, prints more verbose logging of the registration metrics.
@@ -1088,7 +1105,7 @@ def create_pow(
     num_processes: Optional[int] = None,
     update_interval: Optional[int] = None,
     log_verbose: bool = False,
-) -> Optional[dict[str, Any]]:
+) -> Optional["POWSolution"]:
     """
     Creates a proof of work for the given subtensor and wallet.
 
@@ -1096,16 +1113,21 @@ def create_pow(
         subtensor (bittensor.core.subtensor.Subtensor): The subtensor to create a proof of work for.
         wallet (bittensor_wallet.Wallet): The wallet to create a proof of work for.
         netuid (int): The netuid for the subnet to create a proof of work for.
-        output_in_place (bool): If true, prints the progress of the proof of work to the console in-place. Meaning the progress is printed on the same lines. Default is ``True``.
+        output_in_place (bool): If true, prints the progress of the proof of work to the console in-place. Meaning the
+            progress is printed on the same lines. Default is ``True``.
         cuda (bool): If true, uses CUDA to solve the proof of work. Default is ``False``.
-        dev_id (Union[List[int], int]): The CUDA device id(s) to use. If cuda is true and dev_id is a list, then multiple CUDA devices will be used to solve the proof of work. Default is ``0``.
-        tpb (int): The number of threads per block to use when solving the proof of work. Should be a multiple of 32. Default is ``256``.
-        num_processes (Optional[int]): The number of processes to use when solving the proof of work. If None, then the number of processes is equal to the number of CPU cores. Default is None.
+        dev_id (Union[List[int], int]): The CUDA device id(s) to use. If cuda is true and dev_id is a list, then
+            multiple CUDA devices will be used to solve the proof of work. Default is ``0``.
+        tpb (int): The number of threads per block to use when solving the proof of work. Should be a multiple of 32.
+            Default is ``256``.
+        num_processes (Optional[int]): The number of processes to use when solving the proof of work. If None, then the
+            number of processes is equal to the number of CPU cores. Default is None.
         update_interval (Optional[int]): The number of nonces to run before checking for a new block. Default is ``None``.
         log_verbose (bool): If true, prints the progress of the proof of work more verbosely. Default is ``False``.
 
     Returns:
-        Optional[Dict[str, Any]]: The proof of work solution or None if the wallet is already registered or there is a different error.
+        Optional[Dict[str, Any]]: The proof of work solution or None if the wallet is already registered or there is a
+            different error.
 
     Raises:
        ValueError: If the subnet does not exist.
