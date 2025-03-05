@@ -91,5 +91,5 @@ classifiers = [
 ]
 
 [tool.setuptools]
-package-dir = {"" = "bittensor"}
+package-dir = {"bittensor" = "bittensor"}
 script-files = ["bittensor/utils/certifi.sh"]
