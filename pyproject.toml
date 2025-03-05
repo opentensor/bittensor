@@ -61,7 +61,8 @@ dev = [
     "ruff==0.4.7",
     "aioresponses==0.7.6",
     "factory-boy==3.3.0",
-    "types-requests"
+    "types-requests",
+    "torch>=1.13.1,<2.6.0"
 ]
 torch = [
     "torch>=1.13.1,<2.6.0"
