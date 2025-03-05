@@ -1,29 +1,14 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
-__version__ = "8.5.1"
+__version__ = "9.0.2"
 
 import os
 import re
-import warnings
 from pathlib import Path
 
 from munch import munchify
 
+ROOT_TAO_STAKE_WEIGHT = 0.18
+
+READ_ONLY = os.getenv("READ_ONLY") == "1"
 
 HOME_DIR = Path.home()
 USER_BITTENSOR_DIR = HOME_DIR / ".bittensor"
@@ -31,15 +16,13 @@ WALLETS_DIR = USER_BITTENSOR_DIR / "wallets"
 MINERS_DIR = USER_BITTENSOR_DIR / "miners"
 
 
-# Create dirs if they don't exist
-WALLETS_DIR.mkdir(parents=True, exist_ok=True)
-MINERS_DIR.mkdir(parents=True, exist_ok=True)
+if not READ_ONLY:
+    # Create dirs if they don't exist
+    WALLETS_DIR.mkdir(parents=True, exist_ok=True)
+    MINERS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Bittensor networks name
-NETWORKS = ["finney", "test", "archive", "local", "subvortex"]
-
-DEFAULT_ENDPOINT = "wss://entrypoint-finney.opentensor.ai:443"
-DEFAULT_NETWORK = NETWORKS[0]
+NETWORKS = ["finney", "test", "archive", "local", "subvortex", "rao", "latent-lite"]
 
 # Bittensor endpoints (Needs to use wss://)
 FINNEY_ENTRYPOINT = "wss://entrypoint-finney.opentensor.ai:443"
@@ -47,6 +30,8 @@ FINNEY_TEST_ENTRYPOINT = "wss://test.finney.opentensor.ai:443"
 ARCHIVE_ENTRYPOINT = "wss://archive.chain.opentensor.ai:443"
 LOCAL_ENTRYPOINT = os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT") or "ws://127.0.0.1:9944"
 SUBVORTEX_ENTRYPOINT = "ws://subvortex.info:9944"
+RAO_ENTRYPOINT = "wss://rao.chain.opentensor.ai:443"
+LATENT_LITE_ENTRYPOINT = "wss://lite.sub.latent.to:443"
 
 NETWORK_MAP = {
     NETWORKS[0]: FINNEY_ENTRYPOINT,
@@ -54,6 +39,8 @@ NETWORK_MAP = {
     NETWORKS[2]: ARCHIVE_ENTRYPOINT,
     NETWORKS[3]: LOCAL_ENTRYPOINT,
     NETWORKS[4]: SUBVORTEX_ENTRYPOINT,
+    NETWORKS[5]: RAO_ENTRYPOINT,
+    NETWORKS[6]: LATENT_LITE_ENTRYPOINT,
 }
 
 REVERSE_NETWORK_MAP = {
@@ -62,7 +49,12 @@ REVERSE_NETWORK_MAP = {
     ARCHIVE_ENTRYPOINT: NETWORKS[2],
     LOCAL_ENTRYPOINT: NETWORKS[3],
     SUBVORTEX_ENTRYPOINT: NETWORKS[4],
+    RAO_ENTRYPOINT: NETWORKS[5],
+    LATENT_LITE_ENTRYPOINT: NETWORKS[6],
 }
+
+DEFAULT_NETWORK = NETWORKS[0]
+DEFAULT_ENDPOINT = NETWORK_MAP[DEFAULT_NETWORK]
 
 # Currency Symbols Bittensor
 TAO_SYMBOL: str = chr(0x03C4)
@@ -79,9 +71,6 @@ SS58_FORMAT = 42
 
 # Wallet ss58 address length
 SS58_ADDRESS_LENGTH = 48
-
-# Raw GitHub url for delegates registry file
-DELEGATES_DETAILS_URL = "https://raw.githubusercontent.com/opentensor/bittensor-delegates/main/public/delegates.json"
 
 # Block Explorers map network to explorer url
 # Must all be polkadotjs explorer urls
@@ -102,168 +91,6 @@ NETWORK_EXPLORER_MAP = {
 TYPE_REGISTRY: dict[str, dict] = {
     "types": {
         "Balance": "u64",  # Need to override default u128
-    },
-    "runtime_api": {
-        "DelegateInfoRuntimeApi": {
-            "methods": {
-                "get_delegated": {
-                    "params": [
-                        {
-                            "name": "coldkey",
-                            "type": "Vec<u8>",
-                        },
-                    ],
-                    "type": "Vec<u8>",
-                },
-                "get_delegates": {
-                    "params": [],
-                    "type": "Vec<u8>",
-                },
-            }
-        },
-        "NeuronInfoRuntimeApi": {
-            "methods": {
-                "get_neuron_lite": {
-                    "params": [
-                        {
-                            "name": "netuid",
-                            "type": "u16",
-                        },
-                        {
-                            "name": "uid",
-                            "type": "u16",
-                        },
-                    ],
-                    "type": "Vec<u8>",
-                },
-                "get_neurons_lite": {
-                    "params": [
-                        {
-                            "name": "netuid",
-                            "type": "u16",
-                        },
-                    ],
-                    "type": "Vec<u8>",
-                },
-                "get_neuron": {
-                    "params": [
-                        {
-                            "name": "netuid",
-                            "type": "u16",
-                        },
-                        {
-                            "name": "uid",
-                            "type": "u16",
-                        },
-                    ],
-                    "type": "Vec<u8>",
-                },
-                "get_neurons": {
-                    "params": [
-                        {
-                            "name": "netuid",
-                            "type": "u16",
-                        },
-                    ],
-                    "type": "Vec<u8>",
-                },
-            }
-        },
-        "StakeInfoRuntimeApi": {
-            "methods": {
-                "get_stake_info_for_coldkey": {
-                    "params": [
-                        {
-                            "name": "coldkey_account_vec",
-                            "type": "Vec<u8>",
-                        },
-                    ],
-                    "type": "Vec<u8>",
-                },
-                "get_stake_info_for_coldkeys": {
-                    "params": [
-                        {
-                            "name": "coldkey_account_vecs",
-                            "type": "Vec<Vec<u8>>",
-                        },
-                    ],
-                    "type": "Vec<u8>",
-                },
-            },
-        },
-        "ValidatorIPRuntimeApi": {
-            "methods": {
-                "get_associated_validator_ip_info_for_subnet": {
-                    "params": [
-                        {
-                            "name": "netuid",
-                            "type": "u16",
-                        },
-                    ],
-                    "type": "Vec<u8>",
-                },
-            },
-        },
-        "SubnetInfoRuntimeApi": {
-            "methods": {
-                "get_subnet_hyperparams": {
-                    "params": [
-                        {
-                            "name": "netuid",
-                            "type": "u16",
-                        },
-                    ],
-                    "type": "Vec<u8>",
-                },
-                "get_subnet_info": {
-                    "params": [
-                        {
-                            "name": "netuid",
-                            "type": "u16",
-                        },
-                    ],
-                    "type": "Vec<u8>",
-                },
-                "get_subnets_info": {
-                    "params": [],
-                    "type": "Vec<u8>",
-                },
-            }
-        },
-        "SubnetRegistrationRuntimeApi": {
-            "methods": {"get_network_registration_cost": {"params": [], "type": "u64"}}
-        },
-        "ColdkeySwapRuntimeApi": {
-            "methods": {
-                "get_scheduled_coldkey_swap": {
-                    "params": [
-                        {
-                            "name": "coldkey_account_vec",
-                            "type": "Vec<u8>",
-                        },
-                    ],
-                    "type": "Vec<u8>",
-                },
-                "get_remaining_arbitration_period": {
-                    "params": [
-                        {
-                            "name": "coldkey_account_vec",
-                            "type": "Vec<u8>",
-                        },
-                    ],
-                    "type": "Vec<u8>",
-                },
-                "get_coldkey_swap_destinations": {
-                    "params": [
-                        {
-                            "name": "coldkey_account_vec",
-                            "type": "Vec<u8>",
-                        },
-                    ],
-                    "type": "Vec<u8>",
-                },
-            }
-        },
     },
 }
 
@@ -329,15 +156,7 @@ def __apply_nest_asyncio():
     If not set, warn the user that the default will change in the future.
     """
     nest_asyncio_env = os.getenv("NEST_ASYNCIO")
-    if nest_asyncio_env == "1" or nest_asyncio_env is None:
-        if nest_asyncio_env is None:
-            warnings.warn(
-                """NEST_ASYNCIO implicitly set to '1'. In the future, the default value will be '0'.
-                If you use `nest_asyncio`, make sure to add it explicitly to your project dependencies,
-                as it will be removed from `bittensor` package dependencies in the future.
-                To silence this warning, explicitly set the environment variable, e.g. `export NEST_ASYNCIO=0`.""",
-                DeprecationWarning,
-            )
+    if nest_asyncio_env == "1":
         # Install and apply nest asyncio to allow the async functions to run in a .ipynb
         import nest_asyncio
 

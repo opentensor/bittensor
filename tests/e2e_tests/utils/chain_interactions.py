@@ -4,6 +4,7 @@ these are not present in btsdk but are required for e2e tests
 """
 
 import asyncio
+import unittest.mock
 from typing import Union, Optional, TYPE_CHECKING
 
 from bittensor.utils.btlogging import logging
@@ -12,8 +13,13 @@ from bittensor.utils.btlogging import logging
 if TYPE_CHECKING:
     from bittensor import Wallet
     from bittensor.core.subtensor import Subtensor
-    from bittensor.utils.balance import Balance
-    from substrateinterface import SubstrateInterface
+    from async_substrate_interface import SubstrateInterface, ExtrinsicReceipt
+
+
+ANY_BALANCE = unittest.mock.Mock(
+    rao=unittest.mock.ANY,
+    unit=unittest.mock.ANY,
+)
 
 
 def sudo_set_hyperparameter_bool(
@@ -37,7 +43,6 @@ def sudo_set_hyperparameter_bool(
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
-    response.process_events()
     return response.is_success
 
 
@@ -62,7 +67,6 @@ def sudo_set_hyperparameter_values(
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
-    response.process_events()
 
     if return_error_message:
         return response.is_success, response.error_message
@@ -70,47 +74,7 @@ def sudo_set_hyperparameter_values(
     return response.is_success
 
 
-def add_stake(
-    substrate: "SubstrateInterface", wallet: "Wallet", amount: "Balance"
-) -> bool:
-    """
-    Adds stake to a hotkey using SubtensorModule. Mimics command of adding stake
-    """
-    stake_call = substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="add_stake",
-        call_params={"hotkey": wallet.hotkey.ss58_address, "amount_staked": amount.rao},
-    )
-    extrinsic = substrate.create_signed_extrinsic(
-        call=stake_call, keypair=wallet.coldkey
-    )
-    response = substrate.submit_extrinsic(
-        extrinsic, wait_for_finalization=True, wait_for_inclusion=True
-    )
-    response.process_events()
-    return response.is_success
-
-
-def register_subnet(substrate: "SubstrateInterface", wallet: "Wallet") -> bool:
-    """
-    Registers a subnet on the chain using wallet. Mimics register subnet command.
-    """
-    register_call = substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="register_network",
-        call_params={"immunity_period": 0, "reg_allowed": True},
-    )
-    extrinsic = substrate.create_signed_extrinsic(
-        call=register_call, keypair=wallet.coldkey
-    )
-    response = substrate.submit_extrinsic(
-        extrinsic, wait_for_finalization=True, wait_for_inclusion=True
-    )
-    response.process_events()
-    return response.is_success
-
-
-async def wait_epoch(subtensor: "Subtensor", netuid: int = 1):
+async def wait_epoch(subtensor: "Subtensor", netuid: int = 1, times: int = 1):
     """
     Waits for the next epoch to start on a specific subnet.
 
@@ -121,16 +85,12 @@ async def wait_epoch(subtensor: "Subtensor", netuid: int = 1):
     Raises:
         Exception: If the tempo cannot be determined from the chain.
     """
-    q_tempo = [
-        v.value
-        for [k, v] in subtensor.query_map_subtensor("Tempo")
-        if k.value == netuid
-    ]
+    q_tempo = [v for (k, v) in subtensor.query_map_subtensor("Tempo") if k == netuid]
     if len(q_tempo) == 0:
         raise Exception("could not determine tempo")
-    tempo = q_tempo[0]
+    tempo = q_tempo[0].value
     logging.info(f"tempo = {tempo}")
-    await wait_interval(tempo, subtensor, netuid)
+    await wait_interval(tempo * times, subtensor, netuid)
 
 
 def next_tempo(current_block: int, tempo: int, netuid: int) -> int:
@@ -147,12 +107,16 @@ def next_tempo(current_block: int, tempo: int, netuid: int) -> int:
     """
     interval = tempo + 1
     last_epoch = current_block - 1 - (current_block + netuid + 1) % interval
-    next_tempo = last_epoch + interval
-    return next_tempo
+    next_tempo_ = last_epoch + interval
+    return next_tempo_
 
 
 async def wait_interval(
-    tempo: int, subtensor: "Subtensor", netuid: int = 1, reporting_interval: int = 10
+    tempo: int,
+    subtensor: "Subtensor",
+    netuid: int = 1,
+    reporting_interval: int = 1,
+    sleep: float = 0.25,
 ):
     """
     Waits until the next tempo interval starts for a specific subnet.
@@ -167,8 +131,8 @@ async def wait_interval(
 
     while current_block < next_tempo_block_start:
         await asyncio.sleep(
-            1
-        )  # Wait for 1 second before checking the block number again
+            sleep,
+        )  # Wait before checking the block number again
         current_block = subtensor.get_current_block()
         if last_reported is None or current_block - last_reported >= reporting_interval:
             last_reported = current_block
@@ -187,7 +151,7 @@ def sudo_set_admin_utils(
     call_function: str,
     call_params: dict,
     return_error_message: bool = False,
-) -> Union[bool, tuple[bool, Optional[str]]]:
+) -> tuple[bool, str]:
     """
     Wraps the call in sudo to set hyperparameter values using AdminUtils.
 
@@ -215,17 +179,16 @@ def sudo_set_admin_utils(
     extrinsic = substrate.create_signed_extrinsic(
         call=sudo_call, keypair=wallet.coldkey
     )
-    response = substrate.submit_extrinsic(
+    response: "ExtrinsicReceipt" = substrate.submit_extrinsic(
         extrinsic,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
-    response.process_events()
 
     if return_error_message:
         return response.is_success, response.error_message
 
-    return response.is_success
+    return response.is_success, ""
 
 
 async def root_set_subtensor_hyperparameter_values(
@@ -234,7 +197,7 @@ async def root_set_subtensor_hyperparameter_values(
     call_function: str,
     call_params: dict,
     return_error_message: bool = False,
-) -> Union[bool, tuple[bool, Optional[str]]]:
+) -> tuple[bool, str]:
     """
     Sets liquid alpha values using AdminUtils. Mimics setting hyperparams
     """
@@ -245,14 +208,93 @@ async def root_set_subtensor_hyperparameter_values(
     )
     extrinsic = substrate.create_signed_extrinsic(call=call, keypair=wallet.coldkey)
 
-    response = substrate.submit_extrinsic(
+    response: "ExtrinsicReceipt" = substrate.submit_extrinsic(
         extrinsic,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
-    response.process_events()
 
     if return_error_message:
         return response.is_success, response.error_message
 
-    return response.is_success
+    return response.is_success, ""
+
+
+def set_children(subtensor, wallet, netuid, children):
+    return subtensor.sign_and_send_extrinsic(
+        subtensor.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="set_children",
+            call_params={
+                "children": children,
+                "hotkey": wallet.hotkey.ss58_address,
+                "netuid": netuid,
+            },
+        ),
+        wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+
+def increase_take(subtensor, wallet, take):
+    return subtensor.sign_and_send_extrinsic(
+        subtensor.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="increase_take",
+            call_params={
+                "hotkey": wallet.hotkey.ss58_address,
+                "take": int(take * 0xFFFF),  # u16 representation of the take
+            },
+        ),
+        wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+
+def decrease_take(subtensor, wallet, take):
+    return subtensor.sign_and_send_extrinsic(
+        subtensor.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="decrease_take",
+            call_params={
+                "hotkey": wallet.hotkey.ss58_address,
+                "take": int(take * 0xFFFF),  # u16 representation of the take
+            },
+        ),
+        wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+
+def set_identity(
+    subtensor,
+    wallet,
+    name="",
+    url="",
+    github_repo="",
+    image="",
+    discord="",
+    description="",
+    additional="",
+):
+    return subtensor.sign_and_send_extrinsic(
+        subtensor.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="set_identity",
+            call_params={
+                "name": name,
+                "url": url,
+                "github_repo": github_repo,
+                "image": image,
+                "discord": discord,
+                "description": description,
+                "additional": additional,
+            },
+        ),
+        wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )

@@ -52,7 +52,7 @@ jobs:
       max-parallel: 8  # Set the maximum number of parallel jobs
       matrix:
         rust-branch:
-          - nightly-2024-03-05
+          - stable
         rust-target:
           - x86_64-unknown-linux-gnu
         os:
@@ -90,7 +90,7 @@ jobs:
 
       - name: Setup subtensor repo
         working-directory: ${{ github.workspace }}/subtensor
-        run: git checkout testnet
+        run: git checkout devnet-ready
 
       - name: Run tests
         run: |
