@@ -57,6 +57,10 @@ from bittensor.core.extrinsics.asyncex.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
 )
+from bittensor.core.extrinsics.asyncex.take import (
+    decrease_take_extrinsic,
+    increase_take_extrinsic,
+)
 from bittensor.core.extrinsics.asyncex.transfer import transfer_extrinsic
 from bittensor.core.extrinsics.asyncex.unstaking import (
     unstake_extrinsic,
@@ -1111,7 +1115,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> Optional[float]:
+    ) -> float:
         """
         Retrieves the delegate 'take' percentage for a neuron identified by its hotkey. The 'take' represents the
             percentage of rewards that the delegate claims from its nominators' stakes.
@@ -1123,7 +1127,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block (bool): Whether to reuse the last-used block hash.
 
         Returns:
-            Optional[float]: The delegate take percentage, None if not available.
+            float: The delegate take percentage.
 
         The delegate take is a critical parameter in the network's incentive structure, influencing the distribution of
             rewards among neurons and their nominators.
@@ -1135,11 +1139,8 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block=reuse_block,
             params=[hotkey_ss58],
         )
-        return (
-            None
-            if result is None
-            else u16_normalized_float(getattr(result, "value", 0))
-        )
+
+        return u16_normalized_float(result.value)  # type: ignore
 
     async def get_delegated(
         self,
@@ -3274,6 +3275,69 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization=wait_for_finalization,
             wait_for_inclusion=wait_for_inclusion,
         )
+
+    async def set_delegate_take(
+        self,
+        wallet: "Wallet",
+        hotkey_ss58: str,
+        take: float,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    ) -> None:
+        """
+        Sets the delegate 'take' percentage for a nueron identified by its hotkey.
+        The 'take' represents the percentage of rewards that the delegate claims from its nominators' stakes.
+
+        Arguments:
+            wallet (bittensor_wallet.Wallet): bittensor wallet instance.
+            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
+            take (float): Percentage reward for the delegate.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+
+        Raises:
+            DelegateTakeTooHigh: Delegate take is too high.
+            DelegateTakeTooLow: Delegate take is too low.
+            DelegateTxRateLimitExceeded: A transactor exceeded the rate limit for delegate transaction.
+            HotKeyAccountNotExists: The hotkey does not exists.
+            NonAssociatedColdKey: Request to stake, unstake or subscribe is made by a coldkey that is not associated with the hotkey account.
+
+        The delegate take is a critical parameter in the network's incentive structure, influencing the distribution of
+            rewards among neurons and their nominators.
+        """
+
+        # u16 representation of the take
+        take_u16 = int(take * 0xFFFF)
+
+        current_take = await self.get_delegate_take(hotkey_ss58)
+        current_take_u16 = int(current_take * 0xFFFF)
+
+        if current_take_u16 == take_u16:
+            logging.info(":white_heavy_check_mark: [green]Already Set[/green]")
+            return
+
+        logging.info(f"Updating {hotkey_ss58} take: current={current_take} new={take}")
+
+        if current_take_u16 < take_u16:
+            await increase_take_extrinsic(
+                self,
+                wallet,
+                hotkey_ss58,
+                take_u16,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_inclusion=wait_for_inclusion,
+            )
+        else:
+            await decrease_take_extrinsic(
+                self,
+                wallet,
+                hotkey_ss58,
+                take_u16,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_inclusion=wait_for_inclusion,
+            )
+
+        logging.info(":white_heavy_check_mark: [green]Take Updated[/green]")
 
     async def set_subnet_identity(
         self,
