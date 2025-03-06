@@ -1,32 +1,27 @@
 """Module with helper functions for extrinsics."""
 
-from concurrent.futures import ThreadPoolExecutor
-import os
-import threading
 from typing import TYPE_CHECKING
 
-from substrateinterface.exceptions import SubstrateRequestException, ExtrinsicNotFound
+from async_substrate_interface.errors import SubstrateRequestException
 
-from bittensor.utils.btlogging import logging
 from bittensor.utils import format_error_message
+from bittensor.utils.balance import Balance
+from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
-    from substrateinterface import SubstrateInterface, ExtrinsicReceipt
-    from scalecodec.types import GenericExtrinsic
-
-try:
-    EXTRINSIC_SUBMISSION_TIMEOUT = float(os.getenv("EXTRINSIC_SUBMISSION_TIMEOUT", 200))
-except ValueError:
-    raise ValueError(
-        "EXTRINSIC_SUBMISSION_TIMEOUT environment variable must be a float."
+    from bittensor_wallet import Wallet
+    from bittensor.core.async_subtensor import AsyncSubtensor
+    from async_substrate_interface import (
+        AsyncExtrinsicReceipt,
+        ExtrinsicReceipt,
     )
-
-if EXTRINSIC_SUBMISSION_TIMEOUT < 0:
-    raise ValueError("EXTRINSIC_SUBMISSION_TIMEOUT cannot be negative.")
+    from bittensor.core.subtensor import Subtensor
+    from bittensor.core.chain_data import StakeInfo
+    from scalecodec.types import GenericExtrinsic
 
 
 def submit_extrinsic(
-    substrate: "SubstrateInterface",
+    subtensor: "Subtensor",
     extrinsic: "GenericExtrinsic",
     wait_for_inclusion: bool,
     wait_for_finalization: bool,
@@ -39,7 +34,7 @@ def submit_extrinsic(
     it logs the error and re-raises the exception.
 
     Args:
-        substrate (substrateinterface.SubstrateInterface): The substrate interface instance used to interact with the blockchain.
+        subtensor: The Subtensor instance used to interact with the blockchain.
         extrinsic (scalecodec.types.GenericExtrinsic): The extrinsic to be submitted to the blockchain.
         wait_for_inclusion (bool): Whether to wait for the extrinsic to be included in a block.
         wait_for_finalization (bool): Whether to wait for the extrinsic to be finalized on the blockchain.
@@ -50,56 +45,87 @@ def submit_extrinsic(
     Raises:
         SubstrateRequestException: If the submission of the extrinsic fails, the error is logged and re-raised.
     """
-    extrinsic_hash = extrinsic.extrinsic_hash
-    starting_block = substrate.get_block()
+    try:
+        return subtensor.substrate.submit_extrinsic(
+            extrinsic,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+    except SubstrateRequestException as e:
+        logging.error(format_error_message(e.args[0]))
+        # Re-raise the exception for retrying of the extrinsic call. If we remove the retry logic,
+        # the raise will need to be removed.
+        raise
 
-    timeout = EXTRINSIC_SUBMISSION_TIMEOUT
-    event = threading.Event()
 
-    def submit():
-        try:
-            response_ = substrate.submit_extrinsic(
-                extrinsic,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-        except SubstrateRequestException as e:
-            logging.error(format_error_message(e.args[0], substrate=substrate))
-            # Re-raise the exception for retrying of the extrinsic call. If we remove the retry logic,
-            # the raise will need to be removed.
-            raise
-        finally:
-            event.set()
-        return response_
+async def async_submit_extrinsic(
+    subtensor: "AsyncSubtensor",
+    extrinsic: "GenericExtrinsic",
+    wait_for_inclusion: bool,
+    wait_for_finalization: bool,
+) -> "AsyncExtrinsicReceipt":
+    """
+    Submits an extrinsic to the substrate blockchain and handles potential exceptions.
 
-    with ThreadPoolExecutor(max_workers=1) as executor:
-        response = None
-        future = executor.submit(submit)
-        if not event.wait(timeout):
-            logging.error("Timed out waiting for extrinsic submission.")
-            after_timeout_block = substrate.get_block()
+    This function attempts to submit an extrinsic to the substrate blockchain with specified options
+    for waiting for inclusion in a block and/or finalization. If an exception occurs during submission,
+    it logs the error and re-raises the exception.
 
-            for block_num in range(
-                starting_block["header"]["number"],
-                after_timeout_block["header"]["number"] + 1,
-            ):
-                block_hash = substrate.get_block_hash(block_num)
-                try:
-                    response = substrate.retrieve_extrinsic_by_hash(
-                        block_hash, f"0x{extrinsic_hash.hex()}"
-                    )
-                except ExtrinsicNotFound:
-                    continue
-                if response:
-                    break
-            if response is None:
-                logging.error(
-                    f"Extrinsic '0x{extrinsic_hash.hex()}' not submitted. "
-                    f"Initially attempted to submit at block {starting_block['header']['number']}."
-                )
-                raise SubstrateRequestException
+    Args:
+        subtensor: The AsyncSubtensor instance used to interact with the blockchain.
+        extrinsic: The extrinsic to be submitted to the blockchain.
+        wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+        wait_for_finalization: Whether to wait for the extrinsic to be finalized on the blockchain.
 
-        else:
-            response = future.result()
+    Returns:
+        response: The response from the substrate after submitting the extrinsic.
 
-    return response
+    Raises:
+        SubstrateRequestException: If the submission of the extrinsic fails, the error is logged and re-raised.
+    """
+    try:
+        return await subtensor.substrate.submit_extrinsic(
+            extrinsic,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+    except SubstrateRequestException as e:
+        logging.error(format_error_message(e.args[0]))
+        # Re-raise the exception for retrying of the extrinsic call. If we remove the retry logic,
+        # the raise will need to be removed.
+        raise
+
+
+def get_old_stakes(
+    wallet: "Wallet",
+    hotkey_ss58s: list[str],
+    netuids: list[int],
+    all_stakes: list["StakeInfo"],
+) -> list[Balance]:
+    """
+    Retrieve the previous staking balances for a wallet's hotkeys across given netuids.
+
+    This function searches through the provided staking data to find the stake amounts
+    for the specified hotkeys and netuids associated with the wallet's coldkey. If no match
+    is found for a particular hotkey and netuid combination, a default balance of zero is returned.
+
+    Args:
+        wallet (Wallet): The wallet containing the coldkey to compare with stake data.
+        hotkey_ss58s (list[str]): List of hotkey SS58 addresses for which stakes are retrieved.
+        netuids (list[int]): List of network unique identifiers (netuids) corresponding to the hotkeys.
+        all_stakes (list[StakeInfo]): A collection of all staking information to search through.
+
+    Returns:
+        list[Balance]: A list of Balances, each representing the stake for a given hotkey and netuid.
+    """
+    stake_lookup = {
+        (stake.hotkey_ss58, stake.coldkey_ss58, stake.netuid): stake.stake
+        for stake in all_stakes
+    }
+    return [
+        stake_lookup.get(
+            (hotkey_ss58, wallet.coldkeypub.ss58_address, netuid),
+            Balance.from_tao(0),  # Default to 0 balance if no match found
+        )
+        for hotkey_ss58, netuid in zip(hotkey_ss58s, netuids)
+    ]

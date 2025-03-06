@@ -2,7 +2,7 @@ import pytest
 from bittensor_wallet import Wallet
 
 from bittensor.core import async_subtensor
-from bittensor.core.extrinsics import async_registration
+from bittensor.core.extrinsics.asyncex import registration as async_registration
 
 
 @pytest.fixture(autouse=True)
@@ -69,12 +69,11 @@ async def test_do_pow_register_success(subtensor, mocker):
     subtensor.substrate.create_signed_extrinsic.asseert_awaited_once_with(
         call=fake_call, keypair=fake_wallet.hotkey
     )
-    subtensor.substrate.submit_extrinsic.asseert_awaited_once_with(
+    subtensor.substrate.submit_extrinsic.assert_awaited_once_with(
         fake_extrinsic, wait_for_inclusion=True, wait_for_finalization=True
     )
-    fake_response.process_events.assert_called_once()
     assert result is True
-    assert error_message is None
+    assert error_message == ""
 
 
 @pytest.mark.asyncio
@@ -106,7 +105,7 @@ async def test_do_pow_register_failure(subtensor, mocker):
         subtensor.substrate, "submit_extrinsic", return_value=fake_response
     )
     mocked_format_error_message = mocker.patch.object(
-        async_registration, "format_error_message"
+        async_subtensor, "format_error_message"
     )
 
     # Call
@@ -125,12 +124,10 @@ async def test_do_pow_register_failure(subtensor, mocker):
         call=fake_call, keypair=fake_wallet.hotkey
     )
     subtensor.substrate.submit_extrinsic.asseert_awaited_once_with(
-        extrinsic=fake_extrinsic, wait_for_inclusion=True, wait_for_finalization=True
+        fake_extrinsic, wait_for_inclusion=True, wait_for_finalization=True
     )
 
-    mocked_format_error_message.assert_called_once_with(
-        error_message=fake_err_message, substrate=subtensor.substrate
-    )
+    mocked_format_error_message.assert_called_once_with(fake_err_message)
     assert result_error_message == (False, mocked_format_error_message.return_value)
 
 
@@ -176,7 +173,7 @@ async def test_do_pow_register_no_waiting(subtensor, mocker):
         fake_extrinsic, wait_for_inclusion=False, wait_for_finalization=False
     )
     assert result is True
-    assert error_message is None
+    assert error_message == ""
 
 
 @pytest.mark.asyncio
@@ -217,8 +214,15 @@ async def test_register_extrinsic_success(subtensor, mocker):
     )
 
     # Asserts
-    mocked_subnet_exists.assert_called_once_with(1)
-    mocked_get_neuron.assert_called_once_with(hotkey_ss58="hotkey_ss58", netuid=1)
+    mocked_subnet_exists.assert_called_once_with(
+        1,
+        block_hash=subtensor.substrate.get_chain_head.return_value,
+    )
+    mocked_get_neuron.assert_called_once_with(
+        hotkey_ss58="hotkey_ss58",
+        netuid=1,
+        block_hash=subtensor.substrate.get_chain_head.return_value,
+    )
     mocked_create_pow.assert_called_once()
     mocked_do_pow_register.assert_called_once()
     mocked_is_hotkey_registered.assert_called_once_with(
@@ -267,8 +271,15 @@ async def test_register_extrinsic_success_with_cuda(subtensor, mocker):
     )
 
     # Asserts
-    mocked_subnet_exists.assert_called_once_with(1)
-    mocked_get_neuron.assert_called_once_with(hotkey_ss58="hotkey_ss58", netuid=1)
+    mocked_subnet_exists.assert_called_once_with(
+        1,
+        block_hash=subtensor.substrate.get_chain_head.return_value,
+    )
+    mocked_get_neuron.assert_called_once_with(
+        hotkey_ss58="hotkey_ss58",
+        netuid=1,
+        block_hash=subtensor.substrate.get_chain_head.return_value,
+    )
     mocked_create_pow.assert_called_once()
     mocked_do_pow_register.assert_called_once()
     mocked_is_hotkey_registered.assert_called_once_with(
@@ -306,8 +317,15 @@ async def test_register_extrinsic_failed_with_cuda(subtensor, mocker):
     )
 
     # Asserts
-    mocked_subnet_exists.assert_called_once_with(1)
-    mocked_get_neuron.assert_called_once_with(hotkey_ss58="hotkey_ss58", netuid=1)
+    mocked_subnet_exists.assert_called_once_with(
+        1,
+        block_hash=subtensor.substrate.get_chain_head.return_value,
+    )
+    mocked_get_neuron.assert_called_once_with(
+        hotkey_ss58="hotkey_ss58",
+        netuid=1,
+        block_hash=subtensor.substrate.get_chain_head.return_value,
+    )
     assert result is False
 
 
@@ -329,7 +347,10 @@ async def test_register_extrinsic_subnet_not_exists(subtensor, mocker):
     )
 
     # Asserts
-    mocked_subnet_exists.assert_called_once_with(1)
+    mocked_subnet_exists.assert_called_once_with(
+        1,
+        block_hash=subtensor.substrate.get_chain_head.return_value,
+    )
     assert result is False
 
 
@@ -353,7 +374,9 @@ async def test_register_extrinsic_already_registered(subtensor, mocker):
 
     # Asserts
     mocked_get_neuron.assert_called_once_with(
-        hotkey_ss58=fake_wallet.hotkey.ss58_address, netuid=1
+        hotkey_ss58=fake_wallet.hotkey.ss58_address,
+        netuid=1,
+        block_hash=subtensor.substrate.get_chain_head.return_value,
     )
     assert result is True
 
@@ -403,8 +426,15 @@ async def test_register_extrinsic_max_attempts_reached(subtensor, mocker):
     )
 
     # Asserts
-    mocked_subnet_exists.assert_called_once_with(1)
-    mocked_get_neuron.assert_called_once_with(hotkey_ss58="hotkey_ss58", netuid=1)
+    mocked_subnet_exists.assert_called_once_with(
+        1,
+        block_hash=subtensor.substrate.get_chain_head.return_value,
+    )
+    mocked_get_neuron.assert_called_once_with(
+        hotkey_ss58="hotkey_ss58",
+        netuid=1,
+        block_hash=subtensor.substrate.get_chain_head.return_value,
+    )
     assert mocked_create_pow.call_count == 3
     assert mocked_do_pow_register.call_count == 3
 
@@ -417,3 +447,134 @@ async def test_register_extrinsic_max_attempts_reached(subtensor, mocker):
         wait_for_finalization=True,
     )
     assert result is False
+
+
+@pytest.mark.asyncio
+async def test_set_subnet_identity_extrinsic_is_success(subtensor, mocker):
+    """Verify that set_subnet_identity_extrinsic calls the correct functions and returns the correct result."""
+    # Preps
+    wallet = mocker.MagicMock(autospec=Wallet)
+    netuid = 123
+    subnet_name = "mock_subnet_name"
+    github_repo = "mock_github_repo"
+    subnet_contact = "mock_subnet_contact"
+    subnet_url = "mock_subnet_url"
+    discord = "mock_discord"
+    description = "mock_description"
+    additional = "mock_additional"
+
+    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+
+    fake_response = mocker.Mock()
+    fake_response.is_success = mocker.AsyncMock(return_value=True)()
+    mocked_submit_extrinsic = mocker.patch.object(
+        subtensor.substrate, "submit_extrinsic", return_value=fake_response
+    )
+
+    # Call
+    result = await async_registration.set_subnet_identity_extrinsic(
+        subtensor=subtensor,
+        wallet=wallet,
+        netuid=netuid,
+        subnet_name=subnet_name,
+        github_repo=github_repo,
+        subnet_contact=subnet_contact,
+        subnet_url=subnet_url,
+        discord=discord,
+        description=description,
+        additional=additional,
+    )
+
+    # Asserts
+    mocked_compose_call.assert_awaited_once_with(
+        call_module="SubtensorModule",
+        call_function="set_subnet_identity",
+        call_params={
+            "hotkey": wallet.hotkey.ss58_address,
+            "netuid": netuid,
+            "subnet_name": subnet_name,
+            "github_repo": github_repo,
+            "subnet_contact": subnet_contact,
+            "subnet_url": subnet_url,
+            "discord": discord,
+            "description": description,
+            "additional": additional,
+        },
+    )
+    mocked_submit_extrinsic.assert_awaited_once_with(
+        call=mocked_compose_call.return_value,
+        wallet=wallet,
+        wait_for_inclusion=False,
+        wait_for_finalization=True,
+    )
+
+    assert result == (True, "Identities for subnet 123 are set.")
+
+
+@pytest.mark.asyncio
+async def test_set_subnet_identity_extrinsic_is_failed(subtensor, mocker):
+    """Verify that set_subnet_identity_extrinsic calls the correct functions and returns False with bad result."""
+    # Preps
+    wallet = mocker.MagicMock(autospec=Wallet)
+    netuid = 123
+    subnet_name = "mock_subnet_name"
+    github_repo = "mock_github_repo"
+    subnet_contact = "mock_subnet_contact"
+    subnet_url = "mock_subnet_url"
+    discord = "mock_discord"
+    description = "mock_description"
+    additional = "mock_additional"
+    fake_error_message = "error message"
+
+    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+
+    fake_response = mocker.Mock()
+    fake_response.is_success = mocker.AsyncMock(return_value=False)()
+    fake_response.error_message = mocker.AsyncMock(return_value=fake_error_message)()
+    mocked_submit_extrinsic = mocker.patch.object(
+        subtensor.substrate, "submit_extrinsic", return_value=fake_response
+    )
+
+    # Call
+    result = await async_registration.set_subnet_identity_extrinsic(
+        subtensor=subtensor,
+        wallet=wallet,
+        netuid=netuid,
+        subnet_name=subnet_name,
+        github_repo=github_repo,
+        subnet_contact=subnet_contact,
+        subnet_url=subnet_url,
+        discord=discord,
+        description=description,
+        additional=additional,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    # Asserts
+    mocked_compose_call.assert_awaited_once_with(
+        call_module="SubtensorModule",
+        call_function="set_subnet_identity",
+        call_params={
+            "hotkey": wallet.hotkey.ss58_address,
+            "netuid": netuid,
+            "subnet_name": subnet_name,
+            "github_repo": github_repo,
+            "subnet_contact": subnet_contact,
+            "subnet_url": subnet_url,
+            "discord": discord,
+            "description": description,
+            "additional": additional,
+        },
+    )
+    mocked_submit_extrinsic.assert_awaited_once_with(
+        call=mocked_compose_call.return_value,
+        wallet=wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    assert result == (
+        False,
+        f"Failed to set identity for subnet {netuid}: {fake_error_message}",
+    )

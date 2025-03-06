@@ -32,8 +32,10 @@ async def _do_transfer(
         wallet (bittensor_wallet.Wallet): Bittensor wallet object to make transfer from.
         destination (str): Destination public key address (ss58_address or ed25519) of recipient.
         amount (bittensor.utils.balance.Balance): Amount to stake as Bittensor balance.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns `False` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):  If set, waits for the extrinsic to be finalized on the chain before returning `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns
+            `False` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool):  If set, waits for the extrinsic to be finalized on the chain before returning
+            `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
 
     Returns:
         success, block hash, formatted error message
@@ -47,7 +49,7 @@ async def _do_transfer(
         call=call, keypair=wallet.coldkey
     )
     response = await subtensor.substrate.submit_extrinsic(
-        extrinsic,
+        extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
     )
@@ -56,24 +58,17 @@ async def _do_transfer(
         return True, "", "Success, extrinsic submitted without waiting."
 
     # Otherwise continue with finalization.
-    await response.process_events()
     if await response.is_success:
         block_hash_ = response.block_hash
         return True, block_hash_, "Success with response."
-    else:
-        return (
-            False,
-            "",
-            format_error_message(
-                await response.error_message, substrate=subtensor.substrate
-            ),
-        )
+
+    return False, "", format_error_message(await response.error_message)
 
 
 async def transfer_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
-    destination: str,
+    dest: str,
     amount: "Balance",
     transfer_all: bool = False,
     wait_for_inclusion: bool = True,
@@ -85,16 +80,20 @@ async def transfer_extrinsic(
     Args:
         subtensor (bittensor.core.async_subtensor.AsyncSubtensor): initialized AsyncSubtensor object used for transfer
         wallet (bittensor_wallet.Wallet): Bittensor wallet object to make transfer from.
-        destination (str): Destination public key address (ss58_address or ed25519) of recipient.
+        dest (str): Destination public key address (ss58_address or ed25519) of recipient.
         amount (bittensor.utils.balance.Balance): Amount to stake as Bittensor balance.
         transfer_all (bool): Whether to transfer all funds from this wallet to the destination address.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns `False` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):  If set, waits for the extrinsic to be finalized on the chain before returning `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns
+            `False` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool):  If set, waits for the extrinsic to be finalized on the chain before returning
+            `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
         keep_alive (bool): If set, keeps the account alive by keeping the balance above the existential deposit.
 
     Returns:
-        success (bool): Flag is `True` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is `True`, regardless of its inclusion.
+        success (bool): Flag is `True` if extrinsic was finalized or included in the block. If we did not wait for
+            finalization / inclusion, the response is `True`, regardless of its inclusion.
     """
+    destination = dest
     # Validate destination address.
     if not is_valid_bittensor_address_or_public_key(destination):
         logging.error(
@@ -114,13 +113,13 @@ async def transfer_extrinsic(
     # check existential deposit and fee
     logging.debug("Fetching existential and fee")
     block_hash = await subtensor.substrate.get_chain_head()
-    account_balance_, existential_deposit = await asyncio.gather(
+    account_balance, existential_deposit = await asyncio.gather(
         subtensor.get_balance(wallet.coldkeypub.ss58_address, block_hash=block_hash),
         subtensor.get_existential_deposit(block_hash=block_hash),
     )
-    account_balance = account_balance_[wallet.coldkeypub.ss58_address]
+
     fee = await subtensor.get_transfer_fee(
-        wallet=wallet, dest=destination, value=amount.rao
+        wallet=wallet, dest=destination, value=amount
     )
 
     if not keep_alive:
@@ -160,7 +159,7 @@ async def transfer_extrinsic(
             explorer_urls = get_explorer_url_for_network(
                 subtensor.network, block_hash, NETWORK_EXPLORER_MAP
             )
-            if explorer_urls != {} and explorer_urls:
+            if explorer_urls:
                 logging.info(
                     f"[green]Opentensor Explorer Link: {explorer_urls.get('opentensor')}[/green]"
                 )
@@ -171,7 +170,7 @@ async def transfer_extrinsic(
         logging.info(":satellite: [magenta]Checking Balance...[magenta]")
         new_balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
         logging.info(
-            f"Balance: [blue]{account_balance}[/blue] :arrow_right: [green]{new_balance[wallet.coldkeypub.ss58_address]}[/green]"
+            f"Balance: [blue]{account_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
         )
         return True
     else:

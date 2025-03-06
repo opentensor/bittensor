@@ -1,7 +1,7 @@
 import pytest
 from bittensor.core import async_subtensor
 from bittensor_wallet import Wallet
-from bittensor.core.extrinsics import async_transfer
+from bittensor.core.extrinsics.asyncex import transfer as async_transfer
 from bittensor.utils.balance import Balance
 
 
@@ -60,7 +60,7 @@ async def test_do_transfer_success(subtensor, mocker):
         call=subtensor.substrate.compose_call.return_value, keypair=fake_wallet.coldkey
     )
     subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        subtensor.substrate.create_signed_extrinsic.return_value,
+        extrinsic=subtensor.substrate.create_signed_extrinsic.return_value,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -119,15 +119,13 @@ async def test_do_transfer_failure(subtensor, mocker):
         call=subtensor.substrate.compose_call.return_value, keypair=fake_wallet.coldkey
     )
     subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        subtensor.substrate.create_signed_extrinsic.return_value,
+        extrinsic=subtensor.substrate.create_signed_extrinsic.return_value,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
     assert success is False
     assert block_hash == ""
-    mocked_format_error_message.assert_called_once_with(
-        "Fake error message", substrate=subtensor.substrate
-    )
+    mocked_format_error_message.assert_called_once_with("Fake error message")
     assert error_message == "Formatted error message"
 
 
@@ -172,7 +170,7 @@ async def test_do_transfer_no_waiting(subtensor, mocker):
         call=subtensor.substrate.compose_call.return_value, keypair=fake_wallet.coldkey
     )
     subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        subtensor.substrate.create_signed_extrinsic.return_value,
+        extrinsic=subtensor.substrate.create_signed_extrinsic.return_value,
         wait_for_inclusion=False,
         wait_for_finalization=False,
     )
@@ -206,7 +204,7 @@ async def test_transfer_extrinsic_success(subtensor, mocker):
     mocked_get_balance = mocker.patch.object(
         subtensor,
         "get_balance",
-        return_value={fake_wallet.coldkeypub.ss58_address: 10000},
+        return_value=10000,
     )
     mocked_get_existential_deposit = mocker.patch.object(
         subtensor, "get_existential_deposit", return_value=1
@@ -222,7 +220,7 @@ async def test_transfer_extrinsic_success(subtensor, mocker):
     result = await async_transfer.transfer_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
-        destination=fake_destination,
+        dest=fake_destination,
         amount=fake_amount,
         transfer_all=False,
         wait_for_inclusion=True,
@@ -271,7 +269,7 @@ async def test_transfer_extrinsic_call_successful_with_failed_response(
     mocked_get_balance = mocker.patch.object(
         subtensor,
         "get_balance",
-        return_value={fake_wallet.coldkeypub.ss58_address: 10000},
+        return_value=10000,
     )
     mocked_get_existential_deposit = mocker.patch.object(
         subtensor, "get_existential_deposit", return_value=1
@@ -287,7 +285,7 @@ async def test_transfer_extrinsic_call_successful_with_failed_response(
     result = await async_transfer.transfer_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
-        destination=fake_destination,
+        dest=fake_destination,
         amount=fake_amount,
         transfer_all=False,
         wait_for_inclusion=True,
@@ -335,9 +333,7 @@ async def test_transfer_extrinsic_insufficient_balance(subtensor, mocker):
     mocked_get_balance = mocker.patch.object(
         subtensor,
         "get_balance",
-        return_value={
-            fake_wallet.coldkeypub.ss58_address: 1000
-        },  # Insufficient balance
+        return_value=1000,  # Insufficient balance
     )
     mocked_get_existential_deposit = mocker.patch.object(
         subtensor, "get_existential_deposit", return_value=1
@@ -350,7 +346,7 @@ async def test_transfer_extrinsic_insufficient_balance(subtensor, mocker):
     result = await async_transfer.transfer_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
-        destination=fake_destination,
+        dest=fake_destination,
         amount=fake_amount,
         transfer_all=False,
         wait_for_inclusion=True,
@@ -388,7 +384,7 @@ async def test_transfer_extrinsic_invalid_destination(subtensor, mocker):
     result = await async_transfer.transfer_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
-        destination=fake_destination,
+        dest=fake_destination,
         amount=fake_amount,
         transfer_all=False,
         wait_for_inclusion=True,
@@ -426,7 +422,7 @@ async def test_transfer_extrinsic_unlock_key_false(subtensor, mocker):
     result = await async_transfer.transfer_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
-        destination=fake_destination,
+        dest=fake_destination,
         amount=fake_amount,
         transfer_all=False,
         wait_for_inclusion=True,
@@ -467,7 +463,7 @@ async def test_transfer_extrinsic_keep_alive_false_and_transfer_all_true(
     mocked_get_balance = mocker.patch.object(
         subtensor,
         "get_balance",
-        return_value={fake_wallet.coldkeypub.ss58_address: 1},
+        return_value=1,
     )
     mocked_get_existential_deposit = mocker.patch.object(
         subtensor, "get_existential_deposit", return_value=1
@@ -483,7 +479,7 @@ async def test_transfer_extrinsic_keep_alive_false_and_transfer_all_true(
     result = await async_transfer.transfer_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
-        destination=fake_destination,
+        dest=fake_destination,
         amount=fake_amount,
         transfer_all=True,
         wait_for_inclusion=True,
