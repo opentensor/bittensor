@@ -5,17 +5,6 @@ from bittensor.core import async_subtensor
 from bittensor.core.extrinsics.asyncex import registration as async_registration
 
 
-@pytest.fixture(autouse=True)
-def subtensor(mocker):
-    fake_async_substrate = mocker.AsyncMock(
-        autospec=async_subtensor.AsyncSubstrateInterface
-    )
-    mocker.patch.object(
-        async_subtensor, "AsyncSubstrateInterface", return_value=fake_async_substrate
-    )
-    return async_subtensor.AsyncSubtensor()
-
-
 @pytest.mark.asyncio
 async def test_do_pow_register_success(subtensor, mocker):
     """Tests successful PoW registration."""
