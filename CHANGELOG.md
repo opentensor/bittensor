@@ -1,5 +1,24 @@
 # Changelog
 
+## 9.0.4 /2025-03-06
+
+## What's Changed
+* Release/9.0.3 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2712
+* improve `wait_for_node_start` until 20 mins by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2714
+* More E2E tests by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2678
+* fix(2715): use ChainIdentity for identities by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2718
+* Metagraph use block correctly in `_get_all_stakes_from_chain` by @thewhaleking in https://github.com/opentensor/bittensor/pull/2719
+* Integration tests for async-substrate-interface 1.0.4 compatibility by @thewhaleking in https://github.com/opentensor/bittensor/pull/2720
+* Backmerge main staging 904 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2721
+* Skip E2E test_children by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2723
+* More Subtensor unnitests by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2713
+* Change to pyproject.toml by @thewhaleking in https://github.com/opentensor/bittensor/pull/2504
+* Updates test_incentive by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2722
+* Use uv for gh actions  by @thewhaleking in https://github.com/opentensor/bittensor/pull/2503
+* Bumps async substrate interface by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2725
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.0.3...v9.0.4
+
 ## 9.0.3 /2025-02-26
 
 ## What's Changed
