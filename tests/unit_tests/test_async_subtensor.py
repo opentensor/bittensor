@@ -16,15 +16,17 @@ from bittensor.utils.balance import Balance
 
 @pytest.fixture
 def mock_substrate(mocker):
-    mocked = mocker.patch(
-        "bittensor.core.async_subtensor.AsyncSubstrateInterface",
-        autospec=True,
+    fake_async_substrate = mocker.AsyncMock(
+        autospec=async_subtensor.AsyncSubstrateInterface
+    )
+    mocker.patch.object(
+        async_subtensor, "AsyncSubstrateInterface", return_value=fake_async_substrate
     )
 
-    return mocked.return_value
+    return fake_async_substrate
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def subtensor(mock_substrate):
     return async_subtensor.AsyncSubtensor()
 
