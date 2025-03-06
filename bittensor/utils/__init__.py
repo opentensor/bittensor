@@ -50,8 +50,7 @@ class Certificate(str):
         return str.__new__(cls, string)
 
 
-def _decode_hex_identity_dict(info_dictionary: dict[str, Any]) -> dict[str, Any]:
-    # TODO why does this exist alongside `decode_hex_identity_dict`?
+def decode_hex_identity_dict(info_dictionary: dict[str, Any]) -> dict[str, Any]:
     """Decodes a dictionary of hexadecimal identities."""
     decoded_info = {}
     for k, v in info_dictionary.items():
@@ -315,61 +314,6 @@ def is_valid_bittensor_address_or_public_key(address: Union[str, bytes]) -> bool
     else:
         # Invalid address type
         return False
-
-
-def decode_hex_identity_dict(info_dictionary) -> dict[str, Any]:
-    """
-    Decodes hex-encoded strings in a dictionary.
-
-    This function traverses the given dictionary, identifies hex-encoded strings, and decodes them into readable
-        strings. It handles nested dictionaries and lists within the dictionary.
-
-    Args:
-        info_dictionary (dict): The dictionary containing hex-encoded strings to decode.
-
-    Returns:
-        dict: The dictionary with decoded strings.
-
-    Examples:
-        input_dict = {
-        ...     "name": {"value": "0x6a6f686e"},
-        ...     "additional": [
-        ...         [{"data": "0x64617461"}]
-        ...     ]
-        ... }
-        decode_hex_identity_dict(input_dict)
-        {'name': 'john', 'additional': [('data', 'data')]}
-    """
-
-    def get_decoded(data: str) -> Optional[str]:
-        """Decodes a hex-encoded string."""
-        try:
-            return bytes.fromhex(data[2:]).decode()
-        except UnicodeDecodeError:
-            print(f"Could not decode: {key}: {item}")
-
-    for key, value in info_dictionary.items():
-        if isinstance(value, dict):
-            item = list(value.values())[0]
-            if isinstance(item, str) and item.startswith("0x"):
-                try:
-                    info_dictionary[key] = get_decoded(item)
-                except UnicodeDecodeError:
-                    print(f"Could not decode: {key}: {item}")
-            else:
-                info_dictionary[key] = item
-        if key == "additional":
-            additional = []
-            for item in value:
-                additional.append(
-                    tuple(
-                        get_decoded(data=next(iter(sub_item.values())))
-                        for sub_item in item
-                    )
-                )
-            info_dictionary[key] = additional
-
-    return info_dictionary
 
 
 def validate_chain_endpoint(endpoint_url: str) -> tuple[bool, str]:
