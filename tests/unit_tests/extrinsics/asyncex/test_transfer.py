@@ -1,19 +1,7 @@
 import pytest
-from bittensor.core import async_subtensor
 from bittensor_wallet import Wallet
 from bittensor.core.extrinsics.asyncex import transfer as async_transfer
 from bittensor.utils.balance import Balance
-
-
-@pytest.fixture(autouse=True)
-def subtensor(mocker):
-    fake_async_substrate = mocker.AsyncMock(
-        autospec=async_subtensor.AsyncSubstrateInterface
-    )
-    mocker.patch.object(
-        async_subtensor, "AsyncSubstrateInterface", return_value=fake_async_substrate
-    )
-    return async_subtensor.AsyncSubtensor()
 
 
 @pytest.mark.asyncio
@@ -460,7 +448,7 @@ async def test_transfer_extrinsic_keep_alive_false_and_transfer_all_true(
     mocked_get_chain_head = mocker.patch.object(
         subtensor.substrate, "get_chain_head", return_value="some_block_hash"
     )
-    mocked_get_balance = mocker.patch.object(
+    mocker.patch.object(
         subtensor,
         "get_balance",
         return_value=1,

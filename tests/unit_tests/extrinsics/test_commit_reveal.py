@@ -160,9 +160,7 @@ def test_commit_reveal_v3_extrinsic_success_with_torch(mocker, subtensor, hyperp
         "convert_weights_and_uids_for_emit",
         return_value=(mocked_uids, mocked_weights),
     )
-    mocked_get_subnet_reveal_period_epochs = mocker.patch.object(
-        subtensor, "get_subnet_reveal_period_epochs"
-    )
+    mocker.patch.object(subtensor, "get_subnet_reveal_period_epochs")
     mocked_get_encrypted_commit = mocker.patch.object(
         commit_reveal,
         "get_encrypted_commit",

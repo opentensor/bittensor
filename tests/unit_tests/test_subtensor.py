@@ -75,7 +75,7 @@ def call_params_with_certificate():
     return params
 
 
-def test_methods_comparable(mock_substrate_interface):
+def test_methods_comparable(mock_substrate):
     """Verifies that methods in sync and async Subtensors are comparable."""
     # Preps
     subtensor = Subtensor(_mock=True)
@@ -858,7 +858,7 @@ def test_get_subnet_hyperparameters_success(mocker, subtensor):
     )
 
     # Call
-    result = subtensor.get_subnet_hyperparameters(netuid, block)
+    subtensor.get_subnet_hyperparameters(netuid, block)
 
     # Asserts
     subtensor.query_runtime_api.assert_called_once_with(
@@ -2295,10 +2295,9 @@ def test_get_delegate_take_none(subtensor, mocker):
     assert result is None
 
 
-def test_networks_during_connection(mocker):
+def test_networks_during_connection(mock_substrate, mocker):
     """Test networks during_connection."""
     # Preps
-    mocker.patch.object(subtensor_module, "SubstrateInterface")
     mocker.patch("websockets.sync.client.connect")
     # Call
     for network in list(settings.NETWORK_MAP.keys()) + ["undefined"]:
