@@ -152,10 +152,12 @@ def test_set_root_weights_extrinsic(
     mocker,
 ):
     # Preps
-    root._do_set_root_weights = mocker.Mock(
-        return_value=(expected_success, "Mock error")
+    mocker.patch.object(
+        root, "_do_set_root_weights", return_value=(expected_success, "Mock error")
     )
-    root._get_limits = mocker.Mock(
+    mocker.patch.object(
+        root,
+        "_get_limits",
         return_value=(0, 1),
     )
 
