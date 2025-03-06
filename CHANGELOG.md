@@ -1,5 +1,29 @@
 # Changelog
 
+## 9.0.3 /2025-02-26
+
+## What's Changed
+* Release/9.0.2 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2696
+* fix: typos in config test by @EricHasegawa in https://github.com/opentensor/bittensor/pull/2693
+* Removes limits in async + unstake_multiple by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2701
+* Fixes get_all_commitments, adds tests. by @thewhaleking in https://github.com/opentensor/bittensor/pull/2699
+* Use `.value` in e2e test by @thewhaleking in https://github.com/opentensor/bittensor/pull/2700
+* Fix e2e test setup by @thewhaleking in https://github.com/opentensor/bittensor/pull/2681
+* Dendrite `__del__` method fix by @thewhaleking in https://github.com/opentensor/bittensor/pull/2702
+* Fix E2E test_set_weights by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2703
+* Updates test incentive by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2688
+* Add `get_timestamp` method by @thewhaleking in https://github.com/opentensor/bittensor/pull/2704
+* fix: async get_delegated by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2706
+* Properly mock data_chain class methods by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2705
+* Install btcli from install sh by @thewhaleking in https://github.com/opentensor/bittensor/pull/2708
+* Bumps dependencies of async substrate + btwallet by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2710
+* Backmerge/main to staging 902 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2711
+
+## New Contributors
+* @EricHasegawa made their first contribution in https://github.com/opentensor/bittensor/pull/2693
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.0.2...v9.0.3
+
 ## 9.0.2 /2025-02-24
 
 ## What's Changed
