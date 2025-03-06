@@ -2748,6 +2748,7 @@ class AsyncSubtensor(SubtensorMixin):
         use_nonce: bool = False,
         period: Optional[int] = None,
         nonce_key: str = "hotkey",
+        raise_error: bool = False,
     ) -> tuple[bool, str]:
         """
         Helper method to sign and submit an extrinsic call to chain.
@@ -2758,6 +2759,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_inclusion (bool): whether to wait until the extrinsic call is included on the chain
             wait_for_finalization (bool): whether to wait until the extrinsic call is finalized on the chain
             sign_with: the wallet's keypair to use for the signing. Options are "coldkey", "hotkey", "coldkeypub"
+            raise_error: doesn't return error but raises SubstrateRequestException exception
 
         Returns:
             (success, error message)
@@ -2795,9 +2797,15 @@ class AsyncSubtensor(SubtensorMixin):
             if await response.is_success:
                 return True, ""
 
+            if raise_error:
+                raise SubstrateRequestException.from_error(response.error_message)
+
             return False, format_error_message(await response.error_message)
 
         except SubstrateRequestException as e:
+            if raise_error:
+                raise
+
             return False, format_error_message(e)
 
     # Extrinsics =======================================================================================================

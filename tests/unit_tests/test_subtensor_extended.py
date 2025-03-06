@@ -2,6 +2,8 @@ import unittest.mock
 
 import pytest
 
+import async_substrate_interface.errors
+
 from bittensor.core.chain_data.axon_info import AxonInfo
 from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.delegate_info import DelegatedInfo, DelegateInfo
@@ -1269,6 +1271,27 @@ def test_sign_and_send_extrinsic(mock_substrate, subtensor, wallet, mocker):
         wait_for_inclusion=True,
         wait_for_finalization=False,
     )
+
+
+def test_sign_and_send_extrinsic_raises_error(
+    mock_substrate, subtensor, wallet, mocker
+):
+    mock_substrate.submit_extrinsic.return_value = mocker.Mock(
+        error_message={
+            "name": "Exception",
+        },
+        is_success=False,
+    )
+
+    with pytest.raises(
+        async_substrate_interface.errors.SubstrateRequestException,
+        match="{'name': 'Exception'}",
+    ):
+        subtensor.sign_and_send_extrinsic(
+            call=mocker.Mock(),
+            wallet=wallet,
+            raise_error=True,
+        )
 
 
 @pytest.mark.parametrize(
