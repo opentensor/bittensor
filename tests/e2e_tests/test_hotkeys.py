@@ -54,6 +54,11 @@ def test_hotkeys(subtensor, alice_wallet):
     )
 
 
+@pytest.mark.skip(
+    reason="""The behavior of set_children changes: Instead of setting children immediately, the children will be set in the subnet epoch after a cool down period (7200 blocks).
+https://github.com/opentensor/subtensor/pull/1050
+""",
+)
 @pytest.mark.asyncio
 async def test_children(subtensor, alice_wallet, bob_wallet):
     """
