@@ -12,6 +12,7 @@ from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.stake_info import StakeInfo
 from bittensor.core.chain_data import proposal_vote_data
 from bittensor.utils.balance import Balance
+from tests.helpers.helpers import assert_submit_signed_extrinsic
 
 
 @pytest.fixture
@@ -2404,6 +2405,79 @@ async def test_register_success(subtensor, mocker):
         wallet=fake_wallet,
     )
     assert result == mocked_register_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_set_delegate_take_equal(subtensor, mocker):
+    mocker.patch.object(subtensor, "get_delegate_take", return_value=0.18)
+
+    fake_wallet = mocker.Mock(autospec=Wallet)
+
+    await subtensor.set_delegate_take(
+        fake_wallet,
+        fake_wallet.hotkey.ss58_address,
+        0.18,
+    )
+
+    subtensor.substrate.submit_extrinsic.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_set_delegate_take_increase(mock_substrate, subtensor, mocker):
+    mock_substrate.submit_extrinsic.return_value = mocker.Mock(
+        is_success=mocker.AsyncMock(return_value=True)(),
+    )
+    mocker.patch.object(subtensor, "get_delegate_take", return_value=0.18)
+
+    fake_wallet = mocker.Mock(autospec=Wallet)
+
+    await subtensor.set_delegate_take(
+        fake_wallet,
+        fake_wallet.hotkey.ss58_address,
+        0.2,
+    )
+
+    assert_submit_signed_extrinsic(
+        mock_substrate,
+        fake_wallet.coldkey,
+        call_module="SubtensorModule",
+        call_function="increase_take",
+        call_params={
+            "hotkey": fake_wallet.hotkey.ss58_address,
+            "take": 13107,
+        },
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+
+@pytest.mark.asyncio
+async def test_set_delegate_take_decrease(mock_substrate, subtensor, mocker):
+    mock_substrate.submit_extrinsic.return_value = mocker.Mock(
+        is_success=mocker.AsyncMock(return_value=True)(),
+    )
+    mocker.patch.object(subtensor, "get_delegate_take", return_value=0.18)
+
+    fake_wallet = mocker.Mock(autospec=Wallet)
+
+    await subtensor.set_delegate_take(
+        fake_wallet,
+        fake_wallet.hotkey.ss58_address,
+        0.1,
+    )
+
+    assert_submit_signed_extrinsic(
+        mock_substrate,
+        fake_wallet.coldkey,
+        call_module="SubtensorModule",
+        call_function="decrease_take",
+        call_params={
+            "hotkey": fake_wallet.hotkey.ss58_address,
+            "take": 6553,
+        },
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
 
 
 @pytest.mark.asyncio
