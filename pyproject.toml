@@ -1,0 +1,96 @@
+[build-system]
+requires = ["setuptools~=70.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bittensor"
+version = "9.0.3"
+description = "Bittensor"
+readme = "README.md"
+authors = [
+    {name = "bittensor.com"}
+]
+license = { file = "LICENSE" }
+requires-python = ">=3.9,<3.13"
+dependencies = [
+    "wheel",
+    "setuptools~=70.0.0",
+    "aiohttp~=3.9",
+    "asyncstdlib~=3.13.0",
+    "colorama~=0.4.6",
+    "fastapi~=0.110.1",
+    "munch~=2.5.0",
+    "numpy~=2.0.1",
+    "msgpack-numpy-opentensor~=0.5.0",
+    "nest_asyncio",
+    "netaddr",
+    "packaging",
+    "python-statemachine~=2.1",
+    "pycryptodome>=3.18.0,<4.0.0",
+    "pyyaml",
+    "retry",
+    "requests",
+    "rich",
+    "pydantic>=2.3, <3",
+    "python-Levenshtein",
+    "scalecodec==1.2.11",
+    "uvicorn",
+    "websockets>=14.1",
+    "bittensor-commit-reveal>=0.2.0",
+    "bittensor-wallet>=3.0.4",
+    "async-substrate-interface>=1.0.4"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==7.2.0",
+    "pytest-asyncio==0.23.7",
+    "pytest-mock==3.12.0",
+    "pytest-split==0.8.0",
+    "pytest-xdist==3.0.2",
+    "pytest-rerunfailures==10.2",
+    "coveralls==3.3.1",
+    "pytest-cov==4.0.0",
+    "ddt==1.6.0",
+    "hypothesis==6.81.1",
+    "flake8==7.0.0",
+    "mypy==1.8.0",
+    "types-retry==0.9.9.4",
+    "freezegun==1.5.0",
+    "httpx==0.27.0",
+    "ruff==0.4.7",
+    "aioresponses==0.7.6",
+    "factory-boy==3.3.0",
+    "types-requests",
+    "torch>=1.13.1,<2.6.0"
+]
+torch = [
+    "torch>=1.13.1,<2.6.0"
+]
+
+[project.urls]
+# more details can be found here
+homepage = "https://github.com/opentensor/bittensor"
+Repository = "https://github.com/opentensor/bittensor"
+
+[tool.flit.metadata]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+
+[tool.setuptools]
+package-dir = {"bittensor" = "bittensor"}
+script-files = ["bittensor/utils/certifi.sh"]
