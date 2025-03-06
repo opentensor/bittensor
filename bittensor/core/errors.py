@@ -1,26 +1,31 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
+from typing import Optional, TYPE_CHECKING
 
-from __future__ import annotations
+from async_substrate_interface.errors import (
+    SubstrateRequestException,
+    StorageFunctionNotFound,
+    BlockNotFound,
+    ExtrinsicNotFound,
+)
 
-from bittensor.core.synapse import Synapse
+if TYPE_CHECKING:
+    from bittensor.core.synapse import Synapse
+
+# redundant aliases
+SubstrateRequestException = SubstrateRequestException
+StorageFunctionNotFound = StorageFunctionNotFound
+BlockNotFound = BlockNotFound
+ExtrinsicNotFound = ExtrinsicNotFound
 
 
-class ChainError(BaseException):
+class MaxSuccessException(Exception):
+    """Raised when the POW Solver has reached the max number of successful solutions."""
+
+
+class MaxAttemptsException(Exception):
+    """Raised when the POW Solver has reached the max number of attempts."""
+
+
+class ChainError(SubstrateRequestException):
     """Base error for any chain related errors."""
 
 
@@ -81,7 +86,9 @@ class InvalidRequestNameError(Exception):
 
 
 class SynapseException(Exception):
-    def __init__(self, message="Synapse Exception", synapse: "Synapse" | None = None):
+    def __init__(
+        self, message="Synapse Exception", synapse: Optional["Synapse"] = None
+    ):
         self.message = message
         self.synapse = synapse
         super().__init__(self.message)
@@ -123,7 +130,7 @@ class SynapseDendriteNoneException(SynapseException):
     def __init__(
         self,
         message="Synapse Dendrite is None",
-        synapse: "Synapse" | None = None,
+        synapse: Optional["Synapse"] = None,
     ):
         self.message = message
         super().__init__(self.message, synapse)

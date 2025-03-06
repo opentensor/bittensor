@@ -1,7 +1,7 @@
 import pytest
 from bittensor.core import async_subtensor
 from bittensor_wallet import Wallet
-from bittensor.core.extrinsics import async_weights
+from bittensor.core.extrinsics.asyncex import weights as async_weights
 
 
 @pytest.fixture(autouse=True)
@@ -56,7 +56,7 @@ async def test_do_set_weights_success(subtensor, mocker):
 
     # Asserts
     assert result is True
-    assert message == "Successfully set weights."
+    assert message is ""
 
 
 @pytest.mark.asyncio
@@ -79,12 +79,12 @@ async def test_do_set_weights_failure(subtensor, mocker):
 
     fake_response.process_events = mocker.AsyncMock()
 
-    fake_response.error_message = mocker.Mock()
+    fake_response.error_message = mocker.AsyncMock(return_value="Error occurred")()
     fake_response.process_events = mocker.AsyncMock()
 
     mocked_format_error_message = mocker.Mock()
     mocker.patch.object(
-        async_weights, "format_error_message", mocked_format_error_message
+        async_subtensor, "format_error_message", mocked_format_error_message
     )
 
     mocker.patch.object(subtensor.substrate, "compose_call", return_value=fake_call)
@@ -108,9 +108,7 @@ async def test_do_set_weights_failure(subtensor, mocker):
 
     # Asserts
     assert result is False
-    mocked_format_error_message.assert_called_once_with(
-        fake_response.error_message, substrate=subtensor.substrate
-    )
+    mocked_format_error_message.assert_called_once_with("Error occurred")
     assert message == mocked_format_error_message.return_value
 
 
@@ -148,7 +146,7 @@ async def test_do_set_weights_no_waiting(subtensor, mocker):
 
     # Asserts
     assert result is True
-    assert message == "Not waiting for finalization or inclusion."
+    assert message is ""
 
 
 @pytest.mark.asyncio
@@ -281,53 +279,6 @@ async def test_set_weights_extrinsic_exception(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_set_weights_extrinsic_if_use_torch(subtensor, mocker):
-    """Tests set_weights_extrinsic when use_torch is True."""
-    # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
-    fake_netuid = 1
-    fake_uids = [1, 2, 3]
-    fake_weights = [0.1, 0.2, 0.7]
-
-    mocked_use_torch = mocker.patch.object(
-        async_weights, "use_torch", return_value=True
-    )
-    mocked_torch_tensor = mocker.patch.object(
-        async_weights.torch, "tensor", return_value=mocker.Mock()
-    )
-
-    mocked_do_set_weights = mocker.patch.object(
-        async_weights, "_do_set_weights", return_value=(False, "Test error message")
-    )
-    mocked_convert_weights_and_uids_for_emit = mocker.patch.object(
-        async_weights.weight_utils,
-        "convert_weights_and_uids_for_emit",
-        return_value=(mocker.Mock(), mocker.Mock()),
-    )
-
-    # Call
-    result, message = await async_weights.set_weights_extrinsic(
-        subtensor=subtensor,
-        wallet=fake_wallet,
-        netuid=fake_netuid,
-        uids=fake_uids,
-        weights=fake_weights,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
-
-    # Asserts
-    mocked_do_set_weights.assert_called_once()
-    mocked_use_torch.assert_called_once()
-    mocked_convert_weights_and_uids_for_emit.assert_called()
-    mocked_torch_tensor.assert_called_with(
-        fake_weights, dtype=async_weights.torch.float32
-    )
-    assert result is False
-    assert message == "Test error message"
-
-
-@pytest.mark.asyncio
 async def test_do_commit_weights_success(subtensor, mocker):
     """Tests _do_commit_weights when the commit is successful."""
     # Preps
@@ -365,7 +316,7 @@ async def test_do_commit_weights_success(subtensor, mocker):
 
     # Asserts
     assert result is True
-    assert message is None
+    assert message is ""
 
 
 @pytest.mark.asyncio
@@ -385,11 +336,11 @@ async def test_do_commit_weights_failure(subtensor, mocker):
     fake_response = mocker.Mock()
     fake_response.is_success = fake_is_success()
     fake_response.process_events = mocker.AsyncMock()
-    fake_response.error_message = "Error occurred"
+    fake_response.error_message = mocker.AsyncMock(return_value="Error occurred")()
 
     mocked_format_error_message = mocker.Mock(return_value="Formatted error")
     mocker.patch.object(
-        async_weights, "format_error_message", mocked_format_error_message
+        async_subtensor, "format_error_message", mocked_format_error_message
     )
 
     mocker.patch.object(subtensor.substrate, "compose_call", return_value=fake_call)
@@ -412,9 +363,7 @@ async def test_do_commit_weights_failure(subtensor, mocker):
 
     # Asserts
     assert result is False
-    mocked_format_error_message.assert_called_once_with(
-        fake_response.error_message, substrate=subtensor.substrate
-    )
+    mocked_format_error_message.assert_called_once_with("Error occurred")
     assert message == "Formatted error"
 
 
@@ -450,7 +399,7 @@ async def test_do_commit_weights_no_waiting(subtensor, mocker):
 
     # Asserts
     assert result is True
-    assert message is None
+    assert message is ""
 
 
 @pytest.mark.asyncio
@@ -511,7 +460,7 @@ async def test_commit_weights_extrinsic_success(subtensor, mocker):
         wait_for_finalization=True,
     )
     assert result is True
-    assert message == "Successfully committed weights."
+    assert message == "✅ [green]Successfully committed weights.[green]"
 
 
 @pytest.mark.asyncio

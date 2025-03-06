@@ -1,57 +1,47 @@
 import time
-from typing import Optional, Union, TYPE_CHECKING
+from typing import Union, TYPE_CHECKING
 
 import numpy as np
 from numpy.typing import NDArray
 
-from bittensor.core.settings import version_as_int
-from bittensor.core.extrinsics.utils import submit_extrinsic
-from bittensor.utils import format_error_message, weight_utils, unlock_key
+from bittensor.core.errors import SubstrateRequestException
+from bittensor.utils import (
+    u16_normalized_float,
+    format_error_message,
+    unlock_key,
+    torch,
+)
 from bittensor.utils.btlogging import logging
-from bittensor.utils.networking import ensure_connected
-from bittensor.utils.registration import torch, legacy_torch_api_compat
+from bittensor.utils.weight_utils import (
+    normalize_max_weight,
+    convert_weights_and_uids_for_emit,
+)
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.subtensor import Subtensor
 
 
-@ensure_connected
-def _do_root_register(
-    self: "Subtensor",
-    wallet: "Wallet",
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = True,
-) -> tuple[bool, Optional[str]]:
-    # create extrinsic call
-    call = self.substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="root_register",
-        call_params={"hotkey": wallet.hotkey.ss58_address},
-    )
-    extrinsic = self.substrate.create_signed_extrinsic(
-        call=call, keypair=wallet.coldkey
-    )
-    response = submit_extrinsic(
-        self.substrate,
-        extrinsic,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
+def _get_limits(subtensor: "Subtensor") -> tuple[int, float]:
+    """
+    Retrieves the minimum allowed weights and maximum weight limit for the given subnet.
 
-    # We only wait here if we expect finalization.
-    if not wait_for_finalization and not wait_for_inclusion:
-        return True, None
+    These values are fetched asynchronously using `asyncio.gather` to run both requests concurrently.
 
-    # process if registration successful, try again if pow is still valid
-    response.process_events()
-    if not response.is_success:
-        return False, format_error_message(
-            response.error_message, substrate=self.substrate
-        )
-    # Successful registration
-    else:
-        return True, None
+    Args:
+        subtensor (Subtensor): The AsyncSubtensor object used to interface with the network's substrate node.
+
+    Returns:
+        tuple[int, float]: A tuple containing:
+            - `min_allowed_weights` (int): The minimum allowed weights.
+            - `max_weight_limit` (float): The maximum weight limit, normalized to a float value.
+    """
+    # Get weight restrictions.
+    maw = subtensor.get_hyperparameter("MinAllowedWeights", netuid=0)
+    mwl = subtensor.get_hyperparameter("MaxWeightsLimit", netuid=0)
+    min_allowed_weights = int(maw)
+    max_weight_limit = u16_normalized_float(int(mwl))
+    return min_allowed_weights, max_weight_limit
 
 
 def root_register_extrinsic(
@@ -62,120 +52,143 @@ def root_register_extrinsic(
 ) -> bool:
     """Registers the wallet to root network.
 
-    Args:
-        subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance.
+    Arguments:
+        subtensor (bittensor.core.subtensor.Subtensor): The Subtensor object
         wallet (bittensor_wallet.Wallet): Bittensor wallet object.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout. Default is ``False``.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout. Default is ``True``.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns
+            `False` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
+            `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
 
     Returns:
-        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion, the
+            response is `True`.
     """
+    netuid = 0
 
     if not (unlock := unlock_key(wallet)).success:
         logging.error(unlock.message)
         return False
 
+    logging.debug(
+        f"Checking if hotkey ([blue]{wallet.hotkey_str}[/blue]) is registered on root."
+    )
     is_registered = subtensor.is_hotkey_registered(
-        netuid=0, hotkey_ss58=wallet.hotkey.ss58_address
+        netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
     )
     if is_registered:
-        logging.info(
+        logging.error(
             ":white_heavy_check_mark: [green]Already registered on root network.[/green]"
         )
         return True
 
     logging.info(":satellite: [magenta]Registering to root network...[/magenta]")
-    success, err_msg = _do_root_register(
-        self=subtensor,
+    call = subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="root_register",
+        call_params={"hotkey": wallet.hotkey.ss58_address},
+    )
+    success, err_msg = subtensor.sign_and_send_extrinsic(
+        call,
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
     )
 
     if not success:
-        logging.error(f":cross_mark: [red]Failed[/red]: {err_msg}")
+        logging.error(f":cross_mark: [red]Failed error:[/red] {err_msg}")
         time.sleep(0.5)
+        return False
 
     # Successful registration, final check for neuron and pubkey
     else:
-        is_registered = subtensor.is_hotkey_registered(
-            netuid=0, hotkey_ss58=wallet.hotkey.ss58_address
+        uid = subtensor.substrate.query(
+            module="SubtensorModule",
+            storage_function="Uids",
+            params=[netuid, wallet.hotkey.ss58_address],
         )
-        if is_registered:
-            logging.success(":white_heavy_check_mark: [green]Registered[/green]")
+        if uid is not None:
+            logging.info(
+                f":white_heavy_check_mark: [green]Registered with UID[/green] [blue]{uid}[/blue]."
+            )
             return True
         else:
             # neuron not found, try again
             logging.error(":cross_mark: [red]Unknown error. Neuron not found.[/red]")
+            return False
 
 
-@ensure_connected
 def _do_set_root_weights(
-    self: "Subtensor",
+    subtensor: "Subtensor",
     wallet: "Wallet",
-    uids: list[int],
-    vals: list[int],
+    netuids: Union[NDArray[np.int64], list[int]],
+    weights: Union[NDArray[np.float32], list[float]],
     netuid: int = 0,
-    version_key: int = version_as_int,
+    version_key: int = 0,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
     period: int = 5,
-) -> tuple[bool, Optional[str]]:
+) -> tuple[bool, str]:
     """
-    Internal method to send a transaction to the Bittensor blockchain, setting weights for specified neurons on root. This method constructs and submits the transaction, handling retries and blockchain communication.
+    Sets the root weights on the Subnet for the given wallet hotkey account.
 
-    Args:
-        self (bittensor.core.subtensor.Subtensor): Subtensor instance.
-        wallet (bittensor_wallet.Wallet): The wallet associated with the neuron setting the weights.
-        uids (List[int]): List of neuron UIDs for which weights are being set.
-        vals (List[int]): List of weight values corresponding to each UID.
-        netuid (int): Unique identifier for the network.
-        version_key (int, optional): Version key for compatibility with the network. Defaults is a current ``version_as_int``.
-        wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block. Defaults is ``False``.
-        wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain. Defaults is ``False``.
+    This function constructs and submits an extrinsic to set the root weights for the given wallet hotkey account.
+    It waits for inclusion or finalization of the extrinsic based on the provided parameters.
+
+    Arguments:
+        subtensor (bittensor.core.subtensor.Subtensor): The Subtensor object used to interact with the
+            blockchain.
+        wallet (bittensor_wallet.Wallet): The wallet containing the hotkey and coldkey for the transaction.
+        netuids (Union[NDArray[np.int64], list[int]]): List of UIDs to set weights for.
+        weights (Union[NDArray[np.float32], list[float]]): Corresponding weights to set for each UID.
+        netuid (int): The netuid of the subnet to set weights for. Defaults to 0.
+        version_key (int, optional): The version key of the validator. Defaults to 0.
+        wait_for_inclusion (bool, optional): If True, waits for the extrinsic to be included in a block. Defaults to
+            False.
+        wait_for_finalization (bool, optional): If True, waits for the extrinsic to be finalized on the chain. Defaults
+            to False.
+        period (int, optional): The period in seconds to wait for extrinsic inclusion or finalization. Defaults to 5.
 
     Returns:
-        Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
-
-    This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their trust in other neurons based on observed performance and contributions on the root network.
+        tuple: Returns a tuple containing a boolean indicating success and a message describing the result of the
+            operation.
     """
-
-    call = self.substrate.compose_call(
+    call = subtensor.substrate.compose_call(
         call_module="SubtensorModule",
         call_function="set_root_weights",
         call_params={
-            "dests": uids,
-            "weights": vals,
+            "dests": netuids,
+            "weights": weights,
             "netuid": netuid,
             "version_key": version_key,
             "hotkey": wallet.hotkey.ss58_address,
         },
     )
+
+    next_nonce = subtensor.substrate.get_account_next_index(wallet.hotkey.ss58_address)
+
     # Period dictates how long the extrinsic will stay as part of waiting pool
-    extrinsic = self.substrate.create_signed_extrinsic(
+    extrinsic = subtensor.substrate.create_signed_extrinsic(
         call=call,
         keypair=wallet.coldkey,
         era={"period": period},
+        nonce=next_nonce,
     )
-    response = submit_extrinsic(
-        self.substrate,
-        extrinsic,
+    response = subtensor.substrate.submit_extrinsic(
+        extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
     )
     # We only wait here if we expect finalization.
     if not wait_for_finalization and not wait_for_inclusion:
-        return True, "Not waiting for finalziation or inclusion."
+        return True, "Not waiting for finalization or inclusion."
 
-    response.process_events()
     if response.is_success:
         return True, "Successfully set weights."
-    else:
-        return False, response.error_message
+
+    return False, format_error_message(response.error_message)
 
 
-@legacy_torch_api_compat
 def set_root_weights_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
@@ -187,18 +200,30 @@ def set_root_weights_extrinsic(
 ) -> bool:
     """Sets the given weights and values on chain for wallet hotkey account.
 
-    Args:
-        subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance.
-        wallet (bittensor_wallet.Wallet): Bittensor wallet object. Bittensor wallet object.
-        netuids (Union[NDArray[np.int64], torch.LongTensor, list[int]]): The ``netuid`` of the subnet to set weights for.
-        weights (Union[NDArray[np.float32], torch.FloatTensor, list[float]]): Weights to set. These must be ``float`` s and must correspond to the passed ``netuid`` s.
-        version_key (int): The version key of the validator.  Default is ``0``.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.  Default is ``False``.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout. Default is ``False``.
+    Arguments:
+        subtensor (bittensor.core.subtensor.Subtensor): The Subtensor object
+        wallet (bittensor_wallet.Wallet): Bittensor wallet object.
+        netuids (Union[NDArray[np.int64], list[int]]): The `netuid` of the subnet to set weights for.
+        weights (Union[NDArray[np.float32], list[float]]): Weights to set. These must be `float` s and must correspond
+            to the passed `netuid` s.
+        version_key (int): The version key of the validator.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns
+            `False` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
+            True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
 
     Returns:
-        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion, the
+            response is `True`.
     """
+    my_uid = subtensor.substrate.query(
+        "SubtensorModule", "Uids", [0, wallet.hotkey.ss58_address]
+    )
+
+    if my_uid is None:
+        logging.error("Your hotkey is not registered to the root network.")
+        return False
+
     if not (unlock := unlock_key(wallet)).success:
         logging.error(unlock.message)
         return False
@@ -209,13 +234,11 @@ def set_root_weights_extrinsic(
     if isinstance(weights, list):
         weights = np.array(weights, dtype=np.float32)
 
-    # Get weight restrictions.
-    min_allowed_weights = subtensor.min_allowed_weights(netuid=0)
-    max_weight_limit = subtensor.max_weight_limit(netuid=0)
+    logging.debug("Fetching weight limits")
+    min_allowed_weights, max_weight_limit = _get_limits(subtensor)
 
     # Get non zero values.
     non_zero_weight_idx = np.argwhere(weights > 0).squeeze(axis=1)
-    non_zero_weight_uids = netuids[non_zero_weight_idx]
     non_zero_weights = weights[non_zero_weight_idx]
     if non_zero_weights.size < min_allowed_weights:
         raise ValueError(
@@ -225,29 +248,24 @@ def set_root_weights_extrinsic(
         )
 
     # Normalize the weights to max value.
-    formatted_weights = weight_utils.normalize_max_weight(
-        x=weights, limit=max_weight_limit
-    )
+    logging.info("Normalizing weights")
+    formatted_weights = normalize_max_weight(x=weights, limit=max_weight_limit)
     logging.info(
-        f"Raw Weights -> Normalized weights: [blue]{weights}[/blue] -> [green]{formatted_weights}[/green]"
+        f"Raw weights -> Normalized weights: [blue]{weights}[/blue] -> [green]{formatted_weights}[/green]"
     )
 
-    logging.info(
-        f":satellite: [magenta]Setting root weights on[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
-    )
     try:
-        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
-            netuids, weights
-        )
+        logging.info(":satellite: [magenta]Setting root weights...[magenta]")
+        weight_uids, weight_vals = convert_weights_and_uids_for_emit(netuids, weights)
+
         success, error_message = _do_set_root_weights(
-            self=subtensor,
+            subtensor=subtensor,
             wallet=wallet,
-            netuid=0,
-            uids=weight_uids,
-            vals=weight_vals,
+            netuids=weight_uids,
+            weights=weight_vals,
             version_key=version_key,
-            wait_for_finalization=wait_for_finalization,
             wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
         )
 
         if not wait_for_finalization and not wait_for_inclusion:
@@ -255,14 +273,13 @@ def set_root_weights_extrinsic(
 
         if success is True:
             logging.info(":white_heavy_check_mark: [green]Finalized[/green]")
-            logging.success(f"Set weights {str(success)}")
             return True
         else:
-            logging.error(
-                f":cross_mark: [red]Failed [/red] set weights. {str(error_message)}"
-            )
+            fmt_err = error_message
+            logging.error(f":cross_mark: [red]Failed error:[/red] {fmt_err}")
             return False
 
-    except Exception as e:
-        logging.error(f":cross_mark: [red]Failed [/red] set weights. {str(e)}")
+    except SubstrateRequestException as e:
+        fmt_err = format_error_message(e)
+        logging.error(f":cross_mark: [red]Failed error:[/red] {fmt_err}")
         return False

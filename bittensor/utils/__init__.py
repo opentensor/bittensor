@@ -1,49 +1,72 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
 import ast
-from collections import namedtuple
 import hashlib
+from collections import namedtuple
 from typing import Any, Literal, Union, Optional, TYPE_CHECKING
 from urllib.parse import urlparse
 
 import scalecodec
+from async_substrate_interface.utils import (
+    hex_to_bytes,
+)
 from bittensor_wallet import Keypair
-from substrateinterface.utils import ss58
+from bittensor_wallet.errors import KeyFileError, PasswordError
+from scalecodec import ss58_decode, is_valid_ss58_address as _is_valid_ss58_address
 
+from bittensor.core import settings
 from bittensor.core.settings import SS58_FORMAT
 from bittensor.utils.btlogging import logging
-from bittensor_wallet.errors import KeyFileError, PasswordError
 from .registration import torch, use_torch
 from .version import version_checking, check_version, VersionCheckError
 
 if TYPE_CHECKING:
-    from bittensor.utils.async_substrate_interface import AsyncSubstrateInterface
-    from substrateinterface import SubstrateInterface
     from bittensor_wallet import Wallet
+
+
+# redundant aliases
+logging = logging
+torch = torch
+use_torch = use_torch
+version_checking = version_checking
+check_version = check_version
+VersionCheckError = VersionCheckError
+ss58_decode = ss58_decode
+hex_to_bytes = hex_to_bytes
+
 
 RAOPERTAO = 1e9
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
 
-Certificate = str
-
-
 UnlockStatus = namedtuple("UnlockStatus", ["success", "message"])
+
+
+class Certificate(str):
+    def __new__(cls, data: Union[str, dict]):
+        if isinstance(data, dict):
+            tuple_ascii = data["public_key"][0]
+            string = chr(data["algorithm"]) + "".join(chr(i) for i in tuple_ascii)
+        else:
+            string = data
+        return str.__new__(cls, string)
+
+
+def decode_hex_identity_dict(info_dictionary: dict[str, Any]) -> dict[str, Any]:
+    """Decodes a dictionary of hexadecimal identities."""
+    decoded_info = {}
+    for k, v in info_dictionary.items():
+        if isinstance(v, dict):
+            item = next(iter(v.values()))
+        else:
+            item = v
+
+        if isinstance(item, tuple):
+            try:
+                decoded_info[k] = bytes(item).decode()
+            except UnicodeDecodeError:
+                print(f"Could not decode: {k}: {item}")
+        else:
+            decoded_info[k] = item
+    return decoded_info
 
 
 def ss58_to_vec_u8(ss58_address: str) -> list[int]:
@@ -152,17 +175,13 @@ def get_hash(content, encoding="utf-8"):
     return sha3.hexdigest()
 
 
-def format_error_message(
-    error_message: Union[dict, Exception],
-    substrate: Union["AsyncSubstrateInterface", "SubstrateInterface"],
-) -> str:
+def format_error_message(error_message: Union[dict, Exception]) -> str:
     """
     Formats an error message from the Subtensor error information for use in extrinsics.
 
     Args:
         error_message: A dictionary containing the error information from Subtensor, or a SubstrateRequestException
                        containing dictionary literal args.
-        substrate: The initialised SubstrateInterface object to use.
 
     Returns:
         str: A formatted error message string.
@@ -184,7 +203,7 @@ def format_error_message(
                     elif all(x in d for x in ["code", "message", "data"]):
                         new_error_message = d
                         break
-            except ValueError:
+            except (ValueError, TypeError, SyntaxError, MemoryError, RecursionError):
                 pass
         if new_error_message is None:
             return_val = " ".join(error_message.args)
@@ -204,22 +223,8 @@ def format_error_message(
             err_data = error_message.get("data", "")
 
             # subtensor custom error marker
-            if err_data.startswith("Custom error:") and substrate:
-                if substrate.metadata:
-                    try:
-                        pallet = substrate.metadata.get_metadata_pallet(
-                            "SubtensorModule"
-                        )
-                        error_index = int(err_data.split("Custom error:")[-1])
-
-                        error_dict = pallet.errors[error_index].value
-                        err_type = error_dict.get("message", err_type)
-                        err_docs = error_dict.get("docs", [])
-                        err_description = err_docs[0] if err_docs else err_description
-                    except (AttributeError, IndexError):
-                        logging.error(
-                            "[red]Substrate pallets data unavailable. This is usually caused by an uninitialized substrate.[/red]"
-                        )
+            if err_data.startswith("Custom error:"):
+                err_description = f"{err_data} | Please consult https://docs.bittensor.com/subtensor-nodes/subtensor-error-messages"
             else:
                 err_description = err_data
 
@@ -236,7 +241,6 @@ def format_error_message(
     return f"Subtensor returned `{err_name}({err_type})` error. This means: `{err_description}`."
 
 
-# Subnet 24 uses this function
 def is_valid_ss58_address(address: str) -> bool:
     """
     Checks if the given address is a valid ss58 address.
@@ -248,9 +252,9 @@ def is_valid_ss58_address(address: str) -> bool:
         True if the address is a valid ss58 address for Bittensor, False otherwise.
     """
     try:
-        return ss58.is_valid_ss58_address(
+        return _is_valid_ss58_address(
             address, valid_ss58_format=SS58_FORMAT
-        ) or ss58.is_valid_ss58_address(
+        ) or _is_valid_ss58_address(
             address, valid_ss58_format=42
         )  # Default substrate ss58 format (legacy)
     except IndexError:
@@ -312,60 +316,6 @@ def is_valid_bittensor_address_or_public_key(address: Union[str, bytes]) -> bool
         return False
 
 
-def decode_hex_identity_dict(info_dictionary) -> dict[str, Any]:
-    """
-    Decodes hex-encoded strings in a dictionary.
-
-    This function traverses the given dictionary, identifies hex-encoded strings, and decodes them into readable strings. It handles nested dictionaries and lists within the dictionary.
-
-    Args:
-        info_dictionary (dict): The dictionary containing hex-encoded strings to decode.
-
-    Returns:
-        dict: The dictionary with decoded strings.
-
-    Examples:
-        input_dict = {
-        ...     "name": {"value": "0x6a6f686e"},
-        ...     "additional": [
-        ...         [{"data": "0x64617461"}]
-        ...     ]
-        ... }
-        decode_hex_identity_dict(input_dict)
-        {'name': 'john', 'additional': [('data', 'data')]}
-    """
-
-    def get_decoded(data: str) -> str:
-        """Decodes a hex-encoded string."""
-        try:
-            return bytes.fromhex(data[2:]).decode()
-        except UnicodeDecodeError:
-            print(f"Could not decode: {key}: {item}")
-
-    for key, value in info_dictionary.items():
-        if isinstance(value, dict):
-            item = list(value.values())[0]
-            if isinstance(item, str) and item.startswith("0x"):
-                try:
-                    info_dictionary[key] = get_decoded(item)
-                except UnicodeDecodeError:
-                    print(f"Could not decode: {key}: {item}")
-            else:
-                info_dictionary[key] = item
-        if key == "additional":
-            additional = []
-            for item in value:
-                additional.append(
-                    tuple(
-                        get_decoded(data=next(iter(sub_item.values())))
-                        for sub_item in item
-                    )
-                )
-            info_dictionary[key] = additional
-
-    return info_dictionary
-
-
 def validate_chain_endpoint(endpoint_url: str) -> tuple[bool, str]:
     """Validates if the provided endpoint URL is a valid WebSocket URL."""
     parsed = urlparse(endpoint_url)
@@ -407,12 +357,36 @@ def unlock_key(wallet: "Wallet", unlock_type="coldkey") -> "UnlockStatus":
         return UnlockStatus(False, err_msg)
 
 
-def hex_to_bytes(hex_str: str) -> bytes:
+def determine_chain_endpoint_and_network(
+    network: str,
+) -> tuple[Optional[str], Optional[str]]:
+    """Determines the chain endpoint and network from the passed network or chain_endpoint.
+
+    Arguments:
+        network (str): The network flag. The choices are: ``finney`` (main network), ``archive`` (archive network
+            +300 blocks), ``local`` (local running network), ``test`` (test network).
+
+    Returns:
+        tuple[Optional[str], Optional[str]]: The network and chain endpoint flag. If passed, overrides the
+            ``network`` argument.
     """
-    Converts a hex-encoded string into bytes. Handles 0x-prefixed and non-prefixed hex-encoded strings.
-    """
-    if hex_str.startswith("0x"):
-        bytes_result = bytes.fromhex(hex_str[2:])
-    else:
-        bytes_result = bytes.fromhex(hex_str)
-    return bytes_result
+
+    if network is None:
+        return None, None
+    if network in settings.NETWORKS:
+        return network, settings.NETWORK_MAP[network]
+
+    substrings_map = {
+        "entrypoint-finney.opentensor.ai": ("finney", settings.FINNEY_ENTRYPOINT),
+        "test.finney.opentensor.ai": ("test", settings.FINNEY_TEST_ENTRYPOINT),
+        "archive.chain.opentensor.ai": ("archive", settings.ARCHIVE_ENTRYPOINT),
+        "subvortex": ("subvortex", settings.SUBVORTEX_ENTRYPOINT),
+        "127.0.0.1": ("local", network),
+        "localhost": ("local", network),
+    }
+
+    for substring, result in substrings_map.items():
+        if substring in network and validate_chain_endpoint(network):
+            return result
+
+    return "unknown", network
