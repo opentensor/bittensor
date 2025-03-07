@@ -30,6 +30,7 @@ from bittensor.core.chain_data import (
 from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.utils import decode_metadata
 from bittensor.core.config import Config
+from bittensor.core.errors import ChainError
 from bittensor.core.extrinsics.commit_reveal import commit_reveal_v3_extrinsic
 from bittensor.core.extrinsics.commit_weights import (
     commit_weights_extrinsic,
@@ -2179,7 +2180,7 @@ class Subtensor(SubtensorMixin):
                 return True, ""
 
             if raise_error:
-                raise SubstrateRequestException.from_error(response.error_message)
+                raise ChainError.from_error(response.error_message)
 
             return False, format_error_message(response.error_message)
 
