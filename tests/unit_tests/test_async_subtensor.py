@@ -14,14 +14,20 @@ from bittensor.core.chain_data import proposal_vote_data
 from bittensor.utils.balance import Balance
 
 
-@pytest.fixture(autouse=True)
-def subtensor(mocker):
+@pytest.fixture
+def mock_substrate(mocker):
     fake_async_substrate = mocker.AsyncMock(
         autospec=async_subtensor.AsyncSubstrateInterface
     )
     mocker.patch.object(
         async_subtensor, "AsyncSubstrateInterface", return_value=fake_async_substrate
     )
+
+    return fake_async_substrate
+
+
+@pytest.fixture
+def subtensor(mock_substrate):
     return async_subtensor.AsyncSubtensor()
 
 
@@ -62,11 +68,10 @@ def test_decode_hex_identity_dict_with_non_tuple_value():
 
 
 @pytest.mark.asyncio
-async def test_init_if_unknown_network_is_valid(mocker):
+async def test_init_if_unknown_network_is_valid(mock_substrate):
     """Tests __init__ if passed network unknown and is valid."""
     # Preps
     fake_valid_endpoint = "wss://blabla.net"
-    mocker.patch.object(async_subtensor, "AsyncSubstrateInterface")
 
     # Call
     subtensor = AsyncSubtensor(fake_valid_endpoint)
@@ -77,11 +82,10 @@ async def test_init_if_unknown_network_is_valid(mocker):
 
 
 @pytest.mark.asyncio
-async def test_init_if_unknown_network_is_known_endpoint(mocker):
+async def test_init_if_unknown_network_is_known_endpoint(mock_substrate):
     """Tests __init__ if passed network unknown and is valid."""
     # Preps
     fake_valid_endpoint = "ws://127.0.0.1:9944"
-    mocker.patch.object(async_subtensor, "AsyncSubstrateInterface")
 
     # Call
     subtensor = AsyncSubtensor(fake_valid_endpoint)
@@ -92,10 +96,8 @@ async def test_init_if_unknown_network_is_known_endpoint(mocker):
 
 
 @pytest.mark.asyncio
-async def test_init_if_unknown_network_is_not_valid(mocker):
+async def test_init_if_unknown_network_is_not_valid(mock_substrate):
     """Tests __init__ if passed network unknown and isn't valid."""
-    # Preps
-    mocker.patch.object(async_subtensor, "AsyncSubstrateInterface")
 
     # Call
     subtensor = AsyncSubtensor("blabla-net")
@@ -115,15 +117,8 @@ def test__str__return(subtensor):
 
 
 @pytest.mark.asyncio
-async def test_async_subtensor_magic_methods(mocker):
+async def test_async_subtensor_magic_methods(mock_substrate):
     """Tests async magic methods of AsyncSubtensor class."""
-    # Preps
-    fake_async_substrate = mocker.AsyncMock(
-        autospec=async_subtensor.AsyncSubstrateInterface
-    )
-    mocker.patch.object(
-        async_subtensor, "AsyncSubstrateInterface", return_value=fake_async_substrate
-    )
 
     # Call
     subtensor = async_subtensor.AsyncSubtensor(network="local")
@@ -131,8 +126,8 @@ async def test_async_subtensor_magic_methods(mocker):
         pass
 
     # Asserts
-    fake_async_substrate.initialize.assert_called_once()
-    fake_async_substrate.close.assert_called_once()
+    mock_substrate.initialize.assert_called_once()
+    mock_substrate.close.assert_called_once()
 
 
 @pytest.mark.parametrize(
@@ -1557,7 +1552,6 @@ async def test_get_hotkey_owner_successful(subtensor, mocker):
     # Preps
     fake_hotkey_ss58 = "valid_hotkey"
     fake_block_hash = "block_hash"
-    fake_owner_account_id = "owner_account_id"
 
     mocked_query = mocker.AsyncMock(return_value="decoded_owner_account_id")
     subtensor.substrate.query = mocked_query

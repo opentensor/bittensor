@@ -1,9 +1,7 @@
 import unittest.mock
-from typing import Optional
 
 import pytest
 
-import bittensor.core.subtensor
 from bittensor.core.chain_data.axon_info import AxonInfo
 from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.delegate_info import DelegatedInfo, DelegateInfo
@@ -13,59 +11,7 @@ from bittensor.core.chain_data.neuron_info_lite import NeuronInfoLite
 from bittensor.core.chain_data.prometheus_info import PrometheusInfo
 from bittensor.core.chain_data.stake_info import StakeInfo
 from bittensor.utils.balance import Balance
-
-
-def assert_submit_signed_extrinsic(
-    substrate,
-    keypair,
-    call_module,
-    call_function,
-    call_params: Optional[dict] = None,
-    era: Optional[dict] = None,
-    nonce: Optional[int] = None,
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = True,
-):
-    substrate.compose_call.assert_called_with(
-        call_module,
-        call_function,
-        call_params,
-    )
-
-    extrinsic = {
-        "call": substrate.compose_call.return_value,
-        "keypair": keypair,
-    }
-
-    if era:
-        extrinsic["era"] = era
-
-    if nonce:
-        extrinsic["nonce"] = nonce
-
-    substrate.create_signed_extrinsic.assert_called_with(
-        **extrinsic,
-    )
-
-    substrate.submit_extrinsic.assert_called_with(
-        substrate.create_signed_extrinsic.return_value,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
-
-
-@pytest.fixture
-def mock_substrate():
-    with unittest.mock.patch(
-        "bittensor.core.subtensor.SubstrateInterface",
-        autospec=True,
-    ) as mocked:
-        yield mocked.return_value
-
-
-@pytest.fixture
-def subtensor(mock_substrate):
-    return bittensor.core.subtensor.Subtensor()
+from tests.helpers.helpers import assert_submit_signed_extrinsic
 
 
 @pytest.fixture
@@ -901,7 +847,6 @@ def test_neurons_lite(mock_substrate, subtensor, mock_neuron_info):
 def test_subnet(mock_substrate, subtensor, mock_dynamic_info):
     mock_substrate.runtime_call.return_value.decode.return_value = mock_dynamic_info
 
-    subtensor = bittensor.core.subtensor.Subtensor()
     result = subtensor.subnet(netuid=0)
 
     assert result == DynamicInfo(
