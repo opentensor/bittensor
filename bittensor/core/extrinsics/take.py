@@ -14,6 +14,8 @@ def increase_take_extrinsic(
     wait_for_inclusion=True,
     wait_for_finalization=True,
 ) -> None:
+    wallet.unlock_coldkey()
+
     call = subtensor.substrate.compose_call(
         call_module="SubtensorModule",
         call_function="increase_take",
@@ -40,6 +42,8 @@ def decrease_take_extrinsic(
     wait_for_inclusion=True,
     wait_for_finalization=True,
 ) -> None:
+    wallet.unlock_coldkey()
+
     call = subtensor.substrate.compose_call(
         call_module="SubtensorModule",
         call_function="decrease_take",

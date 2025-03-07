@@ -1597,6 +1597,8 @@ class Subtensor(SubtensorMixin):
             DelegateTxRateLimitExceeded: A transactor exceeded the rate limit for delegate transaction.
             HotKeyAccountNotExists: The hotkey does not exists.
             NonAssociatedColdKey: Request to stake, unstake or subscribe is made by a coldkey that is not associated with the hotkey account.
+            bittensor_wallet.errors.PasswordError: Decryption failed or wrong password for decryption provided.
+            bittensor_wallet.errors.KeyFileError: Failed to decode keyfile data.
 
         The delegate take is a critical parameter in the network's incentive structure, influencing the distribution of
             rewards among neurons and their nominators.
