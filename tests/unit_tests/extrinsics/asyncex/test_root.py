@@ -1,20 +1,8 @@
 import pytest
 
-from bittensor.core import async_subtensor
 from bittensor.core.errors import SubstrateRequestException
 from bittensor.core.extrinsics.asyncex import root as async_root
 from bittensor_wallet import Wallet
-
-
-@pytest.fixture(autouse=True)
-def subtensor(mocker):
-    fake_async_substrate = mocker.AsyncMock(
-        autospec=async_subtensor.AsyncSubstrateInterface
-    )
-    mocker.patch.object(
-        async_subtensor, "AsyncSubstrateInterface", return_value=fake_async_substrate
-    )
-    return async_subtensor.AsyncSubtensor()
 
 
 @pytest.mark.asyncio

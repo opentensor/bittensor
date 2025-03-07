@@ -1,21 +1,10 @@
 from bittensor.core import async_subtensor as subtensor_module
 from bittensor.core.chain_data import SubnetHyperparameters
-from bittensor.core.async_subtensor import AsyncSubtensor
 from bittensor.core.extrinsics.asyncex import commit_reveal as async_commit_reveal
 import pytest
 import torch
 import numpy as np
 from bittensor_wallet import Wallet
-
-
-@pytest.fixture
-def subtensor(mocker):
-    fake_substrate = mocker.AsyncMock()
-    fake_substrate.websocket.socket.getsockopt.return_value = 0
-    mocker.patch.object(
-        subtensor_module, "AsyncSubstrateInterface", return_value=fake_substrate
-    )
-    yield AsyncSubtensor()
 
 
 @pytest.fixture

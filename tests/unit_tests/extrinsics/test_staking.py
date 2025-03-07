@@ -1,5 +1,4 @@
 from bittensor.core.extrinsics import staking
-from bittensor.core.extrinsics import utils
 from bittensor.utils.balance import Balance
 
 

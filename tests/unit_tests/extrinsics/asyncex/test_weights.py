@@ -4,17 +4,6 @@ from bittensor_wallet import Wallet
 from bittensor.core.extrinsics.asyncex import weights as async_weights
 
 
-@pytest.fixture(autouse=True)
-def subtensor(mocker):
-    fake_async_substrate = mocker.AsyncMock(
-        autospec=async_subtensor.AsyncSubstrateInterface
-    )
-    mocker.patch.object(
-        async_subtensor, "AsyncSubstrateInterface", return_value=fake_async_substrate
-    )
-    return async_subtensor.AsyncSubtensor()
-
-
 @pytest.mark.asyncio
 async def test_do_set_weights_success(subtensor, mocker):
     """Tests _do_set_weights when weights are set successfully."""
@@ -56,7 +45,7 @@ async def test_do_set_weights_success(subtensor, mocker):
 
     # Asserts
     assert result is True
-    assert message is ""
+    assert message == ""
 
 
 @pytest.mark.asyncio
@@ -146,7 +135,7 @@ async def test_do_set_weights_no_waiting(subtensor, mocker):
 
     # Asserts
     assert result is True
-    assert message is ""
+    assert message == ""
 
 
 @pytest.mark.asyncio
@@ -316,7 +305,7 @@ async def test_do_commit_weights_success(subtensor, mocker):
 
     # Asserts
     assert result is True
-    assert message is ""
+    assert message == ""
 
 
 @pytest.mark.asyncio
@@ -399,7 +388,7 @@ async def test_do_commit_weights_no_waiting(subtensor, mocker):
 
     # Asserts
     assert result is True
-    assert message is ""
+    assert message == ""
 
 
 @pytest.mark.asyncio
