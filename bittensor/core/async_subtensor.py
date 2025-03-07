@@ -3285,7 +3285,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization=True,
     ) -> None:
         """
-        Sets the delegate 'take' percentage for a nueron identified by its hotkey.
+        Sets the delegate 'take' percentage for a neuron identified by its hotkey.
         The 'take' represents the percentage of rewards that the delegate claims from its nominators' stakes.
 
         Arguments:
