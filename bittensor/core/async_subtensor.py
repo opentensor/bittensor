@@ -31,7 +31,7 @@ from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.delegate_info import DelegatedInfo
 from bittensor.core.chain_data.utils import decode_metadata
 from bittensor.core.config import Config
-from bittensor.core.errors import SubstrateRequestException
+from bittensor.core.errors import ChainError, SubstrateRequestException
 from bittensor.core.extrinsics.asyncex.commit_reveal import commit_reveal_v3_extrinsic
 from bittensor.core.extrinsics.asyncex.registration import (
     burned_register_extrinsic,
@@ -2799,7 +2799,7 @@ class AsyncSubtensor(SubtensorMixin):
                 return True, ""
 
             if raise_error:
-                raise SubstrateRequestException.from_error(response.error_message)
+                raise ChainError.from_error(response.error_message)
 
             return False, format_error_message(await response.error_message)
 

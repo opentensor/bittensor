@@ -1,6 +1,6 @@
-import async_substrate_interface.errors
 import pytest
 
+import bittensor
 from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.delegate_info import DelegatedInfo, DelegateInfo
 from bittensor.utils.balance import Balance
@@ -86,7 +86,7 @@ def test_change_take(local_chain, subtensor, alice_wallet, bob_wallet):
     - Try corner cases (increase/decrease beyond allowed min/max)
     """
 
-    with pytest.raises(async_substrate_interface.errors.HotKeyAccountNotExists):
+    with pytest.raises(bittensor.HotKeyAccountNotExists):
         subtensor.set_delegate_take(
             alice_wallet,
             alice_wallet.hotkey.ss58_address,
@@ -103,14 +103,14 @@ def test_change_take(local_chain, subtensor, alice_wallet, bob_wallet):
 
     assert take == DEFAULT_DELEGATE_TAKE
 
-    with pytest.raises(async_substrate_interface.errors.NonAssociatedColdKey):
+    with pytest.raises(bittensor.NonAssociatedColdKey):
         subtensor.set_delegate_take(
             bob_wallet,
             alice_wallet.hotkey.ss58_address,
             0.1,
         )
 
-    with pytest.raises(async_substrate_interface.errors.DelegateTakeTooHigh):
+    with pytest.raises(bittensor.DelegateTakeTooHigh):
         subtensor.set_delegate_take(
             alice_wallet,
             alice_wallet.hotkey.ss58_address,
@@ -127,7 +127,7 @@ def test_change_take(local_chain, subtensor, alice_wallet, bob_wallet):
 
     assert take == 0.09999237048905166
 
-    with pytest.raises(async_substrate_interface.errors.DelegateTxRateLimitExceeded):
+    with pytest.raises(bittensor.DelegateTxRateLimitExceeded):
         subtensor.set_delegate_take(
             alice_wallet,
             alice_wallet.hotkey.ss58_address,
