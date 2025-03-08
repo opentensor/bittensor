@@ -17,6 +17,21 @@ BlockNotFound = BlockNotFound
 ExtrinsicNotFound = ExtrinsicNotFound
 
 
+class _ChainErrorMeta(type):
+    _exceptions: dict[str, Exception] = {}
+
+    def __new__(mcs, name, bases, attrs):
+        cls = super().__new__(mcs, name, bases, attrs)
+
+        mcs._exceptions.setdefault(cls.__name__, cls)
+
+        return cls
+
+    @classmethod
+    def get_exception_class(mcs, exception_name):
+        return mcs._exceptions[exception_name]
+
+
 class MaxSuccessException(Exception):
     """Raised when the POW Solver has reached the max number of successful solutions."""
 
@@ -25,8 +40,19 @@ class MaxAttemptsException(Exception):
     """Raised when the POW Solver has reached the max number of attempts."""
 
 
-class ChainError(SubstrateRequestException):
+class ChainError(SubstrateRequestException, metaclass=_ChainErrorMeta):
     """Base error for any chain related errors."""
+
+    @classmethod
+    def from_error(cls, error):
+        try:
+            error_cls = _ChainErrorMeta.get_exception_class(
+                error["name"],
+            )
+        except KeyError:
+            return cls(error)
+        else:
+            return error_cls(" ".join(error["docs"]))
 
 
 class ChainConnectionError(ChainError):
@@ -39,6 +65,36 @@ class ChainTransactionError(ChainError):
 
 class ChainQueryError(ChainError):
     """Error for any chain query related errors."""
+
+
+class DelegateTakeTooHigh(ChainTransactionError):
+    """
+    Delegate take is too high.
+    """
+
+
+class DelegateTakeTooLow(ChainTransactionError):
+    """
+    Delegate take is too low.
+    """
+
+
+class DelegateTxRateLimitExceeded(ChainTransactionError):
+    """
+    A transactor exceeded the rate limit for delegate transaction.
+    """
+
+
+class HotKeyAccountNotExists(ChainTransactionError):
+    """
+    The hotkey does not exist.
+    """
+
+
+class NonAssociatedColdKey(ChainTransactionError):
+    """
+    Request to stake, unstake or subscribe is made by a coldkey that is not associated with the hotkey account.
+    """
 
 
 class StakeError(ChainTransactionError):
