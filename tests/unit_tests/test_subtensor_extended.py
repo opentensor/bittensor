@@ -15,11 +15,6 @@ from tests.helpers.helpers import assert_submit_signed_extrinsic
 
 
 @pytest.fixture
-def wallet():
-    return unittest.mock.Mock()
-
-
-@pytest.fixture
 def mock_delegate_info():
     return {
         "delegate_ss58": tuple(bytearray(32)),
@@ -169,7 +164,7 @@ def test_bonds(mock_substrate, subtensor, mocker):
     )
 
 
-def test_burned_register(mock_substrate, subtensor, wallet, mocker):
+def test_burned_register(mock_substrate, subtensor, fake_wallet, mocker):
     mocker.patch.object(
         subtensor,
         "get_neuron_for_pubkey_and_subnet",
@@ -178,26 +173,26 @@ def test_burned_register(mock_substrate, subtensor, wallet, mocker):
     mocker.patch.object(subtensor, "get_balance")
 
     success = subtensor.burned_register(
-        wallet,
+        fake_wallet,
         netuid=1,
     )
 
     assert success is True
 
     subtensor.get_neuron_for_pubkey_and_subnet.assert_called_once_with(
-        wallet.hotkey.ss58_address,
+        fake_wallet.hotkey.ss58_address,
         netuid=1,
         block=mock_substrate.get_block_number.return_value,
     )
 
     assert_submit_signed_extrinsic(
         mock_substrate,
-        wallet.coldkey,
+        fake_wallet.coldkey,
         call_module="SubtensorModule",
         call_function="burned_register",
         call_params={
             "netuid": 1,
-            "hotkey": wallet.hotkey.ss58_address,
+            "hotkey": fake_wallet.hotkey.ss58_address,
         },
         wait_for_finalization=True,
         wait_for_inclusion=False,
@@ -327,7 +322,7 @@ def test_get_block_hash_none(mock_substrate, subtensor):
     mock_substrate.get_chain_head.assert_called_once()
 
 
-def test_get_children(mock_substrate, subtensor, wallet):
+def test_get_children(mock_substrate, subtensor, fake_wallet):
     mock_substrate.query.return_value.value = [
         (
             2**64 - 1,
@@ -357,7 +352,7 @@ def test_get_children(mock_substrate, subtensor, wallet):
     )
 
 
-def test_get_current_weight_commit_info(mock_substrate, subtensor, wallet, mocker):
+def test_get_current_weight_commit_info(mock_substrate, subtensor, fake_wallet, mocker):
     mock_substrate.query_map.return_value.records = [
         (
             mocker.ANY,
@@ -560,7 +555,7 @@ def test_get_stake_for_coldkey(mock_substrate, subtensor, mocker):
 
 
 def test_filter_netuids_by_registered_hotkeys(
-    mock_substrate, subtensor, wallet, mocker
+    mock_substrate, subtensor, fake_wallet, mocker
 ):
     mock_substrate.query_map.return_value = mocker.MagicMock(
         **{
@@ -586,7 +581,7 @@ def test_filter_netuids_by_registered_hotkeys(
     result = subtensor.filter_netuids_by_registered_hotkeys(
         all_netuids=[0, 1, 2],
         filter_for_netuids=[2],
-        all_hotkeys=[wallet],
+        all_hotkeys=[fake_wallet],
         block=10,
     )
 
@@ -596,7 +591,7 @@ def test_filter_netuids_by_registered_hotkeys(
     mock_substrate.query_map.assert_called_once_with(
         module="SubtensorModule",
         storage_function="IsNetworkMember",
-        params=[wallet.hotkey.ss58_address],
+        params=[fake_wallet.hotkey.ss58_address],
         block_hash=mock_substrate.get_block_hash.return_value,
     )
 
@@ -621,9 +616,9 @@ def test_last_drand_round(mock_substrate, subtensor):
         False,
     ),
 )
-def test_move_stake(mock_substrate, subtensor, wallet, wait):
+def test_move_stake(mock_substrate, subtensor, fake_wallet, wait):
     success = subtensor.move_stake(
-        wallet,
+        fake_wallet,
         origin_hotkey="origin_hotkey",
         origin_netuid=1,
         destination_hotkey="destination_hotkey",
@@ -637,7 +632,7 @@ def test_move_stake(mock_substrate, subtensor, wallet, wait):
 
     assert_submit_signed_extrinsic(
         mock_substrate,
-        wallet.coldkey,
+        fake_wallet.coldkey,
         call_module="SubtensorModule",
         call_function="move_stake",
         call_params={
@@ -652,11 +647,11 @@ def test_move_stake(mock_substrate, subtensor, wallet, wait):
     )
 
 
-def test_move_stake_insufficient_stake(mock_substrate, subtensor, wallet, mocker):
+def test_move_stake_insufficient_stake(mock_substrate, subtensor, fake_wallet, mocker):
     mocker.patch.object(subtensor, "get_stake", return_value=Balance(0))
 
     success = subtensor.move_stake(
-        wallet,
+        fake_wallet,
         origin_hotkey="origin_hotkey",
         origin_netuid=1,
         destination_hotkey="destination_hotkey",
@@ -669,14 +664,14 @@ def test_move_stake_insufficient_stake(mock_substrate, subtensor, wallet, mocker
     mock_substrate.submit_extrinsic.assert_not_called()
 
 
-def test_move_stake_error(mock_substrate, subtensor, wallet, mocker):
+def test_move_stake_error(mock_substrate, subtensor, fake_wallet, mocker):
     mock_substrate.submit_extrinsic.return_value = mocker.Mock(
         error_message="ERROR",
         is_success=False,
     )
 
     success = subtensor.move_stake(
-        wallet,
+        fake_wallet,
         origin_hotkey="origin_hotkey",
         origin_netuid=1,
         destination_hotkey="destination_hotkey",
@@ -688,7 +683,7 @@ def test_move_stake_error(mock_substrate, subtensor, wallet, mocker):
 
     assert_submit_signed_extrinsic(
         mock_substrate,
-        wallet.coldkey,
+        fake_wallet.coldkey,
         call_module="SubtensorModule",
         call_function="move_stake",
         call_params={
@@ -703,11 +698,11 @@ def test_move_stake_error(mock_substrate, subtensor, wallet, mocker):
     )
 
 
-def test_move_stake_exception(mock_substrate, subtensor, wallet):
+def test_move_stake_exception(mock_substrate, subtensor, fake_wallet):
     mock_substrate.submit_extrinsic.side_effect = RuntimeError
 
     success = subtensor.move_stake(
-        wallet,
+        fake_wallet,
         origin_hotkey="origin_hotkey",
         origin_netuid=1,
         destination_hotkey="destination_hotkey",
@@ -719,7 +714,7 @@ def test_move_stake_exception(mock_substrate, subtensor, wallet):
 
     assert_submit_signed_extrinsic(
         mock_substrate,
-        wallet.coldkey,
+        fake_wallet.coldkey,
         call_module="SubtensorModule",
         call_function="move_stake",
         call_params={
@@ -891,18 +886,18 @@ def test_subtensor_contextmanager(mock_substrate, subtensor):
     mock_substrate.close.assert_called_once()
 
 
-def test_swap_stake(mock_substrate, subtensor, wallet, mocker):
+def test_swap_stake(mock_substrate, subtensor, fake_wallet, mocker):
     mocker.patch.object(subtensor, "get_stake", return_value=Balance(1000))
     mocker.patch.object(
         subtensor,
         "get_hotkey_owner",
         autospec=True,
-        return_value=wallet.coldkeypub.ss58_address,
+        return_value=fake_wallet.coldkeypub.ss58_address,
     )
 
     result = subtensor.swap_stake(
-        wallet,
-        wallet.hotkey.ss58_address,
+        fake_wallet,
+        fake_wallet.hotkey.ss58_address,
         origin_netuid=1,
         destination_netuid=2,
         amount=Balance(999),
@@ -912,11 +907,11 @@ def test_swap_stake(mock_substrate, subtensor, wallet, mocker):
 
     assert_submit_signed_extrinsic(
         mock_substrate,
-        wallet.coldkey,
+        fake_wallet.coldkey,
         call_module="SubtensorModule",
         call_function="swap_stake",
         call_params={
-            "hotkey": wallet.hotkey.ss58_address,
+            "hotkey": fake_wallet.hotkey.ss58_address,
             "origin_netuid": 1,
             "destination_netuid": 2,
             "alpha_amount": 999,
@@ -972,7 +967,7 @@ def test_query_identity(mock_substrate, subtensor, query, result):
     )
 
 
-def test_register(mock_substrate, subtensor, wallet, mocker):
+def test_register(mock_substrate, subtensor, fake_wallet, mocker):
     create_pow = mocker.patch(
         "bittensor.core.extrinsics.registration.create_pow",
         return_value=mocker.Mock(
@@ -989,20 +984,20 @@ def test_register(mock_substrate, subtensor, wallet, mocker):
     )
 
     result = subtensor.register(
-        wallet,
+        fake_wallet,
         netuid=1,
     )
 
     assert result is True
 
     subtensor.get_neuron_for_pubkey_and_subnet.assert_called_once_with(
-        hotkey_ss58=wallet.hotkey.ss58_address,
+        hotkey_ss58=fake_wallet.hotkey.ss58_address,
         netuid=1,
         block=mock_substrate.get_block_number.return_value,
     )
     create_pow.assert_called_once_with(
         subtensor=subtensor,
-        wallet=wallet,
+        wallet=fake_wallet,
         netuid=1,
         output_in_place=True,
         cuda=False,
@@ -1013,13 +1008,13 @@ def test_register(mock_substrate, subtensor, wallet, mocker):
 
     assert_submit_signed_extrinsic(
         mock_substrate,
-        wallet.coldkey,
+        fake_wallet.coldkey,
         call_module="SubtensorModule",
         call_function="register",
         call_params={
             "block_number": create_pow.return_value.block_number,
-            "coldkey": wallet.coldkeypub.ss58_address,
-            "hotkey": wallet.hotkey.ss58_address,
+            "coldkey": fake_wallet.coldkeypub.ss58_address,
+            "hotkey": fake_wallet.hotkey.ss58_address,
             "netuid": 1,
             "nonce": create_pow.return_value.nonce,
             "work": [1, 2, 3],
@@ -1034,7 +1029,7 @@ def test_register(mock_substrate, subtensor, wallet, mocker):
         False,
     ],
 )
-def test_register_subnet(mock_substrate, subtensor, wallet, mocker, success):
+def test_register_subnet(mock_substrate, subtensor, fake_wallet, mocker, success):
     mocker.patch.object(subtensor, "get_balance", return_value=Balance(100))
     mocker.patch.object(subtensor, "get_subnet_burn_cost", return_value=Balance(10))
 
@@ -1043,29 +1038,31 @@ def test_register_subnet(mock_substrate, subtensor, wallet, mocker, success):
     )
 
     result = subtensor.register_subnet(
-        wallet,
+        fake_wallet,
     )
 
     assert result is success
 
     assert_submit_signed_extrinsic(
         mock_substrate,
-        wallet.coldkey,
+        fake_wallet.coldkey,
         call_module="SubtensorModule",
         call_function="register_network",
         call_params={
-            "hotkey": wallet.hotkey.ss58_address,
+            "hotkey": fake_wallet.hotkey.ss58_address,
             "mechid": 1,
         },
     )
 
 
-def test_register_subnet_insufficient_funds(mock_substrate, subtensor, wallet, mocker):
+def test_register_subnet_insufficient_funds(
+    mock_substrate, subtensor, fake_wallet, mocker
+):
     mocker.patch.object(subtensor, "get_balance", return_value=Balance(0))
     mocker.patch.object(subtensor, "get_subnet_burn_cost", return_value=Balance(10))
 
     success = subtensor.register_subnet(
-        wallet,
+        fake_wallet,
     )
 
     assert success is False
@@ -1073,7 +1070,7 @@ def test_register_subnet_insufficient_funds(mock_substrate, subtensor, wallet, m
     mock_substrate.submit_extrinsic.assert_not_called()
 
 
-def test_root_register(mock_substrate, subtensor, wallet, mocker):
+def test_root_register(mock_substrate, subtensor, fake_wallet, mocker):
     mocker.patch.object(
         subtensor, "get_balance", autospec=True, return_value=Balance(100)
     )
@@ -1082,33 +1079,35 @@ def test_root_register(mock_substrate, subtensor, wallet, mocker):
         subtensor, "is_hotkey_registered_on_subnet", autospec=True, return_value=False
     )
 
-    success = subtensor.root_register(wallet)
+    success = subtensor.root_register(fake_wallet)
 
     assert success is True
 
     subtensor.get_balance.assert_called_once_with(
-        wallet.coldkeypub.ss58_address,
+        fake_wallet.coldkeypub.ss58_address,
         block=mock_substrate.get_block_number.return_value,
     )
     subtensor.get_hyperparameter.assert_called_once()
     subtensor.is_hotkey_registered_on_subnet.assert_called_once_with(
-        wallet.hotkey.ss58_address,
+        fake_wallet.hotkey.ss58_address,
         0,
         None,
     )
 
     assert_submit_signed_extrinsic(
         mock_substrate,
-        wallet.coldkey,
+        fake_wallet.coldkey,
         call_module="SubtensorModule",
         call_function="root_register",
         call_params={
-            "hotkey": wallet.hotkey.ss58_address,
+            "hotkey": fake_wallet.hotkey.ss58_address,
         },
     )
 
 
-def test_root_register_is_already_registered(mock_substrate, subtensor, wallet, mocker):
+def test_root_register_is_already_registered(
+    mock_substrate, subtensor, fake_wallet, mocker
+):
     mocker.patch.object(
         subtensor, "get_balance", autospec=True, return_value=Balance(100)
     )
@@ -1117,36 +1116,38 @@ def test_root_register_is_already_registered(mock_substrate, subtensor, wallet, 
         subtensor, "is_hotkey_registered_on_subnet", autospec=True, return_value=True
     )
 
-    success = subtensor.root_register(wallet)
+    success = subtensor.root_register(fake_wallet)
 
     assert success is True
 
     subtensor.is_hotkey_registered_on_subnet.assert_called_once_with(
-        wallet.hotkey.ss58_address,
+        fake_wallet.hotkey.ss58_address,
         0,
         None,
     )
     mock_substrate.submit_extrinsic.assert_not_called()
 
 
-def test_root_register_insufficient_balance(mock_substrate, subtensor, wallet, mocker):
+def test_root_register_insufficient_balance(
+    mock_substrate, subtensor, fake_wallet, mocker
+):
     mocker.patch.object(
         subtensor, "get_balance", autospec=True, return_value=Balance(1)
     )
     mocker.patch.object(subtensor, "get_hyperparameter", autospec=True, return_value=10)
 
-    success = subtensor.root_register(wallet)
+    success = subtensor.root_register(fake_wallet)
 
     assert success is False
 
     subtensor.get_balance.assert_called_once_with(
-        wallet.coldkeypub.ss58_address,
+        fake_wallet.coldkeypub.ss58_address,
         block=mock_substrate.get_block_number.return_value,
     )
     mock_substrate.submit_extrinsic.assert_not_called()
 
 
-def test_root_set_weights(mock_substrate, subtensor, wallet, mocker):
+def test_root_set_weights(mock_substrate, subtensor, fake_wallet, mocker):
     MIN_ALLOWED_WEIGHTS = 0
     MAX_WEIGHTS_LIMIT = 1
 
@@ -1162,7 +1163,7 @@ def test_root_set_weights(mock_substrate, subtensor, wallet, mocker):
     )
 
     subtensor.root_set_weights(
-        wallet,
+        fake_wallet,
         netuids=[1, 2],
         weights=[0.5, 0.5],
     )
@@ -1176,12 +1177,12 @@ def test_root_set_weights(mock_substrate, subtensor, wallet, mocker):
     mock_substrate.query.assert_called_once_with(
         "SubtensorModule",
         "Uids",
-        [0, wallet.hotkey.ss58_address],
+        [0, fake_wallet.hotkey.ss58_address],
     )
 
     assert_submit_signed_extrinsic(
         mock_substrate,
-        wallet.coldkey,
+        fake_wallet.coldkey,
         call_module="SubtensorModule",
         call_function="set_root_weights",
         call_params={
@@ -1189,7 +1190,7 @@ def test_root_set_weights(mock_substrate, subtensor, wallet, mocker):
             "weights": [65535, 65535],
             "netuid": 0,
             "version_key": 0,
-            "hotkey": wallet.hotkey.ss58_address,
+            "hotkey": fake_wallet.hotkey.ss58_address,
         },
         era={
             "period": 5,
@@ -1199,11 +1200,11 @@ def test_root_set_weights(mock_substrate, subtensor, wallet, mocker):
     )
 
 
-def test_root_set_weights_no_uid(mock_substrate, subtensor, wallet, mocker):
+def test_root_set_weights_no_uid(mock_substrate, subtensor, fake_wallet, mocker):
     mock_substrate.query.return_value = None
 
     success = subtensor.root_set_weights(
-        wallet,
+        fake_wallet,
         netuids=[1, 2],
         weights=[0.5, 0.5],
     )
@@ -1213,13 +1214,13 @@ def test_root_set_weights_no_uid(mock_substrate, subtensor, wallet, mocker):
     mock_substrate.query.assert_called_once_with(
         "SubtensorModule",
         "Uids",
-        [0, wallet.hotkey.ss58_address],
+        [0, fake_wallet.hotkey.ss58_address],
     )
     mock_substrate.submit_extrinsic.assert_not_called()
 
 
 def test_root_set_weights_min_allowed_weights(
-    mock_substrate, subtensor, wallet, mocker
+    mock_substrate, subtensor, fake_wallet, mocker
 ):
     mocker.patch.object(
         subtensor,
@@ -1234,7 +1235,7 @@ def test_root_set_weights_min_allowed_weights(
         match="The minimum number of weights required to set weights is 5, got 2",
     ):
         subtensor.root_set_weights(
-            wallet,
+            fake_wallet,
             netuids=[1, 2],
             weights=[0.5, 0.5],
         )
@@ -1243,25 +1244,25 @@ def test_root_set_weights_min_allowed_weights(
     mock_substrate.submit_extrinsic.assert_not_called()
 
 
-def test_sign_and_send_extrinsic(mock_substrate, subtensor, wallet, mocker):
+def test_sign_and_send_extrinsic(mock_substrate, subtensor, fake_wallet, mocker):
     call = mocker.Mock()
 
     subtensor.sign_and_send_extrinsic(
         call,
-        wallet,
+        fake_wallet,
         use_nonce=True,
         period=10,
     )
 
     mock_substrate.get_account_next_index.assert_called_once_with(
-        wallet.hotkey.ss58_address,
+        fake_wallet.hotkey.ss58_address,
     )
     mock_substrate.create_signed_extrinsic.assert_called_once_with(
         call=call,
         era={
             "period": 10,
         },
-        keypair=wallet.coldkey,
+        keypair=fake_wallet.coldkey,
         nonce=mock_substrate.get_account_next_index.return_value,
     )
     mock_substrate.submit_extrinsic.assert_called_once_with(
@@ -1278,16 +1279,16 @@ def test_sign_and_send_extrinsic(mock_substrate, subtensor, wallet, mocker):
         False,
     ),
 )
-def test_transfer_stake(mock_substrate, subtensor, wallet, mocker, wait):
+def test_transfer_stake(mock_substrate, subtensor, fake_wallet, mocker, wait):
     mocker.patch.object(
         subtensor,
         "get_hotkey_owner",
         autospec=True,
-        return_value=wallet.coldkeypub.ss58_address,
+        return_value=fake_wallet.coldkeypub.ss58_address,
     )
 
     success = subtensor.transfer_stake(
-        wallet,
+        fake_wallet,
         "dest",
         "hotkey_ss58",
         origin_netuid=1,
@@ -1301,7 +1302,7 @@ def test_transfer_stake(mock_substrate, subtensor, wallet, mocker, wait):
 
     assert_submit_signed_extrinsic(
         mock_substrate,
-        wallet.coldkey,
+        fake_wallet.coldkey,
         call_module="SubtensorModule",
         call_function="transfer_stake",
         call_params={
@@ -1328,17 +1329,19 @@ def test_transfer_stake(mock_substrate, subtensor, wallet, mocker, wait):
         RuntimeError,
     ),
 )
-def test_transfer_stake_error(mock_substrate, subtensor, wallet, mocker, side_effect):
+def test_transfer_stake_error(
+    mock_substrate, subtensor, fake_wallet, mocker, side_effect
+):
     mocker.patch.object(
         subtensor,
         "get_hotkey_owner",
         autospec=True,
-        return_value=wallet.coldkeypub.ss58_address,
+        return_value=fake_wallet.coldkeypub.ss58_address,
     )
     mock_substrate.submit_extrinsic.return_value = side_effect
 
     success = subtensor.transfer_stake(
-        wallet,
+        fake_wallet,
         "dest",
         "hotkey_ss58",
         origin_netuid=1,
@@ -1350,7 +1353,7 @@ def test_transfer_stake_error(mock_substrate, subtensor, wallet, mocker, side_ef
 
     assert_submit_signed_extrinsic(
         mock_substrate,
-        wallet.coldkey,
+        fake_wallet.coldkey,
         call_module="SubtensorModule",
         call_function="transfer_stake",
         call_params={
@@ -1365,7 +1368,7 @@ def test_transfer_stake_error(mock_substrate, subtensor, wallet, mocker, side_ef
     )
 
 
-def test_transfer_stake_non_owner(mock_substrate, subtensor, wallet, mocker):
+def test_transfer_stake_non_owner(mock_substrate, subtensor, fake_wallet, mocker):
     mocker.patch.object(
         subtensor,
         "get_hotkey_owner",
@@ -1374,7 +1377,7 @@ def test_transfer_stake_non_owner(mock_substrate, subtensor, wallet, mocker):
     )
 
     success = subtensor.transfer_stake(
-        wallet,
+        fake_wallet,
         "dest",
         "hotkey_ss58",
         origin_netuid=1,
@@ -1390,12 +1393,14 @@ def test_transfer_stake_non_owner(mock_substrate, subtensor, wallet, mocker):
     mock_substrate.submit_extrinsic.assert_not_called()
 
 
-def test_transfer_stake_insufficient_stake(mock_substrate, subtensor, wallet, mocker):
+def test_transfer_stake_insufficient_stake(
+    mock_substrate, subtensor, fake_wallet, mocker
+):
     mocker.patch.object(
         subtensor,
         "get_hotkey_owner",
         autospec=True,
-        return_value=wallet.coldkeypub.ss58_address,
+        return_value=fake_wallet.coldkeypub.ss58_address,
     )
 
     with unittest.mock.patch.object(
@@ -1404,7 +1409,7 @@ def test_transfer_stake_insufficient_stake(mock_substrate, subtensor, wallet, mo
         return_value=Balance(0),
     ):
         success = subtensor.transfer_stake(
-            wallet,
+            fake_wallet,
             "dest",
             "hotkey_ss58",
             origin_netuid=1,

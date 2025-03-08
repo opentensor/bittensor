@@ -1,5 +1,6 @@
 import pytest
 from aioresponses import aioresponses
+from bittensor_wallet import Wallet
 
 import bittensor.core.subtensor
 
@@ -28,6 +29,11 @@ def mock_substrate(mocker):
 @pytest.fixture
 def subtensor(mock_substrate):
     return bittensor.core.subtensor.Subtensor()
+
+
+@pytest.fixture
+def fake_wallet(mocker):
+    return mocker.Mock(spec_set=Wallet)
 
 
 @pytest.fixture

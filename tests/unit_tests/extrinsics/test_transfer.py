@@ -2,10 +2,9 @@ from bittensor.core.extrinsics.transfer import _do_transfer
 from bittensor.utils.balance import Balance
 
 
-def test_do_transfer_is_success_true(subtensor, mocker):
+def test_do_transfer_is_success_true(subtensor, fake_wallet, mocker):
     """Successful do_transfer call."""
     # Prep
-    fake_wallet = mocker.MagicMock()
     fake_dest = "SS58PUBLICKEY"
     fake_transfer_balance = Balance(1)
     fake_wait_for_inclusion = True
@@ -45,10 +44,9 @@ def test_do_transfer_is_success_true(subtensor, mocker):
     )
 
 
-def test_do_transfer_is_success_false(subtensor, mocker):
+def test_do_transfer_is_success_false(subtensor, fake_wallet, mocker):
     """Successful do_transfer call."""
     # Prep
-    fake_wallet = mocker.MagicMock()
     fake_dest = "SS58PUBLICKEY"
     fake_transfer_balance = Balance(1)
     fake_wait_for_inclusion = True
@@ -97,10 +95,9 @@ def test_do_transfer_is_success_false(subtensor, mocker):
     )
 
 
-def test_do_transfer_no_waits(subtensor, mocker):
+def test_do_transfer_no_waits(subtensor, fake_wallet, mocker):
     """Successful do_transfer call."""
     # Prep
-    fake_wallet = mocker.MagicMock()
     fake_dest = "SS58PUBLICKEY"
     fake_transfer_balance = Balance(1)
     fake_wait_for_inclusion = False

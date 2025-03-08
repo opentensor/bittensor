@@ -2,7 +2,7 @@ from bittensor.core.extrinsics import unstaking
 from bittensor.utils.balance import Balance
 
 
-def test_unstake_extrinsic(mocker):
+def test_unstake_extrinsic(fake_wallet, mocker):
     # Preps
     fake_subtensor = mocker.Mock(
         **{
@@ -12,7 +12,6 @@ def test_unstake_extrinsic(mocker):
             "get_stake.return_value": Balance(10.0),
         }
     )
-    fake_wallet = mocker.Mock()
     fake_wallet.coldkeypub.ss58_address = "hotkey_owner"
     hotkey_ss58 = "hotkey"
     fake_netuid = 1
@@ -54,7 +53,7 @@ def test_unstake_extrinsic(mocker):
     )
 
 
-def test_unstake_multiple_extrinsic(mocker):
+def test_unstake_multiple_extrinsic(fake_wallet, mocker):
     """Verify that sync `unstake_multiple_extrinsic` method calls proper async method."""
     # Preps
     fake_subtensor = mocker.Mock(
@@ -68,7 +67,6 @@ def test_unstake_multiple_extrinsic(mocker):
     mocker.patch.object(
         unstaking, "get_old_stakes", return_value=[Balance(1.1), Balance(0.3)]
     )
-    fake_wallet = mocker.Mock()
     fake_wallet.coldkeypub.ss58_address = "hotkey_owner"
     hotkey_ss58s = ["hotkey1", "hotkey2"]
     fake_netuids = [1, 2]

@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 import torch
-from bittensor_wallet import Wallet
 
 from bittensor.core import subtensor as subtensor_module
 from bittensor.core.chain_data import SubnetHyperparameters
@@ -41,10 +40,9 @@ def hyperparams():
     )
 
 
-def test_do_commit_reveal_v3_success(mocker, subtensor):
+def test_do_commit_reveal_v3_success(mocker, subtensor, fake_wallet):
     """Test successful commit-reveal with wait for finalization."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_commit = b"fake_commit"
     fake_reveal_round = 1
@@ -87,10 +85,9 @@ def test_do_commit_reveal_v3_success(mocker, subtensor):
     assert result == (True, "")
 
 
-def test_do_commit_reveal_v3_failure_due_to_error(mocker, subtensor):
+def test_do_commit_reveal_v3_failure_due_to_error(mocker, subtensor, fake_wallet):
     """Test commit-reveal fails due to an error in submission."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_commit = b"fake_commit"
     fake_reveal_round = 1
@@ -141,10 +138,11 @@ def test_do_commit_reveal_v3_failure_due_to_error(mocker, subtensor):
     assert result == (False, "Formatted error")
 
 
-def test_commit_reveal_v3_extrinsic_success_with_torch(mocker, subtensor, hyperparams):
+def test_commit_reveal_v3_extrinsic_success_with_torch(
+    mocker, subtensor, hyperparams, fake_wallet
+):
     """Test successful commit-reveal with torch tensors."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_uids = torch.tensor([1, 2, 3], dtype=torch.int64)
     fake_weights = torch.tensor([0.1, 0.2, 0.7], dtype=torch.float32)
@@ -213,10 +211,11 @@ def test_commit_reveal_v3_extrinsic_success_with_torch(mocker, subtensor, hyperp
     )
 
 
-def test_commit_reveal_v3_extrinsic_success_with_numpy(mocker, subtensor, hyperparams):
+def test_commit_reveal_v3_extrinsic_success_with_numpy(
+    mocker, subtensor, hyperparams, fake_wallet
+):
     """Test successful commit-reveal with numpy arrays."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_uids = np.array([1, 2, 3], dtype=np.int64)
     fake_weights = np.array([0.1, 0.2, 0.7], dtype=np.float32)
@@ -258,10 +257,11 @@ def test_commit_reveal_v3_extrinsic_success_with_numpy(mocker, subtensor, hyperp
     mock_do_commit.assert_called_once()
 
 
-def test_commit_reveal_v3_extrinsic_response_false(mocker, subtensor, hyperparams):
+def test_commit_reveal_v3_extrinsic_response_false(
+    mocker, subtensor, hyperparams, fake_wallet
+):
     """Test unsuccessful commit-reveal with torch."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_uids = torch.tensor([1, 2, 3], dtype=torch.int64)
     fake_weights = torch.tensor([0.1, 0.2, 0.7], dtype=torch.float32)
@@ -314,10 +314,9 @@ def test_commit_reveal_v3_extrinsic_response_false(mocker, subtensor, hyperparam
     )
 
 
-def test_commit_reveal_v3_extrinsic_exception(mocker, subtensor):
+def test_commit_reveal_v3_extrinsic_exception(mocker, subtensor, fake_wallet):
     """Test exception handling in commit-reveal."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_uids = [1, 2, 3]
     fake_weights = [0.1, 0.2, 0.7]
