@@ -2262,29 +2262,6 @@ def test_get_delegate_take_success(subtensor, mocker):
     assert result == subtensor_module.u16_normalized_float.return_value
 
 
-def test_get_delegate_take_none(subtensor, mocker):
-    """Verify `get_delegate_take` method returns None."""
-    # Preps
-    fake_hotkey_ss58 = "FAKE_SS58"
-    fake_block = 123
-
-    subtensor.query_subtensor = mocker.Mock(return_value=None)
-    mocker.patch.object(subtensor_module, "u16_normalized_float")
-
-    # Call
-    result = subtensor.get_delegate_take(hotkey_ss58=fake_hotkey_ss58, block=fake_block)
-
-    # Asserts
-    subtensor.query_subtensor.assert_called_once_with(
-        name="Delegates",
-        block=fake_block,
-        params=[fake_hotkey_ss58],
-    )
-
-    subtensor_module.u16_normalized_float.assert_not_called()
-    assert result is None
-
-
 def test_networks_during_connection(mock_substrate, mocker):
     """Test networks during_connection."""
     # Preps

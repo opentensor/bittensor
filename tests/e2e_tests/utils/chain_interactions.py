@@ -237,38 +237,6 @@ def set_children(subtensor, wallet, netuid, children):
     )
 
 
-def increase_take(subtensor, wallet, take):
-    return subtensor.sign_and_send_extrinsic(
-        subtensor.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="increase_take",
-            call_params={
-                "hotkey": wallet.hotkey.ss58_address,
-                "take": int(take * 0xFFFF),  # u16 representation of the take
-            },
-        ),
-        wallet,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
-
-
-def decrease_take(subtensor, wallet, take):
-    return subtensor.sign_and_send_extrinsic(
-        subtensor.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="decrease_take",
-            call_params={
-                "hotkey": wallet.hotkey.ss58_address,
-                "take": int(take * 0xFFFF),  # u16 representation of the take
-            },
-        ),
-        wallet,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
-
-
 def set_identity(
     subtensor,
     wallet,
