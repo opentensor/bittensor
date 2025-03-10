@@ -36,9 +36,9 @@ def add_stake_extrinsic(
             `False` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning `True`,
             or returns `False` if the extrinsic fails to be finalized within the timeout.
-        safe_staking (bool): If true, the staking process will have safety checks enabled. 
-        allow_partial_stake (bool): If true, partial stake will be allowed in-case full stake doesnt fulfill the threshold.
-        rate_threshold (float): The threshold in percentage of price which can be allowed to fluctuate. 0.005 = 0.5% by default.
+        safe_staking (bool): If true, enables price safety checks
+        allow_partial_stake (bool): If true, allows partial unstaking if price threshold exceeded
+        rate_threshold (float): Maximum allowed price increase percentage (0.005 = 0.5%)
 
     Returns:
         success: Flag is `True` if extrinsic was finalized or included in the block. If we did not wait for
