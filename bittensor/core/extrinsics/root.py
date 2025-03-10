@@ -11,6 +11,7 @@ from bittensor.utils import (
     unlock_key,
     torch,
 )
+from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import (
     normalize_max_weight,
@@ -65,6 +66,35 @@ def root_register_extrinsic(
             response is `True`.
     """
     netuid = 0
+    logging.info(
+        f"Registering on netuid [blue]{netuid}[/blue] on network: [blue]{subtensor.network}[/blue]"
+    )
+
+    logging.info("Fetching recycle amount & balance.")
+    block = subtensor.get_current_block()
+
+    try:
+        recycle_call = subtensor.get_hyperparameter(
+            param_name="Burn",
+            netuid=netuid,
+            block=block,
+        )
+        balance = subtensor.get_balance(
+            wallet.coldkeypub.ss58_address,
+            block=block,
+        )
+    except TypeError as e:
+        logging.error(f"Unable to retrieve current recycle. {e}")
+        return False
+
+    current_recycle = Balance.from_rao(int(recycle_call))
+
+    if balance < current_recycle:
+        logging.error(
+            f"[red]Insufficient balance {balance} to register neuron. "
+            f"Current recycle is {current_recycle} TAO[/red]."
+        )
+        return False
 
     if not (unlock := unlock_key(wallet)).success:
         logging.error(unlock.message)
