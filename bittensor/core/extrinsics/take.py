@@ -2,7 +2,6 @@ from typing import TYPE_CHECKING
 
 from bittensor_wallet.bittensor_wallet import Wallet
 
-from bittensor.utils.btlogging import logging
 from bittensor.utils import unlock_key
 
 if TYPE_CHECKING:
