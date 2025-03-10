@@ -1,5 +1,3 @@
-from bittensor_wallet import Wallet
-
 from bittensor.core.extrinsics.commit_weights import (
     _do_commit_weights,
     _do_reveal_weights,
@@ -7,10 +5,9 @@ from bittensor.core.extrinsics.commit_weights import (
 from bittensor.core.settings import version_as_int
 
 
-def test_do_commit_weights(subtensor, mocker):
+def test_do_commit_weights(subtensor, fake_wallet, mocker):
     """Successful _do_commit_weights call."""
     # Preps
-    fake_wallet = mocker.MagicMock()
     netuid = 1
     commit_hash = "fake_commit_hash"
     wait_for_inclusion = True
@@ -65,10 +62,9 @@ def test_do_commit_weights(subtensor, mocker):
     )
 
 
-def test_do_reveal_weights(subtensor, mocker):
+def test_do_reveal_weights(subtensor, fake_wallet, mocker):
     """Verifies that the `_do_reveal_weights` method interacts with the right substrate methods."""
     # Preps
-    fake_wallet = mocker.MagicMock(autospec=Wallet)
     fake_wallet.hotkey.ss58_address = "hotkey"
 
     netuid = 1

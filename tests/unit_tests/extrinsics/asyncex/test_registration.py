@@ -1,15 +1,13 @@
 import pytest
-from bittensor_wallet import Wallet
 
 from bittensor.core import async_subtensor
 from bittensor.core.extrinsics.asyncex import registration as async_registration
 
 
 @pytest.mark.asyncio
-async def test_do_pow_register_success(subtensor, mocker):
+async def test_do_pow_register_success(subtensor, fake_wallet, mocker):
     """Tests successful PoW registration."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.hotkey.ss58_address = "hotkey_ss58"
     fake_wallet.coldkeypub.ss58_address = "coldkey_ss58"
     fake_pow_result = mocker.Mock(
@@ -66,10 +64,9 @@ async def test_do_pow_register_success(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_do_pow_register_failure(subtensor, mocker):
+async def test_do_pow_register_failure(subtensor, fake_wallet, mocker):
     """Tests failed PoW registration."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.hotkey.ss58_address = "hotkey_ss58"
     fake_wallet.coldkeypub.ss58_address = "coldkey_ss58"
     fake_pow_result = mocker.Mock(
@@ -121,10 +118,9 @@ async def test_do_pow_register_failure(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_do_pow_register_no_waiting(subtensor, mocker):
+async def test_do_pow_register_no_waiting(subtensor, fake_wallet, mocker):
     """Tests PoW registration without waiting for inclusion or finalization."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.hotkey.ss58_address = "hotkey_ss58"
     fake_wallet.coldkeypub.ss58_address = "coldkey_ss58"
     fake_pow_result = mocker.Mock(
@@ -166,10 +162,9 @@ async def test_do_pow_register_no_waiting(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_register_extrinsic_success(subtensor, mocker):
+async def test_register_extrinsic_success(subtensor, fake_wallet, mocker):
     """Tests successful registration."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.hotkey.ss58_address = "hotkey_ss58"
     fake_wallet.coldkey.ss58_address = "coldkey_ss58"
 
@@ -221,10 +216,9 @@ async def test_register_extrinsic_success(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_register_extrinsic_success_with_cuda(subtensor, mocker):
+async def test_register_extrinsic_success_with_cuda(subtensor, fake_wallet, mocker):
     """Tests successful registration with CUDA enabled."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.hotkey.ss58_address = "hotkey_ss58"
     fake_wallet.coldkey.ss58_address = "coldkey_ss58"
 
@@ -278,10 +272,9 @@ async def test_register_extrinsic_success_with_cuda(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_register_extrinsic_failed_with_cuda(subtensor, mocker):
+async def test_register_extrinsic_failed_with_cuda(subtensor, fake_wallet, mocker):
     """Tests failed registration with CUDA enabled."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.hotkey.ss58_address = "hotkey_ss58"
     fake_wallet.coldkey.ss58_address = "coldkey_ss58"
 
@@ -319,11 +312,9 @@ async def test_register_extrinsic_failed_with_cuda(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_register_extrinsic_subnet_not_exists(subtensor, mocker):
+async def test_register_extrinsic_subnet_not_exists(subtensor, fake_wallet, mocker):
     """Tests registration when subnet does not exist."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
-
     mocked_subnet_exists = mocker.patch.object(
         subtensor, "subnet_exists", return_value=False
     )
@@ -344,10 +335,9 @@ async def test_register_extrinsic_subnet_not_exists(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_register_extrinsic_already_registered(subtensor, mocker):
+async def test_register_extrinsic_already_registered(subtensor, fake_wallet, mocker):
     """Tests registration when the key is already registered."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     mocked_get_neuron = mocker.patch.object(
         subtensor,
         "get_neuron_for_pubkey_and_subnet",
@@ -371,9 +361,8 @@ async def test_register_extrinsic_already_registered(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_register_extrinsic_max_attempts_reached(subtensor, mocker):
+async def test_register_extrinsic_max_attempts_reached(subtensor, fake_wallet, mocker):
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.hotkey.ss58_address = "hotkey_ss58"
     fake_wallet.coldkey.ss58_address = "coldkey_ss58"
 
@@ -439,10 +428,9 @@ async def test_register_extrinsic_max_attempts_reached(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_set_subnet_identity_extrinsic_is_success(subtensor, mocker):
+async def test_set_subnet_identity_extrinsic_is_success(subtensor, fake_wallet, mocker):
     """Verify that set_subnet_identity_extrinsic calls the correct functions and returns the correct result."""
     # Preps
-    wallet = mocker.MagicMock(autospec=Wallet)
     netuid = 123
     subnet_name = "mock_subnet_name"
     github_repo = "mock_github_repo"
@@ -463,7 +451,7 @@ async def test_set_subnet_identity_extrinsic_is_success(subtensor, mocker):
     # Call
     result = await async_registration.set_subnet_identity_extrinsic(
         subtensor=subtensor,
-        wallet=wallet,
+        wallet=fake_wallet,
         netuid=netuid,
         subnet_name=subnet_name,
         github_repo=github_repo,
@@ -479,7 +467,7 @@ async def test_set_subnet_identity_extrinsic_is_success(subtensor, mocker):
         call_module="SubtensorModule",
         call_function="set_subnet_identity",
         call_params={
-            "hotkey": wallet.hotkey.ss58_address,
+            "hotkey": fake_wallet.hotkey.ss58_address,
             "netuid": netuid,
             "subnet_name": subnet_name,
             "github_repo": github_repo,
@@ -492,7 +480,7 @@ async def test_set_subnet_identity_extrinsic_is_success(subtensor, mocker):
     )
     mocked_submit_extrinsic.assert_awaited_once_with(
         call=mocked_compose_call.return_value,
-        wallet=wallet,
+        wallet=fake_wallet,
         wait_for_inclusion=False,
         wait_for_finalization=True,
     )
@@ -501,10 +489,9 @@ async def test_set_subnet_identity_extrinsic_is_success(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_set_subnet_identity_extrinsic_is_failed(subtensor, mocker):
+async def test_set_subnet_identity_extrinsic_is_failed(subtensor, fake_wallet, mocker):
     """Verify that set_subnet_identity_extrinsic calls the correct functions and returns False with bad result."""
     # Preps
-    wallet = mocker.MagicMock(autospec=Wallet)
     netuid = 123
     subnet_name = "mock_subnet_name"
     github_repo = "mock_github_repo"
@@ -527,7 +514,7 @@ async def test_set_subnet_identity_extrinsic_is_failed(subtensor, mocker):
     # Call
     result = await async_registration.set_subnet_identity_extrinsic(
         subtensor=subtensor,
-        wallet=wallet,
+        wallet=fake_wallet,
         netuid=netuid,
         subnet_name=subnet_name,
         github_repo=github_repo,
@@ -545,7 +532,7 @@ async def test_set_subnet_identity_extrinsic_is_failed(subtensor, mocker):
         call_module="SubtensorModule",
         call_function="set_subnet_identity",
         call_params={
-            "hotkey": wallet.hotkey.ss58_address,
+            "hotkey": fake_wallet.hotkey.ss58_address,
             "netuid": netuid,
             "subnet_name": subnet_name,
             "github_repo": github_repo,
@@ -558,7 +545,7 @@ async def test_set_subnet_identity_extrinsic_is_failed(subtensor, mocker):
     )
     mocked_submit_extrinsic.assert_awaited_once_with(
         call=mocked_compose_call.return_value,
-        wallet=wallet,
+        wallet=fake_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
