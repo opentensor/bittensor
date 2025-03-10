@@ -2142,7 +2142,7 @@ class Subtensor(SubtensorMixin):
             wait_for_inclusion (bool): whether to wait until the extrinsic call is included on the chain
             wait_for_finalization (bool): whether to wait until the extrinsic call is finalized on the chain
             sign_with: the wallet's keypair to use for the signing. Options are "coldkey", "hotkey", "coldkeypub"
-            raise_error: doesn't return error but raises SubstrateRequestException exception
+            raise_error: raises relevant exception rather than returning `False` if unsuccessful.
 
         Returns:
             (success, error message)
