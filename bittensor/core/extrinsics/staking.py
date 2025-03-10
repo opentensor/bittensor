@@ -19,6 +19,9 @@ def add_stake_extrinsic(
     amount: Optional[Balance] = None,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
+    safe_staking: bool = False,
+    allow_partial_stake: bool = False,
+    rate_threshold: float = 0.005,
 ) -> bool:
     """
     Adds the specified amount of stake to passed hotkey `uid`.
@@ -33,6 +36,9 @@ def add_stake_extrinsic(
             `False` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning `True`,
             or returns `False` if the extrinsic fails to be finalized within the timeout.
+        safe_staking (bool): If true, the staking process will have safety checks enabled. 
+        allow_partial_stake (bool): If true, partial stake will be allowed in-case full stake doesnt fulfill the threshold.
+        rate_threshold (float): The threshold in percentage of price which can be allowed to fluctuate. 0.005 = 0.5% by default.
 
     Returns:
         success: Flag is `True` if extrinsic was finalized or included in the block. If we did not wait for
@@ -91,20 +97,48 @@ def add_stake_extrinsic(
         return False
 
     try:
-        logging.info(
-            f":satellite: [magenta]Staking to:[/magenta] "
-            f"[blue]netuid: {netuid}, amount: {staking_balance} "
-            f"on {subtensor.network}[/blue] [magenta]...[/magenta]"
-        )
-        call = subtensor.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="add_stake",
-            call_params={
-                "hotkey": hotkey_ss58,
-                "amount_staked": staking_balance.rao,
-                "netuid": netuid,
-            },
-        )
+        if safe_staking:
+            pool = subtensor.subnet(netuid=netuid)
+            base_price = pool.price.rao
+            price_with_tolerance = base_price * (1 + rate_threshold)
+
+            # For logging purposes
+            base_rate = pool.price.tao
+            rate_with_tolerance = base_rate * (1 + rate_threshold)
+
+            logging.info(
+                f":satellite: [magenta]Safe Staking to:[/magenta] "
+                f"[blue]netuid: {netuid}, amount: {staking_balance}, tolerance percentage: {rate_threshold*100}%, "
+                f"price limit: {rate_with_tolerance}, original price: {base_rate}, with partial stake: {allow_partial_stake} "
+                f"on {subtensor.network}[/blue] [magenta]...[/magenta]"
+            )
+            call = subtensor.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="add_stake_limit",
+                call_params={
+                    "hotkey": hotkey_ss58,
+                    "netuid": netuid,
+                    "amount_staked": staking_balance.rao,
+                    "limit_price": price_with_tolerance,
+                    "allow_partial": allow_partial_stake,
+                },
+            )
+        else:
+            logging.info(
+                f":satellite: [magenta]Staking to:[/magenta] "
+                f"[blue]netuid: {netuid}, amount: {staking_balance} "
+                f"on {subtensor.network}[/blue] [magenta]...[/magenta]"
+            )
+            call = subtensor.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="add_stake",
+                call_params={
+                    "hotkey": hotkey_ss58,
+                    "amount_staked": staking_balance.rao,
+                    "netuid": netuid,
+                },
+            )
+
         staking_response, err_msg = subtensor.sign_and_send_extrinsic(
             call,
             wallet,
@@ -143,7 +177,12 @@ def add_stake_extrinsic(
             )
             return True
         else:
-            logging.error(":cross_mark: [red]Failed[/red]: Error unknown.")
+            if safe_staking and "Custom error: 8" in err_msg:
+                logging.error(
+                    ":cross_mark: [red]Failed[/red]: Price exceeded tolerance limit. Either increase price tolerance or enable partial staking."
+                )
+            else:
+                logging.error(f":cross_mark: [red]Failed: {err_msg}.[/red]")
             return False
 
     # TODO I don't think these are used. Maybe should just catch SubstrateRequestException?
