@@ -2219,6 +2219,15 @@ class Subtensor(SubtensorMixin):
         Returns:
             bool: ``True`` if the registration is successful, False otherwise.
         """
+
+        if netuid == 0:
+            return root_register_extrinsic(
+                subtensor=self,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+
         return burned_register_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -2506,32 +2515,6 @@ class Subtensor(SubtensorMixin):
         Returns:
             `True` if registration was successful, otherwise `False`.
         """
-        logging.info(
-            f"Registering on netuid [blue]0[/blue] on network: [blue]{self.network}[/blue]"
-        )
-
-        # Check current recycle amount
-        logging.info("Fetching recycle amount & balance.")
-        block = self.get_current_block()
-
-        try:
-            recycle_call = cast(
-                int, self.get_hyperparameter(param_name="Burn", netuid=0, block=block)
-            )
-            balance = self.get_balance(wallet.coldkeypub.ss58_address, block=block)
-        except TypeError as e:
-            logging.error(f"Unable to retrieve current recycle. {e}")
-            return False
-
-        current_recycle = Balance.from_rao(int(recycle_call))
-
-        # Check balance is sufficient
-        if balance < current_recycle:
-            logging.error(
-                f"[red]Insufficient balance {balance} to register neuron. "
-                f"Current recycle is {current_recycle} TAO[/red]."
-            )
-            return False
 
         return root_register_extrinsic(
             subtensor=self,

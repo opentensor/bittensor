@@ -199,6 +199,43 @@ def test_burned_register(mock_substrate, subtensor, fake_wallet, mocker):
     )
 
 
+def test_burned_register_on_root(mock_substrate, subtensor, fake_wallet, mocker):
+    mocker.patch.object(
+        subtensor,
+        "get_balance",
+        return_value=Balance(1),
+    )
+    mocker.patch.object(
+        subtensor,
+        "is_hotkey_registered",
+        return_value=False,
+    )
+
+    success = subtensor.burned_register(
+        fake_wallet,
+        netuid=0,
+    )
+
+    assert success is True
+
+    subtensor.is_hotkey_registered.assert_called_once_with(
+        netuid=0,
+        hotkey_ss58=fake_wallet.hotkey.ss58_address,
+    )
+
+    assert_submit_signed_extrinsic(
+        mock_substrate,
+        fake_wallet.coldkey,
+        call_module="SubtensorModule",
+        call_function="root_register",
+        call_params={
+            "hotkey": fake_wallet.hotkey.ss58_address,
+        },
+        wait_for_finalization=True,
+        wait_for_inclusion=False,
+    )
+
+
 def test_get_all_commitments(mock_substrate, subtensor, mocker):
     mock_substrate.query_map.return_value = [
         (
@@ -1124,25 +1161,6 @@ def test_root_register_is_already_registered(
         fake_wallet.hotkey.ss58_address,
         0,
         None,
-    )
-    mock_substrate.submit_extrinsic.assert_not_called()
-
-
-def test_root_register_insufficient_balance(
-    mock_substrate, subtensor, fake_wallet, mocker
-):
-    mocker.patch.object(
-        subtensor, "get_balance", autospec=True, return_value=Balance(1)
-    )
-    mocker.patch.object(subtensor, "get_hyperparameter", autospec=True, return_value=10)
-
-    success = subtensor.root_register(fake_wallet)
-
-    assert success is False
-
-    subtensor.get_balance.assert_called_once_with(
-        fake_wallet.coldkeypub.ss58_address,
-        block=mock_substrate.get_block_number.return_value,
     )
     mock_substrate.submit_extrinsic.assert_not_called()
 

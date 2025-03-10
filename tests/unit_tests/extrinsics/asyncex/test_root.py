@@ -3,6 +3,8 @@ import pytest
 from bittensor.core.errors import SubstrateRequestException
 from bittensor.core.extrinsics.asyncex import root as async_root
 
+from bittensor.utils.balance import Balance
+
 
 @pytest.mark.asyncio
 async def test_get_limits_success(subtensor, mocker):
@@ -62,6 +64,16 @@ async def test_root_register_extrinsic_success(subtensor, fake_wallet, mocker):
         "query",
         return_value=fake_uid,
     )
+    mocker.patch.object(
+        subtensor,
+        "get_hyperparameter",
+        return_value=Balance(0),
+    )
+    mocker.patch.object(
+        subtensor,
+        "get_balance",
+        return_value=Balance(1),
+    )
 
     # Call
     result = await async_root.root_register_extrinsic(
@@ -87,9 +99,52 @@ async def test_root_register_extrinsic_success(subtensor, fake_wallet, mocker):
 
 
 @pytest.mark.asyncio
+async def test_root_register_extrinsic_insufficient_balance(
+    subtensor,
+    fake_wallet,
+    mocker,
+):
+    mocker.patch.object(
+        subtensor,
+        "get_hyperparameter",
+        return_value=Balance(1),
+    )
+    mocker.patch.object(
+        subtensor,
+        "get_balance",
+        return_value=Balance(0),
+    )
+
+    result = await async_root.root_register_extrinsic(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    assert result is False
+
+    subtensor.get_balance.assert_called_once_with(
+        fake_wallet.coldkeypub.ss58_address,
+        block_hash=subtensor.substrate.get_chain_head.return_value,
+    )
+    subtensor.substrate.submit_extrinsic.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_root_register_extrinsic_unlock_failed(subtensor, fake_wallet, mocker):
     """Tests registration fails due to unlock failure."""
     # Preps
+    mocker.patch.object(
+        subtensor,
+        "get_hyperparameter",
+        return_value=Balance(0),
+    )
+    mocker.patch.object(
+        subtensor,
+        "get_balance",
+        return_value=Balance(1),
+    )
     mocked_unlock_key = mocker.patch.object(
         async_root,
         "unlock_key",
@@ -117,6 +172,16 @@ async def test_root_register_extrinsic_already_registered(
     # Preps
     fake_wallet.hotkey.ss58_address = "fake_hotkey_address"
 
+    mocker.patch.object(
+        subtensor,
+        "get_hyperparameter",
+        return_value=Balance(0),
+    )
+    mocker.patch.object(
+        subtensor,
+        "get_balance",
+        return_value=Balance(1),
+    )
     mocked_unlock_key = mocker.patch.object(
         async_root,
         "unlock_key",
@@ -152,6 +217,16 @@ async def test_root_register_extrinsic_transaction_failed(
     # Preps
     fake_wallet.hotkey.ss58_address = "fake_hotkey_address"
 
+    mocker.patch.object(
+        subtensor,
+        "get_hyperparameter",
+        return_value=Balance(0),
+    )
+    mocker.patch.object(
+        subtensor,
+        "get_balance",
+        return_value=Balance(1),
+    )
     mocked_unlock_key = mocker.patch.object(
         async_root,
         "unlock_key",
@@ -193,6 +268,16 @@ async def test_root_register_extrinsic_uid_not_found(subtensor, fake_wallet, moc
     # Preps
     fake_wallet.hotkey.ss58_address = "fake_hotkey_address"
 
+    mocker.patch.object(
+        subtensor,
+        "get_hyperparameter",
+        return_value=Balance(0),
+    )
+    mocker.patch.object(
+        subtensor,
+        "get_balance",
+        return_value=Balance(1),
+    )
     mocked_unlock_key = mocker.patch.object(
         async_root,
         "unlock_key",

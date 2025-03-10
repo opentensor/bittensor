@@ -1,6 +1,7 @@
 import pytest
 from bittensor.core.subtensor import Subtensor
 from bittensor.core.extrinsics import root
+from bittensor.utils.balance import Balance
 
 
 @pytest.fixture
@@ -75,6 +76,11 @@ def test_root_register_extrinsic(
         "query",
         return_value=hotkey_registered[1],
     )
+    mocker.patch.object(
+        mock_subtensor,
+        "get_balance",
+        return_value=Balance(1),
+    )
 
     # Act
     result = root.root_register_extrinsic(
@@ -98,6 +104,31 @@ def test_root_register_extrinsic(
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
+
+
+def test_root_register_extrinsic_insufficient_balance(
+    mock_subtensor,
+    mock_wallet,
+    mocker,
+):
+    mocker.patch.object(
+        mock_subtensor,
+        "get_balance",
+        return_value=Balance(0),
+    )
+
+    success = root.root_register_extrinsic(
+        subtensor=mock_subtensor,
+        wallet=mock_wallet,
+    )
+
+    assert success is False
+
+    mock_subtensor.get_balance.assert_called_once_with(
+        mock_wallet.coldkeypub.ss58_address,
+        block=mock_subtensor.get_current_block.return_value,
+    )
+    mock_subtensor.substrate.submit_extrinsic.assert_not_called()
 
 
 @pytest.mark.parametrize(
