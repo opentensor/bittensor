@@ -1577,9 +1577,10 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         hotkey_ss58: str,
         take: float,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    ) -> None:
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        raise_error: bool = False,
+    ) -> tuple[bool, str]:
         """
         Sets the delegate 'take' percentage for a nueron identified by its hotkey.
         The 'take' represents the percentage of rewards that the delegate claims from its nominators' stakes.
@@ -1590,6 +1591,11 @@ class Subtensor(SubtensorMixin):
             take (float): Percentage reward for the delegate.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            raise_error: Raises relevant exception rather than returning `False` if unsuccessful.
+
+        Returns:
+            tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
+             operation, and the second element is a message providing additional information.
 
         Raises:
             DelegateTakeTooHigh: Delegate take is too high.
@@ -1612,30 +1618,35 @@ class Subtensor(SubtensorMixin):
 
         if current_take_u16 == take_u16:
             logging.info(":white_heavy_check_mark: [green]Already Set[/green]")
-            return
+            return True, ""
 
         logging.info(f"Updating {hotkey_ss58} take: current={current_take} new={take}")
 
         if current_take_u16 < take_u16:
-            increase_take_extrinsic(
+            success, error = increase_take_extrinsic(
                 self,
                 wallet,
                 hotkey_ss58,
                 take_u16,
                 wait_for_finalization=wait_for_finalization,
                 wait_for_inclusion=wait_for_inclusion,
+                raise_error=raise_error,
             )
         else:
-            decrease_take_extrinsic(
+            success, error = decrease_take_extrinsic(
                 self,
                 wallet,
                 hotkey_ss58,
                 take_u16,
                 wait_for_finalization=wait_for_finalization,
                 wait_for_inclusion=wait_for_inclusion,
+                raise_error=raise_error,
             )
 
-        logging.info(":white_heavy_check_mark: [green]Take Updated[/green]")
+        if success:
+            logging.info(":white_heavy_check_mark: [green]Take Updated[/green]")
+
+        return success, error
 
     def is_hotkey_delegate(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         """
