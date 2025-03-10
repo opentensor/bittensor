@@ -1333,7 +1333,7 @@ def test_sign_and_send_extrinsic(mock_substrate, subtensor, fake_wallet, mocker)
 
 
 def test_sign_and_send_extrinsic_raises_error(
-    mock_substrate, subtensor, wallet, mocker
+    mock_substrate, subtensor, fake_wallet, mocker
 ):
     mock_substrate.submit_extrinsic.return_value = mocker.Mock(
         error_message={
@@ -1348,7 +1348,7 @@ def test_sign_and_send_extrinsic_raises_error(
     ):
         subtensor.sign_and_send_extrinsic(
             call=mocker.Mock(),
-            wallet=wallet,
+            wallet=fake_wallet,
             raise_error=True,
         )
 
