@@ -2,7 +2,6 @@ import pytest
 
 from bittensor.core.errors import SubstrateRequestException
 from bittensor.core.extrinsics.asyncex import root as async_root
-from bittensor_wallet import Wallet
 
 
 @pytest.mark.asyncio
@@ -35,10 +34,9 @@ async def test_get_limits_success(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_root_register_extrinsic_success(subtensor, mocker):
+async def test_root_register_extrinsic_success(subtensor, fake_wallet, mocker):
     """Tests successful registration to root network."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.hotkey.ss58_address = "fake_hotkey_address"
     fake_wallet.hotkey_str = "fake_hotkey"
     fake_uid = 123
@@ -89,11 +87,9 @@ async def test_root_register_extrinsic_success(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_root_register_extrinsic_unlock_failed(subtensor, mocker):
+async def test_root_register_extrinsic_unlock_failed(subtensor, fake_wallet, mocker):
     """Tests registration fails due to unlock failure."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
-
     mocked_unlock_key = mocker.patch.object(
         async_root,
         "unlock_key",
@@ -114,10 +110,11 @@ async def test_root_register_extrinsic_unlock_failed(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_root_register_extrinsic_already_registered(subtensor, mocker):
+async def test_root_register_extrinsic_already_registered(
+    subtensor, fake_wallet, mocker
+):
     """Tests registration when hotkey is already registered."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.hotkey.ss58_address = "fake_hotkey_address"
 
     mocked_unlock_key = mocker.patch.object(
@@ -148,10 +145,11 @@ async def test_root_register_extrinsic_already_registered(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_root_register_extrinsic_transaction_failed(subtensor, mocker):
+async def test_root_register_extrinsic_transaction_failed(
+    subtensor, fake_wallet, mocker
+):
     """Tests registration fails due to transaction failure."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.hotkey.ss58_address = "fake_hotkey_address"
 
     mocked_unlock_key = mocker.patch.object(
@@ -190,10 +188,9 @@ async def test_root_register_extrinsic_transaction_failed(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_root_register_extrinsic_uid_not_found(subtensor, mocker):
+async def test_root_register_extrinsic_uid_not_found(subtensor, fake_wallet, mocker):
     """Tests registration fails because UID is not found after successful transaction."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.hotkey.ss58_address = "fake_hotkey_address"
 
     mocked_unlock_key = mocker.patch.object(
@@ -242,10 +239,9 @@ async def test_root_register_extrinsic_uid_not_found(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_do_set_root_weights_success(subtensor, mocker):
+async def test_do_set_root_weights_success(subtensor, fake_wallet, mocker):
     """Tests _do_set_root_weights when weights are set successfully."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.hotkey.ss58_address = "fake_hotkey_address"
     fake_uids = [1, 2, 3]
     fake_weights = [0.1, 0.2, 0.7]
@@ -302,10 +298,9 @@ async def test_do_set_root_weights_success(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_do_set_root_weights_failure(subtensor, mocker):
+async def test_do_set_root_weights_failure(subtensor, fake_wallet, mocker):
     """Tests _do_set_root_weights when setting weights fails."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.hotkey.ss58_address = "fake_hotkey_address"
     fake_uids = [1, 2, 3]
     fake_weights = [0.1, 0.2, 0.7]
@@ -352,10 +347,9 @@ async def test_do_set_root_weights_failure(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_do_set_root_weights_no_waiting(subtensor, mocker):
+async def test_do_set_root_weights_no_waiting(subtensor, fake_wallet, mocker):
     """Tests _do_set_root_weights when not waiting for inclusion or finalization."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.hotkey.ss58_address = "fake_hotkey_address"
     fake_uids = [1, 2, 3]
     fake_weights = [0.1, 0.2, 0.7]
@@ -394,9 +388,8 @@ async def test_do_set_root_weights_no_waiting(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_set_root_weights_extrinsic_success(subtensor, mocker):
+async def test_set_root_weights_extrinsic_success(subtensor, fake_wallet, mocker):
     """Tests successful setting of root weights."""
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.hotkey.ss58_address = "fake_hotkey"
     netuids = [1, 2, 3]
     weights = [0.1, 0.2, 0.7]
@@ -427,9 +420,8 @@ async def test_set_root_weights_extrinsic_success(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_set_root_weights_extrinsic_no_waiting(subtensor, mocker):
+async def test_set_root_weights_extrinsic_no_waiting(subtensor, fake_wallet, mocker):
     """Tests setting root weights without waiting for inclusion or finalization."""
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.hotkey.ss58_address = "fake_hotkey"
     netuids = [1, 2, 3]
     weights = [0.1, 0.2, 0.7]
@@ -460,9 +452,10 @@ async def test_set_root_weights_extrinsic_no_waiting(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_set_root_weights_extrinsic_not_registered(subtensor, mocker):
+async def test_set_root_weights_extrinsic_not_registered(
+    subtensor, fake_wallet, mocker
+):
     """Tests failure when hotkey is not registered."""
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.hotkey.ss58_address = "fake_hotkey"
 
     mocker.patch.object(subtensor.substrate, "query", return_value=None)
@@ -478,9 +471,10 @@ async def test_set_root_weights_extrinsic_not_registered(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_set_root_weights_extrinsic_insufficient_weights(subtensor, mocker):
+async def test_set_root_weights_extrinsic_insufficient_weights(
+    subtensor, fake_wallet, mocker
+):
     """Tests failure when number of weights is less than the minimum allowed."""
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.hotkey.ss58_address = "fake_hotkey"
     netuids = [1, 2]
     weights = [0.5, 0.5]
@@ -501,9 +495,8 @@ async def test_set_root_weights_extrinsic_insufficient_weights(subtensor, mocker
 
 
 @pytest.mark.asyncio
-async def test_set_root_weights_extrinsic_unlock_failed(subtensor, mocker):
+async def test_set_root_weights_extrinsic_unlock_failed(subtensor, fake_wallet, mocker):
     """Tests failure due to unlock key error."""
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.hotkey.ss58_address = "fake_hotkey"
 
     mocker.patch.object(subtensor.substrate, "query", return_value=123)
@@ -524,9 +517,10 @@ async def test_set_root_weights_extrinsic_unlock_failed(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_set_root_weights_extrinsic_transaction_failed(subtensor, mocker):
+async def test_set_root_weights_extrinsic_transaction_failed(
+    subtensor, fake_wallet, mocker
+):
     """Tests failure when transaction is not successful."""
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.hotkey.ss58_address = "fake_hotkey"
 
     mocker.patch.object(subtensor.substrate, "query", return_value=123)
@@ -557,9 +551,10 @@ async def test_set_root_weights_extrinsic_transaction_failed(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_set_root_weights_extrinsic_request_exception(subtensor, mocker):
+async def test_set_root_weights_extrinsic_request_exception(
+    subtensor, fake_wallet, mocker
+):
     """Tests failure due to SubstrateRequestException."""
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.hotkey.ss58_address = "fake_hotkey"
 
     mocker.patch.object(subtensor.substrate, "query", return_value=123)

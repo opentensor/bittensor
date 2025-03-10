@@ -1,14 +1,12 @@
 import pytest
-from bittensor_wallet import Wallet
 from bittensor.core.extrinsics.asyncex import transfer as async_transfer
 from bittensor.utils.balance import Balance
 
 
 @pytest.mark.asyncio
-async def test_do_transfer_success(subtensor, mocker):
+async def test_do_transfer_success(subtensor, fake_wallet, mocker):
     """Tests _do_transfer when the transfer is successful."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_destination = "destination_address"
     fake_amount = mocker.Mock(autospec=Balance, rao=1000)
 
@@ -58,10 +56,9 @@ async def test_do_transfer_success(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_do_transfer_failure(subtensor, mocker):
+async def test_do_transfer_failure(subtensor, fake_wallet, mocker):
     """Tests _do_transfer when the transfer fails."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_destination = "destination_address"
     fake_amount = mocker.Mock(autospec=Balance, rao=1000)
 
@@ -118,10 +115,9 @@ async def test_do_transfer_failure(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_do_transfer_no_waiting(subtensor, mocker):
+async def test_do_transfer_no_waiting(subtensor, fake_wallet, mocker):
     """Tests _do_transfer when no waiting for inclusion or finalization."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_destination = "destination_address"
     fake_amount = mocker.Mock(autospec=Balance, rao=1000)
 
@@ -168,10 +164,9 @@ async def test_do_transfer_no_waiting(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_transfer_extrinsic_success(subtensor, mocker):
+async def test_transfer_extrinsic_success(subtensor, fake_wallet, mocker):
     """Tests successful transfer."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.coldkeypub.ss58_address = "fake_ss58_address"
     fake_destination = "valid_ss58_address"
     fake_amount = Balance(15)
@@ -232,11 +227,10 @@ async def test_transfer_extrinsic_success(subtensor, mocker):
 
 @pytest.mark.asyncio
 async def test_transfer_extrinsic_call_successful_with_failed_response(
-    subtensor, mocker
+    subtensor, fake_wallet, mocker
 ):
     """Tests successful transfer call is successful with failed response."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.coldkeypub.ss58_address = "fake_ss58_address"
     fake_destination = "valid_ss58_address"
     fake_amount = Balance(15)
@@ -297,10 +291,9 @@ async def test_transfer_extrinsic_call_successful_with_failed_response(
 
 
 @pytest.mark.asyncio
-async def test_transfer_extrinsic_insufficient_balance(subtensor, mocker):
+async def test_transfer_extrinsic_insufficient_balance(subtensor, fake_wallet, mocker):
     """Tests transfer when balance is insufficient."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.coldkeypub.ss58_address = "fake_ss58_address"
     fake_destination = "valid_ss58_address"
     fake_amount = Balance(5000)
@@ -354,10 +347,9 @@ async def test_transfer_extrinsic_insufficient_balance(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_transfer_extrinsic_invalid_destination(subtensor, mocker):
+async def test_transfer_extrinsic_invalid_destination(subtensor, fake_wallet, mocker):
     """Tests transfer with invalid destination address."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.coldkeypub.ss58_address = "fake_ss58_address"
     fake_destination = "invalid_address"
     fake_amount = Balance(15)
@@ -386,10 +378,9 @@ async def test_transfer_extrinsic_invalid_destination(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_transfer_extrinsic_unlock_key_false(subtensor, mocker):
+async def test_transfer_extrinsic_unlock_key_false(subtensor, fake_wallet, mocker):
     """Tests transfer failed unlock_key."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.coldkeypub.ss58_address = "fake_ss58_address"
     fake_destination = "invalid_address"
     fake_amount = Balance(15)
@@ -426,11 +417,10 @@ async def test_transfer_extrinsic_unlock_key_false(subtensor, mocker):
 
 @pytest.mark.asyncio
 async def test_transfer_extrinsic_keep_alive_false_and_transfer_all_true(
-    subtensor, mocker
+    subtensor, fake_wallet, mocker
 ):
     """Tests transfer with keep_alive flag set to False and transfer_all flag set to True."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_wallet.coldkeypub.ss58_address = "fake_ss58_address"
     fake_destination = "valid_ss58_address"
     fake_amount = Balance(15)
