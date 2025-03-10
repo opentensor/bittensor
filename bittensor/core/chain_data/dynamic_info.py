@@ -77,9 +77,9 @@ class DynamicInfo(InfoBase):
         price = (
             Balance.from_tao(1.0)
             if netuid == 0
-            else Balance.from_tao(tao_in.tao / alpha_in.tao)
+            else Balance.from_tao(tao_in.tao / alpha_in.tao).set_unit(netuid)
             if alpha_in.tao > 0
-            else Balance.from_tao(1)
+            else Balance.from_tao(1).set_unit(netuid)
         )  # Root always has 1-1 price
 
         if decoded.get("subnet_identity"):
