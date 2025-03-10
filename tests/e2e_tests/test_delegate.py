@@ -91,6 +91,7 @@ def test_change_take(local_chain, subtensor, alice_wallet, bob_wallet):
             alice_wallet,
             alice_wallet.hotkey.ss58_address,
             0.1,
+            raise_error=True,
         )
 
     subtensor.root_register(
@@ -108,6 +109,7 @@ def test_change_take(local_chain, subtensor, alice_wallet, bob_wallet):
             bob_wallet,
             alice_wallet.hotkey.ss58_address,
             0.1,
+            raise_error=True,
         )
 
     with pytest.raises(bittensor.DelegateTakeTooHigh):
@@ -115,12 +117,14 @@ def test_change_take(local_chain, subtensor, alice_wallet, bob_wallet):
             alice_wallet,
             alice_wallet.hotkey.ss58_address,
             0.5,
+            raise_error=True,
         )
 
     subtensor.set_delegate_take(
         alice_wallet,
         alice_wallet.hotkey.ss58_address,
         0.1,
+        raise_error=True,
     )
 
     take = subtensor.get_delegate_take(alice_wallet.hotkey.ss58_address)
@@ -132,6 +136,7 @@ def test_change_take(local_chain, subtensor, alice_wallet, bob_wallet):
             alice_wallet,
             alice_wallet.hotkey.ss58_address,
             0.15,
+            raise_error=True,
         )
 
     take = subtensor.get_delegate_take(alice_wallet.hotkey.ss58_address)
@@ -151,6 +156,7 @@ def test_change_take(local_chain, subtensor, alice_wallet, bob_wallet):
         alice_wallet,
         alice_wallet.hotkey.ss58_address,
         0.15,
+        raise_error=True,
     )
 
     take = subtensor.get_delegate_take(alice_wallet.hotkey.ss58_address)
