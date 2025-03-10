@@ -6,6 +6,7 @@ from tests.e2e_tests.utils.chain_interactions import (
 )
 
 
+SET_CHILDREN_COOLDOWN_PERIOD = 15
 SET_CHILDREN_RATE_LIMIT = 150
 
 
@@ -54,17 +55,13 @@ def test_hotkeys(subtensor, alice_wallet):
     )
 
 
-@pytest.mark.skip(
-    reason="""The behavior of set_children changes: Instead of setting children immediately, the children will be set in the subnet epoch after a cool down period (7200 blocks).
-https://github.com/opentensor/subtensor/pull/1050
-""",
-)
 @pytest.mark.asyncio
 async def test_children(subtensor, alice_wallet, bob_wallet):
     """
     Tests:
     - Get default children (empty list)
     - Update children list
+    - Checking cooldown period
     - Trigger rate limit
     - Clear children list
     """
@@ -102,6 +99,20 @@ async def test_children(subtensor, alice_wallet, bob_wallet):
     assert error == ""
     assert success is True
 
+    set_children_block = subtensor.get_current_block()
+
+    success, children, error = subtensor.get_children(
+        alice_wallet.hotkey.ss58_address,
+        block=set_children_block,
+        netuid=1,
+    )
+
+    assert success is True
+    assert children == []
+    assert error == ""
+
+    subtensor.wait_for_block(set_children_block + SET_CHILDREN_COOLDOWN_PERIOD)
+
     await wait_epoch(subtensor, netuid=1)
 
     success, children, error = subtensor.get_children(
@@ -128,7 +139,7 @@ async def test_children(subtensor, alice_wallet, bob_wallet):
     assert "`TxRateLimitExceeded(Module)`" in error
     assert success is False
 
-    subtensor.wait_for_block(subtensor.block + SET_CHILDREN_RATE_LIMIT)
+    subtensor.wait_for_block(set_children_block + SET_CHILDREN_RATE_LIMIT)
 
     success, error = set_children(
         subtensor,
