@@ -2129,6 +2129,9 @@ class Subtensor(SubtensorMixin):
         amount: Optional[Balance] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
+        safe_staking: bool = False,
+        allow_partial_stake: bool = False,
+        rate_threshold: float = 0.005,
     ) -> bool:
         """
         Adds the specified amount of stake to a neuron identified by the hotkey ``SS58`` address.
@@ -2142,6 +2145,9 @@ class Subtensor(SubtensorMixin):
             amount (Balance): The amount of TAO to stake.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            safe_staking (bool): If true, the staking process will have safety checks enabled. .
+            allow_partial_stake (bool): If true, partial stake will be allowed in-case full stake doesnt fulfill the threshold.
+            rate_threshold (float): The threshold in percentage of price which can be allowed to fluctuate. 0.005 = 0.5% by default.
 
         Returns:
             bool: ``True`` if the staking is successful, False otherwise.
@@ -2158,6 +2164,9 @@ class Subtensor(SubtensorMixin):
             amount=amount,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            safe_staking=safe_staking,
+            allow_partial_stake=allow_partial_stake,
+            rate_threshold=rate_threshold,
         )
 
     def add_stake_multiple(
@@ -2875,6 +2884,9 @@ class Subtensor(SubtensorMixin):
         amount: Optional[Balance] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
+        safe_staking: bool = False,
+        allow_partial_stake: bool = False,
+        rate_threshold: float = 0.005,
     ) -> bool:
         """
         Removes a specified amount of stake from a single hotkey account. This function is critical for adjusting
@@ -2904,6 +2916,9 @@ class Subtensor(SubtensorMixin):
             amount=amount,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            safe_staking=safe_staking,
+            allow_partial_stake=allow_partial_stake,
+            rate_threshold=rate_threshold,
         )
 
     def unstake_multiple(
