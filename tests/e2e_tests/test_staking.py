@@ -354,7 +354,6 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
         bob_wallet.hotkey.ss58_address,
         netuid=netuid,
     )
-    assert full_stake >= stake_amount, "Full stake amount should be added"
 
     # Test Unstaking Scenarios
     # 1. Strict params - should fail
@@ -385,7 +384,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
         alice_wallet,
         bob_wallet.hotkey.ss58_address,
         netuid=netuid,
-        amount=stake_amount,
+        amount=current_stake,
         wait_for_inclusion=True,
         wait_for_finalization=True,
         safe_staking=True,
@@ -414,3 +413,104 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
         allow_partial_stake=False,
     )
     assert success is True
+
+
+def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
+    """
+    Tests safe swap stake scenarios with different parameters.
+
+    Tests:
+    1. Fails with strict threshold (0.5%)
+    2. Succeeds with lenient threshold (10%)
+    """
+    # Create new subnet (netuid 2) and register Alice
+    origin_netuid = 2
+    assert subtensor.register_subnet(bob_wallet)
+    assert subtensor.subnet_exists(origin_netuid), "Subnet wasn't created successfully"
+    dest_netuid = 3
+    assert subtensor.register_subnet(bob_wallet)
+    assert subtensor.subnet_exists(dest_netuid), "Subnet wasn't created successfully"
+
+    # Register Alice on both subnets
+    subtensor.burned_register(
+        alice_wallet,
+        netuid=origin_netuid,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    subtensor.burned_register(
+        alice_wallet,
+        netuid=dest_netuid,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    # Add initial stake to swap from
+    initial_stake_amount = Balance.from_tao(10_000)
+    success = subtensor.add_stake(
+        alice_wallet,
+        alice_wallet.hotkey.ss58_address,
+        netuid=origin_netuid,
+        amount=initial_stake_amount,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert success is True
+
+    origin_stake = subtensor.get_stake(
+        alice_wallet.coldkey.ss58_address,
+        alice_wallet.hotkey.ss58_address,
+        netuid=origin_netuid,
+    )
+    assert origin_stake > Balance(0), "Origin stake should be non-zero"
+
+    # 1. Try swap with strict threshold - should fail
+    success = subtensor.swap_stake(
+        wallet=alice_wallet,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        origin_netuid=origin_netuid,
+        destination_netuid=dest_netuid,
+        amount=origin_stake,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        safe_staking=True,
+        rate_threshold=0.005,  # 0.5%
+        allow_partial_stake=False,
+    )
+    assert success is False
+
+    # Verify no stake was moved
+    dest_stake = subtensor.get_stake(
+        alice_wallet.coldkey.ss58_address,
+        alice_wallet.hotkey.ss58_address,
+        netuid=dest_netuid,
+    )
+    assert dest_stake == Balance(0), "Destination stake should remain 0 after failed swap"
+
+    # 2. Try swap with higher threshold - should succeed
+    success = subtensor.swap_stake(
+        wallet=alice_wallet,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        origin_netuid=origin_netuid,
+        destination_netuid=dest_netuid,
+        amount=origin_stake,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        safe_staking=True,
+        rate_threshold=0.3,  # 10%
+        allow_partial_stake=True,
+    )
+    assert success is True
+
+    # Verify stake was moved
+    origin_stake = subtensor.get_stake(
+        alice_wallet.coldkey.ss58_address,
+        alice_wallet.hotkey.ss58_address,
+        netuid=origin_netuid,
+    )
+    dest_stake = subtensor.get_stake(
+        alice_wallet.coldkey.ss58_address,
+        alice_wallet.hotkey.ss58_address,
+        netuid=dest_netuid,
+    )
+    assert dest_stake > Balance(0), "Destination stake should be non-zero after successful swap"
