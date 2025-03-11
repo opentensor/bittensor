@@ -3019,6 +3019,93 @@ def test_unstake_with_safe_staking(mocker, subtensor, fake_wallet):
     assert result == mock_unstake_extrinsic.return_value
 
 
+def test_swap_stake_success(mocker, subtensor, fake_wallet):
+    """Test swap_stake operation is successful."""
+    # Preps
+    fake_hotkey_ss58 = "hotkey_1"
+    fake_origin_netuid = 1
+    fake_destination_netuid = 2
+    fake_amount = 10.0
+
+    mock_swap_stake_extrinsic = mocker.patch.object(
+        subtensor_module, "swap_stake_extrinsic"
+    )
+
+    # Call
+    result = subtensor.swap_stake(
+        wallet=fake_wallet,
+        hotkey_ss58=fake_hotkey_ss58,
+        origin_netuid=fake_origin_netuid,
+        destination_netuid=fake_destination_netuid,
+        amount=fake_amount,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        safe_staking=False,
+        allow_partial_stake=False,
+        rate_threshold=0.005,
+    )
+
+    # Assertions
+    mock_swap_stake_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        hotkey_ss58=fake_hotkey_ss58,
+        origin_netuid=fake_origin_netuid,
+        destination_netuid=fake_destination_netuid,
+        amount=Balance.from_rao(fake_amount),
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        safe_staking=False,
+        allow_partial_stake=False,
+        rate_threshold=0.005,
+    )
+    assert result == mock_swap_stake_extrinsic.return_value
+
+
+def test_swap_stake_with_safe_staking(mocker, subtensor, fake_wallet):
+    """Test swap_stake with safe staking parameters enabled."""
+    # Preps
+    fake_hotkey_ss58 = "hotkey_1"
+    fake_origin_netuid = 1
+    fake_destination_netuid = 2
+    fake_amount = 10.0
+    fake_rate_threshold = 0.01  # 1% threshold
+
+    mock_swap_stake_extrinsic = mocker.patch.object(
+        subtensor_module, "swap_stake_extrinsic"
+    )
+
+    # Call
+    result = subtensor.swap_stake(
+        wallet=fake_wallet,
+        hotkey_ss58=fake_hotkey_ss58,
+        origin_netuid=fake_origin_netuid,
+        destination_netuid=fake_destination_netuid,
+        amount=fake_amount,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        safe_staking=True,
+        allow_partial_stake=True,
+        rate_threshold=fake_rate_threshold,
+    )
+
+    # Assertions
+    mock_swap_stake_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        hotkey_ss58=fake_hotkey_ss58,
+        origin_netuid=fake_origin_netuid,
+        destination_netuid=fake_destination_netuid,
+        amount=Balance.from_rao(fake_amount),
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        safe_staking=True,
+        allow_partial_stake=True,
+        rate_threshold=fake_rate_threshold,
+    )
+    assert result == mock_swap_stake_extrinsic.return_value
+
+
 def test_unstake_multiple_success(mocker, subtensor, fake_wallet):
     """Test unstake_multiple succeeds for all hotkeys."""
     # Preps
