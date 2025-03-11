@@ -1,3 +1,4 @@
+import asyncio
 import copy
 import os
 import pickle
@@ -1397,13 +1398,13 @@ class AsyncMetagraph(NumpyOrTorch):
 
         # If not a 'lite' version, compute and set weights and bonds for each neuron
         if not lite:
-            await self._set_weights_and_bonds(subtensor=subtensor)
+            await self._set_weights_and_bonds(subtensor=subtensor, block=block)
 
         # Fills in the stake associated attributes of a class instance from a chain response.
         await self._get_all_stakes_from_chain(block=block)
 
         # apply MetagraphInfo data to instance
-        await self._apply_metagraph_info()
+        await self._apply_metagraph_info(block=block)
 
     async def _initialize_subtensor(
         self, subtensor: "AsyncSubtensor"
@@ -1476,9 +1477,7 @@ class AsyncMetagraph(NumpyOrTorch):
             self.neurons = await subtensor.neurons(block=block, netuid=self.netuid)
         self.lite = lite
 
-    async def _set_weights_and_bonds(
-        self, subtensor: Optional["AsyncSubtensor"] = None
-    ):
+    async def _set_weights_and_bonds(self, subtensor: "AsyncSubtensor", block: int):
         """
         Computes and sets the weights and bonds for each neuron in the metagraph. This method is responsible for
         processing the raw weight and bond data obtained from the network and converting it into a structured format
@@ -1499,6 +1498,7 @@ class AsyncMetagraph(NumpyOrTorch):
                 [neuron.weights for neuron in self.neurons],
                 "weights",
                 subtensor,
+                block=block,
             )
         else:
             self.weights = self._process_weights_or_bonds(
@@ -1509,7 +1509,7 @@ class AsyncMetagraph(NumpyOrTorch):
             )
 
     async def _process_root_weights(
-        self, data: list, attribute: str, subtensor: "AsyncSubtensor"
+        self, data: list, attribute: str, subtensor: "AsyncSubtensor", block: int
     ) -> Union[NDArray, "torch.nn.Parameter"]:
         """
         Specifically processes the root weights data for the metagraph. This method is similar to :func:`_process_weights_or_bonds`
@@ -1530,8 +1530,10 @@ class AsyncMetagraph(NumpyOrTorch):
                 self.root_weights = self._process_root_weights(raw_root_weights_data, "weights", subtensor)
         """
         data_array = []
-        n_subnets = await subtensor.get_total_subnets() or 0
-        subnets = await subtensor.get_subnets()
+        n_subnets_, subnets = await asyncio.gather(
+            subtensor.get_total_subnets(block=block), subtensor.get_subnets(block=block)
+        )
+        n_subnets = n_subnets_ or 0
         for item in data:
             if len(item) == 0:
                 if use_torch():
@@ -1612,9 +1614,11 @@ class AsyncMetagraph(NumpyOrTorch):
         except (SubstrateRequestException, AttributeError) as e:
             logging.debug(e)
 
-    async def _apply_metagraph_info(self):
+    async def _apply_metagraph_info(self, block: int):
         """Retrieves metagraph information for a specific subnet and applies it using a mixin."""
-        metagraph_info = await self.subtensor.get_metagraph_info(self.netuid)
+        metagraph_info = await self.subtensor.get_metagraph_info(
+            self.netuid, block=block
+        )
         if metagraph_info:
             self._apply_metagraph_info_mixin(metagraph_info=metagraph_info)
 
@@ -1711,13 +1715,13 @@ class Metagraph(NumpyOrTorch):
 
         # If not a 'lite' version, compute and set weights and bonds for each neuron
         if not lite:
-            self._set_weights_and_bonds(subtensor=subtensor)
+            self._set_weights_and_bonds(subtensor=subtensor, block=block)
 
         # Fills in the stake associated attributes of a class instance from a chain response.
         self._get_all_stakes_from_chain(block=block)
 
         # apply MetagraphInfo data to instance
-        self._apply_metagraph_info()
+        self._apply_metagraph_info(block=block)
 
     def _initialize_subtensor(self, subtensor: "Subtensor") -> "Subtensor":
         """
@@ -1787,7 +1791,7 @@ class Metagraph(NumpyOrTorch):
             self.neurons = subtensor.neurons(block=block, netuid=self.netuid)
         self.lite = lite
 
-    def _set_weights_and_bonds(self, subtensor: Optional["Subtensor"] = None):
+    def _set_weights_and_bonds(self, block: int, subtensor: "Subtensor"):
         """
         Computes and sets the weights and bonds for each neuron in the metagraph. This method is responsible for
         processing the raw weight and bond data obtained from the network and converting it into a structured format
@@ -1804,9 +1808,7 @@ class Metagraph(NumpyOrTorch):
         """
         if self.netuid == 0:
             self.weights = self._process_root_weights(
-                [neuron.weights for neuron in self.neurons],
-                "weights",
-                subtensor,
+                [neuron.weights for neuron in self.neurons], "weights", subtensor, block
             )
         else:
             self.weights = self._process_weights_or_bonds(
@@ -1817,7 +1819,7 @@ class Metagraph(NumpyOrTorch):
             )
 
     def _process_root_weights(
-        self, data: list, attribute: str, subtensor: "Subtensor"
+        self, data: list, attribute: str, subtensor: "Subtensor", block: int
     ) -> Union[NDArray, "torch.nn.Parameter"]:
         """
         Specifically processes the root weights data for the metagraph. This method is similar to :func:`_process_weights_or_bonds`
@@ -1838,8 +1840,8 @@ class Metagraph(NumpyOrTorch):
                 self.root_weights = self._process_root_weights(raw_root_weights_data, "weights", subtensor)
         """
         data_array = []
-        n_subnets = subtensor.get_total_subnets() or 0
-        subnets = subtensor.get_subnets()
+        n_subnets = subtensor.get_total_subnets(block=block) or 0
+        subnets = subtensor.get_subnets(block=block)
         for item in data:
             if len(item) == 0:
                 if use_torch():
@@ -1920,9 +1922,9 @@ class Metagraph(NumpyOrTorch):
         except (SubstrateRequestException, AttributeError) as e:
             logging.debug(e)
 
-    def _apply_metagraph_info(self):
+    def _apply_metagraph_info(self, block: int):
         """Retrieves metagraph information for a specific subnet and applies it using a mixin."""
-        metagraph_info = self.subtensor.get_metagraph_info(self.netuid)
+        metagraph_info = self.subtensor.get_metagraph_info(self.netuid, block=block)
         if metagraph_info:
             self._apply_metagraph_info_mixin(metagraph_info=metagraph_info)
 
