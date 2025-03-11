@@ -85,6 +85,12 @@ def unstake_extrinsic(
         return False
 
     try:
+        call_params = {
+            "hotkey": hotkey_ss58,
+            "netuid": netuid,
+            "amount_unstaked": unstaking_balance.rao,
+        }
+
         if safe_staking:
             pool = subtensor.subnet(netuid=netuid)
             base_price = pool.price.rao
@@ -96,38 +102,34 @@ def unstake_extrinsic(
 
             logging.info(
                 f":satellite: [magenta]Safe Unstaking from:[/magenta] "
-                f"[blue]netuid: {netuid}, amount: {unstaking_balance}, tolerance percentage: {rate_threshold*100}%, "
-                f"price limit: {rate_with_tolerance}, original price: {base_rate}, with partial unstake: {allow_partial_stake} "
-                f"on {subtensor.network}[/blue] [magenta]...[/magenta]"
+                f"netuid: [yellow]{netuid}[/yellow], amount: [green]{unstaking_balance}[/green], "
+                f"tolerance percentage: [yellow]{rate_threshold*100}%[/yellow], "
+                f"price limit: [yellow]{rate_with_tolerance}[/yellow], "
+                f"original price: [green]{base_rate}[/green], "
+                f"with partial unstake: [yellow]{allow_partial_stake}[/yellow] "
+                f"on [blue]{subtensor.network}[/blue][magenta]...[/magenta]"
             )
 
-            call = subtensor.substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="remove_stake_limit",
-                call_params={
-                    "hotkey": hotkey_ss58,
-                    "netuid": netuid,
-                    "amount_unstaked": unstaking_balance.rao,
+            call_params.update(
+                {
                     "limit_price": price_with_tolerance,
                     "allow_partial": allow_partial_stake,
-                },
+                }
             )
+            call_function = "remove_stake_limit"
         else:
             logging.info(
                 f":satellite: [magenta]Unstaking from:[/magenta] "
-                f"[blue]netuid: {netuid}, amount: {unstaking_balance} "
-                f"on {subtensor.network}[/blue] [magenta]...[/magenta]"
+                f"netuid: [yellow]{netuid}[/yellow], amount: [green]{unstaking_balance}[/green] "
+                f"on [blue]{subtensor.network}[/blue][magenta]...[/magenta]"
             )
+            call_function = "remove_stake"
 
-            call = subtensor.substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="remove_stake",
-                call_params={
-                    "hotkey": hotkey_ss58,
-                    "netuid": netuid,
-                    "amount_unstaked": unstaking_balance.rao,
-                },
-            )
+        call = subtensor.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function=call_function,
+            call_params=call_params,
+        )
 
         staking_response, err_msg = subtensor.sign_and_send_extrinsic(
             call,
