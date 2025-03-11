@@ -224,10 +224,10 @@ def swap_stake_extrinsic(
 
             logging.info(
                 f"Swapping stake with safety for hotkey [blue]{hotkey_ss58}[/blue]\n"
-                f"Amount: [green]{amount}[/green] from netuid [yellow]{origin_netuid}[/yellow] to netuid "
-                f"[yellow]{destination_netuid}[/yellow]\n"
+                f"Amount: [green]{amount}[/green] from netuid [green]{origin_netuid}[/green] to netuid "
+                f"[green]{destination_netuid}[/green]\n"
                 f"Current price ratio: [green]{swap_rate_ratio:.4f}[/green], "
-                f"Ratio with tolerance: [yellow]{swap_rate_ratio_with_tolerance:.4f}[/yellow]"
+                f"Ratio with tolerance: [green]{swap_rate_ratio_with_tolerance:.4f}[/green]"
             )
             call_params.update(
                 {
@@ -239,8 +239,8 @@ def swap_stake_extrinsic(
         else:
             logging.info(
                 f"Swapping stake for hotkey [blue]{hotkey_ss58}[/blue]\n"
-                f"Amount: [green]{amount}[/green] from netuid [yellow]{origin_netuid}[/yellow] to netuid "
-                f"[yellow]{destination_netuid}[/yellow]"
+                f"Amount: [green]{amount}[/green] from netuid [green]{origin_netuid}[/green] to netuid "
+                f"[green]{destination_netuid}[/green]"
             )
             call_function = "swap_stake"
 
