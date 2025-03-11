@@ -114,11 +114,11 @@ def add_stake_extrinsic(
 
             logging.info(
                 f":satellite: [magenta]Safe Staking to:[/magenta] "
-                f"[blue]netuid: [yellow]{netuid}[/yellow], amount: [green]{staking_balance}[/green], "
-                f"tolerance percentage: [yellow]{rate_threshold*100}%[/yellow], "
-                f"price limit: [yellow]{rate_with_tolerance}[/yellow], "
+                f"[blue]netuid: [green]{netuid}[/green], amount: [green]{staking_balance}[/green], "
+                f"tolerance percentage: [green]{rate_threshold*100}%[/green], "
+                f"price limit: [green]{rate_with_tolerance}[/green], "
                 f"original price: [green]{base_rate}[/green], "
-                f"with partial stake: [yellow]{allow_partial_stake}[/yellow] "
+                f"with partial stake: [green]{allow_partial_stake}[/green] "
                 f"on [blue]{subtensor.network}[/blue][/magenta]...[/magenta]"
             )
 
@@ -132,7 +132,7 @@ def add_stake_extrinsic(
         else:
             logging.info(
                 f":satellite: [magenta]Staking to:[/magenta] "
-                f"[blue]netuid: [yellow]{netuid}[/yellow], amount: [green]{staking_balance}[/green] "
+                f"[blue]netuid: [green]{netuid}[/green], amount: [green]{staking_balance}[/green] "
                 f"on [blue]{subtensor.network}[/blue][magenta]...[/magenta]"
             )
             call_function = "add_stake"
