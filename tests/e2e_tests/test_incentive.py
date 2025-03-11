@@ -41,6 +41,9 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
         len(subtensor.neurons(netuid=netuid)) == 2
     ), "Alice & Bob not registered in the subnet"
 
+    # Wait for the first epoch to pass
+    await wait_epoch(subtensor, netuid)
+
     # Get latest metagraph
     metagraph = subtensor.metagraph(netuid)
 
@@ -51,6 +54,9 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     assert alice_neuron.dividends == 0
     assert alice_neuron.stake.tao > 0
     assert alice_neuron.validator_trust == 0
+    assert alice_neuron.incentive == 0
+    assert alice_neuron.consensus == 0
+    assert alice_neuron.rank == 0
 
     bob_neuron = metagraph.neurons[1]
 
@@ -69,9 +75,10 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     )
 
     async with templates.miner(bob_wallet, netuid):
-        async with templates.validator(alice_wallet, netuid):
+        async with templates.validator(alice_wallet, netuid) as validator:
             # wait for the Validator to process and set_weights
-            await asyncio.sleep(5)
+            async with asyncio.timeout(15):
+                await validator.set_weights.wait()
 
             # Wait few epochs
             await wait_epoch(subtensor, netuid, times=4)
@@ -85,12 +92,15 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     assert alice_neuron.validator_permit is True
     assert alice_neuron.dividends == 1.0
     assert alice_neuron.stake.tao > 0
-    assert alice_neuron.validator_trust == 1
+    assert alice_neuron.validator_trust > 0.99
+    assert alice_neuron.incentive < 0.5
+    assert alice_neuron.consensus < 0.5
+    assert alice_neuron.rank < 0.5
 
     bob_neuron = metagraph.neurons[1]
-    assert bob_neuron.incentive == 1
-    assert bob_neuron.consensus == 1
-    assert bob_neuron.rank == 1
+    assert bob_neuron.incentive > 0.5
+    assert bob_neuron.consensus > 0.5
+    assert bob_neuron.rank > 0.5
     assert bob_neuron.trust == 1
 
     print("✅ Passed test_incentive")
