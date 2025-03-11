@@ -72,20 +72,15 @@ def root_register_extrinsic(
 
     logging.info("Fetching recycle amount & balance.")
     block = subtensor.get_current_block()
-
-    try:
-        recycle_call = subtensor.get_hyperparameter(
-            param_name="Burn",
-            netuid=netuid,
-            block=block,
-        )
-        balance = subtensor.get_balance(
-            wallet.coldkeypub.ss58_address,
-            block=block,
-        )
-    except TypeError as e:
-        logging.error(f"Unable to retrieve current recycle. {e}")
-        return False
+    recycle_call = subtensor.get_hyperparameter(
+        param_name="Burn",
+        netuid=netuid,
+        block=block,
+    )
+    balance = subtensor.get_balance(
+        wallet.coldkeypub.ss58_address,
+        block=block,
+    )
 
     current_recycle = Balance.from_rao(int(recycle_call))
 

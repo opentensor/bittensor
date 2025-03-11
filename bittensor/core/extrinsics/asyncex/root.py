@@ -69,22 +69,17 @@ async def root_register_extrinsic(
 
     logging.info("Fetching recycle amount & balance.")
     block_hash = await subtensor.get_block_hash()
-
-    try:
-        recycle_call, balance = await asyncio.gather(
-            subtensor.get_hyperparameter(
-                param_name="Burn",
-                netuid=netuid,
-                block_hash=block_hash,
-            ),
-            subtensor.get_balance(
-                wallet.coldkeypub.ss58_address,
-                block_hash=block_hash,
-            ),
-        )
-    except TypeError as e:
-        logging.error(f"Unable to retrieve current recycle. {e}")
-        return False
+    recycle_call, balance = await asyncio.gather(
+        subtensor.get_hyperparameter(
+            param_name="Burn",
+            netuid=netuid,
+            block_hash=block_hash,
+        ),
+        subtensor.get_balance(
+            wallet.coldkeypub.ss58_address,
+            block_hash=block_hash,
+        ),
+    )
 
     current_recycle = Balance.from_rao(int(recycle_call))
 
