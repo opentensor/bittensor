@@ -151,6 +151,8 @@ async def test_children(subtensor, alice_wallet, bob_wallet):
     assert error == ""
     assert success is True
 
+    subtensor.wait_for_block(subtensor.block + SET_CHILDREN_COOLDOWN_PERIOD)
+
     await wait_epoch(subtensor, netuid=1)
 
     success, children, error = subtensor.get_children(
