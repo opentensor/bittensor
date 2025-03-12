@@ -485,7 +485,9 @@ def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
         alice_wallet.hotkey.ss58_address,
         netuid=dest_netuid,
     )
-    assert dest_stake == Balance(0), "Destination stake should remain 0 after failed swap"
+    assert dest_stake == Balance(
+        0
+    ), "Destination stake should remain 0 after failed swap"
 
     # 2. Try swap with higher threshold - should succeed
     success = subtensor.swap_stake(
@@ -513,4 +515,6 @@ def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
         alice_wallet.hotkey.ss58_address,
         netuid=dest_netuid,
     )
-    assert dest_stake > Balance(0), "Destination stake should be non-zero after successful swap"
+    assert dest_stake > Balance(
+        0
+    ), "Destination stake should be non-zero after successful swap"
