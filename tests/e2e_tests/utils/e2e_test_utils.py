@@ -1,5 +1,4 @@
 import asyncio
-import contextlib
 import os
 import shutil
 import subprocess
@@ -84,6 +83,107 @@ def uninstall_templates(install_dir):
 
 
 class Templates:
+    class Miner:
+        def __init__(self, dir, wallet, netuid):
+            self.dir = dir
+            self.wallet = wallet
+            self.netuid = netuid
+            self.process = None
+
+            self.started = asyncio.Event()
+
+        async def __aenter__(self):
+            self.process = await asyncio.create_subprocess_exec(
+                sys.executable,
+                f"{self.dir}/miner.py",
+                "--netuid",
+                str(self.netuid),
+                "--subtensor.network",
+                "local",
+                "--subtensor.chain_endpoint",
+                "ws://localhost:9944",
+                "--wallet.path",
+                self.wallet.path,
+                "--wallet.name",
+                self.wallet.name,
+                "--wallet.hotkey",
+                "default",
+                env={
+                    "BT_LOGGING_INFO": "1",
+                },
+                stdout=asyncio.subprocess.PIPE,
+            )
+
+            self.__reader_task = asyncio.create_task(self._reader())
+
+            async with asyncio.timeout(30):
+                await self.started.wait()
+
+            return self
+
+        async def __aexit__(self, exc_type, exc_value, traceback):
+            self.process.terminate()
+            self.__reader_task.cancel()
+
+            await self.process.wait()
+
+        async def _reader(self):
+            async for line in self.process.stdout:
+                if b"Starting main loop" in line:
+                    self.started.set()
+
+    class Validator:
+        def __init__(self, dir, wallet, netuid):
+            self.dir = dir
+            self.wallet = wallet
+            self.netuid = netuid
+            self.process = None
+
+            self.started = asyncio.Event()
+            self.set_weights = asyncio.Event()
+
+        async def __aenter__(self):
+            self.process = await asyncio.create_subprocess_exec(
+                sys.executable,
+                f"{self.dir}/validator.py",
+                "--netuid",
+                str(self.netuid),
+                "--subtensor.network",
+                "local",
+                "--subtensor.chain_endpoint",
+                "ws://localhost:9944",
+                "--wallet.path",
+                self.wallet.path,
+                "--wallet.name",
+                self.wallet.name,
+                "--wallet.hotkey",
+                "default",
+                env={
+                    "BT_LOGGING_INFO": "1",
+                },
+                stdout=asyncio.subprocess.PIPE,
+            )
+
+            self.__reader_task = asyncio.create_task(self._reader())
+
+            async with asyncio.timeout(30):
+                await self.started.wait()
+
+            return self
+
+        async def __aexit__(self, exc_type, exc_value, traceback):
+            self.process.terminate()
+            self.__reader_task.cancel()
+
+            await self.process.wait()
+
+        async def _reader(self):
+            async for line in self.process.stdout:
+                if b"Starting validator loop." in line:
+                    self.started.set()
+                elif b"Successfully set weights and Finalized." in line:
+                    self.set_weights.set()
+
     def __init__(self):
         self.dir = clone_or_update_templates()
 
@@ -93,52 +193,8 @@ class Templates:
     def __exit__(self, exc_type, exc_value, traceback):
         uninstall_templates(self.dir)
 
-    @contextlib.asynccontextmanager
-    async def miner(self, wallet, netuid):
-        process = await asyncio.create_subprocess_exec(
-            sys.executable,
-            f"{self.dir}/miner.py",
-            "--netuid",
-            str(netuid),
-            "--subtensor.network",
-            "local",
-            "--subtensor.chain_endpoint",
-            "ws://localhost:9944",
-            "--wallet.path",
-            wallet.path,
-            "--wallet.name",
-            wallet.name,
-            "--wallet.hotkey",
-            "default",
-        )
+    def miner(self, wallet, netuid):
+        return self.Miner(self.dir, wallet, netuid)
 
-        yield
-
-        process.terminate()
-
-        await process.wait()
-
-    @contextlib.asynccontextmanager
-    async def validator(self, wallet, netuid):
-        process = await asyncio.create_subprocess_exec(
-            sys.executable,
-            f"{self.dir}/validator.py",
-            "--netuid",
-            str(netuid),
-            "--subtensor.network",
-            "local",
-            "--subtensor.chain_endpoint",
-            "ws://localhost:9944",
-            "--wallet.path",
-            wallet.path,
-            "--wallet.name",
-            wallet.name,
-            "--wallet.hotkey",
-            "default",
-        )
-
-        yield
-
-        process.terminate()
-
-        await process.wait()
+    def validator(self, wallet, netuid):
+        return self.Validator(self.dir, wallet, netuid)
