@@ -150,7 +150,7 @@ def sudo_set_admin_utils(
     wallet: "Wallet",
     call_function: str,
     call_params: dict,
-) -> tuple[bool, dict]:
+) -> tuple[bool, Optional[dict]]:
     """
     Wraps the call in sudo to set hyperparameter values using AdminUtils.
 
@@ -161,7 +161,7 @@ def sudo_set_admin_utils(
         call_params (dict): Parameters for the AdminUtils function.
 
     Returns:
-        tuple[bool, dict]: (success status, error details).
+        tuple[bool, Optional[dict]]: (success status, error details).
     """
     inner_call = substrate.compose_call(
         call_module="AdminUtils",
