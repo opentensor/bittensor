@@ -1,5 +1,20 @@
 # Changelog
 
+## 9.0.5 /2025-03-12
+
+## What's Changed
+* Refactor duplicated unittests code by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2724
+* Use uv for circleci by @thewhaleking in https://github.com/opentensor/bittensor/pull/2729
+* Fix E2E test_metagraph_info by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2728
+* Tests: deduplicate fake_wallet and correctly create Mock by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2730
+* E2E Test: wait cooldown period to check set_children effect by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2733
+* Tests: wait for Miner/Validator to fully start by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2737
+* All metagraph subtensor methods now use block by @thewhaleking in https://github.com/opentensor/bittensor/pull/2738
+* Tests: increse test_incentive timeout + fix sudo_set_weights_set_rate_limit by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2739
+* Feat/safe staking by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2736
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.0.4...v9.0.5
+
 ## 9.0.4 /2025-03-06
 
 ## What's Changed
