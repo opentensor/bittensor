@@ -2831,14 +2831,14 @@ class AsyncSubtensor(SubtensorMixin):
             allow_partial_stake (bool): If true and safe_staking is enabled, allows partial staking when
                 the full amount would exceed the price threshold. If false, the entire stake fails if it would
                 exceed the threshold. Default is False.
-            rate_threshold (float): The maximum allowed price change ratio when staking. For example, 
+            rate_threshold (float): The maximum allowed price change ratio when staking. For example,
                 0.005 = 0.5% maximum price increase. Only used when safe_staking is True. Default is 0.005.
 
         Returns:
             bool: ``True`` if the staking is successful, False otherwise.
 
-        This function enables neurons to increase their stake in the network, enhancing their influence and potential
-            rWhen safe_staking is enabled, it provides protection against price fluctuations during the time stake is
+        This function enables neurons to increase their stake in the network, enhancing their influence and potential.
+            When safe_staking is enabled, it provides protection against price fluctuations during the time stake is
             executed and the time it is actually processed by the chain.
         """
         amount = check_and_convert_to_balance(amount)
@@ -3632,7 +3632,7 @@ class AsyncSubtensor(SubtensorMixin):
             allow_partial_stake (bool): If true and safe_staking is enabled, allows partial unstaking when
                 the full amount would exceed the price threshold. If false, the entire unstake fails if it would
                 exceed the threshold. Default is False.
-            rate_threshold (float): The maximum allowed price change ratio when unstaking. For example, 
+            rate_threshold (float): The maximum allowed price change ratio when unstaking. For example,
                 0.005 = 0.5% maximum price decrease. Only used when safe_staking is True. Default is 0.005.
 
         Returns:
