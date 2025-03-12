@@ -463,7 +463,7 @@ def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
         netuid=origin_netuid,
     )
     assert origin_stake > Balance(0), "Origin stake should be non-zero"
-    
+
     stake_swap_amount = Balance.from_tao(100)
     # 1. Try swap with strict threshold - should fail
     success = subtensor.swap_stake(
