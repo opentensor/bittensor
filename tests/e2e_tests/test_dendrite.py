@@ -6,7 +6,6 @@ from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_admin_utils,
-    sudo_set_hyperparameter_values,
     wait_epoch,
 )
 
@@ -44,11 +43,10 @@ async def test_dendrite(local_chain, subtensor, templates, alice_wallet, bob_wal
             "netuid": netuid,
             "max_allowed_validators": 1,
         },
-        return_error_message=True,
     )
 
     # update weights_set_rate_limit for fast-blocks
-    assert sudo_set_hyperparameter_values(
+    status, error = sudo_set_admin_utils(
         local_chain,
         alice_wallet,
         call_function="sudo_set_weights_set_rate_limit",
@@ -56,8 +54,10 @@ async def test_dendrite(local_chain, subtensor, templates, alice_wallet, bob_wal
             "netuid": netuid,
             "weights_set_rate_limit": 10,
         },
-        return_error_message=True,
     )
+
+    assert error is None
+    assert status is True
 
     # Register Bob to the network
     assert subtensor.burned_register(

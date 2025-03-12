@@ -320,7 +320,6 @@ def test_nominator_min_required_stake(local_chain, subtensor, alice_wallet, bob_
         call_params={
             "min_stake": "100000000000000",
         },
-        return_error_message=True,
     )
 
     minimum_required_stake = subtensor.get_minimum_required_stake()
