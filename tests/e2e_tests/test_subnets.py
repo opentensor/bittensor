@@ -1,3 +1,7 @@
+from tests.e2e_tests.utils.chain_interactions import (
+    sudo_set_admin_utils,
+)
+
 def test_subnets(subtensor, alice_wallet):
     """
     Tests:
@@ -7,6 +11,13 @@ def test_subnets(subtensor, alice_wallet):
     """
 
     subnets = subtensor.all_subnets()
+
+    assert sudo_set_admin_utils(
+        subtensor, 
+        alice_wallet,
+        "sudo_set_network_rate_limit",
+        call_params={"rate_limit", "0"},
+    ), "Unable to set network rate limit"
 
     assert len(subnets) == 2
 

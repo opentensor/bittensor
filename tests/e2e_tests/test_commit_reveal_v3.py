@@ -35,6 +35,13 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     netuid = 2
     logging.console.info("Testing test_commit_and_reveal_weights")
 
+    assert sudo_set_admin_utils(
+        subtensor, 
+        alice_wallet,
+        "sudo_set_network_rate_limit",
+        call_params={"rate_limit", "0"},
+    ), "Unable to set network rate limit"
+
     # Register root as Alice
     assert subtensor.register_subnet(alice_wallet), "Unable to register the subnet"
 

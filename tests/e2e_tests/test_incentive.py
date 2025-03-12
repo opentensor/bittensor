@@ -5,6 +5,7 @@ import pytest
 from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_hyperparameter_values,
     wait_epoch,
+    sudo_set_admin_utils,
 )
 
 
@@ -25,6 +26,13 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     print("Testing test_incentive")
     netuid = 2
 
+    assert sudo_set_admin_utils(
+            subtensor, 
+            alice_wallet,
+            "sudo_set_network_rate_limit",
+            call_params={"rate_limit", "0"},
+        ), "Unable to set network rate limit"
+    
     # Register root as Alice - the subnet owner and validator
     assert subtensor.register_subnet(alice_wallet)
 

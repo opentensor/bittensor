@@ -6,6 +6,9 @@ import time
 from bittensor.core.chain_data.metagraph_info import MetagraphInfo
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
+from tests.e2e_tests.utils.chain_interactions import (
+    sudo_set_admin_utils,
+)
 
 NULL_KEY = tuple(bytearray(32))
 
@@ -47,6 +50,13 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     """
     logging.console.info("Testing test_metagraph_command")
     netuid = 2
+
+    assert sudo_set_admin_utils(
+        subtensor, 
+        alice_wallet,
+        "sudo_set_network_rate_limit",
+        call_params={"rate_limit", "0"},
+    ), "Unable to set network rate limit"
 
     # Register the subnet through Alice
     assert subtensor.register_subnet(alice_wallet), "Unable to register the subnet"

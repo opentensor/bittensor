@@ -44,6 +44,14 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
         AssertionError: If any of the checks or verifications fail
     """
     netuid = 2
+
+    assert sudo_set_admin_utils(
+        subtensor, 
+        alice_wallet,
+        "sudo_set_network_rate_limit",
+        call_params={"rate_limit", "0"},
+    ), "Unable to set network rate limit"
+    
     # Initial balance for Alice, defined in the genesis file of localnet
     initial_alice_balance = Balance.from_tao(1_000_000)
     # Current Existential deposit for all accounts in bittensor

@@ -29,6 +29,13 @@ async def test_dendrite(local_chain, subtensor, templates, alice_wallet, bob_wal
     logging.console.info("Testing test_dendrite")
     netuid = 2
 
+    assert sudo_set_admin_utils(
+        subtensor, 
+        alice_wallet,
+        "sudo_set_network_rate_limit",
+        call_params={"rate_limit", "0"},
+    ), "Unable to set network rate limit"
+
     # Register a subnet, netuid 2
     assert subtensor.register_subnet(alice_wallet), "Subnet wasn't created"
 

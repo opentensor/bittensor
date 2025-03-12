@@ -27,6 +27,12 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
         AssertionError: If any of the checks or verifications fail
     """
     netuid = 2
+    assert sudo_set_admin_utils(
+        subtensor, 
+        alice_wallet,
+        "sudo_set_network_rate_limit",
+        call_params={"rate_limit", "0"},
+    ), "Unable to set network rate limit"
 
     print("Testing test_commit_and_reveal_weights")
 
