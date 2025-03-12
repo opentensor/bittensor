@@ -3,7 +3,7 @@ import asyncio
 import pytest
 
 from tests.e2e_tests.utils.chain_interactions import (
-    sudo_set_hyperparameter_values,
+    sudo_set_admin_utils,
     wait_epoch,
 )
 
@@ -66,13 +66,16 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     assert bob_neuron.trust == 0
 
     # update weights_set_rate_limit for fast-blocks
-    assert sudo_set_hyperparameter_values(
+    status, error = sudo_set_admin_utils(
         local_chain,
         alice_wallet,
         call_function="sudo_set_weights_set_rate_limit",
         call_params={"netuid": netuid, "weights_set_rate_limit": 10},
         return_error_message=True,
     )
+
+    assert error is None
+    assert status is True
 
     async with templates.miner(bob_wallet, netuid):
         async with templates.validator(alice_wallet, netuid) as validator:
