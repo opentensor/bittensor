@@ -71,7 +71,6 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
         alice_wallet,
         call_function="sudo_set_weights_set_rate_limit",
         call_params={"netuid": netuid, "weights_set_rate_limit": 10},
-        return_error_message=True,
     )
 
     assert error is None

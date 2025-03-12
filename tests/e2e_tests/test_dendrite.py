@@ -43,7 +43,6 @@ async def test_dendrite(local_chain, subtensor, templates, alice_wallet, bob_wal
             "netuid": netuid,
             "max_allowed_validators": 1,
         },
-        return_error_message=True,
     )
 
     # update weights_set_rate_limit for fast-blocks
@@ -55,7 +54,6 @@ async def test_dendrite(local_chain, subtensor, templates, alice_wallet, bob_wal
             "netuid": netuid,
             "weights_set_rate_limit": 10,
         },
-        return_error_message=True,
     )
 
     assert error is None

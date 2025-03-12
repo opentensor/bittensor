@@ -60,7 +60,6 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
         alice_wallet,
         call_function="sudo_set_weights_set_rate_limit",
         call_params={"netuid": netuid, "weights_set_rate_limit": "0"},
-        return_error_message=True,
     )
 
     assert error is None
@@ -80,7 +79,6 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
             "netuid": netuid,
             "tempo": 100,
         },
-        return_error_message=True,
     )
 
     # Commit-reveal values
@@ -202,7 +200,6 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
         alice_wallet,
         call_function="sudo_set_weights_set_rate_limit",
         call_params={"netuid": netuid, "weights_set_rate_limit": "0"},
-        return_error_message=True,
     )
 
     assert error is None

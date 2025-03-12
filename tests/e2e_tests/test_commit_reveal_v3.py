@@ -59,7 +59,6 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
         alice_wallet,
         call_function="sudo_set_weights_set_rate_limit",
         call_params={"netuid": netuid, "weights_set_rate_limit": "0"},
-        return_error_message=True,
     )
 
     assert error is None
@@ -81,7 +80,6 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
             alice_wallet,
             call_function="sudo_set_tempo",
             call_params={"netuid": netuid, "tempo": tempo_set},
-            return_error_message=True,
         )[0]
         is True
     )

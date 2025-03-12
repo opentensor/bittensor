@@ -34,7 +34,6 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
         alice_wallet,
         call_function="sudo_set_network_rate_limit",
         call_params={"rate_limit": "0"},  # No limit
-        return_error_message=True,
     )
     # Set lock reduction interval
     sudo_set_admin_utils(
@@ -42,7 +41,6 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
         alice_wallet,
         call_function="sudo_set_lock_reduction_interval",
         call_params={"interval": "1"},  # 1 block # reduce lock every block
-        return_error_message=True,
     )
 
     # Try to register the subnets
@@ -90,7 +88,6 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
             alice_wallet,
             call_function="sudo_set_weights_set_rate_limit",
             call_params={"netuid": netuid, "weights_set_rate_limit": "0"},
-            return_error_message=True,
         )
 
         assert error is None
