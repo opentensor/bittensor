@@ -463,14 +463,15 @@ def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
         netuid=origin_netuid,
     )
     assert origin_stake > Balance(0), "Origin stake should be non-zero"
-
+    
+    stake_swap_amount = Balance.from_tao(100)
     # 1. Try swap with strict threshold - should fail
     success = subtensor.swap_stake(
         wallet=alice_wallet,
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
         origin_netuid=origin_netuid,
         destination_netuid=dest_netuid,
-        amount=origin_stake,
+        amount=stake_swap_amount,
         wait_for_inclusion=True,
         wait_for_finalization=True,
         safe_staking=True,
@@ -495,11 +496,11 @@ def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
         origin_netuid=origin_netuid,
         destination_netuid=dest_netuid,
-        amount=origin_stake,
+        amount=stake_swap_amount,
         wait_for_inclusion=True,
         wait_for_finalization=True,
         safe_staking=True,
-        rate_threshold=0.3,  # 10%
+        rate_threshold=0.3,  # 30%
         allow_partial_stake=True,
     )
     assert success is True
