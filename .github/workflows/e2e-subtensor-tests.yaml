@@ -77,17 +77,17 @@ jobs:
       matrix:
         rust-branch:
           - stable
-#        rust-target:
-#          - x86_64-unknown-linux-gnu
+        rust-target:
+          - x86_64-unknown-linux-gnu
         os:
           - ubuntu-latest
         test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
-#    env:
-#      RELEASE_NAME: development
-#      RUSTV: ${{ matrix.rust-branch }}
-#      RUST_BACKTRACE: full
-#      RUST_BIN_DIR: target/${{ matrix.rust-target }}
-#      TARGET: ${{ matrix.rust-target }}
+    env:
+      RELEASE_NAME: development
+      RUSTV: ${{ matrix.rust-branch }}
+      RUST_BACKTRACE: full
+      RUST_BIN_DIR: target/${{ matrix.rust-target }}
+      TARGET: ${{ matrix.rust-target }}
     steps:
       - name: Check-out repository under $GITHUB_WORKSPACE
         uses: actions/checkout@v4
@@ -127,9 +127,6 @@ jobs:
           
           echo "uname -m && uname -r"
           uname -m && uname -r
-          
-          echo "/lib/ld-linux-aarch64.so.1 exist"
-          ls /lib/ld-linux-aarch64.so.1
 
       - name: Install uv
         uses: astral-sh/setup-uv@v4
