@@ -25,6 +25,28 @@ env:
 
 # job to run tests in parallel
 jobs:
+
+  get-latest-artifact-id:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Fetch Artifacts List
+        id: fetch_artifacts
+        run: |
+          ARTIFACTS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/opentensor/subtensor/actions/actions/artifacts)
+          echo "$ARTIFACTS" > artifacts.json
+
+      - name: Parse Latest Artifact ID
+        id: parse_artifact
+        run: |
+          LATEST_ARTIFACT_ID=$(jq -r '.artifacts[0].id' artifacts.json)
+          echo "LATEST_ARTIFACT_ID=$LATEST_ARTIFACT_ID" >> $GITHUB_ENV
+
+      - name: Print Latest Artifact ID
+        run: |
+          echo "Latest Artifact ID: ${{ env.LATEST_ARTIFACT_ID }}"
+
   # Job to find all test files
   find-tests:
     runs-on: ubuntu-latest
