@@ -9,6 +9,7 @@ from bittensor import u64_normalized_float
 from bittensor.core import async_subtensor
 from bittensor.core.async_subtensor import AsyncSubtensor
 from bittensor.core.chain_data.chain_identity import ChainIdentity
+from bittensor.core.chain_data.neuron_info import NeuronInfo
 from bittensor.core.chain_data.stake_info import StakeInfo
 from bittensor.core.chain_data import proposal_vote_data
 from bittensor.utils.balance import Balance
@@ -156,6 +157,90 @@ async def test_async_subtensor_aenter_connection_refused_error(
 
     # Asserts
     fake_async_substrate.initialize.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_burned_register(mock_substrate, subtensor, fake_wallet, mocker):
+    mock_substrate.submit_extrinsic.return_value = mocker.AsyncMock(
+        is_success=mocker.AsyncMock(return_value=True)(),
+    )
+    mocker.patch.object(
+        subtensor,
+        "get_neuron_for_pubkey_and_subnet",
+        return_value=NeuronInfo.get_null_neuron(),
+    )
+    mocker.patch.object(
+        subtensor,
+        "get_balance",
+        return_value=Balance(1),
+    )
+
+    success = await subtensor.burned_register(
+        fake_wallet,
+        netuid=1,
+    )
+
+    assert success is True
+
+    subtensor.get_neuron_for_pubkey_and_subnet.assert_called_once_with(
+        fake_wallet.hotkey.ss58_address,
+        netuid=1,
+        block_hash=mock_substrate.get_chain_head.return_value,
+    )
+
+    assert_submit_signed_extrinsic(
+        mock_substrate,
+        fake_wallet.coldkey,
+        call_module="SubtensorModule",
+        call_function="burned_register",
+        call_params={
+            "netuid": 1,
+            "hotkey": fake_wallet.hotkey.ss58_address,
+        },
+        wait_for_finalization=True,
+        wait_for_inclusion=False,
+    )
+
+
+@pytest.mark.asyncio
+async def test_burned_register_on_root(mock_substrate, subtensor, fake_wallet, mocker):
+    mock_substrate.submit_extrinsic.return_value = mocker.AsyncMock(
+        is_success=mocker.AsyncMock(return_value=True)(),
+    )
+    mocker.patch.object(
+        subtensor,
+        "get_balance",
+        return_value=Balance(1),
+    )
+    mocker.patch.object(
+        subtensor,
+        "is_hotkey_registered",
+        return_value=False,
+    )
+
+    success = await subtensor.burned_register(
+        fake_wallet,
+        netuid=0,
+    )
+
+    assert success is True
+
+    subtensor.is_hotkey_registered.assert_called_once_with(
+        netuid=0,
+        hotkey_ss58=fake_wallet.hotkey.ss58_address,
+    )
+
+    assert_submit_signed_extrinsic(
+        mock_substrate,
+        fake_wallet.coldkey,
+        call_module="SubtensorModule",
+        call_function="root_register",
+        call_params={
+            "hotkey": fake_wallet.hotkey.ss58_address,
+        },
+        wait_for_finalization=True,
+        wait_for_inclusion=False,
+    )
 
 
 @pytest.mark.asyncio
