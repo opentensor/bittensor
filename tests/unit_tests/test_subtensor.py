@@ -2,14 +2,14 @@
 # Copyright © 2024 Opentensor Foundation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# documentation files (the "Software"), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 #
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 #
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
@@ -75,7 +75,7 @@ def call_params_with_certificate():
     return params
 
 
-def test_methods_comparable(mock_substrate_interface):
+def test_methods_comparable(mock_substrate):
     """Verifies that methods in sync and async Subtensors are comparable."""
     # Preps
     subtensor = Subtensor(_mock=True)
@@ -858,7 +858,7 @@ def test_get_subnet_hyperparameters_success(mocker, subtensor):
     )
 
     # Call
-    result = subtensor.get_subnet_hyperparameters(netuid, block)
+    subtensor.get_subnet_hyperparameters(netuid, block)
 
     # Asserts
     subtensor.query_runtime_api.assert_called_once_with(
@@ -1166,10 +1166,9 @@ def test_is_hotkey_registered_with_netuid(subtensor, mocker):
     assert result == mocked_is_hotkey_registered_on_subnet.return_value
 
 
-def test_set_weights(subtensor, mocker):
+def test_set_weights(subtensor, mocker, fake_wallet):
     """Successful set_weights call."""
     # Preps
-    fake_wallet = mocker.MagicMock()
     fake_netuid = 1
     fake_uids = [2, 4]
     fake_weights = [0.4, 0.6]
@@ -1268,10 +1267,9 @@ def test_get_block_hash(subtensor, mocker):
     assert result == subtensor.substrate.get_block_hash.return_value
 
 
-def test_commit(subtensor, mocker):
+def test_commit(subtensor, fake_wallet, mocker):
     """Test successful commit call."""
     # Preps
-    fake_wallet = mocker.MagicMock()
     fake_netuid = 1
     fake_data = "some data to network"
     mocked_publish_metadata = mocker.patch.object(subtensor_module, "publish_metadata")
@@ -1313,10 +1311,9 @@ def test_subnetwork_n(subtensor, mocker):
     assert result == mocked_get_hyperparameter.return_value
 
 
-def test_transfer(subtensor, mocker):
+def test_transfer(subtensor, fake_wallet, mocker):
     """Tests successful transfer call."""
     # Prep
-    fake_wallet = mocker.MagicMock()
     fake_dest = "SS58PUBLICKEY"
     fake_amount = 1.1
     fake_wait_for_inclusion = True
@@ -1478,11 +1475,10 @@ def test_neuron_for_uid_success(subtensor, mocker):
     ],
 )
 def test_do_serve_axon_is_success(
-    subtensor, mocker, fake_call_params, expected_call_function
+    subtensor, fake_wallet, mocker, fake_call_params, expected_call_function
 ):
     """Successful do_serve_axon call."""
     # Prep
-    fake_wallet = mocker.MagicMock()
     fake_wait_for_inclusion = True
     fake_wait_for_finalization = True
 
@@ -1520,10 +1516,9 @@ def test_do_serve_axon_is_success(
     assert result[1] is None
 
 
-def test_do_serve_axon_is_not_success(subtensor, mocker, fake_call_params):
+def test_do_serve_axon_is_not_success(subtensor, fake_wallet, mocker, fake_call_params):
     """Unsuccessful do_serve_axon call."""
     # Prep
-    fake_wallet = mocker.MagicMock()
     fake_wait_for_inclusion = True
     fake_wait_for_finalization = True
 
@@ -1562,10 +1557,9 @@ def test_do_serve_axon_is_not_success(subtensor, mocker, fake_call_params):
     )
 
 
-def test_do_serve_axon_no_waits(subtensor, mocker, fake_call_params):
+def test_do_serve_axon_no_waits(subtensor, fake_wallet, mocker, fake_call_params):
     """Unsuccessful do_serve_axon call."""
     # Prep
-    fake_wallet = mocker.MagicMock()
     fake_wait_for_inclusion = False
     fake_wait_for_finalization = False
 
@@ -1884,10 +1878,9 @@ def test_max_weight_limit(subtensor, mocker):
     assert result == mocked_u16_normalized_float.return_value
 
 
-def test_get_transfer_fee(subtensor, mocker):
+def test_get_transfer_fee(subtensor, fake_wallet, mocker):
     """Successful get_transfer_fee call."""
     # Preps
-    fake_wallet = mocker.MagicMock()
     fake_dest = "SS58ADDRESS"
     value = Balance(1)
 
@@ -1937,10 +1930,9 @@ def test_get_existential_deposit(subtensor, mocker):
     assert result == Balance.from_rao(value)
 
 
-def test_commit_weights(subtensor, mocker):
+def test_commit_weights(subtensor, fake_wallet, mocker):
     """Successful commit_weights call."""
     # Preps
-    fake_wallet = mocker.MagicMock()
     netuid = 1
     salt = [1, 3]
     uids = [2, 4]
@@ -1991,10 +1983,9 @@ def test_commit_weights(subtensor, mocker):
     assert result == expected_result
 
 
-def test_reveal_weights(subtensor, mocker):
+def test_reveal_weights(subtensor, fake_wallet, mocker):
     """Successful test_reveal_weights call."""
     # Preps
-    fake_wallet = mocker.MagicMock()
     netuid = 1
     uids = [1, 2, 3, 4]
     weights = [0.1, 0.2, 0.3, 0.4]
@@ -2030,10 +2021,9 @@ def test_reveal_weights(subtensor, mocker):
     )
 
 
-def test_reveal_weights_false(subtensor, mocker):
+def test_reveal_weights_false(subtensor, fake_wallet, mocker):
     """Failed test_reveal_weights call."""
     # Preps
-    fake_wallet = mocker.MagicMock()
     netuid = 1
     uids = [1, 2, 3, 4]
     weights = [0.1, 0.2, 0.3, 0.4]
@@ -2272,33 +2262,9 @@ def test_get_delegate_take_success(subtensor, mocker):
     assert result == subtensor_module.u16_normalized_float.return_value
 
 
-def test_get_delegate_take_none(subtensor, mocker):
-    """Verify `get_delegate_take` method returns None."""
-    # Preps
-    fake_hotkey_ss58 = "FAKE_SS58"
-    fake_block = 123
-
-    subtensor.query_subtensor = mocker.Mock(return_value=None)
-    mocker.patch.object(subtensor_module, "u16_normalized_float")
-
-    # Call
-    result = subtensor.get_delegate_take(hotkey_ss58=fake_hotkey_ss58, block=fake_block)
-
-    # Asserts
-    subtensor.query_subtensor.assert_called_once_with(
-        name="Delegates",
-        block=fake_block,
-        params=[fake_hotkey_ss58],
-    )
-
-    subtensor_module.u16_normalized_float.assert_not_called()
-    assert result is None
-
-
-def test_networks_during_connection(mocker):
+def test_networks_during_connection(mock_substrate, mocker):
     """Test networks during_connection."""
     # Preps
-    mocker.patch.object(subtensor_module, "SubstrateInterface")
     mocker.patch("websockets.sync.client.connect")
     # Call
     for network in list(settings.NETWORK_MAP.keys()) + ["undefined"]:
@@ -2848,10 +2814,9 @@ def test_is_hotkey_delegate_empty_list(mocker, subtensor):
     assert result is False
 
 
-def test_add_stake_success(mocker, subtensor):
+def test_add_stake_success(mocker, fake_wallet, subtensor):
     """Test add_stake returns True on successful staking."""
     # Prep
-    fake_wallet = mocker.Mock()
     fake_hotkey_ss58 = "fake_hotkey"
     fake_amount = 10.0
 
@@ -2866,6 +2831,9 @@ def test_add_stake_success(mocker, subtensor):
         amount=fake_amount,
         wait_for_inclusion=True,
         wait_for_finalization=False,
+        safe_staking=False,
+        allow_partial_stake=False,
+        rate_tolerance=0.005,
     )
 
     # Assertions
@@ -2877,14 +2845,55 @@ def test_add_stake_success(mocker, subtensor):
         amount=Balance.from_rao(fake_amount),
         wait_for_inclusion=True,
         wait_for_finalization=False,
+        safe_staking=False,
+        allow_partial_stake=False,
+        rate_tolerance=0.005,
     )
     assert result == mock_add_stake_extrinsic.return_value
 
 
-def test_add_stake_multiple_success(mocker, subtensor):
+def test_add_stake_with_safe_staking(mocker, fake_wallet, subtensor):
+    """Test add_stake with safe staking parameters enabled."""
+    # Prep
+    fake_hotkey_ss58 = "fake_hotkey"
+    fake_amount = 10.0
+    fake_rate_tolerance = 0.01  # 1% threshold
+
+    mock_add_stake_extrinsic = mocker.patch.object(
+        subtensor_module, "add_stake_extrinsic"
+    )
+
+    # Call
+    result = subtensor.add_stake(
+        wallet=fake_wallet,
+        hotkey_ss58=fake_hotkey_ss58,
+        amount=fake_amount,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        safe_staking=True,
+        allow_partial_stake=False,
+        rate_tolerance=fake_rate_tolerance,
+    )
+
+    # Assertions
+    mock_add_stake_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        hotkey_ss58=fake_hotkey_ss58,
+        netuid=None,
+        amount=Balance.from_rao(fake_amount),
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        safe_staking=True,
+        allow_partial_stake=False,
+        rate_tolerance=fake_rate_tolerance,
+    )
+    assert result == mock_add_stake_extrinsic.return_value
+
+
+def test_add_stake_multiple_success(mocker, fake_wallet, subtensor):
     """Test add_stake_multiple successfully stakes for all hotkeys."""
     # Prep
-    fake_wallet = mocker.Mock()
     fake_hotkey_ss58 = ["fake_hotkey"]
     fake_amount = [10.0]
 
@@ -2915,10 +2924,9 @@ def test_add_stake_multiple_success(mocker, subtensor):
     assert result == mock_add_stake_multiple_extrinsic.return_value
 
 
-def test_unstake_success(mocker, subtensor):
+def test_unstake_success(mocker, subtensor, fake_wallet):
     """Test unstake operation is successful."""
     # Preps
-    fake_wallet = mocker.Mock()
     fake_hotkey_ss58 = "hotkey_1"
     fake_amount = 10.0
 
@@ -2931,6 +2939,9 @@ def test_unstake_success(mocker, subtensor):
         amount=fake_amount,
         wait_for_inclusion=True,
         wait_for_finalization=False,
+        safe_staking=False,
+        allow_partial_stake=False,
+        rate_tolerance=0.005,
     )
 
     # Assertions
@@ -2942,14 +2953,139 @@ def test_unstake_success(mocker, subtensor):
         amount=Balance.from_rao(fake_amount),
         wait_for_inclusion=True,
         wait_for_finalization=False,
+        safe_staking=False,
+        allow_partial_stake=False,
+        rate_tolerance=0.005,
     )
     assert result == mock_unstake_extrinsic.return_value
 
 
-def test_unstake_multiple_success(mocker, subtensor):
+def test_unstake_with_safe_staking(mocker, subtensor, fake_wallet):
+    """Test unstake with safe staking parameters enabled."""
+    fake_hotkey_ss58 = "hotkey_1"
+    fake_amount = 10.0
+    fake_rate_tolerance = 0.01  # 1% threshold
+
+    mock_unstake_extrinsic = mocker.patch.object(subtensor_module, "unstake_extrinsic")
+
+    # Call
+    result = subtensor.unstake(
+        wallet=fake_wallet,
+        hotkey_ss58=fake_hotkey_ss58,
+        amount=fake_amount,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        safe_staking=True,
+        allow_partial_stake=True,
+        rate_tolerance=fake_rate_tolerance,
+    )
+
+    # Assertions
+    mock_unstake_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        hotkey_ss58=fake_hotkey_ss58,
+        netuid=None,
+        amount=Balance.from_rao(fake_amount),
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        safe_staking=True,
+        allow_partial_stake=True,
+        rate_tolerance=fake_rate_tolerance,
+    )
+    assert result == mock_unstake_extrinsic.return_value
+
+
+def test_swap_stake_success(mocker, subtensor, fake_wallet):
+    """Test swap_stake operation is successful."""
+    # Preps
+    fake_hotkey_ss58 = "hotkey_1"
+    fake_origin_netuid = 1
+    fake_destination_netuid = 2
+    fake_amount = 10.0
+
+    mock_swap_stake_extrinsic = mocker.patch.object(
+        subtensor_module, "swap_stake_extrinsic"
+    )
+
+    # Call
+    result = subtensor.swap_stake(
+        wallet=fake_wallet,
+        hotkey_ss58=fake_hotkey_ss58,
+        origin_netuid=fake_origin_netuid,
+        destination_netuid=fake_destination_netuid,
+        amount=fake_amount,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        safe_staking=False,
+        allow_partial_stake=False,
+        rate_tolerance=0.005,
+    )
+
+    # Assertions
+    mock_swap_stake_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        hotkey_ss58=fake_hotkey_ss58,
+        origin_netuid=fake_origin_netuid,
+        destination_netuid=fake_destination_netuid,
+        amount=Balance.from_rao(fake_amount),
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        safe_staking=False,
+        allow_partial_stake=False,
+        rate_tolerance=0.005,
+    )
+    assert result == mock_swap_stake_extrinsic.return_value
+
+
+def test_swap_stake_with_safe_staking(mocker, subtensor, fake_wallet):
+    """Test swap_stake with safe staking parameters enabled."""
+    # Preps
+    fake_hotkey_ss58 = "hotkey_1"
+    fake_origin_netuid = 1
+    fake_destination_netuid = 2
+    fake_amount = 10.0
+    fake_rate_tolerance = 0.01  # 1% threshold
+
+    mock_swap_stake_extrinsic = mocker.patch.object(
+        subtensor_module, "swap_stake_extrinsic"
+    )
+
+    # Call
+    result = subtensor.swap_stake(
+        wallet=fake_wallet,
+        hotkey_ss58=fake_hotkey_ss58,
+        origin_netuid=fake_origin_netuid,
+        destination_netuid=fake_destination_netuid,
+        amount=fake_amount,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        safe_staking=True,
+        allow_partial_stake=True,
+        rate_tolerance=fake_rate_tolerance,
+    )
+
+    # Assertions
+    mock_swap_stake_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        hotkey_ss58=fake_hotkey_ss58,
+        origin_netuid=fake_origin_netuid,
+        destination_netuid=fake_destination_netuid,
+        amount=Balance.from_rao(fake_amount),
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        safe_staking=True,
+        allow_partial_stake=True,
+        rate_tolerance=fake_rate_tolerance,
+    )
+    assert result == mock_swap_stake_extrinsic.return_value
+
+
+def test_unstake_multiple_success(mocker, subtensor, fake_wallet):
     """Test unstake_multiple succeeds for all hotkeys."""
     # Preps
-    fake_wallet = mocker.Mock()
     fake_hotkeys = ["hotkey_1", "hotkey_2"]
     fake_amounts = [10.0, 20.0]
 
@@ -2980,10 +3116,9 @@ def test_unstake_multiple_success(mocker, subtensor):
     assert result == mock_unstake_multiple_extrinsic.return_value
 
 
-def test_set_weights_with_commit_reveal_enabled(subtensor, mocker):
+def test_set_weights_with_commit_reveal_enabled(subtensor, fake_wallet, mocker):
     """Test set_weights with commit_reveal_enabled is True."""
     # Preps
-    fake_wallet = mocker.Mock()
     fake_netuid = 1
     fake_uids = [1, 5]
     fake_weights = [0.1, 0.9]
@@ -3052,10 +3187,9 @@ def test_connection_limit(mocker):
             Subtensor("test")
 
 
-def test_set_subnet_identity(mocker, subtensor):
+def test_set_subnet_identity(mocker, subtensor, fake_wallet):
     """Verify that subtensor method `set_subnet_identity` calls proper function with proper arguments."""
     # Preps
-    fake_wallet = mocker.Mock()
     fake_netuid = 123
     fake_subnet_identity = mocker.MagicMock()
 

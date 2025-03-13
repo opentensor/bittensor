@@ -7,7 +7,6 @@ from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_admin_utils,
     sudo_set_hyperparameter_bool,
-    sudo_set_hyperparameter_values,
     wait_epoch,
 )
 
@@ -54,14 +53,17 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
     assert (
         subtensor.weights_rate_limit(netuid=netuid) > 0
     ), "Weights rate limit is below 0"
+
     # Lower the rate limit
-    assert sudo_set_hyperparameter_values(
+    status, error = sudo_set_admin_utils(
         local_chain,
         alice_wallet,
         call_function="sudo_set_weights_set_rate_limit",
         call_params={"netuid": netuid, "weights_set_rate_limit": "0"},
-        return_error_message=True,
     )
+
+    assert error is None
+    assert status is True
 
     assert (
         subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
@@ -77,7 +79,6 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
             "netuid": netuid,
             "tempo": 100,
         },
-        return_error_message=True,
     )
 
     # Commit-reveal values
@@ -192,14 +193,17 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     assert (
         subtensor.weights_rate_limit(netuid=netuid) > 0
     ), "Weights rate limit is below 0"
+
     # Lower the rate limit
-    assert sudo_set_hyperparameter_values(
+    status, error = sudo_set_admin_utils(
         local_chain,
         alice_wallet,
         call_function="sudo_set_weights_set_rate_limit",
         call_params={"netuid": netuid, "weights_set_rate_limit": "0"},
-        return_error_message=True,
     )
+
+    assert error is None
+    assert status is True
 
     assert (
         subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0

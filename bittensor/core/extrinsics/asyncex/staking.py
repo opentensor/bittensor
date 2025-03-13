@@ -21,6 +21,9 @@ async def add_stake_extrinsic(
     amount: Optional[Balance] = None,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
+    safe_staking: bool = False,
+    allow_partial_stake: bool = False,
+    rate_tolerance: float = 0.005,
 ) -> bool:
     """
     Adds the specified amount of stake to passed hotkey `uid`.
@@ -36,6 +39,9 @@ async def add_stake_extrinsic(
             `False` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning `True`,
             or returns `False` if the extrinsic fails to be finalized within the timeout.
+        safe_staking: If set, uses safe staking logic
+        allow_partial_stake: If set, allows partial stake
+        rate_tolerance: The rate tolerance for safe staking
 
     Returns:
         success: Flag is `True` if extrinsic was finalized or included in the block. If we did not wait for
@@ -97,19 +103,48 @@ async def add_stake_extrinsic(
         return False
 
     try:
-        logging.info(
-            f":satellite: [magenta]Staking to:[/magenta] "
-            f"[blue]netuid: {netuid}, amount: {staking_balance} "
-            f"on {subtensor.network}[/blue] [magenta]...[/magenta]"
-        )
+        call_params = {
+            "hotkey": hotkey_ss58,
+            "netuid": netuid,
+            "amount_staked": staking_balance.rao,
+        }
+
+        if safe_staking:
+            pool = await subtensor.subnet(netuid=netuid)
+            base_price = pool.price.rao
+            price_with_tolerance = base_price * (1 + rate_tolerance)
+            call_params.update(
+                {
+                    "limit_price": price_with_tolerance,
+                    "allow_partial": allow_partial_stake,
+                }
+            )
+            call_function = "add_stake_limit"
+
+            # For logging
+            base_rate = pool.price.tao
+            rate_with_tolerance = base_rate * (1 + rate_tolerance)
+            logging.info(
+                f":satellite: [magenta]Safe Staking to:[/magenta] "
+                f"[blue]netuid: [green]{netuid}[/green], amount: [green]{staking_balance}[/green], "
+                f"tolerance percentage: [green]{rate_tolerance*100}%[/green], "
+                f"price limit: [green]{rate_with_tolerance}[/green], "
+                f"original price: [green]{base_rate}[/green], "
+                f"with partial stake: [green]{allow_partial_stake}[/green] "
+                f"on [blue]{subtensor.network}[/blue][/magenta]...[/magenta]"
+            )
+        else:
+            logging.info(
+                f":satellite: [magenta]Staking to:[/magenta] "
+                f"[blue]netuid: [green]{netuid}[/green], amount: [green]{staking_balance}[/green] "
+                f"on [blue]{subtensor.network}[/blue][magenta]...[/magenta]"
+            )
+            call_function = "add_stake"
+
         call = await subtensor.substrate.compose_call(
             call_module="SubtensorModule",
-            call_function="add_stake",
-            call_params={
-                "hotkey": hotkey_ss58,
-                "amount_staked": staking_balance.rao,
-                "netuid": netuid,
-            },
+            call_function=call_function,
+            call_params=call_params,
         )
         staking_response, err_msg = await subtensor.sign_and_send_extrinsic(
             call,
@@ -152,7 +187,12 @@ async def add_stake_extrinsic(
             )
             return True
         else:
-            logging.error(f":cross_mark: [red]Failed: {err_msg}.[/red]")
+            if safe_staking and "Custom error: 8" in err_msg:
+                logging.error(
+                    ":cross_mark: [red]Failed[/red]: Price exceeded tolerance limit. Either increase price tolerance or enable partial staking."
+                )
+            else:
+                logging.error(f":cross_mark: [red]Failed: {err_msg}.[/red]")
             return False
 
     except NotRegisteredError:

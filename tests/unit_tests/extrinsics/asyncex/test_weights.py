@@ -1,25 +1,12 @@
 import pytest
 from bittensor.core import async_subtensor
-from bittensor_wallet import Wallet
 from bittensor.core.extrinsics.asyncex import weights as async_weights
 
 
-@pytest.fixture(autouse=True)
-def subtensor(mocker):
-    fake_async_substrate = mocker.AsyncMock(
-        autospec=async_subtensor.AsyncSubstrateInterface
-    )
-    mocker.patch.object(
-        async_subtensor, "AsyncSubstrateInterface", return_value=fake_async_substrate
-    )
-    return async_subtensor.AsyncSubtensor()
-
-
 @pytest.mark.asyncio
-async def test_do_set_weights_success(subtensor, mocker):
+async def test_do_set_weights_success(subtensor, fake_wallet, mocker):
     """Tests _do_set_weights when weights are set successfully."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_uids = [1, 2, 3]
     fake_vals = [100, 200, 300]
     fake_netuid = 0
@@ -56,14 +43,13 @@ async def test_do_set_weights_success(subtensor, mocker):
 
     # Asserts
     assert result is True
-    assert message is ""
+    assert message == ""
 
 
 @pytest.mark.asyncio
-async def test_do_set_weights_failure(subtensor, mocker):
+async def test_do_set_weights_failure(subtensor, fake_wallet, mocker):
     """Tests _do_set_weights when setting weights fails."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_uids = [1, 2, 3]
     fake_vals = [100, 200, 300]
     fake_netuid = 0
@@ -113,10 +99,9 @@ async def test_do_set_weights_failure(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_do_set_weights_no_waiting(subtensor, mocker):
+async def test_do_set_weights_no_waiting(subtensor, fake_wallet, mocker):
     """Tests _do_set_weights when not waiting for inclusion or finalization."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_uids = [1, 2, 3]
     fake_vals = [100, 200, 300]
     fake_netuid = 0
@@ -146,14 +131,15 @@ async def test_do_set_weights_no_waiting(subtensor, mocker):
 
     # Asserts
     assert result is True
-    assert message is ""
+    assert message == ""
 
 
 @pytest.mark.asyncio
-async def test_set_weights_extrinsic_success_with_finalization(subtensor, mocker):
+async def test_set_weights_extrinsic_success_with_finalization(
+    subtensor, fake_wallet, mocker
+):
     """Tests set_weights_extrinsic when weights are successfully set with finalization."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_uids = [1, 2, 3]
     fake_weights = [0.1, 0.2, 0.7]
@@ -189,10 +175,9 @@ async def test_set_weights_extrinsic_success_with_finalization(subtensor, mocker
 
 
 @pytest.mark.asyncio
-async def test_set_weights_extrinsic_no_waiting(subtensor, mocker):
+async def test_set_weights_extrinsic_no_waiting(subtensor, fake_wallet, mocker):
     """Tests set_weights_extrinsic when no waiting for inclusion or finalization."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_uids = [1, 2, 3]
     fake_weights = [0.1, 0.2, 0.7]
@@ -219,10 +204,9 @@ async def test_set_weights_extrinsic_no_waiting(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_set_weights_extrinsic_failure(subtensor, mocker):
+async def test_set_weights_extrinsic_failure(subtensor, fake_wallet, mocker):
     """Tests set_weights_extrinsic when setting weights fails."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_uids = [1, 2, 3]
     fake_weights = [0.1, 0.2, 0.7]
@@ -249,10 +233,9 @@ async def test_set_weights_extrinsic_failure(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_set_weights_extrinsic_exception(subtensor, mocker):
+async def test_set_weights_extrinsic_exception(subtensor, fake_wallet, mocker):
     """Tests set_weights_extrinsic when an exception is raised."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_uids = [1, 2, 3]
     fake_weights = [0.1, 0.2, 0.7]
@@ -279,10 +262,9 @@ async def test_set_weights_extrinsic_exception(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_do_commit_weights_success(subtensor, mocker):
+async def test_do_commit_weights_success(subtensor, fake_wallet, mocker):
     """Tests _do_commit_weights when the commit is successful."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_commit_hash = "test_hash"
 
@@ -316,14 +298,13 @@ async def test_do_commit_weights_success(subtensor, mocker):
 
     # Asserts
     assert result is True
-    assert message is ""
+    assert message == ""
 
 
 @pytest.mark.asyncio
-async def test_do_commit_weights_failure(subtensor, mocker):
+async def test_do_commit_weights_failure(subtensor, fake_wallet, mocker):
     """Tests _do_commit_weights when the commit fails."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_commit_hash = "test_hash"
 
@@ -368,10 +349,9 @@ async def test_do_commit_weights_failure(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_do_commit_weights_no_waiting(subtensor, mocker):
+async def test_do_commit_weights_no_waiting(subtensor, fake_wallet, mocker):
     """Tests _do_commit_weights when not waiting for inclusion or finalization."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_commit_hash = "test_hash"
 
@@ -399,14 +379,13 @@ async def test_do_commit_weights_no_waiting(subtensor, mocker):
 
     # Asserts
     assert result is True
-    assert message is ""
+    assert message == ""
 
 
 @pytest.mark.asyncio
-async def test_do_commit_weights_exception(subtensor, mocker):
+async def test_do_commit_weights_exception(subtensor, fake_wallet, mocker):
     """Tests _do_commit_weights when an exception is raised."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_commit_hash = "test_hash"
 
@@ -429,10 +408,9 @@ async def test_do_commit_weights_exception(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_commit_weights_extrinsic_success(subtensor, mocker):
+async def test_commit_weights_extrinsic_success(subtensor, fake_wallet, mocker):
     """Tests commit_weights_extrinsic when the commit is successful."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_commit_hash = "test_hash"
 
@@ -464,10 +442,9 @@ async def test_commit_weights_extrinsic_success(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_commit_weights_extrinsic_failure(subtensor, mocker):
+async def test_commit_weights_extrinsic_failure(subtensor, fake_wallet, mocker):
     """Tests commit_weights_extrinsic when the commit fails."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_commit_hash = "test_hash"
 

@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock
 
 import pytest
-from async_substrate_interface import SubstrateInterface
 from scalecodec.types import GenericExtrinsic
 
 from bittensor.core.extrinsics import utils
@@ -9,9 +8,8 @@ from bittensor.core.subtensor import Subtensor
 
 
 @pytest.fixture
-def mock_subtensor():
+def mock_subtensor(mock_substrate):
     mock_subtensor = MagicMock(autospec=Subtensor)
-    mock_substrate = MagicMock(autospec=SubstrateInterface)
     mock_subtensor.substrate = mock_substrate
     yield mock_subtensor
 
