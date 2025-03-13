@@ -2129,6 +2129,9 @@ class Subtensor(SubtensorMixin):
         amount: Optional[Balance] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
+        safe_staking: bool = False,
+        allow_partial_stake: bool = False,
+        rate_threshold: float = 0.005,
     ) -> bool:
         """
         Adds the specified amount of stake to a neuron identified by the hotkey ``SS58`` address.
@@ -2142,12 +2145,21 @@ class Subtensor(SubtensorMixin):
             amount (Balance): The amount of TAO to stake.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            safe_staking (bool): If true, enables price safety checks to protect against fluctuating prices. The stake
+                will only execute if the price change doesn't exceed the rate threshold. Default is False.
+            allow_partial_stake (bool): If true and safe_staking is enabled, allows partial staking when
+                the full amount would exceed the price threshold. If false, the entire stake fails if it would
+                exceed the threshold. Default is False.
+            rate_threshold (float): The maximum allowed price change ratio when staking. For example,
+                0.005 = 0.5% maximum price increase. Only used when safe_staking is True. Default is 0.005.
 
         Returns:
-            bool: ``True`` if the staking is successful, False otherwise.
+            bool: True if the staking is successful, False otherwise.
 
         This function enables neurons to increase their stake in the network, enhancing their influence and potential
             rewards in line with Bittensor's consensus and reward mechanisms.
+            When safe_staking is enabled, it provides protection against price fluctuations during the time stake is
+            executed and the time it is actually processed by the chain.
         """
         amount = check_and_convert_to_balance(amount)
         return add_stake_extrinsic(
@@ -2158,6 +2170,9 @@ class Subtensor(SubtensorMixin):
             amount=amount,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            safe_staking=safe_staking,
+            allow_partial_stake=allow_partial_stake,
+            rate_threshold=rate_threshold,
         )
 
     def add_stake_multiple(
@@ -2760,6 +2775,9 @@ class Subtensor(SubtensorMixin):
         amount: Balance,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
+        safe_staking: bool = False,
+        allow_partial_stake: bool = False,
+        rate_threshold: float = 0.005,
     ) -> bool:
         """
         Moves stake between subnets while keeping the same coldkey-hotkey pair ownership.
@@ -2773,9 +2791,26 @@ class Subtensor(SubtensorMixin):
             amount (Union[Balance, float]): The amount to swap.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            safe_staking (bool): If true, enables price safety checks to protect against fluctuating prices. The swap
+                will only execute if the price ratio between subnets doesn't exceed the rate threshold.
+                Default is False.
+            allow_partial_stake (bool): If true and safe_staking is enabled, allows partial stake swaps when
+                the full amount would exceed the price threshold. If false, the entire swap fails if it would
+                exceed the threshold. Default is False.
+            rate_threshold (float): The maximum allowed increase in the price ratio between subnets
+                (origin_price/destination_price). For example, 0.005 = 0.5% maximum increase. Only used
+                when safe_staking is True. Default is 0.005.
+
 
         Returns:
             success (bool): True if the extrinsic was successful.
+
+        The price ratio for swap_stake in safe mode is calculated as: origin_subnet_price / destination_subnet_price
+        When safe_staking is enabled, the swap will only execute if:
+            - With allow_partial_stake=False: The entire swap amount can be executed without the price ratio
+            increasing more than rate_threshold
+            - With allow_partial_stake=True: A partial amount will be swapped up to the point where the
+            price ratio would increase by rate_threshold
         """
         amount = check_and_convert_to_balance(amount)
         return swap_stake_extrinsic(
@@ -2787,6 +2822,9 @@ class Subtensor(SubtensorMixin):
             amount=amount,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            safe_staking=safe_staking,
+            allow_partial_stake=allow_partial_stake,
+            rate_threshold=rate_threshold,
         )
 
     def transfer(
@@ -2875,6 +2913,9 @@ class Subtensor(SubtensorMixin):
         amount: Optional[Balance] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
+        safe_staking: bool = False,
+        allow_partial_stake: bool = False,
+        rate_threshold: float = 0.005,
     ) -> bool:
         """
         Removes a specified amount of stake from a single hotkey account. This function is critical for adjusting
@@ -2888,12 +2929,20 @@ class Subtensor(SubtensorMixin):
             amount (Balance): The amount of TAO to unstake. If not specified, unstakes all.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            safe_staking (bool): If true, enables price safety checks to protect against fluctuating prices. The unstake
+                will only execute if the price change doesn't exceed the rate threshold. Default is False.
+            allow_partial_stake (bool): If true and safe_staking is enabled, allows partial unstaking when
+                the full amount would exceed the price threshold. If false, the entire unstake fails if it would
+                exceed the threshold. Default is False.
+            rate_threshold (float): The maximum allowed price change ratio when unstaking. For example,
+                0.005 = 0.5% maximum price decrease. Only used when safe_staking is True. Default is 0.005.
 
         Returns:
             bool: ``True`` if the unstaking process is successful, False otherwise.
 
         This function supports flexible stake management, allowing neurons to adjust their network participation and
-            potential reward accruals.
+            potential reward accruals. When safe_staking is enabled, it provides protection against price fluctuations
+            during the time unstake is executed and the time it is actually processed by the chain.
         """
         amount = check_and_convert_to_balance(amount)
         return unstake_extrinsic(
@@ -2904,6 +2953,9 @@ class Subtensor(SubtensorMixin):
             amount=amount,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            safe_staking=safe_staking,
+            allow_partial_stake=allow_partial_stake,
+            rate_threshold=rate_threshold,
         )
 
     def unstake_multiple(
