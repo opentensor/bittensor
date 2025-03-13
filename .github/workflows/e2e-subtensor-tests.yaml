@@ -36,6 +36,9 @@ jobs:
           ARTIFACTS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             https://api.github.com/opentensor/subtensor/actions/actions/artifacts)
           echo "$ARTIFACTS" > artifacts.json
+          
+          echo "Raw ARTIFACTS response:"
+          echo "$ARTIFACTS"
 
       - name: Parse Latest Artifact ID
         id: parse_artifact
