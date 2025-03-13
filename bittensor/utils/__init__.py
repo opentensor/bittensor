@@ -330,13 +330,25 @@ def validate_chain_endpoint(endpoint_url: str) -> tuple[bool, str]:
     return True, ""
 
 
-def unlock_key(wallet: "Wallet", unlock_type="coldkey") -> "UnlockStatus":
+def unlock_key(
+    wallet: "Wallet",
+    unlock_type="coldkey",
+    raise_error=False,
+) -> "UnlockStatus":
     """
     Attempts to decrypt a wallet's coldkey or hotkey
+
     Args:
         wallet: a Wallet object
         unlock_type: the key type, 'coldkey' or 'hotkey'
-    Returns: UnlockStatus for success status of unlock, with error message if unsuccessful
+        raise_error: if False, will return (False, error msg), if True will raise the otherwise-caught exception.
+
+    Returns:
+        UnlockStatus for success status of unlock, with error message if unsuccessful
+
+    Raises:
+        bittensor_wallet.errors.PasswordError: incorrect password
+        bittensor_wallet.errors.KeyFileError: keyfile is corrupt, non-writable, or non-readable, or non-existent
     """
     if unlock_type == "coldkey":
         unlocker = "unlock_coldkey"
@@ -350,9 +362,15 @@ def unlock_key(wallet: "Wallet", unlock_type="coldkey") -> "UnlockStatus":
         getattr(wallet, unlocker)()
         return UnlockStatus(True, "")
     except PasswordError:
+        if raise_error:
+            raise
+
         err_msg = f"The password used to decrypt your {unlock_type.capitalize()} keyfile is invalid."
         return UnlockStatus(False, err_msg)
     except KeyFileError:
+        if raise_error:
+            raise
+
         err_msg = f"{unlock_type.capitalize()} keyfile is corrupt, non-writable, or non-readable, or non-existent."
         return UnlockStatus(False, err_msg)
 
