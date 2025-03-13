@@ -90,7 +90,7 @@ jobs:
 
       - name: Setup subtensor repo
         working-directory: ${{ github.workspace }}/subtensor
-        run: git checkout devnet-ready
+        run: git checkout testnet
 
       - name: Install uv
         uses: astral-sh/setup-uv@v4
