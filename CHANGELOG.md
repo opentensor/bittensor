@@ -1,6 +1,6 @@
 # Changelog
 
-## 9.0.5 /2025-03-12
+## 9.1.0 /2025-03-12
 
 ## What's Changed
 * Refactor duplicated unittests code by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2724
@@ -18,7 +18,7 @@
 * Feat: set_delegate_take by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2731
 * Renames rate_threshold -> rate_tolerance by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2745
 
-**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.0.4...v9.0.5
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.0.4...v9.1.0
 
 ## 9.0.4 /2025-03-06
 
