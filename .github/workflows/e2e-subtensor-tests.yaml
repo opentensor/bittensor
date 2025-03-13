@@ -82,12 +82,12 @@ jobs:
         os:
           - ubuntu-latest
         test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
-    env:
-      RELEASE_NAME: development
-      RUSTV: ${{ matrix.rust-branch }}
-      RUST_BACKTRACE: full
-      RUST_BIN_DIR: target/${{ matrix.rust-target }}
-      TARGET: ${{ matrix.rust-target }}
+#    env:
+#      RELEASE_NAME: development
+#      RUSTV: ${{ matrix.rust-branch }}
+#      RUST_BACKTRACE: full
+#      RUST_BIN_DIR: target/${{ matrix.rust-target }}
+#      TARGET: ${{ matrix.rust-target }}
     steps:
       - name: Check-out repository under $GITHUB_WORKSPACE
         uses: actions/checkout@v4
