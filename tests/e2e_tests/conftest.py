@@ -66,8 +66,12 @@ def local_chain(request):
         reader_thread = threading.Thread(target=read_output, daemon=True)
         reader_thread.start()
 
+    env = os.environ.copy()
+    env["BUILD_BINARY"] = "0"
+
     with subprocess.Popen(
         cmds,
+        env=env,
         start_new_session=True,
         stderr=subprocess.STDOUT,
         stdout=subprocess.PIPE,
