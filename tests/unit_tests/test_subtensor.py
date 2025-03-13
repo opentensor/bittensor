@@ -2833,7 +2833,7 @@ def test_add_stake_success(mocker, fake_wallet, subtensor):
         wait_for_finalization=False,
         safe_staking=False,
         allow_partial_stake=False,
-        rate_threshold=0.005,
+        rate_tolerance=0.005,
     )
 
     # Assertions
@@ -2847,7 +2847,7 @@ def test_add_stake_success(mocker, fake_wallet, subtensor):
         wait_for_finalization=False,
         safe_staking=False,
         allow_partial_stake=False,
-        rate_threshold=0.005,
+        rate_tolerance=0.005,
     )
     assert result == mock_add_stake_extrinsic.return_value
 
@@ -2857,7 +2857,7 @@ def test_add_stake_with_safe_staking(mocker, fake_wallet, subtensor):
     # Prep
     fake_hotkey_ss58 = "fake_hotkey"
     fake_amount = 10.0
-    fake_rate_threshold = 0.01  # 1% threshold
+    fake_rate_tolerance = 0.01  # 1% threshold
 
     mock_add_stake_extrinsic = mocker.patch.object(
         subtensor_module, "add_stake_extrinsic"
@@ -2872,7 +2872,7 @@ def test_add_stake_with_safe_staking(mocker, fake_wallet, subtensor):
         wait_for_finalization=False,
         safe_staking=True,
         allow_partial_stake=False,
-        rate_threshold=fake_rate_threshold,
+        rate_tolerance=fake_rate_tolerance,
     )
 
     # Assertions
@@ -2886,7 +2886,7 @@ def test_add_stake_with_safe_staking(mocker, fake_wallet, subtensor):
         wait_for_finalization=False,
         safe_staking=True,
         allow_partial_stake=False,
-        rate_threshold=fake_rate_threshold,
+        rate_tolerance=fake_rate_tolerance,
     )
     assert result == mock_add_stake_extrinsic.return_value
 
@@ -2941,7 +2941,7 @@ def test_unstake_success(mocker, subtensor, fake_wallet):
         wait_for_finalization=False,
         safe_staking=False,
         allow_partial_stake=False,
-        rate_threshold=0.005,
+        rate_tolerance=0.005,
     )
 
     # Assertions
@@ -2955,7 +2955,7 @@ def test_unstake_success(mocker, subtensor, fake_wallet):
         wait_for_finalization=False,
         safe_staking=False,
         allow_partial_stake=False,
-        rate_threshold=0.005,
+        rate_tolerance=0.005,
     )
     assert result == mock_unstake_extrinsic.return_value
 
@@ -2964,7 +2964,7 @@ def test_unstake_with_safe_staking(mocker, subtensor, fake_wallet):
     """Test unstake with safe staking parameters enabled."""
     fake_hotkey_ss58 = "hotkey_1"
     fake_amount = 10.0
-    fake_rate_threshold = 0.01  # 1% threshold
+    fake_rate_tolerance = 0.01  # 1% threshold
 
     mock_unstake_extrinsic = mocker.patch.object(subtensor_module, "unstake_extrinsic")
 
@@ -2977,7 +2977,7 @@ def test_unstake_with_safe_staking(mocker, subtensor, fake_wallet):
         wait_for_finalization=False,
         safe_staking=True,
         allow_partial_stake=True,
-        rate_threshold=fake_rate_threshold,
+        rate_tolerance=fake_rate_tolerance,
     )
 
     # Assertions
@@ -2991,7 +2991,7 @@ def test_unstake_with_safe_staking(mocker, subtensor, fake_wallet):
         wait_for_finalization=False,
         safe_staking=True,
         allow_partial_stake=True,
-        rate_threshold=fake_rate_threshold,
+        rate_tolerance=fake_rate_tolerance,
     )
     assert result == mock_unstake_extrinsic.return_value
 
@@ -3019,7 +3019,7 @@ def test_swap_stake_success(mocker, subtensor, fake_wallet):
         wait_for_finalization=False,
         safe_staking=False,
         allow_partial_stake=False,
-        rate_threshold=0.005,
+        rate_tolerance=0.005,
     )
 
     # Assertions
@@ -3034,7 +3034,7 @@ def test_swap_stake_success(mocker, subtensor, fake_wallet):
         wait_for_finalization=False,
         safe_staking=False,
         allow_partial_stake=False,
-        rate_threshold=0.005,
+        rate_tolerance=0.005,
     )
     assert result == mock_swap_stake_extrinsic.return_value
 
@@ -3046,7 +3046,7 @@ def test_swap_stake_with_safe_staking(mocker, subtensor, fake_wallet):
     fake_origin_netuid = 1
     fake_destination_netuid = 2
     fake_amount = 10.0
-    fake_rate_threshold = 0.01  # 1% threshold
+    fake_rate_tolerance = 0.01  # 1% threshold
 
     mock_swap_stake_extrinsic = mocker.patch.object(
         subtensor_module, "swap_stake_extrinsic"
@@ -3063,7 +3063,7 @@ def test_swap_stake_with_safe_staking(mocker, subtensor, fake_wallet):
         wait_for_finalization=False,
         safe_staking=True,
         allow_partial_stake=True,
-        rate_threshold=fake_rate_threshold,
+        rate_tolerance=fake_rate_tolerance,
     )
 
     # Assertions
@@ -3078,7 +3078,7 @@ def test_swap_stake_with_safe_staking(mocker, subtensor, fake_wallet):
         wait_for_finalization=False,
         safe_staking=True,
         allow_partial_stake=True,
-        rate_threshold=fake_rate_threshold,
+        rate_tolerance=fake_rate_tolerance,
     )
     assert result == mock_swap_stake_extrinsic.return_value
 
