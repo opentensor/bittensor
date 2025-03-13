@@ -77,8 +77,8 @@ jobs:
       matrix:
         rust-branch:
           - stable
-        rust-target:
-          - x86_64-unknown-linux-gnu
+#        rust-target:
+#          - x86_64-unknown-linux-gnu
         os:
           - ubuntu-latest
         test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
@@ -116,7 +116,7 @@ jobs:
         working-directory: ${{ github.workspace }}/subtensor
         run: git checkout devnet-ready-with-nodes
 
-      - name: Print file
+      - name: Print files and OS info
         working-directory: ${{ github.workspace }}/subtensor
         run: |
           sudo apt install file
@@ -124,6 +124,21 @@ jobs:
           file ${{ github.workspace }}/subtensor/nodes/fast-blocks/release/node-subtensor
           echo "File non-fast-blocks"
           file ${{ github.workspace }}/subtensor/nodes/non-fast-blocks/release/node-subtensor
+          
+          echo "uname -m && uname -r"
+          uname -m && uname -r
+          
+          echo "ldd"
+          ldd ${{ github.workspace }}/subtensor/nodes/non-fast-blocks/release/node-subtensor
+          
+          echo "/lib/ld-linux-aarch64.so.1 exist"
+          ls /lib/ld-linux-aarch64.so.1
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: install dependencies
+        run: uv sync --all-extras --dev
 
       - name: Run tests
         run: |
