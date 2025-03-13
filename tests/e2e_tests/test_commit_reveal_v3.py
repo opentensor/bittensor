@@ -1,15 +1,12 @@
 import re
-import time
 
 import numpy as np
 import pytest
 from bittensor.utils.btlogging import logging
-from bittensor.utils.balance import Balance
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_admin_utils,
     sudo_set_hyperparameter_bool,
-    sudo_set_hyperparameter_values,
     wait_interval,
     next_tempo,
 )
@@ -57,13 +54,15 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     logging.console.info("Commit reveal enabled")
 
     # Change the weights rate limit on the subnet
-    assert sudo_set_hyperparameter_values(
+    status, error = sudo_set_admin_utils(
         local_chain,
         alice_wallet,
         call_function="sudo_set_weights_set_rate_limit",
         call_params={"netuid": netuid, "weights_set_rate_limit": "0"},
-        return_error_message=True,
     )
+
+    assert error is None
+    assert status is True
 
     # Verify weights rate limit was changed
     assert (
@@ -81,7 +80,6 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
             alice_wallet,
             call_function="sudo_set_tempo",
             call_params={"netuid": netuid, "tempo": tempo_set},
-            return_error_message=True,
         )[0]
         is True
     )

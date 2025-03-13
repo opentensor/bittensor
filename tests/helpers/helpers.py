@@ -2,7 +2,7 @@ import asyncio
 import json
 import time
 from collections import deque
-from typing import Union
+from typing import Optional, Union
 
 from bittensor_wallet.mock.wallet_mock import MockWallet as _MockWallet
 from bittensor_wallet.mock.wallet_mock import get_mock_coldkey
@@ -42,6 +42,61 @@ class CLOSE_IN_VALUE:
         return (
             (self.value - self.tolerance) <= __o <= (self.value + self.tolerance)
         ) or ((__o - self.tolerance) <= self.value <= (__o + self.tolerance))
+
+
+class ApproxBalance(CLOSE_IN_VALUE, Balance):
+    def __init__(
+        self,
+        balance: Union[float, int],
+        tolerance: Union[float, int] = 0.1,
+    ):
+        super().__init__(
+            Balance(balance),
+            Balance(tolerance),
+        )
+
+    @property
+    def rao(self):
+        return self.value.rao
+
+
+def assert_submit_signed_extrinsic(
+    substrate,
+    keypair,
+    call_module,
+    call_function,
+    call_params: Optional[dict] = None,
+    era: Optional[dict] = None,
+    nonce: Optional[int] = None,
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = True,
+):
+    substrate.compose_call.assert_called_with(
+        call_module,
+        call_function,
+        call_params,
+    )
+
+    extrinsic = {
+        "call": substrate.compose_call.return_value,
+        "keypair": keypair,
+    }
+
+    if era:
+        extrinsic["era"] = era
+
+    if nonce:
+        extrinsic["nonce"] = nonce
+
+    substrate.create_signed_extrinsic.assert_called_with(
+        **extrinsic,
+    )
+
+    substrate.submit_extrinsic.assert_called_with(
+        substrate.create_signed_extrinsic.return_value,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
 
 
 def get_mock_neuron(**kwargs) -> NeuronInfo:

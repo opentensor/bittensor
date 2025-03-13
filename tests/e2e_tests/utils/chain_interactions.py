@@ -150,8 +150,7 @@ def sudo_set_admin_utils(
     wallet: "Wallet",
     call_function: str,
     call_params: dict,
-    return_error_message: bool = False,
-) -> tuple[bool, str]:
+) -> tuple[bool, Optional[dict]]:
     """
     Wraps the call in sudo to set hyperparameter values using AdminUtils.
 
@@ -160,10 +159,9 @@ def sudo_set_admin_utils(
         wallet (Wallet): Wallet object with the keypair for signing.
         call_function (str): The AdminUtils function to call.
         call_params (dict): Parameters for the AdminUtils function.
-        return_error_message (bool): If True, returns the error message along with the success status.
 
     Returns:
-        Union[bool, tuple[bool, Optional[str]]]: Success status or (success status, error message).
+        tuple[bool, Optional[dict]]: (success status, error details).
     """
     inner_call = substrate.compose_call(
         call_module="AdminUtils",
@@ -185,10 +183,7 @@ def sudo_set_admin_utils(
         wait_for_finalization=True,
     )
 
-    if return_error_message:
-        return response.is_success, response.error_message
-
-    return response.is_success, ""
+    return response.is_success, response.error_message
 
 
 async def root_set_subtensor_hyperparameter_values(
@@ -229,38 +224,6 @@ def set_children(subtensor, wallet, netuid, children):
                 "children": children,
                 "hotkey": wallet.hotkey.ss58_address,
                 "netuid": netuid,
-            },
-        ),
-        wallet,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
-
-
-def increase_take(subtensor, wallet, take):
-    return subtensor.sign_and_send_extrinsic(
-        subtensor.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="increase_take",
-            call_params={
-                "hotkey": wallet.hotkey.ss58_address,
-                "take": int(take * 0xFFFF),  # u16 representation of the take
-            },
-        ),
-        wallet,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
-
-
-def decrease_take(subtensor, wallet, take):
-    return subtensor.sign_and_send_extrinsic(
-        subtensor.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="decrease_take",
-            call_params={
-                "hotkey": wallet.hotkey.ss58_address,
-                "take": int(take * 0xFFFF),  # u16 representation of the take
             },
         ),
         wallet,

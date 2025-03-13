@@ -9,19 +9,26 @@ from bittensor import u64_normalized_float
 from bittensor.core import async_subtensor
 from bittensor.core.async_subtensor import AsyncSubtensor
 from bittensor.core.chain_data.chain_identity import ChainIdentity
+from bittensor.core.chain_data.neuron_info import NeuronInfo
 from bittensor.core.chain_data.stake_info import StakeInfo
 from bittensor.core.chain_data import proposal_vote_data
 from bittensor.utils.balance import Balance
+from tests.helpers.helpers import assert_submit_signed_extrinsic
 
 
-@pytest.fixture(autouse=True)
-def subtensor(mocker):
-    fake_async_substrate = mocker.AsyncMock(
-        autospec=async_subtensor.AsyncSubstrateInterface
+@pytest.fixture
+def mock_substrate(mocker):
+    mocked = mocker.patch(
+        "bittensor.core.async_subtensor.AsyncSubstrateInterface",
+        autospec=True,
     )
-    mocker.patch.object(
-        async_subtensor, "AsyncSubstrateInterface", return_value=fake_async_substrate
-    )
+    mocked.return_value.get_block_hash = mocker.AsyncMock()
+
+    return mocked.return_value
+
+
+@pytest.fixture
+def subtensor(mock_substrate):
     return async_subtensor.AsyncSubtensor()
 
 
@@ -62,11 +69,10 @@ def test_decode_hex_identity_dict_with_non_tuple_value():
 
 
 @pytest.mark.asyncio
-async def test_init_if_unknown_network_is_valid(mocker):
+async def test_init_if_unknown_network_is_valid(mock_substrate):
     """Tests __init__ if passed network unknown and is valid."""
     # Preps
     fake_valid_endpoint = "wss://blabla.net"
-    mocker.patch.object(async_subtensor, "AsyncSubstrateInterface")
 
     # Call
     subtensor = AsyncSubtensor(fake_valid_endpoint)
@@ -77,11 +83,10 @@ async def test_init_if_unknown_network_is_valid(mocker):
 
 
 @pytest.mark.asyncio
-async def test_init_if_unknown_network_is_known_endpoint(mocker):
+async def test_init_if_unknown_network_is_known_endpoint(mock_substrate):
     """Tests __init__ if passed network unknown and is valid."""
     # Preps
     fake_valid_endpoint = "ws://127.0.0.1:9944"
-    mocker.patch.object(async_subtensor, "AsyncSubstrateInterface")
 
     # Call
     subtensor = AsyncSubtensor(fake_valid_endpoint)
@@ -92,10 +97,8 @@ async def test_init_if_unknown_network_is_known_endpoint(mocker):
 
 
 @pytest.mark.asyncio
-async def test_init_if_unknown_network_is_not_valid(mocker):
+async def test_init_if_unknown_network_is_not_valid(mock_substrate):
     """Tests __init__ if passed network unknown and isn't valid."""
-    # Preps
-    mocker.patch.object(async_subtensor, "AsyncSubstrateInterface")
 
     # Call
     subtensor = AsyncSubtensor("blabla-net")
@@ -115,15 +118,8 @@ def test__str__return(subtensor):
 
 
 @pytest.mark.asyncio
-async def test_async_subtensor_magic_methods(mocker):
+async def test_async_subtensor_magic_methods(mock_substrate):
     """Tests async magic methods of AsyncSubtensor class."""
-    # Preps
-    fake_async_substrate = mocker.AsyncMock(
-        autospec=async_subtensor.AsyncSubstrateInterface
-    )
-    mocker.patch.object(
-        async_subtensor, "AsyncSubstrateInterface", return_value=fake_async_substrate
-    )
 
     # Call
     subtensor = async_subtensor.AsyncSubtensor(network="local")
@@ -131,8 +127,8 @@ async def test_async_subtensor_magic_methods(mocker):
         pass
 
     # Asserts
-    fake_async_substrate.initialize.assert_called_once()
-    fake_async_substrate.close.assert_called_once()
+    mock_substrate.initialize.assert_called_once()
+    mock_substrate.close.assert_called_once()
 
 
 @pytest.mark.parametrize(
@@ -161,6 +157,90 @@ async def test_async_subtensor_aenter_connection_refused_error(
 
     # Asserts
     fake_async_substrate.initialize.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_burned_register(mock_substrate, subtensor, fake_wallet, mocker):
+    mock_substrate.submit_extrinsic.return_value = mocker.AsyncMock(
+        is_success=mocker.AsyncMock(return_value=True)(),
+    )
+    mocker.patch.object(
+        subtensor,
+        "get_neuron_for_pubkey_and_subnet",
+        return_value=NeuronInfo.get_null_neuron(),
+    )
+    mocker.patch.object(
+        subtensor,
+        "get_balance",
+        return_value=Balance(1),
+    )
+
+    success = await subtensor.burned_register(
+        fake_wallet,
+        netuid=1,
+    )
+
+    assert success is True
+
+    subtensor.get_neuron_for_pubkey_and_subnet.assert_called_once_with(
+        fake_wallet.hotkey.ss58_address,
+        netuid=1,
+        block_hash=mock_substrate.get_chain_head.return_value,
+    )
+
+    assert_submit_signed_extrinsic(
+        mock_substrate,
+        fake_wallet.coldkey,
+        call_module="SubtensorModule",
+        call_function="burned_register",
+        call_params={
+            "netuid": 1,
+            "hotkey": fake_wallet.hotkey.ss58_address,
+        },
+        wait_for_finalization=True,
+        wait_for_inclusion=False,
+    )
+
+
+@pytest.mark.asyncio
+async def test_burned_register_on_root(mock_substrate, subtensor, fake_wallet, mocker):
+    mock_substrate.submit_extrinsic.return_value = mocker.AsyncMock(
+        is_success=mocker.AsyncMock(return_value=True)(),
+    )
+    mocker.patch.object(
+        subtensor,
+        "get_balance",
+        return_value=Balance(1),
+    )
+    mocker.patch.object(
+        subtensor,
+        "is_hotkey_registered",
+        return_value=False,
+    )
+
+    success = await subtensor.burned_register(
+        fake_wallet,
+        netuid=0,
+    )
+
+    assert success is True
+
+    subtensor.is_hotkey_registered.assert_called_once_with(
+        netuid=0,
+        hotkey_ss58=fake_wallet.hotkey.ss58_address,
+    )
+
+    assert_submit_signed_extrinsic(
+        mock_substrate,
+        fake_wallet.coldkey,
+        call_module="SubtensorModule",
+        call_function="root_register",
+        call_params={
+            "hotkey": fake_wallet.hotkey.ss58_address,
+        },
+        wait_for_finalization=True,
+        wait_for_inclusion=False,
+    )
 
 
 @pytest.mark.asyncio
@@ -601,10 +681,10 @@ async def test_get_balance(subtensor, mocker):
 
 @pytest.mark.parametrize("balance", [100, 100.1])
 @pytest.mark.asyncio
-async def test_get_transfer_fee(subtensor, mocker, balance):
+async def test_get_transfer_fee(subtensor, fake_wallet, mocker, balance):
     """Tests get_transfer_fee method."""
     # Preps
-    fake_wallet = mocker.Mock(coldkeypub="coldkeypub", autospec=Wallet)
+    fake_wallet.coldkeypub = "coldkeypub"
     fake_dest = "fake_dest"
     fake_value = Balance(balance)
 
@@ -832,9 +912,9 @@ async def test_filter_netuids_by_registered_hotkeys(
 ):
     """Tests filter_netuids_by_registered_hotkeys method."""
     # Preps
-    fake_wallet_1 = mocker.Mock(autospec=Wallet)
+    fake_wallet_1 = mocker.Mock(spec_set=Wallet)
     fake_wallet_1.hotkey.ss58_address = "ss58_address_1"
-    fake_wallet_2 = mocker.Mock(autospec=Wallet)
+    fake_wallet_2 = mocker.Mock(spec_set=Wallet)
     fake_wallet_2.hotkey.ss58_address = "ss58_address_2"
 
     fake_all_netuids = all_netuids
@@ -1557,7 +1637,6 @@ async def test_get_hotkey_owner_successful(subtensor, mocker):
     # Preps
     fake_hotkey_ss58 = "valid_hotkey"
     fake_block_hash = "block_hash"
-    fake_owner_account_id = "owner_account_id"
 
     mocked_query = mocker.AsyncMock(return_value="decoded_owner_account_id")
     subtensor.substrate.query = mocked_query
@@ -1611,11 +1690,12 @@ async def test_get_hotkey_owner_non_existent_hotkey(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_sign_and_send_extrinsic_success_finalization(subtensor, mocker):
+async def test_sign_and_send_extrinsic_success_finalization(
+    subtensor, fake_wallet, mocker
+):
     """Tests sign_and_send_extrinsic when the extrinsic is successfully finalized."""
     # Preps
     fake_call = mocker.Mock()
-    fake_wallet = mocker.Mock()
     fake_extrinsic = mocker.Mock()
     fake_response = mocker.Mock()
 
@@ -1653,11 +1733,12 @@ async def test_sign_and_send_extrinsic_success_finalization(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_sign_and_send_extrinsic_error_finalization(subtensor, mocker):
+async def test_sign_and_send_extrinsic_error_finalization(
+    subtensor, fake_wallet, mocker
+):
     """Tests sign_and_send_extrinsic when the extrinsic is error finalized."""
     # Preps
     fake_call = mocker.Mock()
-    fake_wallet = mocker.Mock()
     fake_extrinsic = mocker.Mock()
     fake_response = mocker.Mock()
 
@@ -1704,12 +1785,11 @@ async def test_sign_and_send_extrinsic_error_finalization(subtensor, mocker):
 
 @pytest.mark.asyncio
 async def test_sign_and_send_extrinsic_success_without_inclusion_finalization(
-    subtensor, mocker
+    subtensor, fake_wallet, mocker
 ):
     """Tests sign_and_send_extrinsic when extrinsic is submitted without waiting for inclusion or finalization."""
     # Preps
     fake_call = mocker.Mock()
-    fake_wallet = mocker.Mock()
     fake_extrinsic = mocker.Mock()
 
     mocked_create_signed_extrinsic = mocker.AsyncMock(return_value=fake_extrinsic)
@@ -1741,11 +1821,12 @@ async def test_sign_and_send_extrinsic_success_without_inclusion_finalization(
 
 
 @pytest.mark.asyncio
-async def test_sign_and_send_extrinsic_substrate_request_exception(subtensor, mocker):
+async def test_sign_and_send_extrinsic_substrate_request_exception(
+    subtensor, fake_wallet, mocker
+):
     """Tests sign_and_send_extrinsic when SubstrateRequestException is raised."""
     # Preps
     fake_call = mocker.Mock()
-    fake_wallet = mocker.Mock()
     fake_extrinsic = mocker.Mock()
     fake_exception = async_subtensor.SubstrateRequestException("Test Exception")
 
@@ -2343,10 +2424,9 @@ async def test_get_subnet_reveal_period_epochs(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_transfer_success(subtensor, mocker):
+async def test_transfer_success(subtensor, fake_wallet, mocker):
     """Tests transfer when the transfer is successful."""
     # Preps
-    fake_wallet = mocker.Mock()
     fake_destination = "destination_address"
     fake_amount = Balance.from_tao(100.0)
     fake_transfer_all = False
@@ -2379,10 +2459,9 @@ async def test_transfer_success(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_register_success(subtensor, mocker):
+async def test_register_success(subtensor, fake_wallet, mocker):
     """Tests register when there is enough balance and registration succeeds."""
     # Preps
-    fake_wallet = mocker.Mock()
     fake_netuid = 1
 
     mocked_register_extrinsic = mocker.AsyncMock()
@@ -2413,10 +2492,80 @@ async def test_register_success(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_set_weights_success(subtensor, mocker):
+async def test_set_delegate_take_equal(subtensor, fake_wallet, mocker):
+    mocker.patch.object(subtensor, "get_delegate_take", return_value=0.18)
+
+    await subtensor.set_delegate_take(
+        fake_wallet,
+        fake_wallet.hotkey.ss58_address,
+        0.18,
+    )
+
+    subtensor.substrate.submit_extrinsic.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_set_delegate_take_increase(
+    mock_substrate, subtensor, fake_wallet, mocker
+):
+    mock_substrate.submit_extrinsic.return_value = mocker.Mock(
+        is_success=mocker.AsyncMock(return_value=True)(),
+    )
+    mocker.patch.object(subtensor, "get_delegate_take", return_value=0.18)
+
+    await subtensor.set_delegate_take(
+        fake_wallet,
+        fake_wallet.hotkey.ss58_address,
+        0.2,
+    )
+
+    assert_submit_signed_extrinsic(
+        mock_substrate,
+        fake_wallet.coldkey,
+        call_module="SubtensorModule",
+        call_function="increase_take",
+        call_params={
+            "hotkey": fake_wallet.hotkey.ss58_address,
+            "take": 13107,
+        },
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+
+@pytest.mark.asyncio
+async def test_set_delegate_take_decrease(
+    mock_substrate, subtensor, fake_wallet, mocker
+):
+    mock_substrate.submit_extrinsic.return_value = mocker.Mock(
+        is_success=mocker.AsyncMock(return_value=True)(),
+    )
+    mocker.patch.object(subtensor, "get_delegate_take", return_value=0.18)
+
+    await subtensor.set_delegate_take(
+        fake_wallet,
+        fake_wallet.hotkey.ss58_address,
+        0.1,
+    )
+
+    assert_submit_signed_extrinsic(
+        mock_substrate,
+        fake_wallet.coldkey,
+        call_module="SubtensorModule",
+        call_function="decrease_take",
+        call_params={
+            "hotkey": fake_wallet.hotkey.ss58_address,
+            "take": 6553,
+        },
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+
+@pytest.mark.asyncio
+async def test_set_weights_success(subtensor, fake_wallet, mocker):
     """Tests set_weights with successful weight setting on the first try."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_uids = [1, 2, 3]
     fake_weights = [0.3, 0.5, 0.2]
@@ -2471,10 +2620,9 @@ async def test_set_weights_success(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_set_weights_with_exception(subtensor, mocker):
+async def test_set_weights_with_exception(subtensor, fake_wallet, mocker):
     """Tests set_weights when set_weights_extrinsic raises an exception."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_uids = [1, 2, 3]
     fake_weights = [0.3, 0.5, 0.2]
@@ -2516,10 +2664,9 @@ async def test_set_weights_with_exception(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_root_set_weights_success(subtensor, mocker):
+async def test_root_set_weights_success(subtensor, fake_wallet, mocker):
     """Tests root_set_weights when the setting of weights is successful."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuids = [1, 2, 3]
     fake_weights = [0.3, 0.5, 0.2]
 
@@ -2558,10 +2705,9 @@ async def test_root_set_weights_success(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_commit_weights_success(subtensor, mocker):
+async def test_commit_weights_success(subtensor, fake_wallet, mocker):
     """Tests commit_weights when the weights are committed successfully."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_salt = [12345, 67890]
     fake_uids = [1, 2, 3]
@@ -2610,10 +2756,9 @@ async def test_commit_weights_success(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_commit_weights_with_exception(subtensor, mocker):
+async def test_commit_weights_with_exception(subtensor, fake_wallet, mocker):
     """Tests commit_weights when an exception is raised during weight commitment."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_salt = [12345, 67890]
     fake_uids = [1, 2, 3]
@@ -2678,10 +2823,9 @@ async def test_get_all_subnets_info_success(mocker, subtensor):
 
 
 @pytest.mark.asyncio
-async def test_set_subnet_identity(mocker, subtensor):
+async def test_set_subnet_identity(mocker, subtensor, fake_wallet):
     """Verify that subtensor method `set_subnet_identity` calls proper function with proper arguments."""
     # Preps
-    fake_wallet = mocker.Mock()
     fake_netuid = 123
     fake_subnet_identity = mocker.MagicMock()
 

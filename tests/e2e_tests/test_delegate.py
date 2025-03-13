@@ -1,15 +1,13 @@
 import pytest
 
+import bittensor
 from bittensor.core.chain_data.chain_identity import ChainIdentity
-from bittensor.core.chain_data.delegate_info import DelegateInfo, DelegatedInfo
+from bittensor.core.chain_data.delegate_info import DelegatedInfo, DelegateInfo
 from bittensor.utils.balance import Balance
 from tests.e2e_tests.utils.chain_interactions import (
-    decrease_take,
-    increase_take,
     set_identity,
     sudo_set_admin_utils,
 )
-
 
 DEFAULT_DELEGATE_TAKE = 0.179995422293431
 
@@ -80,7 +78,7 @@ def test_identity(subtensor, alice_wallet, bob_wallet):
     )
 
 
-def test_change_take(local_chain, subtensor, alice_wallet):
+def test_change_take(local_chain, subtensor, alice_wallet, bob_wallet):
     """
     Tests:
     - Get default Delegate's take once registered in root subnet
@@ -88,14 +86,13 @@ def test_change_take(local_chain, subtensor, alice_wallet):
     - Try corner cases (increase/decrease beyond allowed min/max)
     """
 
-    success, error = decrease_take(
-        subtensor,
-        alice_wallet,
-        0.1,
-    )
-
-    assert success is False
-    assert "`HotKeyAccountNotExists(Module)`" in error
+    with pytest.raises(bittensor.HotKeyAccountNotExists):
+        subtensor.set_delegate_take(
+            alice_wallet,
+            alice_wallet.hotkey.ss58_address,
+            0.1,
+            raise_error=True,
+        )
 
     subtensor.root_register(
         alice_wallet,
@@ -103,51 +100,44 @@ def test_change_take(local_chain, subtensor, alice_wallet):
         wait_for_finalization=True,
     )
 
-    assert (
-        subtensor.get_delegate_take(alice_wallet.hotkey.ss58_address)
-        == DEFAULT_DELEGATE_TAKE
-    )
+    take = subtensor.get_delegate_take(alice_wallet.hotkey.ss58_address)
 
-    success, error = increase_take(
-        subtensor,
+    assert take == DEFAULT_DELEGATE_TAKE
+
+    with pytest.raises(bittensor.NonAssociatedColdKey):
+        subtensor.set_delegate_take(
+            bob_wallet,
+            alice_wallet.hotkey.ss58_address,
+            0.1,
+            raise_error=True,
+        )
+
+    with pytest.raises(bittensor.DelegateTakeTooHigh):
+        subtensor.set_delegate_take(
+            alice_wallet,
+            alice_wallet.hotkey.ss58_address,
+            0.5,
+            raise_error=True,
+        )
+
+    subtensor.set_delegate_take(
         alice_wallet,
-        0.5,
-    )
-
-    assert success is False
-    assert "`DelegateTakeTooHigh(Module)`" in error
-
-    # increase_take but try to change from 0.18 to 0.1
-    success, error = increase_take(
-        subtensor,
-        alice_wallet,
+        alice_wallet.hotkey.ss58_address,
         0.1,
+        raise_error=True,
     )
-
-    assert "`DelegateTakeTooLow(Module)`" in error
-    assert success is False
-
-    success, error = decrease_take(
-        subtensor,
-        alice_wallet,
-        0.1,
-    )
-
-    assert success is True
-    assert error == ""
 
     take = subtensor.get_delegate_take(alice_wallet.hotkey.ss58_address)
 
     assert take == 0.09999237048905166
 
-    success, error = increase_take(
-        subtensor,
-        alice_wallet,
-        0.15,
-    )
-
-    assert success is False
-    assert "`DelegateTxRateLimitExceeded(Module)`" in error
+    with pytest.raises(bittensor.DelegateTxRateLimitExceeded):
+        subtensor.set_delegate_take(
+            alice_wallet,
+            alice_wallet.hotkey.ss58_address,
+            0.15,
+            raise_error=True,
+        )
 
     take = subtensor.get_delegate_take(alice_wallet.hotkey.ss58_address)
 
@@ -162,14 +152,12 @@ def test_change_take(local_chain, subtensor, alice_wallet):
         },
     )
 
-    success, error = increase_take(
-        subtensor,
+    subtensor.set_delegate_take(
         alice_wallet,
+        alice_wallet.hotkey.ss58_address,
         0.15,
+        raise_error=True,
     )
-
-    assert success is True
-    assert error == ""
 
     take = subtensor.get_delegate_take(alice_wallet.hotkey.ss58_address)
 
@@ -320,7 +308,6 @@ def test_nominator_min_required_stake(local_chain, subtensor, alice_wallet, bob_
         call_params={
             "min_stake": "100000000000000",
         },
-        return_error_message=True,
     )
 
     minimum_required_stake = subtensor.get_minimum_required_stake()

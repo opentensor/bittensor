@@ -160,6 +160,9 @@ async def swap_stake_extrinsic(
     amount: Balance,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
+    safe_staking: bool = False,
+    allow_partial_stake: bool = False,
+    rate_tolerance: float = 0.005,
 ) -> bool:
     """
     Swaps stake from one subnet to another for a given hotkey in the Bittensor network.
@@ -173,6 +176,9 @@ async def swap_stake_extrinsic(
         amount (Balance): The amount of stake to swap as a `Balance` object.
         wait_for_inclusion (bool): If True, waits for transaction inclusion in a block. Defaults to True.
         wait_for_finalization (bool): If True, waits for transaction finalization. Defaults to False.
+        safe_staking (bool): If true, enables price safety checks to protect against price impact.
+        allow_partial_stake (bool): If true, allows partial stake swaps when the full amount would exceed the price tolerance.
+        rate_tolerance (float): Maximum allowed increase in price ratio (0.005 = 0.5%).
 
     Returns:
         bool: True if the swap was successful, False otherwise.
@@ -205,20 +211,47 @@ async def swap_stake_extrinsic(
         return False
 
     try:
-        logging.info(
-            f"Swapping stake for hotkey [blue]{hotkey_ss58}[/blue]\n"
-            f"Amount: [green]{amount}[/green] from netuid [yellow]{origin_netuid}[/yellow] to netuid "
-            f"[yellow]{destination_netuid}[/yellow]"
-        )
+        call_params = {
+            "hotkey": hotkey_ss58,
+            "origin_netuid": origin_netuid,
+            "destination_netuid": destination_netuid,
+            "alpha_amount": amount.rao,
+        }
+
+        if safe_staking:
+            origin_pool, destination_pool = await asyncio.gather(
+                subtensor.subnet(netuid=origin_netuid),
+                subtensor.subnet(netuid=destination_netuid),
+            )
+            swap_rate_ratio = origin_pool.price.rao / destination_pool.price.rao
+            swap_rate_ratio_with_tolerance = swap_rate_ratio * (1 + rate_tolerance)
+
+            logging.info(
+                f"Swapping stake with safety for hotkey [blue]{hotkey_ss58}[/blue]\n"
+                f"Amount: [green]{amount}[/green] from netuid [green]{origin_netuid}[/green] to netuid "
+                f"[green]{destination_netuid}[/green]\n"
+                f"Current price ratio: [green]{swap_rate_ratio:.4f}[/green], "
+                f"Ratio with tolerance: [green]{swap_rate_ratio_with_tolerance:.4f}[/green]"
+            )
+            call_params.update(
+                {
+                    "limit_price": swap_rate_ratio_with_tolerance,
+                    "allow_partial": allow_partial_stake,
+                }
+            )
+            call_function = "swap_stake_limit"
+        else:
+            logging.info(
+                f"Swapping stake for hotkey [blue]{hotkey_ss58}[/blue]\n"
+                f"Amount: [green]{amount}[/green] from netuid [green]{origin_netuid}[/green] to netuid "
+                f"[green]{destination_netuid}[/green]"
+            )
+            call_function = "swap_stake"
+
         call = await subtensor.substrate.compose_call(
             call_module="SubtensorModule",
-            call_function="swap_stake",
-            call_params={
-                "hotkey": hotkey_ss58,
-                "origin_netuid": origin_netuid,
-                "destination_netuid": destination_netuid,
-                "alpha_amount": amount.rao,
-            },
+            call_function=call_function,
+            call_params=call_params,
         )
 
         success, err_msg = await subtensor.sign_and_send_extrinsic(
@@ -253,7 +286,12 @@ async def swap_stake_extrinsic(
 
             return True
         else:
-            logging.error(f":cross_mark: [red]Failed[/red]: {err_msg}")
+            if safe_staking and "Custom error: 8" in err_msg:
+                logging.error(
+                    ":cross_mark: [red]Failed[/red]: Price ratio exceeded tolerance limit. Either increase price tolerance or enable partial staking."
+                )
+            else:
+                logging.error(f":cross_mark: [red]Failed[/red]: {err_msg}")
             return False
 
     except Exception as e:

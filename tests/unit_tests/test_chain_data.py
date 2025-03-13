@@ -2,8 +2,7 @@ import pytest
 import torch
 
 from async_substrate_interface.utils import json
-from bittensor.core.chain_data import AxonInfo, DelegateInfo
-from bittensor.core.chain_data.utils import ChainDataType
+from bittensor.core.chain_data import AxonInfo
 
 RAOPERTAO = 10**18
 

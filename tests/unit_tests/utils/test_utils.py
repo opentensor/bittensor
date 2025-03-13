@@ -1,5 +1,4 @@
 import pytest
-from bittensor_wallet import Wallet
 
 from bittensor import warnings, __getattr__, version_split, logging, trace, debug, utils
 from bittensor.core.settings import SS58_FORMAT
@@ -185,23 +184,21 @@ def test_is_valid_bittensor_address_or_public_key(mocker, test_input, expected_r
         ("hotkey", "unlock_hotkey"),
     ],
 )
-def test_unlock_key(mocker, unlock_type, wallet_method):
+def test_unlock_key(fake_wallet, unlock_type, wallet_method):
     """Test the unlock key function."""
-    # Preps
-    mock_wallet = mocker.Mock(autospec=Wallet)
 
     # Call
-    result = utils.unlock_key(mock_wallet, unlock_type=unlock_type)
+    result = utils.unlock_key(fake_wallet, unlock_type=unlock_type)
 
     # Asserts
-    getattr(mock_wallet, wallet_method).assert_called_once()
+    getattr(fake_wallet, wallet_method).assert_called_once()
     assert result == utils.UnlockStatus(True, "")
 
 
-def test_unlock_key_raise_value_error(mocker):
+def test_unlock_key_raise_value_error(fake_wallet):
     """Test the unlock key function raises ValueError."""
     with pytest.raises(ValueError):
-        utils.unlock_key(wallet=mocker.Mock(autospec=Wallet), unlock_type="coldkeypub")
+        utils.unlock_key(wallet=fake_wallet, unlock_type="coldkeypub")
 
 
 @pytest.mark.parametrize(
@@ -223,11 +220,10 @@ def test_unlock_key_raise_value_error(mocker):
     ],
     ids=["PasswordError", "KeyFileError"],
 )
-def test_unlock_key_errors(mocker, side_effect, response):
+def test_unlock_key_errors(fake_wallet, side_effect, response):
     """Test the unlock key function handles the errors."""
-    mock_wallet = mocker.Mock(autospec=Wallet)
-    mock_wallet.unlock_coldkey.side_effect = side_effect
-    result = utils.unlock_key(wallet=mock_wallet)
+    fake_wallet.unlock_coldkey.side_effect = side_effect
+    result = utils.unlock_key(wallet=fake_wallet)
 
     assert result == response
 

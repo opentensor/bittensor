@@ -1,5 +1,4 @@
 import pytest
-from mpmath.ctx_mp_python import return_mpc
 
 from bittensor.utils import subnets
 
@@ -15,11 +14,10 @@ class MySubnetsAPI(subnets.SubnetsAPI):
         return responses
 
 
-def test_instance_creation(mocker):
+def test_instance_creation(fake_wallet, mocker):
     """Test the creation of a MySubnetsAPI instance."""
     # Prep
     mocked_dendrite = mocker.patch.object(subnets, "Dendrite")
-    fake_wallet = mocker.MagicMock()
 
     # Call
     instance = MySubnetsAPI(fake_wallet)
@@ -32,7 +30,7 @@ def test_instance_creation(mocker):
 
 
 @pytest.mark.asyncio
-async def test_query_api(mocker):
+async def test_query_api(fake_wallet, mocker):
     """Test querying the MySubnetsAPI instance asynchronously."""
     # Prep
     mocked_async_dendrite = mocker.AsyncMock()
@@ -40,7 +38,6 @@ async def test_query_api(mocker):
         subnets, "Dendrite", return_value=mocked_async_dendrite
     )
 
-    fake_wallet = mocker.MagicMock()
     fake_axon = mocker.MagicMock()
 
     mocked_synapse = mocker.MagicMock()
@@ -60,7 +57,7 @@ async def test_query_api(mocker):
 
 
 @pytest.mark.asyncio
-async def test_test_instance_call(mocker):
+async def test_test_instance_call(fake_wallet, mocker):
     """Test the MySubnetsAPI instance call with asynchronous handling."""
     # Prep
     mocked_async_dendrite = mocker.AsyncMock()
@@ -70,7 +67,6 @@ async def test_test_instance_call(mocker):
     mocked_query_api = mocker.patch.object(
         MySubnetsAPI, "query_api", new=mocker.AsyncMock()
     )
-    fake_wallet = mocker.MagicMock()
     fake_axon = mocker.MagicMock()
 
     # Call

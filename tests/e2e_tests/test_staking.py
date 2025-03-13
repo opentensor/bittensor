@@ -1,8 +1,10 @@
-import pytest
-
+from bittensor import logging
 from bittensor.core.chain_data.stake_info import StakeInfo
 from bittensor.utils.balance import Balance
 from tests.e2e_tests.utils.chain_interactions import ANY_BALANCE
+from tests.helpers.helpers import ApproxBalance
+
+logging.enable_info()
 
 
 def test_single_operation(subtensor, alice_wallet, bob_wallet):
@@ -131,9 +133,6 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
     assert stake == Balance(0)
 
 
-@pytest.mark.skip(
-    reason="add_stake_multiple and unstake_multiple doesn't return (just hangs)",
-)
 def test_batch_operations(subtensor, alice_wallet, bob_wallet):
     """
     Tests:
@@ -213,7 +212,7 @@ def test_batch_operations(subtensor, alice_wallet, bob_wallet):
     )
 
     assert balances == {
-        alice_wallet.coldkey.ss58_address: alice_balance,
+        alice_wallet.coldkey.ss58_address: ApproxBalance(alice_balance.rao),
         bob_wallet.coldkey.ss58_address: Balance.from_tao(999_998),
     }
 
@@ -245,3 +244,275 @@ def test_batch_operations(subtensor, alice_wallet, bob_wallet):
         bob_wallet.coldkey.ss58_address: Balance.from_tao(999_998),
     }
     assert balances[alice_wallet.coldkey.ss58_address] > alice_balance
+
+
+def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
+    """
+    Tests safe staking scenarios with different parameters.
+
+    For both staking and unstaking:
+    1. Fails with strict threshold (0.5%) and no partial staking
+    2. Succeeds with strict threshold (0.5%) and partial staking allowed
+    3. Succeeds with lenient threshold (10% and 30%) and no partial staking
+    """
+    netuid = 2
+    # Register root as Alice - the subnet owner and validator
+    assert subtensor.register_subnet(alice_wallet)
+
+    # Verify subnet created successfully
+    assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
+
+    subtensor.burned_register(
+        alice_wallet,
+        netuid=netuid,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    subtensor.burned_register(
+        bob_wallet,
+        netuid=netuid,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    initial_stake = subtensor.get_stake(
+        alice_wallet.coldkey.ss58_address,
+        bob_wallet.hotkey.ss58_address,
+        netuid=netuid,
+    )
+    assert initial_stake == Balance(0)
+
+    # Test Staking Scenarios
+    stake_amount = Balance.from_tao(100)
+
+    # 1. Strict params - should fail
+    success = subtensor.add_stake(
+        alice_wallet,
+        bob_wallet.hotkey.ss58_address,
+        netuid=netuid,
+        amount=stake_amount,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        safe_staking=True,
+        rate_tolerance=0.005,  # 0.5%
+        allow_partial_stake=False,
+    )
+    assert success is False
+
+    current_stake = subtensor.get_stake(
+        alice_wallet.coldkey.ss58_address,
+        bob_wallet.hotkey.ss58_address,
+        netuid=netuid,
+    )
+    assert current_stake == Balance(0), "Stake should not change after failed attempt"
+
+    # 2. Partial allowed - should succeed partially
+    success = subtensor.add_stake(
+        alice_wallet,
+        bob_wallet.hotkey.ss58_address,
+        netuid=netuid,
+        amount=stake_amount,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        safe_staking=True,
+        rate_tolerance=0.005,  # 0.5%
+        allow_partial_stake=True,
+    )
+    assert success is True
+
+    partial_stake = subtensor.get_stake(
+        alice_wallet.coldkey.ss58_address,
+        bob_wallet.hotkey.ss58_address,
+        netuid=netuid,
+    )
+    assert partial_stake > Balance(0), "Partial stake should be added"
+    assert (
+        partial_stake < stake_amount
+    ), "Partial stake should be less than requested amount"
+
+    # 3. Higher threshold - should succeed fully
+    amount = Balance.from_tao(100)
+    success = subtensor.add_stake(
+        alice_wallet,
+        bob_wallet.hotkey.ss58_address,
+        netuid=netuid,
+        amount=amount,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        safe_staking=True,
+        rate_tolerance=0.1,  # 10%
+        allow_partial_stake=False,
+    )
+    assert success is True
+
+    full_stake = subtensor.get_stake(
+        alice_wallet.coldkey.ss58_address,
+        bob_wallet.hotkey.ss58_address,
+        netuid=netuid,
+    )
+
+    # Test Unstaking Scenarios
+    # 1. Strict params - should fail
+    success = subtensor.unstake(
+        alice_wallet,
+        bob_wallet.hotkey.ss58_address,
+        netuid=netuid,
+        amount=stake_amount,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        safe_staking=True,
+        rate_tolerance=0.005,  # 0.5%
+        allow_partial_stake=False,
+    )
+    assert success is False
+
+    current_stake = subtensor.get_stake(
+        alice_wallet.coldkey.ss58_address,
+        bob_wallet.hotkey.ss58_address,
+        netuid=netuid,
+    )
+    assert (
+        current_stake == full_stake
+    ), "Stake should not change after failed unstake attempt"
+
+    # 2. Partial allowed - should succeed partially
+    success = subtensor.unstake(
+        alice_wallet,
+        bob_wallet.hotkey.ss58_address,
+        netuid=netuid,
+        amount=current_stake,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        safe_staking=True,
+        rate_tolerance=0.005,  # 0.5%
+        allow_partial_stake=True,
+    )
+    assert success is True
+
+    partial_unstake = subtensor.get_stake(
+        alice_wallet.coldkey.ss58_address,
+        bob_wallet.hotkey.ss58_address,
+        netuid=netuid,
+    )
+    assert partial_unstake > Balance(0), "Some stake should remain"
+
+    # 3. Higher threshold - should succeed fully
+    success = subtensor.unstake(
+        alice_wallet,
+        bob_wallet.hotkey.ss58_address,
+        netuid=netuid,
+        amount=partial_unstake,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        safe_staking=True,
+        rate_tolerance=0.3,  # 30%
+        allow_partial_stake=False,
+    )
+    assert success is True
+
+
+def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
+    """
+    Tests safe swap stake scenarios with different parameters.
+
+    Tests:
+    1. Fails with strict threshold (0.5%)
+    2. Succeeds with lenient threshold (10%)
+    """
+    # Create new subnet (netuid 2) and register Alice
+    origin_netuid = 2
+    assert subtensor.register_subnet(bob_wallet)
+    assert subtensor.subnet_exists(origin_netuid), "Subnet wasn't created successfully"
+    dest_netuid = 3
+    assert subtensor.register_subnet(bob_wallet)
+    assert subtensor.subnet_exists(dest_netuid), "Subnet wasn't created successfully"
+
+    # Register Alice on both subnets
+    subtensor.burned_register(
+        alice_wallet,
+        netuid=origin_netuid,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    subtensor.burned_register(
+        alice_wallet,
+        netuid=dest_netuid,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    # Add initial stake to swap from
+    initial_stake_amount = Balance.from_tao(10_000)
+    success = subtensor.add_stake(
+        alice_wallet,
+        alice_wallet.hotkey.ss58_address,
+        netuid=origin_netuid,
+        amount=initial_stake_amount,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert success is True
+
+    origin_stake = subtensor.get_stake(
+        alice_wallet.coldkey.ss58_address,
+        alice_wallet.hotkey.ss58_address,
+        netuid=origin_netuid,
+    )
+    assert origin_stake > Balance(0), "Origin stake should be non-zero"
+
+    stake_swap_amount = Balance.from_tao(10_000)
+    # 1. Try swap with strict threshold and big amount- should fail
+    success = subtensor.swap_stake(
+        wallet=alice_wallet,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        origin_netuid=origin_netuid,
+        destination_netuid=dest_netuid,
+        amount=stake_swap_amount,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        safe_staking=True,
+        rate_tolerance=0.005,  # 0.5%
+        allow_partial_stake=False,
+    )
+    assert success is False
+
+    # Verify no stake was moved
+    dest_stake = subtensor.get_stake(
+        alice_wallet.coldkey.ss58_address,
+        alice_wallet.hotkey.ss58_address,
+        netuid=dest_netuid,
+    )
+    assert dest_stake == Balance(
+        0
+    ), "Destination stake should remain 0 after failed swap"
+
+    # 2. Try swap with higher threshold and less amount - should succeed
+    stake_swap_amount = Balance.from_tao(100)
+    success = subtensor.swap_stake(
+        wallet=alice_wallet,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        origin_netuid=origin_netuid,
+        destination_netuid=dest_netuid,
+        amount=stake_swap_amount,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        safe_staking=True,
+        rate_tolerance=0.3,  # 30%
+        allow_partial_stake=True,
+    )
+    assert success is True
+
+    # Verify stake was moved
+    origin_stake = subtensor.get_stake(
+        alice_wallet.coldkey.ss58_address,
+        alice_wallet.hotkey.ss58_address,
+        netuid=origin_netuid,
+    )
+    dest_stake = subtensor.get_stake(
+        alice_wallet.coldkey.ss58_address,
+        alice_wallet.hotkey.ss58_address,
+        netuid=dest_netuid,
+    )
+    assert dest_stake > Balance(
+        0
+    ), "Destination stake should be non-zero after successful swap"

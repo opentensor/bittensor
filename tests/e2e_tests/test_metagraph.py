@@ -6,7 +6,6 @@ import time
 from bittensor.core.chain_data.metagraph_info import MetagraphInfo
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
-from tests.e2e_tests.utils.chain_interactions import ANY_BALANCE
 
 NULL_KEY = tuple(bytearray(32))
 
@@ -204,14 +203,14 @@ def test_metagraph_info(subtensor, alice_wallet):
         subnet_emission=Balance(0),
         alpha_in=Balance.from_tao(10),
         alpha_out=Balance.from_tao(2),
-        tao_in=ANY_BALANCE,
+        tao_in=Balance.from_tao(10),
         alpha_out_emission=Balance.from_tao(1),
         alpha_in_emission=Balance(0),
         tao_in_emission=Balance(0),
         pending_alpha_emission=Balance.from_tao(0.820004577),
         pending_root_emission=Balance(0),
         subnet_volume=Balance(0),
-        moving_price=Balance.from_tao(0.000003000),
+        moving_price=Balance(0),
         rho=10,
         kappa=32767,
         min_allowed_weights=0.0,
@@ -268,9 +267,9 @@ def test_metagraph_info(subtensor, alice_wallet):
         trust=[0.0],
         rank=[0.0],
         block_at_registration=(0,),
-        alpha_stake=[ANY_BALANCE],
+        alpha_stake=[Balance.from_tao(1.0)],
         tao_stake=[Balance(0)],
-        total_stake=[ANY_BALANCE],
+        total_stake=[Balance.from_tao(1.0)],
         tao_dividends_per_hotkey=[
             ("5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM", Balance(0))
         ],

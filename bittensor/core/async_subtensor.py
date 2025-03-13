@@ -31,7 +31,7 @@ from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.delegate_info import DelegatedInfo
 from bittensor.core.chain_data.utils import decode_metadata
 from bittensor.core.config import Config
-from bittensor.core.errors import SubstrateRequestException
+from bittensor.core.errors import ChainError, SubstrateRequestException
 from bittensor.core.extrinsics.asyncex.commit_reveal import commit_reveal_v3_extrinsic
 from bittensor.core.extrinsics.asyncex.registration import (
     burned_register_extrinsic,
@@ -56,6 +56,10 @@ from bittensor.core.extrinsics.asyncex.serving import serve_axon_extrinsic
 from bittensor.core.extrinsics.asyncex.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
+)
+from bittensor.core.extrinsics.asyncex.take import (
+    decrease_take_extrinsic,
+    increase_take_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.transfer import transfer_extrinsic
 from bittensor.core.extrinsics.asyncex.unstaking import (
@@ -1111,7 +1115,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> Optional[float]:
+    ) -> float:
         """
         Retrieves the delegate 'take' percentage for a neuron identified by its hotkey. The 'take' represents the
             percentage of rewards that the delegate claims from its nominators' stakes.
@@ -1123,7 +1127,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block (bool): Whether to reuse the last-used block hash.
 
         Returns:
-            Optional[float]: The delegate take percentage, None if not available.
+            float: The delegate take percentage.
 
         The delegate take is a critical parameter in the network's incentive structure, influencing the distribution of
             rewards among neurons and their nominators.
@@ -1135,11 +1139,8 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block=reuse_block,
             params=[hotkey_ss58],
         )
-        return (
-            None
-            if result is None
-            else u16_normalized_float(getattr(result, "value", 0))
-        )
+
+        return u16_normalized_float(result.value)  # type: ignore
 
     async def get_delegated(
         self,
@@ -2748,6 +2749,7 @@ class AsyncSubtensor(SubtensorMixin):
         use_nonce: bool = False,
         period: Optional[int] = None,
         nonce_key: str = "hotkey",
+        raise_error: bool = False,
     ) -> tuple[bool, str]:
         """
         Helper method to sign and submit an extrinsic call to chain.
@@ -2758,6 +2760,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_inclusion (bool): whether to wait until the extrinsic call is included on the chain
             wait_for_finalization (bool): whether to wait until the extrinsic call is finalized on the chain
             sign_with: the wallet's keypair to use for the signing. Options are "coldkey", "hotkey", "coldkeypub"
+            raise_error: raises relevant exception rather than returning `False` if unsuccessful.
 
         Returns:
             (success, error message)
@@ -2795,9 +2798,15 @@ class AsyncSubtensor(SubtensorMixin):
             if await response.is_success:
                 return True, ""
 
+            if raise_error:
+                raise ChainError.from_error(response.error_message)
+
             return False, format_error_message(await response.error_message)
 
         except SubstrateRequestException as e:
+            if raise_error:
+                raise
+
             return False, format_error_message(e)
 
     # Extrinsics =======================================================================================================
@@ -2810,6 +2819,9 @@ class AsyncSubtensor(SubtensorMixin):
         amount: Optional[Balance] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
+        safe_staking: bool = False,
+        allow_partial_stake: bool = False,
+        rate_tolerance: float = 0.005,
     ) -> bool:
         """
         Adds the specified amount of stake to a neuron identified by the hotkey ``SS58`` address.
@@ -2823,12 +2835,20 @@ class AsyncSubtensor(SubtensorMixin):
             amount (Balance): The amount of TAO to stake.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            safe_staking (bool): If true, enables price safety checks to protect against fluctuating prices. The stake
+                will only execute if the price change doesn't exceed the rate tolerance. Default is False.
+            allow_partial_stake (bool): If true and safe_staking is enabled, allows partial staking when
+                the full amount would exceed the price threshold. If false, the entire stake fails if it would
+                exceed the threshold. Default is False.
+            rate_tolerance (float): The maximum allowed price change ratio when staking. For example,
+                0.005 = 0.5% maximum price increase. Only used when safe_staking is True. Default is 0.005.
 
         Returns:
             bool: ``True`` if the staking is successful, False otherwise.
 
-        This function enables neurons to increase their stake in the network, enhancing their influence and potential
-            rewards in line with Bittensor's consensus and reward mechanisms.
+        This function enables neurons to increase their stake in the network, enhancing their influence and potential.
+            When safe_staking is enabled, it provides protection against price fluctuations during the time stake is
+            executed and the time it is actually processed by the chain.
         """
         amount = check_and_convert_to_balance(amount)
         return await add_stake_extrinsic(
@@ -2839,6 +2859,9 @@ class AsyncSubtensor(SubtensorMixin):
             amount=amount,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            safe_staking=safe_staking,
+            allow_partial_stake=allow_partial_stake,
+            rate_tolerance=rate_tolerance,
         )
 
     async def add_stake_multiple(
@@ -2901,6 +2924,14 @@ class AsyncSubtensor(SubtensorMixin):
             bool: ``True`` if the registration is successful, False otherwise.
         """
         async with self:
+            if netuid == 0:
+                return await root_register_extrinsic(
+                    subtensor=self,
+                    wallet=wallet,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+
             return await burned_register_extrinsic(
                 subtensor=self,
                 wallet=wallet,
@@ -3191,35 +3222,6 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             `True` if registration was successful, otherwise `False`.
         """
-        netuid = 0
-        logging.info(
-            f"Registering on netuid [blue]0[/blue] on network: [blue]{self.network}[/blue]"
-        )
-
-        # Check current recycle amount
-        logging.info("Fetching recycle amount & balance.")
-        block_hash = block_hash if block_hash else await self.get_block_hash()
-
-        try:
-            recycle_call, balance = await asyncio.gather(
-                self.get_hyperparameter(
-                    param_name="Burn", netuid=netuid, block_hash=block_hash
-                ),
-                self.get_balance(wallet.coldkeypub.ss58_address, block_hash=block_hash),
-            )
-        except TypeError as e:
-            logging.error(f"Unable to retrieve current recycle. {e}")
-            return False
-
-        current_recycle = Balance.from_rao(int(recycle_call))
-
-        # Check balance is sufficient
-        if balance < current_recycle:
-            logging.error(
-                f"[red]Insufficient balance {balance} to register neuron. "
-                f"Current recycle is {current_recycle} TAO[/red]."
-            )
-            return False
 
         return await root_register_extrinsic(
             subtensor=self,
@@ -3266,6 +3268,82 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization=wait_for_finalization,
             wait_for_inclusion=wait_for_inclusion,
         )
+
+    async def set_delegate_take(
+        self,
+        wallet: "Wallet",
+        hotkey_ss58: str,
+        take: float,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        raise_error: bool = False,
+    ) -> tuple[bool, str]:
+        """
+        Sets the delegate 'take' percentage for a neuron identified by its hotkey.
+        The 'take' represents the percentage of rewards that the delegate claims from its nominators' stakes.
+
+        Arguments:
+            wallet (bittensor_wallet.Wallet): bittensor wallet instance.
+            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
+            take (float): Percentage reward for the delegate.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            raise_error: Raises relevant exception rather than returning `False` if unsuccessful.
+
+        Returns:
+            tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
+             operation, and the second element is a message providing additional information.
+
+        Raises:
+            DelegateTakeTooHigh: Delegate take is too high.
+            DelegateTakeTooLow: Delegate take is too low.
+            DelegateTxRateLimitExceeded: A transactor exceeded the rate limit for delegate transaction.
+            HotKeyAccountNotExists: The hotkey does not exists.
+            NonAssociatedColdKey: Request to stake, unstake or subscribe is made by a coldkey that is not associated with the hotkey account.
+            bittensor_wallet.errors.PasswordError: Decryption failed or wrong password for decryption provided.
+            bittensor_wallet.errors.KeyFileError: Failed to decode keyfile data.
+
+        The delegate take is a critical parameter in the network's incentive structure, influencing the distribution of
+            rewards among neurons and their nominators.
+        """
+
+        # u16 representation of the take
+        take_u16 = int(take * 0xFFFF)
+
+        current_take = await self.get_delegate_take(hotkey_ss58)
+        current_take_u16 = int(current_take * 0xFFFF)
+
+        if current_take_u16 == take_u16:
+            logging.info(":white_heavy_check_mark: [green]Already Set[/green]")
+            return True, ""
+
+        logging.info(f"Updating {hotkey_ss58} take: current={current_take} new={take}")
+
+        if current_take_u16 < take_u16:
+            success, error = await increase_take_extrinsic(
+                self,
+                wallet,
+                hotkey_ss58,
+                take_u16,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_inclusion=wait_for_inclusion,
+                raise_error=raise_error,
+            )
+        else:
+            success, error = await decrease_take_extrinsic(
+                self,
+                wallet,
+                hotkey_ss58,
+                take_u16,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_inclusion=wait_for_inclusion,
+                raise_error=raise_error,
+            )
+
+        if success:
+            logging.info(":white_heavy_check_mark: [green]Take Updated[/green]")
+
+        return success, error
 
     async def set_subnet_identity(
         self,
@@ -3460,6 +3538,9 @@ class AsyncSubtensor(SubtensorMixin):
         amount: Balance,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
+        safe_staking: bool = False,
+        allow_partial_stake: bool = False,
+        rate_tolerance: float = 0.005,
     ) -> bool:
         """
         Moves stake between subnets while keeping the same coldkey-hotkey pair ownership.
@@ -3473,9 +3554,25 @@ class AsyncSubtensor(SubtensorMixin):
             amount (Union[Balance, float]): The amount to swap.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            safe_staking (bool): If true, enables price safety checks to protect against fluctuating prices. The swap
+                will only execute if the price ratio between subnets doesn't exceed the rate tolerance.
+                Default is False.
+            allow_partial_stake (bool): If true and safe_staking is enabled, allows partial stake swaps when
+                the full amount would exceed the price threshold. If false, the entire swap fails if it would
+                exceed the threshold. Default is False.
+            rate_tolerance (float): The maximum allowed increase in the price ratio between subnets
+                (origin_price/destination_price). For example, 0.005 = 0.5% maximum increase. Only used
+                when safe_staking is True. Default is 0.005.
 
         Returns:
             success (bool): True if the extrinsic was successful.
+
+        The price ratio for swap_stake in safe mode is calculated as: origin_subnet_price / destination_subnet_price
+        When safe_staking is enabled, the swap will only execute if:
+            - With allow_partial_stake=False: The entire swap amount can be executed without the price ratio
+            increasing more than rate_tolerance
+            - With allow_partial_stake=True: A partial amount will be swapped up to the point where the
+            price ratio would increase by rate_tolerance
         """
         amount = check_and_convert_to_balance(amount)
         return await swap_stake_extrinsic(
@@ -3487,6 +3584,9 @@ class AsyncSubtensor(SubtensorMixin):
             amount=amount,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            safe_staking=safe_staking,
+            allow_partial_stake=allow_partial_stake,
+            rate_tolerance=rate_tolerance,
         )
 
     async def transfer_stake(
@@ -3575,6 +3675,9 @@ class AsyncSubtensor(SubtensorMixin):
         amount: Optional[Balance] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
+        safe_staking: bool = False,
+        allow_partial_stake: bool = False,
+        rate_tolerance: float = 0.005,
     ) -> bool:
         """
         Removes a specified amount of stake from a single hotkey account. This function is critical for adjusting
@@ -3584,10 +3687,17 @@ class AsyncSubtensor(SubtensorMixin):
             wallet (bittensor_wallet.wallet): The wallet associated with the neuron from which the stake is being
                 removed.
             hotkey_ss58 (Optional[str]): The ``SS58`` address of the hotkey account to unstake from.
-            netuid (Optional[int]): Subnet unique ID.
+            netuid (Optional[int]): The unique identifier of the subnet.
             amount (Balance): The amount of TAO to unstake. If not specified, unstakes all.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            safe_staking (bool): If true, enables price safety checks to protect against fluctuating prices. The unstake
+                will only execute if the price change doesn't exceed the rate tolerance. Default is False.
+            allow_partial_stake (bool): If true and safe_staking is enabled, allows partial unstaking when
+                the full amount would exceed the price threshold. If false, the entire unstake fails if it would
+                exceed the threshold. Default is False.
+            rate_tolerance (float): The maximum allowed price change ratio when unstaking. For example,
+                0.005 = 0.5% maximum price decrease. Only used when safe_staking is True. Default is 0.005.
 
         Returns:
             bool: ``True`` if the unstaking process is successful, False otherwise.
@@ -3604,6 +3714,9 @@ class AsyncSubtensor(SubtensorMixin):
             amount=amount,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            safe_staking=safe_staking,
+            allow_partial_stake=allow_partial_stake,
+            rate_tolerance=rate_tolerance,
         )
 
     async def unstake_multiple(
