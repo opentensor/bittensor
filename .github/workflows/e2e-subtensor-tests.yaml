@@ -101,6 +101,7 @@ jobs:
 
       - name: Run tests
         run: |
+          ls -lash ${{ github.workspace }}/subtensor/nodes
           LOCALNET_SH_PATH="${{ github.workspace }}/subtensor/scripts/localnet.sh" uv run pytest ${{ matrix.test-file }} -s
 
       - name: Retry failed tests
