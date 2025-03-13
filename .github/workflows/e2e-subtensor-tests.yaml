@@ -33,8 +33,7 @@ jobs:
       - name: Fetch Artifacts List
         id: fetch_artifacts
         run: |
-          ARTIFACTS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/opentensor/subtensor/actions/actions/artifacts)
+          ARTIFACTS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/opentensor/subtensor/actions/artifacts)
           echo "$ARTIFACTS" > artifacts.json
           
           echo "Raw ARTIFACTS response:"
@@ -70,7 +69,7 @@ jobs:
   # Job to run tests in parallel
   run:
     needs: find-tests
-    runs-on: SubtensorCI
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
       fail-fast: false  # Allow other matrix jobs to run even if this job fails
