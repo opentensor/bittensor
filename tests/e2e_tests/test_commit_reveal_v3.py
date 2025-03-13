@@ -14,8 +14,6 @@ from tests.e2e_tests.utils.chain_interactions import (
     next_tempo,
 )
 
-
-@pytest.mark.parametrize("local_chain", [False], indirect=True)
 @pytest.mark.asyncio
 async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_wallet):
     """
@@ -35,12 +33,15 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     netuid = 2
     logging.console.info("Testing test_commit_and_reveal_weights")
 
-    assert sudo_set_admin_utils(
-        subtensor, 
+    status, error =  sudo_set_admin_utils(
+        local_chain, 
         alice_wallet,
         "sudo_set_network_rate_limit",
-        call_params={"rate_limit", "0"},
-    ), "Unable to set network rate limit"
+        call_params={"rate_limit": "0"},
+    )
+
+    assert error is ""
+    assert status is True
 
     # Register root as Alice
     assert subtensor.register_subnet(alice_wallet), "Unable to register the subnet"
@@ -63,13 +64,14 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     assert subtensor.commit_reveal_enabled(netuid), "Failed to enable commit/reveal"
     logging.console.info("Commit reveal enabled")
 
-    # Change the weights rate limit on the subnet
-    assert sudo_set_hyperparameter_values(
-        local_chain,
+    assert (
+        sudo_set_admin_utils(
+        local_chain, 
         alice_wallet,
-        call_function="sudo_set_weights_set_rate_limit",
+        "sudo_set_weights_set_rate_limit",
         call_params={"netuid": netuid, "weights_set_rate_limit": "0"},
-        return_error_message=True,
+    )[0]
+        is True
     )
 
     # Verify weights rate limit was changed

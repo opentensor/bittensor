@@ -9,7 +9,7 @@ from tests.e2e_tests.utils.chain_interactions import (
 )
 
 @pytest.mark.asyncio
-async def test_axon(subtensor, templates, alice_wallet):
+async def test_axon(local_chain, subtensor, templates, alice_wallet):
     """
     Test the Axon mechanism and successful registration on the network.
 
@@ -26,12 +26,15 @@ async def test_axon(subtensor, templates, alice_wallet):
 
     netuid = 2
     
-    assert sudo_set_admin_utils(
-        subtensor, 
+    status, error =  sudo_set_admin_utils(
+        local_chain, 
         alice_wallet,
         "sudo_set_network_rate_limit",
-        call_params={"rate_limit", "0"},
-    ), "Unable to set network rate limit"
+        call_params={"rate_limit": "0"},
+    )
+
+    assert error is ""
+    assert status is True
 
     # Register a subnet, netuid 2
     assert subtensor.register_subnet(alice_wallet), "Subnet wasn't created"

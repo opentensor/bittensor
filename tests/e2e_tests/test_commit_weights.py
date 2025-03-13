@@ -27,12 +27,15 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
         AssertionError: If any of the checks or verifications fail
     """
     netuid = 2
-    assert sudo_set_admin_utils(
-        subtensor, 
+    status, error =  sudo_set_admin_utils(
+        local_chain, 
         alice_wallet,
         "sudo_set_network_rate_limit",
-        call_params={"rate_limit", "0"},
-    ), "Unable to set network rate limit"
+        call_params={"rate_limit": "0"},
+    )
+
+    assert error is ""
+    assert status is True
 
     print("Testing test_commit_and_reveal_weights")
 
@@ -60,13 +63,16 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
     assert (
         subtensor.weights_rate_limit(netuid=netuid) > 0
     ), "Weights rate limit is below 0"
+
     # Lower the rate limit
-    assert sudo_set_hyperparameter_values(
-        local_chain,
+    assert (
+        sudo_set_admin_utils(
+        local_chain, 
         alice_wallet,
-        call_function="sudo_set_weights_set_rate_limit",
+        "sudo_set_weights_set_rate_limit",
         call_params={"netuid": netuid, "weights_set_rate_limit": "0"},
-        return_error_message=True,
+    )[0]
+        is True
     )
 
     assert (
@@ -194,18 +200,6 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     assert (
         subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_period == 1
     ), "Failed to set commit/reveal periods"
-
-    assert (
-        subtensor.weights_rate_limit(netuid=netuid) > 0
-    ), "Weights rate limit is below 0"
-    # Lower the rate limit
-    assert sudo_set_hyperparameter_values(
-        local_chain,
-        alice_wallet,
-        call_function="sudo_set_weights_set_rate_limit",
-        call_params={"netuid": netuid, "weights_set_rate_limit": "0"},
-        return_error_message=True,
-    )
 
     assert (
         subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
