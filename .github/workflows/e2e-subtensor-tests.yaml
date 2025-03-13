@@ -23,6 +23,7 @@ env:
   CARGO_TERM_COLOR: always
   VERBOSE: ${{ github.event.inputs.verbose }}
 
+
 # job to run tests in parallel
 jobs:
   # Job to find all test files
@@ -90,7 +91,7 @@ jobs:
 
       - name: Setup subtensor repo
         working-directory: ${{ github.workspace }}/subtensor
-        run: git checkout devnet-ready
+        run: git checkout devnet-ready-with-nodes
 
       - name: Install uv
         uses: astral-sh/setup-uv@v4
