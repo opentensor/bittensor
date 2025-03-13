@@ -2492,6 +2492,77 @@ async def test_register_success(subtensor, fake_wallet, mocker):
 
 
 @pytest.mark.asyncio
+async def test_set_delegate_take_equal(subtensor, fake_wallet, mocker):
+    mocker.patch.object(subtensor, "get_delegate_take", return_value=0.18)
+
+    await subtensor.set_delegate_take(
+        fake_wallet,
+        fake_wallet.hotkey.ss58_address,
+        0.18,
+    )
+
+    subtensor.substrate.submit_extrinsic.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_set_delegate_take_increase(
+    mock_substrate, subtensor, fake_wallet, mocker
+):
+    mock_substrate.submit_extrinsic.return_value = mocker.Mock(
+        is_success=mocker.AsyncMock(return_value=True)(),
+    )
+    mocker.patch.object(subtensor, "get_delegate_take", return_value=0.18)
+
+    await subtensor.set_delegate_take(
+        fake_wallet,
+        fake_wallet.hotkey.ss58_address,
+        0.2,
+    )
+
+    assert_submit_signed_extrinsic(
+        mock_substrate,
+        fake_wallet.coldkey,
+        call_module="SubtensorModule",
+        call_function="increase_take",
+        call_params={
+            "hotkey": fake_wallet.hotkey.ss58_address,
+            "take": 13107,
+        },
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+
+@pytest.mark.asyncio
+async def test_set_delegate_take_decrease(
+    mock_substrate, subtensor, fake_wallet, mocker
+):
+    mock_substrate.submit_extrinsic.return_value = mocker.Mock(
+        is_success=mocker.AsyncMock(return_value=True)(),
+    )
+    mocker.patch.object(subtensor, "get_delegate_take", return_value=0.18)
+
+    await subtensor.set_delegate_take(
+        fake_wallet,
+        fake_wallet.hotkey.ss58_address,
+        0.1,
+    )
+
+    assert_submit_signed_extrinsic(
+        mock_substrate,
+        fake_wallet.coldkey,
+        call_module="SubtensorModule",
+        call_function="decrease_take",
+        call_params={
+            "hotkey": fake_wallet.hotkey.ss58_address,
+            "take": 6553,
+        },
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+
+@pytest.mark.asyncio
 async def test_set_weights_success(subtensor, fake_wallet, mocker):
     """Tests set_weights with successful weight setting on the first try."""
     # Preps
