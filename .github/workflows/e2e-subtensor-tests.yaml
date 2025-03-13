@@ -119,7 +119,7 @@ jobs:
       - name: Print file
         working-directory: ${{ github.workspace }}/subtensor
         run: |
-          apt install file
+          sudo apt install file
           echo "File fast-blocks"
           file ${{ github.workspace }}/subtensor/nodes/fast-blocks/release/node-subtensor
           echo "File non-fast-blocks"
