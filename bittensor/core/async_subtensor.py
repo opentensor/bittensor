@@ -2924,6 +2924,14 @@ class AsyncSubtensor(SubtensorMixin):
             bool: ``True`` if the registration is successful, False otherwise.
         """
         async with self:
+            if netuid == 0:
+                return await root_register_extrinsic(
+                    subtensor=self,
+                    wallet=wallet,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+
             return await burned_register_extrinsic(
                 subtensor=self,
                 wallet=wallet,
@@ -3214,35 +3222,6 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             `True` if registration was successful, otherwise `False`.
         """
-        netuid = 0
-        logging.info(
-            f"Registering on netuid [blue]0[/blue] on network: [blue]{self.network}[/blue]"
-        )
-
-        # Check current recycle amount
-        logging.info("Fetching recycle amount & balance.")
-        block_hash = block_hash if block_hash else await self.get_block_hash()
-
-        try:
-            recycle_call, balance = await asyncio.gather(
-                self.get_hyperparameter(
-                    param_name="Burn", netuid=netuid, block_hash=block_hash
-                ),
-                self.get_balance(wallet.coldkeypub.ss58_address, block_hash=block_hash),
-            )
-        except TypeError as e:
-            logging.error(f"Unable to retrieve current recycle. {e}")
-            return False
-
-        current_recycle = Balance.from_rao(int(recycle_call))
-
-        # Check balance is sufficient
-        if balance < current_recycle:
-            logging.error(
-                f"[red]Insufficient balance {balance} to register neuron. "
-                f"Current recycle is {current_recycle} TAO[/red]."
-            )
-            return False
 
         return await root_register_extrinsic(
             subtensor=self,
