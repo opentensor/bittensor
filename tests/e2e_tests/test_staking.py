@@ -1,9 +1,8 @@
-import pytest
-
+from bittensor import logging
 from bittensor.core.chain_data.stake_info import StakeInfo
 from bittensor.utils.balance import Balance
 from tests.e2e_tests.utils.chain_interactions import ANY_BALANCE
-from bittensor import logging
+from tests.helpers.helpers import ApproxBalance
 
 logging.enable_info()
 
@@ -134,9 +133,6 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
     assert stake == Balance(0)
 
 
-@pytest.mark.skip(
-    reason="add_stake_multiple and unstake_multiple doesn't return (just hangs)",
-)
 def test_batch_operations(subtensor, alice_wallet, bob_wallet):
     """
     Tests:
@@ -216,7 +212,7 @@ def test_batch_operations(subtensor, alice_wallet, bob_wallet):
     )
 
     assert balances == {
-        alice_wallet.coldkey.ss58_address: alice_balance,
+        alice_wallet.coldkey.ss58_address: ApproxBalance(alice_balance.rao),
         bob_wallet.coldkey.ss58_address: Balance.from_tao(999_998),
     }
 
