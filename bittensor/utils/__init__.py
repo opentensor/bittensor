@@ -337,9 +337,12 @@ def unlock_key(
 ) -> "UnlockStatus":
     """
     Attempts to decrypt a wallet's coldkey or hotkey
+
     Args:
         wallet: a Wallet object
         unlock_type: the key type, 'coldkey' or 'hotkey'
+        raise_error: if False, will return (False, error msg), if True will raise the otherwise-caught exception.
+
     Returns: UnlockStatus for success status of unlock, with error message if unsuccessful
     """
     if unlock_type == "coldkey":
