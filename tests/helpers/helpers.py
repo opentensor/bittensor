@@ -44,6 +44,22 @@ class CLOSE_IN_VALUE:
         ) or ((__o - self.tolerance) <= self.value <= (__o + self.tolerance))
 
 
+class ApproxBalance(CLOSE_IN_VALUE, Balance):
+    def __init__(
+        self,
+        balance: Union[float, int],
+        tolerance: Union[float, int] = 0.1,
+    ):
+        super().__init__(
+            Balance(balance),
+            Balance(tolerance),
+        )
+
+    @property
+    def rao(self):
+        return self.value.rao
+
+
 def assert_submit_signed_extrinsic(
     substrate,
     keypair,
