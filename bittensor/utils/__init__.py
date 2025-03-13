@@ -343,7 +343,12 @@ def unlock_key(
         unlock_type: the key type, 'coldkey' or 'hotkey'
         raise_error: if False, will return (False, error msg), if True will raise the otherwise-caught exception.
 
-    Returns: UnlockStatus for success status of unlock, with error message if unsuccessful
+    Returns:
+        UnlockStatus for success status of unlock, with error message if unsuccessful
+
+    Raises:
+        bittensor_wallet.errors.PasswordError: incorrect password
+        bittensor_wallet.errors.KeyFileError: keyfile is corrupt, non-writable, or non-readable, or non-existent
     """
     if unlock_type == "coldkey":
         unlocker = "unlock_coldkey"
