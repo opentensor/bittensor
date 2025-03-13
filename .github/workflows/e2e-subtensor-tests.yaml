@@ -116,19 +116,22 @@ jobs:
         working-directory: ${{ github.workspace }}/subtensor
         run: git checkout devnet-ready-with-nodes
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-
-      - name: install dependencies
-        run: uv sync --all-extras --dev
+      - name: Print file
+        working-directory: ${{ github.workspace }}/subtensor
+        run: |
+          apt install file
+          echo "File fast-blocks"
+          file ${{ github.workspace }}/subtensor/nodes/fast-blocks/release/node-subtensor
+          echo "File non-fast-blocks"
+          file ${{ github.workspace }}/subtensor/nodes/non-fast-blocks/release/node-subtensor
 
       - name: Run tests
         run: |
           ls -lash ${{ github.workspace }}/subtensor/nodes
-          LOCALNET_SH_PATH="${{ github.workspace }}/subtensor/scripts/localnet.sh" uv run pytest ${{ matrix.test-file }} -s
+          LOCALNET_SH_PATH="${{ github.workspace }}/subtensor/scripts/localnet.sh" pytest ${{ matrix.test-file }} -s
 
       - name: Retry failed tests
         if: failure()
         run: |
           sleep 10
-          LOCALNET_SH_PATH="${{ github.workspace }}/subtensor/scripts/localnet.sh" uv run pytest ${{ matrix.test-file }} -s
+          LOCALNET_SH_PATH="${{ github.workspace }}/subtensor/scripts/localnet.sh" pytest ${{ matrix.test-file }} -s
