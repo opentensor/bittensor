@@ -128,9 +128,6 @@ jobs:
           echo "uname -m && uname -r"
           uname -m && uname -r
           
-          echo "ldd"
-          ldd ${{ github.workspace }}/subtensor/nodes/non-fast-blocks/release/node-subtensor
-          
           echo "/lib/ld-linux-aarch64.so.1 exist"
           ls /lib/ld-linux-aarch64.so.1
 
