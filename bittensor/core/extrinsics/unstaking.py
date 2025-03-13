@@ -19,6 +19,9 @@ def unstake_extrinsic(
     amount: Optional[Balance] = None,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
+    safe_staking: bool = False,
+    allow_partial_stake: bool = False,
+    rate_threshold: float = 0.005,
 ) -> bool:
     """Removes stake into the wallet coldkey from the specified hotkey ``uid``.
 
@@ -33,6 +36,9 @@ def unstake_extrinsic(
             returns ``False`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
             ``True``, or returns ``False`` if the extrinsic fails to be finalized within the timeout.
+        safe_staking: If true, enables price safety checks
+        allow_partial_stake: If true, allows partial unstaking if price threshold exceeded
+        rate_threshold: Maximum allowed price decrease percentage (0.005 = 0.5%)
 
     Returns:
         success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
@@ -79,18 +85,52 @@ def unstake_extrinsic(
         return False
 
     try:
-        logging.info(
-            f"Unstaking [blue]{unstaking_balance}[/blue] from [magenta]{hotkey_ss58}[/magenta] on [blue]{netuid}[/blue]"
-        )
+        call_params = {
+            "hotkey": hotkey_ss58,
+            "netuid": netuid,
+            "amount_unstaked": unstaking_balance.rao,
+        }
+
+        if safe_staking:
+            pool = subtensor.subnet(netuid=netuid)
+            base_price = pool.price.rao
+            price_with_tolerance = base_price * (1 - rate_threshold)
+
+            # For logging
+            base_rate = pool.price.tao
+            rate_with_tolerance = base_rate * (1 - rate_threshold)
+
+            logging.info(
+                f":satellite: [magenta]Safe Unstaking from:[/magenta] "
+                f"netuid: [green]{netuid}[/green], amount: [green]{unstaking_balance}[/green], "
+                f"tolerance percentage: [green]{rate_threshold*100}%[/green], "
+                f"price limit: [green]{rate_with_tolerance}[/green], "
+                f"original price: [green]{base_rate}[/green], "
+                f"with partial unstake: [green]{allow_partial_stake}[/green] "
+                f"on [blue]{subtensor.network}[/blue][magenta]...[/magenta]"
+            )
+
+            call_params.update(
+                {
+                    "limit_price": price_with_tolerance,
+                    "allow_partial": allow_partial_stake,
+                }
+            )
+            call_function = "remove_stake_limit"
+        else:
+            logging.info(
+                f":satellite: [magenta]Unstaking from:[/magenta] "
+                f"netuid: [green]{netuid}[/green], amount: [green]{unstaking_balance}[/green] "
+                f"on [blue]{subtensor.network}[/blue][magenta]...[/magenta]"
+            )
+            call_function = "remove_stake"
+
         call = subtensor.substrate.compose_call(
             call_module="SubtensorModule",
-            call_function="remove_stake",
-            call_params={
-                "hotkey": hotkey_ss58,
-                "amount_unstaked": unstaking_balance.rao,
-                "netuid": netuid,
-            },
+            call_function=call_function,
+            call_params=call_params,
         )
+
         staking_response, err_msg = subtensor.sign_and_send_extrinsic(
             call,
             wallet,
@@ -130,7 +170,12 @@ def unstake_extrinsic(
             )
             return True
         else:
-            logging.error(f":cross_mark: [red]Failed: {err_msg}.[/red]")
+            if safe_staking and "Custom error: 8" in err_msg:
+                logging.error(
+                    ":cross_mark: [red]Failed[/red]: Price exceeded tolerance limit. Either increase price tolerance or enable partial staking."
+                )
+            else:
+                logging.error(f":cross_mark: [red]Failed: {err_msg}.[/red]")
             return False
 
     except NotRegisteredError:
