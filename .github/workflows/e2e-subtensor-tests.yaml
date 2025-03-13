@@ -23,7 +23,6 @@ env:
   CARGO_TERM_COLOR: always
   VERBOSE: ${{ github.event.inputs.verbose }}
 
-
 # job to run tests in parallel
 jobs:
   # Job to find all test files
