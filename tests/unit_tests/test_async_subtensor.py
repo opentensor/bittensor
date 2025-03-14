@@ -47,17 +47,17 @@ def test_decode_ss58_tuples_in_proposal_vote_data(mocker):
     }
 
     # Call
-    async_subtensor.ProposalVoteData(fake_proposal_dict)
+    async_subtensor.ProposalVoteData.from_dict(fake_proposal_dict)
 
     # Asserts
     assert mocked_decode_account_id.call_count == len(fake_proposal_dict["ayes"]) + len(
         fake_proposal_dict["nays"]
     )
     assert mocked_decode_account_id.mock_calls == [
-        mocker.call("0"),
-        mocker.call("1"),
-        mocker.call("2"),
-        mocker.call("3"),
+        mocker.call("0 line"),
+        mocker.call("1 line"),
+        mocker.call("2 line"),
+        mocker.call("3 line"),
     ]
 
 
@@ -2054,7 +2054,9 @@ async def test_get_vote_data_success(subtensor, mocker):
 
     mocked_proposal_vote_data = mocker.Mock()
     mocker.patch.object(
-        async_subtensor, "ProposalVoteData", return_value=mocked_proposal_vote_data
+        async_subtensor.ProposalVoteData,
+        "from_dict",
+        return_value=mocked_proposal_vote_data,
     )
 
     # Call

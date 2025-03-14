@@ -3,11 +3,15 @@ import pytest
 import bittensor
 from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.delegate_info import DelegatedInfo, DelegateInfo
+from bittensor.core.chain_data.proposal_vote_data import ProposalVoteData
 from bittensor.utils.balance import Balance
 from tests.e2e_tests.utils.chain_interactions import (
+    propose,
     set_identity,
     sudo_set_admin_utils,
+    vote,
 )
+from tests.helpers.helpers import CLOSE_IN_VALUE
 
 DEFAULT_DELEGATE_TAKE = 0.179995422293431
 
@@ -321,3 +325,105 @@ def test_nominator_min_required_stake(local_chain, subtensor, alice_wallet, bob_
     )
 
     assert stake == Balance(0)
+
+
+def test_get_vote_data(subtensor, alice_wallet):
+    """
+    Tests:
+    - Sends Propose
+    - Checks existing Proposals
+    - Votes
+    - Checks Proposal is updated
+    """
+
+    subtensor.root_register(alice_wallet)
+
+    proposals = subtensor.query_map(
+        "Triumvirate",
+        "ProposalOf",
+        params=[],
+    )
+
+    assert proposals.records == []
+
+    success, error = propose(
+        subtensor,
+        alice_wallet,
+        proposal=subtensor.substrate.compose_call(
+            call_module="Triumvirate",
+            call_function="set_members",
+            call_params={
+                "new_members": [],
+                "prime": None,
+                "old_count": 0,
+            },
+        ),
+        duration=1_000_000,
+    )
+
+    assert error == ""
+    assert success is True
+
+    proposals = subtensor.query_map(
+        "Triumvirate",
+        "ProposalOf",
+        params=[],
+    )
+    proposals = {
+        bytes(proposal_hash[0]): proposal.value for proposal_hash, proposal in proposals
+    }
+
+    assert list(proposals.values()) == [
+        {
+            "Triumvirate": (
+                {
+                    "set_members": {
+                        "new_members": (),
+                        "prime": None,
+                        "old_count": 0,
+                    },
+                },
+            ),
+        },
+    ]
+
+    proposal_hash = list(proposals.keys())[0]
+    proposal_hash = f"0x{proposal_hash.hex()}"
+
+    proposal = subtensor.get_vote_data(
+        proposal_hash,
+    )
+
+    assert proposal == ProposalVoteData(
+        ayes=[],
+        end=CLOSE_IN_VALUE(1_000_000, subtensor.block),
+        index=0,
+        nays=[],
+        threshold=3,
+    )
+
+    success, error = vote(
+        subtensor,
+        alice_wallet,
+        alice_wallet.hotkey.ss58_address,
+        proposal_hash,
+        index=0,
+        approve=True,
+    )
+
+    assert error == ""
+    assert success is True
+
+    proposal = subtensor.get_vote_data(
+        proposal_hash,
+    )
+
+    assert proposal == ProposalVoteData(
+        ayes=[
+            alice_wallet.hotkey.ss58_address,
+        ],
+        end=CLOSE_IN_VALUE(1_000_000, subtensor.block),
+        index=0,
+        nays=[],
+        threshold=3,
+    )

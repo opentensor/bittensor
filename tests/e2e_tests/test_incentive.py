@@ -100,9 +100,26 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     assert alice_neuron.rank < 0.5
 
     bob_neuron = metagraph.neurons[1]
+
     assert bob_neuron.incentive > 0.5
     assert bob_neuron.consensus > 0.5
     assert bob_neuron.rank > 0.5
     assert bob_neuron.trust == 1
+
+    bonds = subtensor.bonds(netuid)
+
+    assert bonds == [
+        (
+            0,
+            [
+                (0, 65535),
+                (1, 65535),
+            ],
+        ),
+        (
+            1,
+            [],
+        ),
+    ]
 
     print("✅ Passed test_incentive")
