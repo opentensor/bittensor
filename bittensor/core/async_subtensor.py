@@ -2821,7 +2821,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = False,
         safe_staking: bool = False,
         allow_partial_stake: bool = False,
-        rate_threshold: float = 0.005,
+        rate_tolerance: float = 0.005,
     ) -> bool:
         """
         Adds the specified amount of stake to a neuron identified by the hotkey ``SS58`` address.
@@ -2836,11 +2836,11 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
             safe_staking (bool): If true, enables price safety checks to protect against fluctuating prices. The stake
-                will only execute if the price change doesn't exceed the rate threshold. Default is False.
+                will only execute if the price change doesn't exceed the rate tolerance. Default is False.
             allow_partial_stake (bool): If true and safe_staking is enabled, allows partial staking when
                 the full amount would exceed the price threshold. If false, the entire stake fails if it would
                 exceed the threshold. Default is False.
-            rate_threshold (float): The maximum allowed price change ratio when staking. For example,
+            rate_tolerance (float): The maximum allowed price change ratio when staking. For example,
                 0.005 = 0.5% maximum price increase. Only used when safe_staking is True. Default is 0.005.
 
         Returns:
@@ -2861,7 +2861,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization=wait_for_finalization,
             safe_staking=safe_staking,
             allow_partial_stake=allow_partial_stake,
-            rate_threshold=rate_threshold,
+            rate_tolerance=rate_tolerance,
         )
 
     async def add_stake_multiple(
@@ -3540,7 +3540,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = False,
         safe_staking: bool = False,
         allow_partial_stake: bool = False,
-        rate_threshold: float = 0.005,
+        rate_tolerance: float = 0.005,
     ) -> bool:
         """
         Moves stake between subnets while keeping the same coldkey-hotkey pair ownership.
@@ -3555,12 +3555,12 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
             safe_staking (bool): If true, enables price safety checks to protect against fluctuating prices. The swap
-                will only execute if the price ratio between subnets doesn't exceed the rate threshold.
+                will only execute if the price ratio between subnets doesn't exceed the rate tolerance.
                 Default is False.
             allow_partial_stake (bool): If true and safe_staking is enabled, allows partial stake swaps when
                 the full amount would exceed the price threshold. If false, the entire swap fails if it would
                 exceed the threshold. Default is False.
-            rate_threshold (float): The maximum allowed increase in the price ratio between subnets
+            rate_tolerance (float): The maximum allowed increase in the price ratio between subnets
                 (origin_price/destination_price). For example, 0.005 = 0.5% maximum increase. Only used
                 when safe_staking is True. Default is 0.005.
 
@@ -3570,9 +3570,9 @@ class AsyncSubtensor(SubtensorMixin):
         The price ratio for swap_stake in safe mode is calculated as: origin_subnet_price / destination_subnet_price
         When safe_staking is enabled, the swap will only execute if:
             - With allow_partial_stake=False: The entire swap amount can be executed without the price ratio
-            increasing more than rate_threshold
+            increasing more than rate_tolerance
             - With allow_partial_stake=True: A partial amount will be swapped up to the point where the
-            price ratio would increase by rate_threshold
+            price ratio would increase by rate_tolerance
         """
         amount = check_and_convert_to_balance(amount)
         return await swap_stake_extrinsic(
@@ -3586,7 +3586,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization=wait_for_finalization,
             safe_staking=safe_staking,
             allow_partial_stake=allow_partial_stake,
-            rate_threshold=rate_threshold,
+            rate_tolerance=rate_tolerance,
         )
 
     async def transfer_stake(
@@ -3677,7 +3677,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = False,
         safe_staking: bool = False,
         allow_partial_stake: bool = False,
-        rate_threshold: float = 0.005,
+        rate_tolerance: float = 0.005,
     ) -> bool:
         """
         Removes a specified amount of stake from a single hotkey account. This function is critical for adjusting
@@ -3692,11 +3692,11 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
             safe_staking (bool): If true, enables price safety checks to protect against fluctuating prices. The unstake
-                will only execute if the price change doesn't exceed the rate threshold. Default is False.
+                will only execute if the price change doesn't exceed the rate tolerance. Default is False.
             allow_partial_stake (bool): If true and safe_staking is enabled, allows partial unstaking when
                 the full amount would exceed the price threshold. If false, the entire unstake fails if it would
                 exceed the threshold. Default is False.
-            rate_threshold (float): The maximum allowed price change ratio when unstaking. For example,
+            rate_tolerance (float): The maximum allowed price change ratio when unstaking. For example,
                 0.005 = 0.5% maximum price decrease. Only used when safe_staking is True. Default is 0.005.
 
         Returns:
@@ -3716,7 +3716,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization=wait_for_finalization,
             safe_staking=safe_staking,
             allow_partial_stake=allow_partial_stake,
-            rate_threshold=rate_threshold,
+            rate_tolerance=rate_tolerance,
         )
 
     async def unstake_multiple(
