@@ -1,4 +1,5 @@
 import ast
+import decimal
 import hashlib
 from collections import namedtuple
 from typing import Any, Literal, Union, Optional, TYPE_CHECKING
@@ -163,6 +164,17 @@ def u16_normalized_float(x: int) -> float:
 
 def u64_normalized_float(x: int) -> float:
     return float(x) / float(U64_MAX)
+
+
+def float_to_u64(value: float) -> int:
+    """Converts a float to a u64 int"""
+
+    value = decimal.Decimal(str(value))
+
+    if not (0 <= value <= 1):
+        raise ValueError("Input value must be between 0 and 1")
+
+    return int(value * U64_MAX)
 
 
 def get_hash(content, encoding="utf-8"):
