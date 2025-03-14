@@ -215,23 +215,6 @@ async def root_set_subtensor_hyperparameter_values(
     return response.is_success, ""
 
 
-def set_children(subtensor, wallet, netuid, children):
-    return subtensor.sign_and_send_extrinsic(
-        subtensor.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="set_children",
-            call_params={
-                "children": children,
-                "hotkey": wallet.hotkey.ss58_address,
-                "netuid": netuid,
-            },
-        ),
-        wallet,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
-
-
 def set_identity(
     subtensor,
     wallet,

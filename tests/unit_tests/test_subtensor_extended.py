@@ -12,6 +12,7 @@ from bittensor.core.chain_data.neuron_info import NeuronInfo
 from bittensor.core.chain_data.neuron_info_lite import NeuronInfoLite
 from bittensor.core.chain_data.prometheus_info import PrometheusInfo
 from bittensor.core.chain_data.stake_info import StakeInfo
+from bittensor.utils import U16_MAX, U64_MAX
 from bittensor.utils.balance import Balance
 from tests.helpers.helpers import assert_submit_signed_extrinsic
 
@@ -23,7 +24,7 @@ def mock_delegate_info():
         "total_stake": {},
         "nominators": [],
         "owner_ss58": tuple(bytearray(32)),
-        "take": 2**16 - 1,
+        "take": U16_MAX,
         "validator_permits": [],
         "registrations": [],
         "return_per_1000": 2,
@@ -364,7 +365,7 @@ def test_get_block_hash_none(mock_substrate, subtensor):
 def test_get_children(mock_substrate, subtensor, fake_wallet):
     mock_substrate.query.return_value.value = [
         (
-            2**64 - 1,
+            U64_MAX,
             (tuple(bytearray(32)),),
         ),
     ]
@@ -387,6 +388,38 @@ def test_get_children(mock_substrate, subtensor, fake_wallet):
         module="SubtensorModule",
         storage_function="ChildKeys",
         params=["hotkey_ss58", 1],
+        block_hash=None,
+    )
+
+
+def test_get_children_pending(mock_substrate, subtensor):
+    mock_substrate.query.return_value.value = [
+        [
+            (
+                U64_MAX,
+                (tuple(bytearray(32)),),
+            ),
+        ],
+        123,
+    ]
+
+    children, cooldown = subtensor.get_children_pending(
+        "hotkey_ss58",
+        netuid=1,
+    )
+
+    assert children == [
+        (
+            1.0,
+            "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
+        ),
+    ]
+    assert cooldown == 123
+
+    mock_substrate.query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="PendingChildKeys",
+        params=[1, "hotkey_ss58"],
         block_hash=None,
     )
 
@@ -875,6 +908,39 @@ def test_neurons_lite(mock_substrate, subtensor, mock_neuron_info):
         "get_neurons_lite",
         [1],
         None,
+    )
+
+
+def test_set_children(mock_substrate, subtensor, fake_wallet, mocker):
+    subtensor.set_children(
+        fake_wallet,
+        fake_wallet.hotkey.ss58_address,
+        netuid=1,
+        children=[
+            (
+                1.0,
+                "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
+            ),
+        ],
+    )
+
+    assert_submit_signed_extrinsic(
+        mock_substrate,
+        fake_wallet.coldkey,
+        call_module="SubtensorModule",
+        call_function="set_children",
+        call_params={
+            "children": [
+                (
+                    U64_MAX,
+                    "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
+                )
+            ],
+            "hotkey": fake_wallet.hotkey.ss58_address,
+            "netuid": 1,
+        },
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
     )
 
 
