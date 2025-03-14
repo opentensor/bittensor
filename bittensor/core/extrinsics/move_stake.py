@@ -159,7 +159,7 @@ def swap_stake_extrinsic(
     wait_for_finalization: bool = False,
     safe_staking: bool = False,
     allow_partial_stake: bool = False,
-    rate_threshold: float = 0.005,
+    rate_tolerance: float = 0.005,
 ) -> bool:
     """
     Moves stake between subnets while keeping the same coldkey-hotkey pair ownership.
@@ -174,8 +174,8 @@ def swap_stake_extrinsic(
         wait_for_inclusion (bool): If true, waits for inclusion before returning.
         wait_for_finalization (bool): If true, waits for finalization before returning.
         safe_staking (bool): If true, enables price safety checks to protect against price impact.
-        allow_partial_stake (bool): If true, allows partial stake swaps when the full amount would exceed the price threshold.
-        rate_threshold (float): Maximum allowed increase in price ratio (0.005 = 0.5%).
+        allow_partial_stake (bool): If true, allows partial stake swaps when the full amount would exceed the price tolerance.
+        rate_tolerance (float): Maximum allowed increase in price ratio (0.005 = 0.5%).
 
     Returns:
         success (bool): True if the swap was successful.
@@ -220,7 +220,7 @@ def swap_stake_extrinsic(
             origin_pool = subtensor.subnet(netuid=origin_netuid)
             destination_pool = subtensor.subnet(netuid=destination_netuid)
             swap_rate_ratio = origin_pool.price.rao / destination_pool.price.rao
-            swap_rate_ratio_with_tolerance = swap_rate_ratio * (1 + rate_threshold)
+            swap_rate_ratio_with_tolerance = swap_rate_ratio * (1 + rate_tolerance)
 
             logging.info(
                 f"Swapping stake with safety for hotkey [blue]{hotkey_ss58}[/blue]\n"
