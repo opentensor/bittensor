@@ -77,10 +77,12 @@ from bittensor.core.types import ParamWithTypes, SubtensorMixin
 from bittensor.utils import (
     Certificate,
     decode_hex_identity_dict,
+    float_to_u64,
     format_error_message,
     torch,
     u16_normalized_float,
     u64_normalized_float,
+    unlock_key,
 )
 from bittensor.utils.balance import (
     Balance,
@@ -933,6 +935,57 @@ class AsyncSubtensor(SubtensorMixin):
                 return True, [], ""
         except SubstrateRequestException as e:
             return False, [], format_error_message(e)
+
+    async def get_children_pending(
+        self,
+        hotkey: str,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> tuple[
+        list[tuple[float, str]],
+        int,
+    ]:
+        """
+        This method retrieves the pending children of a given hotkey and netuid.
+        It queries the SubtensorModule's PendingChildKeys storage function.
+
+        Arguments:
+            hotkey (str): The hotkey value.
+            netuid (int): The netuid value.
+            block (Optional[int]): The block number for which the children are to be retrieved.
+            block_hash (Optional[str]): The hash of the block to retrieve the subnet unique identifiers from.
+            reuse_block (bool): Whether to reuse the last-used block hash.
+
+        Returns:
+            list[tuple[float, str]]: A list of children with their proportions.
+            int: The cool-down block number.
+        """
+
+        response = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="PendingChildKeys",
+            params=[netuid, hotkey],
+            block_hash=await self.determine_block_hash(
+                block,
+                block_hash,
+                reuse_block,
+            ),
+            reuse_block_hash=reuse_block,
+        )
+        children, cooldown = response.value
+
+        return (
+            [
+                (
+                    u64_normalized_float(proportion),
+                    decode_account_id(child[0]),
+                )
+                for proportion, child in children
+            ],
+            cooldown,
+        )
 
     async def get_commitment(
         self,
@@ -3267,6 +3320,75 @@ class AsyncSubtensor(SubtensorMixin):
             version_key=version_key,
             wait_for_finalization=wait_for_finalization,
             wait_for_inclusion=wait_for_inclusion,
+        )
+
+    async def set_children(
+        self,
+        wallet: "Wallet",
+        hotkey: str,
+        netuid: int,
+        children: list[tuple[float, str]],
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        raise_error: bool = False,
+    ) -> tuple[bool, str]:
+        """
+        Allows a coldkey to set children keys.
+
+        Arguments:
+            wallet (bittensor_wallet.Wallet): bittensor wallet instance.
+            hotkey (str): The ``SS58`` address of the neuron's hotkey.
+            netuid (int): The netuid value.
+            children (list[tuple[float, str]]): A list of children with their proportions.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            raise_error: Raises relevant exception rather than returning `False` if unsuccessful.
+
+        Returns:
+            tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
+             operation, and the second element is a message providing additional information.
+
+        Raises:
+            DuplicateChild: There are duplicates in the list of children.
+            InvalidChild: Child is the hotkey.
+            NonAssociatedColdKey: The coldkey does not own the hotkey or the child is the same as the hotkey.
+            NotEnoughStakeToSetChildkeys: Parent key doesn't have minimum own stake.
+            ProportionOverflow: The sum of the proportions does exceed uint64.
+            RegistrationNotPermittedOnRootSubnet: Attempting to register a child on the root network.
+            SubNetworkDoesNotExist: Attempting to register to a non-existent network.
+            TooManyChildren: Too many children in request.
+            TxRateLimitExceeded: Hotkey hit the rate limit.
+            bittensor_wallet.errors.KeyFileError: Failed to decode keyfile data.
+            bittensor_wallet.errors.PasswordError: Decryption failed or wrong password for decryption provided.
+        """
+
+        unlock = unlock_key(wallet, raise_error=raise_error)
+
+        if not unlock.success:
+            return False, unlock.message
+
+        call = await self.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="set_children",
+            call_params={
+                "children": [
+                    (
+                        float_to_u64(proportion),
+                        child_hotkey,
+                    )
+                    for proportion, child_hotkey in children
+                ],
+                "hotkey": hotkey,
+                "netuid": netuid,
+            },
+        )
+
+        return await self.sign_and_send_extrinsic(
+            call,
+            wallet,
+            wait_for_inclusion,
+            wait_for_finalization,
+            raise_error=raise_error,
         )
 
     async def set_delegate_take(
