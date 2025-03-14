@@ -21,7 +21,7 @@ def add_stake_extrinsic(
     wait_for_finalization: bool = False,
     safe_staking: bool = False,
     allow_partial_stake: bool = False,
-    rate_threshold: float = 0.005,
+    rate_tolerance: float = 0.005,
 ) -> bool:
     """
     Adds the specified amount of stake to passed hotkey `uid`.
@@ -37,8 +37,8 @@ def add_stake_extrinsic(
         wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning `True`,
             or returns `False` if the extrinsic fails to be finalized within the timeout.
         safe_staking (bool): If true, enables price safety checks
-        allow_partial_stake (bool): If true, allows partial unstaking if price threshold exceeded
-        rate_threshold (float): Maximum allowed price increase percentage (0.005 = 0.5%)
+        allow_partial_stake (bool): If true, allows partial unstaking if price tolerance exceeded
+        rate_tolerance (float): Maximum allowed price increase percentage (0.005 = 0.5%)
 
     Returns:
         success: Flag is `True` if extrinsic was finalized or included in the block. If we did not wait for
@@ -106,16 +106,16 @@ def add_stake_extrinsic(
         if safe_staking:
             pool = subtensor.subnet(netuid=netuid)
             base_price = pool.price.rao
-            price_with_tolerance = base_price * (1 + rate_threshold)
+            price_with_tolerance = base_price * (1 + rate_tolerance)
 
             # For logging
             base_rate = pool.price.tao
-            rate_with_tolerance = base_rate * (1 + rate_threshold)
+            rate_with_tolerance = base_rate * (1 + rate_tolerance)
 
             logging.info(
                 f":satellite: [magenta]Safe Staking to:[/magenta] "
                 f"[blue]netuid: [green]{netuid}[/green], amount: [green]{staking_balance}[/green], "
-                f"tolerance percentage: [green]{rate_threshold*100}%[/green], "
+                f"tolerance percentage: [green]{rate_tolerance*100}%[/green], "
                 f"price limit: [green]{rate_with_tolerance}[/green], "
                 f"original price: [green]{base_rate}[/green], "
                 f"with partial stake: [green]{allow_partial_stake}[/green] "
