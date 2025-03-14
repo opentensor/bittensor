@@ -7,6 +7,7 @@ from numpy.typing import NDArray
 
 from bittensor.core.errors import SubstrateRequestException
 from bittensor.utils import u16_normalized_float, format_error_message, unlock_key
+from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import (
     normalize_max_weight,
@@ -62,6 +63,33 @@ async def root_register_extrinsic(
             the response is `True`.
     """
     netuid = 0
+    logging.info(
+        f"Registering on netuid [blue]{netuid}[/blue] on network: [blue]{subtensor.network}[/blue]"
+    )
+
+    logging.info("Fetching recycle amount & balance.")
+    block_hash = await subtensor.get_block_hash()
+    recycle_call, balance = await asyncio.gather(
+        subtensor.get_hyperparameter(
+            param_name="Burn",
+            netuid=netuid,
+            block_hash=block_hash,
+        ),
+        subtensor.get_balance(
+            wallet.coldkeypub.ss58_address,
+            block_hash=block_hash,
+        ),
+    )
+
+    current_recycle = Balance.from_rao(int(recycle_call))
+
+    if balance < current_recycle:
+        logging.error(
+            f"[red]Insufficient balance {balance} to register neuron. "
+            f"Current recycle is {current_recycle} TAO[/red]."
+        )
+        return False
+
     if not (unlock := unlock_key(wallet)).success:
         logging.error(unlock.message)
         return False
