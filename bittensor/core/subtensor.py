@@ -1468,10 +1468,11 @@ class Subtensor(SubtensorMixin):
             params=[proposal_hash],
             block_hash=self.determine_block_hash(block),
         )
+
         if vote_data is None:
             return None
-        else:
-            return ProposalVoteData(vote_data)
+
+        return ProposalVoteData.from_dict(vote_data)
 
     def get_uid_for_hotkey_on_subnet(
         self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
