@@ -103,4 +103,4 @@ jobs:
 #          pip install pytest
 
       - name: Run tests
-        run: pytest ${{ matrix.test-file }} -s
+        run: uv run pytest ${{ matrix.test-file }} -s
