@@ -94,4 +94,6 @@ jobs:
 
       - name: Run tests
         run: |
+          pip install -e .[dev]
+          pip install pytest
           pytest ${{ matrix.test-file }} -s
