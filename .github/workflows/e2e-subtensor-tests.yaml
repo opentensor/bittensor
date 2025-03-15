@@ -60,6 +60,30 @@ jobs:
           name: subtensor-localnet
           path: subtensor-localnet.tar
 
+  create_venv:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v4
+
+      - name: Create Python virtual environment
+        run: python -m venv ${{ github.workspace }}/venv
+
+      - name: Install dependencies
+        run: |
+          ${{ github.workspace }}/venv/bin/pip install -e .[dev]
+          ${{ github.workspace }}/venv/bin/pip install pytest
+
+      - name: Upload virtual environment as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: venv
+          path: ${{ github.workspace }}/venv
+
+
   # Job to run tests in parallel
   run:
     needs:
@@ -69,14 +93,28 @@ jobs:
     timeout-minutes: 45
     strategy:
       fail-fast: false  # Allow other matrix jobs to run even if this job fails
-      max-parallel: 8  # Set the maximum number of parallel jobs
+      max-parallel: 32  # Set the maximum number of parallel jobs (same as we have cores in SubtensorCI runner)
       matrix:
         os:
           - ubuntu-latest
         test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
     steps:
-      - name: Check-out repository under $GITHUB_WORKSPACE
+      - name: Check-out repository
         uses: actions/checkout@v4
+
+      - name: Download virtual environment
+        uses: actions/download-artifact@v4
+        with:
+          name: venv
+          path: venv
+
+      - name: Install Python
+        uses: actions/setup-python@v4
+
+      - name: Install requirements
+        run: |
+          ${{ github.workspace }}/venv/bin/pip install -e .[dev]
+          ${{ github.workspace }}/venv/bin/pip install pytest
 
 #      - name: Install uv
 #        uses: astral-sh/setup-uv@v4
@@ -94,6 +132,4 @@ jobs:
 
       - name: Run tests
         run: |
-          pip install -e .[dev]
-          pip install pytest
-          pytest ${{ matrix.test-file }} -s
+          ${{ github.workspace }}/venv/bin/pytest ${{ matrix.test-file }} -s
