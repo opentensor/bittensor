@@ -89,6 +89,7 @@ jobs:
     needs:
       - find-tests
       - pull-docker-image
+      - create_venv
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
