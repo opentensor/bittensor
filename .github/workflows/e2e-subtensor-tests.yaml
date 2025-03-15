@@ -26,30 +26,6 @@ env:
 # job to run tests in parallel
 jobs:
 
-  get-latest-artifact-id:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Fetch Artifacts List
-        id: fetch_artifacts
-        run: |
-          ARTIFACTS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/opentensor/subtensor/actions/artifacts)
-          echo "$ARTIFACTS" > artifacts.json
-          
-          echo "Raw ARTIFACTS response:"
-          echo "$ARTIFACTS"
-
-      - name: Parse Latest Artifact ID
-        id: parse_artifact
-        run: |
-          LATEST_ARTIFACT_ID=$(jq -r '.artifacts[0].id' artifacts.json)
-          echo "LATEST_ARTIFACT_ID=$LATEST_ARTIFACT_ID" >> $GITHUB_ENV
-
-      - name: Print Latest Artifact ID
-        run: |
-          echo "Latest Artifact ID: ${{ env.LATEST_ARTIFACT_ID }}"
-
-  # Job to find all test files
   find-tests:
     runs-on: ubuntu-latest
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
@@ -66,81 +42,57 @@ jobs:
           echo "::set-output name=test-files::$test_files"
         shell: bash
 
+  pull-docker-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to GitHub Container Registry (если образ приватный)
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
+
+      - name: Pull Docker Image
+        run: docker pull ghcr.io/opentensor/subtensor-localnet:latest
+
+      - name: Save Docker Image to Cache
+        run: docker save -o subtensor-localnet.tar ghcr.io/opentensor/subtensor-localnet:latest
+
+      - name: Upload Docker Image as Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: subtensor-localnet
+          path: subtensor-localnet.tar
+          retention-days: 1
+
   # Job to run tests in parallel
   run:
-    needs: find-tests
+    needs:
+      - find-tests
+      - pull-docker-image
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
       fail-fast: false  # Allow other matrix jobs to run even if this job fails
       max-parallel: 8  # Set the maximum number of parallel jobs
       matrix:
-        rust-branch:
-          - stable
-        rust-target:
-          - x86_64-unknown-linux-gnu
         os:
           - ubuntu-latest
         test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
-    env:
-      RELEASE_NAME: development
-      RUSTV: ${{ matrix.rust-branch }}
-      RUST_BACKTRACE: full
-      RUST_BIN_DIR: target/${{ matrix.rust-target }}
-      TARGET: ${{ matrix.rust-target }}
     steps:
       - name: Check-out repository under $GITHUB_WORKSPACE
         uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update &&
-          sudo apt-get install -y clang curl libssl-dev llvm libudev-dev protobuf-compiler
+#      - name: Install uv
+#        uses: astral-sh/setup-uv@v4
+#
+#      - name: install dependencies
+#        run: uv sync --all-extras --dev
 
-      - name: Install Rust ${{ matrix.rust-branch }}
-        uses: actions-rs/toolchain@v1.0.6
+      - name: Download Cached Docker Image
+        uses: actions/download-artifact@v4
         with:
-          toolchain: ${{ matrix.rust-branch }}
-          components: rustfmt
-          profile: minimal
+          name: subtensor-localnet
 
-      - name: Add wasm32-unknown-unknown target
-        run: |
-          rustup target add wasm32-unknown-unknown --toolchain stable-x86_64-unknown-linux-gnu
-          rustup component add rust-src --toolchain stable-x86_64-unknown-linux-gnu
-
-      - name: Clone subtensor repo
-        run: git clone https://github.com/opentensor/subtensor.git
-
-      - name: Setup subtensor repo
-        working-directory: ${{ github.workspace }}/subtensor
-        run: git checkout devnet-ready-with-nodes
-
-      - name: Print files and OS info
-        working-directory: ${{ github.workspace }}/subtensor
-        run: |
-          sudo apt install file
-          echo "File fast-blocks"
-          file ${{ github.workspace }}/subtensor/nodes/fast-blocks/release/node-subtensor
-          echo "File non-fast-blocks"
-          file ${{ github.workspace }}/subtensor/nodes/non-fast-blocks/release/node-subtensor
-          
-          echo "uname -m && uname -r"
-          uname -m && uname -r
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-
-      - name: install dependencies
-        run: uv sync --all-extras --dev
+      - name: Load Docker Image
+        run: docker load -i subtensor-localnet.tar
 
       - name: Run tests
         run: |
-          ls -lash ${{ github.workspace }}/subtensor/nodes
-          LOCALNET_SH_PATH="${{ github.workspace }}/subtensor/scripts/localnet.sh" uv run pytest ${{ matrix.test-file }} -s
-
-      - name: Retry failed tests
-        if: failure()
-        run: |
-          sleep 10
-          LOCALNET_SH_PATH="${{ github.workspace }}/subtensor/scripts/localnet.sh" uv run pytest ${{ matrix.test-file }} -s
+          pytest ${{ matrix.test-file }} -s
