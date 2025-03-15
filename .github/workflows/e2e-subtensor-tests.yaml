@@ -60,36 +60,11 @@ jobs:
           name: subtensor-localnet
           path: subtensor-localnet.tar
 
-  create_venv:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Install Python
-        uses: actions/setup-python@v4
-
-      - name: Create Python virtual environment
-        run: python -m venv ${{ github.workspace }}/venv
-
-      - name: Install dependencies
-        run: |
-          ${{ github.workspace }}/venv/bin/pip install -e .[dev]
-          ${{ github.workspace }}/venv/bin/pip install pytest
-
-      - name: Upload virtual environment as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: venv
-          path: ${{ github.workspace }}/venv
-
-
   # Job to run tests in parallel
   run:
     needs:
       - find-tests
       - pull-docker-image
-      - create_venv
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
@@ -111,11 +86,8 @@ jobs:
 
       - name: Install Python
         uses: actions/setup-python@v4
-
-      - name: Install requirements
-        run: |
-          ${{ github.workspace }}/venv/bin/pip install -e .[dev]
-          ${{ github.workspace }}/venv/bin/pip install pytest
+        with:
+          python-version: '3.12'
 
 #      - name: Install uv
 #        uses: astral-sh/setup-uv@v4
@@ -131,6 +103,10 @@ jobs:
       - name: Load Docker Image
         run: docker load -i subtensor-localnet.tar
 
-      - name: Run tests
+      - name: Install requirements
         run: |
-          ${{ github.workspace }}/venv/bin/pytest ${{ matrix.test-file }} -s
+          pip install -e .[dev]
+          pip install pytest
+
+      - name: Run tests
+        run: pytest ${{ matrix.test-file }} -s
