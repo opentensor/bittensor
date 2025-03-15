@@ -78,12 +78,6 @@ jobs:
       - name: Check-out repository
         uses: actions/checkout@v4
 
-      - name: Download virtual environment
-        uses: actions/download-artifact@v4
-        with:
-          name: venv
-          path: venv
-
       - name: Install Python
         uses: actions/setup-python@v4
         with:
