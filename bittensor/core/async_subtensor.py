@@ -1575,6 +1575,72 @@ class AsyncSubtensor(SubtensorMixin):
 
         return Balance.from_rao(int(stake)).set_unit(netuid=netuid)
 
+    async def get_stake_fee(
+        self,
+        origin_hotkey_ss58: Optional[str],
+        origin_netuid: Optional[int],
+        origin_coldkey_ss58: str,
+        destination_hotkey_ss58: Optional[str],
+        destination_netuid: Optional[int],
+        destination_coldkey_ss58: str,
+        amount: int,
+        block_hash: Optional[str] = None,
+    ) -> Balance:
+        """
+        Calculates the fee for a staking operation.
+
+        :param origin_hotkey_ss58: SS58 address of source hotkey (None for new stake)
+        :param origin_netuid: Netuid of source subnet (None for new stake)
+        :param origin_coldkey_ss58: SS58 address of source coldkey
+        :param destination_hotkey_ss58: SS58 address of destination hotkey (None for removing stake)
+        :param destination_netuid: Netuid of destination subnet (None for removing stake)
+        :param destination_coldkey_ss58: SS58 address of destination coldkey
+        :param amount: Amount of stake to transfer in RAO
+        :param block_hash: Optional block hash at which to perform the calculation
+
+        :return: The calculated stake fee as a Balance object
+
+        When to use None:
+
+        1. Adding new stake (default fee):
+        - origin_hotkey_ss58 = None
+        - origin_netuid = None
+        - All other fields required
+
+        2. Removing stake (default fee):
+        - destination_hotkey_ss58 = None
+        - destination_netuid = None
+        - All other fields required
+
+        For all other operations, no None values - provide all parameters:
+        3. Moving between subnets
+        4. Moving between hotkeys
+        5. Moving between coldkeys
+        """
+
+        origin = None
+        if origin_hotkey_ss58 is not None and origin_netuid is not None:
+            origin = (origin_hotkey_ss58, origin_netuid)
+
+        destination = None
+        if destination_hotkey_ss58 is not None and destination_netuid is not None:
+            destination = (destination_hotkey_ss58, destination_netuid)
+
+        result = await self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_stake_fee",
+            params=[
+                origin,
+                origin_coldkey_ss58,
+                destination,
+                destination_coldkey_ss58,
+                amount,
+            ],
+            block_hash=block_hash,
+        )
+
+        return Balance.from_rao(result if result is not None else 0)
+
     async def get_stake_for_coldkey_and_hotkey(
         self,
         coldkey_ss58: str,
