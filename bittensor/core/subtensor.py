@@ -1243,7 +1243,7 @@ class Subtensor(SubtensorMixin):
             ],
             block=block,
         )
-        return Balance.from_tao(result)
+        return Balance.from_rao(result)
 
     def get_unstake_fee(
         self,
@@ -1278,7 +1278,7 @@ class Subtensor(SubtensorMixin):
             ],
             block=block,
         )
-        return Balance.from_tao(result)
+        return Balance.from_rao(result)
 
     def get_stake_movement_fee(
         self,
@@ -1319,7 +1319,7 @@ class Subtensor(SubtensorMixin):
             ],
             block=block,
         )
-        return Balance.from_tao(result)
+        return Balance.from_rao(result)
 
     def get_stake_for_coldkey_and_hotkey(
         self,
