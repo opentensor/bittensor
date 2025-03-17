@@ -1,19 +1,19 @@
 import os
 import re
-import shutil
 import shlex
+import shutil
 import signal
 import subprocess
 import sys
 import threading
 import time
-from bittensor.utils.btlogging import logging
 
 import pytest
 from async_substrate_interface import SubstrateInterface
 
 from bittensor.core.async_subtensor import AsyncSubtensor
 from bittensor.core.subtensor import Subtensor
+from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.e2e_test_utils import (
     Templates,
     setup_wallet,
@@ -55,24 +55,24 @@ def local_chain(request):
     """Determines whether to run the localnet.sh script in a subprocess or a Docker container."""
     args = request.param if hasattr(request, "param") else None
     params = "" if args is None else f"{args}"
-    if shutil.which("docker"):
+    if shutil.which("docker") and not os.getenv("USE_DOCKER") == "0":
         yield from docker_runner(params)
-        return
-
-    if sys.platform.startswith("linux"):
-        docker_commend = (
-            "Install docker with command "
-            "[blue]sudo apt-get update && sudo apt-get install docker.io -y[/blue]"
-        )
-    elif sys.platform == "darwin":
-        docker_commend = "Install docker with command [blue]brew install docker[/blue]"
     else:
-        docker_commend = "[blue]Unknown OS, install Docker manually: https://docs.docker.com/get-docker/[/blue]"
+        if not os.getenv("USE_DOCKER") == "0":
+            if sys.platform.startswith("linux"):
+                docker_command = (
+                    "Install docker with command "
+                    "[blue]sudo apt-get update && sudo apt-get install docker.io -y[/blue]"
+                )
+            elif sys.platform == "darwin":
+                docker_command = "Install docker with command [blue]brew install docker[/blue] or use documentation [blue]https://docs.docker.com/engine/install/[/blue]"
+            else:
+                docker_command = "[blue]Unknown OS, install Docker manually: https://docs.docker.com/get-docker/[/blue]"
 
-    logging.warning("Docker not found in the operating system!")
-    logging.warning(docker_commend)
-    logging.warning("Tests are run in legacy mode.")
-    yield from legacy_runner(request)
+            logging.warning("Docker not found in the operating system!")
+            logging.warning(docker_command)
+            logging.warning("Tests are run in legacy mode.")
+        yield from legacy_runner(request)
 
 
 def legacy_runner(params):
@@ -103,7 +103,8 @@ def legacy_runner(params):
         except TimeoutError:
             raise
         else:
-            yield SubstrateInterface(url="ws://127.0.0.1:9944")
+            with SubstrateInterface(url="ws://127.0.0.1:9944") as substrate:
+                yield substrate
         finally:
             # Terminate the process group (includes all child processes)
             os.killpg(os.getpgid(process.pid), signal.SIGTERM)
@@ -118,6 +119,44 @@ def legacy_runner(params):
 
 def docker_runner(params):
     """Starts a Docker container before tests and gracefully terminates it after."""
+
+    def is_docker_running():
+        """Check if Docker has been run."""
+        try:
+            subprocess.run(
+                ["docker", "info"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=True,
+            )
+            return True
+        except subprocess.CalledProcessError:
+            return False
+
+    def try_start_docker():
+        """Run docker based on OS."""
+        try:
+            subprocess.run(["open", "-a", "Docker"], check=True)  # macOS
+        except FileNotFoundError:
+            try:
+                subprocess.run(["systemctl", "start", "docker"], check=True)  # Linux
+            except FileNotFoundError:
+                try:
+                    subprocess.run(
+                        ["sudo", "service", "docker", "start"], check=True
+                    )  # Linux alternative
+                except FileNotFoundError:
+                    print("Failed to start Docker. Manual start may be required.")
+                    return False
+
+        # Wait Docker run 10 attempts with 3 sec waits
+        for _ in range(10):
+            if is_docker_running():
+                return True
+            time.sleep(3)
+
+        print("Docker wasn't run. Manual start may be required.")
+        return False
 
     container_name = f"test_local_chain_{str(time.time()).replace(".", "_")}"
     image_name = "ghcr.io/opentensor/subtensor-localnet:latest"
@@ -137,6 +176,8 @@ def docker_runner(params):
         params,
     ]
 
+    try_start_docker()
+
     # Start container
     with subprocess.Popen(
         cmds,
@@ -147,7 +188,7 @@ def docker_runner(params):
     ) as process:
         try:
             try:
-                wait_for_node_start(process, int(time.time()))
+                wait_for_node_start(process, timestamp=int(time.time()))
             except TimeoutError:
                 raise
 
@@ -159,7 +200,8 @@ def docker_runner(params):
             if not result.stdout.strip():
                 raise RuntimeError("Docker container failed to start.")
 
-            yield SubstrateInterface(url="ws://127.0.0.1:9944")
+            with SubstrateInterface(url="ws://127.0.0.1:9944") as substrate:
+                yield substrate
 
         finally:
             try:
