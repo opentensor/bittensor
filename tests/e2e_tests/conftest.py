@@ -140,15 +140,15 @@ def docker_runner(params):
         """Run docker based on OS."""
         try:
             subprocess.run(["open", "-a", "Docker"], check=True)  # macOS
-        except FileNotFoundError:
+        except (FileNotFoundError, subprocess.CalledProcessError):
             try:
                 subprocess.run(["systemctl", "start", "docker"], check=True)  # Linux
-            except FileNotFoundError:
+            except (FileNotFoundError, subprocess.CalledProcessError):
                 try:
                     subprocess.run(
                         ["sudo", "service", "docker", "start"], check=True
                     )  # Linux alternative
-                except FileNotFoundError:
+                except (FileNotFoundError, subprocess.CalledProcessError):
                     print("Failed to start Docker. Manual start may be required.")
                     return False
 
