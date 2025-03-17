@@ -2611,97 +2611,6 @@ def test_get_minimum_required_stake_query_failure(mocker, subtensor):
     )
 
 
-def test_get_stake_fee_parameter_handling(mocker, subtensor):
-    """Test get_stake_fee parameter handling, focusing on None cases and tuple creation."""
-    # Mock data
-    fake_hotkey = "hk1"
-    fake_hotkey2 = "hk2"
-    fake_coldkey = "ck1"
-    fake_amount = Balance.from_tao(100)
-    netuid = 1
-    fake_fee = 1_000_000
-
-    # Mock return fee
-    mock_query = mocker.patch.object(
-        subtensor,
-        "query_runtime_api",
-        side_effect=lambda runtime_api, method, params, block: (
-            fake_fee
-            if runtime_api == "StakeInfoRuntimeApi" and method == "get_stake_fee"
-            else None
-        ),
-    )
-
-    # Test Cases
-    test_cases = [
-        # 1. Adding new stake (origin is None)
-        {
-            "name": "new_stake",
-            "params": {
-                "origin_hotkey_ss58": None,
-                "origin_netuid": None,
-                "origin_coldkey_ss58": fake_coldkey,
-                "destination_hotkey_ss58": fake_hotkey,
-                "destination_netuid": netuid,
-                "destination_coldkey_ss58": fake_coldkey,
-                "amount": fake_amount,
-            },
-            "expected_origin": None,
-            "expected_destination": (fake_hotkey, netuid),
-        },
-        # 2. Removing stake (destination is None)
-        {
-            "name": "remove_stake",
-            "params": {
-                "origin_hotkey_ss58": fake_hotkey,
-                "origin_netuid": netuid,
-                "origin_coldkey_ss58": fake_coldkey,
-                "destination_hotkey_ss58": None,
-                "destination_netuid": None,
-                "destination_coldkey_ss58": fake_coldkey,
-                "amount": fake_amount,
-            },
-            "expected_origin": (fake_hotkey, netuid),
-            "expected_destination": None,
-        },
-        # 3. All parameters present
-        {
-            "name": "all_parameters",
-            "params": {
-                "origin_hotkey_ss58": fake_hotkey,
-                "origin_netuid": netuid,
-                "origin_coldkey_ss58": fake_coldkey,
-                "destination_hotkey_ss58": fake_hotkey2,
-                "destination_netuid": netuid,
-                "destination_coldkey_ss58": fake_coldkey,
-                "amount": fake_amount,
-            },
-            "expected_origin": (fake_hotkey, netuid),
-            "expected_destination": (fake_hotkey2, netuid),
-        },
-    ]
-
-    for test_case in test_cases:
-        mock_query.reset_mock()
-
-        result = subtensor.get_stake_fee(**test_case["params"])
-        assert isinstance(result, Balance)
-        assert result == Balance.from_rao(fake_fee)
-
-        mock_query.assert_called_once_with(
-            runtime_api="StakeInfoRuntimeApi",
-            method="get_stake_fee",
-            params=[
-                test_case["expected_origin"],
-                test_case["params"]["origin_coldkey_ss58"],
-                test_case["expected_destination"],
-                test_case["params"]["destination_coldkey_ss58"],
-                test_case["params"]["amount"],
-            ],
-            block=None,
-        )
-
-
 def test_get_minimum_required_stake_invalid_result(mocker, subtensor):
     """Test when the result cannot be decoded."""
     # Mock data
@@ -3333,3 +3242,93 @@ def test_get_timestamp(mocker, subtensor):
     )
     actual_result = subtensor.get_timestamp(block=fake_block)
     assert expected_result == actual_result
+
+
+def test_stake_fee_methods(mocker, subtensor):
+    """Test the three stake fee calculation methods."""
+    # Mock data
+    fake_hotkey = "hk1"
+    fake_coldkey = "ck1"
+    fake_amount = Balance.from_tao(100)
+    netuid = 1
+    fake_fee = 1_000_000
+
+    # Mock return fee
+    mock_query = mocker.patch.object(
+        subtensor,
+        "query_runtime_api",
+        side_effect=lambda runtime_api, method, params, block: (
+            fake_fee
+            if runtime_api == "StakeInfoRuntimeApi" and method == "get_stake_fee"
+            else None
+        ),
+    )
+
+    # get_stake_add_fee
+    result = subtensor.get_stake_add_fee(
+        amount=fake_amount,
+        netuid=netuid,
+        coldkey_ss58=fake_coldkey,
+        hotkey_ss58=fake_hotkey,
+    )
+    assert isinstance(result, Balance)
+    assert result == Balance.from_rao(fake_fee)
+    mock_query.assert_called_with(
+        runtime_api="StakeInfoRuntimeApi",
+        method="get_stake_fee",
+        params=[
+            None,
+            fake_coldkey,
+            (fake_hotkey, netuid),
+            fake_coldkey,
+            fake_amount.rao,
+        ],
+        block=None,
+    )
+
+    # get_unstake_fee
+    result = subtensor.get_unstake_fee(
+        amount=fake_amount,
+        netuid=netuid,
+        coldkey_ss58=fake_coldkey,
+        hotkey_ss58=fake_hotkey,
+    )
+    assert isinstance(result, Balance)
+    assert result == Balance.from_rao(fake_fee)
+    mock_query.assert_called_with(
+        runtime_api="StakeInfoRuntimeApi",
+        method="get_stake_fee",
+        params=[
+            None,
+            fake_coldkey,
+            (fake_hotkey, netuid),
+            fake_coldkey,
+            fake_amount.rao,
+        ],
+        block=None,
+    )
+
+    # get_stake_movement_fee
+    result = subtensor.get_stake_movement_fee(
+        amount=fake_amount,
+        origin_netuid=2,
+        origin_hotkey_ss58=fake_hotkey,
+        origin_coldkey_ss58=fake_coldkey,
+        destination_netuid=3,
+        destination_hotkey_ss58="hk2",
+        destination_coldkey_ss58=fake_coldkey,
+    )
+    assert isinstance(result, Balance)
+    assert result == Balance.from_rao(fake_fee)
+    mock_query.assert_called_with(
+        runtime_api="StakeInfoRuntimeApi",
+        method="get_stake_fee",
+        params=[
+            (fake_hotkey, 2),
+            fake_coldkey,
+            ("hk2", 3),
+            fake_coldkey,
+            fake_amount.rao,
+        ],
+        block=None,
+    )
