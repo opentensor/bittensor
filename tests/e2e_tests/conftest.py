@@ -66,7 +66,9 @@ def local_chain(request):
                     " or use documentation [blue]https://docs.docker.com/engine/install/[/blue]"
                 )
             elif sys.platform == "darwin":
-                docker_command = "Install docker with command [blue]brew install docker[/blue]"
+                docker_command = (
+                    "Install docker with command [blue]brew install docker[/blue]"
+                )
             else:
                 docker_command = "[blue]Unknown OS, install Docker manually: https://docs.docker.com/get-docker/[/blue]"
 
