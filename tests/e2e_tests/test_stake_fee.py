@@ -39,6 +39,9 @@ async def test_stake_fee_api(local_chain, subtensor, alice_wallet, bob_wallet):
         amount=stake_amount,
     )
     assert isinstance(stake_fee_0, Balance), "Stake fee should be a Balance object"
+    assert (
+        stake_fee_0 >= MIN_STAKE_FEE
+    ), "Stake fee should be greater than the minimum stake fee"
 
     # Remove stake
     stake_fee_1 = subtensor.get_stake_fee(
@@ -51,6 +54,9 @@ async def test_stake_fee_api(local_chain, subtensor, alice_wallet, bob_wallet):
         amount=stake_amount,
     )
     assert isinstance(stake_fee_1, Balance), "Stake fee should be a Balance object"
+    assert (
+        stake_fee_1 >= MIN_STAKE_FEE
+    ), "Stake fee should be greater than the minimum stake fee"
 
     # Move from root to non-root
     stake_fee_2 = subtensor.get_stake_fee(
@@ -63,6 +69,9 @@ async def test_stake_fee_api(local_chain, subtensor, alice_wallet, bob_wallet):
         amount=stake_amount,
     )
     assert isinstance(stake_fee_2, Balance), "Stake fee should be a Balance object"
+    assert (
+        stake_fee_2 >= MIN_STAKE_FEE
+    ), "Stake fee should be greater than the minimum stake fee"
 
     # Move between hotkeys on root
     stake_fee_3 = subtensor.get_stake_fee(
@@ -75,6 +84,9 @@ async def test_stake_fee_api(local_chain, subtensor, alice_wallet, bob_wallet):
         amount=stake_amount,
     )
     assert isinstance(stake_fee_3, Balance), "Stake fee should be a Balance object"
+    assert (
+        stake_fee_3 >= MIN_STAKE_FEE
+    ), "Stake fee should be greater than the minimum stake fee"
 
     # Move between coldkeys on root
     stake_fee_4 = subtensor.get_stake_fee(
@@ -87,6 +99,9 @@ async def test_stake_fee_api(local_chain, subtensor, alice_wallet, bob_wallet):
         amount=stake_amount,
     )
     assert isinstance(stake_fee_4, Balance), "Stake fee should be a Balance object"
+    assert (
+        stake_fee_4 >= MIN_STAKE_FEE
+    ), "Stake fee should be greater than the minimum stake fee"
 
     # Swap from non-root to root
     stake_fee_5 = subtensor.get_stake_fee(
@@ -99,6 +114,9 @@ async def test_stake_fee_api(local_chain, subtensor, alice_wallet, bob_wallet):
         amount=stake_amount,
     )
     assert isinstance(stake_fee_5, Balance), "Stake fee should be a Balance object"
+    assert (
+        stake_fee_5 >= MIN_STAKE_FEE
+    ), "Stake fee should be greater than the minimum stake fee"
 
     # Move between hotkeys on non-root
     stake_fee_6 = subtensor.get_stake_fee(
@@ -111,6 +129,9 @@ async def test_stake_fee_api(local_chain, subtensor, alice_wallet, bob_wallet):
         amount=stake_amount,
     )
     assert isinstance(stake_fee_6, Balance), "Stake fee should be a Balance object"
+    assert (
+        stake_fee_6 >= MIN_STAKE_FEE
+    ), "Stake fee should be greater than the minimum stake fee"
 
     # Move between coldkeys on non-root
     stake_fee_7 = subtensor.get_stake_fee(
@@ -123,6 +144,9 @@ async def test_stake_fee_api(local_chain, subtensor, alice_wallet, bob_wallet):
         amount=stake_amount,
     )
     assert isinstance(stake_fee_7, Balance), "Stake fee should be a Balance object"
+    assert (
+        stake_fee_7 >= MIN_STAKE_FEE
+    ), "Stake fee should be greater than the minimum stake fee"
 
     # Swap from non-root to non-root (between subnets)
     netuid2 = 3
@@ -141,14 +165,6 @@ async def test_stake_fee_api(local_chain, subtensor, alice_wallet, bob_wallet):
         amount=stake_amount,
     )
     assert isinstance(stake_fee_8, Balance), "Stake fee should be a Balance object"
-
-    # Verify all fees are non-zero
-    assert stake_fee_0 >= MIN_STAKE_FEE, "Stake fee should be greater than 0"
-    assert stake_fee_1 >= MIN_STAKE_FEE, "Stake fee should be greater than 0"
-    assert stake_fee_2 >= MIN_STAKE_FEE, "Stake fee should be greater than 0"
-    assert stake_fee_3 >= MIN_STAKE_FEE, "Stake fee should be greater than 0"
-    assert stake_fee_4 >= MIN_STAKE_FEE, "Stake fee should be greater than 0"
-    assert stake_fee_5 >= MIN_STAKE_FEE, "Stake fee should be greater than 0"
-    assert stake_fee_6 >= MIN_STAKE_FEE, "Stake fee should be greater than 0"
-    assert stake_fee_7 >= MIN_STAKE_FEE, "Stake fee should be greater than 0"
-    assert stake_fee_8 >= MIN_STAKE_FEE, "Stake fee should be greater than 0"
+    assert (
+        stake_fee_8 >= MIN_STAKE_FEE
+    ), "Stake fee should be greater than the minimum stake fee"
