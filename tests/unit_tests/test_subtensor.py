@@ -3299,9 +3299,9 @@ def test_stake_fee_methods(mocker, subtensor):
         runtime_api="StakeInfoRuntimeApi",
         method="get_stake_fee",
         params=[
-            None,
-            fake_coldkey,
             (fake_hotkey, netuid),
+            fake_coldkey,
+            None,
             fake_coldkey,
             fake_amount.rao,
         ],
