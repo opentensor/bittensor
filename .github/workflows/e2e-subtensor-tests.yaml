@@ -25,7 +25,7 @@ env:
 
 # job to run tests in parallel
 jobs:
-  # Job to find all test files
+
   find-tests:
     runs-on: ubuntu-latest
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
@@ -42,55 +42,41 @@ jobs:
           echo "::set-output name=test-files::$test_files"
         shell: bash
 
+  pull-docker-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
+
+      - name: Pull Docker Image
+        run: docker pull ghcr.io/opentensor/subtensor-localnet:latest
+
+      - name: Save Docker Image to Cache
+        run: docker save -o subtensor-localnet.tar ghcr.io/opentensor/subtensor-localnet:latest
+
+      - name: Upload Docker Image as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: subtensor-localnet
+          path: subtensor-localnet.tar
+
   # Job to run tests in parallel
   run:
-    needs: find-tests
-    runs-on: SubtensorCI
+    needs:
+      - find-tests
+      - pull-docker-image
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
       fail-fast: false  # Allow other matrix jobs to run even if this job fails
-      max-parallel: 8  # Set the maximum number of parallel jobs
+      max-parallel: 32  # Set the maximum number of parallel jobs (same as we have cores in SubtensorCI runner)
       matrix:
-        rust-branch:
-          - stable
-        rust-target:
-          - x86_64-unknown-linux-gnu
         os:
           - ubuntu-latest
         test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
-    env:
-      RELEASE_NAME: development
-      RUSTV: ${{ matrix.rust-branch }}
-      RUST_BACKTRACE: full
-      RUST_BIN_DIR: target/${{ matrix.rust-target }}
-      TARGET: ${{ matrix.rust-target }}
     steps:
-      - name: Check-out repository under $GITHUB_WORKSPACE
+      - name: Check-out repository
         uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update &&
-          sudo apt-get install -y clang curl libssl-dev llvm libudev-dev protobuf-compiler
-
-      - name: Install Rust ${{ matrix.rust-branch }}
-        uses: actions-rs/toolchain@v1.0.6
-        with:
-          toolchain: ${{ matrix.rust-branch }}
-          components: rustfmt
-          profile: minimal
-
-      - name: Add wasm32-unknown-unknown target
-        run: |
-          rustup target add wasm32-unknown-unknown --toolchain stable-x86_64-unknown-linux-gnu
-          rustup component add rust-src --toolchain stable-x86_64-unknown-linux-gnu
-
-      - name: Clone subtensor repo
-        run: git clone https://github.com/opentensor/subtensor.git
-
-      - name: Setup subtensor repo
-        working-directory: ${{ github.workspace }}/subtensor
-        run: git checkout devnet-ready
 
       - name: Install uv
         uses: astral-sh/setup-uv@v4
@@ -98,12 +84,13 @@ jobs:
       - name: install dependencies
         run: uv sync --all-extras --dev
 
-      - name: Run tests
-        run: |
-          LOCALNET_SH_PATH="${{ github.workspace }}/subtensor/scripts/localnet.sh" uv run pytest ${{ matrix.test-file }} -s
+      - name: Download Cached Docker Image
+        uses: actions/download-artifact@v4
+        with:
+          name: subtensor-localnet
 
-      - name: Retry failed tests
-        if: failure()
-        run: |
-          sleep 10
-          LOCALNET_SH_PATH="${{ github.workspace }}/subtensor/scripts/localnet.sh" uv run pytest ${{ matrix.test-file }} -s
+      - name: Load Docker Image
+        run: docker load -i subtensor-localnet.tar
+
+      - name: Run tests
+        run: uv run pytest ${{ matrix.test-file }} -s

@@ -221,6 +221,49 @@ The Python interpreter output will look like below.
 >>>
 ```
 
+### Testing
+You can run integration and unit tests in interactive mode of IDE or in terminal mode using the command:
+```bash
+pytest tests/integration_tests
+pytest tests/unit_tests
+```
+
+#### E2E tests have 2 options for launching (legacy runner):
+- using a compiler based on the substrait code
+- using an already built docker image (docker runner)
+
+#### Using `docker runner` (default for now):
+- E2E tests with docker image do not require preliminary compilation
+- are executed very quickly
+- require docker installed in OS
+
+Ho to use:
+```bash
+pytest tests/e2e_tests
+```
+
+#### TUsing `legacy runner`:
+- Will start compilation of the collected code in your subtensor repository
+- you must provide the `LOCALNET_SH_PATH` variable in the local environment with the path to the file `/scripts/localnet.sh` in the cloned repository within your OS
+- you can use the `BUILD_BINARY=0` variable, this will skip the copy step for each test.
+- you can use the `USE_DOCKER=0` variable, this will run tests using the "legacy runner", even if docker is installed in your OS
+
+#### Ho to use:
+Regular e2e tests run
+```bash
+LOCALNET_SH_PATH=/path/to/your/localnet.sh pytest tests/e2e_tests
+```
+
+If you want to skip re-build process for each e2e test
+```bash
+BUILD_BINARY=0 LOCALNET_SH_PATH=/path/to/your/localnet.sh pytest tests/e2e_tests
+```
+
+If you want to use legacy runner even with installed Docker in your OS
+```bash
+USE_DOCKER=0 BUILD_BINARY=0 LOCALNET_SH_PATH=/path/to/your/localnet.sh pytest tests/e2e_tests
+```
+
 ---
 
 ## Release Guidelines

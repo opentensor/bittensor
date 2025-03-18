@@ -3242,3 +3242,93 @@ def test_get_timestamp(mocker, subtensor):
     )
     actual_result = subtensor.get_timestamp(block=fake_block)
     assert expected_result == actual_result
+
+
+def test_stake_fee_methods(mocker, subtensor):
+    """Test the three stake fee calculation methods."""
+    # Mock data
+    fake_hotkey = "hk1"
+    fake_coldkey = "ck1"
+    fake_amount = Balance.from_tao(100)
+    netuid = 1
+    fake_fee = 1_000_000
+
+    # Mock return fee
+    mock_query = mocker.patch.object(
+        subtensor,
+        "query_runtime_api",
+        side_effect=lambda runtime_api, method, params, block: (
+            fake_fee
+            if runtime_api == "StakeInfoRuntimeApi" and method == "get_stake_fee"
+            else None
+        ),
+    )
+
+    # get_stake_add_fee
+    result = subtensor.get_stake_add_fee(
+        amount=fake_amount,
+        netuid=netuid,
+        coldkey_ss58=fake_coldkey,
+        hotkey_ss58=fake_hotkey,
+    )
+    assert isinstance(result, Balance)
+    assert result == Balance.from_rao(fake_fee)
+    mock_query.assert_called_with(
+        runtime_api="StakeInfoRuntimeApi",
+        method="get_stake_fee",
+        params=[
+            None,
+            fake_coldkey,
+            (fake_hotkey, netuid),
+            fake_coldkey,
+            fake_amount.rao,
+        ],
+        block=None,
+    )
+
+    # get_unstake_fee
+    result = subtensor.get_unstake_fee(
+        amount=fake_amount,
+        netuid=netuid,
+        coldkey_ss58=fake_coldkey,
+        hotkey_ss58=fake_hotkey,
+    )
+    assert isinstance(result, Balance)
+    assert result == Balance.from_rao(fake_fee)
+    mock_query.assert_called_with(
+        runtime_api="StakeInfoRuntimeApi",
+        method="get_stake_fee",
+        params=[
+            (fake_hotkey, netuid),
+            fake_coldkey,
+            None,
+            fake_coldkey,
+            fake_amount.rao,
+        ],
+        block=None,
+    )
+
+    # get_stake_movement_fee
+    result = subtensor.get_stake_movement_fee(
+        amount=fake_amount,
+        origin_netuid=2,
+        origin_hotkey_ss58=fake_hotkey,
+        origin_coldkey_ss58=fake_coldkey,
+        destination_netuid=3,
+        destination_hotkey_ss58="hk2",
+        destination_coldkey_ss58=fake_coldkey,
+    )
+    assert isinstance(result, Balance)
+    assert result == Balance.from_rao(fake_fee)
+    mock_query.assert_called_with(
+        runtime_api="StakeInfoRuntimeApi",
+        method="get_stake_fee",
+        params=[
+            (fake_hotkey, 2),
+            fake_coldkey,
+            ("hk2", 3),
+            fake_coldkey,
+            fake_amount.rao,
+        ],
+        block=None,
+    )
