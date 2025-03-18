@@ -267,3 +267,45 @@ def set_identity(
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
+
+
+def propose(subtensor, wallet, proposal, duration):
+    return subtensor.sign_and_send_extrinsic(
+        subtensor.substrate.compose_call(
+            call_module="Triumvirate",
+            call_function="propose",
+            call_params={
+                "proposal": proposal,
+                "length_bound": len(proposal.data),
+                "duration": duration,
+            },
+        ),
+        wallet,
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
+    )
+
+
+def vote(
+    subtensor,
+    wallet,
+    hotkey,
+    proposal,
+    index,
+    approve,
+):
+    return subtensor.sign_and_send_extrinsic(
+        subtensor.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="vote",
+            call_params={
+                "approve": approve,
+                "hotkey": hotkey,
+                "index": index,
+                "proposal": proposal,
+            },
+        ),
+        wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
