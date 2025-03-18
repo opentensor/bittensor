@@ -5,6 +5,7 @@ import pytest
 from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_admin_utils,
     wait_epoch,
+    wait_interval,
 )
 
 
@@ -66,11 +67,15 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     assert bob_neuron.trust == 0
 
     # update weights_set_rate_limit for fast-blocks
+    tempo = subtensor.tempo(netuid)
     status, error = sudo_set_admin_utils(
         local_chain,
         alice_wallet,
         call_function="sudo_set_weights_set_rate_limit",
-        call_params={"netuid": netuid, "weights_set_rate_limit": 10},
+        call_params={
+            "netuid": netuid,
+            "weights_set_rate_limit": tempo,
+        },
     )
 
     assert error is None
@@ -82,8 +87,8 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
             async with asyncio.timeout(60):
                 await validator.set_weights.wait()
 
-            # Wait few epochs
-            await wait_epoch(subtensor, netuid, times=4)
+            # Wait till new epoch
+            await wait_interval(tempo, subtensor, netuid)
 
             # Refresh metagraph
             metagraph = subtensor.metagraph(netuid)
@@ -100,9 +105,26 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     assert alice_neuron.rank < 0.5
 
     bob_neuron = metagraph.neurons[1]
+
     assert bob_neuron.incentive > 0.5
     assert bob_neuron.consensus > 0.5
     assert bob_neuron.rank > 0.5
     assert bob_neuron.trust == 1
+
+    bonds = subtensor.bonds(netuid)
+
+    assert bonds == [
+        (
+            0,
+            [
+                (0, 65535),
+                (1, 65535),
+            ],
+        ),
+        (
+            1,
+            [],
+        ),
+    ]
 
     print("✅ Passed test_incentive")

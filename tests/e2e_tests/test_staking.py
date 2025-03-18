@@ -516,3 +516,151 @@ def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
     assert dest_stake > Balance(
         0
     ), "Destination stake should be non-zero after successful swap"
+
+
+def test_move_stake(subtensor, alice_wallet, bob_wallet):
+    """
+    Tests:
+    - Adding stake
+    - Moving stake from one hotkey-subnet pair to another
+    """
+
+    subtensor.burned_register(
+        alice_wallet,
+        netuid=1,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    assert subtensor.add_stake(
+        alice_wallet,
+        alice_wallet.hotkey.ss58_address,
+        netuid=1,
+        amount=Balance.from_tao(1_000),
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    stakes = subtensor.get_stake_for_coldkey(alice_wallet.coldkey.ss58_address)
+
+    assert stakes == [
+        StakeInfo(
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
+            coldkey_ss58=alice_wallet.coldkey.ss58_address,
+            netuid=1,
+            stake=ANY_BALANCE,
+            locked=Balance(0),
+            emission=ANY_BALANCE,
+            drain=0,
+            is_registered=True,
+        ),
+    ]
+
+    subtensor.register_subnet(bob_wallet)
+
+    assert subtensor.move_stake(
+        alice_wallet,
+        origin_hotkey=alice_wallet.hotkey.ss58_address,
+        origin_netuid=1,
+        destination_hotkey=bob_wallet.hotkey.ss58_address,
+        destination_netuid=2,
+        amount=stakes[0].stake,
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
+    )
+
+    stakes = subtensor.get_stake_for_coldkey(alice_wallet.coldkey.ss58_address)
+
+    assert stakes == [
+        StakeInfo(
+            hotkey_ss58=bob_wallet.hotkey.ss58_address,
+            coldkey_ss58=alice_wallet.coldkey.ss58_address,
+            netuid=2,
+            stake=ANY_BALANCE,
+            locked=Balance(0),
+            emission=ANY_BALANCE,
+            drain=0,
+            is_registered=True,
+        ),
+    ]
+
+
+def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
+    """
+    Tests:
+    - Adding stake
+    - Transfering stake from one coldkey-subnet pair to another
+    """
+
+    subtensor.burned_register(
+        alice_wallet,
+        netuid=1,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    assert subtensor.add_stake(
+        alice_wallet,
+        alice_wallet.hotkey.ss58_address,
+        netuid=1,
+        amount=Balance.from_tao(1_000),
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    alice_stakes = subtensor.get_stake_for_coldkey(alice_wallet.coldkey.ss58_address)
+
+    assert alice_stakes == [
+        StakeInfo(
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
+            coldkey_ss58=alice_wallet.coldkey.ss58_address,
+            netuid=1,
+            stake=ANY_BALANCE,
+            locked=Balance(0),
+            emission=ANY_BALANCE,
+            drain=0,
+            is_registered=True,
+        ),
+    ]
+
+    bob_stakes = subtensor.get_stake_for_coldkey(bob_wallet.coldkey.ss58_address)
+
+    assert bob_stakes == []
+
+    subtensor.register_subnet(dave_wallet)
+    subtensor.burned_register(
+        bob_wallet,
+        netuid=2,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    assert subtensor.transfer_stake(
+        alice_wallet,
+        destination_coldkey_ss58=bob_wallet.coldkey.ss58_address,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        origin_netuid=1,
+        destination_netuid=2,
+        amount=alice_stakes[0].stake,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    alice_stakes = subtensor.get_stake_for_coldkey(alice_wallet.coldkey.ss58_address)
+
+    assert alice_stakes == []
+
+    bob_stakes = subtensor.get_stake_for_coldkey(bob_wallet.coldkey.ss58_address)
+
+    assert bob_stakes == [
+        StakeInfo(
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
+            coldkey_ss58=bob_wallet.coldkey.ss58_address,
+            netuid=2,
+            stake=ANY_BALANCE,
+            locked=Balance(0),
+            emission=ANY_BALANCE,
+            drain=0,
+            is_registered=False,
+        ),
+    ]
