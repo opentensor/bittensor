@@ -1,5 +1,15 @@
 # Changelog
 
+## 9.2.0 /2025-03-18
+
+## What's Changed
+* Fix E2E test_incentive by waiting till start of the very next epoch by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2746
+* New era of e2e Tests Bittensor by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2743
+* Allow installation on Py 3.13 by @thewhaleking in https://github.com/opentensor/bittensor/pull/2756
+* Feat/dynamic stake prices by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2755
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.1.0...v9.2.0
+
 ## 9.1.0 /2025-03-12
 
 ## What's Changed
