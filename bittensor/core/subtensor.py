@@ -1210,6 +1210,117 @@ class Subtensor(SubtensorMixin):
 
         return Balance.from_rao(int(stake)).set_unit(netuid=netuid)
 
+    def get_stake_add_fee(
+        self,
+        amount: Balance,
+        netuid: int,
+        coldkey_ss58: str,
+        hotkey_ss58: str,
+        block: Optional[int] = None,
+    ) -> Balance:
+        """
+        Calculates the fee for adding new stake to a hotkey.
+
+        Args:
+            amount: Amount of stake to add in TAO
+            netuid: Netuid of subnet
+            coldkey_ss58: SS58 address of coldkey
+            hotkey_ss58: SS58 address of hotkey
+            block: Block number at which to perform the calculation
+
+        Returns:
+            The calculated stake fee as a Balance object
+        """
+        result = self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_stake_fee",
+            params=[
+                None,
+                coldkey_ss58,
+                (hotkey_ss58, netuid),
+                coldkey_ss58,
+                amount.rao,
+            ],
+            block=block,
+        )
+        return Balance.from_rao(result)
+
+    def get_unstake_fee(
+        self,
+        amount: Balance,
+        netuid: int,
+        coldkey_ss58: str,
+        hotkey_ss58: str,
+        block: Optional[int] = None,
+    ) -> Balance:
+        """
+        Calculates the fee for unstaking from a hotkey.
+
+        Args:
+            amount: Amount of stake to unstake in TAO
+            netuid: Netuid of subnet
+            coldkey_ss58: SS58 address of coldkey
+            hotkey_ss58: SS58 address of hotkey
+            block: Block number at which to perform the calculation
+
+        Returns:
+            The calculated stake fee as a Balance object
+        """
+        result = self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_stake_fee",
+            params=[
+                (hotkey_ss58, netuid),
+                coldkey_ss58,
+                None,
+                coldkey_ss58,
+                amount.rao,
+            ],
+            block=block,
+        )
+        return Balance.from_rao(result)
+
+    def get_stake_movement_fee(
+        self,
+        amount: Balance,
+        origin_netuid: int,
+        origin_hotkey_ss58: str,
+        origin_coldkey_ss58: str,
+        destination_netuid: int,
+        destination_hotkey_ss58: str,
+        destination_coldkey_ss58: str,
+        block: Optional[int] = None,
+    ) -> Balance:
+        """
+        Calculates the fee for moving stake between hotkeys/subnets/coldkeys.
+
+        Args:
+            amount: Amount of stake to move in TAO
+            origin_netuid: Netuid of origin subnet
+            origin_hotkey_ss58: SS58 address of origin hotkey
+            origin_coldkey_ss58: SS58 address of origin coldkey
+            destination_netuid: Netuid of destination subnet
+            destination_hotkey_ss58: SS58 address of destination hotkey
+            destination_coldkey_ss58: SS58 address of destination coldkey
+            block: Block number at which to perform the calculation
+
+        Returns:
+            The calculated stake fee as a Balance object
+        """
+        result = self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_stake_fee",
+            params=[
+                (origin_hotkey_ss58, origin_netuid),
+                origin_coldkey_ss58,
+                (destination_hotkey_ss58, destination_netuid),
+                destination_coldkey_ss58,
+                amount.rao,
+            ],
+            block=block,
+        )
+        return Balance.from_rao(result)
+
     def get_stake_for_coldkey_and_hotkey(
         self,
         coldkey_ss58: str,
