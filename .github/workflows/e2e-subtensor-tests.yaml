@@ -62,6 +62,7 @@ jobs:
 
   # Job to run tests in parallel
   run:
+    name: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}
     needs:
       - find-tests
       - pull-docker-image
