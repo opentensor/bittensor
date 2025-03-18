@@ -74,6 +74,7 @@ jobs:
         os:
           - ubuntu-latest
         test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
     steps:
       - name: Check-out repository
         uses: actions/checkout@v4
