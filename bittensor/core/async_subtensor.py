@@ -2020,10 +2020,11 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
+
         if vote_data is None:
             return None
-        else:
-            return ProposalVoteData(vote_data)
+
+        return ProposalVoteData.from_dict(vote_data)
 
     async def get_uid_for_hotkey_on_subnet(
         self,
