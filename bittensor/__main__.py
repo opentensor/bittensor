@@ -3,6 +3,7 @@ import subprocess
 import sys
 
 from bittensor import __version__
+from bittensor.utils.version import check_latest_version_in_pypi
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "certifi":
@@ -18,4 +19,5 @@ if __name__ == "__main__":
         # Run the script
         subprocess.run([certifi_script], check=True)
     else:
-        print(f"Bittensor SDK version: {__version__}")
+        print(f"Installed Bittensor SDK version: {__version__}")
+        check_latest_version_in_pypi()
