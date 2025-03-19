@@ -3,8 +3,9 @@ from pathlib import Path
 from typing import Optional
 
 import requests
-from packaging.version import Version
+from packaging.version import Version, InvalidVersion
 
+from bittensor import __name__
 from bittensor.core.settings import __version__, PIPADDRESS
 from bittensor.utils.btlogging import logging
 
@@ -115,3 +116,27 @@ def version_checking(timeout: int = 15):
         check_version(timeout)
     except VersionCheckError:
         logging.exception("Version check failed")
+
+
+def check_latest_version_in_pypi():
+    """Check for the latest version of the package on PyPI."""
+    package_name = __name__
+    url = f"https://pypi.org/pypi/{package_name}/json"
+
+    try:
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        latest_version = response.json()["info"]["version"]
+        installed_version = __version__
+        try:
+            if Version(installed_version) < Version(latest_version):
+                print(
+                    f"\n🔔 New version is available `{package_name} v.{latest_version}`"
+                )
+                print("📦 Use command `pip install --upgrade bittensor` to update.")
+        except InvalidVersion:
+            # stay silent if InvalidVersion
+            pass
+    except (requests.RequestException, KeyError) as e:
+        # stay silent if not internet connection or pypi.org issue
+        pass
