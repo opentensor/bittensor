@@ -113,11 +113,11 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
             netuid,
             uids=weight_uids,
             weights=weight_vals,
-            wait_for_inclusion=False,  # Don't wait for inclusion, we are testing the nonce when there is a tx in the pool
+            wait_for_inclusion=True,  # Don't wait for inclusion, we are testing the nonce when there is a tx in the pool
             wait_for_finalization=False,
         )
 
-        assert success is True, f"Failed to set weights for subnet {netuid}"
+        assert success is True, message
 
     # Wait for the txs to be included in the chain
     await wait_epoch(subtensor, netuid=netuids[-1], times=4)

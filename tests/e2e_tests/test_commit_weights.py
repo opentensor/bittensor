@@ -233,11 +233,11 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
         salt=salt,
         uids=weight_uids,
         weights=weight_vals,
-        wait_for_inclusion=False,  # Don't wait for inclusion, we are testing the nonce when there is a tx in the pool
+        wait_for_inclusion=True,  # Don't wait for inclusion, we are testing the nonce when there is a tx in the pool
         wait_for_finalization=False,
     )
 
-    assert success is True
+    assert success is True, message
 
     success, message = subtensor.commit_weights(
         alice_wallet,
@@ -245,11 +245,11 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
         salt=salt2,
         uids=weight_uids,
         weights=weight_vals,
-        wait_for_inclusion=False,
+        wait_for_inclusion=True,
         wait_for_finalization=False,
     )
 
-    assert success is True
+    assert success is True, message
 
     # Commit the third salt
     success, message = subtensor.commit_weights(
@@ -258,11 +258,11 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
         salt=salt3,
         uids=weight_uids,
         weights=weight_vals,
-        wait_for_inclusion=False,
+        wait_for_inclusion=True,
         wait_for_finalization=False,
     )
 
-    assert success is True
+    assert success is True, message
 
     # Wait a few blocks
     await asyncio.sleep(10)  # Wait for the txs to be included in the chain
