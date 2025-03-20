@@ -80,10 +80,12 @@ from bittensor.core.types import ParamWithTypes, SubtensorMixin
 from bittensor.utils import (
     Certificate,
     decode_hex_identity_dict,
+    float_to_u64,
     format_error_message,
     torch,
     u16_normalized_float,
     u64_normalized_float,
+    unlock_key,
 )
 from bittensor.utils.balance import (
     Balance,
@@ -716,6 +718,47 @@ class Subtensor(SubtensorMixin):
                 return True, [], ""
         except SubstrateRequestException as e:
             return False, [], format_error_message(e)
+
+    def get_children_pending(
+        self,
+        hotkey: str,
+        netuid: int,
+        block: Optional[int] = None,
+    ) -> tuple[
+        list[tuple[float, str]],
+        int,
+    ]:
+        """
+        This method retrieves the pending children of a given hotkey and netuid.
+        It queries the SubtensorModule's PendingChildKeys storage function.
+
+        Arguments:
+            hotkey (str): The hotkey value.
+            netuid (int): The netuid value.
+            block (Optional[int]): The block number for which the children are to be retrieved.
+
+        Returns:
+            list[tuple[float, str]]: A list of children with their proportions.
+            int: The cool-down block number.
+        """
+
+        children, cooldown = self.substrate.query(
+            module="SubtensorModule",
+            storage_function="PendingChildKeys",
+            params=[netuid, hotkey],
+            block_hash=self.determine_block_hash(block),
+        ).value
+
+        return (
+            [
+                (
+                    u64_normalized_float(proportion),
+                    decode_account_id(child[0]),
+                )
+                for proportion, child in children
+            ],
+            cooldown,
+        )
 
     def get_commitment(self, netuid: int, uid: int, block: Optional[int] = None) -> str:
         """
@@ -1683,6 +1726,75 @@ class Subtensor(SubtensorMixin):
             param_name="ImmunityPeriod", netuid=netuid, block=block
         )
         return None if call is None else int(call)
+
+    def set_children(
+        self,
+        wallet: "Wallet",
+        hotkey: str,
+        netuid: int,
+        children: list[tuple[float, str]],
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        raise_error: bool = False,
+    ) -> tuple[bool, str]:
+        """
+        Allows a coldkey to set children keys.
+
+        Arguments:
+            wallet (bittensor_wallet.Wallet): bittensor wallet instance.
+            hotkey (str): The ``SS58`` address of the neuron's hotkey.
+            netuid (int): The netuid value.
+            children (list[tuple[float, str]]): A list of children with their proportions.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            raise_error: Raises relevant exception rather than returning `False` if unsuccessful.
+
+        Returns:
+            tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
+             operation, and the second element is a message providing additional information.
+
+        Raises:
+            DuplicateChild: There are duplicates in the list of children.
+            InvalidChild: Child is the hotkey.
+            NonAssociatedColdKey: The coldkey does not own the hotkey or the child is the same as the hotkey.
+            NotEnoughStakeToSetChildkeys: Parent key doesn't have minimum own stake.
+            ProportionOverflow: The sum of the proportions does exceed uint64.
+            RegistrationNotPermittedOnRootSubnet: Attempting to register a child on the root network.
+            SubNetworkDoesNotExist: Attempting to register to a non-existent network.
+            TooManyChildren: Too many children in request.
+            TxRateLimitExceeded: Hotkey hit the rate limit.
+            bittensor_wallet.errors.KeyFileError: Failed to decode keyfile data.
+            bittensor_wallet.errors.PasswordError: Decryption failed or wrong password for decryption provided.
+        """
+
+        unlock = unlock_key(wallet, raise_error=raise_error)
+
+        if not unlock.success:
+            return False, unlock.message
+
+        call = self.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="set_children",
+            call_params={
+                "children": [
+                    (
+                        float_to_u64(proportion),
+                        child_hotkey,
+                    )
+                    for proportion, child_hotkey in children
+                ],
+                "hotkey": hotkey,
+                "netuid": netuid,
+            },
+        )
+
+        return self.sign_and_send_extrinsic(
+            call,
+            wallet,
+            wait_for_inclusion,
+            wait_for_finalization,
+            raise_error=raise_error,
+        )
 
     def set_delegate_take(
         self,

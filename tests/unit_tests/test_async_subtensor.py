@@ -12,6 +12,7 @@ from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.neuron_info import NeuronInfo
 from bittensor.core.chain_data.stake_info import StakeInfo
 from bittensor.core.chain_data import proposal_vote_data
+from bittensor.utils import U64_MAX
 from bittensor.utils.balance import Balance
 from tests.helpers.helpers import assert_submit_signed_extrinsic
 
@@ -1954,6 +1955,40 @@ async def test_get_children_substrate_request_exception(subtensor, mocker):
 
 
 @pytest.mark.asyncio
+async def test_get_children_pending(mock_substrate, subtensor):
+    mock_substrate.query.return_value.value = [
+        [
+            (
+                U64_MAX,
+                (tuple(bytearray(32)),),
+            ),
+        ],
+        123,
+    ]
+
+    children, cooldown = await subtensor.get_children_pending(
+        "hotkey_ss58",
+        netuid=1,
+    )
+
+    assert children == [
+        (
+            1.0,
+            "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
+        ),
+    ]
+    assert cooldown == 123
+
+    mock_substrate.query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="PendingChildKeys",
+        params=[1, "hotkey_ss58"],
+        block_hash=None,
+        reuse_block_hash=False,
+    )
+
+
+@pytest.mark.asyncio
 async def test_get_subnet_hyperparameters_success(subtensor, mocker):
     """Tests get_subnet_hyperparameters with successful hyperparameter retrieval."""
     # Preps
@@ -2491,6 +2526,44 @@ async def test_register_success(subtensor, fake_wallet, mocker):
         wallet=fake_wallet,
     )
     assert result == mocked_register_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_set_children(mock_substrate, subtensor, fake_wallet, mocker):
+    mock_substrate.submit_extrinsic.return_value = mocker.Mock(
+        is_success=mocker.AsyncMock(return_value=True)(),
+    )
+
+    await subtensor.set_children(
+        fake_wallet,
+        fake_wallet.hotkey.ss58_address,
+        netuid=1,
+        children=[
+            (
+                1.0,
+                "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
+            ),
+        ],
+    )
+
+    assert_submit_signed_extrinsic(
+        mock_substrate,
+        fake_wallet.coldkey,
+        call_module="SubtensorModule",
+        call_function="set_children",
+        call_params={
+            "children": [
+                (
+                    U64_MAX,
+                    "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
+                )
+            ],
+            "hotkey": fake_wallet.hotkey.ss58_address,
+            "netuid": 1,
+        },
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
 
 
 @pytest.mark.asyncio
