@@ -4,9 +4,9 @@ these are not present in btsdk but are required for e2e tests
 """
 
 import asyncio
-import unittest.mock
 from typing import Union, Optional, TYPE_CHECKING
 
+from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 
 # for typing purposes
@@ -16,10 +16,9 @@ if TYPE_CHECKING:
     from async_substrate_interface import SubstrateInterface, ExtrinsicReceipt
 
 
-ANY_BALANCE = unittest.mock.Mock(
-    rao=unittest.mock.ANY,
-    unit=unittest.mock.ANY,
-)
+def get_dynamic_balance(rao: int, netuid: int = 0):
+    """Returns a Balance object with the given rao and netuid for testing purposes with synamic values."""
+    return Balance(rao).set_unit(netuid)
 
 
 def sudo_set_hyperparameter_bool(
@@ -198,7 +197,7 @@ async def root_set_subtensor_hyperparameter_values(
     call_function: str,
     call_params: dict,
     return_error_message: bool = False,
-) -> tuple[bool, str]:
+) -> tuple[bool, Optional[dict]]:
     """
     Sets liquid alpha values using AdminUtils. Mimics setting hyperparams
     """
@@ -218,7 +217,7 @@ async def root_set_subtensor_hyperparameter_values(
     if return_error_message:
         return response.is_success, response.error_message
 
-    return response.is_success, ""
+    return response.is_success, None
 
 
 def set_identity(
