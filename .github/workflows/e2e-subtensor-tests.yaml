@@ -52,7 +52,7 @@ jobs:
         run: docker pull ghcr.io/opentensor/subtensor-localnet:latest
 
       - name: Save Docker Image to Cache
-        run: docker save -o subtensor-localnet.tar ghcr.io/opentensor/subtensor-localnet:latest
+        run: docker save -o subtensor-localnet.tar ghcr.io/opentensor/subtensor-localnet:devnet-ready
 
       - name: Upload Docker Image as Artifact
         uses: actions/upload-artifact@v4
