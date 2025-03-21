@@ -18,6 +18,12 @@ from tests.e2e_tests.utils.e2e_test_utils import (
     Templates,
     setup_wallet,
 )
+import logging
+
+logging.basicConfig(
+    format="%(asctime)s %(message)s",
+    level=logging.DEBUG,
+)
 
 LOCALNET_IMAGE_NAME = "ghcr.io/opentensor/subtensor-localnet:devnet-ready"
 
@@ -45,7 +51,9 @@ def wait_for_node_start(process, timestamp=None):
     # To prevent the buffer filling up
     def read_output():
         while True:
-            if not process.stdout.readline():
+            line = process.stdout.readline()
+
+            if not line:
                 break
 
     reader_thread = threading.Thread(target=read_output, daemon=True)
@@ -144,6 +152,7 @@ def docker_runner(params):
         try:
             subprocess.run(["open", "-a", "Docker"], check=True)  # macOS
         except (FileNotFoundError, subprocess.CalledProcessError):
+            return True
             try:
                 subprocess.run(["systemctl", "start", "docker"], check=True)  # Linux
             except (FileNotFoundError, subprocess.CalledProcessError):
