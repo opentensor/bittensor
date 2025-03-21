@@ -6,6 +6,18 @@ from scalecodec import ScaleType
 from bittensor.core import settings
 
 
+def _check_currencies(self, other):
+    """Checks that Balance objects have the same netuids to perform arithmetic operations."""
+    if self.netuid != other.netuid:
+        warnings.simplefilter("default", DeprecationWarning)
+        warnings.warn(
+            "Balance objects must have the same netuid (Alpha currency) to perform arithmetic operations. "
+            f"First balance is `{self}`.  Second balance is `{other}`. ",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+
+
 class Balance:
     """
     Represents the bittensor balance of the wallet, stored as rao (int).
@@ -23,6 +35,7 @@ class Balance:
     rao_unit: str = settings.RAO_SYMBOL  # This is the rao unit
     rao: int
     tao: float
+    netuid: int = 0
 
     def __init__(self, balance: Union[int, float]):
         """
@@ -78,7 +91,8 @@ class Balance:
         if other is None:
             return False
 
-        if hasattr(other, "rao"):
+        if isinstance(other, Balance):
+            _check_currencies(self, other)
             return self.rao == other.rao
         else:
             try:
@@ -92,7 +106,8 @@ class Balance:
         return not self == other
 
     def __gt__(self, other: Union[int, float, "Balance"]):
-        if hasattr(other, "rao"):
+        if isinstance(other, Balance):
+            _check_currencies(self, other)
             return self.rao > other.rao
         else:
             try:
@@ -103,7 +118,8 @@ class Balance:
                 raise NotImplementedError("Unsupported type")
 
     def __lt__(self, other: Union[int, float, "Balance"]):
-        if hasattr(other, "rao"):
+        if isinstance(other, Balance):
+            _check_currencies(self, other)
             return self.rao < other.rao
         else:
             try:
@@ -115,94 +131,112 @@ class Balance:
 
     def __le__(self, other: Union[int, float, "Balance"]):
         try:
+            if isinstance(other, Balance):
+                _check_currencies(self, other)
             return self < other or self == other
         except TypeError:
             raise NotImplementedError("Unsupported type")
 
     def __ge__(self, other: Union[int, float, "Balance"]):
         try:
+            if isinstance(other, Balance):
+                _check_currencies(self, other)
             return self > other or self == other
         except TypeError:
             raise NotImplementedError("Unsupported type")
 
     def __add__(self, other: Union[int, float, "Balance"]):
-        if hasattr(other, "rao"):
-            return Balance.from_rao(int(self.rao + other.rao))
+        if isinstance(other, Balance):
+            _check_currencies(self, other)
+            return Balance.from_rao(int(self.rao + other.rao)).set_unit(self.netuid)
         else:
             try:
                 # Attempt to cast to int from rao
-                return Balance.from_rao(int(self.rao + other))
+                return Balance.from_rao(int(self.rao + other)).set_unit(self.netuid)
             except (ValueError, TypeError):
                 raise NotImplementedError("Unsupported type")
 
     def __radd__(self, other: Union[int, float, "Balance"]):
         try:
+            if isinstance(other, Balance):
+                _check_currencies(self, other)
             return self + other
         except TypeError:
             raise NotImplementedError("Unsupported type")
 
     def __sub__(self, other: Union[int, float, "Balance"]):
         try:
+            if isinstance(other, Balance):
+                _check_currencies(self, other)
             return self + -other
         except TypeError:
             raise NotImplementedError("Unsupported type")
 
     def __rsub__(self, other: Union[int, float, "Balance"]):
         try:
+            if isinstance(other, Balance):
+                _check_currencies(self, other)
             return -self + other
         except TypeError:
             raise NotImplementedError("Unsupported type")
 
     def __mul__(self, other: Union[int, float, "Balance"]):
-        if hasattr(other, "rao"):
-            return Balance.from_rao(int(self.rao * other.rao))
+        if isinstance(other, Balance):
+            _check_currencies(self, other)
+            return Balance.from_rao(int(self.rao * other.rao)).set_unit(self.netuid)
         else:
             try:
                 # Attempt to cast to int from rao
-                return Balance.from_rao(int(self.rao * other))
+                return Balance.from_rao(int(self.rao * other)).set_unit(self.netuid)
             except (ValueError, TypeError):
                 raise NotImplementedError("Unsupported type")
 
     def __rmul__(self, other: Union[int, float, "Balance"]):
+        if isinstance(other, Balance):
+            _check_currencies(self, other)
         return self * other
 
     def __truediv__(self, other: Union[int, float, "Balance"]):
-        if hasattr(other, "rao"):
-            return Balance.from_rao(int(self.rao / other.rao))
+        if isinstance(other, Balance):
+            _check_currencies(self, other)
+            return Balance.from_rao(int(self.rao / other.rao)).set_unit(self.netuid)
         else:
             try:
                 # Attempt to cast to int from rao
-                return Balance.from_rao(int(self.rao / other))
+                return Balance.from_rao(int(self.rao / other)).set_unit(self.netuid)
             except (ValueError, TypeError):
                 raise NotImplementedError("Unsupported type")
 
     def __rtruediv__(self, other: Union[int, float, "Balance"]):
-        if hasattr(other, "rao"):
-            return Balance.from_rao(int(other.rao / self.rao))
+        if isinstance(other, Balance):
+            _check_currencies(self, other)
+            return Balance.from_rao(int(other.rao / self.rao)).set_unit(self.netuid)
         else:
             try:
                 # Attempt to cast to int from rao
-                return Balance.from_rao(int(other / self.rao))
+                return Balance.from_rao(int(other / self.rao)).set_unit(self.netuid)
             except (ValueError, TypeError):
                 raise NotImplementedError("Unsupported type")
 
     def __floordiv__(self, other: Union[int, float, "Balance"]):
-        if hasattr(other, "rao"):
-            return Balance.from_rao(int(self.tao // other.tao))
+        if isinstance(other, Balance):
+            _check_currencies(self, other)
+            return Balance.from_rao(int(self.tao // other.tao)).set_unit(self.netuid)
         else:
             try:
                 # Attempt to cast to int from rao
-                return Balance.from_rao(int(self.rao // other))
+                return Balance.from_rao(int(self.rao // other)).set_unit(self.netuid)
             except (ValueError, TypeError):
                 raise NotImplementedError("Unsupported type")
 
     def __rfloordiv__(self, other: Union[int, float, "Balance"]):
-        if hasattr(other, "rao"):
-            return Balance.from_rao(int(other.rao // self.rao))
+        if isinstance(other, Balance):
+            _check_currencies(self, other)
+            return Balance.from_rao(int(other.rao // self.rao)).set_unit(self.netuid)
         else:
             try:
                 # Attempt to cast to int from rao
-                return Balance.from_rao(int(other // self.rao))
+                return Balance.from_rao(int(other // self.rao)).set_unit(self.netuid)
             except (ValueError, TypeError):
                 raise NotImplementedError("Unsupported type")
 
@@ -210,16 +244,16 @@ class Balance:
         return bool(self.rao)
 
     def __neg__(self):
-        return Balance.from_rao(-self.rao)
+        return Balance.from_rao(-self.rao).set_unit(self.netuid)
 
     def __pos__(self):
-        return Balance.from_rao(self.rao)
+        return Balance.from_rao(self.rao).set_unit(self.netuid)
 
     def __abs__(self):
-        return Balance.from_rao(abs(self.rao))
+        return Balance.from_rao(abs(self.rao)).set_unit(self.netuid)
 
     @staticmethod
-    def from_float(amount: float, netuid: int = 0):
+    def from_float(amount: float, netuid: int = 0) -> "Balance":
         """
         Given tao, return :func:`Balance` object with rao(``int``) and tao(``float``), where rao = int(tao*pow(10,9))
         Args:
@@ -233,7 +267,7 @@ class Balance:
         return Balance(rao_).set_unit(netuid)
 
     @staticmethod
-    def from_tao(amount: float, netuid: int = 0):
+    def from_tao(amount: float, netuid: int = 0) -> "Balance":
         """
         Given tao, return Balance object with rao(``int``) and tao(``float``), where rao = int(tao*pow(10,9))
 
@@ -248,7 +282,7 @@ class Balance:
         return Balance(rao_).set_unit(netuid)
 
     @staticmethod
-    def from_rao(amount: int, netuid: int = 0):
+    def from_rao(amount: int, netuid: int = 0) -> "Balance":
         """
         Given rao, return Balance object with rao(``int``) and tao(``float``), where rao = int(tao*pow(10,9))
 
@@ -262,7 +296,7 @@ class Balance:
         return Balance(amount).set_unit(netuid)
 
     @staticmethod
-    def get_unit(netuid: int):
+    def get_unit(netuid: int) -> str:
         base = len(units)
         if netuid < base:
             return units[netuid]
@@ -274,6 +308,7 @@ class Balance:
             return result
 
     def set_unit(self, netuid: int):
+        self.netuid = netuid
         self.unit = Balance.get_unit(netuid)
         self.rao_unit = Balance.get_unit(netuid)
         return self
@@ -777,18 +812,18 @@ units = [
 ]
 
 
-def tao(amount: float) -> Balance:
+def tao(amount: float, netuid: int = 0) -> Balance:
     """
     Helper function to create a Balance object from a float (Tao)
     """
-    return Balance.from_tao(amount)
+    return Balance.from_tao(amount).set_unit(netuid)
 
 
-def rao(amount: int) -> Balance:
+def rao(amount: int, netuid: int = 0) -> Balance:
     """
     Helper function to create a Balance object from an int (Rao)
     """
-    return Balance.from_rao(amount)
+    return Balance.from_rao(amount).set_unit(netuid)
 
 
 def check_and_convert_to_balance(
