@@ -2970,10 +2970,10 @@ async def test_get_owned_hotkeys_happy_path(subtensor, mocker):
         ]
     ]
     mocked_subtensor = mocker.AsyncMock(return_value=fake_hotkeys)
-    subtensor.substrate.query = mocked_subtensor
+    mocker.patch.object(subtensor.substrate, "query", new=mocked_subtensor)
 
     mocked_decode_account_id = mocker.Mock()
-    async_subtensor.decode_account_id = mocked_decode_account_id
+    mocker.patch.object(async_subtensor, "decode_account_id", new=mocked_decode_account_id)
 
     # Call
     result = await subtensor.get_owned_hotkeys(fake_coldkey)
@@ -2996,7 +2996,7 @@ async def test_get_owned_hotkeys_return_empty(subtensor, mocker):
     # Prep
     fake_coldkey = "fake_hotkey"
     mocked_subtensor = mocker.AsyncMock(return_value=[])
-    subtensor.substrate.query = mocked_subtensor
+    mocker.patch.object(subtensor.substrate, "query", new=mocked_subtensor)
 
     # Call
     result = await subtensor.get_owned_hotkeys(fake_coldkey)
