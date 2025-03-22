@@ -3348,7 +3348,9 @@ def test_get_owned_hotkeys_happy_path(subtensor, mocker):
     mocker.patch.object(subtensor.substrate, "query", new=mocked_subtensor)
 
     mocked_decode_account_id = mocker.Mock()
-    mocker.patch.object(subtensor_module, "decode_account_id", new=mocked_decode_account_id)
+    mocker.patch.object(
+        subtensor_module, "decode_account_id", new=mocked_decode_account_id
+    )
 
     # Call
     result = subtensor.get_owned_hotkeys(fake_coldkey)
