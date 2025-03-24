@@ -152,7 +152,7 @@ async def wait_interval(
 
 
 @contextlib.asynccontextmanager
-async def use_nonce(
+async def use_and_wait_for_next_nonce(
     subtensor: "Subtensor",
     wallet: "Wallet",
     sleep: float = 0.25,

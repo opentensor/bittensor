@@ -7,7 +7,7 @@ from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_admin_utils,
     sudo_set_hyperparameter_bool,
-    use_nonce,
+    use_and_wait_for_next_nonce,
     wait_epoch,
 )
 
@@ -228,7 +228,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     salt3[0] += 2  # Increment the first byte to produce a different commit hash
 
     # Commit all three salts
-    async with use_nonce(subtensor, alice_wallet):
+    async with use_and_wait_for_next_nonce(subtensor, alice_wallet):
         success, message = subtensor.commit_weights(
             alice_wallet,
             netuid,
@@ -241,7 +241,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
 
         assert success is True
 
-    async with use_nonce(subtensor, alice_wallet):
+    async with use_and_wait_for_next_nonce(subtensor, alice_wallet):
         success, message = subtensor.commit_weights(
             alice_wallet,
             netuid,
@@ -254,7 +254,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
 
         assert success is True
 
-    async with use_nonce(subtensor, alice_wallet):
+    async with use_and_wait_for_next_nonce(subtensor, alice_wallet):
         success, message = subtensor.commit_weights(
             alice_wallet,
             netuid,

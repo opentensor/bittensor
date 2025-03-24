@@ -6,7 +6,7 @@ from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_hyperparameter_bool,
     sudo_set_admin_utils,
-    use_nonce,
+    use_and_wait_for_next_nonce,
     wait_epoch,
 )
 
@@ -109,7 +109,7 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
 
     # Set weights for each subnet
     for netuid in netuids:
-        async with use_nonce(subtensor, alice_wallet):
+        async with use_and_wait_for_next_nonce(subtensor, alice_wallet):
             success, message = subtensor.set_weights(
                 alice_wallet,
                 netuid,
