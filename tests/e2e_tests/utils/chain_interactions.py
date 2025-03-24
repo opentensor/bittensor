@@ -4,6 +4,8 @@ these are not present in btsdk but are required for e2e tests
 """
 
 import asyncio
+import contextlib
+import unittest.mock
 from typing import Union, Optional, TYPE_CHECKING
 
 from bittensor.utils.balance import Balance
@@ -147,6 +149,30 @@ async def wait_interval(
             logging.info(
                 f"Current Block: {current_block}  Next tempo for netuid {netuid} at: {next_tempo_block_start}"
             )
+
+
+@contextlib.asynccontextmanager
+async def use_and_wait_for_next_nonce(
+    subtensor: "Subtensor",
+    wallet: "Wallet",
+    sleep: float = 0.25,
+    timeout: float = 15.0,
+):
+    """
+    ContextManager that makes sure the Nonce has been consumed after sending Extrinsic.
+    """
+
+    nonce = subtensor.substrate.get_account_next_index(wallet.hotkey.ss58_address)
+
+    yield
+
+    async def wait_for_new_nonce():
+        while nonce == subtensor.substrate.get_account_next_index(
+            wallet.hotkey.ss58_address
+        ):
+            await asyncio.sleep(sleep)
+
+    await asyncio.wait_for(wait_for_new_nonce(), timeout)
 
 
 # Helper to execute sudo wrapped calls on the chain
