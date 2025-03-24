@@ -161,7 +161,7 @@ def docker_runner(params):
         print("Docker wasn't run. Manual start may be required.")
         return False
 
-    container_name = f"test_local_chain_{str(time.time()).replace(".", "_")}"
+    container_name = f"test_local_chain_{str(time.time()).replace('.', '_')}"
     image_name = "ghcr.io/opentensor/subtensor-localnet:devnet-ready"
 
     # Command to start container
