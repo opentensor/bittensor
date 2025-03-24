@@ -164,7 +164,7 @@ def docker_runner(params):
         print("Docker wasn't run. Manual start may be required.")
         return False
 
-    container_name = f"test_local_chain_{str(time.time()).replace(".", "_")}"
+    container_name = f"test_local_chain_{str(time.time()).replace('.', '_')}"
 
     # Command to start container
     cmds = [
