@@ -116,8 +116,7 @@ class Templates:
 
             self.__reader_task = asyncio.create_task(self._reader())
 
-            async with asyncio.timeout(30):
-                await self.started.wait()
+            await asyncio.wait_for(self.started.wait(), 30)
 
             return self
 
@@ -166,8 +165,7 @@ class Templates:
 
             self.__reader_task = asyncio.create_task(self._reader())
 
-            async with asyncio.timeout(30):
-                await self.started.wait()
+            await asyncio.wait_for(self.started.wait(), 30)
 
             return self
 

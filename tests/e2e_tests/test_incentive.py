@@ -84,8 +84,7 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     async with templates.miner(bob_wallet, netuid):
         async with templates.validator(alice_wallet, netuid) as validator:
             # wait for the Validator to process and set_weights
-            async with asyncio.timeout(60):
-                await validator.set_weights.wait()
+            await asyncio.wait_for(validator.set_weights.wait(), 60)
 
             # Wait till new epoch
             await wait_interval(tempo, subtensor, netuid)
