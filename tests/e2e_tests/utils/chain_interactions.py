@@ -12,9 +12,11 @@ from bittensor.utils.btlogging import logging
 
 # for typing purposes
 if TYPE_CHECKING:
+    from async_substrate_interface import ExtrinsicReceipt, SubstrateInterface
+
     from bittensor import Wallet
-    from bittensor.core.subtensor import Subtensor
-    from async_substrate_interface import SubstrateInterface, ExtrinsicReceipt
+    from bittensor.core.async_subtensor import AsyncSubtensor
+    from tests.e2e_tests.utils.e2e_test_utils import SyncSubtensor
 
 
 ANY_BALANCE = unittest.mock.Mock(
@@ -75,7 +77,7 @@ def sudo_set_hyperparameter_values(
     return response.is_success
 
 
-async def wait_epoch(subtensor: "Subtensor", netuid: int = 1, **kwargs):
+async def wait_epoch(subtensor: "SyncSubtensor" | "AsyncSubtensor", netuid: int = 1, **kwargs):
     """
     Waits for the next epoch to start on a specific subnet.
 
@@ -86,10 +88,7 @@ async def wait_epoch(subtensor: "Subtensor", netuid: int = 1, **kwargs):
     Raises:
         Exception: If the tempo cannot be determined from the chain.
     """
-    q_tempo = [v for (k, v) in subtensor.query_map_subtensor("Tempo") if k == netuid]
-    if len(q_tempo) == 0:
-        raise Exception("could not determine tempo")
-    tempo = q_tempo[0].value
+    tempo = await subtensor.tempo(netuid)
     logging.info(f"tempo = {tempo}")
     await wait_interval(tempo, subtensor, netuid, **kwargs)
 
@@ -115,7 +114,7 @@ def next_tempo(current_block: int, tempo: int, netuid: int) -> int:
 
 async def wait_interval(
     tempo: int,
-    subtensor: "Subtensor",
+    subtensor: "SyncSubtensor" | "AsyncSubtensor",
     netuid: int = 1,
     reporting_interval: int = 1,
     sleep: float = 0.25,
@@ -128,7 +127,7 @@ async def wait_interval(
     and the provided tempo, then enters a loop where it periodically checks
     the current block number until the next tempo interval starts.
     """
-    current_block = subtensor.get_current_block()
+    current_block = await subtensor.get_current_block()
     next_tempo_block_start = current_block
 
     for _ in range(times):
@@ -140,7 +139,7 @@ async def wait_interval(
         await asyncio.sleep(
             sleep,
         )  # Wait before checking the block number again
-        current_block = subtensor.get_current_block()
+        current_block = await subtensor.get_current_block()
         if last_reported is None or current_block - last_reported >= reporting_interval:
             last_reported = current_block
             print(
@@ -153,7 +152,7 @@ async def wait_interval(
 
 @contextlib.asynccontextmanager
 async def use_and_wait_for_next_nonce(
-    subtensor: "Subtensor",
+    subtensor: "SyncSubtensor" | "AsyncSubtensor",
     wallet: "Wallet",
     sleep: float = 0.25,
     timeout: float = 15.0,
@@ -164,12 +163,23 @@ async def use_and_wait_for_next_nonce(
 
     nonce = subtensor.substrate.get_account_next_index(wallet.hotkey.ss58_address)
 
+    if asyncio.iscoroutine(nonce):
+        nonce = await nonce
+
     yield
 
     async def wait_for_new_nonce():
-        while nonce == subtensor.substrate.get_account_next_index(
-            wallet.hotkey.ss58_address
-        ):
+        while True:
+            new_nonce = subtensor.substrate.get_account_next_index(
+                wallet.hotkey.ss58_address,
+            )
+
+            if asyncio.iscoroutine(new_nonce):
+                new_nonce = await new_nonce
+
+            if new_nonce != nonce:
+                return
+
             await asyncio.sleep(sleep)
 
     await asyncio.wait_for(wait_for_new_nonce(), timeout)
@@ -217,7 +227,7 @@ def sudo_set_admin_utils(
     return response.is_success, response.error_message
 
 
-async def root_set_subtensor_hyperparameter_values(
+def root_set_subtensor_hyperparameter_values(
     substrate: "SubstrateInterface",
     wallet: "Wallet",
     call_function: str,
@@ -246,7 +256,7 @@ async def root_set_subtensor_hyperparameter_values(
     return response.is_success, ""
 
 
-def set_identity(
+async def set_identity(
     subtensor,
     wallet,
     name="",
@@ -257,62 +267,80 @@ def set_identity(
     description="",
     additional="",
 ):
-    return subtensor.sign_and_send_extrinsic(
-        subtensor.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="set_identity",
-            call_params={
-                "name": name,
-                "url": url,
-                "github_repo": github_repo,
-                "image": image,
-                "discord": discord,
-                "description": description,
-                "additional": additional,
-            },
-        ),
+    extrinsic = subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="set_identity",
+        call_params={
+            "name": name,
+            "url": url,
+            "github_repo": github_repo,
+            "image": image,
+            "discord": discord,
+            "description": description,
+            "additional": additional,
+        },
+    )
+
+    if asyncio.iscoroutine(extrinsic):
+        extrinsic = await extrinsic
+
+    return await subtensor.sign_and_send_extrinsic(
+        extrinsic,
         wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
 
 
-def propose(subtensor, wallet, proposal, duration):
-    return subtensor.sign_and_send_extrinsic(
-        subtensor.substrate.compose_call(
-            call_module="Triumvirate",
-            call_function="propose",
-            call_params={
-                "proposal": proposal,
-                "length_bound": len(proposal.data),
-                "duration": duration,
-            },
-        ),
+async def propose(subtensor, wallet, proposal, duration):
+    if asyncio.iscoroutine(proposal):
+        proposal = await proposal
+
+    extrinsic = subtensor.substrate.compose_call(
+        call_module="Triumvirate",
+        call_function="propose",
+        call_params={
+            "proposal": proposal,
+            "length_bound": len(proposal.data),
+            "duration": duration,
+        },
+    )
+
+    if asyncio.iscoroutine(extrinsic):
+        extrinsic = await extrinsic
+
+    return await subtensor.sign_and_send_extrinsic(
+        extrinsic,
         wallet,
         wait_for_finalization=True,
         wait_for_inclusion=True,
     )
 
 
-def vote(
+async def vote(
     subtensor,
     wallet,
     hotkey,
-    proposal,
+    proposal_hash,
     index,
     approve,
 ):
-    return subtensor.sign_and_send_extrinsic(
-        subtensor.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="vote",
-            call_params={
-                "approve": approve,
-                "hotkey": hotkey,
-                "index": index,
-                "proposal": proposal,
-            },
-        ),
+    extrinsic = subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="vote",
+        call_params={
+            "approve": approve,
+            "hotkey": hotkey,
+            "index": index,
+            "proposal": proposal_hash,
+        },
+    )
+
+    if asyncio.iscoroutine(extrinsic):
+        extrinsic = await extrinsic
+
+    return await subtensor.sign_and_send_extrinsic(
+        extrinsic,
         wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,

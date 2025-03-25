@@ -1,4 +1,5 @@
 import asyncio
+import functools
 import os
 import shutil
 import subprocess
@@ -7,6 +8,7 @@ import sys
 from bittensor_wallet import Keypair
 
 import bittensor
+from bittensor.core.subtensor import Subtensor
 
 template_path = os.getcwd() + "/neurons/"
 templates_repo = "templates repository"
@@ -196,3 +198,54 @@ class Templates:
 
     def validator(self, wallet, netuid):
         return self.Validator(self.dir, wallet, netuid)
+
+
+class SyncSubtensor:
+    """
+    Wraps Subtensor to be asyncio-compatible.
+    """
+
+    class Metagraph:
+        def __init__(self, metagraph):
+            self._sync = metagraph
+
+        def __getattr__(self, name):
+            return getattr(self._sync, name)
+
+        async def sync(self, *args, subtensor, **kwargs):
+            return self._sync.sync(
+                *args,
+                subtensor=subtensor._sync,
+                **kwargs,
+            )
+
+    def __init__(self, *args, **kwargs):
+        self._sync = Subtensor(*args, **kwargs)
+
+    def __getattr__(self, name):
+        attr = getattr(self._sync, name)
+
+        if not callable(attr):
+            return attr
+
+        @functools.wraps(attr)
+        async def async_wrapper(*args, **kwargs):
+            return attr(*args, **kwargs)
+
+        return async_wrapper
+
+    async def __aenter__(self):
+        self._sync.__enter__()
+        return self
+
+    async def __aexit__(self, *args, **kwargs):
+        self._sync.__exit__(*args, **kwargs)
+
+    @property
+    async def block(self):
+        return self._sync.block
+
+    async def metagraph(self, *args, **kwargs):
+        return self.Metagraph(
+            self._sync.metagraph(*args, **kwargs),
+        )

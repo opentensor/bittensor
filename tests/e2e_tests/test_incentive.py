@@ -27,26 +27,26 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     netuid = 2
 
     # Register root as Alice - the subnet owner and validator
-    assert subtensor.register_subnet(alice_wallet)
+    assert await subtensor.register_subnet(alice_wallet)
 
     # Verify subnet <netuid> created successfully
-    assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
+    assert await subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
     # Register Bob as a neuron on the subnet
-    assert subtensor.burned_register(
+    assert await subtensor.burned_register(
         bob_wallet, netuid
     ), "Unable to register Bob as a neuron"
 
     # Assert two neurons are in network
     assert (
-        len(subtensor.neurons(netuid=netuid)) == 2
+        len(await subtensor.neurons(netuid=netuid)) == 2
     ), "Alice & Bob not registered in the subnet"
 
     # Wait for the first epoch to pass
     await wait_epoch(subtensor, netuid)
 
     # Get latest metagraph
-    metagraph = subtensor.metagraph(netuid)
+    metagraph = await subtensor.metagraph(netuid)
 
     # Get current miner/validator stats
     alice_neuron = metagraph.neurons[0]
@@ -67,7 +67,7 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     assert bob_neuron.trust == 0
 
     # update weights_set_rate_limit for fast-blocks
-    tempo = subtensor.tempo(netuid)
+    tempo = await subtensor.tempo(netuid)
     status, error = sudo_set_admin_utils(
         local_chain,
         alice_wallet,
@@ -90,7 +90,7 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
             await wait_interval(tempo, subtensor, netuid)
 
             # Refresh metagraph
-            metagraph = subtensor.metagraph(netuid)
+            metagraph = await subtensor.metagraph(netuid)
 
     # Get current emissions and validate that Alice has gotten tao
     alice_neuron = metagraph.neurons[0]
@@ -110,7 +110,7 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     assert bob_neuron.rank > 0.5
     assert bob_neuron.trust == 1
 
-    bonds = subtensor.bonds(netuid)
+    bonds = await subtensor.bonds(netuid)
 
     assert bonds == [
         (

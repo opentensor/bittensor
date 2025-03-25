@@ -9,12 +9,13 @@ import threading
 import time
 
 import pytest
+import pytest_asyncio
 from async_substrate_interface import SubstrateInterface
 
 from bittensor.core.async_subtensor import AsyncSubtensor
-from bittensor.core.subtensor import Subtensor
 from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.e2e_test_utils import (
+    SyncSubtensor,
     Templates,
     setup_wallet,
 )
@@ -221,14 +222,17 @@ def templates():
         yield templates
 
 
-@pytest.fixture
-def subtensor(local_chain):
-    return Subtensor(network="ws://localhost:9944")
-
-
-@pytest.fixture
-def async_subtensor(local_chain):
-    return AsyncSubtensor(network="ws://localhost:9944")
+@pytest_asyncio.fixture(
+    params=[
+        SyncSubtensor,
+        AsyncSubtensor,
+    ],
+)
+async def subtensor(local_chain, request):
+    async with request.param(
+        network=local_chain.url,
+    ) as subtensor:
+        yield subtensor
 
 
 @pytest.fixture

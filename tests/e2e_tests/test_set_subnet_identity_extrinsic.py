@@ -13,15 +13,15 @@ async def test_set_subnet_identity_extrinsic_happy_pass(subtensor, alice_wallet)
     netuid = 2
 
     # Register a subnet, netuid 2
-    assert subtensor.register_subnet(alice_wallet), "Subnet wasn't created"
+    assert await subtensor.register_subnet(alice_wallet), "Subnet wasn't created"
 
     # Verify subnet <netuid> created successfully
-    assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
+    assert await subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
     # make sure subnet_identity is empty
     assert (
-        subtensor.subnet(netuid).subnet_identity is None
-    ), "Subnet identity should be None before set"
+        await subtensor.subnet(netuid)
+    ).subnet_identity is None, "Subnet identity should be None before set"
 
     # prepare SubnetIdentity for subnet
     subnet_identity = SubnetIdentity(
@@ -35,17 +35,16 @@ async def test_set_subnet_identity_extrinsic_happy_pass(subtensor, alice_wallet)
     )
 
     # set SubnetIdentity to subnet
-    assert (
-        subtensor.set_subnet_identity(
-            wallet=alice_wallet,
-            netuid=netuid,
-            subnet_identity=subnet_identity,
-        )[0]
-        is True
-    ), "Set subnet identity failed"
+    success, error = await subtensor.set_subnet_identity(
+        wallet=alice_wallet,
+        netuid=netuid,
+        subnet_identity=subnet_identity,
+    )
+
+    assert success is True, "Set subnet identity failed"
 
     # check SubnetIdentity of the subnet
-    assert subtensor.subnet(netuid).subnet_identity == subnet_identity
+    assert (await subtensor.subnet(netuid)).subnet_identity == subnet_identity
 
 
 @pytest.mark.asyncio
@@ -72,15 +71,15 @@ async def test_set_subnet_identity_extrinsic_failed(
     netuid = 2
 
     # Register a subnet, netuid 2
-    assert subtensor.register_subnet(alice_wallet), "Subnet wasn't created"
+    assert await subtensor.register_subnet(alice_wallet), "Subnet wasn't created"
 
     # Verify subnet <netuid> created successfully
-    assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
+    assert await subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
     # make sure subnet_identity is empty
     assert (
-        subtensor.subnet(netuid).subnet_identity is None
-    ), "Subnet identity should be None before set"
+        await subtensor.subnet(netuid)
+    ).subnet_identity is None, "Subnet identity should be None before set"
 
     # prepare SubnetIdentity for subnet
     subnet_identity = SubnetIdentity(
@@ -94,11 +93,10 @@ async def test_set_subnet_identity_extrinsic_failed(
     )
 
     # set SubnetIdentity to subnet
-    assert (
-        subtensor.set_subnet_identity(
-            wallet=bob_wallet,
-            netuid=netuid,
-            subnet_identity=subnet_identity,
-        )[0]
-        is False
-    ), "Set subnet identity failed"
+    success, error = await subtensor.set_subnet_identity(
+        wallet=bob_wallet,
+        netuid=netuid,
+        subnet_identity=subnet_identity,
+    )
+
+    assert success is False, "Set subnet identity failed"
