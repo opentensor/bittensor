@@ -77,7 +77,7 @@ def local_chain(request):
             logging.warning("Docker not found in the operating system!")
             logging.warning(docker_command)
             logging.warning("Tests are run in legacy mode.")
-        yield from legacy_runner(request)
+        yield from legacy_runner(params)
 
 
 def legacy_runner(params):
@@ -95,7 +95,6 @@ def legacy_runner(params):
 
     # Compile commands to send to process
     cmds = shlex.split(f"{script_path} {args}")
-
     with subprocess.Popen(
         cmds,
         start_new_session=True,
