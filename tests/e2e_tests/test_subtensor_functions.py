@@ -63,7 +63,9 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
     pre_subnet_creation_cost = await subtensor.get_subnet_burn_cost()
 
     # Register subnet
-    assert await subtensor.register_subnet(alice_wallet), "Unable to register the subnet"
+    assert await subtensor.register_subnet(
+        alice_wallet,
+    ), "Unable to register the subnet"
 
     # Subnet burn cost is increased immediately after a subnet is registered
     post_subnet_creation_cost = await subtensor.get_subnet_burn_cost()
@@ -74,7 +76,9 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
     ), "Burn cost did not change after subnet creation"
 
     # Assert amount is deducted once a subnetwork is registered by Alice
-    alice_balance_post_sn = await subtensor.get_balance(alice_wallet.coldkeypub.ss58_address)
+    alice_balance_post_sn = await subtensor.get_balance(
+        alice_wallet.coldkeypub.ss58_address,
+    )
     assert (
         alice_balance_post_sn + pre_subnet_creation_cost == initial_alice_balance
     ), "Balance is the same even after registering a subnet"
@@ -98,7 +102,9 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
         netuid,
     ], "Alice is not registered to netuid 2 as expected"
     assert (
-        await subtensor.get_netuids_for_hotkey(hotkey_ss58=bob_wallet.hotkey.ss58_address)
+        await subtensor.get_netuids_for_hotkey(
+            hotkey_ss58=bob_wallet.hotkey.ss58_address,
+        )
         == []
     ), "Bob is unexpectedly registered to some netuid"
 
@@ -143,7 +149,9 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
 
     # Fetch recycle_amount to register to the subnet
     recycle_amount = await subtensor.recycle(netuid)
-    bob_balance_post_reg = await subtensor.get_balance(bob_wallet.coldkeypub.ss58_address)
+    bob_balance_post_reg = await subtensor.get_balance(
+        bob_wallet.coldkeypub.ss58_address,
+    )
 
     # Ensure recycled amount is only deducted from the balance after registration
     assert (
