@@ -1,13 +1,14 @@
 import pytest
+from async_substrate_interface.errors import SubstrateRequestException
 
 from bittensor import logging
-from async_substrate_interface.errors import SubstrateRequestException
+from tests.e2e_tests.utils.chain_interactions import sudo_set_admin_utils
 
 logging.set_trace()
 
 
 @pytest.mark.asyncio
-async def test_commitment(subtensor, alice_wallet):
+async def test_commitment(local_chain, subtensor, alice_wallet):
     with pytest.raises(SubstrateRequestException, match="AccountNotAllowedCommit"):
         await subtensor.set_commitment(
             alice_wallet,
@@ -38,14 +39,27 @@ async def test_commitment(subtensor, alice_wallet):
         data="Hello World!",
     )
 
+    status, error = sudo_set_admin_utils(
+        local_chain,
+        alice_wallet,
+        call_module="Commitments",
+        call_function="set_max_space",
+        call_params={
+            "netuid": 1,
+            "new_limit": len("Hello World!"),
+        },
+    )
+
+    assert status is True, error
+
     with pytest.raises(
         SubstrateRequestException,
-        match="CommitmentSetRateLimitExceeded",
+        match="SpaceLimitExceeded",
     ):
         await subtensor.set_commitment(
             alice_wallet,
             netuid=1,
-            data="Hello World!",
+            data="Hello World!1",
         )
 
     assert "Hello World!" == await subtensor.get_commitment(

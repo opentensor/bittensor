@@ -3,10 +3,13 @@ import asyncio
 import pytest
 
 from tests.e2e_tests.utils.chain_interactions import (
+    root_set_subtensor_hyperparameter_values,
     sudo_set_admin_utils,
     wait_epoch,
     wait_interval,
 )
+
+DURATION_OF_START_CALL = 10
 
 
 @pytest.mark.asyncio
@@ -53,7 +56,7 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
 
     assert alice_neuron.validator_permit is True
     assert alice_neuron.dividends == 0
-    assert alice_neuron.stake.tao > 0
+    assert alice_neuron.stake.tao == 0
     assert alice_neuron.validator_trust == 0
     assert alice_neuron.incentive == 0
     assert alice_neuron.consensus == 0
@@ -65,6 +68,20 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     assert bob_neuron.consensus == 0
     assert bob_neuron.rank == 0
     assert bob_neuron.trust == 0
+
+    subtensor.wait_for_block(DURATION_OF_START_CALL)
+
+    # Subnet "Start Call" https://github.com/opentensor/bits/pull/13
+    status, error = await root_set_subtensor_hyperparameter_values(
+        local_chain,
+        alice_wallet,
+        call_function="start_call",
+        call_params={
+            "netuid": netuid,
+        },
+    )
+
+    assert status is True, error
 
     # update weights_set_rate_limit for fast-blocks
     tempo = await subtensor.tempo(netuid)
