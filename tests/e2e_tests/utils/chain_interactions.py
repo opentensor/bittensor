@@ -16,7 +16,6 @@ if TYPE_CHECKING:
 
     from bittensor import Wallet
     from bittensor.core.async_subtensor import AsyncSubtensor
-    from tests.e2e_tests.utils.e2e_test_utils import SyncSubtensor
 
 
 ANY_BALANCE = unittest.mock.Mock(
@@ -77,7 +76,7 @@ def sudo_set_hyperparameter_values(
     return response.is_success
 
 
-async def wait_epoch(subtensor: "SyncSubtensor" | "AsyncSubtensor", netuid: int = 1, **kwargs):
+async def wait_epoch(subtensor: "AsyncSubtensor", netuid: int = 1, **kwargs):
     """
     Waits for the next epoch to start on a specific subnet.
 
@@ -114,7 +113,7 @@ def next_tempo(current_block: int, tempo: int, netuid: int) -> int:
 
 async def wait_interval(
     tempo: int,
-    subtensor: "SyncSubtensor" | "AsyncSubtensor",
+    subtensor: "AsyncSubtensor",
     netuid: int = 1,
     reporting_interval: int = 1,
     sleep: float = 0.25,
@@ -152,7 +151,7 @@ async def wait_interval(
 
 @contextlib.asynccontextmanager
 async def use_and_wait_for_next_nonce(
-    subtensor: "SyncSubtensor" | "AsyncSubtensor",
+    subtensor: "AsyncSubtensor",
     wallet: "Wallet",
     sleep: float = 0.25,
     timeout: float = 15.0,
