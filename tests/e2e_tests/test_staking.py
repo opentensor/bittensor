@@ -40,7 +40,7 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
         alice_wallet,
         bob_wallet.hotkey.ss58_address,
         netuid=1,
-        amount=Balance.from_tao(10_000),
+        amount=Balance.from_tao(1),
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
