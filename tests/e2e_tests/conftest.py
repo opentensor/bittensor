@@ -13,14 +13,15 @@ from async_substrate_interface import SubstrateInterface
 
 from bittensor.core.async_subtensor import AsyncSubtensor
 from bittensor.core.subtensor import Subtensor
-from bittensor.utils.btlogging import logging
+# from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.e2e_test_utils import (
     Templates,
     setup_wallet,
 )
+import logging
 
 
-logging.set_debug()
+logging.basicConfig(level=logging.DEBUG)
 
 LOCALNET_IMAGE_NAME = "ghcr.io/opentensor/subtensor-localnet:devnet-ready"
 
