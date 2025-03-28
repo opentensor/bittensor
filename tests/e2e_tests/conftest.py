@@ -13,6 +13,7 @@ from async_substrate_interface import SubstrateInterface
 
 from bittensor.core.async_subtensor import AsyncSubtensor
 from bittensor.core.subtensor import Subtensor
+
 # from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.e2e_test_utils import (
     Templates,
