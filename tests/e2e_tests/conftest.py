@@ -19,6 +19,9 @@ from tests.e2e_tests.utils.e2e_test_utils import (
     setup_wallet,
 )
 
+
+logging.set_debug()
+
 LOCALNET_IMAGE_NAME = "ghcr.io/opentensor/subtensor-localnet:devnet-ready"
 
 
