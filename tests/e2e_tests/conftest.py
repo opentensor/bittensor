@@ -19,6 +19,9 @@ from tests.e2e_tests.utils.e2e_test_utils import (
     Templates,
     setup_wallet,
 )
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 LOCALNET_IMAGE_NAME = "ghcr.io/opentensor/subtensor-localnet:devnet-ready"
 
