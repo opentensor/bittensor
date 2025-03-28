@@ -179,6 +179,8 @@ def docker_runner(params):
         "9944:9944",
         "-p",
         "9945:9945",
+        "--env",
+        "RUST_LOG=debug",
         LOCALNET_IMAGE_NAME,
         params,
     ]
