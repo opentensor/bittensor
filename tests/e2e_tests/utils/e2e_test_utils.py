@@ -177,6 +177,8 @@ class Templates:
 
         async def _reader(self):
             async for line in self.process.stdout:
+                print(line.decode())
+
                 if b"Starting validator loop." in line:
                     self.started.set()
                 elif b"Successfully set weights and Finalized." in line:
