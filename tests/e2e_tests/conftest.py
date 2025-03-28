@@ -46,10 +46,8 @@ def wait_for_node_start(process, timestamp=None):
     # To prevent the buffer filling up
     def read_output():
         while True:
-            line = process.stdout.readline()
-            if not line:
+            if not process.stdout.readline():
                 break
-            print(line)
 
     reader_thread = threading.Thread(target=read_output, daemon=True)
     reader_thread.start()
