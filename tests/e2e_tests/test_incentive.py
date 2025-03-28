@@ -82,7 +82,7 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
         },
     )
 
-    # assert status is True, error
+    assert status is True, error
 
     # update weights_set_rate_limit for fast-blocks
     tempo = subtensor.tempo(netuid)
