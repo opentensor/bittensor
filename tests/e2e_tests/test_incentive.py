@@ -70,7 +70,7 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     assert bob_neuron.trust == 0
 
     # subtensor.wait_for_block(DURATION_OF_START_CALL)
-    await wait_epoch(subtensor, netuid)
+    await wait_epoch(subtensor, netuid, times=3)
 
     # Subnet "Start Call" https://github.com/opentensor/bits/pull/13
     status, error = await root_set_subtensor_hyperparameter_values(
