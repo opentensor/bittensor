@@ -48,8 +48,10 @@ def wait_for_node_start(process, timestamp=None):
     # To prevent the buffer filling up
     def read_output():
         while True:
-            if not process.stdout.readline():
+            line = process.stdout.readline()
+            if not line:
                 break
+            print(line)
 
     reader_thread = threading.Thread(target=read_output, daemon=True)
     reader_thread.start()
@@ -179,8 +181,6 @@ def docker_runner(params):
         "9944:9944",
         "-p",
         "9945:9945",
-        "--env",
-        "RUST_LOG=debug",
         LOCALNET_IMAGE_NAME,
         params,
     ]
