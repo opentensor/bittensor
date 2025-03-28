@@ -1,10 +1,12 @@
+import pytest
 from bittensor.utils.balance import Balance
 from bittensor import logging
 
 logging.set_trace()
 
 
-def test_transfer(subtensor, alice_wallet):
+@pytest.mark.asyncio
+async def test_transfer(subtensor, alice_wallet):
     """
     Test the transfer mechanism on the chain
 
@@ -21,17 +23,17 @@ def test_transfer(subtensor, alice_wallet):
     dest_coldkey = "5GpzQgpiAKHMWNSH3RN4GLf96GVTDct9QxYEFAY7LWcVzTbx"
 
     # Fetch transfer fee
-    transfer_fee = subtensor.get_transfer_fee(
+    transfer_fee = await subtensor.get_transfer_fee(
         wallet=alice_wallet,
         dest=dest_coldkey,
         value=transfer_value,
     )
 
     # Account details before transfer
-    balance_before = subtensor.get_balance(alice_wallet.coldkeypub.ss58_address)
+    balance_before = await subtensor.get_balance(alice_wallet.coldkeypub.ss58_address)
 
     # Transfer Tao
-    assert subtensor.transfer(
+    assert await subtensor.transfer(
         wallet=alice_wallet,
         dest=dest_coldkey,
         amount=transfer_value,
@@ -39,7 +41,7 @@ def test_transfer(subtensor, alice_wallet):
         wait_for_inclusion=True,
     )
     # Account details after transfer
-    balance_after = subtensor.get_balance(alice_wallet.coldkeypub.ss58_address)
+    balance_after = await subtensor.get_balance(alice_wallet.coldkeypub.ss58_address)
 
     # Assert correct transfer calculations
     assert (
