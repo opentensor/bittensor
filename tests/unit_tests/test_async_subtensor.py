@@ -1856,6 +1856,30 @@ async def test_sign_and_send_extrinsic_substrate_request_exception(
 
 
 @pytest.mark.asyncio
+async def test_sign_and_send_extrinsic_raises_error(
+    mock_substrate, subtensor, fake_wallet, mocker
+):
+    mock_substrate.submit_extrinsic.return_value = mocker.AsyncMock(
+        error_message=mocker.AsyncMock(
+            return_value={
+                "name": "Exception",
+            },
+        )(),
+        is_success=mocker.AsyncMock(return_value=False)(),
+    )
+
+    with pytest.raises(
+        async_subtensor.SubstrateRequestException,
+        match="{'name': 'Exception'}",
+    ):
+        await subtensor.sign_and_send_extrinsic(
+            call=mocker.Mock(),
+            wallet=fake_wallet,
+            raise_error=True,
+        )
+
+
+@pytest.mark.asyncio
 async def test_get_children_success(subtensor, mocker):
     """Tests get_children when children are successfully retrieved and formatted."""
     # Preps
