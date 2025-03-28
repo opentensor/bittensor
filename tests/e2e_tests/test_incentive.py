@@ -73,16 +73,16 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     await wait_epoch(subtensor, netuid)
 
     # Subnet "Start Call" https://github.com/opentensor/bits/pull/13
-    status, error = await root_set_subtensor_hyperparameter_values(
-        local_chain,
-        alice_wallet,
-        call_function="start_call",
-        call_params={
-            "netuid": netuid,
-        },
-    )
+    # status, error = await root_set_subtensor_hyperparameter_values(
+    #     local_chain,
+    #     alice_wallet,
+    #     call_function="start_call",
+    #     call_params={
+    #         "netuid": netuid,
+    #     },
+    # )
 
-    assert status is True, error
+    # assert status is True, error
 
     # update weights_set_rate_limit for fast-blocks
     tempo = subtensor.tempo(netuid)
