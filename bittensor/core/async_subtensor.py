@@ -27,9 +27,14 @@ from bittensor.core.chain_data import (
     decode_account_id,
     DynamicInfo,
 )
+from bittensor_commit_reveal import get_encrypted_commitment
 from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.delegate_info import DelegatedInfo
-from bittensor.core.chain_data.utils import decode_metadata
+from bittensor.core.chain_data.utils import (
+    decode_metadata,
+    decode_revealed_commitment,
+    decode_revealed_commitment_with_hotkey,
+)
 from bittensor.core.config import Config
 from bittensor.core.errors import ChainError, SubstrateRequestException
 from bittensor.core.extrinsics.asyncex.commit_reveal import commit_reveal_v3_extrinsic
@@ -1057,6 +1062,68 @@ class AsyncSubtensor(SubtensorMixin):
         result = {}
         async for id_, value in query:
             result[decode_account_id(id_[0])] = decode_metadata(value)
+        return result
+
+    async def get_reveled_commitment(
+        self,
+        netuid: int,
+        hotkey_ss58_address: Optional[str] = None,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional[tuple[int, str]]:
+        """Returns hotkey related revealed commitment for a given netuid.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int]): The block number to retrieve the commitment from. Default is ``None``.
+            hotkey_ss58_address (str): The ss58 address of the committee member.
+            block_hash (Optional[str]): The hash of the block to retrieve the subnet unique identifiers from.
+            reuse_block (bool): Whether to reuse the last-used block hash.
+
+        Returns:
+            result (tuple[int, str): A tuple of reveal block and commitment message.
+        """
+        query = await self.query_module(
+            module="Commitments",
+            name="RevealedCommitments",
+            params=[netuid, hotkey_ss58_address],
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        return decode_revealed_commitment(query)
+
+    async def get_all_revealed_commitments(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> dict[str, tuple[int, str]]:
+        """Returns all revealed commitments for a given netuid.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int]): The block number to retrieve the commitment from. Default is ``None``.
+            block_hash (Optional[str]): The hash of the block to retrieve the subnet unique identifiers from.
+            reuse_block (bool): Whether to reuse the last-used block hash.
+
+        Returns:
+            result (dict): A dictionary of all revealed commitments in view {ss58_address: (reveal block, commitment message)}.
+        """
+        query = await self.query_map(
+            module="Commitments",
+            name="RevealedCommitments",
+            params=[netuid],
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+
+        result = {}
+        async for item in query:
+            result.update(decode_revealed_commitment_with_hotkey(item))
         return result
 
     async def get_current_weight_commit_info(
@@ -2619,6 +2686,46 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block=reuse_block,
         )
         return None if call is None else Balance.from_rao(int(call))
+
+    async def set_reveal_commitment(
+        self,
+        wallet,
+        netuid: int,
+        data: str,
+        blocks_until_reveal: int = 360,
+        block_time: Union[int, float] = 12,
+    ) -> tuple[bool, int]:
+        """
+        Commits arbitrary data to the Bittensor network by publishing metadata.
+
+        Arguments:
+            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the data.
+            netuid (int): The unique identifier of the subnetwork.
+            data (str): The data to be committed to the network.
+            blocks_until_reveal (int): The number of blocks from now after which the data will be revealed. Defaults to `360`.
+                Then amount of blocks in one epoch.
+            block_time (Union[int, float]): The number of seconds between each block. Defaults to `12`.
+
+        Returns:
+            bool: `True` if the commitment was successful, `False` otherwise.
+
+        Note: A commitment can be set once per subnet epoch and is reset at the next epoch in the chain automatically.
+        """
+
+        encrypted, reveal_round = get_encrypted_commitment(
+            data, blocks_until_reveal, block_time
+        )
+
+        # increase reveal_round in return + 1 because we want to fetch data from the chain after that round was revealed
+        # and stored.
+        data_ = {"encrypted": encrypted, "reveal_round": reveal_round}
+        return await publish_metadata(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            data_type=f"TimelockEncrypted",
+            data=data_,
+        ), reveal_round
 
     async def subnet(
         self,
