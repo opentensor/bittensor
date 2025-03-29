@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, Union, TYPE_CHECKING
 
 from bittensor.core.errors import MetadataError
 from bittensor.core.settings import version_as_int
@@ -226,7 +226,7 @@ async def publish_metadata(
     wallet: "Wallet",
     netuid: int,
     data_type: str,
-    data: bytes,
+    data: Union[bytes, dict],
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
 ) -> bool:
@@ -240,8 +240,8 @@ async def publish_metadata(
         data_type (str): The data type of the information being submitted. It should be one of the following:
             ``'Sha256'``, ``'Blake256'``, ``'Keccak256'``, or ``'Raw0-128'``. This specifies the format or hashing
             algorithm used for the data.
-        data (str): The actual metadata content to be published. This should be formatted or hashed according to the
-            ``type`` specified. (Note: max ``str`` length is 128 bytes)
+        data (Union[bytes, dict]): The actual metadata content to be published. This should be formatted or hashed
+            according to the ``type`` specified. (Note: max ``str`` length is 128 bytes for ``'Raw0-128'``.)
         wait_for_inclusion (bool, optional): If ``True``, the function will wait for the extrinsic to be included in a
             block before returning. Defaults to ``False``.
         wait_for_finalization (bool, optional): If ``True``, the function will wait for the extrinsic to be finalized
