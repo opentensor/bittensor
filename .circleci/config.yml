@@ -94,23 +94,13 @@ jobs:
             - v2-pypi-py<< parameters.python-version >>
 
       - run:
-          name: Install Rust toolchain
+          name: Setup Rust and Install Dependencies
           command: |
             curl https://sh.rustup.rs -sSf | sh -s -- -y
-            echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> $BASH_ENV
-            source $BASH_ENV
+            export PATH="$HOME/.cargo/bin:$PATH"
             rustc --version
             cargo --version
-
-      - run:
-          name: Install maturin
-          command: |
-            source $BASH_ENV
             pip install maturin
-
-      - run:
-          name: Update & Activate venv
-          command: |
             python -m venv .venv
             . .venv/bin/activate
             python -m pip install --upgrade uv
