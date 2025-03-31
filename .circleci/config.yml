@@ -36,8 +36,6 @@ jobs:
       - run:
           name: Update & Activate ruff venv
           command: |
-            curl https://sh.rustup.rs -sSf | sh -s -- -y
-            . "$HOME/.cargo/env"
             python -m venv .venv
             . .venv/bin/activate
             python -m pip install --upgrade uv
@@ -94,6 +92,21 @@ jobs:
           keys:
             - v2-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
             - v2-pypi-py<< parameters.python-version >>
+
+      - run:
+          name: Install Rust toolchain
+          command: |
+            curl https://sh.rustup.rs -sSf | sh -s -- -y
+            echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> $BASH_ENV
+            source $BASH_ENV
+            rustc --version
+            cargo --version
+
+      - run:
+          name: Install maturin
+          command: |
+            source $BASH_ENV
+            pip install maturin
 
       - run:
           name: Update & Activate venv
