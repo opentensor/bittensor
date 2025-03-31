@@ -97,9 +97,9 @@ jobs:
           name: Update & Activate venv
           command: |
             python -m venv .venv
-            . .venv/bin/activate
-            python -m pip install --upgrade uv
-            uv sync --all-extras --dev
+            python -m pip install --upgrade pip
+            python -m pip install '.[dev]'
+            pip install flake8
 
       - save_cache:
           name: Save cached venv
