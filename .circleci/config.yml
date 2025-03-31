@@ -97,6 +97,7 @@ jobs:
           name: Update & Activate venv
           command: |
             python -m venv .venv
+            . .venv/bin/activate
             python -m pip install --upgrade uv
             uv sync --all-extras --dev
             uv pip install flake8
