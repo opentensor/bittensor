@@ -131,7 +131,7 @@ def test_do_set_weights_is_success(mock_subtensor, fake_wallet, mocker):
     _, kwargs = mock_subtensor.substrate.create_signed_extrinsic.call_args
     assert kwargs["call"] == mock_subtensor.substrate.compose_call.return_value
     assert kwargs["keypair"] == fake_wallet.hotkey
-    assert kwargs["era"] == {"period": 5}
+    assert kwargs["era"] == {"period": 25}
 
     assert result == (True, "Successfully set weights.")
 
@@ -177,7 +177,7 @@ def test_do_set_weights_is_not_success(mock_subtensor, fake_wallet, mocker):
     _, kwargs = mock_subtensor.substrate.create_signed_extrinsic.call_args
     assert kwargs["call"] == mock_subtensor.substrate.compose_call.return_value
     assert kwargs["keypair"] == fake_wallet.hotkey
-    assert kwargs["era"] == {"period": 5}
+    assert kwargs["era"] == {"period": 25}
 
     mock_subtensor.substrate.submit_extrinsic.assert_called_once_with(
         extrinsic=mock_subtensor.substrate.create_signed_extrinsic.return_value,
@@ -228,7 +228,7 @@ def test_do_set_weights_no_waits(mock_subtensor, fake_wallet, mocker):
     _, kwargs = mock_subtensor.substrate.create_signed_extrinsic.call_args
     assert kwargs["call"] == mock_subtensor.substrate.compose_call.return_value
     assert kwargs["keypair"] == fake_wallet.hotkey
-    assert kwargs["era"] == {"period": 5}
+    assert kwargs["era"] == {"period": 25}
 
     mock_subtensor.substrate.submit_extrinsic.assert_called_once_with(
         extrinsic=mock_subtensor.substrate.create_signed_extrinsic.return_value,
