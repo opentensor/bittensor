@@ -99,7 +99,7 @@ jobs:
             python -m venv .venv
             . .venv/bin/activate
             python -m pip install --upgrade pip
-            upython -m pip install '.[dev]'
+            python -m pip install '.[dev]'
 
       - save_cache:
           name: Save cached venv
