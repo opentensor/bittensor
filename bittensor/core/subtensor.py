@@ -807,7 +807,7 @@ class Subtensor(SubtensorMixin):
             result[decode_account_id(id_[0])] = decode_metadata(value)
         return result
 
-    def get_reveled_commitment(
+    def get_revealed_commitment(
         self,
         netuid: int,
         hotkey_ss58_address: Optional[str] = None,
