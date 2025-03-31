@@ -85,11 +85,11 @@ async def test_set_reveal_commitment(local_chain, subtensor, alice_wallet, bob_w
     assert message_alice == alice_actual_message
     assert message_bob == bob_actual_message
 
-    # Assertions for get_reveled_commitment (based of hotkey)
-    actual_alice_block, actual_alice_message = subtensor.get_reveled_commitment(
+    # Assertions for get_revealed_commitment (based of hotkey)
+    actual_alice_block, actual_alice_message = subtensor.get_revealed_commitment(
         NETUID, alice_wallet.hotkey.ss58_address
     )
-    actual_bob_block, actual_bob_message = subtensor.get_reveled_commitment(
+    actual_bob_block, actual_bob_message = subtensor.get_revealed_commitment(
         NETUID, bob_wallet.hotkey.ss58_address
     )
 
