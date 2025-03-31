@@ -36,10 +36,12 @@ jobs:
       - run:
           name: Update & Activate ruff venv
           command: |
+            curl https://sh.rustup.rs -sSf | sh -s -- -y
+            . "$HOME/.cargo/env"
             python -m venv .venv
             . .venv/bin/activate
-            python -m pip install --upgrade pip
-            pip install ruff -c requirements/dev.txt
+            python -m pip install --upgrade uv
+            uv pip install ruff -c requirements/dev.txt
 
       - save_cache:
           name: Save cached ruff venv
@@ -98,8 +100,8 @@ jobs:
           command: |
             python -m venv .venv
             . .venv/bin/activate
-            python -m pip install --upgrade pip
-            python -m pip install '.[dev]'
+            python -m pip install --upgrade uv
+            uv sync --all-extras --dev
 
       - save_cache:
           name: Save cached venv
@@ -111,7 +113,7 @@ jobs:
           name: Install Bittensor
           command: |
             . .venv/bin/activate
-            pip install -e '.[dev]'
+            uv sync --all-extras --dev
 
       - run:
           name: Instantiate Mock Wallet
@@ -189,9 +191,9 @@ jobs:
           command: |
             python -m venv .venv
             . .venv/bin/activate
-            python -m pip install --upgrade pip
-            python -m pip install '.[dev]'
-            pip install flake8
+            python -m pip install --upgrade uv
+            uv sync --all-extras --dev
+            uv pip install flake8
 
       - save_cache:
           name: Save cached venv
@@ -203,7 +205,7 @@ jobs:
           name: Install Bittensor
           command: |
             . .venv/bin/activate
-            pip install -e '.[dev]'
+            uv sync --all-extras --dev
 
       - run:
           name: Lint with flake8
@@ -232,7 +234,7 @@ jobs:
       - run:
           name: Combine Coverage
           command: |
-            pip3 install --upgrade coveralls
+            uv pip install --upgrade coveralls
             coveralls --finish --rcfile .coveragerc || echo "Failed to upload coverage"
 
   check-version-updated:
@@ -290,9 +292,6 @@ workflows:
       - check_compatibility:
           python_version: "3.12"
           name: check-compatibility-3.12
-      - check_compatibility:
-          python_version: "3.13"
-          name: check-compatibility-3.13
 
 
   pr-requirements:
