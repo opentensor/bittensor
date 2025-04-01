@@ -21,6 +21,6 @@ python-Levenshtein
 scalecodec==1.2.11
 uvicorn
 websockets>=14.1
-bittensor-commit-reveal>=0.3.0
+bittensor-commit-reveal>=0.3.1
 bittensor-wallet>=3.0.4
 async-substrate-interface>=1.0.4
