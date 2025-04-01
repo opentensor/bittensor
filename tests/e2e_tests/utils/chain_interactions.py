@@ -5,7 +5,6 @@ these are not present in btsdk but are required for e2e tests
 
 import asyncio
 import contextlib
-import unittest.mock
 from typing import Union, Optional, TYPE_CHECKING
 
 from bittensor.utils.balance import Balance
@@ -191,6 +190,7 @@ def sudo_set_admin_utils(
         wallet (Wallet): Wallet object with the keypair for signing.
         call_function (str): The AdminUtils function to call.
         call_params (dict): Parameters for the AdminUtils function.
+        call_module (str): The AdminUtils module to call. Defaults to "AdminUtils".
 
     Returns:
         tuple[bool, Optional[dict]]: (success status, error details).
