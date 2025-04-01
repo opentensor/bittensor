@@ -1639,6 +1639,36 @@ class AsyncSubtensor(SubtensorMixin):
                 reuse_block=reuse_block,
             )
 
+    async def get_owned_hotkeys(
+        self,
+        coldkey_ss58: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> list[str]:
+        """
+        Retrieves all hotkeys owned by a specific coldkey address.
+
+        Args:
+            coldkey_ss58 (str): The SS58 address of the coldkey to query.
+            block (int): The blockchain block number for the query.
+            block_hash (str): The hash of the blockchain block number for the query.
+            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
+
+        Returns:
+            list[str]: A list of hotkey SS58 addresses owned by the coldkey.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        owned_hotkeys = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="OwnedHotkeys",
+            params=[coldkey_ss58],
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+
+        return [decode_account_id(hotkey[0]) for hotkey in owned_hotkeys or []]
+
     async def get_stake(
         self,
         coldkey_ss58: str,
