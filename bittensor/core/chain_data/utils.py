@@ -159,11 +159,11 @@ def decode_revealed_commitment(
             return 4
 
     v = next(iter(value))
-    reveled_block = v[1]
+    revealed_block = v[1]
     cut = scale_decode_offset(v[0])
 
-    reveled_commitment = bytes(v[0][cut:]).decode("utf-8", errors="ignore")
-    return reveled_block, reveled_commitment
+    revealed_commitment = bytes(v[0][cut:]).decode("utf-8", errors="ignore")
+    return revealed_block, revealed_commitment
 
 
 def decode_revealed_commitment_with_hotkey(data: list) -> dict[str, tuple[int, str]]:
