@@ -181,6 +181,7 @@ def sudo_set_admin_utils(
     wallet: "Wallet",
     call_function: str,
     call_params: dict,
+    call_module: str = "AdminUtils",
 ) -> tuple[bool, Optional[dict]]:
     """
     Wraps the call in sudo to set hyperparameter values using AdminUtils.
@@ -195,7 +196,7 @@ def sudo_set_admin_utils(
         tuple[bool, Optional[dict]]: (success status, error details).
     """
     inner_call = substrate.compose_call(
-        call_module="AdminUtils",
+        call_module=call_module,
         call_function=call_function,
         call_params=call_params,
     )
@@ -240,10 +241,7 @@ async def root_set_subtensor_hyperparameter_values(
         wait_for_finalization=True,
     )
 
-    if return_error_message:
-        return response.is_success, response.error_message
-
-    return response.is_success, None
+    return response.is_success, response.error_message
 
 
 def set_identity(
