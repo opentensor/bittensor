@@ -7,12 +7,29 @@ from bittensor.core import settings
 
 
 def _check_currencies(self, other):
-    """Checks that Balance objects have the same netuids to perform arithmetic operations."""
+    """Checks that Balance objects have the same netuids to perform arithmetic operations.
+
+    A warning is raised if the netuids differ.
+
+    Example:
+        >>> balance1 = Balance.from_rao(1000).set_unit(12)
+        >>> balance2 = Balance.from_rao(500).set_unit(12)
+        >>> balance1 + balance2  # No warning
+
+        >>> balance3 = Balance.from_rao(200).set_unit(15)
+        >>> balance1 + balance3  # Raises DeprecationWarning
+
+    In this example:
+        - `from_rao` creates a Balance instance from the amount in rao (smallest unit).
+        - `set_unit(12)` sets the unit to correspond to subnet 12 (i.e., Alpha from netuid 12).
+    """
     if self.netuid != other.netuid:
         warnings.simplefilter("default", DeprecationWarning)
         warnings.warn(
-            "Balance objects must have the same netuid (Alpha currency) to perform arithmetic operations. "
-            f"First balance is `{self}`.  Second balance is `{other}`. ",
+            "Balance objects must have the same netuid (Alpha currency) to perform arithmetic operations.\n"
+            f"First balance is `{self}`.  Second balance is `{other}`.\n\n"
+            "To create a Balance instance with the correct netuid, use:\n"
+            "Balance.from_rao(1000).set_unit(12)  # 1000 rao in subnet 12",
             category=DeprecationWarning,
             stacklevel=2,
         )
