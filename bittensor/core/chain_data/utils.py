@@ -1,7 +1,7 @@
 """Chain data helper functions and data."""
 
 from enum import Enum
-from typing import Optional, Union
+from typing import Optional, Union, TYPE_CHECKING
 
 from scalecodec.base import RuntimeConfiguration, ScaleBytes
 from scalecodec.type_registry import load_type_registry_preset
@@ -9,6 +9,9 @@ from scalecodec.utils.ss58 import ss58_encode
 
 from bittensor.core.settings import SS58_FORMAT
 from bittensor.utils.balance import Balance
+
+if TYPE_CHECKING:
+    from async_substrate_interface.types import ScaleObj
 
 
 class ChainDataType(Enum):
@@ -135,3 +138,36 @@ def decode_metadata(metadata: dict) -> str:
     commitment = metadata["info"]["fields"][0][0]
     bytes_tuple = commitment[next(iter(commitment.keys()))][0]
     return bytes(bytes_tuple).decode()
+
+
+def decode_revealed_commitment(
+    value: Optional["ScaleObj"],
+) -> Optional[tuple[int, str]]:
+    """Decode the revealed commitment data from the given input if it is not None."""
+    if value is None:
+        return None
+
+    def scale_decode_offset(data: bytes) -> int:
+        """Decodes the scale offset from a given byte data sequence."""
+        first_byte = data[0]
+        mode = first_byte & 0b11
+        if mode == 0:
+            return 1
+        elif mode == 1:
+            return 2
+        else:
+            return 4
+
+    v = next(iter(value))
+    revealed_block = v[1]
+    cut = scale_decode_offset(v[0])
+
+    revealed_commitment = bytes(v[0][cut:]).decode("utf-8", errors="ignore")
+    return revealed_block, revealed_commitment
+
+
+def decode_revealed_commitment_with_hotkey(data: list) -> dict[str, tuple[int, str]]:
+    """Decode revealed commitment using a hotkey."""
+    key, value = data
+    ss58_address = decode_account_id(key[0])
+    return {ss58_address: decode_revealed_commitment(value)}
