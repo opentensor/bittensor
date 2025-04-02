@@ -38,8 +38,7 @@ jobs:
           command: |
             python -m venv .venv
             . .venv/bin/activate
-            python -m pip install --upgrade uv
-            uv pip install ruff -c requirements/dev.txt
+            pip install ruff -c requirements/dev.txt
 
       - save_cache:
           name: Save cached ruff venv
@@ -98,8 +97,7 @@ jobs:
           command: |
             python -m venv .venv
             . .venv/bin/activate
-            python -m pip install --upgrade uv
-            uv sync --all-extras --dev
+            pip install .[dev,torch]
 
       - save_cache:
           name: Save cached venv
@@ -111,7 +109,7 @@ jobs:
           name: Install Bittensor
           command: |
             . .venv/bin/activate
-            uv sync --all-extras --dev
+            pip install .[dev,torch]
 
       - run:
           name: Instantiate Mock Wallet
@@ -189,9 +187,7 @@ jobs:
           command: |
             python -m venv .venv
             . .venv/bin/activate
-            python -m pip install --upgrade uv
-            uv sync --all-extras --dev
-            uv pip install flake8
+            pip install .[dev,torch]
 
       - save_cache:
           name: Save cached venv
@@ -203,7 +199,7 @@ jobs:
           name: Install Bittensor
           command: |
             . .venv/bin/activate
-            uv sync --all-extras --dev
+            pip install .[dev,torch]
 
       - run:
           name: Lint with flake8
@@ -232,7 +228,7 @@ jobs:
       - run:
           name: Combine Coverage
           command: |
-            uv pip install --upgrade coveralls
+            pip install --upgrade coveralls
             coveralls --finish --rcfile .coveragerc || echo "Failed to upload coverage"
 
   check-version-updated:
