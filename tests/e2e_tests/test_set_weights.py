@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from bittensor.core.extrinsics.options import ExtrinsicEra
 from bittensor.utils.balance import Balance
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
@@ -117,6 +118,7 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
                 weights=weight_vals,
                 wait_for_inclusion=False,  # Don't wait for inclusion, we are testing the nonce when there is a tx in the pool
                 wait_for_finalization=False,
+                era=ExtrinsicEra(period=20),
             )
 
             assert success is True, message

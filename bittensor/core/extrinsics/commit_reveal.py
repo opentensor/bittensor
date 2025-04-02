@@ -6,6 +6,7 @@ from bittensor_commit_reveal import get_encrypted_commit
 import numpy as np
 from numpy.typing import NDArray
 
+from bittensor.core.extrinsics.options import ExtrinsicEra
 from bittensor.core.settings import version_as_int
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
@@ -24,6 +25,7 @@ def _do_commit_reveal_v3(
     reveal_round: int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
+    era: Optional[ExtrinsicEra] = None,
 ) -> tuple[bool, Optional[str]]:
     """
     Executes the commit-reveal phase 3 for a given netuid and commit, and optionally waits for extrinsic inclusion or
@@ -57,7 +59,12 @@ def _do_commit_reveal_v3(
         },
     )
     return subtensor.sign_and_send_extrinsic(
-        call, wallet, wait_for_inclusion, wait_for_finalization, sign_with="hotkey"
+        call,
+        wallet,
+        wait_for_inclusion,
+        wait_for_finalization,
+        period=era.period if era else None,
+        sign_with="hotkey",
     )
 
 
@@ -70,6 +77,7 @@ def commit_reveal_v3_extrinsic(
     version_key: int = version_as_int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
+    era: Optional[ExtrinsicEra] = None,
 ) -> tuple[bool, str]:
     """
     Commits and reveals weights for given subtensor and wallet with provided uids and weights.
@@ -124,6 +132,7 @@ def commit_reveal_v3_extrinsic(
             reveal_round=reveal_round,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            era=era,
         )
 
         if success is not True:

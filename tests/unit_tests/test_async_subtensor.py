@@ -12,6 +12,7 @@ from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.neuron_info import NeuronInfo
 from bittensor.core.chain_data.stake_info import StakeInfo
 from bittensor.core.chain_data import proposal_vote_data
+from bittensor.core.extrinsics.options import ExtrinsicEra
 from bittensor.utils import U64_MAX
 from bittensor.utils.balance import Balance
 from tests.helpers.helpers import assert_submit_signed_extrinsic
@@ -2669,6 +2670,9 @@ async def test_set_weights_success(subtensor, fake_wallet, mocker):
         uids=fake_uids,
         weights=fake_weights,
         max_retries=max_retries,
+        era={
+            "period": 15,
+        },
     )
 
     # Asserts
@@ -2688,6 +2692,7 @@ async def test_set_weights_success(subtensor, fake_wallet, mocker):
         wait_for_finalization=False,
         wait_for_inclusion=False,
         weights=fake_weights,
+        era=ExtrinsicEra(period=15),
     )
     mocked_weights_rate_limit.assert_called_once_with(fake_netuid)
     assert result is True
@@ -2825,6 +2830,7 @@ async def test_commit_weights_success(subtensor, fake_wallet, mocker):
         commit_hash="fake_commit_hash",
         wait_for_inclusion=False,
         wait_for_finalization=False,
+        era=None,
     )
     assert result is True
     assert message == "Success"

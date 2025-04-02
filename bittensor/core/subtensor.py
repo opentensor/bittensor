@@ -45,6 +45,11 @@ from bittensor.core.extrinsics.move_stake import (
     swap_stake_extrinsic,
     move_stake_extrinsic,
 )
+from bittensor.core.extrinsics.options import (
+    DEFAULT_SET_WEIGHTS_EXTRINSIC_ERA,
+    ExtrinsicEra,
+    ExtrinsicEraTypes,
+)
 from bittensor.core.extrinsics.registration import (
     burned_register_extrinsic,
     register_extrinsic,
@@ -2689,6 +2694,7 @@ class Subtensor(SubtensorMixin):
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         max_retries: int = 5,
+        era: Optional[ExtrinsicEraTypes] = None,
     ) -> tuple[bool, str]:
         """
         Commits a hash of the neuron's weights to the Bittensor blockchain using the provided wallet.
@@ -2706,6 +2712,7 @@ class Subtensor(SubtensorMixin):
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
                 ``False``.
             max_retries (int): The number of maximum attempts to commit weights. Default is ``5``.
+            era (ExtrinsicEraTypes, optional): Blocks for which the transaction should be valid.
 
         Returns:
             tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string
@@ -2717,6 +2724,9 @@ class Subtensor(SubtensorMixin):
         retries = 0
         success = False
         message = "No attempt made. Perhaps it is too soon to commit weights!"
+
+        if isinstance(era, dict):
+            era = ExtrinsicEra(**era)
 
         logging.info(
             f"Committing weights with params: netuid={netuid}, uids={uids}, weights={weights}, "
@@ -2742,6 +2752,7 @@ class Subtensor(SubtensorMixin):
                     commit_hash=commit_hash,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
+                    era=era,
                 )
                 if success:
                     break
@@ -3051,6 +3062,7 @@ class Subtensor(SubtensorMixin):
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         max_retries: int = 5,
+        era: Optional[ExtrinsicEraTypes] = DEFAULT_SET_WEIGHTS_EXTRINSIC_ERA,
     ) -> tuple[bool, str]:
         """
         Sets the inter-neuronal weights for the specified neuron. This process involves specifying the influence or
@@ -3070,6 +3082,7 @@ class Subtensor(SubtensorMixin):
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
                 ``False``.
             max_retries (int): The number of maximum attempts to set weights. Default is ``5``.
+            era (ExtrinsicEraTypes, optional): Blocks for which the transaction should be valid.
 
         Returns:
             tuple[bool, str]: ``True`` if the setting of weights is successful, False otherwise. And `msg`, a string
@@ -3078,6 +3091,9 @@ class Subtensor(SubtensorMixin):
         This function is crucial in shaping the network's collective intelligence, where each neuron's learning and
             contribution are influenced by the weights it sets towards others【81†source】.
         """
+
+        if isinstance(era, dict):
+            era = ExtrinsicEra(**era)
 
         def _blocks_weight_limit() -> bool:
             bslu = cast(int, self.blocks_since_last_update(netuid, cast(int, uid)))
@@ -3111,6 +3127,7 @@ class Subtensor(SubtensorMixin):
                     version_key=version_key,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
+                    era=era if era is not DEFAULT_SET_WEIGHTS_EXTRINSIC_ERA else None,
                 )
                 retries += 1
             return success, message
@@ -3132,6 +3149,7 @@ class Subtensor(SubtensorMixin):
                         version_key=version_key,
                         wait_for_inclusion=wait_for_inclusion,
                         wait_for_finalization=wait_for_finalization,
+                        era=era,
                     )
                 except Exception as e:
                     logging.error(f"Error setting weights: {e}")

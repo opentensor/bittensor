@@ -69,6 +69,7 @@ def clone_or_update_templates(specific_commit=None):
         print(
             f"\033[94mChecking out commit {specific_commit} in {templates_repo}...\033[0m"
         )
+        subprocess.run(["git", "fetch", "origin", specific_commit], check=True)
         subprocess.run(["git", "checkout", specific_commit], check=True)
         os.chdir("..")
 
@@ -183,7 +184,8 @@ class Templates:
                     self.set_weights.set()
 
     def __init__(self):
-        self.dir = clone_or_update_templates()
+        # set_weights_era
+        self.dir = clone_or_update_templates("3d618b2fa77c779b3e9abc4f3b379cea362d38fe")
 
     def __enter__(self):
         return self
