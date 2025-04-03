@@ -38,7 +38,8 @@ jobs:
           command: |
             python -m venv .venv
             . .venv/bin/activate
-            pip install ruff -c requirements/dev.txt
+            python -m pip install --upgrade uv
+            uv pip install ruff -c requirements/dev.txt
 
       - save_cache:
           name: Save cached ruff venv
@@ -97,7 +98,8 @@ jobs:
           command: |
             python -m venv .venv
             . .venv/bin/activate
-            pip install .[dev,torch]
+            python -m pip install --upgrade uv
+            uv sync --all-extras --dev
 
       - save_cache:
           name: Save cached venv
@@ -109,7 +111,7 @@ jobs:
           name: Install Bittensor
           command: |
             . .venv/bin/activate
-            pip install .[dev,torch]
+            uv sync --all-extras --dev
 
       - run:
           name: Instantiate Mock Wallet
@@ -187,7 +189,9 @@ jobs:
           command: |
             python -m venv .venv
             . .venv/bin/activate
-            pip install .[dev,torch]
+            python -m pip install --upgrade uv
+            uv sync --all-extras --dev
+            uv pip install flake8
 
       - save_cache:
           name: Save cached venv
@@ -199,7 +203,7 @@ jobs:
           name: Install Bittensor
           command: |
             . .venv/bin/activate
-            pip install .[dev,torch]
+            uv sync --all-extras --dev
 
       - run:
           name: Lint with flake8
@@ -228,7 +232,7 @@ jobs:
       - run:
           name: Combine Coverage
           command: |
-            pip install --upgrade coveralls
+            uv pip install --upgrade coveralls
             coveralls --finish --rcfile .coveragerc || echo "Failed to upload coverage"
 
   check-version-updated:
@@ -301,7 +305,7 @@ workflows:
       - build-and-test:
           matrix:
             parameters:
-              python-version: [ "3.9.13", "3.10.6", "3.11.4", "3.12.7"]
+              python-version: [ "3.9.13", "3.10.6", "3.11.4", "3.12.7" ]
           requires:
             - check-if-pr-is-draft
       - unit-tests-all-python-versions:
@@ -310,7 +314,7 @@ workflows:
       - lint-and-type-check:
           matrix:
             parameters:
-              python-version: [ "3.9.13", "3.10.6", "3.11.4", "3.12.7"]
+              python-version: [ "3.9.13", "3.10.6", "3.11.4", "3.12.7" ]
           requires:
             - check-if-pr-is-draft
       #- coveralls:
