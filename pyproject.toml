@@ -67,6 +67,9 @@ dev = [
 torch = [
     "torch>=1.13.1,<2.6.0"
 ]
+cli = [
+    "bittensor-cli>=9.0.2"
+]
 
 [project.urls]
 # more details can be found here
