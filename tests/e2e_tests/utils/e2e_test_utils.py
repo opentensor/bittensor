@@ -185,7 +185,7 @@ class Templates:
 
     def __init__(self):
         # set_weights_era
-        self.dir = clone_or_update_templates("3d618b2fa77c779b3e9abc4f3b379cea362d38fe")
+        self.dir = clone_or_update_templates("d757bcc350d48d316d04ee0dc1581c74abeeaf67")
 
     def __enter__(self):
         return self
