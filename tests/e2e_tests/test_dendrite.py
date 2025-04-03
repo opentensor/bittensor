@@ -34,6 +34,13 @@ async def test_dendrite(local_chain, subtensor, templates, alice_wallet, bob_wal
     # Verify subnet <netuid> created successfully
     assert await subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
+    # Make sure Alice is Top Validator
+    assert subtensor.add_stake(
+        alice_wallet,
+        netuid=netuid,
+        amount=Balance.from_tao(1),
+    )
+
     # update max_allowed_validators so only one neuron can get validator_permit
     assert sudo_set_admin_utils(
         local_chain,
