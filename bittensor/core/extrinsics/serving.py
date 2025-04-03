@@ -233,6 +233,7 @@ def publish_metadata(
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
     period: Optional[int] = None,
+    reset_bonds: bool = False,
 ) -> bool:
     """
     Publishes metadata on the Bittensor network using the specified wallet and network identifier.
@@ -253,6 +254,7 @@ def publish_metadata(
         period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
+        reset_bonds (bool, optional): If ``True``, the function will reset the bonds for the neuron. Defaults to ``False``.
 
     Returns:
         bool: ``True`` if the metadata was successfully published (and finalized if specified). ``False`` otherwise.
@@ -266,12 +268,16 @@ def publish_metadata(
         logging.error(unlock.message)
         return False
 
+    fields = [{f"{data_type}": data}]
+    if reset_bonds:
+        fields.append({"ResetBondsFlag": b""})
+
     call = subtensor.substrate.compose_call(
         call_module="Commitments",
         call_function="set_commitment",
         call_params={
             "netuid": netuid,
-            "info": {"fields": [[{f"{data_type}": data}]]},
+            "info": {"fields": [fields]},
         },
     )
 
