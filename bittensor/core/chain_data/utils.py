@@ -11,7 +11,7 @@ from bittensor.core.settings import SS58_FORMAT
 from bittensor.utils.balance import Balance
 
 if TYPE_CHECKING:
-    from async_substrate_interface.types import ScaleObj
+    from async_substrate_interface.sync_substrate import QueryMapResult
 
 
 class ChainDataType(Enum):
@@ -140,12 +140,16 @@ def decode_metadata(metadata: dict) -> str:
     return bytes(bytes_tuple).decode()
 
 
-def decode_revealed_commitment(
-    value: Optional["ScaleObj"],
-) -> Optional[tuple[int, str]]:
-    """Decode the revealed commitment data from the given input if it is not None."""
-    if value is None:
-        return None
+def decode_revealed_commitment(encoded_data) -> tuple[int, str]:
+    """
+    Decode the revealed commitment data from the given input if it is not None.
+
+    Arguments:
+        encoded_data (tuple[bytes, int]): A tuple containing the revealed message and the block number.
+
+    Returns:
+        tuple[int, str]: A tuple containing the revealed block number and decoded commitment message.
+    """
 
     def scale_decode_offset(data: bytes) -> int:
         """Decodes the scale offset from a given byte data sequence."""
@@ -158,16 +162,25 @@ def decode_revealed_commitment(
         else:
             return 4
 
-    v = next(iter(value))
-    revealed_block = v[1]
-    cut = scale_decode_offset(v[0])
+    com_bytes, revealed_block = encoded_data
+    offset = scale_decode_offset(com_bytes)
 
-    revealed_commitment = bytes(v[0][cut:]).decode("utf-8", errors="ignore")
+    revealed_commitment = bytes(com_bytes[offset:]).decode("utf-8", errors="ignore")
     return revealed_block, revealed_commitment
 
 
-def decode_revealed_commitment_with_hotkey(data: list) -> dict[str, tuple[int, str]]:
-    """Decode revealed commitment using a hotkey."""
-    key, value = data
-    ss58_address = decode_account_id(key[0])
-    return {ss58_address: decode_revealed_commitment(value)}
+def decode_revealed_commitment_with_hotkey(
+    encoded_data: "QueryMapResult",
+) -> tuple[str, tuple[tuple[int, str], ...]]:
+    """
+    Decode revealed commitment using a hotkey.
+
+    Returns:
+        tuple[str, tuple[tuple[int, str], ...]]: A tuple containing the hotkey (ss58 address) and a tuple of block
+            numbers and their corresponding revealed commitments.
+    """
+    key, data = encoded_data
+
+    ss58_address = decode_account_id(next(iter(key)))
+    block_data = tuple(decode_revealed_commitment(p) for p in data.value)
+    return ss58_address, block_data
