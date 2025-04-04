@@ -17,8 +17,6 @@ from typing import Callable, Optional, Union, TYPE_CHECKING
 
 import numpy
 from Crypto.Hash import keccak
-from rich import console as rich_console, status as rich_status
-from rich.console import Console
 
 from bittensor.utils.btlogging import logging
 from bittensor.utils.formatting import get_human_readable, millify
@@ -516,14 +514,38 @@ class RegistrationStatistics:
     block_hash: str
 
 
+class Status:
+    def __init__(self, status: str):
+        self._status = status
+
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
+
+    def update(self, status: str):
+        self._status = status
+
+
+class Console:
+    @staticmethod
+    def status(status: str):
+        return Status(status)
+
+    @staticmethod
+    def log(text: str):
+        print(text)
+
+
 class RegistrationStatisticsLogger:
     """Logs statistics for a registration."""
 
-    status: Optional[rich_status.Status]
+    status: Optional["Status"]
 
     def __init__(
         self,
-        console: Optional[rich_console.Console] = None,
+        console: Optional["Console"] = None,
         output_in_place: bool = True,
     ) -> None:
         if console is None:
