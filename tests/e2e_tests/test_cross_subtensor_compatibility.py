@@ -1,6 +1,19 @@
 from datetime import datetime
 import pytest
 
+from bittensor.core.async_subtensor import AsyncSubtensor
+from bittensor.core.subtensor import Subtensor
+
+
+@pytest.fixture
+def subtensor(local_chain):
+    return Subtensor(network="ws://localhost:9944")
+
+
+@pytest.fixture
+def async_subtensor(local_chain):
+    return AsyncSubtensor(network="ws://localhost:9944")
+
 
 @pytest.mark.asyncio
 async def test_get_timestamp(subtensor, async_subtensor, local_chain):
