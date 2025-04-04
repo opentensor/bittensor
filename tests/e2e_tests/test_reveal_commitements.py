@@ -5,7 +5,7 @@ import pytest
 from bittensor.utils.btlogging import logging
 
 
-@pytest.mark.parametrize("local_chain", [False], indirect=True)
+@pytest.mark.parametrize("local_chain", [True], indirect=True)
 @pytest.mark.asyncio
 async def test_set_reveal_commitment(local_chain, subtensor, alice_wallet, bob_wallet):
     """
@@ -25,8 +25,8 @@ async def test_set_reveal_commitment(local_chain, subtensor, alice_wallet, bob_w
     Note: Actually we can run this tests in fast block mode. For this we need to set `BLOCK_TIME` to 0.25 and replace
     `False` to `True` in `pytest.mark.parametrize` decorator.
     """
-    BLOCK_TIME = 12  # 12 for non-fast-block, 0.25 for fast block
-    BLOCKS_UNTIL_REVEAL = 15
+    BLOCK_TIME = 0.25  # 12 for non-fast-block, 0.25 for fast block
+    BLOCKS_UNTIL_REVEAL = 10
 
     NETUID = 2
 
@@ -65,8 +65,10 @@ async def test_set_reveal_commitment(local_chain, subtensor, alice_wallet, bob_w
 
     # Sometimes the chain doesn't update the repository right away and the commit doesn't appear in the expected
     # `last_drand_round`. In this case need to wait a bit.
-    while subtensor.last_drand_round() < target_reveal_round + 1:
+    print(f"Waiting for reveal round {target_reveal_round}")
+    while subtensor.last_drand_round() <= target_reveal_round + 1:
         # wait one drand period (3 sec)
+        print(f"Current last reveled drand round {subtensor.last_drand_round()}")
         time.sleep(3)
 
     actual_all = subtensor.get_all_revealed_commitments(NETUID)
@@ -77,8 +79,8 @@ async def test_set_reveal_commitment(local_chain, subtensor, alice_wallet, bob_w
     bob_result = actual_all.get(bob_wallet.hotkey.ss58_address)
     assert bob_result is not None, "Bob's commitment was not received."
 
-    alice_actual_block, alice_actual_message = alice_result
-    bob_actual_block, bob_actual_message = bob_result
+    alice_actual_block, alice_actual_message = alice_result[0]
+    bob_actual_block, bob_actual_message = bob_result[0]
 
     # We do not check the release block because it is a dynamic number. It depends on the load of the chain, the number
     # of commits in the chain and the computing power.
@@ -87,11 +89,11 @@ async def test_set_reveal_commitment(local_chain, subtensor, alice_wallet, bob_w
 
     # Assertions for get_revealed_commitment (based of hotkey)
     actual_alice_block, actual_alice_message = subtensor.get_revealed_commitment(
-        NETUID, alice_wallet.hotkey.ss58_address
-    )
-    actual_bob_block, actual_bob_message = subtensor.get_revealed_commitment(
-        NETUID, bob_wallet.hotkey.ss58_address
-    )
+        NETUID, 0
+    )[0]
+    actual_bob_block, actual_bob_message = subtensor.get_revealed_commitment(NETUID, 1)[
+        0
+    ]
 
     assert message_alice == actual_alice_message
     assert message_bob == actual_bob_message
