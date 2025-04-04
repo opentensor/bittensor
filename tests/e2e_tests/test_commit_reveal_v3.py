@@ -72,9 +72,8 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     assert subtensor.weights_rate_limit(netuid=netuid) == 0
     logging.console.info("sudo_set_weights_set_rate_limit executed: set to 0")
 
-    # Change the tempo of the subnet from default 360
-    # Since this is in normal blocks, this is necessary
-    tempo_set = 10
+    # Change the tempo of the subnet
+    tempo_set = 20
     assert (
         sudo_set_admin_utils(
             local_chain,
@@ -102,8 +101,8 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
         f"Checking if window is too low with Current block: {current_block}, next tempo: {upcoming_tempo}"
     )
 
-    # Wait for 2 tempos to pass as CR3 only reveals weights after 2 tempos
-    subtensor.wait_for_block(20)
+    # Wait for 2 tempos to pass as CR3 only reveals weights after 2 tempos + 1
+    subtensor.wait_for_block((tempo_set * 2) + 1)
 
     # Lower than this might mean weights will get revealed before we can check them
     if upcoming_tempo - current_block < 3:
