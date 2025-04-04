@@ -305,7 +305,7 @@ async def test_dendrite__call__success_response(
     )
     mock_aio_response.post(
         f"http://127.0.0.1:666/SynapseDummy",
-        body=expected_synapse.json(),
+        body=expected_synapse.model_dump_json(),
     )
     synapse = await setup_dendrite.call(axon_info, synapse=input_synapse)
 
