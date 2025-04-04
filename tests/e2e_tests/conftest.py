@@ -20,6 +20,7 @@ from tests.e2e_tests.utils.e2e_test_utils import (
 )
 
 LOCALNET_IMAGE_NAME = "ghcr.io/opentensor/subtensor-localnet:devnet-ready"
+CONTAINER_NAME_PREFIX = "test_local_chain_"
 
 
 def wait_for_node_start(process, timestamp=None):
@@ -163,7 +164,32 @@ def docker_runner(params):
         print("Docker wasn't run. Manual start may be required.")
         return False
 
-    container_name = f"test_local_chain_{str(time.time()).replace('.', '_')}"
+    def stop_existing_test_containers():
+        """Stop running Docker containers with names starting with 'test_local_chain_'."""
+        try:
+            existing_container_result = subprocess.run(
+                [
+                    "docker",
+                    "ps",
+                    "--filter",
+                    f"name={CONTAINER_NAME_PREFIX}",
+                    "--format",
+                    "{{.ID}}",
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=True,
+            )
+            container_ids = existing_container_result.stdout.strip().splitlines()
+            for cid in container_ids:
+                if cid:
+                    print(f"Stopping existing container: {cid}")
+                    subprocess.run(["docker", "stop", cid], check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to stop existing containers: {e}")
+
+    container_name = f"{CONTAINER_NAME_PREFIX}{str(time.time()).replace('.', '_')}"
 
     # Command to start container
     cmds = [
@@ -181,6 +207,8 @@ def docker_runner(params):
     ]
 
     try_start_docker()
+
+    stop_existing_test_containers()
 
     # Start container
     with subprocess.Popen(
