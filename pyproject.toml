@@ -38,7 +38,7 @@ dependencies = [
     "websockets>=14.1",
     "bittensor-commit-reveal>=0.3.1",
     "bittensor-wallet>=3.0.7",
-    "async-substrate-interface>=1.0.8"
+    "async-substrate-interface>=1.0.9"
 ]
 
 [project.optional-dependencies]
