@@ -168,11 +168,18 @@ def docker_runner(params):
         """Stop running Docker containers with names starting with 'test_local_chain_'."""
         try:
             existing_container_result = subprocess.run(
-                ["docker", "ps", "--filter", f"name={CONTAINER_NAME_PREFIX}", "--format", "{{.ID}}"],
+                [
+                    "docker",
+                    "ps",
+                    "--filter",
+                    f"name={CONTAINER_NAME_PREFIX}",
+                    "--format",
+                    "{{.ID}}",
+                ],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                check=True
+                check=True,
             )
             container_ids = existing_container_result.stdout.strip().splitlines()
             for cid in container_ids:
