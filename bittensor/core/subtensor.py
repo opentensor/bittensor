@@ -86,6 +86,7 @@ from bittensor.utils import (
     decode_hex_identity_dict,
     float_to_u64,
     format_error_message,
+    is_valid_ss58_address,
     torch,
     u16_normalized_float,
     u64_normalized_float,
@@ -787,6 +788,7 @@ class Subtensor(SubtensorMixin):
             return ""
 
         metadata = cast(dict, get_metadata(self, netuid, hotkey, block))
+        print(metadata)
         try:
             return decode_metadata(metadata)
 
@@ -807,33 +809,71 @@ class Subtensor(SubtensorMixin):
             result[decode_account_id(id_[0])] = decode_metadata(value)
         return result
 
-    def get_revealed_commitment(
+    def get_revealed_commitment_by_hotkey(
         self,
         netuid: int,
-        hotkey_ss58_address: Optional[str] = None,
+        hotkey_ss58_address: str,
         block: Optional[int] = None,
-    ) -> Optional[tuple[int, str]]:
+    ) -> Optional[tuple[tuple[int, str], ...]]:
         """Returns hotkey related revealed commitment for a given netuid.
 
         Arguments:
             netuid (int): The unique identifier of the subnetwork.
-            block (Optional[int]): The block number to retrieve the commitment from. Default is ``None``.
             hotkey_ss58_address (str): The ss58 address of the committee member.
+            block (Optional[int]): The block number to retrieve the commitment from. Default is ``None``.
 
         Returns:
             result (tuple[int, str): A tuple of reveal block and commitment message.
         """
+        if not is_valid_ss58_address(address=hotkey_ss58_address):
+            raise ValueError(f"Invalid ss58 address {hotkey_ss58_address} provided.")
+
         query = self.query_module(
             module="Commitments",
             name="RevealedCommitments",
             params=[netuid, hotkey_ss58_address],
             block=block,
         )
-        return decode_revealed_commitment(query)
+        if query is None:
+            return None
+        return tuple(decode_revealed_commitment(pair) for pair in query)
+
+    def get_revealed_commitment(
+        self,
+        netuid: int,
+        uid: int,
+        block: Optional[int] = None,
+    ) -> Optional[tuple[tuple[int, str], ...]]:
+        """Returns uid related revealed commitment for a given netuid.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnetwork.
+            uid (int): The neuron uid to retrieve the commitment from.
+            block (Optional[int]): The block number to retrieve the commitment from. Default is ``None``.
+
+        Returns:
+            result (Optional[tuple[int, str]]: A tuple of reveal block and commitment message.
+
+        Example of result:
+            ( (12, "Alice message 1"), (152, "Alice message 2") )
+            ( (12, "Bob message 1"), (147, "Bob message 2") )
+        """
+        try:
+            meta_info = self.get_metagraph_info(netuid, block=block)
+            if meta_info:
+                hotkey_ss58_address = meta_info.hotkeys[uid]
+            else:
+                raise ValueError(f"Subnet with netuid {netuid} does not exist.")
+        except IndexError:
+            raise ValueError(f"Subnet {netuid} does not have a neuron with uid {uid}.")
+
+        return self.get_revealed_commitment_by_hotkey(
+            netuid=netuid, hotkey_ss58_address=hotkey_ss58_address, block=block
+        )
 
     def get_all_revealed_commitments(
         self, netuid: int, block: Optional[int] = None
-    ) -> dict[str, tuple[int, str]]:
+    ) -> dict[str, tuple[tuple[int, str], ...]]:
         """Returns all revealed commitments for a given netuid.
 
         Arguments:
@@ -842,6 +882,12 @@ class Subtensor(SubtensorMixin):
 
         Returns:
             result (dict): A dictionary of all revealed commitments in view {ss58_address: (reveal block, commitment message)}.
+
+        Example of result:
+        {
+            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY": ( (12, "Alice message 1"), (152, "Alice message 2") ),
+            "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty": ( (12, "Bob message 1"), (147, "Bob message 2") ),
+        }
         """
         query = self.query_map(
             module="Commitments",
@@ -851,8 +897,11 @@ class Subtensor(SubtensorMixin):
         )
 
         result = {}
-        for item in query:
-            result.update(decode_revealed_commitment_with_hotkey(item))
+        for pair in query:
+            hotkey_ss58_address, commitment_message = (
+                decode_revealed_commitment_with_hotkey(pair)
+            )
+            result[hotkey_ss58_address] = commitment_message
         return result
 
     def get_current_weight_commit_info(
