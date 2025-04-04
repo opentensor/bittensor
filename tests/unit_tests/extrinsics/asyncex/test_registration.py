@@ -41,20 +41,21 @@ async def test_do_pow_register_success(subtensor, fake_wallet, mocker):
     )
 
     # Asserts
-    subtensor.substrate.compose_call.asseert_awaited_once_with(
+    subtensor.substrate.compose_call.assert_awaited_once_with(
         call_module="SubtensorModule",
         call_function="register",
         call_params={
             "netuid": 1,
             "block_number": 12345,
             "nonce": 67890,
-            "work": [int(byte_) for byte_ in b"fake_seal"],
+            "work": list(b"fake_seal"),
             "hotkey": "hotkey_ss58",
             "coldkey": "coldkey_ss58",
         },
     )
-    subtensor.substrate.create_signed_extrinsic.asseert_awaited_once_with(
-        call=fake_call, keypair=fake_wallet.hotkey
+    subtensor.substrate.create_signed_extrinsic.assert_awaited_once_with(
+        call=fake_call,
+        keypair=fake_wallet.coldkey,
     )
     subtensor.substrate.submit_extrinsic.assert_awaited_once_with(
         fake_extrinsic, wait_for_inclusion=True, wait_for_finalization=True
@@ -105,11 +106,23 @@ async def test_do_pow_register_failure(subtensor, fake_wallet, mocker):
     )
 
     # Asserts
-    subtensor.substrate.compose_call.asseert_awaited_once_with()
-    subtensor.substrate.create_signed_extrinsic.asseert_awaited_once_with(
-        call=fake_call, keypair=fake_wallet.hotkey
+    subtensor.substrate.compose_call.assert_awaited_once_with(
+        call_module="SubtensorModule",
+        call_function="register",
+        call_params={
+            "netuid": 1,
+            "block_number": 12345,
+            "nonce": 67890,
+            "work": list(b"fake_seal"),
+            "hotkey": "hotkey_ss58",
+            "coldkey": "coldkey_ss58",
+        },
     )
-    subtensor.substrate.submit_extrinsic.asseert_awaited_once_with(
+    subtensor.substrate.create_signed_extrinsic.assert_awaited_once_with(
+        call=fake_call,
+        keypair=fake_wallet.coldkey,
+    )
+    subtensor.substrate.submit_extrinsic.assert_awaited_once_with(
         fake_extrinsic, wait_for_inclusion=True, wait_for_finalization=True
     )
 
@@ -152,9 +165,23 @@ async def test_do_pow_register_no_waiting(subtensor, fake_wallet, mocker):
     )
 
     # Asserts
-    subtensor.substrate.compose_call.asseert_awaited_once_with()
-    subtensor.substrate.create_signed_extrinsic.asseert_awaited_once_with()
-    subtensor.substrate.submit_extrinsic.asseert_awaited_once_with(
+    subtensor.substrate.compose_call.assert_awaited_once_with(
+        call_module="SubtensorModule",
+        call_function="register",
+        call_params={
+            "netuid": 1,
+            "block_number": 12345,
+            "nonce": 67890,
+            "work": list(b"fake_seal"),
+            "hotkey": "hotkey_ss58",
+            "coldkey": "coldkey_ss58",
+        },
+    )
+    subtensor.substrate.create_signed_extrinsic.assert_awaited_once_with(
+        call=fake_call,
+        keypair=fake_wallet.coldkey,
+    )
+    subtensor.substrate.submit_extrinsic.assert_awaited_once_with(
         fake_extrinsic, wait_for_inclusion=False, wait_for_finalization=False
     )
     assert result is True
@@ -442,10 +469,10 @@ async def test_set_subnet_identity_extrinsic_is_success(subtensor, fake_wallet, 
 
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
 
-    fake_response = mocker.Mock()
-    fake_response.is_success = mocker.AsyncMock(return_value=True)()
-    mocked_submit_extrinsic = mocker.patch.object(
-        subtensor.substrate, "submit_extrinsic", return_value=fake_response
+    mocked_sign_and_send_extrinsic = mocker.patch.object(
+        subtensor,
+        "sign_and_send_extrinsic",
+        return_value=[True, ""],
     )
 
     # Call
@@ -478,7 +505,7 @@ async def test_set_subnet_identity_extrinsic_is_success(subtensor, fake_wallet, 
             "additional": additional,
         },
     )
-    mocked_submit_extrinsic.assert_awaited_once_with(
+    mocked_sign_and_send_extrinsic.assert_awaited_once_with(
         call=mocked_compose_call.return_value,
         wallet=fake_wallet,
         wait_for_inclusion=False,
@@ -504,11 +531,10 @@ async def test_set_subnet_identity_extrinsic_is_failed(subtensor, fake_wallet, m
 
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
 
-    fake_response = mocker.Mock()
-    fake_response.is_success = mocker.AsyncMock(return_value=False)()
-    fake_response.error_message = mocker.AsyncMock(return_value=fake_error_message)()
-    mocked_submit_extrinsic = mocker.patch.object(
-        subtensor.substrate, "submit_extrinsic", return_value=fake_response
+    mocked_sign_and_send_extrinsic = mocker.patch.object(
+        subtensor,
+        "sign_and_send_extrinsic",
+        return_value=[False, fake_error_message],
     )
 
     # Call
@@ -543,7 +569,7 @@ async def test_set_subnet_identity_extrinsic_is_failed(subtensor, fake_wallet, m
             "additional": additional,
         },
     )
-    mocked_submit_extrinsic.assert_awaited_once_with(
+    mocked_sign_and_send_extrinsic.assert_awaited_once_with(
         call=mocked_compose_call.return_value,
         wallet=fake_wallet,
         wait_for_inclusion=True,
