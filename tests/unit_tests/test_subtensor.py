@@ -32,6 +32,7 @@ from bittensor.core import subtensor as subtensor_module
 from bittensor.core.async_subtensor import AsyncSubtensor, logging
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import SubnetHyperparameters
+from bittensor.core.extrinsics.options import ExtrinsicEra
 from bittensor.core.extrinsics.serving import do_serve_axon
 from bittensor.core.settings import version_as_int
 from bittensor.core.subtensor import Subtensor
@@ -1201,6 +1202,9 @@ def test_set_weights(subtensor, mocker, fake_wallet):
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
         max_retries=fake_max_retries,
+        era={
+            "period": 15,
+        },
     )
 
     # Asserts
@@ -1220,6 +1224,7 @@ def test_set_weights(subtensor, mocker, fake_wallet):
         version_key=settings.version_as_int,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
+        era=ExtrinsicEra(period=15),
     )
     assert result == expected_result
 
@@ -1979,6 +1984,7 @@ def test_commit_weights(subtensor, fake_wallet, mocker):
         commit_hash=mocked_generate_weight_hash.return_value,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        era=None,
     )
     assert result == expected_result
 
@@ -3159,6 +3165,7 @@ def test_set_weights_with_commit_reveal_enabled(subtensor, fake_wallet, mocker):
         version_key=subtensor_module.version_as_int,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
+        era=None,
     )
     assert result == mocked_commit_reveal_v3_extrinsic.return_value
 

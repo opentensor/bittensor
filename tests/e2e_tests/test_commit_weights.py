@@ -3,6 +3,7 @@ import asyncio
 import numpy as np
 import pytest
 
+from bittensor.core.extrinsics.options import ExtrinsicEra
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_admin_utils,
@@ -237,6 +238,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
             weights=weight_vals,
             wait_for_inclusion=False,  # Don't wait for inclusion, we are testing the nonce when there is a tx in the pool
             wait_for_finalization=False,
+            era=ExtrinsicEra(period=144),
         )
 
         assert success is True
@@ -250,6 +252,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
             weights=weight_vals,
             wait_for_inclusion=False,
             wait_for_finalization=False,
+            era=ExtrinsicEra(period=144),
         )
 
         assert success is True
@@ -263,12 +266,13 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
             weights=weight_vals,
             wait_for_inclusion=False,
             wait_for_finalization=False,
+            era=ExtrinsicEra(period=144),
         )
 
         assert success is True
 
-    # Wait a few blocks
-    await asyncio.sleep(10)  # Wait for the txs to be included in the chain
+    # Wait for the txs to be included in the chain
+    await asyncio.sleep(100)
 
     # Query the WeightCommits storage map for all three salts
     weight_commits = subtensor.query_module(
