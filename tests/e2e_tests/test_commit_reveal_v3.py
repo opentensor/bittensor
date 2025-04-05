@@ -73,7 +73,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     logging.console.info("sudo_set_weights_set_rate_limit executed: set to 0")
 
     # Change the tempo of the subnet
-    tempo_set = 20
+    tempo_set = 50
     assert (
         sudo_set_admin_utils(
             local_chain,
