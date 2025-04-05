@@ -110,7 +110,7 @@ def next_tempo(current_block: int, tempo: int, netuid: int) -> int:
     interval = tempo + 1
     last_epoch = current_block - 1 - (current_block + netuid + 1) % interval
     next_tempo_ = last_epoch + interval
-    return next_tempo_
+    return next_tempo_ + 1
 
 
 async def wait_interval(
