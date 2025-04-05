@@ -199,6 +199,7 @@ def test_commit_reveal_v3_extrinsic_success_with_torch(
         tempo=mock_hyperparams.return_value.tempo,
         netuid=fake_netuid,
         current_block=mock_block.return_value,
+        block_time=12.0,
     )
     mock_do_commit_reveal_v3.assert_called_once_with(
         subtensor=subtensor,
