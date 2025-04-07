@@ -104,9 +104,9 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
             for attempt in range(max_retries):
                 try:
                     print(f"Attempt {attempt} to wait for set_weights...")
-                    await asyncio.wait_for(validator.set_weights.wait(), timeout=60)
+                    await asyncio.wait_for(validator.set_weights.wait(), timeout=30)
                     break
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     print(f"Attempt {attempt} failed: validator.set_weights timed out.")
                     if attempt == max_retries:
                         raise
