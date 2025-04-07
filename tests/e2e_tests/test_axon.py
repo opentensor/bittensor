@@ -24,12 +24,12 @@ async def test_axon(subtensor, templates, alice_wallet):
     netuid = 2
 
     # Register a subnet, netuid 2
-    assert subtensor.register_subnet(alice_wallet), "Subnet wasn't created"
+    assert await subtensor.register_subnet(alice_wallet), "Subnet wasn't created"
 
     # Verify subnet <netuid> created successfully
-    assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
+    assert await subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
-    metagraph = subtensor.metagraph(netuid)
+    metagraph = await subtensor.metagraph(netuid)
 
     # Validate current metagraph stats
     old_axon = metagraph.axons[0]
@@ -49,7 +49,7 @@ async def test_axon(subtensor, templates, alice_wallet):
         await asyncio.sleep(5)
 
         # Refresh the metagraph
-        metagraph = subtensor.metagraph(netuid)
+        metagraph = await subtensor.metagraph(netuid)
         updated_axon = metagraph.axons[0]
         external_ip = networking.get_external_ip()
 

@@ -16,32 +16,33 @@ from tests.helpers.helpers import CLOSE_IN_VALUE
 DEFAULT_DELEGATE_TAKE = 0.179995422293431
 
 
-def test_identity(subtensor, alice_wallet, bob_wallet):
+@pytest.mark.asyncio
+async def test_identity(subtensor, alice_wallet, bob_wallet):
     """
     Tests:
     - Check Delegate's default identity
     - Update Delegate's identity
     """
 
-    identity = subtensor.query_identity(alice_wallet.coldkeypub.ss58_address)
+    identity = await subtensor.query_identity(alice_wallet.coldkeypub.ss58_address)
 
     assert identity is None
 
-    identities = subtensor.get_delegate_identities()
+    identities = await subtensor.get_delegate_identities()
 
     assert alice_wallet.coldkey.ss58_address not in identities
 
-    subtensor.root_register(
+    await subtensor.root_register(
         alice_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
 
-    identities = subtensor.get_delegate_identities()
+    identities = await subtensor.get_delegate_identities()
 
     assert alice_wallet.coldkey.ss58_address not in identities
 
-    success, error = set_identity(
+    success, error = await set_identity(
         subtensor,
         alice_wallet,
         name="Alice",
@@ -53,7 +54,7 @@ def test_identity(subtensor, alice_wallet, bob_wallet):
     assert error == ""
     assert success is True
 
-    identity = subtensor.query_identity(alice_wallet.coldkeypub.ss58_address)
+    identity = await subtensor.query_identity(alice_wallet.coldkeypub.ss58_address)
 
     assert identity == ChainIdentity(
         additional="",
@@ -65,7 +66,7 @@ def test_identity(subtensor, alice_wallet, bob_wallet):
         url="https://www.example.com",
     )
 
-    identities = subtensor.get_delegate_identities()
+    identities = await subtensor.get_delegate_identities()
 
     assert alice_wallet.coldkey.ss58_address in identities
 
@@ -82,7 +83,8 @@ def test_identity(subtensor, alice_wallet, bob_wallet):
     )
 
 
-def test_change_take(local_chain, subtensor, alice_wallet, bob_wallet):
+@pytest.mark.asyncio
+async def test_change_take(local_chain, subtensor, alice_wallet, bob_wallet):
     """
     Tests:
     - Get default Delegate's take once registered in root subnet
@@ -91,25 +93,25 @@ def test_change_take(local_chain, subtensor, alice_wallet, bob_wallet):
     """
 
     with pytest.raises(bittensor.HotKeyAccountNotExists):
-        subtensor.set_delegate_take(
+        await subtensor.set_delegate_take(
             alice_wallet,
             alice_wallet.hotkey.ss58_address,
             0.1,
             raise_error=True,
         )
 
-    subtensor.root_register(
+    await subtensor.root_register(
         alice_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
 
-    take = subtensor.get_delegate_take(alice_wallet.hotkey.ss58_address)
+    take = await subtensor.get_delegate_take(alice_wallet.hotkey.ss58_address)
 
     assert take == DEFAULT_DELEGATE_TAKE
 
     with pytest.raises(bittensor.NonAssociatedColdKey):
-        subtensor.set_delegate_take(
+        await subtensor.set_delegate_take(
             bob_wallet,
             alice_wallet.hotkey.ss58_address,
             0.1,
@@ -117,33 +119,33 @@ def test_change_take(local_chain, subtensor, alice_wallet, bob_wallet):
         )
 
     with pytest.raises(bittensor.DelegateTakeTooHigh):
-        subtensor.set_delegate_take(
+        await subtensor.set_delegate_take(
             alice_wallet,
             alice_wallet.hotkey.ss58_address,
             0.5,
             raise_error=True,
         )
 
-    subtensor.set_delegate_take(
+    await subtensor.set_delegate_take(
         alice_wallet,
         alice_wallet.hotkey.ss58_address,
         0.1,
         raise_error=True,
     )
 
-    take = subtensor.get_delegate_take(alice_wallet.hotkey.ss58_address)
+    take = await subtensor.get_delegate_take(alice_wallet.hotkey.ss58_address)
 
     assert take == 0.09999237048905166
 
     with pytest.raises(bittensor.DelegateTxRateLimitExceeded):
-        subtensor.set_delegate_take(
+        await subtensor.set_delegate_take(
             alice_wallet,
             alice_wallet.hotkey.ss58_address,
             0.15,
             raise_error=True,
         )
 
-    take = subtensor.get_delegate_take(alice_wallet.hotkey.ss58_address)
+    take = await subtensor.get_delegate_take(alice_wallet.hotkey.ss58_address)
 
     assert take == 0.09999237048905166
 
@@ -156,14 +158,14 @@ def test_change_take(local_chain, subtensor, alice_wallet, bob_wallet):
         },
     )
 
-    subtensor.set_delegate_take(
+    await subtensor.set_delegate_take(
         alice_wallet,
         alice_wallet.hotkey.ss58_address,
         0.15,
         raise_error=True,
     )
 
-    take = subtensor.get_delegate_take(alice_wallet.hotkey.ss58_address)
+    take = await subtensor.get_delegate_take(alice_wallet.hotkey.ss58_address)
 
     assert take == 0.14999618524452582
 
@@ -178,29 +180,35 @@ async def test_delegates(subtensor, alice_wallet, bob_wallet):
     - Nominator Staking
     """
 
-    assert subtensor.get_delegates() == []
-    assert subtensor.get_delegated(alice_wallet.coldkey.ss58_address) == []
-    assert subtensor.get_delegate_by_hotkey(alice_wallet.hotkey.ss58_address) is None
-    assert subtensor.get_delegate_by_hotkey(bob_wallet.hotkey.ss58_address) is None
+    assert await subtensor.get_delegates() == []
+    assert await subtensor.get_delegated(alice_wallet.coldkey.ss58_address) == []
+    assert (
+        await subtensor.get_delegate_by_hotkey(alice_wallet.hotkey.ss58_address) is None
+    )
+    assert (
+        await subtensor.get_delegate_by_hotkey(bob_wallet.hotkey.ss58_address) is None
+    )
 
-    assert subtensor.is_hotkey_delegate(alice_wallet.hotkey.ss58_address) is False
-    assert subtensor.is_hotkey_delegate(bob_wallet.hotkey.ss58_address) is False
+    assert await subtensor.is_hotkey_delegate(alice_wallet.hotkey.ss58_address) is False
+    assert await subtensor.is_hotkey_delegate(bob_wallet.hotkey.ss58_address) is False
 
-    subtensor.root_register(
+    await subtensor.root_register(
         alice_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
-    subtensor.root_register(
+    await subtensor.root_register(
         bob_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
 
-    assert subtensor.is_hotkey_delegate(alice_wallet.hotkey.ss58_address) is True
-    assert subtensor.is_hotkey_delegate(bob_wallet.hotkey.ss58_address) is True
+    assert await subtensor.is_hotkey_delegate(alice_wallet.hotkey.ss58_address) is True
+    assert await subtensor.is_hotkey_delegate(bob_wallet.hotkey.ss58_address) is True
 
-    alice_delegate = subtensor.get_delegate_by_hotkey(alice_wallet.hotkey.ss58_address)
+    alice_delegate = await subtensor.get_delegate_by_hotkey(
+        alice_wallet.hotkey.ss58_address,
+    )
 
     assert alice_delegate == DelegateInfo(
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
@@ -214,7 +222,9 @@ async def test_delegates(subtensor, alice_wallet, bob_wallet):
         nominators={},
     )
 
-    bob_delegate = subtensor.get_delegate_by_hotkey(bob_wallet.hotkey.ss58_address)
+    bob_delegate = await subtensor.get_delegate_by_hotkey(
+        bob_wallet.hotkey.ss58_address,
+    )
 
     assert bob_delegate == DelegateInfo(
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
@@ -228,16 +238,16 @@ async def test_delegates(subtensor, alice_wallet, bob_wallet):
         nominators={},
     )
 
-    delegates = subtensor.get_delegates()
+    delegates = await subtensor.get_delegates()
 
     assert delegates == [
         bob_delegate,
         alice_delegate,
     ]
 
-    assert subtensor.get_delegated(bob_wallet.coldkey.ss58_address) == []
+    assert await subtensor.get_delegated(bob_wallet.coldkey.ss58_address) == []
 
-    subtensor.add_stake(
+    await subtensor.add_stake(
         bob_wallet,
         alice_wallet.hotkey.ss58_address,
         netuid=0,
@@ -246,7 +256,7 @@ async def test_delegates(subtensor, alice_wallet, bob_wallet):
         wait_for_finalization=True,
     )
 
-    assert subtensor.get_delegated(bob_wallet.coldkey.ss58_address) == [
+    assert await subtensor.get_delegated(bob_wallet.coldkey.ss58_address) == [
         DelegatedInfo(
             hotkey_ss58=alice_wallet.hotkey.ss58_address,
             owner_ss58=alice_wallet.coldkey.ss58_address,
@@ -261,7 +271,10 @@ async def test_delegates(subtensor, alice_wallet, bob_wallet):
     ]
 
 
-def test_nominator_min_required_stake(local_chain, subtensor, alice_wallet, bob_wallet):
+@pytest.mark.asyncio
+async def test_nominator_min_required_stake(
+    local_chain, subtensor, alice_wallet, bob_wallet
+):
     """
     Tests:
     - Check default NominatorMinRequiredStake
@@ -270,22 +283,22 @@ def test_nominator_min_required_stake(local_chain, subtensor, alice_wallet, bob_
     - Check Nominator is removed
     """
 
-    minimum_required_stake = subtensor.get_minimum_required_stake()
+    minimum_required_stake = await subtensor.get_minimum_required_stake()
 
     assert minimum_required_stake == Balance(0)
 
-    subtensor.root_register(
+    await subtensor.root_register(
         alice_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
-    subtensor.root_register(
+    await subtensor.root_register(
         bob_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
 
-    success = subtensor.add_stake(
+    success = await subtensor.add_stake(
         alice_wallet,
         bob_wallet.hotkey.ss58_address,
         netuid=0,
@@ -296,7 +309,7 @@ def test_nominator_min_required_stake(local_chain, subtensor, alice_wallet, bob_
 
     assert success is True
 
-    stake = subtensor.get_stake(
+    stake = await subtensor.get_stake(
         alice_wallet.coldkey.ss58_address,
         bob_wallet.hotkey.ss58_address,
         netuid=0,
@@ -314,11 +327,11 @@ def test_nominator_min_required_stake(local_chain, subtensor, alice_wallet, bob_
         },
     )
 
-    minimum_required_stake = subtensor.get_minimum_required_stake()
+    minimum_required_stake = await subtensor.get_minimum_required_stake()
 
     assert minimum_required_stake == Balance.from_tao(100_000)
 
-    stake = subtensor.get_stake(
+    stake = await subtensor.get_stake(
         alice_wallet.coldkey.ss58_address,
         bob_wallet.hotkey.ss58_address,
         netuid=0,
@@ -327,7 +340,8 @@ def test_nominator_min_required_stake(local_chain, subtensor, alice_wallet, bob_
     assert stake == Balance(0)
 
 
-def test_get_vote_data(subtensor, alice_wallet):
+@pytest.mark.asyncio
+async def test_get_vote_data(subtensor, alice_wallet):
     """
     Tests:
     - Sends Propose
@@ -336,9 +350,9 @@ def test_get_vote_data(subtensor, alice_wallet):
     - Checks Proposal is updated
     """
 
-    subtensor.root_register(alice_wallet)
+    await subtensor.root_register(alice_wallet)
 
-    proposals = subtensor.query_map(
+    proposals = await subtensor.query_map(
         "Triumvirate",
         "ProposalOf",
         params=[],
@@ -346,7 +360,7 @@ def test_get_vote_data(subtensor, alice_wallet):
 
     assert proposals.records == []
 
-    success, error = propose(
+    success, error = await propose(
         subtensor,
         alice_wallet,
         proposal=subtensor.substrate.compose_call(
@@ -364,13 +378,14 @@ def test_get_vote_data(subtensor, alice_wallet):
     assert error == ""
     assert success is True
 
-    proposals = subtensor.query_map(
+    proposals = await subtensor.query_map(
         "Triumvirate",
         "ProposalOf",
         params=[],
     )
     proposals = {
-        bytes(proposal_hash[0]): proposal.value for proposal_hash, proposal in proposals
+        bytes(proposal_hash[0]): proposal.value
+        for proposal_hash, proposal in proposals.records
     }
 
     assert list(proposals.values()) == [
@@ -390,19 +405,19 @@ def test_get_vote_data(subtensor, alice_wallet):
     proposal_hash = list(proposals.keys())[0]
     proposal_hash = f"0x{proposal_hash.hex()}"
 
-    proposal = subtensor.get_vote_data(
+    proposal = await subtensor.get_vote_data(
         proposal_hash,
     )
 
     assert proposal == ProposalVoteData(
         ayes=[],
-        end=CLOSE_IN_VALUE(1_000_000, subtensor.block),
+        end=CLOSE_IN_VALUE(1_000_000, await subtensor.block),
         index=0,
         nays=[],
         threshold=3,
     )
 
-    success, error = vote(
+    success, error = await vote(
         subtensor,
         alice_wallet,
         alice_wallet.hotkey.ss58_address,
@@ -414,7 +429,7 @@ def test_get_vote_data(subtensor, alice_wallet):
     assert error == ""
     assert success is True
 
-    proposal = subtensor.get_vote_data(
+    proposal = await subtensor.get_vote_data(
         proposal_hash,
     )
 
@@ -422,7 +437,7 @@ def test_get_vote_data(subtensor, alice_wallet):
         ayes=[
             alice_wallet.hotkey.ss58_address,
         ],
-        end=CLOSE_IN_VALUE(1_000_000, subtensor.block),
+        end=CLOSE_IN_VALUE(1_000_000, await subtensor.block),
         index=0,
         nays=[],
         threshold=3,
