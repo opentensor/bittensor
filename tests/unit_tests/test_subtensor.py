@@ -3166,6 +3166,7 @@ def test_set_weights_with_commit_reveal_enabled(subtensor, fake_wallet, mocker):
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
         era=None,
+        block_time=12.0,
     )
     assert result == mocked_commit_reveal_v3_extrinsic.return_value
 
