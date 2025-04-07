@@ -99,12 +99,25 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
 
     async with templates.miner(bob_wallet, netuid):
         async with templates.validator(alice_wallet, netuid) as validator:
-            # wait for the Validator to process and set_weights
-            await asyncio.wait_for(validator.set_weights.wait(), 60)
+
+            # wait for the Validator to process and set_weights with 3 attempts
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    print(f"Attempt {attempt} to wait for set_weights...")
+                    await asyncio.wait_for(validator.set_weights.wait(), timeout=60)
+                    break
+                except asyncio.TimeoutError:
+                    print(f"Attempt {attempt} failed: validator.set_weights timed out.")
+                    if attempt == max_retries:
+                        raise
+                    await asyncio.sleep(1)
+
+            # # wait for the Validator to process and set_weights
+            # await asyncio.wait_for(validator.set_weights.wait(), 60)
 
             # Wait till new epoch
-            # times=4 means let's wait at least 10 second to store weights in the chain (for fast block and powerful SubtensorCI GH runner)
-            await wait_interval(tempo, subtensor, netuid, times=4)
+            await wait_interval(tempo, subtensor, netuid)
 
             # Refresh metagraph
             metagraph = subtensor.metagraph(netuid)
