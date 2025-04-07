@@ -156,7 +156,7 @@ async def use_and_wait_for_next_nonce(
     subtensor: "Subtensor",
     wallet: "Wallet",
     sleep: float = 0.25,
-    timeout: float = 15.0,
+    timeout: float = 60.0,
 ):
     """
     ContextManager that makes sure the Nonce has been consumed after sending Extrinsic.
