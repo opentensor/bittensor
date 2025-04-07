@@ -173,7 +173,7 @@ async def use_and_wait_for_next_nonce(
         try:
             await asyncio.wait_for(wait_for_new_nonce(), timeout)
             break
-        except asyncio.TimeoutError:
+        except (asyncio.TimeoutError, TimeoutError):
             logging.warning(f"Attempt {attempt + 1} of {max_retries} timed out.")
             if attempt + 1 == max_retries:
                 raise
