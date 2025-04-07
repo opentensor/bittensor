@@ -112,9 +112,6 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
                         raise
                     await asyncio.sleep(1)
 
-            # # wait for the Validator to process and set_weights
-            # await asyncio.wait_for(validator.set_weights.wait(), 60)
-
             # Wait till new epoch
             await wait_interval(tempo, subtensor, netuid, times=2)
 
