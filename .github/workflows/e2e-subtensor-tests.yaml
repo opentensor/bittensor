@@ -67,7 +67,7 @@ jobs:
     needs:
       - find-tests
       - pull-docker-image
-    runs-on: ubuntu-latest
+    runs-on: SubtensorCI
     timeout-minutes: 45
     strategy:
       fail-fast: false  # Allow other matrix jobs to run even if this job fails
