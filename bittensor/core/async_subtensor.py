@@ -1,7 +1,7 @@
 import asyncio
 import copy
-from datetime import datetime, timezone
 import ssl
+from datetime import datetime, timezone
 from functools import partial
 from typing import Optional, Any, Union, Iterable, TYPE_CHECKING
 
@@ -9,6 +9,7 @@ import asyncstdlib as a
 import numpy as np
 import scalecodec
 from async_substrate_interface import AsyncSubstrateInterface
+from bittensor_commit_reveal import get_encrypted_commitment
 from bittensor_wallet.utils import SS58_FORMAT
 from numpy.typing import NDArray
 from scalecodec import GenericCall
@@ -27,7 +28,6 @@ from bittensor.core.chain_data import (
     decode_account_id,
     DynamicInfo,
 )
-from bittensor_commit_reveal import get_encrypted_commitment
 from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.delegate_info import DelegatedInfo
 from bittensor.core.chain_data.utils import (
@@ -38,16 +38,16 @@ from bittensor.core.chain_data.utils import (
 from bittensor.core.config import Config
 from bittensor.core.errors import ChainError, SubstrateRequestException
 from bittensor.core.extrinsics.asyncex.commit_reveal import commit_reveal_v3_extrinsic
+from bittensor.core.extrinsics.asyncex.move_stake import (
+    transfer_stake_extrinsic,
+    swap_stake_extrinsic,
+    move_stake_extrinsic,
+)
 from bittensor.core.extrinsics.asyncex.registration import (
     burned_register_extrinsic,
     register_extrinsic,
     register_subnet_extrinsic,
     set_subnet_identity_extrinsic,
-)
-from bittensor.core.extrinsics.asyncex.move_stake import (
-    transfer_stake_extrinsic,
-    swap_stake_extrinsic,
-    move_stake_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.root import (
     set_root_weights_extrinsic,
@@ -84,6 +84,7 @@ from bittensor.utils import (
     decode_hex_identity_dict,
     float_to_u64,
     format_error_message,
+    is_valid_ss58_address,
     torch,
     u16_normalized_float,
     u64_normalized_float,
@@ -1064,14 +1065,14 @@ class AsyncSubtensor(SubtensorMixin):
             result[decode_account_id(id_[0])] = decode_metadata(value)
         return result
 
-    async def get_revealed_commitment(
+    async def get_revealed_commitment_by_hotkey(
         self,
         netuid: int,
         hotkey_ss58_address: Optional[str] = None,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> Optional[tuple[int, str]]:
+    ) -> Optional[tuple[tuple[int, str], ...]]:
         """Returns hotkey related revealed commitment for a given netuid.
 
         Arguments:
@@ -1084,6 +1085,9 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             result (tuple[int, str): A tuple of reveal block and commitment message.
         """
+        if not is_valid_ss58_address(address=hotkey_ss58_address):
+            raise ValueError(f"Invalid ss58 address {hotkey_ss58_address} provided.")
+
         query = await self.query_module(
             module="Commitments",
             name="RevealedCommitments",
@@ -1092,7 +1096,42 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
             reuse_block=reuse_block,
         )
-        return decode_revealed_commitment(query)
+        if query is None:
+            return None
+        return tuple(decode_revealed_commitment(pair) for pair in query)
+
+    async def get_revealed_commitment(
+        self,
+        netuid: int,
+        uid: int,
+        block: Optional[int] = None,
+    ) -> Optional[tuple[tuple[int, str], ...]]:
+        """Returns uid related revealed commitment for a given netuid.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnetwork.
+            uid (int): The neuron uid to retrieve the commitment from.
+            block (Optional[int]): The block number to retrieve the commitment from. Default is ``None``.
+
+        Returns:
+            result (Optional[tuple[int, str]]: A tuple of reveal block and commitment message.
+
+        Example of result:
+            ( (12, "Alice message 1"), (152, "Alice message 2") )
+            ( (12, "Bob message 1"), (147, "Bob message 2") )
+        """
+        try:
+            meta_info = await self.get_metagraph_info(netuid, block=block)
+            if meta_info:
+                hotkey_ss58_address = meta_info.hotkeys[uid]
+            else:
+                raise ValueError(f"Subnet with netuid {netuid} does not exist.")
+        except IndexError:
+            raise ValueError(f"Subnet {netuid} does not have a neuron with uid {uid}.")
+
+        return await self.get_revealed_commitment_by_hotkey(
+            netuid=netuid, hotkey_ss58_address=hotkey_ss58_address, block=block
+        )
 
     async def get_all_revealed_commitments(
         self,
@@ -1100,7 +1139,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> dict[str, tuple[int, str]]:
+    ) -> dict[str, tuple[tuple[int, str], ...]]:
         """Returns all revealed commitments for a given netuid.
 
         Arguments:
@@ -1111,6 +1150,12 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             result (dict): A dictionary of all revealed commitments in view {ss58_address: (reveal block, commitment message)}.
+
+        Example of result:
+        {
+            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY": ( (12, "Alice message 1"), (152, "Alice message 2") ),
+            "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty": ( (12, "Bob message 1"), (147, "Bob message 2") ),
+        }
         """
         query = await self.query_map(
             module="Commitments",
@@ -1122,8 +1167,11 @@ class AsyncSubtensor(SubtensorMixin):
         )
 
         result = {}
-        async for item in query:
-            result.update(decode_revealed_commitment_with_hotkey(item))
+        async for pair in query:
+            hotkey_ss58_address, commitment_message = (
+                decode_revealed_commitment_with_hotkey(pair)
+            )
+            result[hotkey_ss58_address] = commitment_message
         return result
 
     async def get_current_weight_commit_info(
