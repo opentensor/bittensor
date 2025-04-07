@@ -95,8 +95,7 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
         },
     )
 
-    assert error is None
-    assert status is True
+    assert error is None and status is True, "Failed to set weights_set_rate_limit"
 
     async with templates.miner(bob_wallet, netuid):
         async with templates.validator(alice_wallet, netuid) as validator:
@@ -104,7 +103,7 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
             await asyncio.wait_for(validator.set_weights.wait(), 60)
 
             # Wait till new epoch
-            await wait_interval(tempo, subtensor, netuid)
+            await wait_interval(tempo, subtensor, netuid, times=2)
 
             # Refresh metagraph
             metagraph = subtensor.metagraph(netuid)
