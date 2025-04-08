@@ -322,9 +322,9 @@ def process_weights(
     if nzw_size == 0 or num_neurons < min_allowed_weights:
         logging.warning("No non-zero weights returning all ones.")
         final_weights = (
-            torch.ones((num_neurons)).to(num_neurons) / num_neurons
+            torch.ones(num_neurons).to(num_neurons) / num_neurons
             if use_torch()
-            else np.ones((num_neurons), dtype=np.int64) / num_neurons
+            else np.ones(num_neurons, dtype=np.int64) / num_neurons
         )
         logging.debug(f"final_weights: {final_weights}")
         final_weights_count = (
@@ -344,9 +344,9 @@ def process_weights(
         )
         # ( const ): Should this be np.zeros( ( num_neurons ) ) to reset everyone to build up weight?
         weights = (
-            torch.ones((num_neurons)).to(num_neurons) * 1e-5
+            torch.ones(num_neurons).to(num_neurons) * 1e-5
             if use_torch()
-            else np.ones((num_neurons), dtype=np.int64) * 1e-5
+            else np.ones(num_neurons, dtype=np.int64) * 1e-5
         )  # creating minimum even non-zero weights
         weights[non_zero_weight_idx] += non_zero_weights
         logging.debug(f"final_weights: {weights}")
