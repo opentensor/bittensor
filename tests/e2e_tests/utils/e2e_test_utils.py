@@ -118,7 +118,7 @@ class Templates:
             self.__reader_task = asyncio.create_task(self._reader())
 
             try:
-                await asyncio.wait_for(self.started.wait(), 30)
+                await asyncio.wait_for(self.started.wait(), 60)
             except asyncio.TimeoutError:
                 self.process.kill()
                 await self.process.wait()
@@ -173,7 +173,7 @@ class Templates:
             self.__reader_task = asyncio.create_task(self._reader())
 
             try:
-                await asyncio.wait_for(self.started.wait(), 30)
+                await asyncio.wait_for(self.started.wait(), 60)
             except asyncio.TimeoutError:
                 self.process.kill()
                 await self.process.wait()
