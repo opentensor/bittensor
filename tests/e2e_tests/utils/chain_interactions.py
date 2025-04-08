@@ -149,7 +149,7 @@ async def wait_interval(
 async def use_and_wait_for_next_nonce(
     subtensor: "Subtensor",
     wallet: "Wallet",
-    sleep: float = 3,
+    sleep: float = 0.25,
     timeout: float = 60.0,
 ):
     """
@@ -164,6 +164,9 @@ async def use_and_wait_for_next_nonce(
         while nonce == subtensor.substrate.get_account_next_index(
             wallet.hotkey.ss58_address
         ):
+            logging.console.info(
+                f"Waiting for new nonce. Current nonce: {nonce} for wallet {wallet.hotkey.ss58_address}"
+            )
             await asyncio.sleep(sleep)
 
     # give the chain 3 tries to reveal a new nonce after latest extrinsic call
