@@ -241,6 +241,9 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
 
         assert success is True
 
+    # Wait 1 epoch (bc fast block is too fast)
+    subtensor.wait_for_block(subtensor.block + 10)
+
     async with use_and_wait_for_next_nonce(subtensor, alice_wallet):
         success, message = subtensor.commit_weights(
             alice_wallet,
@@ -253,6 +256,9 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
         )
 
         assert success is True
+
+    # Wait 1 epoch (bc fast block is too fast)
+    subtensor.wait_for_block(subtensor.block + 10)
 
     async with use_and_wait_for_next_nonce(subtensor, alice_wallet):
         success, message = subtensor.commit_weights(
@@ -267,19 +273,22 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
 
         assert success is True
 
-    # Wait 2 epoch + 1 block
-    subtensor.wait_for_block(subtensor.block + 20 + 1)
+    # Wait 1 epoch (bc fast block is too fast)
+    subtensor.wait_for_block(subtensor.block + 10)
 
     # Query the WeightCommits storage map for all three salts
-    weight_commits = subtensor.query_module(
+    query = subtensor.query_module(
         module="SubtensorModule",
         name="WeightCommits",
         params=[netuid, alice_wallet.hotkey.ss58_address],
     )
+
+    weight_commits = query.value
+
     # Assert that the committed weights are set correctly
-    assert weight_commits.value is not None, "Weight commit not found in storage"
-    commit_hash, commit_block, reveal_block, expire_block = weight_commits.value[0]
+    assert weight_commits is not None, "Weight commit not found in storage"
+    commit_hash, commit_block, reveal_block, expire_block = weight_commits[0]
     assert commit_block > 0, f"Invalid block number: {commit_block}"
 
     # Check for three commits in the WeightCommits storage map
-    assert len(weight_commits.value) == 3, "Expected 3 weight commits"
+    assert len(weight_commits) == 3, "Expected 3 weight commits"
