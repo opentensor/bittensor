@@ -111,11 +111,9 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     assert status is True
 
     async with templates.miner(bob_wallet, netuid):
-
         subtensor.wait_for_block(subtensor.block + 4)
 
         async with templates.validator(alice_wallet, netuid) as validator:
-
             subtensor.wait_for_block(subtensor.block + 4)
 
             # wait for the Validator to process and set_weights
