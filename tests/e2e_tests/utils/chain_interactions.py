@@ -150,7 +150,7 @@ async def wait_interval(
 async def use_and_wait_for_next_nonce(
     subtensor: "Subtensor",
     wallet: "Wallet",
-    sleep: float = 0.25,
+    sleep: float = 3,
     timeout: float = 60.0,
 ):
     """
