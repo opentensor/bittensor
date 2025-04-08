@@ -166,7 +166,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
         AssertionError: If any of the checks or verifications fail
     """
     # Wait for 2 tempos to pass as CR3 only reveals weights after 2 tempos
-    subtensor.wait_for_block(20)
+    subtensor.wait_for_block(21)
 
     netuid = 2
     print("Testing test_commit_and_reveal_weights")
@@ -201,6 +201,17 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
         alice_wallet,
         call_function="sudo_set_weights_set_rate_limit",
         call_params={"netuid": netuid, "weights_set_rate_limit": "0"},
+    )
+
+    # weights sensitive to epoch changes
+    assert sudo_set_admin_utils(
+        local_chain,
+        alice_wallet,
+        call_function="sudo_set_tempo",
+        call_params={
+            "netuid": netuid,
+            "tempo": 100,
+        },
     )
 
     assert error is None
@@ -241,8 +252,8 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
 
         assert success is True
 
-    # Wait 1 epoch (bc fast block is too fast)
-    subtensor.wait_for_block(subtensor.block + 10)
+    # Wait 1 block
+    subtensor.wait_for_block(subtensor.block + 1)
 
     async with use_and_wait_for_next_nonce(subtensor, alice_wallet):
         success, message = subtensor.commit_weights(
@@ -257,8 +268,8 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
 
         assert success is True
 
-    # Wait 1 epoch (bc fast block is too fast)
-    subtensor.wait_for_block(subtensor.block + 10)
+    # Wait 1 block
+    subtensor.wait_for_block(subtensor.block + 1)
 
     async with use_and_wait_for_next_nonce(subtensor, alice_wallet):
         success, message = subtensor.commit_weights(
@@ -273,8 +284,8 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
 
         assert success is True
 
-    # Wait 1 epoch (bc fast block is too fast)
-    subtensor.wait_for_block(subtensor.block + 10)
+    # Wait 1 block
+    subtensor.wait_for_block(subtensor.block + 1)
 
     # Query the WeightCommits storage map for all three salts
     query = subtensor.query_module(
