@@ -99,13 +99,14 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     assert error is None
     assert status is True
 
-    async with templates.miner(bob_wallet, netuid):
-        async with templates.validator(alice_wallet, netuid) as validator:
-            # wait for the Validator to process and set_weights
-            await asyncio.wait_for(validator.set_weights.wait(), 120)
+    async with templates.miner(bob_wallet, netuid), templates.validator(
+        alice_wallet, netuid
+    ) as validator:
+        # wait for the Validator to process and set_weights
+        await asyncio.wait_for(validator.set_weights.wait(), 120)
 
-            # Wait till new epoch
-            await wait_interval(tempo, subtensor, netuid)
+        # Wait till new epoch
+        await wait_interval(tempo, subtensor, netuid)
 
     # Sometimes the network does not have time to release data, and it requires several additional blocks (subtensor issue)
     # Call get_metagraph_info since if faster and chipper
