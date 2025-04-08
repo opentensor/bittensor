@@ -26,6 +26,7 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
+
     netuids = [2, 3]
     print("Testing test_set_weights_uses_next_nonce")
 
@@ -55,6 +56,19 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
     # Verify all subnets created successfully
     for netuid in netuids:
         assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
+
+        # weights sensitive to epoch changes
+        assert sudo_set_admin_utils(
+            local_chain,
+            alice_wallet,
+            call_function="sudo_set_tempo",
+            call_params={
+                "netuid": netuid,
+                "tempo": 50,
+            },
+        )
+
+    await wait_epoch(subtensor, netuid=2, times=2)
 
     # Stake to become to top neuron after the first epoch
     for netuid in netuids:
@@ -121,8 +135,8 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
 
             assert success is True, message
 
-    # Wait for the txs to be included in the chain
-    await wait_epoch(subtensor, netuid=netuids[-1], times=4)
+            # wait next block
+            subtensor.wait_for_block(subtensor.block + 1)
 
     for netuid in netuids:
         # Query the Weights storage map for all three subnets
