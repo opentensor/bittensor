@@ -118,6 +118,9 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
             # Refresh metagraph
             metagraph = subtensor.metagraph(netuid)
 
+    # give network time before updating metagraph
+    await wait_epoch(subtensor, netuid, times=2)
+
     # Get current emissions and validate that Alice has gotten tao
     alice_neuron = metagraph.neurons[0]
 
