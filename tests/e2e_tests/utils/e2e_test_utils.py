@@ -93,6 +93,8 @@ class Templates:
             self.started = asyncio.Event()
 
         async def __aenter__(self):
+            env = os.environ.copy()
+            env["BT_LOGGING_INFO"] = "1"
             self.process = await asyncio.create_subprocess_exec(
                 sys.executable,
                 f"{self.dir}/miner.py",
@@ -108,15 +110,19 @@ class Templates:
                 self.wallet.name,
                 "--wallet.hotkey",
                 "default",
-                env={
-                    "BT_LOGGING_INFO": "1",
-                },
+                env=env,
                 stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
             )
 
             self.__reader_task = asyncio.create_task(self._reader())
 
-            await asyncio.wait_for(self.started.wait(), 30)
+            try:
+                await asyncio.wait_for(self.started.wait(), 30)
+            except asyncio.TimeoutError:
+                self.process.kill()
+                await self.process.wait()
+                raise RuntimeError("Miner failed to start within timeout")
 
             return self
 
@@ -142,6 +148,8 @@ class Templates:
             self.set_weights = asyncio.Event()
 
         async def __aenter__(self):
+            env = os.environ.copy()
+            env["BT_LOGGING_INFO"] = "1"
             self.process = await asyncio.create_subprocess_exec(
                 sys.executable,
                 f"{self.dir}/validator.py",
@@ -157,15 +165,19 @@ class Templates:
                 self.wallet.name,
                 "--wallet.hotkey",
                 "default",
-                env={
-                    "BT_LOGGING_INFO": "1",
-                },
+                env=env,
                 stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
             )
 
             self.__reader_task = asyncio.create_task(self._reader())
 
-            await asyncio.wait_for(self.started.wait(), 60)
+            try:
+                await asyncio.wait_for(self.started.wait(), 30)
+            except asyncio.TimeoutError:
+                self.process.kill()
+                await self.process.wait()
+                raise RuntimeError("Validator failed to start within timeout")
 
             return self
 
