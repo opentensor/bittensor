@@ -69,7 +69,7 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     assert bob_neuron.rank == 0
     assert bob_neuron.trust == 0
 
-    subtensor.wait_for_block(DURATION_OF_START_CALL * 2)
+    subtensor.wait_for_block(DURATION_OF_START_CALL)
 
     # Subnet "Start Call" https://github.com/opentensor/bits/pull/13
     status, error = await root_set_subtensor_hyperparameter_values(
@@ -97,12 +97,6 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
 
     assert error is None
     assert status is True
-
-    while True:
-        if 0 <= subtensor.block % subtensor.tempo(netuid) <= 1:
-            break
-        else:
-            await asyncio.sleep(0.25)
 
     async with templates.miner(bob_wallet, netuid):
         async with templates.validator(alice_wallet, netuid) as validator:
