@@ -70,7 +70,7 @@ jobs:
     timeout-minutes: 45
     strategy:
       fail-fast: false  # Allow other matrix jobs to run even if this job fails
-      max-parallel: 16  # Set the maximum number of parallel jobs (same as we have cores in SubtensorCI runner)
+      max-parallel: 32  # Set the maximum number of parallel jobs (same as we have cores in SubtensorCI runner)
       matrix:
         os:
           - ubuntu-latest
