@@ -102,11 +102,14 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
             # wait for the Validator to process and set_weights
             await asyncio.wait_for(validator.set_weights.wait(), 60)
 
-            # Wait till new epoch
-            await wait_interval(tempo, subtensor, netuid)
+    # Wait 2 seconds
+    subtensor.wait_for_block(subtensor.block + 8)
 
-            # Refresh metagraph
-            metagraph = subtensor.metagraph(netuid)
+    # Refresh metagraph
+    metagraph = subtensor.metagraph(netuid)
+
+    # just for test
+    await asyncio.sleep(1)
 
     # Get current emissions and validate that Alice has gotten tao
     alice_neuron = metagraph.neurons[0]
