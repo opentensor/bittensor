@@ -36,6 +36,17 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     # Verify subnet <netuid> created successfully
     assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
+    # weights sensitive to epoch changes
+    assert sudo_set_admin_utils(
+        local_chain,
+        alice_wallet,
+        call_function="sudo_set_tempo",
+        call_params={
+            "netuid": netuid,
+            "tempo": 100,
+        },
+    )
+
     # Register Bob as a neuron on the subnet
     assert subtensor.burned_register(
         bob_wallet, netuid
@@ -99,14 +110,18 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     assert error is None
     assert status is True
 
-    async with templates.miner(bob_wallet, netuid), templates.validator(
-        alice_wallet, netuid
-    ) as validator:
-        # wait for the Validator to process and set_weights
-        await asyncio.wait_for(validator.set_weights.wait(), 120)
+    async with templates.miner(bob_wallet, netuid):
 
-        # Wait till new epoch
-        await wait_interval(tempo, subtensor, netuid)
+        subtensor.wait_for_block(subtensor.block + 4)
+
+        async with templates.validator(alice_wallet, netuid) as validator:
+
+            subtensor.wait_for_block(subtensor.block + 4)
+
+            # wait for the Validator to process and set_weights
+            logging.console.info(f"Waiting for validator to set weights: {validator}")
+            await asyncio.wait_for(validator.set_weights.wait(), 120)
+            logging.console.info(f"Validator got weights: {validator}")
 
     # Sometimes the network does not have time to release data, and it requires several additional blocks (subtensor issue)
     # Call get_metagraph_info since if faster and chipper

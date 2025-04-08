@@ -190,8 +190,10 @@ class Templates:
         async def _reader(self):
             async for line in self.process.stdout:
                 if b"Starting validator loop." in line:
+                    bittensor.logging.console.info("Validator started.")
                     self.started.set()
                 elif b"Successfully set weights and Finalized." in line:
+                    bittensor.logging.console.info("Validator is setting weights.")
                     self.set_weights.set()
                     bittensor.logging.console.info(
                         "Validator successfully set weights and Finalized."
