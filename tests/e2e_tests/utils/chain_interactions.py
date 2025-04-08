@@ -93,19 +93,18 @@ async def wait_epoch(subtensor: "Subtensor", netuid: int = 1, **kwargs):
     await wait_interval(tempo, subtensor, netuid, **kwargs)
 
 
-def next_tempo(current_block: int, tempo: int, netuid: int) -> int:
+def next_tempo(current_block: int, tempo: int) -> int:
     """
     Calculates the next tempo block for a specific subnet.
 
     Args:
         current_block (int): The current block number.
         tempo (int): The tempo value for the subnet.
-        netuid (int): The unique identifier of the subnet.
 
     Returns:
         int: The next tempo block number.
     """
-    return (((current_block + netuid) // tempo) + 1) * tempo + 1
+    return ((current_block // tempo) + 1) * tempo + 1
 
 
 async def wait_interval(
@@ -127,7 +126,7 @@ async def wait_interval(
     next_tempo_block_start = current_block
 
     for _ in range(times):
-        next_tempo_block_start = next_tempo(next_tempo_block_start, tempo, netuid)
+        next_tempo_block_start = next_tempo(next_tempo_block_start, tempo)
 
     last_reported = None
 
