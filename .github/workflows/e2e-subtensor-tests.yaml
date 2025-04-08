@@ -27,7 +27,7 @@ env:
 jobs:
 
   find-tests:
-    runs-on: SubtensorCI
+    runs-on: ubuntu-latest
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     outputs:
       test-files: ${{ steps.get-tests.outputs.test-files }}
@@ -45,7 +45,7 @@ jobs:
         shell: bash
 
   pull-docker-image:
-    runs-on: SubtensorCI
+    runs-on: ubuntu-latest
     steps:
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
@@ -68,11 +68,11 @@ jobs:
     needs:
       - find-tests
       - pull-docker-image
-    runs-on: SubtensorCI
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
       fail-fast: false  # Allow other matrix jobs to run even if this job fails
-      max-parallel: 32  # Set the maximum number of parallel jobs (same as we have cores in SubtensorCI runner)
+      max-parallel: 32  # Set the maximum number of parallel jobs (same as we have cores in ubuntu-latest runner)
       matrix:
         os:
           - ubuntu-latest
