@@ -46,7 +46,7 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     ), "Alice & Bob not registered in the subnet"
 
     # Wait for the first epoch to pass
-    await wait_epoch(subtensor, netuid, times=2)
+    await wait_epoch(subtensor, netuid)
 
     # Get latest metagraph
     metagraph = subtensor.metagraph(netuid)
@@ -84,31 +84,30 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     assert status is True, error
 
     # update weights_set_rate_limit for fast-blocks
+    tempo = subtensor.tempo(netuid)
     status, error = sudo_set_admin_utils(
         local_chain,
         alice_wallet,
         call_function="sudo_set_weights_set_rate_limit",
         call_params={
             "netuid": netuid,
-            "weights_set_rate_limit": 0,
+            "weights_set_rate_limit": tempo,
         },
     )
 
-    assert error is None and status is True, "Failed to set weights_set_rate_limit"
+    assert error is None
+    assert status is True
 
     async with templates.miner(bob_wallet, netuid):
         async with templates.validator(alice_wallet, netuid) as validator:
             # wait for the Validator to process and set_weights
             await asyncio.wait_for(validator.set_weights.wait(), 120)
 
-    # Wait 2 seconds
-    subtensor.wait_for_block(subtensor.block + 8)
+            # Wait till new epoch
+            await wait_interval(tempo, subtensor, netuid)
 
-    # Refresh metagraph
-    metagraph = subtensor.metagraph(netuid)
-
-    # give network time before updating metagraph
-    await wait_epoch(subtensor, netuid, times=2)
+            # Refresh metagraph
+            metagraph = subtensor.metagraph(netuid)
 
     # Get current emissions and validate that Alice has gotten tao
     alice_neuron = metagraph.neurons[0]
