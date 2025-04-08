@@ -287,7 +287,16 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
 
     # Sometimes the network does not have time to release data, and it requires several additional blocks (subtensor issue)
     # Call get_metagraph_info since if faster and chipper
-    while not subtensor.weights(netuid=netuid):
+    while (
+        len(
+            subtensor.query_module(
+                module="SubtensorModule",
+                name="WeightCommits",
+                params=[netuid, alice_wallet.hotkey.ss58_address],
+            ).value
+        )
+        < 3
+    ):
         logging.console.info(
             f"Additional fast block to wait chain data updated: {subtensor.block}"
         )
