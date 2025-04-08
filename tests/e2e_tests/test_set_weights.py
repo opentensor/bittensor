@@ -1,7 +1,10 @@
+import time
+
 import numpy as np
 import pytest
 
 from bittensor.utils.balance import Balance
+from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_hyperparameter_bool,
@@ -9,7 +12,6 @@ from tests.e2e_tests.utils.chain_interactions import (
     use_and_wait_for_next_nonce,
     wait_epoch,
 )
-from bittensor.utils.btlogging import logging
 
 
 @pytest.mark.asyncio
@@ -135,19 +137,22 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
             )
 
             assert success is True, message
+            subtensor.wait_for_block(subtensor.block + 1)
             logging.console.success(f"Set weights for subnet {netuid}")
 
-    subtensor.wait_for_block(subtensor.block + 1)
-
+    extra_time = time.time()
     while not subtensor.query_module(
         module="SubtensorModule",
         name="Weights",
-        params=[2, 0],  # Alice should be the only UID
+        params=[2, 0],
     ) or not subtensor.query_module(
         module="SubtensorModule",
         name="Weights",
         params=[3, 0],
     ):
+        if time.time() - extra_time > 120:
+            raise TimeoutError("Timed out waiting for chain data to update")
+
         logging.console.info(
             f"Additional fast block to wait chain data updated: {subtensor.block}"
         )
