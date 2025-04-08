@@ -2,6 +2,7 @@ import asyncio
 
 import pytest
 
+from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.chain_interactions import (
     root_set_subtensor_hyperparameter_values,
     sudo_set_admin_utils,
@@ -101,13 +102,21 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     async with templates.miner(bob_wallet, netuid):
         async with templates.validator(alice_wallet, netuid) as validator:
             # wait for the Validator to process and set_weights
-            await asyncio.wait_for(validator.set_weights.wait(), 120)
+            await asyncio.wait_for(validator.set_weights.wait(), 60)
 
             # Wait till new epoch
             await wait_interval(tempo, subtensor, netuid)
 
-            # Refresh metagraph
-            metagraph = subtensor.metagraph(netuid)
+    # Sometimes the network does not have time to release data, and it requires several additional blocks (subtensor issue)
+    # Call get_metagraph_info since if faster and chipper
+    while subtensor.get_metagraph_info(netuid).incentives[0] == 0:
+        logging.console.info(
+            f"Additional fast block to wait chain data updated: {subtensor.block}"
+        )
+        await asyncio.sleep(0.25)
+
+    # Refresh metagraph
+    metagraph = subtensor.metagraph(netuid)
 
     # Get current emissions and validate that Alice has gotten tao
     alice_neuron = metagraph.neurons[0]
