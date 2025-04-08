@@ -96,7 +96,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
 
     # Fetch current block and calculate next tempo for the subnet
     current_block = subtensor.get_current_block()
-    upcoming_tempo = next_tempo(current_block, tempo, netuid)
+    upcoming_tempo = next_tempo(current_block, tempo)
     logging.console.info(
         f"Checking if window is too low with Current block: {current_block}, next tempo: {upcoming_tempo}"
     )
@@ -114,7 +114,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
         )
     current_block = subtensor.get_current_block()
     latest_drand_round = subtensor.last_drand_round()
-    upcoming_tempo = next_tempo(current_block, tempo, netuid)
+    upcoming_tempo = next_tempo(current_block, tempo)
     logging.console.info(
         f"Post first wait_interval (to ensure window isnt too low): {current_block}, next tempo: {upcoming_tempo}, drand: {latest_drand_round}"
     )
@@ -142,7 +142,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
 
     current_block = subtensor.get_current_block()
     latest_drand_round = subtensor.last_drand_round()
-    upcoming_tempo = next_tempo(current_block, tempo, netuid)
+    upcoming_tempo = next_tempo(current_block, tempo)
     logging.console.info(
         f"After setting weights: Current block: {current_block}, next tempo: {upcoming_tempo}, drand: {latest_drand_round}"
     )
