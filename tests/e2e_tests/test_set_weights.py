@@ -142,7 +142,11 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
     while not subtensor.query_module(
         module="SubtensorModule",
         name="Weights",
-        params=[netuids[-1], 0],  # Alice should be the only UID
+        params=[2, 0],  # Alice should be the only UID
+    ) or not subtensor.query_module(
+        module="SubtensorModule",
+        name="Weights",
+        params=[3, 0],
     ):
         logging.console.info(
             f"Additional fast block to wait chain data updated: {subtensor.block}"
