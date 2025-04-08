@@ -83,15 +83,25 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
 
     assert status is True, error
 
+    # weights sensitive to epoch changes
+    assert sudo_set_admin_utils(
+        local_chain,
+        alice_wallet,
+        call_function="sudo_set_tempo",
+        call_params={
+            "netuid": netuid,
+            "tempo": 100,
+        },
+    )
+
     # update weights_set_rate_limit for fast-blocks
-    tempo = subtensor.tempo(netuid)
     status, error = sudo_set_admin_utils(
         local_chain,
         alice_wallet,
         call_function="sudo_set_weights_set_rate_limit",
         call_params={
             "netuid": netuid,
-            "weights_set_rate_limit": tempo,
+            "weights_set_rate_limit": 0,
         },
     )
 
