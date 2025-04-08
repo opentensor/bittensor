@@ -167,7 +167,17 @@ async def use_and_wait_for_next_nonce(
         ):
             await asyncio.sleep(sleep)
 
-    await asyncio.wait_for(wait_for_new_nonce(), timeout)
+    # give the chain 3 tries to reveal a new nonce after latest extrinsic call
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            await asyncio.wait_for(wait_for_new_nonce(), timeout)
+            break
+        except asyncio.TimeoutError:
+            logging.warning(f"Attempt {attempt + 1} of {max_retries} timed out.")
+            if attempt + 1 == max_retries:
+                raise
+            await asyncio.sleep(sleep)
 
 
 # Helper to execute sudo wrapped calls on the chain
