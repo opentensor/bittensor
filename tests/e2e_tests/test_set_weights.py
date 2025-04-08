@@ -126,11 +126,13 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
 
     for netuid in netuids:
         # Query the Weights storage map for all three subnets
-        weights = subtensor.query_module(
+        query = subtensor.query_module(
             module="SubtensorModule",
             name="Weights",
             params=[netuid, 0],  # Alice should be the only UID
-        ).value
+        )
+
+        weights = query.value
 
         assert weights is not None, f"Weights not found for subnet {netuid}"
         assert weights == list(
