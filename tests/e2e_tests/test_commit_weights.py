@@ -3,6 +3,7 @@ import asyncio
 import numpy as np
 import pytest
 
+from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_admin_utils,
@@ -283,6 +284,14 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
         assert success is True
 
     await asyncio.sleep(1)
+
+    # Sometimes the network does not have time to release data, and it requires several additional blocks (subtensor issue)
+    # Call get_metagraph_info since if faster and chipper
+    while not subtensor.weights(netuid=netuid):
+        logging.console.info(
+            f"Additional fast block to wait chain data updated: {subtensor.block}"
+        )
+        await asyncio.sleep(0.25)
 
     # Query the WeightCommits storage map for all three salts
     query = subtensor.query_module(
