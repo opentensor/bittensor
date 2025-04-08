@@ -167,8 +167,6 @@ class Templates:
 
             await asyncio.wait_for(self.started.wait(), 30)
 
-            await asyncio.sleep(1)
-
             return self
 
         async def __aexit__(self, exc_type, exc_value, traceback):
