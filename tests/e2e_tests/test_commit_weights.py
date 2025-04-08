@@ -203,6 +203,9 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
         call_params={"netuid": netuid, "weights_set_rate_limit": "0"},
     )
 
+    assert error is None
+    assert status is True
+
     # weights sensitive to epoch changes
     assert sudo_set_admin_utils(
         local_chain,
@@ -213,9 +216,6 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
             "tempo": 100,
         },
     )
-
-    assert error is None
-    assert status is True
 
     assert (
         subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
