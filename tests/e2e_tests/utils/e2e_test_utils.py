@@ -181,6 +181,9 @@ class Templates:
                     self.started.set()
                 elif b"Successfully set weights and Finalized." in line:
                     self.set_weights.set()
+                    bittensor.logging.console.info(
+                        "Validator successfully set weights and Finalized."
+                    )
 
     def __init__(self):
         self.dir = clone_or_update_templates()
