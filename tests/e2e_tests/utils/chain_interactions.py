@@ -151,7 +151,7 @@ async def use_and_wait_for_next_nonce(
     subtensor: "Subtensor",
     wallet: "Wallet",
     sleep: float = 3.0,
-    timeout: float = 15.0,
+    timeout: float = 60.0,
 ):
     """
     ContextManager that makes sure the Nonce has been consumed after sending Extrinsic.
@@ -174,7 +174,9 @@ async def use_and_wait_for_next_nonce(
             await asyncio.wait_for(wait_for_new_nonce(), timeout)
             break
         except (asyncio.TimeoutError, TimeoutError):
-            logging.warning(f"Attempt {attempt + 1} of {max_retries} timed out.")
+            logging.warning(
+                f"Attempt {attempt + 1} of {max_retries} timed out for  `wait_for_new_nonce`."
+            )
             if attempt + 1 == max_retries:
                 raise
             await asyncio.sleep(sleep)
