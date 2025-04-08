@@ -112,9 +112,6 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
                         raise
                     await asyncio.sleep(1)
 
-            # Wait till new epoch
-            await wait_interval(tempo, subtensor, netuid, times=2)
-
             # Refresh metagraph
             metagraph = subtensor.metagraph(netuid)
 
