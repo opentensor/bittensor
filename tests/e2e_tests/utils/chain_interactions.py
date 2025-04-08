@@ -5,9 +5,9 @@ these are not present in btsdk but are required for e2e tests
 
 import asyncio
 import contextlib
-import unittest.mock
 from typing import Union, Optional, TYPE_CHECKING
 
+from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 
 # for typing purposes
@@ -17,10 +17,9 @@ if TYPE_CHECKING:
     from async_substrate_interface import SubstrateInterface, ExtrinsicReceipt
 
 
-ANY_BALANCE = unittest.mock.Mock(
-    rao=unittest.mock.ANY,
-    unit=unittest.mock.ANY,
-)
+def get_dynamic_balance(rao: int, netuid: int = 0):
+    """Returns a Balance object with the given rao and netuid for testing purposes with synamic values."""
+    return Balance(rao).set_unit(netuid)
 
 
 def sudo_set_hyperparameter_bool(
@@ -106,11 +105,7 @@ def next_tempo(current_block: int, tempo: int, netuid: int) -> int:
     Returns:
         int: The next tempo block number.
     """
-    current_block += 1
-    interval = tempo + 1
-    last_epoch = current_block - 1 - (current_block + netuid + 1) % interval
-    next_tempo_ = last_epoch + interval
-    return next_tempo_
+    return (((current_block + netuid) // tempo) + 1) * tempo + 1
 
 
 async def wait_interval(
@@ -191,6 +186,7 @@ def sudo_set_admin_utils(
         wallet (Wallet): Wallet object with the keypair for signing.
         call_function (str): The AdminUtils function to call.
         call_params (dict): Parameters for the AdminUtils function.
+        call_module (str): The AdminUtils module to call. Defaults to "AdminUtils".
 
     Returns:
         tuple[bool, Optional[dict]]: (success status, error details).
@@ -223,7 +219,8 @@ async def root_set_subtensor_hyperparameter_values(
     wallet: "Wallet",
     call_function: str,
     call_params: dict,
-) -> tuple[bool, str]:
+    return_error_message: bool = False,
+) -> tuple[bool, Optional[dict]]:
     """
     Sets liquid alpha values using AdminUtils. Mimics setting hyperparams
     """

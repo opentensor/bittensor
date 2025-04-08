@@ -70,6 +70,7 @@ def commit_reveal_v3_extrinsic(
     version_key: int = version_as_int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
+    block_time: float = 12.0,
 ) -> tuple[bool, str]:
     """
     Commits and reveals weights for given subtensor and wallet with provided uids and weights.
@@ -83,6 +84,7 @@ def commit_reveal_v3_extrinsic(
         version_key: The version key to use for committing and revealing. Default is version_as_int.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction. Default is False.
         wait_for_finalization: Whether to wait for the finalization of the transaction. Default is False.
+        block_time (float): The amount of seconds for block duration. Default is 12.0 seconds.
 
     Returns:
         tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure, and the second
@@ -114,6 +116,7 @@ def commit_reveal_v3_extrinsic(
             current_block=current_block,
             netuid=netuid,
             subnet_reveal_period_epochs=subnet_reveal_period_epochs,
+            block_time=block_time,
         )
 
         success, message = _do_commit_reveal_v3(
