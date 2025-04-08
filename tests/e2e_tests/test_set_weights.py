@@ -137,6 +137,8 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
             assert success is True, message
             logging.console.success(f"Set weights for subnet {netuid}")
 
+    subtensor.wait_for_block(subtensor.block + 1)
+
     for netuid in netuids:
         # Query the Weights storage map for all three subnets
         query = subtensor.query_module(
