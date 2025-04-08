@@ -46,7 +46,7 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     ), "Alice & Bob not registered in the subnet"
 
     # Wait for the first epoch to pass
-    await wait_epoch(subtensor, netuid)
+    await wait_epoch(subtensor, netuid, times=2)
 
     # Get latest metagraph
     metagraph = subtensor.metagraph(netuid)
@@ -99,24 +99,14 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
 
     async with templates.miner(bob_wallet, netuid):
         async with templates.validator(alice_wallet, netuid) as validator:
-            # wait for the Validator to process and set_weights with 3 attempts
-            max_retries = 3
-            for attempt in range(max_retries):
-                try:
-                    print(f"Attempt {attempt} to wait for set_weights...")
-                    await asyncio.wait_for(validator.set_weights.wait(), timeout=30)
-                    break
-                except (TimeoutError, asyncio.exceptions.TimeoutError):
-                    print(f"Attempt {attempt} failed: validator.set_weights timed out.")
-                    if attempt == max_retries:
-                        raise
-                    await asyncio.sleep(1)
+            # wait for the Validator to process and set_weights
+            await asyncio.wait_for(validator.set_weights.wait(), 60)
+
+            # Wait till new epoch
+            await wait_interval(tempo, subtensor, netuid)
 
             # Refresh metagraph
             metagraph = subtensor.metagraph(netuid)
-
-    # give network time before updating metagraph
-    await wait_epoch(subtensor, netuid, times=2)
 
     # Get current emissions and validate that Alice has gotten tao
     alice_neuron = metagraph.neurons[0]
