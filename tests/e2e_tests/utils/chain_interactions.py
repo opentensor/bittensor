@@ -4,9 +4,10 @@ these are not present in btsdk but are required for e2e tests
 """
 
 import asyncio
-import unittest.mock
+import contextlib
 from typing import Union, Optional, TYPE_CHECKING
 
+from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 
 # for typing purposes
@@ -16,10 +17,9 @@ if TYPE_CHECKING:
     from async_substrate_interface import SubstrateInterface, ExtrinsicReceipt
 
 
-ANY_BALANCE = unittest.mock.Mock(
-    rao=unittest.mock.ANY,
-    unit=unittest.mock.ANY,
-)
+def get_dynamic_balance(rao: int, netuid: int = 0):
+    """Returns a Balance object with the given rao and netuid for testing purposes with synamic values."""
+    return Balance(rao).set_unit(netuid)
 
 
 def sudo_set_hyperparameter_bool(
@@ -74,7 +74,7 @@ def sudo_set_hyperparameter_values(
     return response.is_success
 
 
-async def wait_epoch(subtensor: "Subtensor", netuid: int = 1, times: int = 1):
+async def wait_epoch(subtensor: "Subtensor", netuid: int = 1, **kwargs):
     """
     Waits for the next epoch to start on a specific subnet.
 
@@ -90,7 +90,7 @@ async def wait_epoch(subtensor: "Subtensor", netuid: int = 1, times: int = 1):
         raise Exception("could not determine tempo")
     tempo = q_tempo[0].value
     logging.info(f"tempo = {tempo}")
-    await wait_interval(tempo * times, subtensor, netuid)
+    await wait_interval(tempo, subtensor, netuid, **kwargs)
 
 
 def next_tempo(current_block: int, tempo: int, netuid: int) -> int:
@@ -105,10 +105,7 @@ def next_tempo(current_block: int, tempo: int, netuid: int) -> int:
     Returns:
         int: The next tempo block number.
     """
-    interval = tempo + 1
-    last_epoch = current_block - 1 - (current_block + netuid + 1) % interval
-    next_tempo_ = last_epoch + interval
-    return next_tempo_
+    return (((current_block + netuid) // tempo) + 1) * tempo + 1
 
 
 async def wait_interval(
@@ -117,6 +114,7 @@ async def wait_interval(
     netuid: int = 1,
     reporting_interval: int = 1,
     sleep: float = 0.25,
+    times: int = 1,
 ):
     """
     Waits until the next tempo interval starts for a specific subnet.
@@ -126,7 +124,11 @@ async def wait_interval(
     the current block number until the next tempo interval starts.
     """
     current_block = subtensor.get_current_block()
-    next_tempo_block_start = next_tempo(current_block, tempo, netuid)
+    next_tempo_block_start = current_block
+
+    for _ in range(times):
+        next_tempo_block_start = next_tempo(next_tempo_block_start, tempo, netuid)
+
     last_reported = None
 
     while current_block < next_tempo_block_start:
@@ -144,12 +146,37 @@ async def wait_interval(
             )
 
 
+@contextlib.asynccontextmanager
+async def use_and_wait_for_next_nonce(
+    subtensor: "Subtensor",
+    wallet: "Wallet",
+    sleep: float = 0.25,
+    timeout: float = 15.0,
+):
+    """
+    ContextManager that makes sure the Nonce has been consumed after sending Extrinsic.
+    """
+
+    nonce = subtensor.substrate.get_account_next_index(wallet.hotkey.ss58_address)
+
+    yield
+
+    async def wait_for_new_nonce():
+        while nonce == subtensor.substrate.get_account_next_index(
+            wallet.hotkey.ss58_address
+        ):
+            await asyncio.sleep(sleep)
+
+    await asyncio.wait_for(wait_for_new_nonce(), timeout)
+
+
 # Helper to execute sudo wrapped calls on the chain
 def sudo_set_admin_utils(
     substrate: "SubstrateInterface",
     wallet: "Wallet",
     call_function: str,
     call_params: dict,
+    call_module: str = "AdminUtils",
 ) -> tuple[bool, Optional[dict]]:
     """
     Wraps the call in sudo to set hyperparameter values using AdminUtils.
@@ -159,12 +186,13 @@ def sudo_set_admin_utils(
         wallet (Wallet): Wallet object with the keypair for signing.
         call_function (str): The AdminUtils function to call.
         call_params (dict): Parameters for the AdminUtils function.
+        call_module (str): The AdminUtils module to call. Defaults to "AdminUtils".
 
     Returns:
         tuple[bool, Optional[dict]]: (success status, error details).
     """
     inner_call = substrate.compose_call(
-        call_module="AdminUtils",
+        call_module=call_module,
         call_function=call_function,
         call_params=call_params,
     )
@@ -192,7 +220,7 @@ async def root_set_subtensor_hyperparameter_values(
     call_function: str,
     call_params: dict,
     return_error_message: bool = False,
-) -> tuple[bool, str]:
+) -> tuple[bool, Optional[dict]]:
     """
     Sets liquid alpha values using AdminUtils. Mimics setting hyperparams
     """
@@ -209,27 +237,7 @@ async def root_set_subtensor_hyperparameter_values(
         wait_for_finalization=True,
     )
 
-    if return_error_message:
-        return response.is_success, response.error_message
-
-    return response.is_success, ""
-
-
-def set_children(subtensor, wallet, netuid, children):
-    return subtensor.sign_and_send_extrinsic(
-        subtensor.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="set_children",
-            call_params={
-                "children": children,
-                "hotkey": wallet.hotkey.ss58_address,
-                "netuid": netuid,
-            },
-        ),
-        wallet,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
+    return response.is_success, response.error_message
 
 
 def set_identity(
@@ -255,6 +263,48 @@ def set_identity(
                 "discord": discord,
                 "description": description,
                 "additional": additional,
+            },
+        ),
+        wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+
+def propose(subtensor, wallet, proposal, duration):
+    return subtensor.sign_and_send_extrinsic(
+        subtensor.substrate.compose_call(
+            call_module="Triumvirate",
+            call_function="propose",
+            call_params={
+                "proposal": proposal,
+                "length_bound": len(proposal.data),
+                "duration": duration,
+            },
+        ),
+        wallet,
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
+    )
+
+
+def vote(
+    subtensor,
+    wallet,
+    hotkey,
+    proposal,
+    index,
+    approve,
+):
+    return subtensor.sign_and_send_extrinsic(
+        subtensor.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="vote",
+            call_params={
+                "approve": approve,
+                "hotkey": hotkey,
+                "index": index,
+                "proposal": proposal,
             },
         ),
         wallet,

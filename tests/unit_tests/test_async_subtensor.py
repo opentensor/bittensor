@@ -12,6 +12,7 @@ from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.neuron_info import NeuronInfo
 from bittensor.core.chain_data.stake_info import StakeInfo
 from bittensor.core.chain_data import proposal_vote_data
+from bittensor.utils import U64_MAX
 from bittensor.utils.balance import Balance
 from tests.helpers.helpers import assert_submit_signed_extrinsic
 
@@ -47,17 +48,17 @@ def test_decode_ss58_tuples_in_proposal_vote_data(mocker):
     }
 
     # Call
-    async_subtensor.ProposalVoteData(fake_proposal_dict)
+    async_subtensor.ProposalVoteData.from_dict(fake_proposal_dict)
 
     # Asserts
     assert mocked_decode_account_id.call_count == len(fake_proposal_dict["ayes"]) + len(
         fake_proposal_dict["nays"]
     )
     assert mocked_decode_account_id.mock_calls == [
-        mocker.call("0"),
-        mocker.call("1"),
-        mocker.call("2"),
-        mocker.call("3"),
+        mocker.call("0 line"),
+        mocker.call("1 line"),
+        mocker.call("2 line"),
+        mocker.call("3 line"),
     ]
 
 
@@ -1954,6 +1955,40 @@ async def test_get_children_substrate_request_exception(subtensor, mocker):
 
 
 @pytest.mark.asyncio
+async def test_get_children_pending(mock_substrate, subtensor):
+    mock_substrate.query.return_value.value = [
+        [
+            (
+                U64_MAX,
+                (tuple(bytearray(32)),),
+            ),
+        ],
+        123,
+    ]
+
+    children, cooldown = await subtensor.get_children_pending(
+        "hotkey_ss58",
+        netuid=1,
+    )
+
+    assert children == [
+        (
+            1.0,
+            "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
+        ),
+    ]
+    assert cooldown == 123
+
+    mock_substrate.query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="PendingChildKeys",
+        params=[1, "hotkey_ss58"],
+        block_hash=None,
+        reuse_block_hash=False,
+    )
+
+
+@pytest.mark.asyncio
 async def test_get_subnet_hyperparameters_success(subtensor, mocker):
     """Tests get_subnet_hyperparameters with successful hyperparameter retrieval."""
     # Preps
@@ -2054,7 +2089,9 @@ async def test_get_vote_data_success(subtensor, mocker):
 
     mocked_proposal_vote_data = mocker.Mock()
     mocker.patch.object(
-        async_subtensor, "ProposalVoteData", return_value=mocked_proposal_vote_data
+        async_subtensor.ProposalVoteData,
+        "from_dict",
+        return_value=mocked_proposal_vote_data,
     )
 
     # Call
@@ -2492,6 +2529,44 @@ async def test_register_success(subtensor, fake_wallet, mocker):
 
 
 @pytest.mark.asyncio
+async def test_set_children(mock_substrate, subtensor, fake_wallet, mocker):
+    mock_substrate.submit_extrinsic.return_value = mocker.Mock(
+        is_success=mocker.AsyncMock(return_value=True)(),
+    )
+
+    await subtensor.set_children(
+        fake_wallet,
+        fake_wallet.hotkey.ss58_address,
+        netuid=1,
+        children=[
+            (
+                1.0,
+                "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
+            ),
+        ],
+    )
+
+    assert_submit_signed_extrinsic(
+        mock_substrate,
+        fake_wallet.coldkey,
+        call_module="SubtensorModule",
+        call_function="set_children",
+        call_params={
+            "children": [
+                (
+                    U64_MAX,
+                    "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
+                )
+            ],
+            "hotkey": fake_wallet.hotkey.ss58_address,
+            "netuid": 1,
+        },
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+
+@pytest.mark.asyncio
 async def test_set_delegate_take_equal(subtensor, fake_wallet, mocker):
     mocker.patch.object(subtensor, "get_delegate_take", return_value=0.18)
 
@@ -2881,3 +2956,59 @@ async def test_get_timestamp(mocker, subtensor):
     )
     actual_result = await subtensor.get_timestamp(block=fake_block)
     assert expected_result == actual_result
+
+
+@pytest.mark.asyncio
+async def test_get_owned_hotkeys_happy_path(subtensor, mocker):
+    """Tests that the output of get_owned_hotkeys."""
+    # Prep
+    fake_coldkey = "fake_hotkey"
+    fake_hotkey = "fake_hotkey"
+    fake_hotkeys = [
+        [
+            fake_hotkey,
+        ]
+    ]
+    mocked_subtensor = mocker.AsyncMock(return_value=fake_hotkeys)
+    mocker.patch.object(subtensor.substrate, "query", new=mocked_subtensor)
+
+    mocked_decode_account_id = mocker.Mock()
+    mocker.patch.object(
+        async_subtensor, "decode_account_id", new=mocked_decode_account_id
+    )
+
+    # Call
+    result = await subtensor.get_owned_hotkeys(fake_coldkey)
+
+    # Asserts
+    mocked_subtensor.assert_awaited_once_with(
+        module="SubtensorModule",
+        storage_function="OwnedHotkeys",
+        params=[fake_coldkey],
+        block_hash=None,
+        reuse_block_hash=False,
+    )
+    assert result == [mocked_decode_account_id.return_value]
+    mocked_decode_account_id.assert_called_once_with(fake_hotkey)
+
+
+@pytest.mark.asyncio
+async def test_get_owned_hotkeys_return_empty(subtensor, mocker):
+    """Tests that the output of get_owned_hotkeys is empty."""
+    # Prep
+    fake_coldkey = "fake_hotkey"
+    mocked_subtensor = mocker.AsyncMock(return_value=[])
+    mocker.patch.object(subtensor.substrate, "query", new=mocked_subtensor)
+
+    # Call
+    result = await subtensor.get_owned_hotkeys(fake_coldkey)
+
+    # Asserts
+    mocked_subtensor.assert_awaited_once_with(
+        module="SubtensorModule",
+        storage_function="OwnedHotkeys",
+        params=[fake_coldkey],
+        block_hash=None,
+        reuse_block_hash=False,
+    )
+    assert result == []
