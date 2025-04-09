@@ -14,7 +14,6 @@ from tests.e2e_tests.utils.chain_interactions import (
 )
 
 
-@pytest.mark.skipif
 @pytest.mark.asyncio
 async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wallet):
     """
