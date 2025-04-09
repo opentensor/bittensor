@@ -1,6 +1,5 @@
-__version__ = "9.2.0"
-
 import os
+import importlib.metadata
 import re
 from pathlib import Path
 
@@ -14,6 +13,8 @@ HOME_DIR = Path.home()
 USER_BITTENSOR_DIR = HOME_DIR / ".bittensor"
 WALLETS_DIR = USER_BITTENSOR_DIR / "wallets"
 MINERS_DIR = USER_BITTENSOR_DIR / "miners"
+
+__version__ = importlib.metadata.version("bittensor")
 
 
 if not READ_ONLY:
