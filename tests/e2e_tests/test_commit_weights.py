@@ -1,10 +1,8 @@
 import asyncio
-import time
 
 import numpy as np
 import pytest
 
-from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_admin_utils,
@@ -152,6 +150,7 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
     print("✅ Passed test_commit_and_reveal_weights")
 
 
+@pytest.mark.parametrize("local_chain", [False], indirect=True)
 @pytest.mark.asyncio
 async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wallet):
     """
@@ -167,16 +166,29 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    # Wait for 2 tempos to pass as CR3 only reveals weights after 2 tempos
-    subtensor.wait_for_block(21)
-
+    subnet_tempo = 10
     netuid = 2
+
+    # Wait for 2 tempos to pass as CR3 only reveals weights after 2 tempos
+    subtensor.wait_for_block(subnet_tempo * 2 + 1)
+
     print("Testing test_commit_and_reveal_weights")
     # Register root as Alice
     assert subtensor.register_subnet(alice_wallet), "Unable to register the subnet"
 
     # Verify subnet 1 created successfully
     assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
+
+    # weights sensitive to epoch changes
+    assert sudo_set_admin_utils(
+        local_chain,
+        alice_wallet,
+        call_function="sudo_set_tempo",
+        call_params={
+            "netuid": netuid,
+            "tempo": subnet_tempo,
+        },
+    )
 
     # Enable commit_reveal on the subnet
     assert sudo_set_hyperparameter_bool(
@@ -205,19 +217,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
         call_params={"netuid": netuid, "weights_set_rate_limit": "0"},
     )
 
-    assert error is None
-    assert status is True
-
-    # weights sensitive to epoch changes
-    assert sudo_set_admin_utils(
-        local_chain,
-        alice_wallet,
-        call_function="sudo_set_tempo",
-        call_params={
-            "netuid": netuid,
-            "tempo": 100,
-        },
-    )
+    assert error is None and status is True, f"Failed to set rate limit: {error}"
 
     assert (
         subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
@@ -248,14 +248,13 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
             salt=salt,
             uids=weight_uids,
             weights=weight_vals,
-            wait_for_inclusion=False,
-            # Don't wait for inclusion, we are testing the nonce when there is a tx in the pool
+            wait_for_inclusion=False,  # Don't wait for inclusion, we are testing the nonce when there is a tx in the pool
             wait_for_finalization=False,
         )
 
         assert success is True
 
-    await asyncio.sleep(1)
+    subtensor.wait_for_block(subtensor.block + 1)
 
     async with use_and_wait_for_next_nonce(subtensor, alice_wallet):
         success, message = subtensor.commit_weights(
@@ -270,7 +269,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
 
         assert success is True
 
-    await asyncio.sleep(1)
+    subtensor.wait_for_block(subtensor.block + 1)
 
     async with use_and_wait_for_next_nonce(subtensor, alice_wallet):
         success, message = subtensor.commit_weights(
@@ -285,44 +284,19 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
 
         assert success is True
 
-    await asyncio.sleep(1)
-
-    # Sometimes the network does not have time to release data, and it requires several additional blocks (subtensor issue)
-    # Call get_metagraph_info since if faster and chipper
-    extra_time = time.time()
-    while (
-        len(
-            subtensor.query_module(
-                module="SubtensorModule",
-                name="WeightCommits",
-                params=[netuid, alice_wallet.hotkey.ss58_address],
-            ).value
-        )
-        < 3
-    ):
-        if time.time() - extra_time > 120:
-            pytest.skip(
-                "Skipping due to FLAKY TEST. Check the same tests with another Python version or run again."
-            )
-
-        logging.console.info(
-            f"Additional fast block to wait chain data updated: {subtensor.block}"
-        )
-        await asyncio.sleep(0.25)
+    # Wait a few blocks
+    await wait_epoch(subtensor, netuid)  # Wait for the txs to be included in the chain
 
     # Query the WeightCommits storage map for all three salts
-    query = subtensor.query_module(
+    weight_commits = subtensor.query_module(
         module="SubtensorModule",
         name="WeightCommits",
         params=[netuid, alice_wallet.hotkey.ss58_address],
     )
-
-    weight_commits = query.value
-
     # Assert that the committed weights are set correctly
-    assert weight_commits is not None, "Weight commit not found in storage"
-    commit_hash, commit_block, reveal_block, expire_block = weight_commits[0]
+    assert weight_commits.value is not None, "Weight commit not found in storage"
+    commit_hash, commit_block, reveal_block, expire_block = weight_commits.value[0]
     assert commit_block > 0, f"Invalid block number: {commit_block}"
 
     # Check for three commits in the WeightCommits storage map
-    assert len(weight_commits) == 3, "Expected 3 weight commits"
+    assert len(weight_commits.value) == 3, "Expected 3 weight commits"
