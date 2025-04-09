@@ -10,10 +10,10 @@ from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_hyperparameter_bool,
     sudo_set_admin_utils,
     use_and_wait_for_next_nonce,
-    wait_epoch,
 )
 
 
+@pytest.mark.parametrize("local_chain", [False], indirect=True)
 @pytest.mark.asyncio
 async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet):
     """
@@ -31,6 +31,9 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
     """
 
     netuids = [2, 3]
+    subnet_tempo = 10
+    BLOCK_TIME = 12  # 12 for non-fast-block, 0.25 for fast block
+
     print("Testing test_set_weights_uses_next_nonce")
 
     # Lower the network registration rate limit and cost
@@ -67,12 +70,12 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
             call_function="sudo_set_tempo",
             call_params={
                 "netuid": netuid,
-                "tempo": 50,
+                "tempo": subnet_tempo,
             },
         )
 
-    await wait_epoch(subtensor, netuid=2, times=2)
-    subtensor.wait_for_block(subtensor.block + 1)
+    # make sure 2 epochs are passed
+    subtensor.wait_for_block(subnet_tempo * 2 + 1)
 
     # Stake to become to top neuron after the first epoch
     for netuid in netuids:
@@ -127,7 +130,7 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
 
     # Set weights for each subnet
     for netuid in netuids:
-        async with use_and_wait_for_next_nonce(subtensor, alice_wallet):
+        async with use_and_wait_for_next_nonce(subtensor, alice_wallet, BLOCK_TIME):
             success, message = subtensor.set_weights(
                 alice_wallet,
                 netuid,
@@ -152,9 +155,10 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
         params=[3, 0],
     ):
         if time.time() - extra_time > 120:
-            pytest.skip(
-                "Skipping due to FLAKY TEST. Check the same tests with another Python version or run again."
-            )
+            # pytest.skip(
+            #     "Skipping due to FLAKY TEST. Check the same tests with another Python version or run again."
+            # )
+            raise Exception("Failed to commit weights")
 
         logging.console.info(
             f"Additional fast block to wait chain data updated: {subtensor.block}"
