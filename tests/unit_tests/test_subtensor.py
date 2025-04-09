@@ -3159,6 +3159,7 @@ def test_set_weights_with_commit_reveal_enabled(subtensor, fake_wallet, mocker):
         version_key=subtensor_module.version_as_int,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
+        block_time=12.0,
     )
     assert result == mocked_commit_reveal_v3_extrinsic.return_value
 
@@ -3332,3 +3333,57 @@ def test_stake_fee_methods(mocker, subtensor):
         ],
         block=None,
     )
+
+
+def test_get_owned_hotkeys_happy_path(subtensor, mocker):
+    """Tests that the output of get_owned_hotkeys."""
+    # Prep
+    fake_coldkey = "fake_hotkey"
+    fake_hotkey = "fake_hotkey"
+    fake_hotkeys = [
+        [
+            fake_hotkey,
+        ]
+    ]
+    mocked_subtensor = mocker.Mock(return_value=fake_hotkeys)
+    mocker.patch.object(subtensor.substrate, "query", new=mocked_subtensor)
+
+    mocked_decode_account_id = mocker.Mock()
+    mocker.patch.object(
+        subtensor_module, "decode_account_id", new=mocked_decode_account_id
+    )
+
+    # Call
+    result = subtensor.get_owned_hotkeys(fake_coldkey)
+
+    # Asserts
+    mocked_subtensor.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="OwnedHotkeys",
+        params=[fake_coldkey],
+        block_hash=None,
+        reuse_block_hash=False,
+    )
+    assert result == [mocked_decode_account_id.return_value]
+    mocked_decode_account_id.assert_called_once_with(fake_hotkey)
+
+
+def test_get_owned_hotkeys_return_empty(subtensor, mocker):
+    """Tests that the output of get_owned_hotkeys is empty."""
+    # Prep
+    fake_coldkey = "fake_hotkey"
+    mocked_subtensor = mocker.Mock(return_value=[])
+    mocker.patch.object(subtensor.substrate, "query", new=mocked_subtensor)
+
+    # Call
+    result = subtensor.get_owned_hotkeys(fake_coldkey)
+
+    # Asserts
+    mocked_subtensor.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="OwnedHotkeys",
+        params=[fake_coldkey],
+        block_hash=None,
+        reuse_block_hash=False,
+    )
+    assert result == []

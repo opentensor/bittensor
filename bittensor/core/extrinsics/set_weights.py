@@ -123,7 +123,7 @@ def set_weights_extrinsic(
     )
 
     logging.info(
-        ":satellite: [magenta]Setting weights on [/magenta][blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
+        f":satellite: [magenta]Setting weights on [/magenta][blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
     )
     try:
         success, error_message = _do_set_weights(

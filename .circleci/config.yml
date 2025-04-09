@@ -290,6 +290,9 @@ workflows:
       - check_compatibility:
           python_version: "3.12"
           name: check-compatibility-3.12
+      - check_compatibility:
+          python_version: "3.13"
+          name: check-compatibility-3.13
 
 
   pr-requirements:
@@ -302,7 +305,7 @@ workflows:
       - build-and-test:
           matrix:
             parameters:
-              python-version: [ "3.9.13", "3.10.6", "3.11.4", "3.12.7" ]
+              python-version: [ "3.9.13", "3.10.6", "3.11.4", "3.12.7"]
           requires:
             - check-if-pr-is-draft
       - unit-tests-all-python-versions:
@@ -311,7 +314,7 @@ workflows:
       - lint-and-type-check:
           matrix:
             parameters:
-              python-version: [ "3.9.13", "3.10.6", "3.11.4", "3.12.7" ]
+              python-version: [ "3.9.13", "3.10.6", "3.11.4", "3.12.7"]
           requires:
             - check-if-pr-is-draft
       #- coveralls:
