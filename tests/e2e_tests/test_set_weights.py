@@ -72,6 +72,7 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
         )
 
     await wait_epoch(subtensor, netuid=2, times=2)
+    subtensor.wait_for_block(subtensor.block + 1)
 
     # Stake to become to top neuron after the first epoch
     for netuid in netuids:
@@ -119,7 +120,7 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
 
     # Weights values
     uids = np.array([0], dtype=np.int64)
-    weights = np.array([0.1], dtype=np.float32)
+    weights = np.array([0.5], dtype=np.float32)
     weight_uids, weight_vals = convert_weights_and_uids_for_emit(
         uids=uids, weights=weights
     )
