@@ -3,10 +3,13 @@ import asyncio
 import pytest
 
 from tests.e2e_tests.utils.chain_interactions import (
+    root_set_subtensor_hyperparameter_values,
     sudo_set_admin_utils,
     wait_epoch,
     wait_interval,
 )
+
+DURATION_OF_START_CALL = 10
 
 
 @pytest.mark.asyncio
@@ -53,7 +56,7 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
 
     assert alice_neuron.validator_permit is True
     assert alice_neuron.dividends == 0
-    assert alice_neuron.stake.tao > 0
+    assert alice_neuron.stake.tao == 0
     assert alice_neuron.validator_trust == 0
     assert alice_neuron.incentive == 0
     assert alice_neuron.consensus == 0
@@ -65,6 +68,20 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     assert bob_neuron.consensus == 0
     assert bob_neuron.rank == 0
     assert bob_neuron.trust == 0
+
+    subtensor.wait_for_block(DURATION_OF_START_CALL)
+
+    # Subnet "Start Call" https://github.com/opentensor/bits/pull/13
+    status, error = await root_set_subtensor_hyperparameter_values(
+        local_chain,
+        alice_wallet,
+        call_function="start_call",
+        call_params={
+            "netuid": netuid,
+        },
+    )
+
+    assert status is True, error
 
     # update weights_set_rate_limit for fast-blocks
     tempo = subtensor.tempo(netuid)
@@ -84,8 +101,7 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     async with templates.miner(bob_wallet, netuid):
         async with templates.validator(alice_wallet, netuid) as validator:
             # wait for the Validator to process and set_weights
-            async with asyncio.timeout(60):
-                await validator.set_weights.wait()
+            await asyncio.wait_for(validator.set_weights.wait(), 60)
 
             # Wait till new epoch
             await wait_interval(tempo, subtensor, netuid)
@@ -105,9 +121,26 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     assert alice_neuron.rank < 0.5
 
     bob_neuron = metagraph.neurons[1]
+
     assert bob_neuron.incentive > 0.5
     assert bob_neuron.consensus > 0.5
     assert bob_neuron.rank > 0.5
     assert bob_neuron.trust == 1
+
+    bonds = subtensor.bonds(netuid)
+
+    assert bonds == [
+        (
+            0,
+            [
+                (0, 65535),
+                (1, 65535),
+            ],
+        ),
+        (
+            1,
+            [],
+        ),
+    ]
 
     print("✅ Passed test_incentive")

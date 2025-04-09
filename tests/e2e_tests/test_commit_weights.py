@@ -7,6 +7,7 @@ from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_admin_utils,
     sudo_set_hyperparameter_bool,
+    use_and_wait_for_next_nonce,
     wait_epoch,
 )
 
@@ -227,42 +228,44 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     salt3[0] += 2  # Increment the first byte to produce a different commit hash
 
     # Commit all three salts
-    success, message = subtensor.commit_weights(
-        alice_wallet,
-        netuid,
-        salt=salt,
-        uids=weight_uids,
-        weights=weight_vals,
-        wait_for_inclusion=False,  # Don't wait for inclusion, we are testing the nonce when there is a tx in the pool
-        wait_for_finalization=False,
-    )
+    async with use_and_wait_for_next_nonce(subtensor, alice_wallet):
+        success, message = subtensor.commit_weights(
+            alice_wallet,
+            netuid,
+            salt=salt,
+            uids=weight_uids,
+            weights=weight_vals,
+            wait_for_inclusion=False,  # Don't wait for inclusion, we are testing the nonce when there is a tx in the pool
+            wait_for_finalization=False,
+        )
 
-    assert success is True
+        assert success is True
 
-    success, message = subtensor.commit_weights(
-        alice_wallet,
-        netuid,
-        salt=salt2,
-        uids=weight_uids,
-        weights=weight_vals,
-        wait_for_inclusion=False,
-        wait_for_finalization=False,
-    )
+    async with use_and_wait_for_next_nonce(subtensor, alice_wallet):
+        success, message = subtensor.commit_weights(
+            alice_wallet,
+            netuid,
+            salt=salt2,
+            uids=weight_uids,
+            weights=weight_vals,
+            wait_for_inclusion=False,
+            wait_for_finalization=False,
+        )
 
-    assert success is True
+        assert success is True
 
-    # Commit the third salt
-    success, message = subtensor.commit_weights(
-        alice_wallet,
-        netuid,
-        salt=salt3,
-        uids=weight_uids,
-        weights=weight_vals,
-        wait_for_inclusion=False,
-        wait_for_finalization=False,
-    )
+    async with use_and_wait_for_next_nonce(subtensor, alice_wallet):
+        success, message = subtensor.commit_weights(
+            alice_wallet,
+            netuid,
+            salt=salt3,
+            uids=weight_uids,
+            weights=weight_vals,
+            wait_for_inclusion=False,
+            wait_for_finalization=False,
+        )
 
-    assert success is True
+        assert success is True
 
     # Wait a few blocks
     await asyncio.sleep(10)  # Wait for the txs to be included in the chain
