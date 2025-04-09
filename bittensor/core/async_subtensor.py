@@ -1,7 +1,7 @@
 import asyncio
 import copy
-from datetime import datetime, timezone
 import ssl
+from datetime import datetime, timezone
 from functools import partial
 from typing import Optional, Any, Union, Iterable, TYPE_CHECKING
 
@@ -9,6 +9,7 @@ import asyncstdlib as a
 import numpy as np
 import scalecodec
 from async_substrate_interface import AsyncSubstrateInterface
+from bittensor_commit_reveal import get_encrypted_commitment
 from bittensor_wallet.utils import SS58_FORMAT
 from numpy.typing import NDArray
 from scalecodec import GenericCall
@@ -29,20 +30,24 @@ from bittensor.core.chain_data import (
 )
 from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.delegate_info import DelegatedInfo
-from bittensor.core.chain_data.utils import decode_metadata
+from bittensor.core.chain_data.utils import (
+    decode_metadata,
+    decode_revealed_commitment,
+    decode_revealed_commitment_with_hotkey,
+)
 from bittensor.core.config import Config
 from bittensor.core.errors import ChainError, SubstrateRequestException
 from bittensor.core.extrinsics.asyncex.commit_reveal import commit_reveal_v3_extrinsic
+from bittensor.core.extrinsics.asyncex.move_stake import (
+    transfer_stake_extrinsic,
+    swap_stake_extrinsic,
+    move_stake_extrinsic,
+)
 from bittensor.core.extrinsics.asyncex.registration import (
     burned_register_extrinsic,
     register_extrinsic,
     register_subnet_extrinsic,
     set_subnet_identity_extrinsic,
-)
-from bittensor.core.extrinsics.asyncex.move_stake import (
-    transfer_stake_extrinsic,
-    swap_stake_extrinsic,
-    move_stake_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.root import (
     set_root_weights_extrinsic,
@@ -77,10 +82,13 @@ from bittensor.core.types import ParamWithTypes, SubtensorMixin
 from bittensor.utils import (
     Certificate,
     decode_hex_identity_dict,
+    float_to_u64,
     format_error_message,
+    is_valid_ss58_address,
     torch,
     u16_normalized_float,
     u64_normalized_float,
+    unlock_key,
 )
 from bittensor.utils.balance import (
     Balance,
@@ -934,6 +942,57 @@ class AsyncSubtensor(SubtensorMixin):
         except SubstrateRequestException as e:
             return False, [], format_error_message(e)
 
+    async def get_children_pending(
+        self,
+        hotkey: str,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> tuple[
+        list[tuple[float, str]],
+        int,
+    ]:
+        """
+        This method retrieves the pending children of a given hotkey and netuid.
+        It queries the SubtensorModule's PendingChildKeys storage function.
+
+        Arguments:
+            hotkey (str): The hotkey value.
+            netuid (int): The netuid value.
+            block (Optional[int]): The block number for which the children are to be retrieved.
+            block_hash (Optional[str]): The hash of the block to retrieve the subnet unique identifiers from.
+            reuse_block (bool): Whether to reuse the last-used block hash.
+
+        Returns:
+            list[tuple[float, str]]: A list of children with their proportions.
+            int: The cool-down block number.
+        """
+
+        response = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="PendingChildKeys",
+            params=[netuid, hotkey],
+            block_hash=await self.determine_block_hash(
+                block,
+                block_hash,
+                reuse_block,
+            ),
+            reuse_block_hash=reuse_block,
+        )
+        children, cooldown = response.value
+
+        return (
+            [
+                (
+                    u64_normalized_float(proportion),
+                    decode_account_id(child[0]),
+                )
+                for proportion, child in children
+            ],
+            cooldown,
+        )
+
     async def get_commitment(
         self,
         netuid: int,
@@ -1004,6 +1063,115 @@ class AsyncSubtensor(SubtensorMixin):
         result = {}
         async for id_, value in query:
             result[decode_account_id(id_[0])] = decode_metadata(value)
+        return result
+
+    async def get_revealed_commitment_by_hotkey(
+        self,
+        netuid: int,
+        hotkey_ss58_address: Optional[str] = None,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional[tuple[tuple[int, str], ...]]:
+        """Returns hotkey related revealed commitment for a given netuid.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int]): The block number to retrieve the commitment from. Default is ``None``.
+            hotkey_ss58_address (str): The ss58 address of the committee member.
+            block_hash (Optional[str]): The hash of the block to retrieve the subnet unique identifiers from.
+            reuse_block (bool): Whether to reuse the last-used block hash.
+
+        Returns:
+            result (tuple[int, str): A tuple of reveal block and commitment message.
+        """
+        if not is_valid_ss58_address(address=hotkey_ss58_address):
+            raise ValueError(f"Invalid ss58 address {hotkey_ss58_address} provided.")
+
+        query = await self.query_module(
+            module="Commitments",
+            name="RevealedCommitments",
+            params=[netuid, hotkey_ss58_address],
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        if query is None:
+            return None
+        return tuple(decode_revealed_commitment(pair) for pair in query)
+
+    async def get_revealed_commitment(
+        self,
+        netuid: int,
+        uid: int,
+        block: Optional[int] = None,
+    ) -> Optional[tuple[tuple[int, str], ...]]:
+        """Returns uid related revealed commitment for a given netuid.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnetwork.
+            uid (int): The neuron uid to retrieve the commitment from.
+            block (Optional[int]): The block number to retrieve the commitment from. Default is ``None``.
+
+        Returns:
+            result (Optional[tuple[int, str]]: A tuple of reveal block and commitment message.
+
+        Example of result:
+            ( (12, "Alice message 1"), (152, "Alice message 2") )
+            ( (12, "Bob message 1"), (147, "Bob message 2") )
+        """
+        try:
+            meta_info = await self.get_metagraph_info(netuid, block=block)
+            if meta_info:
+                hotkey_ss58_address = meta_info.hotkeys[uid]
+            else:
+                raise ValueError(f"Subnet with netuid {netuid} does not exist.")
+        except IndexError:
+            raise ValueError(f"Subnet {netuid} does not have a neuron with uid {uid}.")
+
+        return await self.get_revealed_commitment_by_hotkey(
+            netuid=netuid, hotkey_ss58_address=hotkey_ss58_address, block=block
+        )
+
+    async def get_all_revealed_commitments(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> dict[str, tuple[tuple[int, str], ...]]:
+        """Returns all revealed commitments for a given netuid.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int]): The block number to retrieve the commitment from. Default is ``None``.
+            block_hash (Optional[str]): The hash of the block to retrieve the subnet unique identifiers from.
+            reuse_block (bool): Whether to reuse the last-used block hash.
+
+        Returns:
+            result (dict): A dictionary of all revealed commitments in view {ss58_address: (reveal block, commitment message)}.
+
+        Example of result:
+        {
+            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY": ( (12, "Alice message 1"), (152, "Alice message 2") ),
+            "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty": ( (12, "Bob message 1"), (147, "Bob message 2") ),
+        }
+        """
+        query = await self.query_map(
+            module="Commitments",
+            name="RevealedCommitments",
+            params=[netuid],
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+
+        result = {}
+        async for pair in query:
+            hotkey_ss58_address, commitment_message = (
+                decode_revealed_commitment_with_hotkey(pair)
+            )
+            result[hotkey_ss58_address] = commitment_message
         return result
 
     async def get_current_weight_commit_info(
@@ -1519,6 +1687,36 @@ class AsyncSubtensor(SubtensorMixin):
                 reuse_block=reuse_block,
             )
 
+    async def get_owned_hotkeys(
+        self,
+        coldkey_ss58: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> list[str]:
+        """
+        Retrieves all hotkeys owned by a specific coldkey address.
+
+        Args:
+            coldkey_ss58 (str): The SS58 address of the coldkey to query.
+            block (int): The blockchain block number for the query.
+            block_hash (str): The hash of the blockchain block number for the query.
+            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
+
+        Returns:
+            list[str]: A list of hotkey SS58 addresses owned by the coldkey.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        owned_hotkeys = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="OwnedHotkeys",
+            params=[coldkey_ss58],
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+
+        return [decode_account_id(hotkey[0]) for hotkey in owned_hotkeys or []]
+
     async def get_stake(
         self,
         coldkey_ss58: str,
@@ -2020,10 +2218,11 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
+
         if vote_data is None:
             return None
-        else:
-            return ProposalVoteData(vote_data)
+
+        return ProposalVoteData.from_dict(vote_data)
 
     async def get_uid_for_hotkey_on_subnet(
         self,
@@ -2565,6 +2764,46 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block=reuse_block,
         )
         return None if call is None else Balance.from_rao(int(call))
+
+    async def set_reveal_commitment(
+        self,
+        wallet,
+        netuid: int,
+        data: str,
+        blocks_until_reveal: int = 360,
+        block_time: Union[int, float] = 12,
+    ) -> tuple[bool, int]:
+        """
+        Commits arbitrary data to the Bittensor network by publishing metadata.
+
+        Arguments:
+            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the data.
+            netuid (int): The unique identifier of the subnetwork.
+            data (str): The data to be committed to the network.
+            blocks_until_reveal (int): The number of blocks from now after which the data will be revealed. Defaults to `360`.
+                Then amount of blocks in one epoch.
+            block_time (Union[int, float]): The number of seconds between each block. Defaults to `12`.
+
+        Returns:
+            bool: `True` if the commitment was successful, `False` otherwise.
+
+        Note: A commitment can be set once per subnet epoch and is reset at the next epoch in the chain automatically.
+        """
+
+        encrypted, reveal_round = get_encrypted_commitment(
+            data, blocks_until_reveal, block_time
+        )
+
+        # increase reveal_round in return + 1 because we want to fetch data from the chain after that round was revealed
+        # and stored.
+        data_ = {"encrypted": encrypted, "reveal_round": reveal_round}
+        return await publish_metadata(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            data_type=f"TimelockEncrypted",
+            data=data_,
+        ), reveal_round
 
     async def subnet(
         self,
@@ -3380,6 +3619,75 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_inclusion=wait_for_inclusion,
         )
 
+    async def set_children(
+        self,
+        wallet: "Wallet",
+        hotkey: str,
+        netuid: int,
+        children: list[tuple[float, str]],
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        raise_error: bool = False,
+    ) -> tuple[bool, str]:
+        """
+        Allows a coldkey to set children keys.
+
+        Arguments:
+            wallet (bittensor_wallet.Wallet): bittensor wallet instance.
+            hotkey (str): The ``SS58`` address of the neuron's hotkey.
+            netuid (int): The netuid value.
+            children (list[tuple[float, str]]): A list of children with their proportions.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            raise_error: Raises relevant exception rather than returning `False` if unsuccessful.
+
+        Returns:
+            tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
+             operation, and the second element is a message providing additional information.
+
+        Raises:
+            DuplicateChild: There are duplicates in the list of children.
+            InvalidChild: Child is the hotkey.
+            NonAssociatedColdKey: The coldkey does not own the hotkey or the child is the same as the hotkey.
+            NotEnoughStakeToSetChildkeys: Parent key doesn't have minimum own stake.
+            ProportionOverflow: The sum of the proportions does exceed uint64.
+            RegistrationNotPermittedOnRootSubnet: Attempting to register a child on the root network.
+            SubNetworkDoesNotExist: Attempting to register to a non-existent network.
+            TooManyChildren: Too many children in request.
+            TxRateLimitExceeded: Hotkey hit the rate limit.
+            bittensor_wallet.errors.KeyFileError: Failed to decode keyfile data.
+            bittensor_wallet.errors.PasswordError: Decryption failed or wrong password for decryption provided.
+        """
+
+        unlock = unlock_key(wallet, raise_error=raise_error)
+
+        if not unlock.success:
+            return False, unlock.message
+
+        call = await self.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="set_children",
+            call_params={
+                "children": [
+                    (
+                        float_to_u64(proportion),
+                        child_hotkey,
+                    )
+                    for proportion, child_hotkey in children
+                ],
+                "hotkey": hotkey,
+                "netuid": netuid,
+            },
+        )
+
+        return await self.sign_and_send_extrinsic(
+            call,
+            wallet,
+            wait_for_inclusion,
+            wait_for_finalization,
+            raise_error=raise_error,
+        )
+
     async def set_delegate_take(
         self,
         wallet: "Wallet",
@@ -3504,6 +3812,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         max_retries: int = 5,
+        block_time: float = 12.0,
     ):
         """
         Sets the inter-neuronal weights for the specified neuron. This process involves specifying the influence or
@@ -3523,6 +3832,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
                 ``False``.
             max_retries (int): The number of maximum attempts to set weights. Default is ``5``.
+            block_time (float): The amount of seconds for block duration. Default is 12.0 seconds.
 
         Returns:
             tuple[bool, str]: ``True`` if the setting of weights is successful, False otherwise. And `msg`, a string
@@ -3571,6 +3881,7 @@ class AsyncSubtensor(SubtensorMixin):
                     version_key=version_key,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
+                    block_time=block_time,
                 )
                 retries += 1
             return success, message
