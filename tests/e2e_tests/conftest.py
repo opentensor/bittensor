@@ -19,6 +19,9 @@ from tests.e2e_tests.utils.e2e_test_utils import (
     setup_wallet,
 )
 
+LOCALNET_IMAGE_NAME = "ghcr.io/opentensor/subtensor-localnet:devnet-ready"
+CONTAINER_NAME_PREFIX = "test_local_chain_"
+
 
 def wait_for_node_start(process, timestamp=None):
     """Waits for node to start in the docker."""
@@ -75,7 +78,7 @@ def local_chain(request):
             logging.warning("Docker not found in the operating system!")
             logging.warning(docker_command)
             logging.warning("Tests are run in legacy mode.")
-        yield from legacy_runner(request)
+        yield from legacy_runner(params)
 
 
 def legacy_runner(params):
@@ -93,7 +96,6 @@ def legacy_runner(params):
 
     # Compile commands to send to process
     cmds = shlex.split(f"{script_path} {args}")
-
     with subprocess.Popen(
         cmds,
         start_new_session=True,
@@ -132,6 +134,7 @@ def docker_runner(params):
                 stderr=subprocess.DEVNULL,
                 check=True,
             )
+            subprocess.run(["docker", "pull", LOCALNET_IMAGE_NAME], check=True)
             return True
         except subprocess.CalledProcessError:
             return False
@@ -161,8 +164,32 @@ def docker_runner(params):
         print("Docker wasn't run. Manual start may be required.")
         return False
 
-    container_name = f"test_local_chain_{str(time.time()).replace(".", "_")}"
-    image_name = "ghcr.io/opentensor/subtensor-localnet:latest"
+    def stop_existing_test_containers():
+        """Stop running Docker containers with names starting with 'test_local_chain_'."""
+        try:
+            existing_container_result = subprocess.run(
+                [
+                    "docker",
+                    "ps",
+                    "--filter",
+                    f"name={CONTAINER_NAME_PREFIX}",
+                    "--format",
+                    "{{.ID}}",
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=True,
+            )
+            container_ids = existing_container_result.stdout.strip().splitlines()
+            for cid in container_ids:
+                if cid:
+                    print(f"Stopping existing container: {cid}")
+                    subprocess.run(["docker", "stop", cid], check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to stop existing containers: {e}")
+
+    container_name = f"{CONTAINER_NAME_PREFIX}{str(time.time()).replace('.', '_')}"
 
     # Command to start container
     cmds = [
@@ -175,11 +202,13 @@ def docker_runner(params):
         "9944:9944",
         "-p",
         "9945:9945",
-        image_name,
+        LOCALNET_IMAGE_NAME,
         params,
     ]
 
     try_start_docker()
+
+    stop_existing_test_containers()
 
     # Start container
     with subprocess.Popen(

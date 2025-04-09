@@ -2,6 +2,7 @@
 
 # **Bittensor SDK** <!-- omit in toc -->
 [![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.gg/bittensor)
+[![CodeQL](https://github.com/opentensor/bittensor/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/opentensor/bittensor/actions)
 [![PyPI version](https://badge.fury.io/py/bittensor.svg)](https://badge.fury.io/py/bittensor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
