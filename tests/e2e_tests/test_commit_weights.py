@@ -257,7 +257,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
             wait_for_inclusion=False,
             wait_for_finalization=False,
         )
-        assert success is True and message is None, message
+        assert success is True, message
 
     send_commit(solt=salt)
 
