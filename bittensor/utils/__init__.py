@@ -251,8 +251,8 @@ def format_error_message(error_message: Union[dict, Exception]) -> str:
             err_description = err_docs[0] if err_docs else err_description
 
         elif error_message.get("code") and error_message.get("message"):
-            err_type = "Custom type"
-            err_name = error_message.get("code", err_name)
+            err_type = error_message.get("code", err_name)
+            err_name = "Custom type"
             err_description = error_message.get("message", err_description)
 
         else:
