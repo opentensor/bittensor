@@ -1712,11 +1712,11 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             int: The block number at which the next epoch will start.
         """
-        block = block or await self.block
-        block_hash = block_hash or await self.get_block_hash(block)
-        tempo = await self.tempo(
-            netuid=netuid, block=block, block_hash=block_hash, reuse_block=reuse_block
-        )
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        if not block_hash and reuse_block:
+            block_hash = self.substrate.last_block_hash
+        block = await self.substrate.get_block_number(block_hash=block_hash)
+        tempo = await self.tempo(netuid=netuid, block_hash=block_hash)
         return (((block // tempo) + 1) * tempo) + 1 if tempo else None
 
     async def get_owned_hotkeys(
