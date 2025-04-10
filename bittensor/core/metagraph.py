@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import copy
 import os
 import pickle
@@ -11,6 +12,7 @@ from typing import Optional, Union
 import numpy as np
 from async_substrate_interface.errors import SubstrateRequestException
 from numpy.typing import NDArray
+from packaging import version
 
 from bittensor.core import settings
 from bittensor.core.chain_data import (
@@ -141,6 +143,27 @@ def latest_block_path(dir_path: str) -> str:
         raise ValueError(f"Metagraph not found at: {dir_path}")
     else:
         return latest_file_full_path
+
+
+def safe_globals():
+    """
+    Context manager to load torch files for version 2.6+
+    """
+    if version.parse(torch.__version__).release < version.parse("2.6").release:
+        return contextlib.nullcontext()
+
+    np_core = (
+        np._core if version.parse(np.__version__) >= version.parse("2.0.0") else np.core
+    )
+    allow_list = [
+        np_core.multiarray._reconstruct,
+        np.ndarray,
+        np.dtype,
+        type(np.dtype(np.uint32)),
+        np.dtypes.Float32DType,
+        bytes,
+    ]
+    return torch.serialization.safe_globals(allow_list)
 
 
 class MetagraphMixin(ABC):
@@ -1124,7 +1147,8 @@ class TorchMetagraph(MetagraphMixin, BaseClass):
         """
 
         graph_file = latest_block_path(dir_path)
-        state_dict = torch.load(graph_file)
+        with safe_globals():
+            state_dict = torch.load(graph_file, weights_only=True)
         self.n = torch.nn.Parameter(state_dict["n"], requires_grad=False)
         self.block = torch.nn.Parameter(state_dict["block"], requires_grad=False)
         self.uids = torch.nn.Parameter(state_dict["uids"], requires_grad=False)
@@ -1256,7 +1280,8 @@ class NonTorchMetagraph(MetagraphMixin):
             try:
                 import torch as real_torch
 
-                state_dict = real_torch.load(graph_filename)
+                with safe_globals():
+                    state_dict = real_torch.load(graph_filename)
                 for key in METAGRAPH_STATE_DICT_NDARRAY_KEYS:
                     state_dict[key] = state_dict[key].detach().numpy()
                 del real_torch
