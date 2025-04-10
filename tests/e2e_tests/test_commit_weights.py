@@ -165,7 +165,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    subnet_tempo = 100
+    subnet_tempo = 50
     netuid = 2
 
     # Wait for 2 tempos to pass as CR3 only reveals weights after 2 tempos
@@ -266,6 +266,9 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
         weight_uids, weight_vals, salt = get_weights_and_salt(call)
 
         send_commit(salt, weight_uids, weight_vals)
+
+        # let's wait for 3 (12 fast blocks) seconds between transactions
+        subtensor.wait_for_block(subtensor.block + 12)
 
     logging.console.info(
         f"[orange]Nonce after third commit_weights: "
