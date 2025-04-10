@@ -399,7 +399,7 @@ class Subtensor(SubtensorMixin):
                 exist.
         """
         call = self.get_hyperparameter(param_name="LastUpdate", netuid=netuid)
-        return None if call is None else (self.get_current_block() - int(call[uid]))
+        return None if not call else (self.get_current_block() - int(call[uid]))
 
     def bonds(
         self, netuid: int, block: Optional[int] = None

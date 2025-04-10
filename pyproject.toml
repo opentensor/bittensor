@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bittensor"
-version = "9.2.0"
+version = "9.3.0"
 description = "Bittensor"
 readme = "README.md"
 authors = [
@@ -31,11 +31,10 @@ dependencies = [
     "retry==0.9.2",
     "requests>=2.0.0,<3.0",
     "pydantic>=2.3, <3",
-    "python-Levenshtein",
     "scalecodec==1.2.11",
     "uvicorn",
     "bittensor-commit-reveal>=0.3.1",
-    "bittensor-wallet>=3.0.7",
+    "bittensor-wallet>=3.0.8",
     "async-substrate-interface>=1.1.0"
 ]
 
