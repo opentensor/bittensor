@@ -49,7 +49,7 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     await wait_epoch(subtensor, netuid)
 
     # Get current miner/validator stats
-    alice_neuron = subtensor.neurons[0]
+    alice_neuron = subtensor.neurons(netuid=netuid)[0]
 
     assert alice_neuron.validator_permit is True
     assert alice_neuron.dividends == 0
@@ -59,7 +59,7 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     assert alice_neuron.consensus == 0
     assert alice_neuron.rank == 0
 
-    bob_neuron = subtensor.neurons[1]
+    bob_neuron = subtensor.neurons(netuid=netuid)[1]
 
     assert bob_neuron.incentive == 0
     assert bob_neuron.consensus == 0
