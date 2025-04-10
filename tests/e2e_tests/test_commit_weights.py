@@ -284,7 +284,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
         assert success is True
 
     # Wait a few blocks
-    subtensor.wait_for_block(subtensor.block + subtensor.tempo(netuid))
+    subtensor.wait_for_block(subtensor.block + subtensor.tempo(netuid) * 2)
 
     # Query the WeightCommits storage map for all three salts
     weight_commits = subtensor.query_module(
