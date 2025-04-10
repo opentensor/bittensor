@@ -138,7 +138,7 @@ class Templates:
                     bittensor.logging.console.info(
                         f"[green]MINER LOG: {line.split(b'|')[-1].strip().decode()}[/blue]"
                     )
-                except:
+                except BaseException:
                     # skipp empty lines
                     pass
 
@@ -201,7 +201,7 @@ class Templates:
                     bittensor.logging.console.info(
                         f"[orange]VALIDATOR LOG: {line.split(b'|')[-1].strip().decode()}[/orange]"
                     )
-                except:
+                except BaseException:
                     # skipp empty lines
                     pass
 
@@ -211,9 +211,6 @@ class Templates:
                 elif b"Successfully set weights and Finalized." in line:
                     bittensor.logging.console.info("Validator is setting weights.")
                     self.set_weights.set()
-                    bittensor.logging.console.info(
-                        "Validator successfully set weights and Finalized."
-                    )
 
     def __init__(self):
         self.dir = clone_or_update_templates()
