@@ -76,6 +76,11 @@ from bittensor.core.extrinsics.asyncex.weights import (
     set_weights_extrinsic,
     reveal_weights_extrinsic,
 )
+from bittensor.core.extrinsics.options import (
+    DEFAULT_SET_WEIGHTS_EXTRINSIC_ERA,
+    ExtrinsicEra,
+    ExtrinsicEraTypes,
+)
 from bittensor.core.metagraph import AsyncMetagraph
 from bittensor.core.settings import version_as_int, TYPE_REGISTRY
 from bittensor.core.types import ParamWithTypes, SubtensorMixin
@@ -3301,6 +3306,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         max_retries: int = 5,
+        era: Optional[ExtrinsicEraTypes] = None,
     ) -> tuple[bool, str]:
         """
         Commits a hash of the neuron's weights to the Bittensor blockchain using the provided wallet.
@@ -3318,6 +3324,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
                 ``False``.
             max_retries (int): The number of maximum attempts to commit weights. Default is ``5``.
+            era (ExtrinsicEraTypes, optional): Blocks for which the transaction should be valid.
 
         Returns:
             tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string
@@ -3329,6 +3336,9 @@ class AsyncSubtensor(SubtensorMixin):
         retries = 0
         success = False
         message = "No attempt made. Perhaps it is too soon to commit weights!"
+
+        if isinstance(era, dict):
+            era = ExtrinsicEra(**era)
 
         logging.info(
             f"Committing weights with params: netuid={netuid}, uids={uids}, weights={weights}, "
@@ -3354,6 +3364,7 @@ class AsyncSubtensor(SubtensorMixin):
                     commit_hash=commit_hash,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
+                    era=era,
                 )
                 if success:
                     break
@@ -3812,6 +3823,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         max_retries: int = 5,
+        era: Optional[ExtrinsicEraTypes] = DEFAULT_SET_WEIGHTS_EXTRINSIC_ERA,
         block_time: float = 12.0,
     ):
         """
@@ -3841,6 +3853,9 @@ class AsyncSubtensor(SubtensorMixin):
         This function is crucial in shaping the network's collective intelligence, where each neuron's learning and
             contribution are influenced by the weights it sets towards others【81†source】.
         """
+
+        if isinstance(era, dict):
+            era = ExtrinsicEra(**era)
 
         async def _blocks_weight_limit() -> bool:
             bslu, wrl = await asyncio.gather(
@@ -3881,6 +3896,7 @@ class AsyncSubtensor(SubtensorMixin):
                     version_key=version_key,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
+                    era=era if era is not DEFAULT_SET_WEIGHTS_EXTRINSIC_ERA else None,
                     block_time=block_time,
                 )
                 retries += 1
@@ -3907,6 +3923,7 @@ class AsyncSubtensor(SubtensorMixin):
                         version_key=version_key,
                         wait_for_inclusion=wait_for_inclusion,
                         wait_for_finalization=wait_for_finalization,
+                        era=era,
                     )
                 except Exception as e:
                     logging.error(f"Error setting weights: {e}")

@@ -5,6 +5,7 @@ from typing import Union, TYPE_CHECKING, Optional
 import numpy as np
 from numpy.typing import NDArray
 
+from bittensor.core.extrinsics.options import ExtrinsicEra
 import bittensor.utils.weight_utils as weight_utils
 from bittensor.core.settings import version_as_int
 from bittensor.utils import format_error_message
@@ -23,6 +24,7 @@ async def _do_commit_weights(
     commit_hash: str,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
+    era: Optional[ExtrinsicEra] = None,
 ) -> tuple[bool, Optional[str]]:
     """
     Internal method to send a transaction to the Bittensor blockchain, committing the hash of a neuron's weights.
@@ -36,6 +38,7 @@ async def _do_commit_weights(
         commit_hash (str): The hash of the neuron's weights to be committed.
         wait_for_inclusion (bool): Waits for the transaction to be included in a block.
         wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+        era (ExtrinsicEra, optional): Blocks for which the transaction should be valid.
 
     Returns:
         tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
@@ -59,6 +62,7 @@ async def _do_commit_weights(
         use_nonce=True,
         nonce_key="hotkey",
         sign_with="hotkey",
+        period=era.period if era else None,
     )
 
 
@@ -69,6 +73,7 @@ async def commit_weights_extrinsic(
     commit_hash: str,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
+    era: Optional[ExtrinsicEra] = None,
 ) -> tuple[bool, str]:
     """
     Commits a hash of the neuron's weights to the Bittensor blockchain using the provided wallet.
@@ -82,6 +87,7 @@ async def commit_weights_extrinsic(
         commit_hash (str): The hash of the neuron's weights to be committed.
         wait_for_inclusion (bool): Waits for the transaction to be included in a block.
         wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+        era (ExtrinsicEra, optional): Blocks for which the transaction should be valid.
 
     Returns:
         tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string
@@ -98,6 +104,7 @@ async def commit_weights_extrinsic(
         commit_hash=commit_hash,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        era=era,
     )
 
     if success:
@@ -231,7 +238,9 @@ async def _do_set_weights(
     version_key: int = version_as_int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-    period: int = 5,
+    era: ExtrinsicEra = ExtrinsicEra(
+        period=5,
+    ),
 ) -> tuple[bool, Optional[str]]:  # (success, error_message)
     """
     Internal method to send a transaction to the Bittensor blockchain, setting weights
@@ -247,7 +256,7 @@ async def _do_set_weights(
         version_key (int, optional): Version key for compatibility with the network.
         wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
         wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-        period (int, optional): The period in seconds to wait for extrinsic inclusion or finalization. Defaults to 5.
+        era (ExtrinsicEra, optional): The period in blocks to wait for extrinsic inclusion or finalization. Defaults to 5.
 
     Returns:
         Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
@@ -271,7 +280,7 @@ async def _do_set_weights(
         wallet,
         wait_for_inclusion,
         wait_for_finalization,
-        period=period,
+        period=era.period if era else None,
         use_nonce=True,
         nonce_key="hotkey",
         sign_with="hotkey",
@@ -287,6 +296,9 @@ async def set_weights_extrinsic(
     version_key: int = 0,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
+    era: ExtrinsicEra = ExtrinsicEra(
+        period=5,
+    ),
 ) -> tuple[bool, str]:
     """Sets the given weights and values on chain for wallet hotkey account.
 
@@ -302,6 +314,7 @@ async def set_weights_extrinsic(
             returns ``False`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
             ``True``, or returns ``False`` if the extrinsic fails to be finalized within the timeout.
+        era (ExtrinsicEra, optional): Blocks for which the transaction should be valid.
 
     Returns:
         success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
@@ -331,6 +344,7 @@ async def set_weights_extrinsic(
             version_key=version_key,
             wait_for_finalization=wait_for_finalization,
             wait_for_inclusion=wait_for_inclusion,
+            era=era,
         )
 
         if not wait_for_finalization and not wait_for_inclusion:

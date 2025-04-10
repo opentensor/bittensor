@@ -1,6 +1,7 @@
 import pytest
 from bittensor.core import async_subtensor
 from bittensor.core.extrinsics.asyncex import weights as async_weights
+from bittensor.core.extrinsics.options import ExtrinsicEra
 
 
 @pytest.mark.asyncio
@@ -157,6 +158,7 @@ async def test_set_weights_extrinsic_success_with_finalization(
         weights=fake_weights,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        era=ExtrinsicEra(period=15),
     )
 
     # Asserts
@@ -169,6 +171,7 @@ async def test_set_weights_extrinsic_success_with_finalization(
         version_key=0,
         wait_for_finalization=True,
         wait_for_inclusion=True,
+        era=ExtrinsicEra(period=15),
     )
     assert result is True
     assert message == "Successfully set weights and Finalized."
@@ -436,6 +439,7 @@ async def test_commit_weights_extrinsic_success(subtensor, fake_wallet, mocker):
         commit_hash=fake_commit_hash,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        era=None,
     )
     assert result is True
     assert message == "✅ [green]Successfully committed weights.[green]"
@@ -470,6 +474,7 @@ async def test_commit_weights_extrinsic_failure(subtensor, fake_wallet, mocker):
         commit_hash=fake_commit_hash,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        era=None,
     )
     assert result is False
     assert message == "Commit failed."

@@ -209,6 +209,7 @@ def test_commit_reveal_v3_extrinsic_success_with_torch(
         reveal_round=fake_reveal_round,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        era=None,
     )
 
 
@@ -312,6 +313,7 @@ def test_commit_reveal_v3_extrinsic_response_false(
         reveal_round=fake_reveal_round,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        era=None,
     )
 
 
