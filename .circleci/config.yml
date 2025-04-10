@@ -39,7 +39,7 @@ jobs:
             python -m venv .venv
             . .venv/bin/activate
             python -m pip install --upgrade uv
-            uv pip install ruff -c requirements/dev.txt
+            uv pip install ruff
 
       - save_cache:
           name: Save cached ruff venv
@@ -87,12 +87,6 @@ jobs:
     steps:
       - checkout
 
-      - restore_cache:
-          name: Restore cached venv
-          keys:
-            - v2-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
-            - v2-pypi-py<< parameters.python-version >>
-
       - run:
           name: Update & Activate venv
           command: |
@@ -100,12 +94,6 @@ jobs:
             . .venv/bin/activate
             python -m pip install --upgrade uv
             uv sync --all-extras --dev
-
-      - save_cache:
-          name: Save cached venv
-          paths:
-            - "venv/"
-          key: v2-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
 
       - run:
           name: Install Bittensor
@@ -178,12 +166,6 @@ jobs:
     steps:
       - checkout
 
-      - restore_cache:
-          name: Restore cached venv
-          keys:
-            - v2-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
-            - v2-pypi-py<< parameters.python-version >>
-
       - run:
           name: Update & Activate venv
           command: |
@@ -192,12 +174,6 @@ jobs:
             python -m pip install --upgrade uv
             uv sync --all-extras --dev
             uv pip install flake8
-
-      - save_cache:
-          name: Save cached venv
-          paths:
-            - "env/"
-          key: v2-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
 
       - run:
           name: Install Bittensor

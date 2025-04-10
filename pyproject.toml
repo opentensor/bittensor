@@ -67,6 +67,11 @@ torch = [
 cli = [
     "bittensor-cli>=9.0.2"
 ]
+cubit = [
+    "torch>=1.13.1,<3.0",
+    "cubit @ git+https://github.com/opentensor/cubit.git@v1.1.2"
+]
+
 
 [project.urls]
 # more details can be found here
