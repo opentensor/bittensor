@@ -30,7 +30,7 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
     """
 
     netuids = [2, 3]
-    subnet_tempo = 100
+    subnet_tempo = 50
     BLOCK_TIME = 0.25  # 12 for non-fast-block, 0.25 for fast block
 
     print("Testing test_set_weights_uses_next_nonce")
@@ -137,6 +137,7 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
                 weights=weight_vals,
                 wait_for_inclusion=False,  # Don't wait for inclusion, we are testing the nonce when there is a tx in the pool
                 wait_for_finalization=False,
+                period=subnet_tempo,
             )
 
             assert success is True, message
