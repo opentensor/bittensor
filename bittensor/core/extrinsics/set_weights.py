@@ -135,6 +135,7 @@ def set_weights_extrinsic(
             version_key=version_key,
             wait_for_finalization=wait_for_finalization,
             wait_for_inclusion=wait_for_inclusion,
+            period=subtensor.tempo(netuid=netuid),
         )
 
         if not wait_for_finalization and not wait_for_inclusion:
