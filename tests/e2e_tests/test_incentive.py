@@ -48,11 +48,8 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     # Wait for the first epoch to pass
     await wait_epoch(subtensor, netuid)
 
-    # Get latest metagraph
-    metagraph = subtensor.metagraph(netuid)
-
     # Get current miner/validator stats
-    alice_neuron = metagraph.neurons[0]
+    alice_neuron = subtensor.neurons[0]
 
     assert alice_neuron.validator_permit is True
     assert alice_neuron.dividends == 0
@@ -62,7 +59,7 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     assert alice_neuron.consensus == 0
     assert alice_neuron.rank == 0
 
-    bob_neuron = metagraph.neurons[1]
+    bob_neuron = subtensor.neurons[1]
 
     assert bob_neuron.incentive == 0
     assert bob_neuron.consensus == 0
@@ -98,19 +95,17 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     assert error is None
     assert status is True
 
-    async with templates.miner(bob_wallet, netuid):
+    async with templates.miner(bob_wallet, netuid) as miner:
+        await asyncio.wait_for(miner.started.wait(), 60)
+
         async with templates.validator(alice_wallet, netuid) as validator:
             # wait for the Validator to process and set_weights
             await asyncio.wait_for(validator.set_weights.wait(), 60)
 
-            # Wait till new epoch
-            await wait_interval(tempo, subtensor, netuid)
-
-            # Refresh metagraph
-            metagraph = subtensor.metagraph(netuid)
+    subtensor.wait_for_block(subtensor.block + subtensor.tempo(netuid))
 
     # Get current emissions and validate that Alice has gotten tao
-    alice_neuron = metagraph.neurons[0]
+    alice_neuron = subtensor.neurons[0]
 
     assert alice_neuron.validator_permit is True
     assert alice_neuron.dividends == 1.0
@@ -120,7 +115,7 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     assert alice_neuron.consensus < 0.5
     assert alice_neuron.rank < 0.5
 
-    bob_neuron = metagraph.neurons[1]
+    bob_neuron = subtensor.neurons[1]
 
     assert bob_neuron.incentive > 0.5
     assert bob_neuron.consensus > 0.5
