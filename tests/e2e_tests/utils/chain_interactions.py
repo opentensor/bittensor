@@ -3,6 +3,7 @@ This module provides functions interacting with the chain for end-to-end testing
 these are not present in btsdk but are required for e2e tests
 """
 
+import time
 import asyncio
 import contextlib
 from typing import Union, Optional, TYPE_CHECKING
@@ -160,22 +161,25 @@ async def use_and_wait_for_next_nonce(
 
     yield
 
-    async def wait_for_new_nonce():
+    def wait_for_new_nonce():
+        now = time.time()
         while nonce == subtensor.substrate.get_account_next_index(
             wallet.hotkey.ss58_address
         ):
+            if time.time() - now > timeout:
+                raise TimeoutError(f"Timeout waiting for new nonce.")
             logging.console.info(
                 f"Waiting for new nonce. Current nonce: {nonce} for wallet {wallet.hotkey.ss58_address}"
             )
-            await asyncio.sleep(sleep)
+            time.sleep(sleep)
 
     # give the chain 3 tries to reveal a new nonce after latest extrinsic call
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            await asyncio.wait_for(wait_for_new_nonce(), timeout)
+            wait_for_new_nonce()
             break
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logging.warning(f"Attempt {attempt + 1} of {max_retries} timed out.")
             if attempt + 1 == max_retries:
                 raise
