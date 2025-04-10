@@ -259,11 +259,11 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
         )
         assert success is True, message
 
-    send_commit(salt=salt)
+    send_commit(salt)
 
-    send_commit(salt=salt2)
+    send_commit(salt2)
 
-    send_commit(salt=salt3)
+    send_commit(salt3)
 
     logging.console.info(
         f"[orange]Nonce after third commit_weights: "
