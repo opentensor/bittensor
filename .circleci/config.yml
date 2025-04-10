@@ -93,13 +93,13 @@ jobs:
             python -m venv .venv
             . .venv/bin/activate
             python -m pip install --upgrade uv
-            uv sync --extra dev --extra torch --dev
+            uv sync --extra dev --dev
 
       - run:
           name: Install Bittensor
           command: |
             . .venv/bin/activate
-            uv sync --extra dev --extra torch --dev
+            uv sync --extra dev --dev
 
       - run:
           name: Instantiate Mock Wallet
@@ -172,14 +172,14 @@ jobs:
             python -m venv .venv
             . .venv/bin/activate
             python -m pip install --upgrade uv
-            uv sync --extra dev --extra torch --dev
+            uv sync --extra dev --dev
             uv pip install flake8
 
       - run:
           name: Install Bittensor
           command: |
             . .venv/bin/activate
-            uv sync --extra dev --extra torch --dev
+            uv sync --extra dev --dev
 
       - run:
           name: Lint with flake8
