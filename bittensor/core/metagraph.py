@@ -1148,7 +1148,7 @@ class TorchMetagraph(MetagraphMixin, BaseClass):
 
         graph_file = latest_block_path(dir_path)
         with safe_globals():
-            state_dict = torch.load(graph_file, weights_only=True)
+            state_dict = torch.load(graph_file)
         self.n = torch.nn.Parameter(state_dict["n"], requires_grad=False)
         self.block = torch.nn.Parameter(state_dict["block"], requires_grad=False)
         self.uids = torch.nn.Parameter(state_dict["uids"], requires_grad=False)
