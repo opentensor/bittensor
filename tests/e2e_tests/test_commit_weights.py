@@ -239,9 +239,9 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     salt3 = salt.copy()
     salt3[0] += 2  # Increment the first byte to produce a different commit hash
 
-    subtensor.wait_for_block(subtensor.block + 4)
     logging.console.info(
-        f"Nonce for first set weights: {subtensor.substrate.get_account_next_index(alice_wallet.hotkey.ss58_address)}"
+        f"[orange]Nonce before first commit_weights: "
+        f"{subtensor.substrate.get_account_next_index(alice_wallet.hotkey.ss58_address)}[/orange]"
     )
 
     # 3 time doing call if nonce wasn't updated, then raise error
@@ -265,9 +265,9 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
 
     send_commit(solt=salt3)
 
-    subtensor.wait_for_block(subtensor.block + 4)
     logging.console.info(
-        f"Nonce after third set weights: {subtensor.substrate.get_account_next_index(alice_wallet.hotkey.ss58_address)}"
+        f"[orange]Nonce after third commit_weights: "
+        f"{subtensor.substrate.get_account_next_index(alice_wallet.hotkey.ss58_address)}[/orange]"
     )
 
     # Wait a few blocks

@@ -126,6 +126,11 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
         uids=uids, weights=weights
     )
 
+    logging.console.info(
+        f"[orange]Nonce before first set_weights: "
+        f"{subtensor.substrate.get_account_next_index(alice_wallet.hotkey.ss58_address)}[/orange]"
+    )
+
     # 3 time doing call if nonce wasn't updated, then raise error
     @retry.retry(exceptions=TimeoutError, tries=3, delay=1)
     @execute_and_wait_for_next_nonce(subtensor=subtensor, wallet=alice_wallet)
@@ -141,11 +146,14 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
         )
         assert success is True, message
 
+    logging.console.info(
+        f"[orange]Nonce after second set_weights: "
+        f"{subtensor.substrate.get_account_next_index(alice_wallet.hotkey.ss58_address)}[/orange]"
+    )
+
     # Set weights for each subnet
     for netuid in netuids:
         set_weights(netuid)
-
-    subtensor.wait_for_block(subtensor.block + subtensor.tempo(netuids[-1]))
 
     for netuid in netuids:
         # Query the Weights storage map for all three subnets
