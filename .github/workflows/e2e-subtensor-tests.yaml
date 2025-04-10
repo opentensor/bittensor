@@ -64,7 +64,7 @@ jobs:
 
   # Job to run tests in parallel
   run-e2e-test:
-    name: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}
+    name: ${{ steps.set-name.outputs.short-name }} / Python ${{ matrix.python-version }}
     needs:
       - find-tests
       - pull-docker-image
@@ -79,6 +79,12 @@ jobs:
         test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
     steps:
+      - name: Set short name
+        id: set-name
+        run: |
+          SHORT_NAME=$(basename "${{ matrix.test-file }}")
+          echo "short-name=$SHORT_NAME" >> $GITHUB_OUTPUT
+
       - name: Check-out repository
         uses: actions/checkout@v4
 
