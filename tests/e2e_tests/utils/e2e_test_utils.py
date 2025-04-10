@@ -213,7 +213,9 @@ class Templates:
                     self.set_weights.set()
 
     def __init__(self):
-        self.dir = clone_or_update_templates(specific_commit="92d5bdf1069286d97470362c5c22611aa0fa048c")
+        self.dir = clone_or_update_templates(
+            specific_commit="92d5bdf1069286d97470362c5c22611aa0fa048c"
+        )
 
     def __enter__(self):
         return self
