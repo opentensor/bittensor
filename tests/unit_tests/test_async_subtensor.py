@@ -2688,6 +2688,7 @@ async def test_set_weights_success(subtensor, fake_wallet, mocker):
         wait_for_finalization=False,
         wait_for_inclusion=False,
         weights=fake_weights,
+        period=5,
     )
     mocked_weights_rate_limit.assert_called_once_with(fake_netuid)
     assert result is True
