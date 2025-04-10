@@ -226,21 +226,19 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     # wait while weights_rate_limit changes applied.
     subtensor.wait_for_block(subnet_tempo + 1)
 
-    # Commit-reveal values
-    uids = np.array([0], dtype=np.int64)
-    weights = np.array([0.1], dtype=np.float32)
-    salt = [18, 179, 107, 0, 165, 211, 141, 197]
-    weight_uids, weight_vals = convert_weights_and_uids_for_emit(
-        uids=uids, weights=weights
-    )
-
-    # Make a second salt
-    salt2 = salt.copy()
-    salt2[0] += 1  # Increment the first byte to produce a different commit hash
-
-    # Make a third salt
-    salt3 = salt.copy()
-    salt3[0] += 2  # Increment the first byte to produce a different commit hash
+    # create different commited data to avoid coming into pool black list with the error
+    #   Failed to commit weights: Subtensor returned `Custom type(1012)` error. This means: `Transaction is temporarily
+    #   banned`.Failed to commit weights: Subtensor returned `Custom type(1012)` error. This means: `Transaction is
+    #   temporarily banned`.`
+    def get_weights_and_salt(counter: int):
+        # Commit-reveal values
+        salt_ = [18, 179, 107, counter, 165, 211, 141, 197]
+        uids_ = np.array([0], dtype=np.int64)
+        weights_ = np.array([counter / 10], dtype=np.float32)
+        weight_uids_, weight_vals_ = convert_weights_and_uids_for_emit(
+            uids=uids_, weights=weights_
+        )
+        return salt_, weight_uids_, weight_vals_
 
     logging.console.info(
         f"[orange]Nonce before first commit_weights: "
@@ -250,23 +248,24 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     # 3 time doing call if nonce wasn't updated, then raise error
     @retry.retry(exceptions=Exception, tries=3, delay=1)
     @execute_and_wait_for_next_nonce(subtensor=subtensor, wallet=alice_wallet)
-    def send_commit(salt_):
+    def send_commit(salt_, weight_uids_, weight_vals_):
         success, message = subtensor.commit_weights(
             wallet=alice_wallet,
             netuid=netuid,
             salt=salt_,
-            uids=weight_uids,
-            weights=weight_vals,
+            uids=weight_uids_,
+            weights=weight_vals_,
             wait_for_inclusion=True,
             wait_for_finalization=True,
         )
         assert success is True, message
 
-    send_commit(salt)
+    # send some amount of commit weights
+    AMOUNT_OF_COMMIT_WEIGHTS = 3
+    for call in range(AMOUNT_OF_COMMIT_WEIGHTS):
+        weight_uids, weight_vals, salt = get_weights_and_salt(call)
 
-    send_commit(salt2)
-
-    send_commit(salt3)
+        send_commit(salt, weight_uids, weight_vals)
 
     logging.console.info(
         f"[orange]Nonce after third commit_weights: "
@@ -288,4 +287,6 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     assert commit_block > 0, f"Invalid block number: {commit_block}"
 
     # Check for three commits in the WeightCommits storage map
-    assert len(weight_commits.value) == 3, "Expected 3 weight commits"
+    assert (
+        len(weight_commits.value) == AMOUNT_OF_COMMIT_WEIGHTS
+    ), "Expected exact list of weight commits"
