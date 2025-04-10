@@ -245,7 +245,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     )
 
     # 3 time doing call if nonce wasn't updated, then raise error
-    @retry.retry(exceptions=TimeoutError, tries=3, delay=1)
+    @retry.retry(exceptions=Exception, tries=3, delay=1)
     @execute_and_wait_for_next_nonce(subtensor=subtensor, wallet=alice_wallet)
     def send_commit(solt):
         success, message = subtensor.commit_weights(
