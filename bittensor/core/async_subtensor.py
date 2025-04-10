@@ -1712,6 +1712,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             int: The block number at which the next epoch will start.
         """
+        block = block or await self.block
+        block_hash = block_hash or await self.get_block_hash(block)
         tempo = await self.tempo(
             netuid=netuid, block=block, block_hash=block_hash, reuse_block=reuse_block
         )
