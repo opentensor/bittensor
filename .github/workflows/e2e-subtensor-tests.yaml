@@ -38,9 +38,9 @@ jobs:
       - name: Find test files
         id: get-tests
         run: |
-          # test_files=$(find tests/e2e_tests -name "test*.py" | jq -R -s -c 'split("\n") | map(select(. != ""))')
+          test_files=$(find tests/e2e_tests -name "test*.py" | jq -R -s -c 'split("\n") | map(select(. != ""))')
           # keep it here for future debug
-          test_files=$(find tests/e2e_tests -type f -name "test*.py" | grep -E 'test_(incentive|commit_weights|set_weights)\.py$' | jq -R -s -c 'split("\n") | map(select(. != ""))')
+          # test_files=$(find tests/e2e_tests -type f -name "test*.py" | grep -E 'test_(incentive|commit_weights|set_weights)\.py$' | jq -R -s -c 'split("\n") | map(select(. != ""))')
           echo "::set-output name=test-files::$test_files"
         shell: bash
 
@@ -64,7 +64,7 @@ jobs:
 
   # Job to run tests in parallel
   run-e2e-test:
-    name: ${{ steps.set-name.outputs.short-name }} / Python ${{ matrix.python-version }}
+    name: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}
     needs:
       - find-tests
       - pull-docker-image
@@ -79,12 +79,6 @@ jobs:
         test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
     steps:
-      - name: Set short name
-        id: set-name
-        run: |
-          SHORT_NAME=$(basename "${{ matrix.test-file }}")
-          echo "short-name=$SHORT_NAME" >> $GITHUB_OUTPUT
-
       - name: Check-out repository
         uses: actions/checkout@v4
 
