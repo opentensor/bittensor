@@ -250,6 +250,10 @@ def format_error_message(error_message: Union[dict, Exception]) -> str:
             err_docs = error_message.get("docs", [err_description])
             err_description = err_docs[0] if err_docs else err_description
 
+        logging.debug(
+            f"String representation of real error_message: {str(error_message)}"
+        )
+
     return f"Subtensor returned `{err_name}({err_type})` error. This means: `{err_description}`."
 
 
