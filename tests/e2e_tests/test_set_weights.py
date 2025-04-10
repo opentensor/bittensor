@@ -1,7 +1,6 @@
-import time
-
 import numpy as np
 import pytest
+import retry
 
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -9,7 +8,7 @@ from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_hyperparameter_bool,
     sudo_set_admin_utils,
-    use_and_wait_for_next_nonce,
+    execute_and_wait_for_next_nonce,
 )
 
 
@@ -127,22 +126,24 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
         uids=uids, weights=weights
     )
 
+    # 3 time doing call if nonce wasn't updated, then raise error
+    @retry.retry(exceptions=TimeoutError, tries=3, delay=1)
+    @execute_and_wait_for_next_nonce(subtensor=subtensor, wallet=alice_wallet)
+    def set_weights(netuid_):
+        success, message = subtensor.set_weights(
+            wallet=alice_wallet,
+            netuid=netuid_,
+            uids=weight_uids,
+            weights=weight_vals,
+            wait_for_inclusion=False,
+            wait_for_finalization=False,
+            period=subnet_tempo,
+        )
+        assert success is True, message
+
     # Set weights for each subnet
     for netuid in netuids:
-        async with use_and_wait_for_next_nonce(subtensor, alice_wallet, BLOCK_TIME):
-            success, message = subtensor.set_weights(
-                alice_wallet,
-                netuid,
-                uids=weight_uids,
-                weights=weight_vals,
-                wait_for_inclusion=True,  # Don't wait for inclusion, we are testing the nonce when there is a tx in the pool
-                wait_for_finalization=False,
-                period=subnet_tempo,
-            )
-
-            assert success is True, message
-            subtensor.wait_for_block(subtensor.block + 4)
-            logging.console.success(f"Set weights for subnet {netuid}")
+        set_weights(netuid)
 
     subtensor.wait_for_block(subtensor.block + subtensor.tempo(netuids[-1]))
 

@@ -3,9 +3,9 @@ This module provides functions interacting with the chain for end-to-end testing
 these are not present in btsdk but are required for e2e tests
 """
 
-import time
 import asyncio
-import contextlib
+import functools
+import time
 from typing import Union, Optional, TYPE_CHECKING
 
 from bittensor.utils.balance import Balance
@@ -146,44 +146,49 @@ async def wait_interval(
             )
 
 
-@contextlib.asynccontextmanager
-async def use_and_wait_for_next_nonce(
-    subtensor: "Subtensor",
-    wallet: "Wallet",
-    sleep: float = 0.25,
-    timeout: float = 60.0,
+def execute_and_wait_for_next_nonce(
+    subtensor, wallet, sleep=0.25, timeout=60.0, max_retries=3
 ):
     """
-    ContextManager that makes sure the Nonce has been consumed after sending Extrinsic.
+    Decorator that ensures the nonce has been consumed after a blockchain extrinsic call.
     """
 
-    nonce = subtensor.substrate.get_account_next_index(wallet.hotkey.ss58_address)
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            for attempt in range(max_retries):
+                start_nonce = subtensor.substrate.get_account_next_index(
+                    wallet.hotkey.ss58_address
+                )
 
-    yield
+                result = func(*args, **kwargs)
 
-    def wait_for_new_nonce():
-        now = time.time()
-        while nonce == subtensor.substrate.get_account_next_index(
-            wallet.hotkey.ss58_address
-        ):
-            if time.time() - now > timeout:
-                raise TimeoutError(f"Timeout waiting for new nonce.")
-            logging.console.info(
-                f"Waiting for new nonce. Current nonce: {nonce} for wallet {wallet.hotkey.ss58_address}"
-            )
-            time.sleep(sleep)
+                start_time = time.time()
 
-    # give the chain 3 tries to reveal a new nonce after latest extrinsic call
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            wait_for_new_nonce()
-            break
-        except TimeoutError:
-            logging.warning(f"Attempt {attempt + 1} of {max_retries} timed out.")
-            if attempt + 1 == max_retries:
-                raise
-            await asyncio.sleep(sleep)
+                while time.time() - start_time < timeout:
+                    current_nonce = subtensor.substrate.get_account_next_index(
+                        wallet.hotkey.ss58_address
+                    )
+
+                    if current_nonce != start_nonce:
+                        logging.info(
+                            f"✅ Nonce changed from {start_nonce} to {current_nonce}"
+                        )
+                        return result
+
+                    logging.info(
+                        f"⏳ Waiting for nonce increment. Current: {current_nonce}"
+                    )
+                    time.sleep(sleep)
+
+                logging.warning(
+                    f"⚠️ Attempt {attempt + 1}/{max_retries}: Nonce did not increment."
+                )
+            raise TimeoutError(f"❌ Nonce did not change after {max_retries} attempts.")
+
+        return wrapper
+
+    return decorator
 
 
 # Helper to execute sudo wrapped calls on the chain
