@@ -171,12 +171,12 @@ def execute_and_wait_for_next_nonce(
                     )
 
                     if current_nonce != start_nonce:
-                        logging.info(
+                        logging.console.info(
                             f"✅ Nonce changed from {start_nonce} to {current_nonce}"
                         )
                         return result
 
-                    logging.info(
+                    logging.console.info(
                         f"⏳ Waiting for nonce increment. Current: {current_nonce}"
                     )
                     time.sleep(sleep)
