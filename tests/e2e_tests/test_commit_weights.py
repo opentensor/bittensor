@@ -254,7 +254,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
             salt=solt,
             uids=weight_uids,
             weights=weight_vals,
-            wait_for_inclusion=False,
+            wait_for_inclusion=True,
             wait_for_finalization=False,
         )
         assert success is True, message

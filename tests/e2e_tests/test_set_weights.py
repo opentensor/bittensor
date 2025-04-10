@@ -135,7 +135,7 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
             netuid=netuid_,
             uids=weight_uids,
             weights=weight_vals,
-            wait_for_inclusion=False,
+            wait_for_inclusion=True,
             wait_for_finalization=False,
             period=subnet_tempo,
         )
