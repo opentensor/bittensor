@@ -1,5 +1,5 @@
 import asyncio
-
+from bittensor.utils.btlogging import logging
 import numpy as np
 import pytest
 
@@ -239,6 +239,11 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     salt3 = salt.copy()
     salt3[0] += 2  # Increment the first byte to produce a different commit hash
 
+    subtensor.wait_for_block(subtensor.block + 4)
+    logging.console.info(
+        f"Nonce for first set weights: {subtensor.substrate.get_account_next_index(alice_wallet.hotkey.ss58_address)}"
+    )
+
     # Commit all three salts
     async with use_and_wait_for_next_nonce(subtensor, alice_wallet, 2.5):
         success, message = subtensor.commit_weights(
@@ -247,13 +252,16 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
             salt=salt,
             uids=weight_uids,
             weights=weight_vals,
-            wait_for_inclusion=False,  # Don't wait for inclusion, we are testing the nonce when there is a tx in the pool
+            wait_for_inclusion=True,  # Don't wait for inclusion, we are testing the nonce when there is a tx in the pool
             wait_for_finalization=False,
         )
 
         assert success is True
 
     subtensor.wait_for_block(subtensor.block + 4)
+    logging.console.info(
+        f"Nonce for second set weights: {subtensor.substrate.get_account_next_index(alice_wallet.hotkey.ss58_address)}"
+    )
 
     async with use_and_wait_for_next_nonce(subtensor, alice_wallet, 2.5):
         success, message = subtensor.commit_weights(
@@ -262,13 +270,16 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
             salt=salt2,
             uids=weight_uids,
             weights=weight_vals,
-            wait_for_inclusion=False,
+            wait_for_inclusion=True,
             wait_for_finalization=False,
         )
 
         assert success is True
 
     subtensor.wait_for_block(subtensor.block + 4)
+    logging.console.info(
+        f"Nonce for third set weights: {subtensor.substrate.get_account_next_index(alice_wallet.hotkey.ss58_address)}"
+    )
 
     async with use_and_wait_for_next_nonce(subtensor, alice_wallet, 2.5):
         success, message = subtensor.commit_weights(
@@ -277,11 +288,16 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
             salt=salt3,
             uids=weight_uids,
             weights=weight_vals,
-            wait_for_inclusion=False,
+            wait_for_inclusion=True,
             wait_for_finalization=False,
         )
 
         assert success is True
+
+    subtensor.wait_for_block(subtensor.block + 4)
+    logging.console.info(
+        f"Nonce after third set weights: {subtensor.substrate.get_account_next_index(alice_wallet.hotkey.ss58_address)}"
+    )
 
     # Wait a few blocks
     subtensor.wait_for_block(subtensor.block + subtensor.tempo(netuid) * 2)
