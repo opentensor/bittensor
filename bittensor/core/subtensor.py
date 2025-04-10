@@ -1319,7 +1319,7 @@ class Subtensor(SubtensorMixin):
             int: The block number at which the next epoch will start.
         """
         block = block or self.block
-        tempo = self.tempo(netuid=netuid)
+        tempo = self.tempo(netuid=netuid, block=block)
         return (((block // tempo) + 1) * tempo) + 1 if tempo else None
 
     def get_owned_hotkeys(
