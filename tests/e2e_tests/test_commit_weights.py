@@ -247,23 +247,23 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     # 3 time doing call if nonce wasn't updated, then raise error
     @retry.retry(exceptions=Exception, tries=3, delay=1)
     @execute_and_wait_for_next_nonce(subtensor=subtensor, wallet=alice_wallet)
-    def send_commit(solt):
+    def send_commit(salt_):
         success, message = subtensor.commit_weights(
             wallet=alice_wallet,
             netuid=netuid,
-            salt=solt,
+            salt=salt_,
             uids=weight_uids,
             weights=weight_vals,
             wait_for_inclusion=True,
-            wait_for_finalization=False,
+            wait_for_finalization=True,
         )
         assert success is True, message
 
-    send_commit(solt=salt)
+    send_commit(salt=salt)
 
-    send_commit(solt=salt2)
+    send_commit(salt=salt2)
 
-    send_commit(solt=salt3)
+    send_commit(salt=salt3)
 
     logging.console.info(
         f"[orange]Nonce after third commit_weights: "
