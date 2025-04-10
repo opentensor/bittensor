@@ -223,6 +223,9 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     ), "Failed to set weights_rate_limit"
     assert subtensor.weights_rate_limit(netuid=netuid) == 0
 
+    # wait while weights_rate_limit changes applied.
+    subtensor.wait_for_block(subnet_tempo + 1)
+
     # Commit-reveal values
     uids = np.array([0], dtype=np.int64)
     weights = np.array([0.1], dtype=np.float32)
