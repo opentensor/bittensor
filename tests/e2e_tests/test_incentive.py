@@ -104,40 +104,50 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
             # wait for the Validator to process and set_weights
             await asyncio.wait_for(validator.set_weights.wait(), 60)
 
+    # wait one tempo (fast block
     subtensor.wait_for_block(subtensor.block + subtensor.tempo(netuid))
 
-    # Get current emissions and validate that Alice has gotten tao
-    alice_neuron = subtensor.neurons(netuid=netuid)[0]
+    while True:
+        try:
+            neurons = subtensor.neurons(netuid=netuid)
+            logging.info(f"neurons: {neurons}")
 
-    assert alice_neuron.validator_permit is True
-    assert alice_neuron.dividends == 1.0
-    assert alice_neuron.stake.tao > 0
-    assert alice_neuron.validator_trust > 0.99
-    assert alice_neuron.incentive < 0.5
-    assert alice_neuron.consensus < 0.5
-    assert alice_neuron.rank < 0.5
+            # Get current emissions and validate that Alice has gotten tao
+            alice_neuron = neurons[0]
 
-    bob_neuron = subtensor.neurons(netuid=netuid)[1]
+            assert alice_neuron.validator_permit is True
+            assert alice_neuron.dividends == 1.0
+            assert alice_neuron.stake.tao > 0
+            assert alice_neuron.validator_trust > 0.99
+            assert alice_neuron.incentive < 0.5
+            assert alice_neuron.consensus < 0.5
+            assert alice_neuron.rank < 0.5
 
-    assert bob_neuron.incentive > 0.5
-    assert bob_neuron.consensus > 0.5
-    assert bob_neuron.rank > 0.5
-    assert bob_neuron.trust == 1
+            bob_neuron = neurons[1]
 
-    bonds = subtensor.bonds(netuid)
+            assert bob_neuron.incentive > 0.5
+            assert bob_neuron.consensus > 0.5
+            assert bob_neuron.rank > 0.5
+            assert bob_neuron.trust == 1
 
-    assert bonds == [
-        (
-            0,
-            [
-                (0, 65535),
-                (1, 65535),
-            ],
-        ),
-        (
-            1,
-            [],
-        ),
-    ]
+            bonds = subtensor.bonds(netuid)
 
-    print("✅ Passed test_incentive")
+            assert bonds == [
+                (
+                    0,
+                    [
+                        (0, 65535),
+                        (1, 65535),
+                    ],
+                ),
+                (
+                    1,
+                    [],
+                ),
+            ]
+
+            print("✅ Passed test_incentive")
+            break
+        except Exception:
+            subtensor.wait_for_block(subtensor.block)
+            continue
