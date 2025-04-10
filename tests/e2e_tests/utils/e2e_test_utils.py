@@ -134,6 +134,14 @@ class Templates:
 
         async def _reader(self):
             async for line in self.process.stdout:
+                try:
+                    bittensor.logging.console.info(
+                        f"[green]MINER LOG: {line.split(b'|')[-1].strip().decode()}[/blue]"
+                    )
+                except:
+                    # skipp empty lines
+                    pass
+
                 if b"Starting main loop" in line:
                     self.started.set()
 
@@ -189,6 +197,14 @@ class Templates:
 
         async def _reader(self):
             async for line in self.process.stdout:
+                try:
+                    bittensor.logging.console.info(
+                        f"[orange]VALIDATOR LOG: {line.split(b'|')[-1].strip().decode()}[/orange]"
+                    )
+                except:
+                    # skipp empty lines
+                    pass
+
                 if b"Starting validator loop." in line:
                     bittensor.logging.console.info("Validator started.")
                     self.started.set()
