@@ -27,7 +27,7 @@ env:
 jobs:
 
   find-tests:
-    runs-on: ubuntu-latest
+    runs-on: SubtensorCI
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     outputs:
       test-files: ${{ steps.get-tests.outputs.test-files }}
@@ -45,7 +45,7 @@ jobs:
         shell: bash
 
   pull-docker-image:
-    runs-on: ubuntu-latest
+    runs-on: SubtensorCI
     steps:
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
@@ -63,12 +63,12 @@ jobs:
           path: subtensor-localnet.tar
 
   # Job to run tests in parallel
-  run:
+  run-e2e-test:
     name: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}
     needs:
       - find-tests
       - pull-docker-image
-    runs-on: ubuntu-latest
+    runs-on: SubtensorCI
     timeout-minutes: 45
     strategy:
       fail-fast: false  # Allow other matrix jobs to run even if this job fails
