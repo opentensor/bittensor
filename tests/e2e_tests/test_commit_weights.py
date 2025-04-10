@@ -150,7 +150,6 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
     print("✅ Passed test_commit_and_reveal_weights")
 
 
-@pytest.mark.parametrize("local_chain", [False], indirect=True)
 @pytest.mark.asyncio
 async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wallet):
     """
@@ -166,7 +165,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    subnet_tempo = 10
+    subnet_tempo = 100
     netuid = 2
 
     # Wait for 2 tempos to pass as CR3 only reveals weights after 2 tempos
@@ -241,7 +240,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     salt3[0] += 2  # Increment the first byte to produce a different commit hash
 
     # Commit all three salts
-    async with use_and_wait_for_next_nonce(subtensor, alice_wallet):
+    async with use_and_wait_for_next_nonce(subtensor, alice_wallet, 2.5):
         success, message = subtensor.commit_weights(
             alice_wallet,
             netuid,
@@ -254,9 +253,9 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
 
         assert success is True
 
-    subtensor.wait_for_block(subtensor.block + 1)
+    subtensor.wait_for_block(subtensor.block + 4)
 
-    async with use_and_wait_for_next_nonce(subtensor, alice_wallet):
+    async with use_and_wait_for_next_nonce(subtensor, alice_wallet, 2.5):
         success, message = subtensor.commit_weights(
             alice_wallet,
             netuid,
@@ -269,9 +268,9 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
 
         assert success is True
 
-    subtensor.wait_for_block(subtensor.block + 1)
+    subtensor.wait_for_block(subtensor.block + 4)
 
-    async with use_and_wait_for_next_nonce(subtensor, alice_wallet):
+    async with use_and_wait_for_next_nonce(subtensor, alice_wallet, 2.5):
         success, message = subtensor.commit_weights(
             alice_wallet,
             netuid,
@@ -285,7 +284,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
         assert success is True
 
     # Wait a few blocks
-    await wait_epoch(subtensor, netuid)  # Wait for the txs to be included in the chain
+    subtensor.wait_for_block(subtensor.block + subtensor.tempo(netuid))
 
     # Query the WeightCommits storage map for all three salts
     weight_commits = subtensor.query_module(

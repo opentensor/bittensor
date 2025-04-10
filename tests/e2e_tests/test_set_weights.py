@@ -13,7 +13,6 @@ from tests.e2e_tests.utils.chain_interactions import (
 )
 
 
-@pytest.mark.parametrize("local_chain", [False], indirect=True)
 @pytest.mark.asyncio
 async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet):
     """
@@ -31,8 +30,8 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
     """
 
     netuids = [2, 3]
-    subnet_tempo = 10
-    BLOCK_TIME = 12  # 12 for non-fast-block, 0.25 for fast block
+    subnet_tempo = 100
+    BLOCK_TIME = 0.25  # 12 for non-fast-block, 0.25 for fast block
 
     print("Testing test_set_weights_uses_next_nonce")
 
@@ -104,7 +103,7 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
             subtensor.weights_rate_limit(netuid=netuid) > 0
         ), "Weights rate limit is below 0"
 
-        # Lower the rate limit
+        # Lower set weights rate limit
         status, error = sudo_set_admin_utils(
             local_chain,
             alice_wallet,
@@ -141,29 +140,10 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
             )
 
             assert success is True, message
-            subtensor.wait_for_block(subtensor.block + 1)
+            subtensor.wait_for_block(subtensor.block + 4)
             logging.console.success(f"Set weights for subnet {netuid}")
 
-    extra_time = time.time()
-    while not subtensor.query_module(
-        module="SubtensorModule",
-        name="Weights",
-        params=[2, 0],
-    ) or not subtensor.query_module(
-        module="SubtensorModule",
-        name="Weights",
-        params=[3, 0],
-    ):
-        if time.time() - extra_time > 120:
-            # pytest.skip(
-            #     "Skipping due to FLAKY TEST. Check the same tests with another Python version or run again."
-            # )
-            raise Exception("Failed to commit weights")
-
-        logging.console.info(
-            f"Additional fast block to wait chain data updated: {subtensor.block}"
-        )
-        subtensor.wait_for_block(subtensor.block + 1)
+    subtensor.wait_for_block(subtensor.block + subtensor.tempo(netuids[-1]))
 
     for netuid in netuids:
         # Query the Weights storage map for all three subnets
