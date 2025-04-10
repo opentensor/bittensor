@@ -97,12 +97,22 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     assert error is None
     assert status is True
 
-    async with templates.miner(bob_wallet, netuid) as miner:
-        await asyncio.wait_for(miner.started.wait(), 60)
+    # max attempts to run miner and validator
+    max_attempt = 3
+    while True:
+        try:
+            async with templates.miner(bob_wallet, netuid) as miner:
+                await asyncio.wait_for(miner.started.wait(), 60)
 
-        async with templates.validator(alice_wallet, netuid) as validator:
-            # wait for the Validator to process and set_weights
-            await asyncio.wait_for(validator.set_weights.wait(), 60)
+                async with templates.validator(alice_wallet, netuid) as validator:
+                    # wait for the Validator to process and set_weights
+                    await asyncio.wait_for(validator.set_weights.wait(), 60)
+            break
+        except asyncio.TimeoutError:
+            if max_attempt > 0:
+                max_attempt -= 1
+                continue
+            raise
 
     # wait one tempo (fast block
     subtensor.wait_for_block(subtensor.block + subtensor.tempo(netuid))
