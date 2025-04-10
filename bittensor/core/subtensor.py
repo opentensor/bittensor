@@ -1300,6 +1300,28 @@ class Subtensor(SubtensorMixin):
 
         return NeuronInfo.from_dict(result)
 
+    def get_next_epoch_start_block(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[int]:
+        """
+        Calculates the first block number of the next epoch for the given subnet.
+
+        If `block` is not provided, the current chain block will be used. Epochs are
+        determined based on the subnet's tempo (i.e., blocks per epoch). The result
+        is the block number at which the next epoch will begin.
+
+        Args:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int], optional): The reference block to calculate from.
+                If None, uses the current chain block height.
+
+        Returns:
+            int: The block number at which the next epoch will start.
+        """
+        block = block or self.block
+        tempo = self.tempo(netuid=netuid)
+        return (((block // tempo) + 1) * tempo) + 1 if tempo else None
+
     def get_owned_hotkeys(
         self,
         coldkey_ss58: str,
