@@ -3516,14 +3516,3 @@ class Subtensor(SubtensorMixin):
             f"Received invalid owner hotkey format for subnet {netuid}: {owner_hotkey}"
         )
         return None
-
-    def get_subnet_reveal_period_epochs(
-        self, netuid: int, block: Optional[int] = None
-    ) -> int:
-        """Retrieve the SubnetRevealPeriodEpochs hyperparameter."""
-        return cast(
-            int,
-            self.get_hyperparameter(
-                param_name="RevealPeriodEpochs", block=block, netuid=netuid
-            ),
-        )
