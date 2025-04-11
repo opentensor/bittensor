@@ -2125,17 +2125,18 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             Optional[str]: The SS58 address of the subnet owner's hotkey if the subnet exists, `None` otherwise.
         """
-        _block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        block_hash+ = await self.determine_block_hash(block, block_hash, reuse_block)
+        
         if not await self.subnet_exists(
-            netuid, block_hash=_block_hash, reuse_block=reuse_block
+            netuid, block_hash=block_hash_, reuse_block=reuse_block
         ):
-            logging.error(f"Subnet {netuid} does not exist.")
+            logging.debug(f"Subnet {netuid} does not exist.")
             return None
 
         result = await self.query_subtensor(
             name="SubnetOwnerHotkey",
             params=[netuid],
-            block_hash=_block_hash,
+            block_hash=block_hash_,
             reuse_block=reuse_block,
         )
 
@@ -2143,18 +2144,14 @@ class AsyncSubtensor(SubtensorMixin):
             # Should not happen if subnet_exists check passes, but handle defensively
             return None
 
-        # Assuming the query returns the SS58 address directly or an object with a value attribute
-        # Adjust based on the actual return type if needed
-        owner_hotkey = getattr(result, "value", result)
-
         # Check if the returned hotkey is valid (basic check)
-        if isinstance(owner_hotkey, str) and is_valid_ss58_address(owner_hotkey):
+        if is_valid_ss58_address(owner_hotkey):
             return owner_hotkey
-        else:
-            logging.error(
-                f"Received invalid owner hotkey format for subnet {netuid}: {owner_hotkey}"
-            )
-            return None
+        
+        logging.error(
+            f"Received invalid owner hotkey format for subnet {netuid}: {owner_hotkey}"
+        )
+        return None
 
     async def get_subnet_reveal_period_epochs(
         self, netuid: int, block: Optional[int] = None, block_hash: Optional[str] = None
