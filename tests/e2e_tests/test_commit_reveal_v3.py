@@ -177,8 +177,8 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
         f"Latest drand round after waiting for tempo: {latest_drand_round}"
     )
 
-    # for fast-block 3 seconds (drand round period) is 12 fast blocks. Let's make sure this round passed.
-    subtensor.wait_for_block(subtensor.block + 12)
+    # for fast-block 6 seconds (drand round period) is 12 fast blocks. Let's make sure this round passed.
+    subtensor.wait_for_block(subtensor.block + 24)
 
     # Fetch weights on the chain as they should be revealed now
     revealed_weights_ = subtensor.weights(netuid=netuid)
