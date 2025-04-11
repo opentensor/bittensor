@@ -3457,3 +3457,41 @@ class Subtensor(SubtensorMixin):
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
+
+    def get_subnet_owner_hotkey(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[str]:
+        """
+        Retrieves the hotkey of the owner for a specific subnet.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query.
+
+        Returns:
+            Optional[str]: The SS58 address of the subnet owner's hotkey if the subnet exists, `None` otherwise.
+        """
+        if not self.subnet_exists(netuid, block=block):
+            logging.error(f"Subnet {netuid} does not exist.")
+            return None
+
+        result = self.query_subtensor(
+            name="SubnetOwnerHotkey", params=[netuid], block=block
+        )
+
+        if result is None:
+            # Should not happen if subnet_exists check passes, but handle defensively
+            return None
+
+        # Assuming the query returns the SS58 address directly or an object with a value attribute
+        # Adjust based on the actual return type if needed
+        owner_hotkey = getattr(result, "value", result)
+
+        # Check if the returned hotkey is valid (basic check)
+        if isinstance(owner_hotkey, str) and is_valid_ss58_address(owner_hotkey):
+            return owner_hotkey
+        else:
+            logging.error(
+                f"Received invalid owner hotkey format for subnet {netuid}: {owner_hotkey}"
+            )
+            return None
