@@ -1,14 +1,14 @@
 import copy
 from datetime import datetime, timezone
-
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Iterable, Optional, Union, cast
 
 import numpy as np
 import scalecodec
 from async_substrate_interface.errors import SubstrateRequestException
-from async_substrate_interface.types import ScaleObj
 from async_substrate_interface.sync_substrate import SubstrateInterface
+from async_substrate_interface.types import ScaleObj
+from bittensor_commit_reveal import get_encrypted_commitment
 from numpy.typing import NDArray
 
 from bittensor.core.async_subtensor import ProposalVoteData
@@ -28,7 +28,11 @@ from bittensor.core.chain_data import (
     decode_account_id,
 )
 from bittensor.core.chain_data.chain_identity import ChainIdentity
-from bittensor.core.chain_data.utils import decode_metadata
+from bittensor.core.chain_data.utils import (
+    decode_metadata,
+    decode_revealed_commitment,
+    decode_revealed_commitment_with_hotkey,
+)
 from bittensor.core.config import Config
 from bittensor.core.errors import ChainError
 from bittensor.core.extrinsics.commit_reveal import commit_reveal_v3_extrinsic
@@ -82,6 +86,7 @@ from bittensor.utils import (
     decode_hex_identity_dict,
     float_to_u64,
     format_error_message,
+    is_valid_ss58_address,
     torch,
     u16_normalized_float,
     u64_normalized_float,
@@ -394,7 +399,7 @@ class Subtensor(SubtensorMixin):
                 exist.
         """
         call = self.get_hyperparameter(param_name="LastUpdate", netuid=netuid)
-        return None if call is None else (self.get_current_block() - int(call[uid]))
+        return None if not call else (self.get_current_block() - int(call[uid]))
 
     def bonds(
         self, netuid: int, block: Optional[int] = None
@@ -803,6 +808,101 @@ class Subtensor(SubtensorMixin):
             result[decode_account_id(id_[0])] = decode_metadata(value)
         return result
 
+    def get_revealed_commitment_by_hotkey(
+        self,
+        netuid: int,
+        hotkey_ss58_address: str,
+        block: Optional[int] = None,
+    ) -> Optional[tuple[tuple[int, str], ...]]:
+        """Returns hotkey related revealed commitment for a given netuid.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnetwork.
+            hotkey_ss58_address (str): The ss58 address of the committee member.
+            block (Optional[int]): The block number to retrieve the commitment from. Default is ``None``.
+
+        Returns:
+            result (tuple[int, str): A tuple of reveal block and commitment message.
+        """
+        if not is_valid_ss58_address(address=hotkey_ss58_address):
+            raise ValueError(f"Invalid ss58 address {hotkey_ss58_address} provided.")
+
+        query = self.query_module(
+            module="Commitments",
+            name="RevealedCommitments",
+            params=[netuid, hotkey_ss58_address],
+            block=block,
+        )
+        if query is None:
+            return None
+        return tuple(decode_revealed_commitment(pair) for pair in query)
+
+    def get_revealed_commitment(
+        self,
+        netuid: int,
+        uid: int,
+        block: Optional[int] = None,
+    ) -> Optional[tuple[tuple[int, str], ...]]:
+        """Returns uid related revealed commitment for a given netuid.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnetwork.
+            uid (int): The neuron uid to retrieve the commitment from.
+            block (Optional[int]): The block number to retrieve the commitment from. Default is ``None``.
+
+        Returns:
+            result (Optional[tuple[int, str]]: A tuple of reveal block and commitment message.
+
+        Example of result:
+            ( (12, "Alice message 1"), (152, "Alice message 2") )
+            ( (12, "Bob message 1"), (147, "Bob message 2") )
+        """
+        try:
+            meta_info = self.get_metagraph_info(netuid, block=block)
+            if meta_info:
+                hotkey_ss58_address = meta_info.hotkeys[uid]
+            else:
+                raise ValueError(f"Subnet with netuid {netuid} does not exist.")
+        except IndexError:
+            raise ValueError(f"Subnet {netuid} does not have a neuron with uid {uid}.")
+
+        return self.get_revealed_commitment_by_hotkey(
+            netuid=netuid, hotkey_ss58_address=hotkey_ss58_address, block=block
+        )
+
+    def get_all_revealed_commitments(
+        self, netuid: int, block: Optional[int] = None
+    ) -> dict[str, tuple[tuple[int, str], ...]]:
+        """Returns all revealed commitments for a given netuid.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int]): The block number to retrieve the commitment from. Default is ``None``.
+
+        Returns:
+            result (dict): A dictionary of all revealed commitments in view {ss58_address: (reveal block, commitment message)}.
+
+        Example of result:
+        {
+            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY": ( (12, "Alice message 1"), (152, "Alice message 2") ),
+            "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty": ( (12, "Bob message 1"), (147, "Bob message 2") ),
+        }
+        """
+        query = self.query_map(
+            module="Commitments",
+            name="RevealedCommitments",
+            params=[netuid],
+            block=block,
+        )
+
+        result = {}
+        for pair in query:
+            hotkey_ss58_address, commitment_message = (
+                decode_revealed_commitment_with_hotkey(pair)
+            )
+            result[hotkey_ss58_address] = commitment_message
+        return result
+
     def get_current_weight_commit_info(
         self, netuid: int, block: Optional[int] = None
     ) -> list:
@@ -1199,6 +1299,55 @@ class Subtensor(SubtensorMixin):
             return NeuronInfo.get_null_neuron()
 
         return NeuronInfo.from_dict(result)
+
+    def get_next_epoch_start_block(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[int]:
+        """
+        Calculates the first block number of the next epoch for the given subnet.
+
+        If `block` is not provided, the current chain block will be used. Epochs are
+        determined based on the subnet's tempo (i.e., blocks per epoch). The result
+        is the block number at which the next epoch will begin.
+
+        Args:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int], optional): The reference block to calculate from.
+                If None, uses the current chain block height.
+
+        Returns:
+            int: The block number at which the next epoch will start.
+        """
+        block = block or self.block
+        tempo = self.tempo(netuid=netuid, block=block)
+        return (((block // tempo) + 1) * tempo) + 1 if tempo else None
+
+    def get_owned_hotkeys(
+        self,
+        coldkey_ss58: str,
+        block: Optional[int] = None,
+        reuse_block: bool = False,
+    ) -> list[str]:
+        """
+        Retrieves all hotkeys owned by a specific coldkey address.
+
+        Args:
+            coldkey_ss58 (str): The SS58 address of the coldkey to query.
+            block (int): The blockchain block number for the query.
+            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
+
+        Returns:
+            list[str]: A list of hotkey SS58 addresses owned by the coldkey.
+        """
+        block_hash = self.determine_block_hash(block)
+        owned_hotkeys = self.substrate.query(
+            module="SubtensorModule",
+            storage_function="OwnedHotkeys",
+            params=[coldkey_ss58],
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+        return [decode_account_id(hotkey[0]) for hotkey in owned_hotkeys or []]
 
     def get_stake(
         self,
@@ -2164,6 +2313,46 @@ class Subtensor(SubtensorMixin):
         call = self.get_hyperparameter(param_name="Burn", netuid=netuid, block=block)
         return None if call is None else Balance.from_rao(int(call))
 
+    def set_reveal_commitment(
+        self,
+        wallet,
+        netuid: int,
+        data: str,
+        blocks_until_reveal: int = 360,
+        block_time: Union[int, float] = 12,
+    ) -> tuple[bool, int]:
+        """
+        Commits arbitrary data to the Bittensor network by publishing metadata.
+
+        Arguments:
+            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the data.
+            netuid (int): The unique identifier of the subnetwork.
+            data (str): The data to be committed to the network.
+            blocks_until_reveal (int): The number of blocks from now after which the data will be revealed. Defaults to `360`.
+                Then amount of blocks in one epoch.
+            block_time (Union[int, float]): The number of seconds between each block. Defaults to `12`.
+
+        Returns:
+            bool: `True` if the commitment was successful, `False` otherwise.
+
+        Note: A commitment can be set once per subnet epoch and is reset at the next epoch in the chain automatically.
+        """
+
+        encrypted, reveal_round = get_encrypted_commitment(
+            data, blocks_until_reveal, block_time
+        )
+
+        # increase reveal_round in return + 1 because we want to fetch data from the chain after that round was revealed
+        # and stored.
+        data_ = {"encrypted": encrypted, "reveal_round": reveal_round}
+        return publish_metadata(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            data_type=f"TimelockEncrypted",
+            data=data_,
+        ), reveal_round
+
     def subnet(self, netuid: int, block: Optional[int] = None) -> Optional[DynamicInfo]:
         """
         Retrieves the subnet information for a single subnet in the network.
@@ -2932,6 +3121,8 @@ class Subtensor(SubtensorMixin):
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         max_retries: int = 5,
+        block_time: float = 12.0,
+        period: int = 5,
     ) -> tuple[bool, str]:
         """
         Sets the inter-neuronal weights for the specified neuron. This process involves specifying the influence or
@@ -2951,6 +3142,8 @@ class Subtensor(SubtensorMixin):
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
                 ``False``.
             max_retries (int): The number of maximum attempts to set weights. Default is ``5``.
+            block_time (float): The amount of seconds for block duration. Default is 12.0 seconds.
+            period (int, optional): The period in seconds to wait for extrinsic inclusion or finalization. Defaults to 5.
 
         Returns:
             tuple[bool, str]: ``True`` if the setting of weights is successful, False otherwise. And `msg`, a string
@@ -2992,6 +3185,7 @@ class Subtensor(SubtensorMixin):
                     version_key=version_key,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
+                    block_time=block_time,
                 )
                 retries += 1
             return success, message
@@ -3013,6 +3207,7 @@ class Subtensor(SubtensorMixin):
                         version_key=version_key,
                         wait_for_inclusion=wait_for_inclusion,
                         wait_for_finalization=wait_for_finalization,
+                        period=period,
                     )
                 except Exception as e:
                     logging.error(f"Error setting weights: {e}")
