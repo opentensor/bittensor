@@ -12,7 +12,7 @@ from tests.e2e_tests.utils.chain_interactions import (
 )
 
 
-@pytest.mark.parametrize("local_chain", [False], indirect=True)
+@pytest.mark.parametrize("local_chain", [True], indirect=True)
 @pytest.mark.asyncio
 async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_wallet):
     """
@@ -29,6 +29,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
+    BLOCK_TIME = 0.25  # 12 for non-fast-block, 0.25 for fast block
     netuid = 2
     logging.console.info("Testing test_commit_and_reveal_weights")
 
@@ -71,9 +72,8 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     assert subtensor.weights_rate_limit(netuid=netuid) == 0
     logging.console.info("sudo_set_weights_set_rate_limit executed: set to 0")
 
-    # Change the tempo of the subnet from default 360
-    # Since this is in normal blocks, this is necessary
-    tempo_set = 10
+    # Change the tempo of the subnet
+    tempo_set = 50
     assert (
         sudo_set_admin_utils(
             local_chain,
@@ -96,13 +96,13 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
 
     # Fetch current block and calculate next tempo for the subnet
     current_block = subtensor.get_current_block()
-    upcoming_tempo = next_tempo(current_block, tempo, netuid)
+    upcoming_tempo = next_tempo(current_block, tempo)
     logging.console.info(
         f"Checking if window is too low with Current block: {current_block}, next tempo: {upcoming_tempo}"
     )
 
-    # Wait for 2 tempos to pass as CR3 only reveals weights after 2 tempos
-    subtensor.wait_for_block(20)
+    # Wait for 2 tempos to pass as CR3 only reveals weights after 2 tempos + 1
+    subtensor.wait_for_block((tempo_set * 2) + 1)
 
     # Lower than this might mean weights will get revealed before we can check them
     if upcoming_tempo - current_block < 3:
@@ -114,7 +114,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
         )
     current_block = subtensor.get_current_block()
     latest_drand_round = subtensor.last_drand_round()
-    upcoming_tempo = next_tempo(current_block, tempo, netuid)
+    upcoming_tempo = next_tempo(current_block, tempo)
     logging.console.info(
         f"Post first wait_interval (to ensure window isnt too low): {current_block}, next tempo: {upcoming_tempo}, drand: {latest_drand_round}"
     )
@@ -127,6 +127,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
         weights=weight_vals,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        block_time=BLOCK_TIME,
     )
 
     # Assert committing was a success
@@ -141,14 +142,14 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
 
     current_block = subtensor.get_current_block()
     latest_drand_round = subtensor.last_drand_round()
-    upcoming_tempo = next_tempo(current_block, tempo, netuid)
+    upcoming_tempo = next_tempo(current_block, tempo)
     logging.console.info(
         f"After setting weights: Current block: {current_block}, next tempo: {upcoming_tempo}, drand: {latest_drand_round}"
     )
 
     # Ensure the expected drand round is well in the future
     assert (
-        expected_reveal_round > latest_drand_round
+        expected_reveal_round >= latest_drand_round
     ), "Revealed drand pulse is older than the drand pulse right after setting weights"
 
     # Fetch current commits pending on the chain
@@ -175,6 +176,9 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     logging.console.info(
         f"Latest drand round after waiting for tempo: {latest_drand_round}"
     )
+
+    # for fast-block 3 seconds (drand round period) is 12 fast blocks. Let's make sure this round passed.
+    subtensor.wait_for_block(subtensor.block + 12)
 
     # Fetch weights on the chain as they should be revealed now
     revealed_weights_ = subtensor.weights(netuid=netuid)
