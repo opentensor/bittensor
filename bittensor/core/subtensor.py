@@ -3100,6 +3100,7 @@ class Subtensor(SubtensorMixin):
         wait_for_finalization: bool = False,
         max_retries: int = 5,
         block_time: float = 12.0,
+        period: int = 5,
     ) -> tuple[bool, str]:
         """
         Sets the inter-neuronal weights for the specified neuron. This process involves specifying the influence or
@@ -3120,6 +3121,7 @@ class Subtensor(SubtensorMixin):
                 ``False``.
             max_retries (int): The number of maximum attempts to set weights. Default is ``5``.
             block_time (float): The amount of seconds for block duration. Default is 12.0 seconds.
+            period (int, optional): The period in seconds to wait for extrinsic inclusion or finalization. Defaults to 5.
 
         Returns:
             tuple[bool, str]: ``True`` if the setting of weights is successful, False otherwise. And `msg`, a string
@@ -3183,6 +3185,7 @@ class Subtensor(SubtensorMixin):
                         version_key=version_key,
                         wait_for_inclusion=wait_for_inclusion,
                         wait_for_finalization=wait_for_finalization,
+                        period=period,
                     )
                 except Exception as e:
                     logging.error(f"Error setting weights: {e}")
