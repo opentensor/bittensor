@@ -2133,14 +2133,14 @@ class AsyncSubtensor(SubtensorMixin):
             logging.debug(f"Subnet {netuid} does not exist.")
             return None
 
-        result = await self.query_subtensor(
+        owner_hotkey = await self.query_subtensor(
             name="SubnetOwnerHotkey",
             params=[netuid],
             block_hash=block_hash_,
             reuse_block=reuse_block,
         )
 
-        if result is None:
+        if owner_hotkey is None:
             # Should not happen if subnet_exists check passes, but handle defensively
             return None
 
