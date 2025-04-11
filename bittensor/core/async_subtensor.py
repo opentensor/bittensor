@@ -2093,9 +2093,7 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             Optional[str]: The SS58 address of the subnet owner's hotkey if the subnet exists, `None` otherwise.
         """
-        _block_hash = await self.determine_block_hash(
-            block, block_hash, reuse_block
-        )
+        _block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not await self.subnet_exists(
             netuid, block_hash=_block_hash, reuse_block=reuse_block
         ):
