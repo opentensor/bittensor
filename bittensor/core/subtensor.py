@@ -3513,7 +3513,7 @@ class Subtensor(SubtensorMixin):
         owner_hotkey = getattr(result, "value", result)
 
         # Check if the returned hotkey is valid (basic check)
-        if isinstance(owner_hotkey, str) and is_valid_ss58_address(owner_hotkey):
+        if is_valid_ss58_address(owner_hotkey):
             return owner_hotkey
         else:
             logging.error(
