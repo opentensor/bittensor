@@ -68,9 +68,7 @@ jobs:
           name: Install dependencies and Check compatibility
           command: |
             if [ "$REQUIREMENTS_CHANGED" == "true" ]; then
-              sudo apt-get update
-              sudo apt-get install -y jq curl
-              ./scripts/check_compatibility.sh << parameters.python_version >>
+              python -m pip install ".[dev,cli]" --dry-run --python-version --no-deps << parameters.python.version >>
             else
               echo "Skipping compatibility checks..."
             fi
