@@ -976,7 +976,9 @@ class Axon:
                 ):
                     raise Exception("Nonce is too old, a newer one was last processed")
 
-            if not keypair.verify(message, synapse.dendrite.signature):
+            if synapse.dendrite.signature and not keypair.verify(
+                message, synapse.dendrite.signature
+            ):
                 raise Exception(
                     f"Signature mismatch with {message} and {synapse.dendrite.signature}"
                 )

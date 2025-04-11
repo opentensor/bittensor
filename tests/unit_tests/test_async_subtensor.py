@@ -2712,6 +2712,7 @@ async def test_set_weights_success(subtensor, fake_wallet, mocker):
         wait_for_finalization=False,
         wait_for_inclusion=False,
         weights=fake_weights,
+        period=5,
     )
     mocked_weights_rate_limit.assert_called_once_with(fake_netuid)
     assert result is True
@@ -2980,3 +2981,59 @@ async def test_get_timestamp(mocker, subtensor):
     )
     actual_result = await subtensor.get_timestamp(block=fake_block)
     assert expected_result == actual_result
+
+
+@pytest.mark.asyncio
+async def test_get_owned_hotkeys_happy_path(subtensor, mocker):
+    """Tests that the output of get_owned_hotkeys."""
+    # Prep
+    fake_coldkey = "fake_hotkey"
+    fake_hotkey = "fake_hotkey"
+    fake_hotkeys = [
+        [
+            fake_hotkey,
+        ]
+    ]
+    mocked_subtensor = mocker.AsyncMock(return_value=fake_hotkeys)
+    mocker.patch.object(subtensor.substrate, "query", new=mocked_subtensor)
+
+    mocked_decode_account_id = mocker.Mock()
+    mocker.patch.object(
+        async_subtensor, "decode_account_id", new=mocked_decode_account_id
+    )
+
+    # Call
+    result = await subtensor.get_owned_hotkeys(fake_coldkey)
+
+    # Asserts
+    mocked_subtensor.assert_awaited_once_with(
+        module="SubtensorModule",
+        storage_function="OwnedHotkeys",
+        params=[fake_coldkey],
+        block_hash=None,
+        reuse_block_hash=False,
+    )
+    assert result == [mocked_decode_account_id.return_value]
+    mocked_decode_account_id.assert_called_once_with(fake_hotkey)
+
+
+@pytest.mark.asyncio
+async def test_get_owned_hotkeys_return_empty(subtensor, mocker):
+    """Tests that the output of get_owned_hotkeys is empty."""
+    # Prep
+    fake_coldkey = "fake_hotkey"
+    mocked_subtensor = mocker.AsyncMock(return_value=[])
+    mocker.patch.object(subtensor.substrate, "query", new=mocked_subtensor)
+
+    # Call
+    result = await subtensor.get_owned_hotkeys(fake_coldkey)
+
+    # Asserts
+    mocked_subtensor.assert_awaited_once_with(
+        module="SubtensorModule",
+        storage_function="OwnedHotkeys",
+        params=[fake_coldkey],
+        block_hash=None,
+        reuse_block_hash=False,
+    )
+    assert result == []
