@@ -1687,6 +1687,38 @@ class AsyncSubtensor(SubtensorMixin):
                 reuse_block=reuse_block,
             )
 
+    async def get_next_epoch_start_block(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional[int]:
+        """
+        Calculates the first block number of the next epoch for the given subnet.
+
+        If `block` is not provided, the current chain block will be used. Epochs are
+        determined based on the subnet's tempo (i.e., blocks per epoch). The result
+        is the block number at which the next epoch will begin.
+
+        Args:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int], optional): The reference block to calculate from.
+                If None, uses the current chain block height.
+            block_hash (Optional[int]): The blockchain block number at which to perform the query.
+            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
+
+
+        Returns:
+            int: The block number at which the next epoch will start.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        if not block_hash and reuse_block:
+            block_hash = self.substrate.last_block_hash
+        block = await self.substrate.get_block_number(block_hash=block_hash)
+        tempo = await self.tempo(netuid=netuid, block_hash=block_hash)
+        return (((block // tempo) + 1) * tempo) + 1 if tempo else None
+
     async def get_owned_hotkeys(
         self,
         coldkey_ss58: str,
