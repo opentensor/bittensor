@@ -81,9 +81,9 @@ NETWORK_EXPLORER_MAP = {
         "finney": "https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fentrypoint-finney.opentensor.ai%3A443#/explorer",
     },
     "taostats": {
-        "local": "https://x.taostats.io",
-        "endpoint": "https://x.taostats.io",
-        "finney": "https://x.taostats.io",
+        "local": "https://taostats.io/",
+        "endpoint": "https://taostats.io/",
+        "finney": "https://taostats.io/",
     },
 }
 
