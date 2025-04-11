@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools~=70.0.0", "wheel"]
+requires = ["setuptools>=70.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -40,11 +40,11 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest==7.2.0",
-    "pytest-asyncio==0.23.7",
-    "pytest-mock==3.12.0",
-    "pytest-split==0.8.0",
-    "pytest-xdist==3.0.2",
+    "pytest==8.3.5",
+    "pytest-asyncio==0.26.0",
+    "pytest-mock==3.14.0",
+    "pytest-split==0.10.0",
+    "pytest-xdist==3.6.1",
     "pytest-rerunfailures==10.2",
     "coveralls==3.3.1",
     "pytest-cov==4.0.0",
