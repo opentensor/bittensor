@@ -91,6 +91,7 @@ def set_weights_extrinsic(
     version_key: int = 0,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
+    period: int = 5,
 ) -> tuple[bool, str]:
     """Sets the given weights and values on chain for wallet hotkey account.
 
@@ -106,6 +107,7 @@ def set_weights_extrinsic(
             returns ``False`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
             ``True``, or returns ``False`` if the extrinsic fails to be finalized within the timeout.
+        period (int, optional): The period in seconds to wait for extrinsic inclusion or finalization. Defaults to 5.
 
     Returns:
         success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
@@ -135,6 +137,7 @@ def set_weights_extrinsic(
             version_key=version_key,
             wait_for_finalization=wait_for_finalization,
             wait_for_inclusion=wait_for_inclusion,
+            period=period,
         )
 
         if not wait_for_finalization and not wait_for_inclusion:
