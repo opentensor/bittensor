@@ -39,7 +39,7 @@ jobs:
             python -m venv .venv
             . .venv/bin/activate
             python -m pip install --upgrade uv
-            uv pip install ruff -c requirements/dev.txt
+            uv pip install ruff
 
       - save_cache:
           name: Save cached ruff venv
@@ -68,9 +68,7 @@ jobs:
           name: Install dependencies and Check compatibility
           command: |
             if [ "$REQUIREMENTS_CHANGED" == "true" ]; then
-              sudo apt-get update
-              sudo apt-get install -y jq curl
-              ./scripts/check_compatibility.sh << parameters.python_version >>
+              python -m pip install ".[dev,cli]" --dry-run --python-version << parameters.python_version >> --no-deps
             else
               echo "Skipping compatibility checks..."
             fi
@@ -87,31 +85,19 @@ jobs:
     steps:
       - checkout
 
-      - restore_cache:
-          name: Restore cached venv
-          keys:
-            - v2-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
-            - v2-pypi-py<< parameters.python-version >>
-
       - run:
           name: Update & Activate venv
           command: |
             python -m venv .venv
             . .venv/bin/activate
             python -m pip install --upgrade uv
-            uv sync --all-extras --dev
-
-      - save_cache:
-          name: Save cached venv
-          paths:
-            - "venv/"
-          key: v2-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
+            uv sync --extra dev --dev
 
       - run:
           name: Install Bittensor
           command: |
             . .venv/bin/activate
-            uv sync --all-extras --dev
+            uv sync --extra dev --dev
 
       - run:
           name: Instantiate Mock Wallet
@@ -178,32 +164,20 @@ jobs:
     steps:
       - checkout
 
-      - restore_cache:
-          name: Restore cached venv
-          keys:
-            - v2-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
-            - v2-pypi-py<< parameters.python-version >>
-
       - run:
           name: Update & Activate venv
           command: |
             python -m venv .venv
             . .venv/bin/activate
             python -m pip install --upgrade uv
-            uv sync --all-extras --dev
+            uv sync --extra dev --dev
             uv pip install flake8
-
-      - save_cache:
-          name: Save cached venv
-          paths:
-            - "env/"
-          key: v2-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
 
       - run:
           name: Install Bittensor
           command: |
             . .venv/bin/activate
-            uv sync --all-extras --dev
+            uv sync --extra dev --dev
 
       - run:
           name: Lint with flake8

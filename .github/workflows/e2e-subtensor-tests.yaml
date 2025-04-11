@@ -91,7 +91,7 @@ jobs:
         uses: astral-sh/setup-uv@v4
 
       - name: install dependencies
-        run: uv sync --all-extras --dev
+        run: uv sync --extra dev --dev
 
       - name: Download Cached Docker Image
         uses: actions/download-artifact@v4
