@@ -68,7 +68,7 @@ jobs:
           name: Install dependencies and Check compatibility
           command: |
             if [ "$REQUIREMENTS_CHANGED" == "true" ]; then
-              python -m pip install ".[dev,cli]" --dry-run --python-version --no-deps << parameters.python_version >>
+              python -m pip install ".[dev,cli]" --dry-run --python-version << parameters.python_version >> --no-deps
             else
               echo "Skipping compatibility checks..."
             fi
