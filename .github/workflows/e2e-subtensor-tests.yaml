@@ -39,6 +39,8 @@ jobs:
         id: get-tests
         run: |
           test_files=$(find tests/e2e_tests -name "test*.py" | jq -R -s -c 'split("\n") | map(select(. != ""))')
+          # keep it here for future debug
+          # test_files=$(find tests/e2e_tests -type f -name "test*.py" | grep -E 'test_(incentive|commit_weights|set_weights)\.py$' | jq -R -s -c 'split("\n") | map(select(. != ""))')
           echo "::set-output name=test-files::$test_files"
         shell: bash
 
@@ -61,7 +63,7 @@ jobs:
           path: subtensor-localnet.tar
 
   # Job to run tests in parallel
-  run:
+  run-e2e-test:
     name: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}
     needs:
       - find-tests
@@ -70,7 +72,7 @@ jobs:
     timeout-minutes: 45
     strategy:
       fail-fast: false  # Allow other matrix jobs to run even if this job fails
-      max-parallel: 32  # Set the maximum number of parallel jobs (same as we have cores in SubtensorCI runner)
+      max-parallel: 32  # Set the maximum number of parallel jobs (same as we have cores in ubuntu-latest runner)
       matrix:
         os:
           - ubuntu-latest
