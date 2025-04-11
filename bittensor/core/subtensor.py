@@ -3497,26 +3497,33 @@ class Subtensor(SubtensorMixin):
             Optional[str]: The SS58 address of the subnet owner's hotkey if the subnet exists, `None` otherwise.
         """
         if not self.subnet_exists(netuid, block=block):
-            logging.error(f"Subnet {netuid} does not exist.")
+            logging.debug(f"Subnet {netuid} does not exist.")
             return None
 
-        result = self.query_subtensor(
+        owner_hotkey = self.query_subtensor( # Use result directly
             name="SubnetOwnerHotkey", params=[netuid], block=block
         )
 
-        if result is None:
+        if owner_hotkey is None:
             # Should not happen if subnet_exists check passes, but handle defensively
             return None
-
-        # Assuming the query returns the SS58 address directly or an object with a value attribute
-        # Adjust based on the actual return type if needed
-        owner_hotkey = getattr(result, "value", result)
 
         # Check if the returned hotkey is valid (basic check)
         if is_valid_ss58_address(owner_hotkey):
             return owner_hotkey
-        else:
-            logging.error(
-                f"Received invalid owner hotkey format for subnet {netuid}: {owner_hotkey}"
-            )
-            return None
+        
+        logging.debug(
+            f"Received invalid owner hotkey format for subnet {netuid}: {owner_hotkey}"
+        )
+        return None
+
+    def get_subnet_reveal_period_epochs(
+        self, netuid: int, block: Optional[int] = None
+    ) -> int:
+        """Retrieve the SubnetRevealPeriodEpochs hyperparameter."""
+        return cast(
+            int,
+            self.get_hyperparameter(
+                param_name="RevealPeriodEpochs", block=block, netuid=netuid
+            ),
+        )
