@@ -18,7 +18,7 @@ The following is a set of guidelines for contributing to Bittensor, which are ho
    1. [Refactoring](#refactoring)
    1. [Peer Review](#peer-review)
  1. [Reporting Bugs](#reporting-bugs)
- 1. [Suggesting Features](#suggesting-enhancements)
+ 1. [Suggesting Features](#suggesting-enhancements-and-features)
 
 
 ## I don't want to read this whole thing I just have a question!
