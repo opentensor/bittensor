@@ -18,7 +18,7 @@ The following is a set of guidelines for contributing to Bittensor, which are ho
    1. [Refactoring](#refactoring)
    1. [Peer Review](#peer-review)
  1. [Reporting Bugs](#reporting-bugs)
- 1. [Suggesting Features](#suggesting-enhancements)
+ 1. [Suggesting Features](#suggesting-enhancements-and-features)
 
 
 ## I don't want to read this whole thing I just have a question!
@@ -70,7 +70,7 @@ And also here.
 
 You can contribute to Bittensor in one of two main ways (as well as many others):
 1. [Bug](#reporting-bugs) reporting and fixes
-2. New features and Bittensor [enhancements](#suggesting-enhancements)
+2. New features and Bittensor [enhancements](#suggesting-enhancements-and-features)
 
 > Please follow the Bittensor [style guide](./STYLE.md) regardless of your contribution type. 
 
