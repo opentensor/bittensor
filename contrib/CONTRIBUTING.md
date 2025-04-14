@@ -70,7 +70,7 @@ And also here.
 
 You can contribute to Bittensor in one of two main ways (as well as many others):
 1. [Bug](#reporting-bugs) reporting and fixes
-2. New features and Bittensor [suggesting-enhancements](#suggesting-enhancements)
+2. New features and Bittensor [enhancements](#suggesting-enhancements-and-features)
 
 > Please follow the Bittensor [style guide](./STYLE.md) regardless of your contribution type. 
 
