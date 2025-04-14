@@ -21,6 +21,3 @@ install:
 
 install-dev:
 	python3 -m pip install '.[dev]'
-
-install-cubit:
-	python3 -m pip install '.[cubit]'
