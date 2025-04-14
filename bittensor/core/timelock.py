@@ -6,7 +6,6 @@ from bittensor_commit_reveal import (
     encrypt as _btr_encrypt,
     decrypt as _btr_decrypt,
     get_latest_round,
-    get_reveal_round_signature,
 )
 
 TLE_ENCRYPTED_DATA_SUFFIX = b"AES_GCM_"
@@ -126,6 +125,5 @@ __all__ = [
     "decrypt",
     "encrypt",
     "get_latest_round",
-    "get_reveal_round_signature",
     "wait_reveal_and_decrypt",
 ]
