@@ -285,11 +285,6 @@ workflows:
 
   release-branches-requirements:
     jobs:
-      - check-version-updated:
-          filters:
-            branches:
-              only:
-                - /^(release|hotfix)/.*/
       - check-changelog-updated:
           filters:
             branches:
