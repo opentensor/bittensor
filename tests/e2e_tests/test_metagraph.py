@@ -243,7 +243,7 @@ def test_metagraph_info(subtensor, alice_wallet):
         bonds_moving_avg=4.87890977618477e-14,
         hotkeys=["5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"],
         coldkeys=["5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"],
-        identities={},
+        identities=[None],
         axons=(
             {
                 "block": 0,
