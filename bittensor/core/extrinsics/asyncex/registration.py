@@ -513,8 +513,8 @@ async def set_subnet_identity_extrinsic(
             f":white_heavy_check_mark: [green]Identities for subnet[/green] [blue]{netuid}[/blue] [green]are set.[/green]"
         )
         return True, f"Identities for subnet {netuid} are set."
-    else:
-        logging.error(
-            f":cross_mark: Failed to set identity for subnet [blue]{netuid}[/blue]: {error_message}"
-        )
-        return False, f"Failed to set identity for subnet {netuid}: {error_message}"
+
+    logging.error(
+        f":cross_mark: Failed to set identity for subnet [blue]{netuid}[/blue]: {error_message}"
+    )
+    return False, f"Failed to set identity for subnet {netuid}: {error_message}"
