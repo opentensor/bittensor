@@ -3037,3 +3037,25 @@ async def test_get_owned_hotkeys_return_empty(subtensor, mocker):
         reuse_block_hash=False,
     )
     assert result == []
+
+
+@pytest.mark.asyncio
+async def test_start_call(subtensor, mocker):
+    """Test start_call extrinsic calls properly."""
+    # preps
+    wallet_name = mocker.Mock(spec=Wallet)
+    netuid = 123
+    mocked_extrinsic = mocker.patch.object(async_subtensor, "start_call_extrinsic")
+
+    # Call
+    result = await subtensor.start_call(wallet_name, netuid)
+
+    # Asserts
+    mocked_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet_name,
+        netuid=netuid,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+    )
+    assert result == mocked_extrinsic.return_value
