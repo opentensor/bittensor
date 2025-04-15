@@ -1,6 +1,12 @@
 from abc import ABC
 import argparse
-from typing import TypedDict, Optional
+from functools import partial
+from itertools import cycle
+from typing import TypedDict, Optional, Union, Type
+
+from async_substrate_interface.sync_substrate import SubstrateInterface
+from async_substrate_interface.async_substrate import AsyncSubstrateInterface
+from async_substrate_interface.errors import MaxRetriesExceeded
 
 from bittensor.utils import networking, Certificate
 from bittensor.utils.btlogging import logging
@@ -8,6 +14,179 @@ from bittensor.core import settings
 from bittensor.core.config import Config
 from bittensor.core.chain_data import NeuronInfo, NeuronInfoLite
 from bittensor.utils import determine_chain_endpoint_and_network
+
+SubstrateClass = Type[Union[SubstrateInterface, AsyncSubstrateInterface]]
+
+
+class RetrySubstrate:
+    def __init__(
+        self,
+        substrate: SubstrateClass,
+        main_url: str,
+        ss58_format: int,
+        type_registry: dict,
+        use_remote_preset: bool,
+        chain_name: str,
+        _mock: bool,
+        fallback_chains: Optional[list[str]] = None,
+        retry_forever: bool = False,
+    ):
+        self._substrate_class: SubstrateClass = substrate
+        self.ss58_format: int = ss58_format
+        self.type_registry: dict = type_registry
+        self.use_remote_preset: bool = use_remote_preset
+        self.chain_name: str = chain_name
+        self._mock = _mock
+        self.fallback_chains = (
+            iter(fallback_chains)
+            if not retry_forever
+            else cycle(fallback_chains + [main_url])
+        )
+        initialized = False
+        for chain_url in [main_url] + fallback_chains:
+            try:
+                self._substrate = self._substrate_class(
+                    url=chain_url,
+                    ss58_format=ss58_format,
+                    type_registry=type_registry,
+                    use_remote_preset=use_remote_preset,
+                    chain_name=chain_name,
+                    _mock=_mock,
+                )
+                initialized = True
+                break
+            except ConnectionError:
+                continue
+        if not initialized:
+            raise ConnectionError(
+                f"Unable to connect at any chains specified: {[main_url]+fallback_chains}"
+            )
+
+        # retries
+
+        # TODO: properties that need retry logic
+        # properties
+        # version
+        # token_decimals
+        # token_symbol
+        # name
+
+        self._get_block_handler = partial(self._retry, "_get_block_handler")
+        self.apply_type_registry_presets = partial(
+            self._retry, "apply_type_registry_presets"
+        )
+        self.close = partial(self._retry, "close")
+        self.compose_call = partial(self._retry, "compose_call")
+        self.connect = partial(self._retry, "connect")
+        self.create_scale_object = partial(self._retry, "create_scale_object")
+        self.create_signed_extrinsic = partial(self._retry, "create_signed_extrinsic")
+        self.create_storage_key = partial(self._retry, "create_storage_key")
+        self.decode_scale = partial(self._retry, "decode_scale")
+        self.encode_scale = partial(self._retry, "encode_scale")
+        self.extension_call = partial(self._retry, "extension_call")
+        self.filter_events = partial(self._retry, "filter_events")
+        self.filter_extrinsics = partial(self._retry, "filter_extrinsics")
+        self.generate_signature_payload = partial(
+            self._retry, "generate_signature_payload"
+        )
+        self.get_account_next_index = partial(self._retry, "get_account_next_index")
+        self.get_account_nonce = partial(self._retry, "get_account_nonce")
+        self.get_block = partial(self._retry, "get_block")
+        self.get_block_hash = partial(self._retry, "get_block_hash")
+        self.get_block_header = partial(self._retry, "get_block_header")
+        self.get_block_metadata = partial(self._retry, "get_block_metadata")
+        self.get_block_number = partial(self._retry, "get_block_number")
+        self.get_block_runtime_info = partial(self._retry, "get_block_runtime_info")
+        self.get_block_runtime_version_for = partial(
+            self._retry, "get_block_runtime_version_for"
+        )
+        self.get_block_timestamp = partial(self._retry, "get_block_timestamp")
+        self.get_chain_finalised_head = partial(self._retry, "get_chain_finalised_head")
+        self.get_chain_head = partial(self._retry, "get_chain_head")
+        self.get_constant = partial(self._retry, "get_constant")
+        self.get_events = partial(self._retry, "get_events")
+        self.get_extrinsics = partial(self._retry, "get_extrinsics")
+        self.get_metadata_call_function = partial(
+            self._retry, "get_metadata_call_function"
+        )
+        self.get_metadata_constant = partial(self._retry, "get_metadata_constant")
+        self.get_metadata_error = partial(self._retry, "get_metadata_error")
+        self.get_metadata_errors = partial(self._retry, "get_metadata_errors")
+        self.get_metadata_module = partial(self._retry, "get_metadata_module")
+        self.get_metadata_modules = partial(self._retry, "get_metadata_modules")
+        self.get_metadata_runtime_call_function = partial(
+            self._retry, "get_metadata_runtime_call_function"
+        )
+        self.get_metadata_runtime_call_functions = partial(
+            self._retry, "get_metadata_runtime_call_functions"
+        )
+        self.get_metadata_storage_function = partial(
+            self._retry, "get_metadata_storage_function"
+        )
+        self.get_metadata_storage_functions = partial(
+            self._retry, "get_metadata_storage_functions"
+        )
+        self.get_parent_block_hash = partial(self._retry, "get_parent_block_hash")
+        self.get_payment_info = partial(self._retry, "get_payment_info")
+        self.get_storage_item = partial(self._retry, "get_storage_item")
+        self.get_type_definition = partial(self._retry, "get_type_definition")
+        self.get_type_registry = partial(self._retry, "get_type_registry")
+        self.init_runtime = partial(self._retry, "init_runtime")
+        self.initialize = partial(self._retry, "initialize")
+        self.is_valid_ss58_address = partial(self._retry, "is_valid_ss58_address")
+        self.load_runtime = partial(self._retry, "load_runtime")
+        self.make_payload = partial(self._retry, "make_payload")
+        self.query = partial(self._retry, "query")
+        self.query_map = partial(self._retry, "query_map")
+        self.query_multi = partial(self._retry, "query_multi")
+        self.query_multiple = partial(self._retry, "query_multiple")
+        self.reload_type_registry = partial(self._retry, "reload_type_registry")
+        self.retrieve_extrinsic_by_hash = partial(
+            self._retry, "retrieve_extrinsic_by_hash"
+        )
+        self.retrieve_extrinsic_by_identifier = partial(
+            self._retry, "retrieve_extrinsic_by_identifier"
+        )
+        self.rpc_request = partial(self._retry, "rpc_request")
+        self.runtime_call = partial(self._retry, "runtime_call")
+        self.search_block_number = partial(self._retry, "search_block_number")
+        self.serialize_constant = partial(self._retry, "serialize_constant")
+        self.serialize_module_call = partial(self._retry, "serialize_module_call")
+        self.serialize_module_error = partial(self._retry, "serialize_module_error")
+        self.serialize_module_event = partial(self._retry, "serialize_module_event")
+        self.serialize_storage_item = partial(self._retry, "serialize_storage_item")
+        self.ss58_decode = partial(self._retry, "ss58_decode")
+        self.ss58_encode = partial(self._retry, "ss58_encode")
+        self.submit_extrinsic = partial(self._retry, "submit_extrinsic")
+        self.subscribe_block_headers = partial(self._retry, "subscribe_block_headers")
+        self.supports_rpc_method = partial(self._retry, "supports_rpc_method")
+        self.ws = self._substrate.ws
+
+    def _retry(self, method, *args, **kwargs):
+        try:
+            method_ = getattr(self._substrate, method)
+            return method_(*args, **kwargs)
+        except MaxRetriesExceeded:
+            try:
+                next_network = next(self.fallback_chains)
+                logging.error(
+                    f"Max retries exceeded with {self._substrate.url}. Retrying with {next_network}."
+                )
+                self._substrate = self._substrate_class(
+                    url=next_network,
+                    ss58_format=self.ss58_format,
+                    type_registry=self.type_registry,
+                    use_remote_preset=self.use_remote_preset,
+                    chain_name=self.chain_name,
+                    _mock=self._mock,
+                )
+                method_ = getattr(self._substrate, method)
+                return self._retry(method_(*args, **kwargs))
+            except StopIteration:
+                logging.error(
+                    f"Max retries exceeded with {self._substrate.url}. No more fallback chains."
+                )
+                raise MaxRetriesExceeded
 
 
 class SubtensorMixin(ABC):
