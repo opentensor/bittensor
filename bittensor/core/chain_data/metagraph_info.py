@@ -25,7 +25,7 @@ def _chr_str(codes: tuple[int]) -> str:
 def process_nested(data: Union[tuple, dict], chr_transform):
     """Processes nested data structures by applying a transformation function to their elements."""
     if isinstance(data, (list, tuple)):
-        if len(data) > 0 and isinstance(data[0], dict):
+        if len(data) > 0:
             return [
                 {k: chr_transform(v) for k, v in item.items()}
                 if item is not None

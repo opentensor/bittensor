@@ -18,7 +18,7 @@ The following is a set of guidelines for contributing to Bittensor, which are ho
    1. [Refactoring](#refactoring)
    1. [Peer Review](#peer-review)
  1. [Reporting Bugs](#reporting-bugs)
- 1. [Suggesting Features](#suggesting-enhancements)
+ 1. [Suggesting Features](#suggesting-enhancements-and-features)
 
 
 ## I don't want to read this whole thing I just have a question!
@@ -70,7 +70,7 @@ And also here.
 
 You can contribute to Bittensor in one of two main ways (as well as many others):
 1. [Bug](#reporting-bugs) reporting and fixes
-2. New features and Bittensor [enhancements](#suggesting-enhancements)
+2. New features and Bittensor [enhancements](#suggesting-enhancements-and-features)
 
 > Please follow the Bittensor [style guide](./STYLE.md) regardless of your contribution type. 
 
@@ -252,7 +252,7 @@ Explain the problem and include additional details to help maintainers reproduce
 * **Describe the behavior you observed after following the steps** and point out what exactly is the problem with that behavior.
 * **Explain which behavior you expected to see instead and why.**
 * **Include screenshots and animated GIFs** which show you following the described steps and clearly demonstrate the problem. You can use [this tool](https://www.cockos.com/licecap/) to record GIFs on macOS and Windows, and [this tool](https://github.com/colinkeenan/silentcast) or [this tool](https://github.com/GNOME/byzanz) on Linux.
-* **If you're reporting that Bittensor crashed**, include a crash report with a stack trace from the operating system. On macOS, the crash report will be available in `Console.app` under "Diagnostic and usage information" > "User diagnostic reports". Include the crash report in the issue in a [code block](https://help.github.com/articles/markdown-basics/#multiple-lines), a [file attachment](https://help.github.com/articles/file-attachments-on-issues-and-pull-requests/), or put it in a [gist](https://gist.github.com/) and provide link to that gist.
+* **If you're reporting that Bittensor crashed**, include a crash report with a stack trace from the operating system. On macOS, the crash report will be available in `Console.app` under "Diagnostic and usage information" > "User diagnostic reports". Include the crash report in the issue in a [code block](https://help.github.com/articles/markdown-basics/#multiple-lines), a [file attachment](https://docs.github.com/articles/file-attachments-on-issues-and-pull-requests/), or put it in a [gist](https://gist.github.com/) and provide link to that gist.
 * **If the problem is related to performance or memory**, include a CPU profile capture with your report, if you're using a GPU then include a GPU profile capture as well. Look into the [PyTorch Profiler](https://pytorch.org/tutorials/recipes/recipes/profiler_recipe.html) to look at memory usage of your model.
 * **If the problem wasn't triggered by a specific action**, describe what you were doing before the problem happened and share more information using the guidelines below.
 
