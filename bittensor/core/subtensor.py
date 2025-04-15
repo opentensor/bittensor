@@ -60,6 +60,7 @@ from bittensor.core.extrinsics.serving import (
     get_metadata,
     serve_axon_extrinsic,
 )
+from bittensor.core.extrinsics.start_call import start_call_extrinsic
 from bittensor.core.extrinsics.set_weights import set_weights_extrinsic
 from bittensor.core.extrinsics.staking import (
     add_stake_extrinsic,
@@ -3250,6 +3251,36 @@ class Subtensor(SubtensorMixin):
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             certificate=certificate,
+        )
+
+    def start_call(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> tuple[bool, str]:
+        """
+        Submits a `start_call` extrinsic to the blockchain, indicating that the caller wishes to begin responding
+        to a specific challenge on the specified subnet (`netuid`).
+
+        Args:
+            wallet (Wallet): The wallet used to sign the extrinsic (must be unlocked).
+            netuid (int): The UID of the target subnet for which the call is being initiated.
+            wait_for_inclusion (bool, optional): Whether to wait for the extrinsic to be included in a block. Defaults to True.
+            wait_for_finalization (bool, optional): Whether to wait for finalization of the extrinsic. Defaults to False.
+
+        Returns:
+            Tuple[bool, str]:
+                - True and a success message if the extrinsic is successfully submitted or processed.
+                - False and an error message if the submission fails or the wallet cannot be unlocked.
+        """
+        return start_call_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
         )
 
     def swap_stake(
