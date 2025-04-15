@@ -107,7 +107,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     )
 
     # Wait for 2 tempos to pass as CR3 only reveals weights after 2 tempos + 1
-    subtensor.wait_for_block((tempo_set * 2) + 1)
+    await subtensor.wait_for_block((tempo_set * 2) + 1)
 
     # Lower than this might mean weights will get revealed before we can check them
     if upcoming_tempo - current_block < 3:
@@ -183,7 +183,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     )
 
     # wait until last_drand_round is the same or greeter than expected_reveal_round with sleep 3 second (as Drand round period)
-    while expected_reveal_round >= subtensor.last_drand_round():
+    while expected_reveal_round >= await subtensor.last_drand_round():
         time.sleep(3)
 
     # Fetch weights on the chain as they should be revealed now

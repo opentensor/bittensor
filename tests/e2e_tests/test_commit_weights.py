@@ -190,7 +190,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     netuid = 2
 
     # Wait for 2 tempos to pass as CR3 only reveals weights after 2 tempos
-    subtensor.wait_for_block(subnet_tempo * 2 + 1)
+    await subtensor.wait_for_block(subnet_tempo * 2 + 1)
 
     print("Testing test_commit_and_reveal_weights")
     # Register root as Alice
@@ -249,7 +249,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     assert await subtensor.weights_rate_limit(netuid=netuid) == 0
 
     # wait while weights_rate_limit changes applied.
-    subtensor.wait_for_block(subnet_tempo + 1)
+    await subtensor.wait_for_block(subnet_tempo + 1)
 
     # create different commited data to avoid coming into pool black list with the error
     #   Failed to commit weights: Subtensor returned `Custom type(1012)` error. This means: `Transaction is temporarily
@@ -293,7 +293,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
         await send_commit(salt, weight_uids, weight_vals)
 
         # let's wait for 3 (12 fast blocks) seconds between transactions
-        subtensor.wait_for_block(subtensor.block + 12)
+        await subtensor.wait_for_block(await subtensor.block + 12)
 
     logging.console.info(
         f"[orange]Nonce after third commit_weights: "
@@ -301,7 +301,9 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     )
 
     # Wait a few blocks
-    subtensor.wait_for_block(subtensor.block + subtensor.tempo(netuid) * 2)
+    await subtensor.wait_for_block(
+        await subtensor.block + await subtensor.tempo(netuid) * 2
+    )
 
     # Query the WeightCommits storage map for all three salts
     weight_commits = await subtensor.query_module(

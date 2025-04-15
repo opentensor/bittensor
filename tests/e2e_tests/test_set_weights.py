@@ -84,7 +84,7 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
         )
 
     # make sure 2 epochs are passed
-    subtensor.wait_for_block(subnet_tempo * 2 + 1)
+    await subtensor.wait_for_block(subnet_tempo * 2 + 1)
 
     # Stake to become to top neuron after the first epoch
     for netuid in netuids:
@@ -139,14 +139,14 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
 
     logging.console.info(
         f"[orange]Nonce before first set_weights: "
-        f"{subtensor.substrate.get_account_next_index(alice_wallet.hotkey.ss58_address)}[/orange]"
+        f"{await subtensor.substrate.get_account_next_index(alice_wallet.hotkey.ss58_address)}[/orange]"
     )
 
     # 3 time doing call if nonce wasn't updated, then raise error
     @retry.retry(exceptions=Exception, tries=3, delay=1)
     @execute_and_wait_for_next_nonce(subtensor=subtensor, wallet=alice_wallet)
     async def set_weights(netuid_):
-        success, message = subtensor.set_weights(
+        success, message = await subtensor.set_weights(
             wallet=alice_wallet,
             netuid=netuid_,
             uids=weight_uids,
@@ -159,7 +159,7 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
 
     logging.console.info(
         f"[orange]Nonce after second set_weights: "
-        f"{subtensor.substrate.get_account_next_index(alice_wallet.hotkey.ss58_address)}[/orange]"
+        f"{await subtensor.substrate.get_account_next_index(alice_wallet.hotkey.ss58_address)}[/orange]"
     )
 
     # Set weights for each subnet
