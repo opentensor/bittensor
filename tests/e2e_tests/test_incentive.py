@@ -3,12 +3,10 @@ import asyncio
 import pytest
 
 from bittensor.utils.btlogging import logging
-
 from tests.e2e_tests.utils.chain_interactions import (
     root_set_subtensor_hyperparameter_values,
     sudo_set_admin_utils,
     wait_epoch,
-    wait_interval,
 )
 
 DURATION_OF_START_CALL = 10
@@ -70,15 +68,8 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
 
     subtensor.wait_for_block(DURATION_OF_START_CALL)
 
-    # Subnet "Start Call" https://github.com/opentensor/bits/pull/13
-    status, error = await root_set_subtensor_hyperparameter_values(
-        local_chain,
-        alice_wallet,
-        call_function="start_call",
-        call_params={
-            "netuid": netuid,
-        },
-    )
+    # # Subnet "Start Call" https://github.com/opentensor/bits/pull/13
+    status, error = subtensor.start_call(wallet=alice_wallet, netuid=netuid)
 
     assert status is True, error
 
