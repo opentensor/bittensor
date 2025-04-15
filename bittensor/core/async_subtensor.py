@@ -3182,7 +3182,7 @@ class AsyncSubtensor(SubtensorMixin):
                 return True, ""
 
             if raise_error:
-                raise ChainError.from_error(response.error_message)
+                raise ChainError.from_error(await response.error_message)
 
             return False, format_error_message(await response.error_message)
 
