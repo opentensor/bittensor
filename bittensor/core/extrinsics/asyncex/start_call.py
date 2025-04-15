@@ -16,8 +16,8 @@ async def start_call_extrinsic(
     wait_for_finalization: bool = False,
 ) -> tuple[bool, str]:
     """
-    Submits a `start_call` extrinsic to the blockchain, indicating that the caller wishes to begin responding
-    to a specific challenge on the specified subnet (`netuid`).
+    Submits a start_call extrinsic to the blockchain, to trigger the start call process for a subnet (used to start a
+    new subnet's emission mechanism).
 
     Args:
         subtensor (Subtensor): The Subtensor client instance used for blockchain interaction.
