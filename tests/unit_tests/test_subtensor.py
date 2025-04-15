@@ -893,6 +893,87 @@ def test_get_subnet_hyperparameters_no_data(mocker, subtensor):
     )
     subtensor_module.SubnetHyperparameters.from_dict.assert_not_called()
 
+def test_get_subnet_owner_hotkey_success(subtensor, mocker):
+    """ Test successful retrieval of subnet owner hotkey. """
+    mock_owner_hotkey = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"  # Example valid SS58
+    netuid = 1
+
+    mocker.patch.object(subtensor, "subnet_exists", return_value=True, autospec=True)
+    mocker.patch.object(
+        subtensor, "query_subtensor", return_value=mock_owner_hotkey, autospec=True
+    )
+    mocker.patch("bittensor.core.subtensor.is_valid_ss58_address", return_value=True)
+
+    owner_hotkey = subtensor.get_subnet_owner_hotkey(netuid=netuid, block=123)
+
+    assert owner_hotkey == mock_owner_hotkey
+    subtensor.subnet_exists.assert_called_once_with(netuid=netuid, block=123)
+    subtensor.query_subtensor.assert_called_once_with(
+        name="SubnetOwnerHotkey", params=[netuid], block=123
+    )
+    bittensor.core.subtensor.is_valid_ss58_address.assert_called_once_with(
+        owner_hotkey
+    )
+
+
+def test_get_subnet_owner_hotkey_subnet_does_not_exist(subtensor, mocker, caplog):
+    """ Test retrieval when the subnet does not exist. """
+    netuid = 99
+
+    mocker.patch.object(subtensor, "subnet_exists", return_value=False, autospec=True)
+    mocker.patch.object(subtensor, "query_subtensor") # Mock this to ensure it's not called
+
+    with caplog.at_level(logging.DEBUG):
+        owner_hotkey = subtensor.get_subnet_owner_hotkey(netuid=netuid)
+
+    assert owner_hotkey is None
+    subtensor.subnet_exists.assert_called_once_with(netuid=netuid, block=None)
+    subtensor.query_subtensor.assert_not_called()
+    assert f"Subnet {netuid} does not exist." in caplog.text
+
+
+def test_get_subnet_owner_hotkey_query_returns_none(subtensor, mocker):
+    """ Test retrieval when query_subtensor returns None. """
+    netuid = 1
+
+    mocker.patch.object(subtensor, "subnet_exists", return_value=True, autospec=True)
+    mocker.patch.object(subtensor, "query_subtensor", return_value=None, autospec=True)
+
+    owner_hotkey = subtensor.get_subnet_owner_hotkey(netuid=netuid)
+
+    assert owner_hotkey is None
+    subtensor.subnet_exists.assert_called_once_with(netuid=netuid, block=None)
+    subtensor.query_subtensor.assert_called_once_with(
+        name="SubnetOwnerHotkey", params=[netuid], block=None
+    )
+
+
+def test_get_subnet_owner_hotkey_invalid_ss58(subtensor, mocker, caplog):
+    """ Test retrieval when the returned address is invalid. """
+    mock_invalid_hotkey = "invalid_address"
+    netuid = 1
+
+    mocker.patch.object(subtensor, "subnet_exists", return_value=True, autospec=True)
+    mocker.patch.object(
+        subtensor, "query_subtensor", return_value=mock_invalid_hotkey, autospec=True
+    )
+    mocker.patch("bittensor.core.subtensor.is_valid_ss58_address", return_value=False)
+
+    with caplog.at_level(logging.DEBUG):
+        owner_hotkey = subtensor.get_subnet_owner_hotkey(netuid=netuid)
+
+    assert owner_hotkey is None
+    subtensor.subnet_exists.assert_called_once_with(netuid=netuid, block=None)
+    subtensor.query_subtensor.assert_called_once_with(
+        name="SubnetOwnerHotkey", params=[netuid], block=None
+    )
+    bittensor.core.subtensor.is_valid_ss58_address.assert_called_once_with(
+        mock_invalid_hotkey
+    )
+    assert (
+        f"Received invalid owner hotkey format for subnet {netuid}: {mock_invalid_hotkey}"
+        in caplog.text
+    )
 
 def test_query_subtensor(subtensor, mocker):
     """Tests query_subtensor call."""
@@ -1220,7 +1301,6 @@ def test_set_weights(subtensor, mocker, fake_wallet):
         version_key=settings.version_as_int,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
-        period=5,
     )
     assert result == expected_result
 
@@ -3388,3 +3468,5 @@ def test_get_owned_hotkeys_return_empty(subtensor, mocker):
         reuse_block_hash=False,
     )
     assert result == []
+
+    
