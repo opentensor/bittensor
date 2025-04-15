@@ -95,6 +95,8 @@ class Templates:
             self.started = asyncio.Event()
 
         async def __aenter__(self):
+            env = os.environ.copy()
+            env["BT_LOGGING_INFO"] = "1"
             self.process = await asyncio.create_subprocess_exec(
                 sys.executable,
                 f"{self.dir}/miner.py",
@@ -110,15 +112,19 @@ class Templates:
                 self.wallet.name,
                 "--wallet.hotkey",
                 "default",
-                env={
-                    "BT_LOGGING_INFO": "1",
-                },
+                env=env,
                 stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
             )
 
             self.__reader_task = asyncio.create_task(self._reader())
 
-            await asyncio.wait_for(self.started.wait(), 30)
+            try:
+                await asyncio.wait_for(self.started.wait(), 60)
+            except asyncio.TimeoutError:
+                self.process.kill()
+                await self.process.wait()
+                raise RuntimeError("Miner failed to start within timeout")
 
             return self
 
@@ -130,6 +136,14 @@ class Templates:
 
         async def _reader(self):
             async for line in self.process.stdout:
+                try:
+                    bittensor.logging.console.info(
+                        f"[green]MINER LOG: {line.split(b'|')[-1].strip().decode()}[/blue]"
+                    )
+                except BaseException:
+                    # skipp empty lines
+                    pass
+
                 if b"Starting main loop" in line:
                     self.started.set()
 
@@ -144,6 +158,8 @@ class Templates:
             self.set_weights = asyncio.Event()
 
         async def __aenter__(self):
+            env = os.environ.copy()
+            env["BT_LOGGING_INFO"] = "1"
             self.process = await asyncio.create_subprocess_exec(
                 sys.executable,
                 f"{self.dir}/validator.py",
@@ -159,15 +175,19 @@ class Templates:
                 self.wallet.name,
                 "--wallet.hotkey",
                 "default",
-                env={
-                    "BT_LOGGING_INFO": "1",
-                },
+                env=env,
                 stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
             )
 
             self.__reader_task = asyncio.create_task(self._reader())
 
-            await asyncio.wait_for(self.started.wait(), 30)
+            try:
+                await asyncio.wait_for(self.started.wait(), 60)
+            except asyncio.TimeoutError:
+                self.process.kill()
+                await self.process.wait()
+                raise RuntimeError("Validator failed to start within timeout")
 
             return self
 
@@ -179,9 +199,19 @@ class Templates:
 
         async def _reader(self):
             async for line in self.process.stdout:
+                try:
+                    bittensor.logging.console.info(
+                        f"[orange]VALIDATOR LOG: {line.split(b'|')[-1].strip().decode()}[/orange]"
+                    )
+                except BaseException:
+                    # skipp empty lines
+                    pass
+
                 if b"Starting validator loop." in line:
+                    bittensor.logging.console.info("Validator started.")
                     self.started.set()
                 elif b"Successfully set weights and Finalized." in line:
+                    bittensor.logging.console.info("Validator is setting weights.")
                     self.set_weights.set()
 
     def __init__(self):

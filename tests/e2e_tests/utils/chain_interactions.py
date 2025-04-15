@@ -4,10 +4,11 @@ these are not present in btsdk but are required for e2e tests
 """
 
 import asyncio
-import contextlib
-import unittest.mock
+import functools
+import time
 from typing import Union, Optional, TYPE_CHECKING
 
+from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 
 # for typing purposes
@@ -18,10 +19,9 @@ if TYPE_CHECKING:
     from bittensor.core.async_subtensor import AsyncSubtensor
 
 
-ANY_BALANCE = unittest.mock.Mock(
-    rao=unittest.mock.ANY,
-    unit=unittest.mock.ANY,
-)
+def get_dynamic_balance(rao: int, netuid: int = 0):
+    """Returns a Balance object with the given rao and netuid for testing purposes with synamic values."""
+    return Balance(rao).set_unit(netuid)
 
 
 def sudo_set_hyperparameter_bool(
@@ -92,23 +92,18 @@ async def wait_epoch(subtensor: "AsyncSubtensor", netuid: int = 1, **kwargs):
     await wait_interval(tempo, subtensor, netuid, **kwargs)
 
 
-def next_tempo(current_block: int, tempo: int, netuid: int) -> int:
+def next_tempo(current_block: int, tempo: int) -> int:
     """
     Calculates the next tempo block for a specific subnet.
 
     Args:
         current_block (int): The current block number.
         tempo (int): The tempo value for the subnet.
-        netuid (int): The unique identifier of the subnet.
 
     Returns:
         int: The next tempo block number.
     """
-    current_block += 1
-    interval = tempo + 1
-    last_epoch = current_block - 1 - (current_block + netuid + 1) % interval
-    next_tempo_ = last_epoch + interval
-    return next_tempo_
+    return ((current_block // tempo) + 1) * tempo + 1
 
 
 async def wait_interval(
@@ -130,7 +125,7 @@ async def wait_interval(
     next_tempo_block_start = current_block
 
     for _ in range(times):
-        next_tempo_block_start = next_tempo(next_tempo_block_start, tempo, netuid)
+        next_tempo_block_start = next_tempo(next_tempo_block_start, tempo)
 
     last_reported = None
 
@@ -149,39 +144,49 @@ async def wait_interval(
             )
 
 
-@contextlib.asynccontextmanager
-async def use_and_wait_for_next_nonce(
-    subtensor: "AsyncSubtensor",
-    wallet: "Wallet",
-    sleep: float = 0.25,
-    timeout: float = 15.0,
+def execute_and_wait_for_next_nonce(
+    subtensor, wallet, sleep=0.25, timeout=60.0, max_retries=3
 ):
     """
-    ContextManager that makes sure the Nonce has been consumed after sending Extrinsic.
+    Decorator that ensures the nonce has been consumed after a blockchain extrinsic call.
     """
 
-    nonce = subtensor.substrate.get_account_next_index(wallet.hotkey.ss58_address)
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            for attempt in range(max_retries):
+                start_nonce = subtensor.substrate.get_account_next_index(
+                    wallet.hotkey.ss58_address
+                )
 
-    if asyncio.iscoroutine(nonce):
-        nonce = await nonce
+                result = func(*args, **kwargs)
 
-    yield
+                start_time = time.time()
 
-    async def wait_for_new_nonce():
-        while True:
-            new_nonce = subtensor.substrate.get_account_next_index(
-                wallet.hotkey.ss58_address,
-            )
+                while time.time() - start_time < timeout:
+                    current_nonce = subtensor.substrate.get_account_next_index(
+                        wallet.hotkey.ss58_address
+                    )
 
-            if asyncio.iscoroutine(new_nonce):
-                new_nonce = await new_nonce
+                    if current_nonce != start_nonce:
+                        logging.console.info(
+                            f"✅ Nonce changed from {start_nonce} to {current_nonce}"
+                        )
+                        return result
 
-            if new_nonce != nonce:
-                return
+                    logging.console.info(
+                        f"⏳ Waiting for nonce increment. Current: {current_nonce}"
+                    )
+                    time.sleep(sleep)
 
-            await asyncio.sleep(sleep)
+                logging.warning(
+                    f"⚠️ Attempt {attempt + 1}/{max_retries}: Nonce did not increment."
+                )
+            raise TimeoutError(f"❌ Nonce did not change after {max_retries} attempts.")
 
-    await asyncio.wait_for(wait_for_new_nonce(), timeout)
+        return wrapper
+
+    return decorator
 
 
 # Helper to execute sudo wrapped calls on the chain
@@ -200,6 +205,7 @@ def sudo_set_admin_utils(
         wallet (Wallet): Wallet object with the keypair for signing.
         call_function (str): The AdminUtils function to call.
         call_params (dict): Parameters for the AdminUtils function.
+        call_module (str): The AdminUtils module to call. Defaults to "AdminUtils".
 
     Returns:
         tuple[bool, Optional[dict]]: (success status, error details).
@@ -232,7 +238,8 @@ def root_set_subtensor_hyperparameter_values(
     wallet: "Wallet",
     call_function: str,
     call_params: dict,
-) -> tuple[bool, str]:
+    return_error_message: bool = False,
+) -> tuple[bool, Optional[dict]]:
     """
     Sets liquid alpha values using AdminUtils. Mimics setting hyperparams
     """

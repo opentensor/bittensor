@@ -1,5 +1,54 @@
 # Changelog
 
+## 9.3.1a1 /2025-04-14
+
+## What's Changed
+* Release/9.3.0 by @ibraheem-abe in https://github.com/opentensor/bittensor/pull/2805
+* Fix for flaky behavior of `test_incentive`, `test_commit_weights` and `test_set_weights`  by @basfroman in https://github.com/opentensor/bittensor/pull/2795
+* Add `get_next_epoch_start_block` method to Async/Subtensor by @basfroman in https://github.com/opentensor/bittensor/pull/2808
+* Adds compatibility for torch 2.6.0+ by @thewhaleking in https://github.com/opentensor/bittensor/pull/2811
+* f Update CONTRIBUTING.md by @Hack666r in https://github.com/opentensor/bittensor/pull/2813
+* docs: replaced discord link with documentation by @sashaphmn in https://github.com/opentensor/bittensor/pull/2809
+* sometimes it's still flaky because the chain returns data with time offset by @basfroman in https://github.com/opentensor/bittensor/pull/2816
+* Remove requirements directory by @thewhaleking in https://github.com/opentensor/bittensor/pull/2812
+* version in one place by @thewhaleking in https://github.com/opentensor/bittensor/pull/2806
+* Update CONTRIBUTING hyperlinks by @thewhaleking in https://github.com/opentensor/bittensor/pull/2820
+
+## New Contributors
+* @Hack666r made their first contribution in https://github.com/opentensor/bittensor/pull/2813
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.3.0...v9.3.1a1
+
+## 9.3.0 /2025-04-09
+
+## What's Changed
+* More E2E tests by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2754
+* Fix E2E: fix wait_epoch and next_tempo by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2753
+* Add all supported python versions to e2e tests workflow by @basfroman in https://github.com/opentensor/bittensor/pull/2761
+* update docker image name by @basfroman in https://github.com/opentensor/bittensor/pull/2760
+* Add pypi package version checker for `python -m bittensor` by @basfroman in https://github.com/opentensor/bittensor/pull/2762
+* Feat: set_children and get_pending_children methods by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2752
+* Add logic for keep docker image up to date by @basfroman in https://github.com/opentensor/bittensor/pull/2765
+* Fix: CI/CD Set up Python version for E2E tests by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2767
+* Fix E2E Tests: wait for new nonce by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2768
+* Fix e2e `conftest.py` for legacy runner by @basfroman in https://github.com/opentensor/bittensor/pull/2769
+* Fix E2E with devnet-ready by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2776
+* Add compatibility check for 3.13 by @thewhaleking in https://github.com/opentensor/bittensor/pull/2779
+* Fix E2E test_dendrite by making sure Alice is Top validator in Subnet by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2780
+* Add get_owned_hotkeys to subtensor and async one + tests by @basfroman in https://github.com/opentensor/bittensor/pull/2766
+* Add drand-commitments by @basfroman in https://github.com/opentensor/bittensor/pull/2781
+* Missing f-string format by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2785
+* bump version by @basfroman in https://github.com/opentensor/bittensor/pull/2786
+* Improvement and fix for https://github.com/opentensor/bittensor/pull/2781 by @basfroman in https://github.com/opentensor/bittensor/pull/2787
+* Add `stop_existing_test_containers` logic before run e2e test/s by @basfroman in https://github.com/opentensor/bittensor/pull/2790
+* Bump async substrate interface by @thewhaleking in https://github.com/opentensor/bittensor/pull/2788
+* Improve CRv3 functionality  by @basfroman in https://github.com/opentensor/bittensor/pull/2791
+* Improve logic in Balance magic methods by @basfroman in https://github.com/opentensor/bittensor/pull/2764
+* Requirements update by @thewhaleking in https://github.com/opentensor/bittensor/pull/2789
+* remove Levenshtein requirement by @thewhaleking in https://github.com/opentensor/bittensor/pull/2802
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.2.0...v9.3.0
+
 ## 9.2.0 /2025-03-18
 
 ## What's Changed

@@ -2,7 +2,7 @@ import pytest
 from bittensor import logging
 from bittensor.core.chain_data.stake_info import StakeInfo
 from bittensor.utils.balance import Balance
-from tests.e2e_tests.utils.chain_interactions import ANY_BALANCE
+from tests.e2e_tests.utils.chain_interactions import get_dynamic_balance
 from tests.helpers.helpers import ApproxBalance
 
 logging.enable_info()
@@ -182,8 +182,10 @@ async def test_batch_operations(subtensor, alice_wallet, bob_wallet):
     )
 
     assert balances == {
-        alice_wallet.coldkey.ss58_address: ANY_BALANCE,
-        bob_wallet.coldkey.ss58_address: Balance.from_tao(999_998),
+        alice_wallet.coldkey.ss58_address: get_dynamic_balance(
+            balances[alice_wallet.coldkey.ss58_address].rao, 2
+        ),
+        bob_wallet.coldkey.ss58_address: Balance.from_tao(999_998).set_unit(3),
     }
 
     alice_balance = balances[alice_wallet.coldkey.ss58_address]
@@ -245,7 +247,9 @@ async def test_batch_operations(subtensor, alice_wallet, bob_wallet):
     )
 
     assert balances == {
-        alice_wallet.coldkey.ss58_address: ANY_BALANCE,
+        alice_wallet.coldkey.ss58_address: get_dynamic_balance(
+            balances[alice_wallet.coldkey.ss58_address].rao, 2
+        ),
         bob_wallet.coldkey.ss58_address: Balance.from_tao(999_998),
     }
     assert balances[alice_wallet.coldkey.ss58_address] > alice_balance
@@ -537,6 +541,7 @@ async def test_move_stake(subtensor, alice_wallet, bob_wallet):
     - Moving stake from one hotkey-subnet pair to another
     """
 
+    netuid = 1
     await subtensor.burned_register(
         alice_wallet,
         netuid=1,
@@ -547,7 +552,7 @@ async def test_move_stake(subtensor, alice_wallet, bob_wallet):
     assert await subtensor.add_stake(
         alice_wallet,
         alice_wallet.hotkey.ss58_address,
-        netuid=1,
+        netuid=netuid,
         amount=Balance.from_tao(1_000),
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -559,10 +564,10 @@ async def test_move_stake(subtensor, alice_wallet, bob_wallet):
         StakeInfo(
             hotkey_ss58=alice_wallet.hotkey.ss58_address,
             coldkey_ss58=alice_wallet.coldkey.ss58_address,
-            netuid=1,
-            stake=ANY_BALANCE,
+            netuid=netuid,
+            stake=get_dynamic_balance(stakes[0].stake.rao, netuid),
             locked=Balance(0),
-            emission=ANY_BALANCE,
+            emission=get_dynamic_balance(stakes[0].emission.rao, netuid),
             drain=0,
             is_registered=True,
         ),
@@ -583,14 +588,15 @@ async def test_move_stake(subtensor, alice_wallet, bob_wallet):
 
     stakes = await subtensor.get_stake_for_coldkey(alice_wallet.coldkey.ss58_address)
 
+    netuid = 2
     assert stakes == [
         StakeInfo(
             hotkey_ss58=bob_wallet.hotkey.ss58_address,
             coldkey_ss58=alice_wallet.coldkey.ss58_address,
-            netuid=2,
-            stake=ANY_BALANCE,
+            netuid=netuid,
+            stake=get_dynamic_balance(stakes[0].stake.rao, netuid),
             locked=Balance(0),
-            emission=ANY_BALANCE,
+            emission=get_dynamic_balance(stakes[0].emission.rao, netuid),
             drain=0,
             is_registered=True,
         ),
@@ -602,12 +608,13 @@ async def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
     """
     Tests:
     - Adding stake
-    - Transfering stake from one coldkey-subnet pair to another
+    - Transferring stake from one coldkey-subnet pair to another
     """
+    netuid = 1
 
     await subtensor.burned_register(
         alice_wallet,
-        netuid=1,
+        netuid=netuid,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -615,7 +622,7 @@ async def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
     assert await subtensor.add_stake(
         alice_wallet,
         alice_wallet.hotkey.ss58_address,
-        netuid=1,
+        netuid=netuid,
         amount=Balance.from_tao(1_000),
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -629,10 +636,10 @@ async def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
         StakeInfo(
             hotkey_ss58=alice_wallet.hotkey.ss58_address,
             coldkey_ss58=alice_wallet.coldkey.ss58_address,
-            netuid=1,
-            stake=ANY_BALANCE,
+            netuid=netuid,
+            stake=get_dynamic_balance(alice_stakes[0].stake.rao, netuid),
             locked=Balance(0),
-            emission=ANY_BALANCE,
+            emission=get_dynamic_balance(alice_stakes[0].emission.rao, netuid),
             drain=0,
             is_registered=True,
         ),
@@ -669,14 +676,15 @@ async def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
 
     bob_stakes = await subtensor.get_stake_for_coldkey(bob_wallet.coldkey.ss58_address)
 
+    netuid = 2
     assert bob_stakes == [
         StakeInfo(
             hotkey_ss58=alice_wallet.hotkey.ss58_address,
             coldkey_ss58=bob_wallet.coldkey.ss58_address,
             netuid=2,
-            stake=ANY_BALANCE,
+            stake=get_dynamic_balance(bob_stakes[0].stake.rao, netuid),
             locked=Balance(0),
-            emission=ANY_BALANCE,
+            emission=get_dynamic_balance(bob_stakes[0].emission.rao, netuid),
             drain=0,
             is_registered=False,
         ),
