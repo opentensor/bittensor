@@ -498,7 +498,7 @@ async def set_subnet_identity_extrinsic(
         },
     )
 
-    response = await subtensor.substrate.submit_extrinsic(
+    success, error_message = await subtensor.sign_and_send_extrinsic(
         call=call,
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
@@ -508,14 +508,13 @@ async def set_subnet_identity_extrinsic(
     if not wait_for_finalization and not wait_for_inclusion:
         return True, f"Identities for subnet {netuid} are sent to the chain."
 
-    if await response.is_success:
+    if success:
         logging.success(
             f":white_heavy_check_mark: [green]Identities for subnet[/green] [blue]{netuid}[/blue] [green]are set.[/green]"
         )
         return True, f"Identities for subnet {netuid} are set."
-    else:
-        error_message = await response.error_message
-        logging.error(
-            f":cross_mark: Failed to set identity for subnet [blue]{netuid}[/blue]: {error_message}"
-        )
-        return False, f"Failed to set identity for subnet {netuid}: {error_message}"
+
+    logging.error(
+        f":cross_mark: Failed to set identity for subnet [blue]{netuid}[/blue]: {error_message}"
+    )
+    return False, f"Failed to set identity for subnet {netuid}: {error_message}"
