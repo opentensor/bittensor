@@ -128,6 +128,10 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
 
     bob_balance = subtensor.get_balance(bob_wallet.coldkeypub.ss58_address)
 
+    # make sure we passed start_call limit (10 blocks)
+    subtensor.wait_for_block(subtensor.block + 10)
+    assert subtensor.start_call(alice_wallet, netuid, True, True)[0]
+
     # Register Bob to the subnet
     assert subtensor.burned_register(
         bob_wallet, netuid
