@@ -351,15 +351,17 @@ def test_publish_metadata(
     test_id,
 ):
     # Arrange
-    with patch.object(mock_subtensor.substrate, "compose_call"), patch.object(
-        mock_subtensor.substrate, "create_signed_extrinsic"
-    ), patch.object(
-        mock_subtensor.substrate,
-        "submit_extrinsic",
-        return_value=MagicMock(
-            is_success=response_success,
-            process_events=MagicMock(),
-            error_message="error",
+    with (
+        patch.object(mock_subtensor.substrate, "compose_call"),
+        patch.object(mock_subtensor.substrate, "create_signed_extrinsic"),
+        patch.object(
+            mock_subtensor.substrate,
+            "submit_extrinsic",
+            return_value=MagicMock(
+                is_success=response_success,
+                process_events=MagicMock(),
+                error_message="error",
+            ),
         ),
     ):
         # Act

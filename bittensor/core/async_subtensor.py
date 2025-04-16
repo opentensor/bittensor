@@ -3006,7 +3006,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         async def handler(block_data: dict):
             logging.debug(
-                f'reached block {block_data["header"]["number"]}. Waiting for block {target_block}'
+                f"reached block {block_data['header']['number']}. Waiting for block {target_block}"
             )
             if block_data["header"]["number"] >= target_block:
                 return True

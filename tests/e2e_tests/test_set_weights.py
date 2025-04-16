@@ -98,9 +98,9 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
             netuid,
         ), "Failed to enable commit/reveal"
 
-        assert (
-            subtensor.weights_rate_limit(netuid=netuid) > 0
-        ), "Weights rate limit is below 0"
+        assert subtensor.weights_rate_limit(netuid=netuid) > 0, (
+            "Weights rate limit is below 0"
+        )
 
         # Lower set weights rate limit
         status, error = sudo_set_admin_utils(
@@ -167,6 +167,6 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
         logging.console.info(f"Weights for subnet {netuid}: {weights}")
 
         assert weights is not None, f"Weights not found for subnet {netuid}"
-        assert weights == list(
-            zip(weight_uids, weight_vals)
-        ), f"Weights do not match for subnet {netuid}"
+        assert weights == list(zip(weight_uids, weight_vals)), (
+            f"Weights do not match for subnet {netuid}"
+        )
