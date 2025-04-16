@@ -330,9 +330,9 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
         netuid=netuid,
     )
     assert partial_stake > Balance(0), "Partial stake should be added"
-    assert (
-        partial_stake < stake_amount
-    ), "Partial stake should be less than requested amount"
+    assert partial_stake < stake_amount, (
+        "Partial stake should be less than requested amount"
+    )
 
     # 3. Higher threshold - should succeed fully
     amount = Balance.from_tao(100)
@@ -375,9 +375,9 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
         bob_wallet.hotkey.ss58_address,
         netuid=netuid,
     )
-    assert (
-        current_stake == full_stake
-    ), "Stake should not change after failed unstake attempt"
+    assert current_stake == full_stake, (
+        "Stake should not change after failed unstake attempt"
+    )
 
     # 2. Partial allowed - should succeed partially
     success = subtensor.unstake(
@@ -486,9 +486,9 @@ def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
         alice_wallet.hotkey.ss58_address,
         netuid=dest_netuid,
     )
-    assert dest_stake == Balance(
-        0
-    ), "Destination stake should remain 0 after failed swap"
+    assert dest_stake == Balance(0), (
+        "Destination stake should remain 0 after failed swap"
+    )
 
     # 2. Try swap with higher threshold and less amount - should succeed
     stake_swap_amount = Balance.from_tao(100)
@@ -517,9 +517,9 @@ def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
         alice_wallet.hotkey.ss58_address,
         netuid=dest_netuid,
     )
-    assert dest_stake > Balance(
-        0
-    ), "Destination stake should be non-zero after successful swap"
+    assert dest_stake > Balance(0), (
+        "Destination stake should be non-zero after successful swap"
+    )
 
 
 def test_move_stake(subtensor, alice_wallet, bob_wallet):
