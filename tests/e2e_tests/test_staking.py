@@ -14,16 +14,32 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
     - Unstaking using `unstake`
     - Checks StakeInfo
     """
+    alice_subnet_netuid = subtensor.get_total_subnets()  # 2
+
+    # Register root as Alice - the subnet owner and validator
+    assert subtensor.register_subnet(alice_wallet)
+
+    # Verify subnet <netuid> created successfully
+    assert subtensor.subnet_exists(
+        alice_subnet_netuid
+    ), "Subnet wasn't created successfully"
+
+    # make sure we passed start_call limit
+    subtensor.wait_for_block(subtensor.block + 20)
+    status, message = subtensor.start_call(
+        alice_wallet, alice_subnet_netuid, True, True
+    )
+    assert status, message
 
     subtensor.burned_register(
         alice_wallet,
-        netuid=1,
+        netuid=alice_subnet_netuid,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
     subtensor.burned_register(
         bob_wallet,
-        netuid=1,
+        netuid=alice_subnet_netuid,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -31,15 +47,15 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
     stake = subtensor.get_stake(
         alice_wallet.coldkey.ss58_address,
         bob_wallet.hotkey.ss58_address,
-        netuid=1,
+        netuid=alice_subnet_netuid,
     )
 
-    assert stake == Balance(0)
+    assert stake == Balance(0).set_unit(alice_subnet_netuid)
 
     success = subtensor.add_stake(
         alice_wallet,
         bob_wallet.hotkey.ss58_address,
-        netuid=1,
+        netuid=alice_subnet_netuid,
         amount=Balance.from_tao(1),
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -47,24 +63,40 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
 
     assert success is True
 
-    stake = subtensor.get_stake(
+    stake_alice = subtensor.get_stake(
         alice_wallet.coldkey.ss58_address,
-        bob_wallet.hotkey.ss58_address,
-        netuid=1,
+        alice_wallet.hotkey.ss58_address,
+        netuid=alice_subnet_netuid,
     )
 
-    assert stake > Balance(0)
+    stake_bob = subtensor.get_stake(
+        alice_wallet.coldkey.ss58_address,
+        bob_wallet.hotkey.ss58_address,
+        netuid=alice_subnet_netuid,
+    )
+
+    assert stake_bob > Balance(0).set_unit(alice_subnet_netuid)
 
     stakes = subtensor.get_stake_for_coldkey(alice_wallet.coldkey.ss58_address)
 
     assert stakes == [
         StakeInfo(
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
+            coldkey_ss58=alice_wallet.coldkey.ss58_address,
+            netuid=alice_subnet_netuid,
+            stake=get_dynamic_balance(stakes[0].stake.rao, alice_subnet_netuid),
+            locked=Balance(0).set_unit(alice_subnet_netuid),
+            emission=get_dynamic_balance(stakes[0].emission.rao, alice_subnet_netuid),
+            drain=0,
+            is_registered=True,
+        ),
+        StakeInfo(
             hotkey_ss58=bob_wallet.hotkey.ss58_address,
             coldkey_ss58=alice_wallet.coldkey.ss58_address,
-            netuid=1,
-            stake=stake,
-            locked=Balance(0),
-            emission=Balance(0),
+            netuid=alice_subnet_netuid,
+            stake=get_dynamic_balance(stakes[1].stake.rao, alice_subnet_netuid),
+            locked=Balance(0).set_unit(alice_subnet_netuid),
+            emission=get_dynamic_balance(stakes[1].emission.rao, alice_subnet_netuid),
             drain=0,
             is_registered=True,
         ),
@@ -74,12 +106,22 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
 
     assert stakes == [
         StakeInfo(
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
+            coldkey_ss58=alice_wallet.coldkey.ss58_address,
+            netuid=alice_subnet_netuid,
+            stake=get_dynamic_balance(stakes[0].stake.rao, alice_subnet_netuid),
+            locked=Balance(0).set_unit(alice_subnet_netuid),
+            emission=get_dynamic_balance(stakes[0].emission.rao, alice_subnet_netuid),
+            drain=0,
+            is_registered=True,
+        ),
+        StakeInfo(
             hotkey_ss58=bob_wallet.hotkey.ss58_address,
             coldkey_ss58=alice_wallet.coldkey.ss58_address,
-            netuid=1,
-            stake=stake,
-            locked=Balance(0),
-            emission=Balance(0),
+            netuid=alice_subnet_netuid,
+            stake=get_dynamic_balance(stakes[1].stake.rao, alice_subnet_netuid),
+            locked=Balance(0).set_unit(alice_subnet_netuid),
+            emission=get_dynamic_balance(stakes[1].emission.rao, alice_subnet_netuid),
             drain=0,
             is_registered=True,
         ),
@@ -105,9 +147,19 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
             hotkey_ss58=bob_wallet.hotkey.ss58_address,
             coldkey_ss58=alice_wallet.coldkey.ss58_address,
             netuid=1,
-            stake=stake,
+            stake=stake.set_unit(1),
             locked=Balance.from_tao(0, netuid=1),
             emission=Balance.from_tao(0, netuid=1),
+            drain=0,
+            is_registered=False,
+        ),
+        2: StakeInfo(
+            hotkey_ss58=bob_wallet.hotkey.ss58_address,
+            coldkey_ss58=alice_wallet.coldkey.ss58_address,
+            netuid=alice_subnet_netuid,
+            stake=get_dynamic_balance(stakes[2].stake.rao, alice_subnet_netuid),
+            locked=Balance.from_tao(0, netuid=alice_subnet_netuid),
+            emission=get_dynamic_balance(stakes[2].emission.rao, alice_subnet_netuid),
             drain=0,
             is_registered=True,
         ),
@@ -116,8 +168,8 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
     success = subtensor.unstake(
         alice_wallet,
         bob_wallet.hotkey.ss58_address,
-        netuid=1,
-        amount=stake,
+        netuid=alice_subnet_netuid,
+        amount=stake_bob,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -127,10 +179,10 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
     stake = subtensor.get_stake(
         alice_wallet.coldkey.ss58_address,
         bob_wallet.hotkey.ss58_address,
-        netuid=1,
+        netuid=alice_subnet_netuid,
     )
 
-    assert stake == Balance(0)
+    assert stake == Balance(0).set_unit(alice_subnet_netuid)
 
 
 def test_batch_operations(subtensor, alice_wallet, bob_wallet):
@@ -153,6 +205,12 @@ def test_batch_operations(subtensor, alice_wallet, bob_wallet):
             wait_for_inclusion=True,
             wait_for_finalization=True,
         )
+
+    for netuid in netuids:
+        # make sure we passed start_call limit
+        subtensor.wait_for_block(subtensor.block + 20)
+        status, message = subtensor.start_call(alice_wallet, netuid, True, True)
+        assert status, message
 
     for netuid in netuids:
         subtensor.burned_register(
@@ -259,22 +317,31 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
     2. Succeeds with strict threshold (0.5%) and partial staking allowed
     3. Succeeds with lenient threshold (10% and 30%) and no partial staking
     """
-    netuid = 2
+    alice_subnet_netuid = subtensor.get_total_subnets()  # 2
     # Register root as Alice - the subnet owner and validator
     assert subtensor.register_subnet(alice_wallet)
 
     # Verify subnet created successfully
-    assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
+    assert subtensor.subnet_exists(
+        alice_subnet_netuid
+    ), "Subnet wasn't created successfully"
+
+    # make sure we passed start_call limit
+    subtensor.wait_for_block(subtensor.block + 20)
+    status, message = subtensor.start_call(
+        alice_wallet, alice_subnet_netuid, True, True
+    )
+    assert status, message
 
     subtensor.burned_register(
         alice_wallet,
-        netuid=netuid,
+        netuid=alice_subnet_netuid,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
     subtensor.burned_register(
         bob_wallet,
-        netuid=netuid,
+        netuid=alice_subnet_netuid,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -282,7 +349,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
     initial_stake = subtensor.get_stake(
         alice_wallet.coldkey.ss58_address,
         bob_wallet.hotkey.ss58_address,
-        netuid=netuid,
+        netuid=alice_subnet_netuid,
     )
     assert initial_stake == Balance(0)
 
@@ -293,7 +360,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
     success = subtensor.add_stake(
         alice_wallet,
         bob_wallet.hotkey.ss58_address,
-        netuid=netuid,
+        netuid=alice_subnet_netuid,
         amount=stake_amount,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -306,7 +373,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
     current_stake = subtensor.get_stake(
         alice_wallet.coldkey.ss58_address,
         bob_wallet.hotkey.ss58_address,
-        netuid=netuid,
+        netuid=alice_subnet_netuid,
     )
     assert current_stake == Balance(0), "Stake should not change after failed attempt"
 
@@ -314,7 +381,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
     success = subtensor.add_stake(
         alice_wallet,
         bob_wallet.hotkey.ss58_address,
-        netuid=netuid,
+        netuid=alice_subnet_netuid,
         amount=stake_amount,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -327,7 +394,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
     partial_stake = subtensor.get_stake(
         alice_wallet.coldkey.ss58_address,
         bob_wallet.hotkey.ss58_address,
-        netuid=netuid,
+        netuid=alice_subnet_netuid,
     )
     assert partial_stake > Balance(0), "Partial stake should be added"
     assert (
@@ -339,7 +406,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
     success = subtensor.add_stake(
         alice_wallet,
         bob_wallet.hotkey.ss58_address,
-        netuid=netuid,
+        netuid=alice_subnet_netuid,
         amount=amount,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -352,7 +419,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
     full_stake = subtensor.get_stake(
         alice_wallet.coldkey.ss58_address,
         bob_wallet.hotkey.ss58_address,
-        netuid=netuid,
+        netuid=alice_subnet_netuid,
     )
 
     # Test Unstaking Scenarios
@@ -360,7 +427,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
     success = subtensor.unstake(
         alice_wallet,
         bob_wallet.hotkey.ss58_address,
-        netuid=netuid,
+        netuid=alice_subnet_netuid,
         amount=stake_amount,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -373,7 +440,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
     current_stake = subtensor.get_stake(
         alice_wallet.coldkey.ss58_address,
         bob_wallet.hotkey.ss58_address,
-        netuid=netuid,
+        netuid=alice_subnet_netuid,
     )
     assert (
         current_stake == full_stake
@@ -383,7 +450,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
     success = subtensor.unstake(
         alice_wallet,
         bob_wallet.hotkey.ss58_address,
-        netuid=netuid,
+        netuid=alice_subnet_netuid,
         amount=current_stake,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -396,7 +463,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
     partial_unstake = subtensor.get_stake(
         alice_wallet.coldkey.ss58_address,
         bob_wallet.hotkey.ss58_address,
-        netuid=netuid,
+        netuid=alice_subnet_netuid,
     )
     assert partial_unstake > Balance(0), "Some stake should remain"
 
@@ -404,7 +471,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
     success = subtensor.unstake(
         alice_wallet,
         bob_wallet.hotkey.ss58_address,
-        netuid=netuid,
+        netuid=alice_subnet_netuid,
         amount=partial_unstake,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -430,6 +497,15 @@ def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
     dest_netuid = 3
     assert subtensor.register_subnet(bob_wallet)
     assert subtensor.subnet_exists(dest_netuid), "Subnet wasn't created successfully"
+
+    # make sure we passed start_call limit
+    subtensor.wait_for_block(subtensor.block + 20)
+
+    status, message = subtensor.start_call(bob_wallet, origin_netuid, True, True)
+    assert status, message
+
+    status, message = subtensor.start_call(bob_wallet, dest_netuid, True, True)
+    assert status, message
 
     # Register Alice on both subnets
     subtensor.burned_register(
@@ -529,10 +605,22 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet):
     - Moving stake from one hotkey-subnet pair to another
     """
 
-    netuid = 1
+    alice_subnet_netuid = 2
+    assert subtensor.register_subnet(alice_wallet)
+    assert subtensor.subnet_exists(
+        alice_subnet_netuid
+    ), "Subnet wasn't created successfully"
+
+    # make sure we passed start_call limit
+    subtensor.wait_for_block(subtensor.block + 20)
+    status, message = subtensor.start_call(
+        alice_wallet, alice_subnet_netuid, True, True
+    )
+    assert status, message
+
     subtensor.burned_register(
         alice_wallet,
-        netuid=1,
+        netuid=alice_subnet_netuid,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -540,7 +628,7 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet):
     assert subtensor.add_stake(
         alice_wallet,
         alice_wallet.hotkey.ss58_address,
-        netuid=netuid,
+        netuid=alice_subnet_netuid,
         amount=Balance.from_tao(1_000),
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -552,23 +640,32 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet):
         StakeInfo(
             hotkey_ss58=alice_wallet.hotkey.ss58_address,
             coldkey_ss58=alice_wallet.coldkey.ss58_address,
-            netuid=netuid,
-            stake=get_dynamic_balance(stakes[0].stake.rao, netuid),
+            netuid=alice_subnet_netuid,
+            stake=get_dynamic_balance(stakes[0].stake.rao, alice_subnet_netuid),
             locked=Balance(0),
-            emission=get_dynamic_balance(stakes[0].emission.rao, netuid),
+            emission=get_dynamic_balance(stakes[0].emission.rao, alice_subnet_netuid),
             drain=0,
             is_registered=True,
         ),
     ]
 
+    bob_subnet_netuid = 3
     subtensor.register_subnet(bob_wallet)
+    assert subtensor.subnet_exists(
+        bob_subnet_netuid
+    ), "Subnet wasn't created successfully"
+
+    # make sure we passed start_call limit
+    subtensor.wait_for_block(subtensor.block + 20)
+    status, message = subtensor.start_call(bob_wallet, bob_subnet_netuid, True, True)
+    assert status, message
 
     assert subtensor.move_stake(
         alice_wallet,
         origin_hotkey=alice_wallet.hotkey.ss58_address,
-        origin_netuid=1,
+        origin_netuid=alice_subnet_netuid,
         destination_hotkey=bob_wallet.hotkey.ss58_address,
-        destination_netuid=2,
+        destination_netuid=bob_subnet_netuid,
         amount=stakes[0].stake,
         wait_for_finalization=True,
         wait_for_inclusion=True,
@@ -576,15 +673,24 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet):
 
     stakes = subtensor.get_stake_for_coldkey(alice_wallet.coldkey.ss58_address)
 
-    netuid = 2
     assert stakes == [
+        StakeInfo(
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
+            coldkey_ss58=alice_wallet.coldkey.ss58_address,
+            netuid=alice_subnet_netuid,
+            stake=get_dynamic_balance(stakes[0].stake.rao, bob_subnet_netuid),
+            locked=Balance(0).set_unit(bob_subnet_netuid),
+            emission=get_dynamic_balance(stakes[0].emission.rao, bob_subnet_netuid),
+            drain=0,
+            is_registered=True,
+        ),
         StakeInfo(
             hotkey_ss58=bob_wallet.hotkey.ss58_address,
             coldkey_ss58=alice_wallet.coldkey.ss58_address,
-            netuid=netuid,
-            stake=get_dynamic_balance(stakes[0].stake.rao, netuid),
-            locked=Balance(0),
-            emission=get_dynamic_balance(stakes[0].emission.rao, netuid),
+            netuid=bob_subnet_netuid,
+            stake=get_dynamic_balance(stakes[1].stake.rao, bob_subnet_netuid),
+            locked=Balance(0).set_unit(bob_subnet_netuid),
+            emission=get_dynamic_balance(stakes[1].emission.rao, bob_subnet_netuid),
             drain=0,
             is_registered=True,
         ),
@@ -597,11 +703,23 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
     - Adding stake
     - Transferring stake from one coldkey-subnet pair to another
     """
-    netuid = 1
+    alice_subnet_netuid = 2
+
+    assert subtensor.register_subnet(alice_wallet)
+    assert subtensor.subnet_exists(
+        alice_subnet_netuid
+    ), "Subnet wasn't created successfully"
+
+    # make sure we passed start_call limit
+    subtensor.wait_for_block(subtensor.block + 20)
+    status, message = subtensor.start_call(
+        alice_wallet, alice_subnet_netuid, True, True
+    )
+    assert status, message
 
     subtensor.burned_register(
         alice_wallet,
-        netuid=netuid,
+        netuid=alice_subnet_netuid,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -609,7 +727,7 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
     assert subtensor.add_stake(
         alice_wallet,
         alice_wallet.hotkey.ss58_address,
-        netuid=netuid,
+        netuid=alice_subnet_netuid,
         amount=Balance.from_tao(1_000),
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -621,10 +739,12 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
         StakeInfo(
             hotkey_ss58=alice_wallet.hotkey.ss58_address,
             coldkey_ss58=alice_wallet.coldkey.ss58_address,
-            netuid=netuid,
-            stake=get_dynamic_balance(alice_stakes[0].stake.rao, netuid),
+            netuid=alice_subnet_netuid,
+            stake=get_dynamic_balance(alice_stakes[0].stake.rao, alice_subnet_netuid),
             locked=Balance(0),
-            emission=get_dynamic_balance(alice_stakes[0].emission.rao, netuid),
+            emission=get_dynamic_balance(
+                alice_stakes[0].emission.rao, alice_subnet_netuid
+            ),
             drain=0,
             is_registered=True,
         ),
@@ -634,10 +754,17 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
 
     assert bob_stakes == []
 
+    dave_subnet_netuid = 3
     subtensor.register_subnet(dave_wallet)
+
+    # make sure we passed start_call limit
+    subtensor.wait_for_block(subtensor.block + 20)
+    status, message = subtensor.start_call(dave_wallet, dave_subnet_netuid, True, True)
+    assert status, message
+
     subtensor.burned_register(
         bob_wallet,
-        netuid=2,
+        netuid=dave_subnet_netuid,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -646,8 +773,8 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
         alice_wallet,
         destination_coldkey_ss58=bob_wallet.coldkey.ss58_address,
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
-        origin_netuid=1,
-        destination_netuid=2,
+        origin_netuid=alice_subnet_netuid,
+        destination_netuid=dave_subnet_netuid,
         amount=alice_stakes[0].stake,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -655,19 +782,33 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
 
     alice_stakes = subtensor.get_stake_for_coldkey(alice_wallet.coldkey.ss58_address)
 
-    assert alice_stakes == []
+    assert alice_stakes == [
+        StakeInfo(
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
+            coldkey_ss58=alice_wallet.coldkey.ss58_address,
+            netuid=alice_subnet_netuid,
+            stake=get_dynamic_balance(alice_stakes[0].stake.rao, alice_subnet_netuid),
+            locked=Balance(0).set_unit(alice_subnet_netuid),
+            emission=get_dynamic_balance(
+                alice_stakes[0].emission.rao, alice_subnet_netuid
+            ),
+            drain=0,
+            is_registered=True,
+        ),
+    ]
 
     bob_stakes = subtensor.get_stake_for_coldkey(bob_wallet.coldkey.ss58_address)
 
-    netuid = 2
     assert bob_stakes == [
         StakeInfo(
             hotkey_ss58=alice_wallet.hotkey.ss58_address,
             coldkey_ss58=bob_wallet.coldkey.ss58_address,
-            netuid=2,
-            stake=get_dynamic_balance(bob_stakes[0].stake.rao, netuid),
+            netuid=dave_subnet_netuid,
+            stake=get_dynamic_balance(bob_stakes[0].stake.rao, dave_subnet_netuid),
             locked=Balance(0),
-            emission=get_dynamic_balance(bob_stakes[0].emission.rao, netuid),
+            emission=get_dynamic_balance(
+                bob_stakes[0].emission.rao, dave_subnet_netuid
+            ),
             drain=0,
             is_registered=False,
         ),
