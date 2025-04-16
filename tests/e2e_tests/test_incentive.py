@@ -32,9 +32,9 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     assert subtensor.register_subnet(alice_wallet)
 
     # Verify subnet <netuid> created successfully
-    assert subtensor.subnet_exists(
-        alice_subnet_netuid
-    ), "Subnet wasn't created successfully"
+    assert subtensor.subnet_exists(alice_subnet_netuid), (
+        "Subnet wasn't created successfully"
+    )
 
     # make sure we passed start_call limit
     subtensor.wait_for_block(subtensor.block + 20)

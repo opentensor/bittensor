@@ -52,9 +52,9 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     assert subtensor.register_subnet(alice_wallet), "Unable to register the subnet"
 
     # Verify subnet was created successfully
-    assert subtensor.subnet_exists(
-        alice_subnet_netuid
-    ), "Subnet wasn't created successfully"
+    assert subtensor.subnet_exists(alice_subnet_netuid), (
+        "Subnet wasn't created successfully"
+    )
 
     # make sure we passed start_call limit (10 blocks)
     subtensor.wait_for_block(subtensor.block + 10)

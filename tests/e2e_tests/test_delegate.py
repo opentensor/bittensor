@@ -243,9 +243,9 @@ async def test_delegates(subtensor, alice_wallet, bob_wallet):
     assert subtensor.register_subnet(alice_wallet), "Subnet wasn't created"
 
     # Verify subnet <netuid> created successfully
-    assert subtensor.subnet_exists(
-        alice_subnet_netuid
-    ), "Subnet wasn't created successfully"
+    assert subtensor.subnet_exists(alice_subnet_netuid), (
+        "Subnet wasn't created successfully"
+    )
 
     # make sure we passed start_call limit
     subtensor.wait_for_block(subtensor.block + 20)
@@ -300,9 +300,9 @@ def test_nominator_min_required_stake(local_chain, subtensor, alice_wallet, bob_
     ), "Subnet wasn't created"
 
     # Verify subnet <netuid> created successfully
-    assert subtensor.subnet_exists(
-        alice_subnet_netuid
-    ), "Subnet wasn't created successfully"
+    assert subtensor.subnet_exists(alice_subnet_netuid), (
+        "Subnet wasn't created successfully"
+    )
 
     # make sure we passed start_call limit
     subtensor.wait_for_block(subtensor.block + 20)

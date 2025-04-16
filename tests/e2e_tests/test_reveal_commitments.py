@@ -50,9 +50,9 @@ async def test_set_reveal_commitment(local_chain, subtensor, alice_wallet, bob_w
     )
 
     # Verify subnet 2 created successfully
-    assert subtensor.subnet_exists(
-        alice_subnet_netuid
-    ), "Subnet wasn't created successfully"
+    assert subtensor.subnet_exists(alice_subnet_netuid), (
+        "Subnet wasn't created successfully"
+    )
 
     # Set commitment from Alice hotkey
     message_alice = f"This is test message with time {time.time()} from Alice."

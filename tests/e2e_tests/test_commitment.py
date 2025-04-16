@@ -10,9 +10,9 @@ logging.set_trace()
 def test_commitment(local_chain, subtensor, alice_wallet, dave_wallet):
     dave_subnet_netuid = 2
     assert subtensor.register_subnet(dave_wallet)
-    assert subtensor.subnet_exists(
-        dave_subnet_netuid
-    ), "Subnet wasn't created successfully"
+    assert subtensor.subnet_exists(dave_subnet_netuid), (
+        "Subnet wasn't created successfully"
+    )
 
     subtensor.wait_for_block(subtensor.block + 20)
     status, message = subtensor.start_call(dave_wallet, dave_subnet_netuid, True, True)
@@ -90,9 +90,9 @@ async def test_commitment_async(
 ):
     dave_subnet_netuid = 2
     assert await async_subtensor.register_subnet(dave_wallet)
-    assert await async_subtensor.subnet_exists(
-        dave_subnet_netuid
-    ), "Subnet wasn't created successfully"
+    assert await async_subtensor.subnet_exists(dave_subnet_netuid), (
+        "Subnet wasn't created successfully"
+    )
 
     await async_subtensor.wait_for_block(await async_subtensor.block + 20)
     status, message = await async_subtensor.start_call(

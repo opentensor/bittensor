@@ -20,9 +20,9 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
     assert subtensor.register_subnet(alice_wallet)
 
     # Verify subnet <netuid> created successfully
-    assert subtensor.subnet_exists(
-        alice_subnet_netuid
-    ), "Subnet wasn't created successfully"
+    assert subtensor.subnet_exists(alice_subnet_netuid), (
+        "Subnet wasn't created successfully"
+    )
 
     # make sure we passed start_call limit
     subtensor.wait_for_block(subtensor.block + 20)
@@ -322,9 +322,9 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
     assert subtensor.register_subnet(alice_wallet)
 
     # Verify subnet created successfully
-    assert subtensor.subnet_exists(
-        alice_subnet_netuid
-    ), "Subnet wasn't created successfully"
+    assert subtensor.subnet_exists(alice_subnet_netuid), (
+        "Subnet wasn't created successfully"
+    )
 
     # make sure we passed start_call limit
     subtensor.wait_for_block(subtensor.block + 20)
@@ -607,9 +607,9 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet):
 
     alice_subnet_netuid = 2
     assert subtensor.register_subnet(alice_wallet)
-    assert subtensor.subnet_exists(
-        alice_subnet_netuid
-    ), "Subnet wasn't created successfully"
+    assert subtensor.subnet_exists(alice_subnet_netuid), (
+        "Subnet wasn't created successfully"
+    )
 
     # make sure we passed start_call limit
     subtensor.wait_for_block(subtensor.block + 20)
@@ -651,9 +651,9 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet):
 
     bob_subnet_netuid = 3
     subtensor.register_subnet(bob_wallet)
-    assert subtensor.subnet_exists(
-        bob_subnet_netuid
-    ), "Subnet wasn't created successfully"
+    assert subtensor.subnet_exists(bob_subnet_netuid), (
+        "Subnet wasn't created successfully"
+    )
 
     # make sure we passed start_call limit
     subtensor.wait_for_block(subtensor.block + 20)
@@ -706,9 +706,9 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
     alice_subnet_netuid = 2
 
     assert subtensor.register_subnet(alice_wallet)
-    assert subtensor.subnet_exists(
-        alice_subnet_netuid
-    ), "Subnet wasn't created successfully"
+    assert subtensor.subnet_exists(alice_subnet_netuid), (
+        "Subnet wasn't created successfully"
+    )
 
     # make sure we passed start_call limit
     subtensor.wait_for_block(subtensor.block + 20)
