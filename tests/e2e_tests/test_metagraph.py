@@ -46,23 +46,29 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
         AssertionError: If any of the checks or verifications fail
     """
     logging.console.info("Testing test_metagraph_command")
-    netuid = 2
+    alice_subnet_netuid = 2
 
     # Register the subnet through Alice
     assert subtensor.register_subnet(alice_wallet), "Unable to register the subnet"
 
     # Verify subnet was created successfully
-    assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
+    assert subtensor.subnet_exists(
+        alice_subnet_netuid
+    ), "Subnet wasn't created successfully"
+
+    # make sure we passed start_call limit (10 blocks)
+    subtensor.wait_for_block(subtensor.block + 10)
+    assert subtensor.start_call(alice_wallet, alice_subnet_netuid, True, True)[0]
 
     # Initialize metagraph
-    metagraph = subtensor.metagraph(netuid=netuid)
+    metagraph = subtensor.metagraph(netuid=alice_subnet_netuid)
 
     # Assert metagraph has only Alice (owner)
     assert len(metagraph.uids) == 1, "Metagraph doesn't have exactly 1 neuron"
 
     # Register Bob to the subnet
     assert subtensor.burned_register(
-        bob_wallet, netuid
+        bob_wallet, alice_subnet_netuid
     ), "Unable to register Bob as a neuron"
 
     # Refresh the metagraph
@@ -83,11 +89,11 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
 
     # Fetch UID of Bob
     uid = subtensor.get_uid_for_hotkey_on_subnet(
-        bob_wallet.hotkey.ss58_address, netuid=netuid
+        bob_wallet.hotkey.ss58_address, netuid=alice_subnet_netuid
     )
 
     # Fetch neuron info of Bob through subtensor and metagraph
-    neuron_info_bob = subtensor.neuron_for_uid(uid, netuid=netuid)
+    neuron_info_bob = subtensor.neuron_for_uid(uid, netuid=alice_subnet_netuid)
     metagraph_dict = neuron_to_dict(metagraph.neurons[uid])
     subtensor_dict = neuron_to_dict(neuron_info_bob)
 
@@ -97,11 +103,11 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     ), "Neuron info of Bob doesn't match b/w metagraph & subtensor"
 
     # Create pre_dave metagraph for future verifications
-    metagraph_pre_dave = subtensor.metagraph(netuid=netuid)
+    metagraph_pre_dave = subtensor.metagraph(netuid=alice_subnet_netuid)
 
     # Register Dave as a neuron
     assert subtensor.burned_register(
-        dave_wallet, netuid
+        dave_wallet, alice_subnet_netuid
     ), "Unable to register Dave as a neuron"
 
     metagraph.sync(subtensor=subtensor)
@@ -122,10 +128,10 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
 
     # Add stake by Bob
     tao = Balance.from_tao(10_000)
-    alpha, _ = subtensor.subnet(netuid).tao_to_alpha_with_slippage(tao)
+    alpha, _ = subtensor.subnet(alice_subnet_netuid).tao_to_alpha_with_slippage(tao)
     assert subtensor.add_stake(
         bob_wallet,
-        netuid=netuid,
+        netuid=alice_subnet_netuid,
         amount=tao,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -177,7 +183,7 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     logging.console.info("✅ Passed test_metagraph")
 
 
-def test_metagraph_info(subtensor, alice_wallet):
+def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
     """
     Tests:
     - Check MetagraphInfo
@@ -185,6 +191,9 @@ def test_metagraph_info(subtensor, alice_wallet):
     - Register Subnet
     - Check MetagraphInfo is updated
     """
+
+    alice_subnet_netuid = subtensor.get_total_subnets()  # 2
+    subtensor.register_subnet(alice_wallet)
 
     metagraph_info = subtensor.get_metagraph_info(netuid=1, block=1)
 
@@ -358,51 +367,61 @@ def test_metagraph_info(subtensor, alice_wallet):
         metagraph_info,
     ]
 
-    subtensor.burned_register(
-        alice_wallet,
-        netuid=1,
+    subtensor.wait_for_block(subtensor.block + 20)
+    status, message = subtensor.start_call(
+        alice_wallet, alice_subnet_netuid, True, True
+    )
+    assert status, message
+
+    assert subtensor.burned_register(
+        bob_wallet,
+        netuid=alice_subnet_netuid,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
 
-    metagraph_info = subtensor.get_metagraph_info(netuid=1)
+    metagraph_info = subtensor.get_metagraph_info(netuid=alice_subnet_netuid)
 
     assert metagraph_info.num_uids == 2
     assert metagraph_info.hotkeys == [
-        "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
         alice_wallet.hotkey.ss58_address,
+        bob_wallet.hotkey.ss58_address,
     ]
     assert metagraph_info.coldkeys == [
-        "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
         alice_wallet.coldkey.ss58_address,
+        bob_wallet.coldkey.ss58_address,
     ]
     assert metagraph_info.tao_dividends_per_hotkey == [
-        ("5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM", Balance(0)),
         (alice_wallet.hotkey.ss58_address, Balance(0)),
+        (bob_wallet.hotkey.ss58_address, Balance(0)),
     ]
     assert metagraph_info.alpha_dividends_per_hotkey == [
-        ("5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM", Balance(0)),
         (alice_wallet.hotkey.ss58_address, Balance(0)),
+        (bob_wallet.hotkey.ss58_address, Balance(0)),
     ]
 
-    subtensor.register_subnet(
+    alice_subnet_netuid = subtensor.get_total_subnets()  # 3
+    assert subtensor.register_subnet(
         alice_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
 
     block = subtensor.get_current_block()
-    metagraph_info = subtensor.get_metagraph_info(netuid=2, block=block)
+    metagraph_info = subtensor.get_metagraph_info(
+        netuid=alice_subnet_netuid, block=block
+    )
 
     assert metagraph_info.owner_coldkey == (tuple(alice_wallet.hotkey.public_key),)
     assert metagraph_info.owner_hotkey == (tuple(alice_wallet.coldkey.public_key),)
 
     metagraph_infos = subtensor.get_all_metagraphs_info(block)
 
-    assert len(metagraph_infos) == 3
+    assert len(metagraph_infos) == 4
     assert metagraph_infos[-1] == metagraph_info
 
-    metagraph_info = subtensor.get_metagraph_info(netuid=3)
+    # non-existed subnet
+    metagraph_info = subtensor.get_metagraph_info(netuid=alice_subnet_netuid + 1)
 
     assert metagraph_info is None
 
