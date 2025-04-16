@@ -20,9 +20,9 @@ def test_hotkeys(subtensor, alice_wallet, dave_wallet):
 
     dave_subnet_netuid = 2
     assert subtensor.register_subnet(dave_wallet)
-    assert subtensor.subnet_exists(
-        dave_subnet_netuid
-    ), f"Subnet #{dave_subnet_netuid} does not exist."
+    assert subtensor.subnet_exists(dave_subnet_netuid), (
+        f"Subnet #{dave_subnet_netuid} does not exist."
+    )
 
     # make sure we passed start_call limit
     subtensor.wait_for_block(subtensor.block + 20)
@@ -81,9 +81,9 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
 
     dave_subnet_netuid = 2
     assert subtensor.register_subnet(dave_wallet)
-    assert subtensor.subnet_exists(
-        dave_subnet_netuid
-    ), f"Subnet #{dave_subnet_netuid} does not exist."
+    assert subtensor.subnet_exists(dave_subnet_netuid), (
+        f"Subnet #{dave_subnet_netuid} does not exist."
+    )
 
     # make sure we passed start_call limit
     subtensor.wait_for_block(subtensor.block + 20)
