@@ -33,9 +33,9 @@ async def test_stake_fee_api(local_chain, subtensor, alice_wallet, bob_wallet):
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
     )
     assert isinstance(stake_fee_0, Balance), "Stake fee should be a Balance object"
-    assert (
-        stake_fee_0 >= min_stake_fee
-    ), "Stake fee should be greater than the minimum stake fee"
+    assert stake_fee_0 >= min_stake_fee, (
+        "Stake fee should be greater than the minimum stake fee"
+    )
 
     # Test unstake fee
     stake_fee_1 = subtensor.get_unstake_fee(
@@ -45,9 +45,9 @@ async def test_stake_fee_api(local_chain, subtensor, alice_wallet, bob_wallet):
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
     )
     assert isinstance(stake_fee_1, Balance), "Stake fee should be a Balance object"
-    assert (
-        stake_fee_1 >= min_stake_fee
-    ), "Stake fee should be greater than the minimum stake fee"
+    assert stake_fee_1 >= min_stake_fee, (
+        "Stake fee should be greater than the minimum stake fee"
+    )
 
     # Test various stake movement scenarios
     movement_scenarios = [
@@ -91,15 +91,15 @@ async def test_stake_fee_api(local_chain, subtensor, alice_wallet, bob_wallet):
             destination_coldkey_ss58=scenario["dest_coldkey"],
         )
         assert isinstance(stake_fee, Balance), "Stake fee should be a Balance object"
-        assert (
-            stake_fee >= min_stake_fee
-        ), "Stake fee should be greater than the minimum stake fee"
+        assert stake_fee >= min_stake_fee, (
+            "Stake fee should be greater than the minimum stake fee"
+        )
 
     # Test cross-subnet movement
     netuid2 = 3
-    assert subtensor.register_subnet(
-        alice_wallet
-    ), "Unable to register the second subnet"
+    assert subtensor.register_subnet(alice_wallet), (
+        "Unable to register the second subnet"
+    )
     assert subtensor.subnet_exists(netuid2), "Second subnet wasn't created successfully"
 
     stake_fee = subtensor.get_stake_movement_fee(
@@ -112,6 +112,6 @@ async def test_stake_fee_api(local_chain, subtensor, alice_wallet, bob_wallet):
         destination_coldkey_ss58=alice_wallet.coldkeypub.ss58_address,
     )
     assert isinstance(stake_fee, Balance), "Stake fee should be a Balance object"
-    assert (
-        stake_fee >= min_stake_fee
-    ), "Stake fee should be greater than the minimum stake fee"
+    assert stake_fee >= min_stake_fee, (
+        "Stake fee should be greater than the minimum stake fee"
+    )

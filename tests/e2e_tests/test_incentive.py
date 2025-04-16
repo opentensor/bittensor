@@ -44,14 +44,14 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     assert status, message
 
     # Register Bob as a neuron on the subnet
-    assert subtensor.burned_register(
-        bob_wallet, alice_subnet_netuid
-    ), "Unable to register Bob as a neuron"
+    assert subtensor.burned_register(bob_wallet, alice_subnet_netuid), (
+        "Unable to register Bob as a neuron"
+    )
 
     # Assert two neurons are in network
-    assert (
-        len(subtensor.neurons(netuid=alice_subnet_netuid)) == 2
-    ), "Alice & Bob not registered in the subnet"
+    assert len(subtensor.neurons(netuid=alice_subnet_netuid)) == 2, (
+        "Alice & Bob not registered in the subnet"
+    )
 
     # Wait for the first epoch to pass
     await wait_epoch(subtensor, alice_subnet_netuid)

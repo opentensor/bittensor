@@ -33,9 +33,9 @@ async def test_set_reveal_commitment(local_chain, subtensor, alice_wallet, bob_w
     logging.console.info("Testing Drand encrypted commitments.")
 
     # Register subnet as Alice
-    assert subtensor.register_subnet(
-        alice_wallet, True, True
-    ), "Unable to register the subnet"
+    assert subtensor.register_subnet(alice_wallet, True, True), (
+        "Unable to register the subnet"
+    )
 
     # make sure we passed start_call limit
     subtensor.wait_for_block(subtensor.block + 20)
@@ -45,9 +45,9 @@ async def test_set_reveal_commitment(local_chain, subtensor, alice_wallet, bob_w
     assert status, message
 
     # Register Bob's neuron
-    assert subtensor.burned_register(
-        bob_wallet, alice_subnet_netuid, True, True
-    ), "Bob's neuron was not register."
+    assert subtensor.burned_register(bob_wallet, alice_subnet_netuid, True, True), (
+        "Bob's neuron was not register."
+    )
 
     # Verify subnet 2 created successfully
     assert subtensor.subnet_exists(

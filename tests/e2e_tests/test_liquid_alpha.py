@@ -39,9 +39,9 @@ def test_liquid_alpha(local_chain, subtensor, alice_wallet):
     assert subtensor.subnet_exists(netuid)
 
     # Register a neuron (Alice) to the subnet
-    assert subtensor.burned_register(
-        alice_wallet, netuid
-    ), "Unable to register Alice as a neuron"
+    assert subtensor.burned_register(alice_wallet, netuid), (
+        "Unable to register Alice as a neuron"
+    )
 
     # Stake to become to top neuron after the first epoch
     subtensor.add_stake(
@@ -87,12 +87,12 @@ def test_liquid_alpha(local_chain, subtensor, alice_wallet):
         call_function="sudo_set_alpha_values",
         call_params=call_params,
     ), "Unable to set alpha_values"
-    assert (
-        subtensor.get_subnet_hyperparameters(netuid).alpha_high == 54099
-    ), "Failed to set alpha high"
-    assert (
-        subtensor.get_subnet_hyperparameters(netuid).alpha_low == 87
-    ), "Failed to set alpha low"
+    assert subtensor.get_subnet_hyperparameters(netuid).alpha_high == 54099, (
+        "Failed to set alpha high"
+    )
+    assert subtensor.get_subnet_hyperparameters(netuid).alpha_low == 87, (
+        "Failed to set alpha low"
+    )
 
     # Testing alpha high upper and lower bounds
 
@@ -166,19 +166,19 @@ def test_liquid_alpha(local_chain, subtensor, alice_wallet):
         call_params=call_params,
     ), "Unable to set liquid alpha values"
 
-    assert (
-        subtensor.get_subnet_hyperparameters(netuid).alpha_high == 53083
-    ), "Failed to set alpha high"
-    assert (
-        subtensor.get_subnet_hyperparameters(netuid).alpha_low == 6553
-    ), "Failed to set alpha low"
+    assert subtensor.get_subnet_hyperparameters(netuid).alpha_high == 53083, (
+        "Failed to set alpha high"
+    )
+    assert subtensor.get_subnet_hyperparameters(netuid).alpha_low == 6553, (
+        "Failed to set alpha low"
+    )
 
     # Disable Liquid Alpha
     assert sudo_set_hyperparameter_bool(
         local_chain, alice_wallet, "sudo_set_liquid_alpha_enabled", False, netuid
     ), "Unable to disable liquid alpha"
 
-    assert (
-        subtensor.get_subnet_hyperparameters(netuid).liquid_alpha_enabled is False
-    ), "Failed to disable liquid alpha"
+    assert subtensor.get_subnet_hyperparameters(netuid).liquid_alpha_enabled is False, (
+        "Failed to disable liquid alpha"
+    )
     logging.console.info("✅ Passed test_liquid_alpha")
