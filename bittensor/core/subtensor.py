@@ -517,6 +517,7 @@ class Subtensor(SubtensorMixin):
         return_val = (
             False
             if result is None
+            # not a genesis key of fast blocks
             else result != "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
         )
         return return_val
