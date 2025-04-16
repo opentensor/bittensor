@@ -70,12 +70,15 @@ def test_set_weights_extrinsic(
 ):
     uids_tensor = torch.tensor(uids, dtype=torch.int64)
     weights_tensor = torch.tensor(weights, dtype=torch.float32)
-    with patch(
-        "bittensor.utils.weight_utils.convert_weights_and_uids_for_emit",
-        return_value=(uids_tensor, weights_tensor),
-    ), patch(
-        "bittensor.core.extrinsics.set_weights._do_set_weights",
-        return_value=(expected_success, "Mock error message"),
+    with (
+        patch(
+            "bittensor.utils.weight_utils.convert_weights_and_uids_for_emit",
+            return_value=(uids_tensor, weights_tensor),
+        ),
+        patch(
+            "bittensor.core.extrinsics.set_weights._do_set_weights",
+            return_value=(expected_success, "Mock error message"),
+        ),
     ):
         result, message = set_weights_extrinsic(
             subtensor=mock_subtensor,
