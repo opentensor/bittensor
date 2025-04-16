@@ -127,7 +127,7 @@ async def add_stake_extrinsic(
             logging.info(
                 f":satellite: [magenta]Safe Staking to:[/magenta] "
                 f"[blue]netuid: [green]{netuid}[/green], amount: [green]{staking_balance}[/green], "
-                f"tolerance percentage: [green]{rate_tolerance*100}%[/green], "
+                f"tolerance percentage: [green]{rate_tolerance * 100}%[/green], "
                 f"price limit: [green]{rate_with_tolerance}[/green], "
                 f"original price: [green]{base_rate}[/green], "
                 f"with partial stake: [green]{allow_partial_stake}[/green] "

@@ -42,8 +42,8 @@ def test_transfer(subtensor, alice_wallet):
     balance_after = subtensor.get_balance(alice_wallet.coldkeypub.ss58_address)
 
     # Assert correct transfer calculations
-    assert (
-        balance_before - transfer_fee - transfer_value == balance_after
-    ), f"Expected {balance_before - transfer_value - transfer_fee}, got {balance_after}"
+    assert balance_before - transfer_fee - transfer_value == balance_after, (
+        f"Expected {balance_before - transfer_value - transfer_fee}, got {balance_after}"
+    )
 
     print("✅ Passed test_transfer")

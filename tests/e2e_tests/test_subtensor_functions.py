@@ -55,9 +55,9 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
 
     # Assert correct balance is fetched for Alice
     alice_balance = subtensor.get_balance(alice_wallet.coldkeypub.ss58_address)
-    assert (
-        alice_balance == initial_alice_balance
-    ), "Balance for Alice wallet doesn't match with pre-def value"
+    assert alice_balance == initial_alice_balance, (
+        "Balance for Alice wallet doesn't match with pre-def value"
+    )
 
     # Subnet burn cost is initially lower before we register a subnet
     pre_subnet_creation_cost = subtensor.get_subnet_burn_cost()
@@ -75,9 +75,9 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
 
     # Assert amount is deducted once a subnetwork is registered by Alice
     alice_balance_post_sn = subtensor.get_balance(alice_wallet.coldkeypub.ss58_address)
-    assert (
-        alice_balance_post_sn + pre_subnet_creation_cost == initial_alice_balance
-    ), "Balance is the same even after registering a subnet"
+    assert alice_balance_post_sn + pre_subnet_creation_cost == initial_alice_balance, (
+        "Balance is the same even after registering a subnet"
+    )
 
     # Subnet 2 is added after registration
     assert subtensor.get_subnets() == [0, 1, 2]
@@ -87,9 +87,9 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
     assert subtensor.subnet_exists(netuid)
 
     # Default subnetwork difficulty
-    assert (
-        subtensor.difficulty(netuid) == 10_000_000
-    ), "Couldn't fetch correct subnet difficulty"
+    assert subtensor.difficulty(netuid) == 10_000_000, (
+        "Couldn't fetch correct subnet difficulty"
+    )
 
     # Verify Alice is registered to netuid 2 and Bob isn't registered to any
     assert subtensor.get_netuids_for_hotkey(
@@ -129,9 +129,9 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
     bob_balance = subtensor.get_balance(bob_wallet.coldkeypub.ss58_address)
 
     # Register Bob to the subnet
-    assert subtensor.burned_register(
-        bob_wallet, netuid
-    ), "Unable to register Bob as a neuron"
+    assert subtensor.burned_register(bob_wallet, netuid), (
+        "Unable to register Bob as a neuron"
+    )
 
     # Verify Bob's UID on netuid 2 is 1
     assert (
@@ -146,9 +146,9 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
     bob_balance_post_reg = subtensor.get_balance(bob_wallet.coldkeypub.ss58_address)
 
     # Ensure recycled amount is only deducted from the balance after registration
-    assert (
-        bob_balance - recycle_amount == bob_balance_post_reg
-    ), "Balance for Bob is not correct after burned register"
+    assert bob_balance - recycle_amount == bob_balance_post_reg, (
+        "Balance for Bob is not correct after burned register"
+    )
 
     neuron_info_old = subtensor.get_neuron_for_pubkey_and_subnet(
         alice_wallet.hotkey.ss58_address, netuid=netuid
@@ -170,9 +170,9 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
     # ), "Neuron info not updated after running validator"
 
     # Fetch and assert existential deposit for an account in the network
-    assert (
-        subtensor.get_existential_deposit() == existential_deposit
-    ), "Existential deposit value doesn't match with pre-defined value"
+    assert subtensor.get_existential_deposit() == existential_deposit, (
+        "Existential deposit value doesn't match with pre-defined value"
+    )
 
     # Fetching all subnets in the network
     all_subnets = subtensor.get_all_subnets_info()
@@ -180,16 +180,16 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
     # Assert all netuids are present in all_subnets
     expected_netuids = [0, 1, 2]
     actual_netuids = [subnet.netuid for subnet in all_subnets]
-    assert (
-        actual_netuids == expected_netuids
-    ), f"Expected netuids {expected_netuids}, but found {actual_netuids}"
+    assert actual_netuids == expected_netuids, (
+        f"Expected netuids {expected_netuids}, but found {actual_netuids}"
+    )
 
     # Assert that the owner_ss58 of subnet 2 matches Alice's coldkey address
     expected_owner = alice_wallet.coldkeypub.ss58_address
     subnet_2 = next((subnet for subnet in all_subnets if subnet.netuid == netuid), None)
     actual_owner = subnet_2.owner_ss58
-    assert (
-        actual_owner == expected_owner
-    ), f"Expected owner {expected_owner}, but found {actual_owner}"
+    assert actual_owner == expected_owner, (
+        f"Expected owner {expected_owner}, but found {actual_owner}"
+    )
 
     print("✅ Passed test_subtensor_extrinsics")

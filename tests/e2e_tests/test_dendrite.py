@@ -67,9 +67,9 @@ async def test_dendrite(local_chain, subtensor, templates, alice_wallet, bob_wal
     assert status is True
 
     # Register Bob to the network
-    assert subtensor.burned_register(
-        bob_wallet, netuid
-    ), "Unable to register Bob as a neuron"
+    assert subtensor.burned_register(bob_wallet, netuid), (
+        "Unable to register Bob as a neuron"
+    )
 
     metagraph = subtensor.metagraph(netuid)
 
