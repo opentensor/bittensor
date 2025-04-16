@@ -1,5 +1,24 @@
 # Changelog
 
+## 9.3.1a1 /2025-04-14
+
+## What's Changed
+* Release/9.3.0 by @ibraheem-abe in https://github.com/opentensor/bittensor/pull/2805
+* Fix for flaky behavior of `test_incentive`, `test_commit_weights` and `test_set_weights`  by @basfroman in https://github.com/opentensor/bittensor/pull/2795
+* Add `get_next_epoch_start_block` method to Async/Subtensor by @basfroman in https://github.com/opentensor/bittensor/pull/2808
+* Adds compatibility for torch 2.6.0+ by @thewhaleking in https://github.com/opentensor/bittensor/pull/2811
+* f Update CONTRIBUTING.md by @Hack666r in https://github.com/opentensor/bittensor/pull/2813
+* docs: replaced discord link with documentation by @sashaphmn in https://github.com/opentensor/bittensor/pull/2809
+* sometimes it's still flaky because the chain returns data with time offset by @basfroman in https://github.com/opentensor/bittensor/pull/2816
+* Remove requirements directory by @thewhaleking in https://github.com/opentensor/bittensor/pull/2812
+* version in one place by @thewhaleking in https://github.com/opentensor/bittensor/pull/2806
+* Update CONTRIBUTING hyperlinks by @thewhaleking in https://github.com/opentensor/bittensor/pull/2820
+
+## New Contributors
+* @Hack666r made their first contribution in https://github.com/opentensor/bittensor/pull/2813
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.3.0...v9.3.1a1
+
 ## 9.3.0 /2025-04-09
 
 ## What's Changed
