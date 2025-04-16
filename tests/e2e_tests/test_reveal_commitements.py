@@ -33,14 +33,14 @@ async def test_set_reveal_commitment(local_chain, subtensor, alice_wallet, bob_w
     logging.console.info("Testing Drand encrypted commitments.")
 
     # Register subnet as Alice
-    assert subtensor.register_subnet(
-        alice_wallet, True, True
-    ), "Unable to register the subnet"
+    assert subtensor.register_subnet(alice_wallet, True, True), (
+        "Unable to register the subnet"
+    )
 
     # Register Bob's neuron
-    assert subtensor.burned_register(
-        bob_wallet, NETUID, True, True
-    ), "Bob's neuron was not register."
+    assert subtensor.burned_register(bob_wallet, NETUID, True, True), (
+        "Bob's neuron was not register."
+    )
 
     # Verify subnet 2 created successfully
     assert subtensor.subnet_exists(NETUID), "Subnet wasn't created successfully"

@@ -61,21 +61,21 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     assert len(metagraph.uids) == 1, "Metagraph doesn't have exactly 1 neuron"
 
     # Register Bob to the subnet
-    assert subtensor.burned_register(
-        bob_wallet, netuid
-    ), "Unable to register Bob as a neuron"
+    assert subtensor.burned_register(bob_wallet, netuid), (
+        "Unable to register Bob as a neuron"
+    )
 
     # Refresh the metagraph
     metagraph.sync(subtensor=subtensor)
 
     # Assert metagraph has Alice and Bob neurons
     assert len(metagraph.uids) == 2, "Metagraph doesn't have exactly 2 neurons"
-    assert (
-        metagraph.hotkeys[0] == alice_wallet.hotkey.ss58_address
-    ), "Alice's hotkey doesn't match in metagraph"
-    assert (
-        metagraph.hotkeys[1] == bob_wallet.hotkey.ss58_address
-    ), "Bob's hotkey doesn't match in metagraph"
+    assert metagraph.hotkeys[0] == alice_wallet.hotkey.ss58_address, (
+        "Alice's hotkey doesn't match in metagraph"
+    )
+    assert metagraph.hotkeys[1] == bob_wallet.hotkey.ss58_address, (
+        "Bob's hotkey doesn't match in metagraph"
+    )
     assert len(metagraph.coldkeys) == 2, "Metagraph doesn't have exactly 2 coldkey"
     assert metagraph.n.max() == 2, "Metagraph's max n is not 2"
     assert metagraph.n.min() == 2, "Metagraph's min n is not 2"
@@ -92,30 +92,30 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     subtensor_dict = neuron_to_dict(neuron_info_bob)
 
     # Verify neuron info is the same in both objects
-    assert (
-        metagraph_dict == subtensor_dict
-    ), "Neuron info of Bob doesn't match b/w metagraph & subtensor"
+    assert metagraph_dict == subtensor_dict, (
+        "Neuron info of Bob doesn't match b/w metagraph & subtensor"
+    )
 
     # Create pre_dave metagraph for future verifications
     metagraph_pre_dave = subtensor.metagraph(netuid=netuid)
 
     # Register Dave as a neuron
-    assert subtensor.burned_register(
-        dave_wallet, netuid
-    ), "Unable to register Dave as a neuron"
+    assert subtensor.burned_register(dave_wallet, netuid), (
+        "Unable to register Dave as a neuron"
+    )
 
     metagraph.sync(subtensor=subtensor)
 
     # Assert metagraph now includes Dave's neuron
-    assert (
-        len(metagraph.uids) == 3
-    ), "Metagraph doesn't have exactly 3 neurons post Dave"
-    assert (
-        metagraph.hotkeys[2] == dave_wallet.hotkey.ss58_address
-    ), "Neuron's hotkey in metagraph doesn't match"
-    assert (
-        len(metagraph.coldkeys) == 3
-    ), "Metagraph doesn't have exactly 3 coldkeys post Dave"
+    assert len(metagraph.uids) == 3, (
+        "Metagraph doesn't have exactly 3 neurons post Dave"
+    )
+    assert metagraph.hotkeys[2] == dave_wallet.hotkey.ss58_address, (
+        "Neuron's hotkey in metagraph doesn't match"
+    )
+    assert len(metagraph.coldkeys) == 3, (
+        "Metagraph doesn't have exactly 3 coldkeys post Dave"
+    )
     assert metagraph.n.max() == 3, "Metagraph's max n is not 3 post Dave"
     assert metagraph.n.min() == 3, "Metagraph's min n is not 3 post Dave"
     assert len(metagraph.addresses) == 3, "Metagraph doesn't have 3 addresses post Dave"
@@ -133,9 +133,9 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
 
     # Assert stake is added after updating metagraph
     metagraph.sync(subtensor=subtensor)
-    assert (
-        0.95 < metagraph.neurons[1].stake.rao / alpha.rao < 1.05
-    ), "Bob's stake not updated in metagraph"
+    assert 0.95 < metagraph.neurons[1].stake.rao / alpha.rao < 1.05, (
+        "Bob's stake not updated in metagraph"
+    )
 
     # Test the save() and load() mechanism
     # We save the metagraph and pre_dave loads it
@@ -150,29 +150,29 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
         shutil.rmtree(os.path.join(*metagraph_save_root_dir))
 
     # Ensure data is synced between two metagraphs
-    assert len(metagraph.uids) == len(
-        metagraph_pre_dave.uids
-    ), "UID count mismatch after save and load"
-    assert (
-        metagraph.uids == metagraph_pre_dave.uids
-    ).all(), "UIDs don't match after save and load"
+    assert len(metagraph.uids) == len(metagraph_pre_dave.uids), (
+        "UID count mismatch after save and load"
+    )
+    assert (metagraph.uids == metagraph_pre_dave.uids).all(), (
+        "UIDs don't match after save and load"
+    )
 
-    assert len(metagraph.axons) == len(
-        metagraph_pre_dave.axons
-    ), "Axon count mismatch after save and load"
-    assert (
-        metagraph.axons[1].hotkey == metagraph_pre_dave.axons[1].hotkey
-    ), "Axon hotkey mismatch after save and load"
-    assert (
-        metagraph.axons == metagraph_pre_dave.axons
-    ), "Axons don't match after save and load"
+    assert len(metagraph.axons) == len(metagraph_pre_dave.axons), (
+        "Axon count mismatch after save and load"
+    )
+    assert metagraph.axons[1].hotkey == metagraph_pre_dave.axons[1].hotkey, (
+        "Axon hotkey mismatch after save and load"
+    )
+    assert metagraph.axons == metagraph_pre_dave.axons, (
+        "Axons don't match after save and load"
+    )
 
-    assert len(metagraph.neurons) == len(
-        metagraph_pre_dave.neurons
-    ), "Neuron count mismatch after save and load"
-    assert (
-        metagraph.neurons == metagraph_pre_dave.neurons
-    ), "Neurons don't match after save and load"
+    assert len(metagraph.neurons) == len(metagraph_pre_dave.neurons), (
+        "Neuron count mismatch after save and load"
+    )
+    assert metagraph.neurons == metagraph_pre_dave.neurons, (
+        "Neurons don't match after save and load"
+    )
 
     logging.console.info("✅ Passed test_metagraph")
 

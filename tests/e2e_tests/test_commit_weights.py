@@ -51,9 +51,9 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
         subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_period == 1
     ), "Failed to set commit/reveal periods"
 
-    assert (
-        subtensor.weights_rate_limit(netuid=netuid) > 0
-    ), "Weights rate limit is below 0"
+    assert subtensor.weights_rate_limit(netuid=netuid) > 0, (
+        "Weights rate limit is below 0"
+    )
 
     # Lower the rate limit
     status, error = sudo_set_admin_utils(
@@ -114,9 +114,9 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
     assert commit_block > 0, f"Invalid block number: {commit_block}"
 
     # Query the WeightCommitRevealInterval storage map
-    assert (
-        subtensor.get_subnet_reveal_period_epochs(netuid) > 0
-    ), "Invalid RevealPeriodEpochs"
+    assert subtensor.get_subnet_reveal_period_epochs(netuid) > 0, (
+        "Invalid RevealPeriodEpochs"
+    )
 
     # Wait until the reveal block range
     await wait_epoch(subtensor, netuid)
@@ -144,9 +144,9 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
     # Assert that the revealed weights are set correctly
     assert revealed_weights is not None, "Weight reveal not found in storage"
 
-    assert (
-        weight_vals[0] == revealed_weights[0][1]
-    ), f"Incorrect revealed weights. Expected: {weights[0]}, Actual: {revealed_weights[0][1]}"
+    assert weight_vals[0] == revealed_weights[0][1], (
+        f"Incorrect revealed weights. Expected: {weights[0]}, Actual: {revealed_weights[0][1]}"
+    )
     print("✅ Passed test_commit_and_reveal_weights")
 
 
@@ -204,9 +204,9 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
         subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_period == 1
     ), "Failed to set commit/reveal periods"
 
-    assert (
-        subtensor.weights_rate_limit(netuid=netuid) > 0
-    ), "Weights rate limit is below 0"
+    assert subtensor.weights_rate_limit(netuid=netuid) > 0, (
+        "Weights rate limit is below 0"
+    )
 
     # Lower the rate limit
     status, error = sudo_set_admin_utils(
@@ -290,6 +290,6 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     assert commit_block > 0, f"Invalid block number: {commit_block}"
 
     # Check for three commits in the WeightCommits storage map
-    assert (
-        len(weight_commits.value) == AMOUNT_OF_COMMIT_WEIGHTS
-    ), "Expected exact list of weight commits"
+    assert len(weight_commits.value) == AMOUNT_OF_COMMIT_WEIGHTS, (
+        "Expected exact list of weight commits"
+    )
