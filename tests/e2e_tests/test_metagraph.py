@@ -3,6 +3,7 @@ import re
 import shutil
 import time
 
+import pytest
 from bittensor.core.chain_data.metagraph_info import MetagraphInfo
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -30,7 +31,8 @@ def neuron_to_dict(neuron):
     }
 
 
-def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
+@pytest.mark.asyncio
+async def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     """
     Tests the metagraph
 
@@ -49,24 +51,26 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     netuid = 2
 
     # Register the subnet through Alice
-    assert subtensor.register_subnet(alice_wallet), "Unable to register the subnet"
+    assert await subtensor.register_subnet(
+        alice_wallet,
+    ), "Unable to register the subnet"
 
     # Verify subnet was created successfully
-    assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
+    assert await subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
     # Initialize metagraph
-    metagraph = subtensor.metagraph(netuid=netuid)
+    metagraph = await subtensor.metagraph(netuid=netuid)
 
     # Assert metagraph has only Alice (owner)
     assert len(metagraph.uids) == 1, "Metagraph doesn't have exactly 1 neuron"
 
     # Register Bob to the subnet
-    assert subtensor.burned_register(
+    assert await subtensor.burned_register(
         bob_wallet, netuid
     ), "Unable to register Bob as a neuron"
 
     # Refresh the metagraph
-    metagraph.sync(subtensor=subtensor)
+    await metagraph.sync(subtensor=subtensor)
 
     # Assert metagraph has Alice and Bob neurons
     assert len(metagraph.uids) == 2, "Metagraph doesn't have exactly 2 neurons"
@@ -82,12 +86,12 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     assert len(metagraph.addresses) == 2, "Metagraph doesn't have exactly 2 address"
 
     # Fetch UID of Bob
-    uid = subtensor.get_uid_for_hotkey_on_subnet(
+    uid = await subtensor.get_uid_for_hotkey_on_subnet(
         bob_wallet.hotkey.ss58_address, netuid=netuid
     )
 
     # Fetch neuron info of Bob through subtensor and metagraph
-    neuron_info_bob = subtensor.neuron_for_uid(uid, netuid=netuid)
+    neuron_info_bob = await subtensor.neuron_for_uid(uid, netuid=netuid)
     metagraph_dict = neuron_to_dict(metagraph.neurons[uid])
     subtensor_dict = neuron_to_dict(neuron_info_bob)
 
@@ -97,14 +101,14 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     ), "Neuron info of Bob doesn't match b/w metagraph & subtensor"
 
     # Create pre_dave metagraph for future verifications
-    metagraph_pre_dave = subtensor.metagraph(netuid=netuid)
+    metagraph_pre_dave = await subtensor.metagraph(netuid=netuid)
 
     # Register Dave as a neuron
-    assert subtensor.burned_register(
+    assert await subtensor.burned_register(
         dave_wallet, netuid
     ), "Unable to register Dave as a neuron"
 
-    metagraph.sync(subtensor=subtensor)
+    await metagraph.sync(subtensor=subtensor)
 
     # Assert metagraph now includes Dave's neuron
     assert (
@@ -122,8 +126,8 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
 
     # Add stake by Bob
     tao = Balance.from_tao(10_000)
-    alpha, _ = subtensor.subnet(netuid).tao_to_alpha_with_slippage(tao)
-    assert subtensor.add_stake(
+    alpha, _ = (await subtensor.subnet(netuid)).tao_to_alpha_with_slippage(tao)
+    assert await subtensor.add_stake(
         bob_wallet,
         netuid=netuid,
         amount=tao,
@@ -132,7 +136,7 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     ), "Failed to add stake for Bob"
 
     # Assert stake is added after updating metagraph
-    metagraph.sync(subtensor=subtensor)
+    await metagraph.sync(subtensor=subtensor)
     assert (
         0.95 < metagraph.neurons[1].stake.rao / alpha.rao < 1.05
     ), "Bob's stake not updated in metagraph"
@@ -177,7 +181,8 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     logging.console.info("✅ Passed test_metagraph")
 
 
-def test_metagraph_info(subtensor, alice_wallet):
+@pytest.mark.asyncio
+async def test_metagraph_info(subtensor, alice_wallet):
     """
     Tests:
     - Check MetagraphInfo
@@ -186,7 +191,7 @@ def test_metagraph_info(subtensor, alice_wallet):
     - Check MetagraphInfo is updated
     """
 
-    metagraph_info = subtensor.get_metagraph_info(netuid=1, block=1)
+    metagraph_info = await subtensor.get_metagraph_info(netuid=1, block=1)
 
     assert metagraph_info == MetagraphInfo(
         netuid=1,
@@ -278,7 +283,7 @@ def test_metagraph_info(subtensor, alice_wallet):
         ],
     )
 
-    metagraph_infos = subtensor.get_all_metagraphs_info(block=1)
+    metagraph_infos = await subtensor.get_all_metagraphs_info(block=1)
 
     assert metagraph_infos == [
         MetagraphInfo(
@@ -358,14 +363,14 @@ def test_metagraph_info(subtensor, alice_wallet):
         metagraph_info,
     ]
 
-    subtensor.burned_register(
+    await subtensor.burned_register(
         alice_wallet,
         netuid=1,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
 
-    metagraph_info = subtensor.get_metagraph_info(netuid=1)
+    metagraph_info = await subtensor.get_metagraph_info(netuid=1)
 
     assert metagraph_info.num_uids == 2
     assert metagraph_info.hotkeys == [
@@ -385,29 +390,30 @@ def test_metagraph_info(subtensor, alice_wallet):
         (alice_wallet.hotkey.ss58_address, Balance(0)),
     ]
 
-    subtensor.register_subnet(
+    await subtensor.register_subnet(
         alice_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
 
-    block = subtensor.get_current_block()
-    metagraph_info = subtensor.get_metagraph_info(netuid=2, block=block)
+    block = await subtensor.get_current_block()
+    metagraph_info = await subtensor.get_metagraph_info(netuid=2, block=block)
 
     assert metagraph_info.owner_coldkey == (tuple(alice_wallet.hotkey.public_key),)
     assert metagraph_info.owner_hotkey == (tuple(alice_wallet.coldkey.public_key),)
 
-    metagraph_infos = subtensor.get_all_metagraphs_info(block)
+    metagraph_infos = await subtensor.get_all_metagraphs_info(block)
 
     assert len(metagraph_infos) == 3
     assert metagraph_infos[-1] == metagraph_info
 
-    metagraph_info = subtensor.get_metagraph_info(netuid=3)
+    metagraph_info = await subtensor.get_metagraph_info(netuid=3)
 
     assert metagraph_info is None
 
 
-def test_blocks(subtensor):
+@pytest.mark.asyncio
+async def test_blocks(subtensor):
     """
     Tests:
     - Get current block
@@ -415,14 +421,14 @@ def test_blocks(subtensor):
     - Wait for block
     """
 
-    block = subtensor.get_current_block()
+    block = await subtensor.get_current_block()
 
-    assert block == subtensor.block
+    assert block == await subtensor.block
 
-    block_hash = subtensor.get_block_hash(block)
+    block_hash = await subtensor.get_block_hash(block)
 
     assert re.match("0x[a-z0-9]{64}", block_hash)
 
-    subtensor.wait_for_block(block + 10)
+    await subtensor.wait_for_block(block + 10)
 
-    assert subtensor.get_current_block() == block + 10
+    assert await subtensor.get_current_block() == block + 10

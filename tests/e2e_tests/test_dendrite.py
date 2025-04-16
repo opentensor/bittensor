@@ -29,10 +29,10 @@ async def test_dendrite(local_chain, subtensor, templates, alice_wallet, bob_wal
     netuid = 2
 
     # Register a subnet, netuid 2
-    assert subtensor.register_subnet(alice_wallet), "Subnet wasn't created"
+    assert await subtensor.register_subnet(alice_wallet), "Subnet wasn't created"
 
     # Verify subnet <netuid> created successfully
-    assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
+    assert await subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
     # Make sure Alice is Top Validator
     assert subtensor.add_stake(
@@ -67,11 +67,11 @@ async def test_dendrite(local_chain, subtensor, templates, alice_wallet, bob_wal
     assert status is True
 
     # Register Bob to the network
-    assert subtensor.burned_register(
+    assert await subtensor.burned_register(
         bob_wallet, netuid
     ), "Unable to register Bob as a neuron"
 
-    metagraph = subtensor.metagraph(netuid)
+    metagraph = await subtensor.metagraph(netuid)
 
     # Assert neurons are Alice and Bob
     assert len(metagraph.neurons) == 2
@@ -89,16 +89,16 @@ async def test_dendrite(local_chain, subtensor, templates, alice_wallet, bob_wal
 
     # Stake to become to top neuron after the first epoch
     tao = Balance.from_tao(10_000)
-    alpha, _ = subtensor.subnet(netuid).tao_to_alpha_with_slippage(tao)
+    alpha, _ = (await subtensor.subnet(netuid)).tao_to_alpha_with_slippage(tao)
 
-    assert subtensor.add_stake(
+    assert await subtensor.add_stake(
         bob_wallet,
         netuid=netuid,
         amount=tao,
     )
 
     # Refresh metagraph
-    metagraph = subtensor.metagraph(netuid)
+    metagraph = await subtensor.metagraph(netuid)
     bob_neuron = metagraph.neurons[1]
 
     # Assert alpha is close to stake equivalent
@@ -116,7 +116,7 @@ async def test_dendrite(local_chain, subtensor, templates, alice_wallet, bob_wal
         await wait_epoch(subtensor, netuid=netuid)
 
         # Refresh metagraph
-        metagraph = subtensor.metagraph(netuid)
+        metagraph = await subtensor.metagraph(netuid)
 
     # Refresh validator neuron
     updated_neuron = metagraph.neurons[1]

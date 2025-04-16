@@ -10,8 +10,17 @@ from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_admin_utils,
     execute_and_wait_for_next_nonce,
 )
+from tests.e2e_tests.utils.e2e_test_utils import SyncSubtensor
 
 
+@pytest.mark.parametrize(
+    "subtensor",
+    [
+        SyncSubtensor,
+        # TODO skip AsyncSubtensor as Nonce doesn't work properly
+    ],
+    indirect=True,
+)
 @pytest.mark.asyncio
 async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet):
     """
@@ -51,7 +60,7 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
 
     # Try to register the subnets
     for _ in netuids:
-        assert subtensor.register_subnet(
+        assert await subtensor.register_subnet(
             alice_wallet,
             wait_for_inclusion=True,
             wait_for_finalization=True,
@@ -59,7 +68,9 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
 
     # Verify all subnets created successfully
     for netuid in netuids:
-        assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
+        assert await subtensor.subnet_exists(
+            netuid
+        ), "Subnet wasn't created successfully"
 
         # weights sensitive to epoch changes
         assert sudo_set_admin_utils(
@@ -73,11 +84,11 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
         )
 
     # make sure 2 epochs are passed
-    subtensor.wait_for_block(subnet_tempo * 2 + 1)
+    await subtensor.wait_for_block(subnet_tempo * 2 + 1)
 
     # Stake to become to top neuron after the first epoch
     for netuid in netuids:
-        subtensor.add_stake(
+        await subtensor.add_stake(
             alice_wallet,
             alice_wallet.hotkey.ss58_address,
             netuid,
@@ -94,12 +105,12 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
             netuid,
         ), "Unable to enable commit reveal on the subnet"
 
-        assert not subtensor.commit_reveal_enabled(
+        assert not await subtensor.commit_reveal_enabled(
             netuid,
         ), "Failed to enable commit/reveal"
 
         assert (
-            subtensor.weights_rate_limit(netuid=netuid) > 0
+            await subtensor.weights_rate_limit(netuid=netuid) > 0
         ), "Weights rate limit is below 0"
 
         # Lower set weights rate limit
@@ -114,10 +125,10 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
         assert status is True
 
         assert (
-            subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
-        ), "Failed to set weights_rate_limit"
-        assert subtensor.get_hyperparameter("WeightsSetRateLimit", netuid) == 0
-        assert subtensor.weights_rate_limit(netuid=netuid) == 0
+            await subtensor.get_subnet_hyperparameters(netuid=netuid)
+        ).weights_rate_limit == 0, "Failed to set weights_rate_limit"
+        assert await subtensor.get_hyperparameter("WeightsSetRateLimit", netuid) == 0
+        assert await subtensor.weights_rate_limit(netuid=netuid) == 0
 
     # Weights values
     uids = np.array([0], dtype=np.int64)
@@ -128,14 +139,14 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
 
     logging.console.info(
         f"[orange]Nonce before first set_weights: "
-        f"{subtensor.substrate.get_account_next_index(alice_wallet.hotkey.ss58_address)}[/orange]"
+        f"{await subtensor.substrate.get_account_next_index(alice_wallet.hotkey.ss58_address)}[/orange]"
     )
 
     # 3 time doing call if nonce wasn't updated, then raise error
     @retry.retry(exceptions=Exception, tries=3, delay=1)
     @execute_and_wait_for_next_nonce(subtensor=subtensor, wallet=alice_wallet)
-    def set_weights(netuid_):
-        success, message = subtensor.set_weights(
+    async def set_weights(netuid_):
+        success, message = await subtensor.set_weights(
             wallet=alice_wallet,
             netuid=netuid_,
             uids=weight_uids,
@@ -148,16 +159,16 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
 
     logging.console.info(
         f"[orange]Nonce after second set_weights: "
-        f"{subtensor.substrate.get_account_next_index(alice_wallet.hotkey.ss58_address)}[/orange]"
+        f"{await subtensor.substrate.get_account_next_index(alice_wallet.hotkey.ss58_address)}[/orange]"
     )
 
     # Set weights for each subnet
     for netuid in netuids:
-        set_weights(netuid)
+        await set_weights(netuid)
 
     for netuid in netuids:
         # Query the Weights storage map for all three subnets
-        query = subtensor.query_module(
+        query = await subtensor.query_module(
             module="SubtensorModule",
             name="Weights",
             params=[netuid, 0],  # Alice should be the only UID

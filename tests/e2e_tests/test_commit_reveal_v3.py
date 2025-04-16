@@ -35,10 +35,12 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     logging.console.info("Testing test_commit_and_reveal_weights")
 
     # Register root as Alice
-    assert subtensor.register_subnet(alice_wallet), "Unable to register the subnet"
+    assert await subtensor.register_subnet(
+        alice_wallet,
+    ), "Unable to register the subnet"
 
     # Verify subnet 2 created successfully
-    assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
+    assert await subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
     logging.console.info("Subnet 2 is registered")
 
@@ -52,7 +54,9 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     ), "Unable to enable commit reveal on the subnet"
 
     # Verify commit_reveal was enabled
-    assert subtensor.commit_reveal_enabled(netuid), "Failed to enable commit/reveal"
+    assert await subtensor.commit_reveal_enabled(
+        netuid,
+    ), "Failed to enable commit/reveal"
     logging.console.info("Commit reveal enabled")
 
     # Change the weights rate limit on the subnet
@@ -68,9 +72,9 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
 
     # Verify weights rate limit was changed
     assert (
-        subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
-    ), "Failed to set weights_rate_limit"
-    assert subtensor.weights_rate_limit(netuid=netuid) == 0
+        await subtensor.get_subnet_hyperparameters(netuid=netuid)
+    ).weights_rate_limit == 0, "Failed to set weights_rate_limit"
+    assert await subtensor.weights_rate_limit(netuid=netuid) == 0
     logging.console.info("sudo_set_weights_set_rate_limit executed: set to 0")
 
     # Change the tempo of the subnet
@@ -84,7 +88,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
         )[0]
         is True
     )
-    tempo = subtensor.get_subnet_hyperparameters(netuid=netuid).tempo
+    tempo = await subtensor.tempo(netuid)
     assert tempo_set == tempo
     logging.console.info(f"sudo_set_tempo executed: set to {tempo_set}")
 
@@ -96,14 +100,14 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     )
 
     # Fetch current block and calculate next tempo for the subnet
-    current_block = subtensor.get_current_block()
+    current_block = await subtensor.get_current_block()
     upcoming_tempo = next_tempo(current_block, tempo)
     logging.console.info(
         f"Checking if window is too low with Current block: {current_block}, next tempo: {upcoming_tempo}"
     )
 
     # Wait for 2 tempos to pass as CR3 only reveals weights after 2 tempos + 1
-    subtensor.wait_for_block((tempo_set * 2) + 1)
+    await subtensor.wait_for_block((tempo_set * 2) + 1)
 
     # Lower than this might mean weights will get revealed before we can check them
     if upcoming_tempo - current_block < 3:
@@ -113,15 +117,15 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
             netuid=netuid,
             reporting_interval=1,
         )
-    current_block = subtensor.get_current_block()
-    latest_drand_round = subtensor.last_drand_round()
+    current_block = await subtensor.get_current_block()
+    latest_drand_round = await subtensor.last_drand_round()
     upcoming_tempo = next_tempo(current_block, tempo)
     logging.console.info(
         f"Post first wait_interval (to ensure window isnt too low): {current_block}, next tempo: {upcoming_tempo}, drand: {latest_drand_round}"
     )
 
     # Commit weights
-    success, message = subtensor.set_weights(
+    success, message = await subtensor.set_weights(
         alice_wallet,
         netuid,
         uids=weight_uids,
@@ -141,8 +145,8 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
         f"Successfully set weights: uids {weight_uids}, weights {weight_vals}, reveal_round: {expected_reveal_round}"
     )
 
-    current_block = subtensor.get_current_block()
-    latest_drand_round = subtensor.last_drand_round()
+    current_block = await subtensor.get_current_block()
+    latest_drand_round = await subtensor.last_drand_round()
     upcoming_tempo = next_tempo(current_block, tempo)
     logging.console.info(
         f"After setting weights: Current block: {current_block}, next tempo: {upcoming_tempo}, drand: {latest_drand_round}"
@@ -154,7 +158,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     ), "Revealed drand pulse is older than the drand pulse right after setting weights"
 
     # Fetch current commits pending on the chain
-    commits_on_chain = subtensor.get_current_weight_commit_info(netuid=netuid)
+    commits_on_chain = await subtensor.get_current_weight_commit_info(netuid=netuid)
     address, commit, reveal_round = commits_on_chain[0]
 
     # Assert correct values are committed on the chain
@@ -162,28 +166,28 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     assert address == alice_wallet.hotkey.ss58_address
 
     # Ensure no weights are available as of now
-    assert subtensor.weights(netuid=netuid) == []
+    assert await subtensor.weights(netuid=netuid) == []
 
     # Wait for the next tempo so weights can be revealed
     await wait_interval(
-        subtensor.get_subnet_hyperparameters(netuid=netuid).tempo,
+        tempo,
         subtensor,
         netuid=netuid,
         reporting_interval=1,
     )
 
     # Fetch the latest drand pulse
-    latest_drand_round = subtensor.last_drand_round()
+    latest_drand_round = await subtensor.last_drand_round()
     logging.console.info(
         f"Latest drand round after waiting for tempo: {latest_drand_round}"
     )
 
     # wait until last_drand_round is the same or greeter than expected_reveal_round with sleep 3 second (as Drand round period)
-    while expected_reveal_round >= subtensor.last_drand_round():
+    while expected_reveal_round >= await subtensor.last_drand_round():
         time.sleep(3)
 
     # Fetch weights on the chain as they should be revealed now
-    revealed_weights_ = subtensor.weights(netuid=netuid)
+    revealed_weights_ = await subtensor.weights(netuid=netuid)
 
     print("revealed weights", revealed_weights_)
     revealed_weights = revealed_weights_[0][1]
@@ -192,7 +196,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     assert weight_vals[0] == revealed_weights[0][1]
 
     # Now that the commit has been revealed, there shouldn't be any pending commits
-    assert subtensor.get_current_weight_commit_info(netuid=netuid) == []
+    assert await subtensor.get_current_weight_commit_info(netuid=netuid) == []
 
     # Ensure the drand_round is always in the positive w.r.t expected when revealed
     assert (

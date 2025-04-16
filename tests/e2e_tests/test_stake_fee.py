@@ -22,11 +22,13 @@ async def test_stake_fee_api(local_chain, subtensor, alice_wallet, bob_wallet):
     min_stake_fee = Balance.from_rao(50_000)
 
     # Register subnet as Alice
-    assert subtensor.register_subnet(alice_wallet), "Unable to register the subnet"
-    assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
+    assert await subtensor.register_subnet(
+        alice_wallet,
+    ), "Unable to register the subnet"
+    assert await subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
     # Test add_stake fee
-    stake_fee_0 = subtensor.get_stake_add_fee(
+    stake_fee_0 = await subtensor.get_stake_add_fee(
         amount=stake_amount,
         netuid=netuid,
         coldkey_ss58=alice_wallet.coldkeypub.ss58_address,
@@ -38,7 +40,7 @@ async def test_stake_fee_api(local_chain, subtensor, alice_wallet, bob_wallet):
     ), "Stake fee should be greater than the minimum stake fee"
 
     # Test unstake fee
-    stake_fee_1 = subtensor.get_unstake_fee(
+    stake_fee_1 = await subtensor.get_unstake_fee(
         amount=stake_amount,
         netuid=root_netuid,
         coldkey_ss58=alice_wallet.coldkeypub.ss58_address,
@@ -81,7 +83,7 @@ async def test_stake_fee_api(local_chain, subtensor, alice_wallet, bob_wallet):
     ]
 
     for scenario in movement_scenarios:
-        stake_fee = subtensor.get_stake_movement_fee(
+        stake_fee = await subtensor.get_stake_movement_fee(
             amount=stake_amount,
             origin_netuid=scenario["origin_netuid"],
             origin_hotkey_ss58=scenario["origin_hotkey"],
@@ -97,12 +99,14 @@ async def test_stake_fee_api(local_chain, subtensor, alice_wallet, bob_wallet):
 
     # Test cross-subnet movement
     netuid2 = 3
-    assert subtensor.register_subnet(
+    assert await subtensor.register_subnet(
         alice_wallet
     ), "Unable to register the second subnet"
-    assert subtensor.subnet_exists(netuid2), "Second subnet wasn't created successfully"
+    assert await subtensor.subnet_exists(
+        netuid2,
+    ), "Second subnet wasn't created successfully"
 
-    stake_fee = subtensor.get_stake_movement_fee(
+    stake_fee = await subtensor.get_stake_movement_fee(
         amount=stake_amount,
         origin_netuid=netuid,
         origin_hotkey_ss58=bob_wallet.hotkey.ss58_address,
