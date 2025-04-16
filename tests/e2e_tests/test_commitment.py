@@ -7,34 +7,44 @@ from tests.e2e_tests.utils.chain_interactions import sudo_set_admin_utils
 logging.set_trace()
 
 
-def test_commitment(local_chain, subtensor, alice_wallet):
+def test_commitment(local_chain, subtensor, alice_wallet, dave_wallet):
+    dave_subnet_netuid = 2
+    assert subtensor.register_subnet(dave_wallet)
+    assert subtensor.subnet_exists(
+        dave_subnet_netuid
+    ), "Subnet wasn't created successfully"
+
+    subtensor.wait_for_block(subtensor.block + 20)
+    status, message = subtensor.start_call(dave_wallet, dave_subnet_netuid, True, True)
+    assert status, message
+
     with pytest.raises(SubstrateRequestException, match="AccountNotAllowedCommit"):
         subtensor.set_commitment(
             alice_wallet,
-            netuid=1,
+            netuid=dave_subnet_netuid,
             data="Hello World!",
         )
 
     assert subtensor.burned_register(
         alice_wallet,
-        netuid=1,
+        netuid=dave_subnet_netuid,
     )
 
     uid = subtensor.get_uid_for_hotkey_on_subnet(
         alice_wallet.hotkey.ss58_address,
-        netuid=1,
+        netuid=dave_subnet_netuid,
     )
 
     assert uid is not None
 
     assert "" == subtensor.get_commitment(
-        netuid=1,
+        netuid=dave_subnet_netuid,
         uid=uid,
     )
 
     assert subtensor.set_commitment(
         alice_wallet,
-        netuid=1,
+        netuid=dave_subnet_netuid,
         data="Hello World!",
     )
 
@@ -44,7 +54,7 @@ def test_commitment(local_chain, subtensor, alice_wallet):
         call_module="Commitments",
         call_function="set_max_space",
         call_params={
-            "netuid": 1,
+            "netuid": dave_subnet_netuid,
             "new_limit": len("Hello World!"),
         },
     )
@@ -57,51 +67,67 @@ def test_commitment(local_chain, subtensor, alice_wallet):
     ):
         subtensor.set_commitment(
             alice_wallet,
-            netuid=1,
+            netuid=dave_subnet_netuid,
             data="Hello World!1",
         )
 
     assert "Hello World!" == subtensor.get_commitment(
-        netuid=1,
+        netuid=dave_subnet_netuid,
         uid=uid,
     )
 
     assert (
-        subtensor.get_all_commitments(netuid=1)[alice_wallet.hotkey.ss58_address]
+        subtensor.get_all_commitments(netuid=dave_subnet_netuid)[
+            alice_wallet.hotkey.ss58_address
+        ]
         == "Hello World!"
     )
 
 
 @pytest.mark.asyncio
-async def test_commitment_async(local_chain, async_subtensor, alice_wallet):
+async def test_commitment_async(
+    local_chain, async_subtensor, alice_wallet, dave_wallet
+):
+    dave_subnet_netuid = 2
+    assert await async_subtensor.register_subnet(dave_wallet)
+    assert await async_subtensor.subnet_exists(
+        dave_subnet_netuid
+    ), "Subnet wasn't created successfully"
+
+    await async_subtensor.wait_for_block(await async_subtensor.block + 20)
+    status, message = await async_subtensor.start_call(
+        dave_wallet, dave_subnet_netuid, True, True
+    )
+    assert status, message
+
     async with async_subtensor as sub:
         with pytest.raises(SubstrateRequestException, match="AccountNotAllowedCommit"):
             await sub.set_commitment(
                 alice_wallet,
-                netuid=1,
+                netuid=dave_subnet_netuid,
                 data="Hello World!",
             )
 
         assert await sub.burned_register(
             alice_wallet,
-            netuid=1,
+            netuid=dave_subnet_netuid,
         )
 
         uid = await sub.get_uid_for_hotkey_on_subnet(
             alice_wallet.hotkey.ss58_address,
-            netuid=1,
+            netuid=dave_subnet_netuid,
         )
 
         assert uid is not None
 
         assert "" == await sub.get_commitment(
-            netuid=1,
+            netuid=dave_subnet_netuid,
             uid=uid,
         )
 
         assert await sub.set_commitment(
             alice_wallet,
-            netuid=1,
+            netuid=dave_subnet_netuid,
             data="Hello World!",
         )
 
@@ -111,7 +137,7 @@ async def test_commitment_async(local_chain, async_subtensor, alice_wallet):
             call_module="Commitments",
             call_function="set_max_space",
             call_params={
-                "netuid": 1,
+                "netuid": dave_subnet_netuid,
                 "new_limit": len("Hello World!"),
             },
         )
@@ -124,15 +150,15 @@ async def test_commitment_async(local_chain, async_subtensor, alice_wallet):
         ):
             await sub.set_commitment(
                 alice_wallet,
-                netuid=1,
+                netuid=dave_subnet_netuid,
                 data="Hello World!1",
             )
 
         assert "Hello World!" == await sub.get_commitment(
-            netuid=1,
+            netuid=dave_subnet_netuid,
             uid=uid,
         )
 
-        assert (await sub.get_all_commitments(netuid=1))[
+        assert (await sub.get_all_commitments(netuid=dave_subnet_netuid))[
             alice_wallet.hotkey.ss58_address
         ] == "Hello World!"
