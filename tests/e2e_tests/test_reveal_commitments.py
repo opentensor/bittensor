@@ -28,7 +28,7 @@ async def test_set_reveal_commitment(local_chain, subtensor, alice_wallet, bob_w
     BLOCK_TIME = 0.25  # 12 for non-fast-block, 0.25 for fast block
     BLOCKS_UNTIL_REVEAL = 10
 
-    NETUID = 2
+    alice_subnet_netuid = subtensor.get_total_subnets()  # 2
 
     logging.console.info("Testing Drand encrypted commitments.")
 
@@ -37,19 +37,32 @@ async def test_set_reveal_commitment(local_chain, subtensor, alice_wallet, bob_w
         alice_wallet, True, True
     ), "Unable to register the subnet"
 
+    # make sure we passed start_call limit
+    subtensor.wait_for_block(subtensor.block + 20)
+    status, message = subtensor.start_call(
+        alice_wallet, alice_subnet_netuid, True, True
+    )
+    assert status, message
+
     # Register Bob's neuron
     assert subtensor.burned_register(
-        bob_wallet, NETUID, True, True
+        bob_wallet, alice_subnet_netuid, True, True
     ), "Bob's neuron was not register."
 
     # Verify subnet 2 created successfully
-    assert subtensor.subnet_exists(NETUID), "Subnet wasn't created successfully"
+    assert subtensor.subnet_exists(
+        alice_subnet_netuid
+    ), "Subnet wasn't created successfully"
 
     # Set commitment from Alice hotkey
     message_alice = f"This is test message with time {time.time()} from Alice."
 
     response = subtensor.set_reveal_commitment(
-        alice_wallet, NETUID, message_alice, BLOCKS_UNTIL_REVEAL, BLOCK_TIME
+        alice_wallet,
+        alice_subnet_netuid,
+        message_alice,
+        BLOCKS_UNTIL_REVEAL,
+        BLOCK_TIME,
     )
     assert response[0] is True
 
@@ -57,7 +70,11 @@ async def test_set_reveal_commitment(local_chain, subtensor, alice_wallet, bob_w
     message_bob = f"This is test message with time {time.time()} from Bob."
 
     response = subtensor.set_reveal_commitment(
-        bob_wallet, NETUID, message_bob, BLOCKS_UNTIL_REVEAL, block_time=BLOCK_TIME
+        bob_wallet,
+        alice_subnet_netuid,
+        message_bob,
+        BLOCKS_UNTIL_REVEAL,
+        block_time=BLOCK_TIME,
     )
     assert response[0] is True
 
@@ -71,7 +88,7 @@ async def test_set_reveal_commitment(local_chain, subtensor, alice_wallet, bob_w
         print(f"Current last reveled drand round {subtensor.last_drand_round()}")
         time.sleep(3)
 
-    actual_all = subtensor.get_all_revealed_commitments(NETUID)
+    actual_all = subtensor.get_all_revealed_commitments(alice_subnet_netuid)
 
     alice_result = actual_all.get(alice_wallet.hotkey.ss58_address)
     assert alice_result is not None, "Alice's commitment was not received."
@@ -89,11 +106,11 @@ async def test_set_reveal_commitment(local_chain, subtensor, alice_wallet, bob_w
 
     # Assertions for get_revealed_commitment (based of hotkey)
     actual_alice_block, actual_alice_message = subtensor.get_revealed_commitment(
-        NETUID, 0
+        alice_subnet_netuid, 0
     )[0]
-    actual_bob_block, actual_bob_message = subtensor.get_revealed_commitment(NETUID, 1)[
-        0
-    ]
+    actual_bob_block, actual_bob_message = subtensor.get_revealed_commitment(
+        alice_subnet_netuid, 1
+    )[0]
 
     assert message_alice == actual_alice_message
     assert message_bob == actual_bob_message
