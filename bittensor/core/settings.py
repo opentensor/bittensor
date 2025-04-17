@@ -1,6 +1,5 @@
-__version__ = "9.3.0"
-
 import os
+import importlib.metadata
 import re
 from pathlib import Path
 
@@ -14,6 +13,8 @@ HOME_DIR = Path.home()
 USER_BITTENSOR_DIR = HOME_DIR / ".bittensor"
 WALLETS_DIR = USER_BITTENSOR_DIR / "wallets"
 MINERS_DIR = USER_BITTENSOR_DIR / "miners"
+
+__version__ = importlib.metadata.version("bittensor")
 
 
 if not READ_ONLY:
@@ -81,9 +82,9 @@ NETWORK_EXPLORER_MAP = {
         "finney": "https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fentrypoint-finney.opentensor.ai%3A443#/explorer",
     },
     "taostats": {
-        "local": "https://x.taostats.io",
-        "endpoint": "https://x.taostats.io",
-        "finney": "https://x.taostats.io",
+        "local": "https://taostats.io",
+        "endpoint": "https://taostats.io",
+        "finney": "https://taostats.io",
     },
 }
 
