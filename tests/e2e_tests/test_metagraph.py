@@ -74,6 +74,9 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     # Refresh the metagraph
     metagraph.sync(subtensor=subtensor)
 
+    # wait for updated information to arrive (important for low resource docker)
+    subtensor.wait_for_block(subtensor.block + 10)
+
     # Assert metagraph has Alice and Bob neurons
     assert len(metagraph.uids) == 2, "Metagraph doesn't have exactly 2 neurons"
     assert metagraph.hotkeys[0] == alice_wallet.hotkey.ss58_address, (
