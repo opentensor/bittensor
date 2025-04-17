@@ -753,6 +753,7 @@ class AsyncSubtensor(SubtensorMixin):
         return_val = (
             False
             if result is None
+            # not the default key (0x0)
             else result != "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
         )
         return return_val
@@ -3005,7 +3006,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         async def handler(block_data: dict):
             logging.debug(
-                f'reached block {block_data["header"]["number"]}. Waiting for block {target_block}'
+                f"reached block {block_data['header']['number']}. Waiting for block {target_block}"
             )
             if block_data["header"]["number"] >= target_block:
                 return True

@@ -93,14 +93,14 @@ def test_methods_comparable(mock_substrate):
 
     # Assertions
     for method in subtensor_methods:
-        assert (
-            method in async_subtensor_methods
-        ), f"`Subtensor.{method}` not in `AsyncSubtensor` class."
+        assert method in async_subtensor_methods, (
+            f"`Subtensor.{method}` not in `AsyncSubtensor` class."
+        )
 
     for method in async_subtensor_methods:
-        assert (
-            method in subtensor_methods
-        ), f"`AsyncSubtensor.{method}` not in `Subtensor` class."
+        assert method in subtensor_methods, (
+            f"`AsyncSubtensor.{method}` not in `Subtensor` class."
+        )
 
 
 def test_serve_axon_with_external_ip_set():
@@ -509,9 +509,9 @@ def test_hyperparameter_normalization(
     if is_balance:
         numeric_value = float(str(norm_value).lstrip(settings.TAO_SYMBOL))
         expected_tao = mid_value / 1e9
-        assert (
-            numeric_value == expected_tao
-        ), f"Mismatch in tao value for {param_name} at mid value"
+        assert numeric_value == expected_tao, (
+            f"Mismatch in tao value for {param_name} at mid value"
+        )
     else:
         assert float(norm_value) == 0.5, f"Failed mid-point test for {param_name}"
 
@@ -523,9 +523,9 @@ def test_hyperparameter_normalization(
     if is_balance:
         numeric_value = float(str(norm_value).lstrip(settings.TAO_SYMBOL))
         expected_tao = max_value / 1e9
-        assert (
-            numeric_value == expected_tao
-        ), f"Mismatch in tao value for {param_name} at max value"
+        assert numeric_value == expected_tao, (
+            f"Mismatch in tao value for {param_name} at max value"
+        )
     else:
         assert float(norm_value) == 1.0, f"Failed max value test for {param_name}"
 
@@ -537,9 +537,9 @@ def test_hyperparameter_normalization(
     if is_balance:
         numeric_value = float(str(norm_value).lstrip(settings.TAO_SYMBOL))
         expected_tao = zero_value / 1e9
-        assert (
-            numeric_value == expected_tao
-        ), f"Mismatch in tao value for {param_name} at zero value"
+        assert numeric_value == expected_tao, (
+            f"Mismatch in tao value for {param_name} at zero value"
+        )
     else:
         assert float(norm_value) == 0.0, f"Failed zero value test for {param_name}"
 
