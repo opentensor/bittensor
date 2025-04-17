@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from bittensor.utils import unlock_key
+from bittensor.utils import unlock_key, format_error_message
 from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
@@ -58,4 +58,4 @@ async def start_call_extrinsic(
         if await response.is_success:
             return True, "Success with `start_call` response."
 
-        return False, await response.error_message
+        return False, format_error_message(await response.error_message)
