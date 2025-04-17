@@ -210,9 +210,9 @@ def test_balance_mul(balance: Union[int, float], balance2: Union[int, float]):
     prod_ = balance_ * balance2_
     assert isinstance(prod_, Balance)
 
-    assert (
-        prod_.rao == pytest.approx(rao_ * rao2_, 9)
-    ), f"{balance_} * {balance2_} == {prod_.rao} != {rao_} * {balance2} == {rao_ * balance2}"
+    assert prod_.rao == pytest.approx(rao_ * rao2_, 9), (
+        f"{balance_} * {balance2_} == {prod_.rao} != {rao_} * {balance2} == {rao_ * balance2}"
+    )
 
 
 @given(balance=valid_tao_numbers_strategy, balance2=valid_tao_numbers_strategy)
@@ -233,9 +233,9 @@ def test_balance_mul_other_not_balance(
     prod_ = balance_ * balance2_
     assert isinstance(prod_, Balance)
 
-    assert (
-        abs(prod_.rao - int(rao_ * balance2)) <= 20
-    ), f"{prod_.rao} != {int(rao_ * balance2)}"
+    assert abs(prod_.rao - int(rao_ * balance2)) <= 20, (
+        f"{prod_.rao} != {int(rao_ * balance2)}"
+    )
     assert prod_.rao == pytest.approx(int(rao_ * balance2))
 
 
@@ -257,9 +257,9 @@ def test_balance_rmul_other_not_balance(
     prod_ = balance2_ * balance_  # This is an rmul
     assert isinstance(prod_, Balance)
 
-    assert (
-        abs(prod_.rao - int(balance2 * rao_)) <= 20
-    ), f"{prod_.rao} != {int(balance2 * rao_)}"
+    assert abs(prod_.rao - int(balance2 * rao_)) <= 20, (
+        f"{prod_.rao} != {int(balance2 * rao_)}"
+    )
     assert prod_.rao == pytest.approx(int(balance2 * rao_))
 
 
@@ -286,9 +286,9 @@ def test_balance_truediv(balance: Union[int, float], balance2: Union[int, float]
 
     quot_ = balance_ / balance2_
     assert isinstance(quot_, Balance)
-    assert (
-        abs(quot_.rao - int(rao_ / rao2_)) <= 2
-    ), f"{quot_.rao} != {int(rao_ / rao2_)}"
+    assert abs(quot_.rao - int(rao_ / rao2_)) <= 2, (
+        f"{quot_.rao} != {int(rao_ / rao2_)}"
+    )
     assert quot_.rao == pytest.approx(int(rao_ / rao2_))
 
 
@@ -315,9 +315,9 @@ def test_balance_truediv_other_not_balance(
 
     quot_ = balance_ / balance2_
     assert quot_.rao == pytest.approx(int(rao_ / rao2_))
-    assert (
-        abs(quot_.rao - int(rao_ / rao2_)) <= 10
-    ), f"{quot_.rao} != {int(rao_ / rao2_)}"
+    assert abs(quot_.rao - int(rao_ / rao2_)) <= 10, (
+        f"{quot_.rao} != {int(rao_ / rao2_)}"
+    )
 
 
 @given(
@@ -344,9 +344,9 @@ def test_balance_rtruediv_other_not_balance(
     quot_ = balance2_ / balance_  # This is an rtruediv
     assert isinstance(quot_, Balance)
     expected_value = int(rao2_ / rao_)
-    assert (
-        abs(quot_.rao - expected_value) <= 5
-    ), f"{balance2_} / {balance_} = {quot_.rao} != {expected_value}"
+    assert abs(quot_.rao - expected_value) <= 5, (
+        f"{balance2_} / {balance_} = {quot_.rao} != {expected_value}"
+    )
     assert quot_.rao == pytest.approx(expected_value)
 
 
@@ -400,9 +400,9 @@ def test_balance_floordiv_other_not_balance(
     quot_ = balance_ // balance2_
     assert isinstance(quot_, Balance)
     expected_value = rao_ // rao2_
-    assert (
-        abs(quot_.rao - expected_value) <= 5
-    ), f"{balance_} // {balance2_} = {quot_.rao} != {expected_value}"
+    assert abs(quot_.rao - expected_value) <= 5, (
+        f"{balance_} // {balance2_} = {quot_.rao} != {expected_value}"
+    )
     assert quot_.rao == pytest.approx(rao_ // rao2_)
 
 
