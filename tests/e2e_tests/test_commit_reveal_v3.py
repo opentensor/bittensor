@@ -13,7 +13,7 @@ from tests.e2e_tests.utils.chain_interactions import (
 )
 
 
-@pytest.mark.parametrize("local_chain", [True], indirect=True)
+# @pytest.mark.parametrize("local_chain", [True], indirect=True)
 @pytest.mark.asyncio
 async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_wallet):
     """
@@ -149,7 +149,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     )
 
     # Ensure the expected drand round is well in the future
-    assert expected_reveal_round >= latest_drand_round, (
+    assert expected_reveal_round >= latest_drand_round + 1, (
         "Revealed drand pulse is older than the drand pulse right after setting weights"
     )
 

@@ -4,9 +4,9 @@ import pytest
 
 from bittensor.utils.balance import Balance
 from tests.e2e_tests.utils.chain_interactions import (
-    sudo_set_admin_utils,
     wait_epoch,
 )
+from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 
 """
 Verifies:
@@ -43,7 +43,7 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    netuid = 2
+    netuid = subtensor.get_total_subnets()  # 22
     # Initial balance for Alice, defined in the genesis file of localnet
     initial_alice_balance = Balance.from_tao(1_000_000)
     # Current Existential deposit for all accounts in bittensor
@@ -63,7 +63,9 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
     pre_subnet_creation_cost = subtensor.get_subnet_burn_cost()
 
     # Register subnet
-    assert subtensor.register_subnet(alice_wallet), "Unable to register the subnet"
+    assert subtensor.register_subnet(alice_wallet, True, True), (
+        "Unable to register the subnet"
+    )
 
     # Subnet burn cost is increased immediately after a subnet is registered
     post_subnet_creation_cost = subtensor.get_subnet_burn_cost()
@@ -127,6 +129,8 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
     ), "UID for Alice's hotkey on netuid 2 is not 0 as expected"
 
     bob_balance = subtensor.get_balance(bob_wallet.coldkeypub.ss58_address)
+
+    assert wait_to_start_call(subtensor, alice_wallet, netuid)
 
     # Register Bob to the subnet
     assert subtensor.burned_register(bob_wallet, netuid), (

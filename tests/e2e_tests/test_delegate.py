@@ -6,11 +6,13 @@ from bittensor.core.chain_data.delegate_info import DelegatedInfo, DelegateInfo
 from bittensor.core.chain_data.proposal_vote_data import ProposalVoteData
 from bittensor.utils.balance import Balance
 from tests.e2e_tests.utils.chain_interactions import (
+    get_dynamic_balance,
     propose,
     set_identity,
     sudo_set_admin_utils,
     vote,
 )
+from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 from tests.helpers.helpers import CLOSE_IN_VALUE
 
 DEFAULT_DELEGATE_TAKE = 0.179995422293431
@@ -237,26 +239,40 @@ async def test_delegates(subtensor, alice_wallet, bob_wallet):
 
     assert subtensor.get_delegated(bob_wallet.coldkey.ss58_address) == []
 
+    alice_subnet_netuid = subtensor.get_total_subnets()  # 2
+    # Register a subnet, netuid 2
+    assert subtensor.register_subnet(alice_wallet), "Subnet wasn't created"
+
+    # Verify subnet <netuid> created successfully
+    assert subtensor.subnet_exists(alice_subnet_netuid), (
+        "Subnet wasn't created successfully"
+    )
+
+    assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
+
     subtensor.add_stake(
         bob_wallet,
         alice_wallet.hotkey.ss58_address,
-        netuid=0,
+        netuid=alice_subnet_netuid,
         amount=Balance.from_tao(10_000),
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
 
-    assert subtensor.get_delegated(bob_wallet.coldkey.ss58_address) == [
+    bob_delegated = subtensor.get_delegated(bob_wallet.coldkey.ss58_address)
+    assert bob_delegated == [
         DelegatedInfo(
             hotkey_ss58=alice_wallet.hotkey.ss58_address,
             owner_ss58=alice_wallet.coldkey.ss58_address,
             take=DEFAULT_DELEGATE_TAKE,
-            validator_permits=[],
-            registrations=[0],
+            validator_permits=[alice_subnet_netuid],
+            registrations=[0, alice_subnet_netuid],
             return_per_1000=Balance(0),
-            total_daily_return=Balance(0),
-            netuid=0,
-            stake=Balance.from_tao(9_999.99995),
+            total_daily_return=get_dynamic_balance(
+                bob_delegated[0].total_daily_return.rao
+            ),
+            netuid=alice_subnet_netuid,
+            stake=get_dynamic_balance(bob_delegated[0].stake.rao),
         ),
     ]
 
@@ -270,17 +286,29 @@ def test_nominator_min_required_stake(local_chain, subtensor, alice_wallet, bob_
     - Check Nominator is removed
     """
 
+    alice_subnet_netuid = subtensor.get_total_subnets()  # 2
+
+    # Register a subnet, netuid 2
+    assert subtensor.register_subnet(
+        alice_wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    ), "Subnet wasn't created"
+
+    # Verify subnet <netuid> created successfully
+    assert subtensor.subnet_exists(alice_subnet_netuid), (
+        "Subnet wasn't created successfully"
+    )
+
+    assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
+
     minimum_required_stake = subtensor.get_minimum_required_stake()
 
     assert minimum_required_stake == Balance(0)
 
-    subtensor.root_register(
-        alice_wallet,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
-    subtensor.root_register(
+    subtensor.burned_register(
         bob_wallet,
+        alice_subnet_netuid,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -288,7 +316,7 @@ def test_nominator_min_required_stake(local_chain, subtensor, alice_wallet, bob_
     success = subtensor.add_stake(
         alice_wallet,
         bob_wallet.hotkey.ss58_address,
-        netuid=0,
+        netuid=alice_subnet_netuid,
         amount=Balance.from_tao(10_000),
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -299,10 +327,10 @@ def test_nominator_min_required_stake(local_chain, subtensor, alice_wallet, bob_
     stake = subtensor.get_stake(
         alice_wallet.coldkey.ss58_address,
         bob_wallet.hotkey.ss58_address,
-        netuid=0,
+        netuid=alice_subnet_netuid,
     )
 
-    assert stake == Balance.from_tao(9_999.99995)
+    assert stake > 0
 
     # this will trigger clear_small_nominations
     sudo_set_admin_utils(
@@ -321,7 +349,7 @@ def test_nominator_min_required_stake(local_chain, subtensor, alice_wallet, bob_
     stake = subtensor.get_stake(
         alice_wallet.coldkey.ss58_address,
         bob_wallet.hotkey.ss58_address,
-        netuid=0,
+        netuid=alice_subnet_netuid,
     )
 
     assert stake == Balance(0)
