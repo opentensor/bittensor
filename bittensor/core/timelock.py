@@ -1,5 +1,5 @@
 """
-This module provides functionality for TimeLock Encryption (TLE), a mechanism that encrypts data in a way that it can
+This module provides functionality for TimeLock Encryption (TLE), a mechanism that encrypts data such that it can
 only be decrypted after a specific amount of time (expressed in the form  of Drand rounds). It includes functions
 for encryption, decryption, and handling the decryption process by waiting for the reveal round. The logic is based on
 Drand QuickNet.
