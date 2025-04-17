@@ -3,6 +3,7 @@ from bittensor.core.chain_data.stake_info import StakeInfo
 from bittensor.utils.balance import Balance
 from tests.e2e_tests.utils.chain_interactions import get_dynamic_balance
 from tests.helpers.helpers import ApproxBalance
+from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 
 logging.enable_info()
 
@@ -17,19 +18,14 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
     alice_subnet_netuid = subtensor.get_total_subnets()  # 2
 
     # Register root as Alice - the subnet owner and validator
-    assert subtensor.register_subnet(alice_wallet)
+    assert subtensor.register_subnet(alice_wallet, True, True)
 
     # Verify subnet <netuid> created successfully
     assert subtensor.subnet_exists(alice_subnet_netuid), (
         "Subnet wasn't created successfully"
     )
 
-    # make sure we passed start_call limit
-    subtensor.wait_for_block(subtensor.block + 20)
-    status, message = subtensor.start_call(
-        alice_wallet, alice_subnet_netuid, True, True
-    )
-    assert status, message
+    assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
 
     subtensor.burned_register(
         alice_wallet,
@@ -206,11 +202,9 @@ def test_batch_operations(subtensor, alice_wallet, bob_wallet):
             wait_for_finalization=True,
         )
 
+    # make sure we passed start_call limit for both subnets
     for netuid in netuids:
-        # make sure we passed start_call limit
-        subtensor.wait_for_block(subtensor.block + 20)
-        status, message = subtensor.start_call(alice_wallet, netuid, True, True)
-        assert status, message
+        assert wait_to_start_call(subtensor, alice_wallet, netuid)
 
     for netuid in netuids:
         subtensor.burned_register(
@@ -319,19 +313,14 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
     """
     alice_subnet_netuid = subtensor.get_total_subnets()  # 2
     # Register root as Alice - the subnet owner and validator
-    assert subtensor.register_subnet(alice_wallet)
+    assert subtensor.register_subnet(alice_wallet, True, True)
 
     # Verify subnet created successfully
     assert subtensor.subnet_exists(alice_subnet_netuid), (
         "Subnet wasn't created successfully"
     )
 
-    # make sure we passed start_call limit
-    subtensor.wait_for_block(subtensor.block + 20)
-    status, message = subtensor.start_call(
-        alice_wallet, alice_subnet_netuid, True, True
-    )
-    assert status, message
+    assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
 
     subtensor.burned_register(
         alice_wallet,
@@ -492,20 +481,15 @@ def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
     """
     # Create new subnet (netuid 2) and register Alice
     origin_netuid = 2
-    assert subtensor.register_subnet(bob_wallet)
+    assert subtensor.register_subnet(bob_wallet, True, True)
     assert subtensor.subnet_exists(origin_netuid), "Subnet wasn't created successfully"
     dest_netuid = 3
-    assert subtensor.register_subnet(bob_wallet)
+    assert subtensor.register_subnet(bob_wallet, True, True)
     assert subtensor.subnet_exists(dest_netuid), "Subnet wasn't created successfully"
 
-    # make sure we passed start_call limit
-    subtensor.wait_for_block(subtensor.block + 20)
-
-    status, message = subtensor.start_call(bob_wallet, origin_netuid, True, True)
-    assert status, message
-
-    status, message = subtensor.start_call(bob_wallet, dest_netuid, True, True)
-    assert status, message
+    # make sure we passed start_call limit for both subnets
+    assert wait_to_start_call(subtensor, bob_wallet, origin_netuid)
+    assert wait_to_start_call(subtensor, bob_wallet, dest_netuid)
 
     # Register Alice on both subnets
     subtensor.burned_register(
@@ -605,18 +589,13 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet):
     - Moving stake from one hotkey-subnet pair to another
     """
 
-    alice_subnet_netuid = 2
-    assert subtensor.register_subnet(alice_wallet)
+    alice_subnet_netuid = subtensor.get_total_subnets()  # 2
+    assert subtensor.register_subnet(alice_wallet, True, True)
     assert subtensor.subnet_exists(alice_subnet_netuid), (
         "Subnet wasn't created successfully"
     )
 
-    # make sure we passed start_call limit
-    subtensor.wait_for_block(subtensor.block + 20)
-    status, message = subtensor.start_call(
-        alice_wallet, alice_subnet_netuid, True, True
-    )
-    assert status, message
+    assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
 
     subtensor.burned_register(
         alice_wallet,
@@ -649,16 +628,13 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet):
         ),
     ]
 
-    bob_subnet_netuid = 3
-    subtensor.register_subnet(bob_wallet)
+    bob_subnet_netuid = subtensor.get_total_subnets()  # 3
+    subtensor.register_subnet(bob_wallet, True, True)
     assert subtensor.subnet_exists(bob_subnet_netuid), (
         "Subnet wasn't created successfully"
     )
 
-    # make sure we passed start_call limit
-    subtensor.wait_for_block(subtensor.block + 20)
-    status, message = subtensor.start_call(bob_wallet, bob_subnet_netuid, True, True)
-    assert status, message
+    assert wait_to_start_call(subtensor, bob_wallet, bob_subnet_netuid)
 
     assert subtensor.move_stake(
         alice_wallet,
@@ -703,19 +679,14 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
     - Adding stake
     - Transferring stake from one coldkey-subnet pair to another
     """
-    alice_subnet_netuid = 2
+    alice_subnet_netuid = subtensor.get_total_subnets()  # 2
 
-    assert subtensor.register_subnet(alice_wallet)
+    assert subtensor.register_subnet(alice_wallet, True, True)
     assert subtensor.subnet_exists(alice_subnet_netuid), (
         "Subnet wasn't created successfully"
     )
 
-    # make sure we passed start_call limit
-    subtensor.wait_for_block(subtensor.block + 20)
-    status, message = subtensor.start_call(
-        alice_wallet, alice_subnet_netuid, True, True
-    )
-    assert status, message
+    assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
 
     subtensor.burned_register(
         alice_wallet,
@@ -754,13 +725,10 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
 
     assert bob_stakes == []
 
-    dave_subnet_netuid = 3
-    subtensor.register_subnet(dave_wallet)
+    dave_subnet_netuid = subtensor.get_total_subnets()  # 3
+    subtensor.register_subnet(dave_wallet, True, True)
 
-    # make sure we passed start_call limit
-    subtensor.wait_for_block(subtensor.block + 20)
-    status, message = subtensor.start_call(dave_wallet, dave_subnet_netuid, True, True)
-    assert status, message
+    assert wait_to_start_call(subtensor, dave_wallet, dave_subnet_netuid)
 
     subtensor.burned_register(
         bob_wallet,
