@@ -226,3 +226,42 @@ class Templates:
 
     def validator(self, wallet, netuid):
         return self.Validator(self.dir, wallet, netuid)
+
+
+def wait_to_start_call(
+    subtensor: "bittensor.Subtensor",
+    subnet_owner_wallet: "bittensor.Wallet",
+    netuid: int,
+    in_blocks: int = 10,
+):
+    """Waits for a certain number of blocks before making a start call."""
+    # make sure we passed start_call limit
+    subtensor.wait_for_block(subtensor.block + in_blocks + 1)
+    status, message = subtensor.start_call(
+        wallet=subnet_owner_wallet,
+        netuid=netuid,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert status, message
+    return True
+
+
+async def async_wait_to_start_call(
+    subtensor: "bittensor.AsyncSubtensor",
+    subnet_owner_wallet: "bittensor.Wallet",
+    netuid: int,
+    in_blocks: int = 10,
+):
+    """Waits for a certain number of blocks before making a start call."""
+    # make sure we passed start_call limit
+    current_block = await subtensor.block
+    await subtensor.wait_for_block(current_block + in_blocks + 1)
+    status, message = await subtensor.start_call(
+        wallet=subnet_owner_wallet,
+        netuid=netuid,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert status, message
+    return True

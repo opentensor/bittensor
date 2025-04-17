@@ -753,6 +753,7 @@ class AsyncSubtensor(SubtensorMixin):
         return_val = (
             False
             if result is None
+            # not the default key (0x0)
             else result != "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
         )
         return return_val
