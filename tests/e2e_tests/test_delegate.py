@@ -315,11 +315,6 @@ def test_nominator_min_required_stake(local_chain, subtensor, alice_wallet, bob_
 
     assert minimum_required_stake == Balance(0)
 
-    # subtensor.root_register(
-    #     alice_wallet,
-    #     wait_for_inclusion=True,
-    #     wait_for_finalization=True,
-    # )
     subtensor.burned_register(
         bob_wallet,
         alice_subnet_netuid,
