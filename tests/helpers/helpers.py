@@ -105,15 +105,15 @@ def get_mock_neuron(**kwargs) -> NeuronInfo:
     """
 
     mock_neuron_d = dict(
-        # TODO fix the AxonInfo here — it doesn't work
         {
             "netuid": -1,  # mock netuid
             "axon_info": AxonInfo(
-                block=0,
                 version=1,
-                ip=0,
+                ip="0.0.0.0",
                 port=0,
                 ip_type=0,
+                hotkey=get_mock_hotkey(),
+                coldkey=get_mock_coldkey(),
                 protocol=0,
                 placeholder1=0,
                 placeholder2=0,
