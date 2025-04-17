@@ -48,35 +48,35 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     logging.console.info("Testing test_metagraph_command")
     alice_subnet_netuid = 2
 
-    # Register the subnet through Alice
+    logging.console.info("Register the subnet through Alice")
     assert subtensor.register_subnet(alice_wallet, True, True), (
         "Unable to register the subnet"
     )
 
-    # Verify subnet was created successfully
+    logging.console.info("Verify subnet was created successfully")
     assert subtensor.subnet_exists(alice_subnet_netuid), (
         "Subnet wasn't created successfully"
     )
 
-    # make sure we passed start_call limit (10 blocks)
+    logging.console.info("Make sure we passed start_call limit (10 blocks)")
     subtensor.wait_for_block(subtensor.block + 10)
     assert subtensor.start_call(alice_wallet, alice_subnet_netuid, True, True)[0]
 
-    # Initialize metagraph
+    logging.console.info("Initialize metagraph")
     metagraph = subtensor.metagraph(netuid=alice_subnet_netuid)
 
-    # Assert metagraph has only Alice (owner)
+    logging.console.info("Assert metagraph has only Alice (owner)")
     assert len(metagraph.uids) == 1, "Metagraph doesn't have exactly 1 neuron"
 
-    # Register Bob to the subnet
+    logging.console.info("Register Bob to the subnet")
     assert subtensor.burned_register(bob_wallet, alice_subnet_netuid), (
         "Unable to register Bob as a neuron"
     )
 
-    # Refresh the metagraph
+    logging.console.info("Refresh the metagraph")
     metagraph.sync(subtensor=subtensor)
 
-    # Assert metagraph has Alice and Bob neurons
+    logging.console.info("Assert metagraph has Alice and Bob neurons")
     assert len(metagraph.uids) == 2, "Metagraph doesn't have exactly 2 neurons"
     assert metagraph.hotkeys[0] == alice_wallet.hotkey.ss58_address, (
         "Alice's hotkey doesn't match in metagraph"
@@ -89,36 +89,33 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     assert metagraph.n.min() == 2, "Metagraph's min n is not 2"
     assert len(metagraph.addresses) == 2, "Metagraph doesn't have exactly 2 address"
 
-    # Fetch UID of Bob
+    logging.console.info("Fetch UID of Bob")
     uid = subtensor.get_uid_for_hotkey_on_subnet(
         bob_wallet.hotkey.ss58_address, netuid=alice_subnet_netuid
     )
 
-    # Fetch neuron info of Bob through subtensor and metagraph
+    logging.console.info("Fetch neuron info of Bob through subtensor and metagraph")
     neuron_info_bob = subtensor.neuron_for_uid(uid, netuid=alice_subnet_netuid)
-    print(">>> neuron_info_bob", neuron_info_bob)
+
     metagraph_dict = neuron_to_dict(metagraph.neurons[uid])
     subtensor_dict = neuron_to_dict(neuron_info_bob)
 
-    print(">>> metagraph_dict", metagraph_dict)
-    print(">>> subtensor_dict", subtensor_dict)
-
-    # Verify neuron info is the same in both objects
+    logging.console.info("Verify neuron info is the same in both objects")
     assert metagraph_dict == subtensor_dict, (
         "Neuron info of Bob doesn't match b/w metagraph & subtensor"
     )
 
-    # Create pre_dave metagraph for future verifications
+    logging.console.info("Create pre_dave metagraph for future verifications")
     metagraph_pre_dave = subtensor.metagraph(netuid=alice_subnet_netuid)
 
-    # Register Dave as a neuron
+    logging.console.info("Register Dave as a neuron")
     assert subtensor.burned_register(dave_wallet, alice_subnet_netuid), (
         "Unable to register Dave as a neuron"
     )
 
     metagraph.sync(subtensor=subtensor)
 
-    # Assert metagraph now includes Dave's neuron
+    logging.console.info("Assert metagraph now includes Dave's neuron")
     assert len(metagraph.uids) == 3, (
         "Metagraph doesn't have exactly 3 neurons post Dave"
     )
@@ -132,7 +129,7 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     assert metagraph.n.min() == 3, "Metagraph's min n is not 3 post Dave"
     assert len(metagraph.addresses) == 3, "Metagraph doesn't have 3 addresses post Dave"
 
-    # Add stake by Bob
+    logging.console.info("Add stake by Bob")
     tao = Balance.from_tao(10_000)
     alpha, _ = subtensor.subnet(alice_subnet_netuid).tao_to_alpha_with_slippage(tao)
     assert subtensor.add_stake(
@@ -143,13 +140,13 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
         wait_for_finalization=True,
     ), "Failed to add stake for Bob"
 
-    # Assert stake is added after updating metagraph
+    logging.console.info("Assert stake is added after updating metagraph")
     metagraph.sync(subtensor=subtensor)
     assert 0.95 < metagraph.neurons[1].stake.rao / alpha.rao < 1.05, (
         "Bob's stake not updated in metagraph"
     )
 
-    # Test the save() and load() mechanism
+    logging.console.info("Test the save() and load() mechanism")
     # We save the metagraph and pre_dave loads it
     # We do this in the /tmp dir to avoid interfering or interacting with user data
     metagraph_save_root_dir = ["/", "tmp", "bittensor-e2e", "metagraphs"]
@@ -161,7 +158,7 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     finally:
         shutil.rmtree(os.path.join(*metagraph_save_root_dir))
 
-    # Ensure data is synced between two metagraphs
+    logging.console.info("Ensure data is synced between two metagraphs")
     assert len(metagraph.uids) == len(metagraph_pre_dave.uids), (
         "UID count mismatch after save and load"
     )
