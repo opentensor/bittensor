@@ -13,7 +13,7 @@ from tests.e2e_tests.utils.chain_interactions import (
 )
 
 
-@pytest.mark.parametrize("local_chain", [True], indirect=True)
+# @pytest.mark.parametrize("local_chain", [True], indirect=True)
 @pytest.mark.asyncio
 async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_wallet):
     """
