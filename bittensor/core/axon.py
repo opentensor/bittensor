@@ -5,7 +5,6 @@ import asyncio
 import contextlib
 import copy
 import inspect
-import json
 import socket
 import threading
 import time
@@ -16,8 +15,8 @@ import warnings
 from inspect import signature, Signature, Parameter
 from typing import Any, Awaitable, Callable, Optional, Tuple
 
-from async_substrate_interface.utils import json
 import uvicorn
+from async_substrate_interface.utils import json
 from bittensor_wallet import Wallet, Keypair
 from fastapi import APIRouter, Depends, FastAPI
 from fastapi.responses import JSONResponse
