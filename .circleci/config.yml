@@ -39,7 +39,7 @@ jobs:
             python -m venv .venv
             . .venv/bin/activate
             python -m pip install --upgrade uv
-            uv pip install ruff
+            uv pip install ruff==0.11.5
 
       - save_cache:
           name: Save cached ruff venv
