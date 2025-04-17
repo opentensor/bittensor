@@ -1,38 +1,23 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
 from collections.abc import Mapping
 from dataclasses import dataclass
 from hashlib import sha256
 from types import SimpleNamespace
 from typing import Any, Optional, Union, TypedDict
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
+from async_substrate_interface import SubstrateInterface
 from bittensor_wallet import Wallet
 
+import bittensor.core.subtensor as subtensor_module
 from bittensor.core.chain_data import (
     NeuronInfo,
     NeuronInfoLite,
     PrometheusInfo,
     AxonInfo,
 )
-from bittensor.core.types import AxonServeCallParams, PrometheusServeCallParams
 from bittensor.core.errors import ChainQueryError
 from bittensor.core.subtensor import Subtensor
+from bittensor.core.types import AxonServeCallParams, PrometheusServeCallParams
 from bittensor.utils import RAOPERTAO, u16_normalized_float
 from bittensor.utils.balance import Balance
 
@@ -165,6 +150,21 @@ class MockChainState(TypedDict):
     SubtensorModule: MockSubtensorState
 
 
+class ReusableCoroutine:
+    def __init__(self, coroutine):
+        self.coroutine = coroutine
+
+    def __await__(self):
+        return self.reset().__await__()
+
+    def reset(self):
+        return self.coroutine()
+
+
+async def _async_block():
+    return 1
+
+
 class MockSubtensor(Subtensor):
     """
     A Mock Subtensor class for running tests.
@@ -248,17 +248,23 @@ class MockSubtensor(Subtensor):
 
             self.network = "mock"
             self.chain_endpoint = "ws://mock_endpoint.bt"
-            self.substrate = MagicMock()
+            self.substrate = MagicMock(autospec=SubstrateInterface)
 
     def __init__(self, *args, **kwargs) -> None:
-        super().__init__()
-        self.__dict__ = __GLOBAL_MOCK_STATE__
+        mock_substrate_interface = MagicMock(autospec=SubstrateInterface)
+        with patch.object(
+            subtensor_module,
+            "SubstrateInterface",
+            return_value=mock_substrate_interface,
+        ):
+            super().__init__()
+            self.__dict__ = __GLOBAL_MOCK_STATE__
 
-        if not hasattr(self, "chain_state") or getattr(self, "chain_state") is None:
-            self.setup()
+            if not hasattr(self, "chain_state") or getattr(self, "chain_state") is None:
+                self.setup()
 
-    def get_block_hash(self, block_id: int) -> str:
-        return "0x" + sha256(str(block_id).encode()).hexdigest()[:64]
+    def get_block_hash(self, block: Optional[int] = None) -> str:
+        return "0x" + sha256(str(block).encode()).hexdigest()[:64]
 
     def create_subnet(self, netuid: int) -> None:
         subtensor_state = self.chain_state["SubtensorModule"]
@@ -441,8 +447,10 @@ class MockSubtensor(Subtensor):
         self,
         name: str,
         block: Optional[int] = None,
-        params: Optional[list[object]] = [],
+        params: Optional[list[object]] = None,
     ) -> MockSubtensorValue:
+        if params is None:
+            params = []
         if block:
             if self.block_number < block:
                 raise Exception("Cannot query block in the future")
@@ -477,11 +485,13 @@ class MockSubtensor(Subtensor):
         self,
         name: str,
         block: Optional[int] = None,
-        params: Optional[list[object]] = [],
+        params: Optional[list[object]] = None,
     ) -> Optional[MockMapResult]:
         """
         Note: Double map requires one param
         """
+        if params is None:
+            params = []
         if block:
             if self.block_number < block:
                 raise Exception("Cannot query block in the future")
@@ -535,7 +545,7 @@ class MockSubtensor(Subtensor):
         else:
             block = self.block_number
 
-        state = self.chain_state.get(module_name, None)
+        state: Optional[dict] = self.chain_state.get(module_name, None)
         if state is not None:
             if constant_name in state:
                 state = state[constant_name]
@@ -762,7 +772,7 @@ class MockSubtensor(Subtensor):
         trust = u16_normalized_float(trust)
         validator_trust = u16_normalized_float(validator_trust)
         dividends = u16_normalized_float(dividends)
-        prometheus_info = PrometheusInfo.fix_decoded_values(prometheus_info)
+        prometheus_info = PrometheusInfo.from_dict(prometheus_info)
         axon_info_ = AxonInfo.from_neuron_info(
             {"hotkey": hotkey, "coldkey": coldkey, "axon_info": axon_info_}
         )
@@ -811,6 +821,52 @@ class MockSubtensor(Subtensor):
                 neurons.append(neuron_info)
 
         return neurons
+
+    def neuron_for_uid_lite(
+        self, uid: int, netuid: int, block: Optional[int] = None
+    ) -> Optional[NeuronInfoLite]:
+        if uid is None:
+            return NeuronInfoLite.get_null_neuron()
+
+        if block:
+            if self.block_number < block:
+                raise Exception("Cannot query block in the future")
+
+        else:
+            block = self.block_number
+
+        if netuid not in self.chain_state["SubtensorModule"]["NetworksAdded"]:
+            return None
+
+        neuron_info = self._neuron_subnet_exists(uid, netuid, block)
+        if neuron_info is None:
+            # TODO Why does this return None here but a null neuron earlier?
+            return None
+
+        else:
+            return NeuronInfoLite(
+                hotkey=neuron_info.hotkey,
+                coldkey=neuron_info.coldkey,
+                uid=neuron_info.uid,
+                netuid=neuron_info.netuid,
+                active=neuron_info.active,
+                stake=neuron_info.stake,
+                stake_dict=neuron_info.stake_dict,
+                total_stake=neuron_info.total_stake,
+                rank=neuron_info.rank,
+                emission=neuron_info.emission,
+                incentive=neuron_info.incentive,
+                consensus=neuron_info.consensus,
+                trust=neuron_info.trust,
+                validator_trust=neuron_info.validator_trust,
+                dividends=neuron_info.dividends,
+                last_update=neuron_info.last_update,
+                validator_permit=neuron_info.validator_permit,
+                prometheus_info=neuron_info.prometheus_info,
+                axon_info=neuron_info.axon_info,
+                pruning_score=neuron_info.pruning_score,
+                is_null=neuron_info.is_null,
+            )
 
     def get_transfer_fee(
         self, wallet: "Wallet", dest: str, value: Union["Balance", float, int]

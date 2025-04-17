@@ -1,12 +1,14 @@
 import pytest
 from bittensor.core.subtensor import Subtensor
 from bittensor.core.extrinsics import root
+from bittensor.utils.balance import Balance
 
 
 @pytest.fixture
 def mock_subtensor(mocker):
     mock = mocker.MagicMock(spec=Subtensor)
     mock.network = "magic_mock"
+    mock.substrate = mocker.Mock()
     return mock
 
 
@@ -30,17 +32,17 @@ def mock_wallet(mocker):
         (
             False,
             True,
-            [False, True],
+            [False, 1],
             True,
             True,
         ),  # Registration succeeds with user confirmation
-        (False, True, [False, False], False, None),  # Registration fails
+        (False, True, [False, None], False, False),  # Registration fails
         (
             False,
             True,
-            [False, False],
+            [False, None],
             True,
-            None,
+            False,
         ),  # Registration succeeds but neuron not found
     ],
     ids=[
@@ -61,13 +63,24 @@ def test_root_register_extrinsic(
     mocker,
 ):
     # Arrange
-    mock_subtensor.is_hotkey_registered.side_effect = hotkey_registered
+    mock_subtensor.is_hotkey_registered.return_value = hotkey_registered[0]
 
     # Preps
-    mock_register = mocker.Mock(
-        return_value=(registration_success, "Error registering")
+    mocked_sign_and_send_extrinsic = mocker.patch.object(
+        mock_subtensor,
+        "sign_and_send_extrinsic",
+        return_value=(registration_success, "Error registering"),
     )
-    root._do_root_register = mock_register
+    mocker.patch.object(
+        mock_subtensor.substrate,
+        "query",
+        return_value=hotkey_registered[1],
+    )
+    mocker.patch.object(
+        mock_subtensor,
+        "get_balance",
+        return_value=Balance(1),
+    )
 
     # Act
     result = root.root_register_extrinsic(
@@ -80,7 +93,42 @@ def test_root_register_extrinsic(
     assert result == expected_result
 
     if not hotkey_registered[0]:
-        mock_register.assert_called_once()
+        mock_subtensor.substrate.compose_call.assert_called_once_with(
+            call_module="SubtensorModule",
+            call_function="root_register",
+            call_params={"hotkey": "fake_hotkey_address"},
+        )
+        mocked_sign_and_send_extrinsic.assert_called_once_with(
+            mock_subtensor.substrate.compose_call.return_value,
+            wallet=mock_wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+
+def test_root_register_extrinsic_insufficient_balance(
+    mock_subtensor,
+    mock_wallet,
+    mocker,
+):
+    mocker.patch.object(
+        mock_subtensor,
+        "get_balance",
+        return_value=Balance(0),
+    )
+
+    success = root.root_register_extrinsic(
+        subtensor=mock_subtensor,
+        wallet=mock_wallet,
+    )
+
+    assert success is False
+
+    mock_subtensor.get_balance.assert_called_once_with(
+        mock_wallet.coldkeypub.ss58_address,
+        block=mock_subtensor.get_current_block.return_value,
+    )
+    mock_subtensor.substrate.submit_extrinsic.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -115,13 +163,6 @@ def test_root_register_extrinsic(
             [0.5, 0.5],
             False,
         ),  # Failure - setting weights failed
-        (
-            True,
-            False,
-            [],
-            [],
-            False,
-        ),  # Exception catched - ValueError 'min() arg is an empty sequence'
     ],
     ids=[
         "success-weights-set",
@@ -129,7 +170,6 @@ def test_root_register_extrinsic(
         "success-large-value",
         "success-single-value",
         "failure-setting-weights",
-        "failure-value-error-exception",
     ],
 )
 def test_set_root_weights_extrinsic(
@@ -143,11 +183,14 @@ def test_set_root_weights_extrinsic(
     mocker,
 ):
     # Preps
-    root._do_set_root_weights = mocker.Mock(
-        return_value=(expected_success, "Mock error")
+    mocker.patch.object(
+        root, "_do_set_root_weights", return_value=(expected_success, "Mock error")
     )
-    mock_subtensor.min_allowed_weights = mocker.Mock(return_value=0)
-    mock_subtensor.max_weight_limit = mocker.Mock(return_value=1)
+    mocker.patch.object(
+        root,
+        "_get_limits",
+        return_value=(0, 1),
+    )
 
     # Call
     result = root.set_root_weights_extrinsic(
@@ -200,14 +243,6 @@ def test_set_root_weights_extrinsic(
             None,
             False,
         ),  # Failure - setting weights failed
-        (
-            True,
-            False,
-            [],
-            [],
-            False,
-            False,
-        ),  # Exception catched - ValueError 'min() arg is an empty sequence'
     ],
     ids=[
         "success-weights-set",
@@ -215,7 +250,6 @@ def test_set_root_weights_extrinsic(
         "success-large-value",
         "success-single-value",
         "failure-setting-weights",
-        "failure-value-error-exception",
     ],
 )
 def test_set_root_weights_extrinsic_torch(

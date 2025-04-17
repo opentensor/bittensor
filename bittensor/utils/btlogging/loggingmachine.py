@@ -1,20 +1,3 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
 """
 Module provides a logging framework for Bittensor, managing both Bittensor-specific and third-party logging states.
 It leverages the StateMachine from the statemachine package to transition between different logging states such as
@@ -23,7 +6,6 @@ Default, Debug, Trace, and Disabled.
 
 import argparse
 import atexit
-import copy
 import logging as stdlogging
 import multiprocessing as mp
 import os
@@ -34,7 +16,9 @@ from typing import NamedTuple
 
 from statemachine import State, StateMachine
 
+from bittensor.core.settings import READ_ONLY
 from bittensor.core.config import Config
+from bittensor.utils.btlogging.console import BittensorConsole
 from .defines import (
     BITTENSOR_LOGGER_NAME,
     DATE_FORMAT,
@@ -45,14 +29,20 @@ from .defines import (
 )
 from .format import BtFileFormatter, BtStreamFormatter
 from .helpers import all_loggers
-from bittensor.utils.btlogging.console import BittensorConsole
+
+# https://github.com/python/cpython/issues/97941
+CUSTOM_LOGGER_METHOD_STACK_LEVEL = 2 if sys.version_info >= (3, 11) else 1
 
 
 def _concat_message(msg="", prefix="", suffix=""):
     """Concatenates a message with optional prefix and suffix."""
-    empty_pref_suf = [None, ""]
-    msg = f"{f'{prefix} - ' if prefix not in empty_pref_suf else ''}{msg}{f' - {suffix}' if suffix not in empty_pref_suf else ''}"
-    return msg
+    message_parts = [
+        str(component).strip()
+        for component in [prefix, msg, suffix]
+        if component is not None and str(component).strip()
+    ]
+    formatted_message = " - ".join(message_parts)
+    return formatted_message
 
 
 class LoggingConfig(NamedTuple):
@@ -60,6 +50,7 @@ class LoggingConfig(NamedTuple):
 
     debug: bool
     trace: bool
+    info: bool
     record_log: bool
     logging_dir: str
 
@@ -72,6 +63,7 @@ class LoggingMachine(StateMachine, Logger):
     Trace = State()
     Disabled = State()
     Warning = State()
+    Info = State()
 
     enable_default = (
         Debug.to(Default)
@@ -79,6 +71,7 @@ class LoggingMachine(StateMachine, Logger):
         | Disabled.to(Default)
         | Default.to(Default)
         | Warning.to(Default)
+        | Info.to(Default)
     )
 
     enable_console = (
@@ -87,9 +80,17 @@ class LoggingMachine(StateMachine, Logger):
         | Disabled.to(Debug)
         | Debug.to(Debug)
         | Warning.to(Debug)
+        | Info.to(Debug)
     )
 
-    enable_info = enable_default
+    enable_info = (
+        Default.to(Info)
+        | Debug.to(Info)
+        | Trace.to(Info)
+        | Disabled.to(Info)
+        | Warning.to(Info)
+        | Info.to(Info)
+    )
 
     enable_trace = (
         Default.to(Trace)
@@ -97,6 +98,7 @@ class LoggingMachine(StateMachine, Logger):
         | Disabled.to(Trace)
         | Trace.to(Trace)
         | Warning.to(Trace)
+        | Info.to(Trace)
     )
 
     enable_debug = (
@@ -105,6 +107,7 @@ class LoggingMachine(StateMachine, Logger):
         | Disabled.to(Debug)
         | Debug.to(Debug)
         | Warning.to(Debug)
+        | Info.to(Debug)
     )
 
     enable_warning = (
@@ -113,6 +116,7 @@ class LoggingMachine(StateMachine, Logger):
         | Disabled.to(Warning)
         | Debug.to(Warning)
         | Warning.to(Warning)
+        | Info.to(Warning)
     )
 
     disable_trace = Trace.to(Default)
@@ -121,11 +125,14 @@ class LoggingMachine(StateMachine, Logger):
 
     disable_warning = Warning.to(Default)
 
+    disable_info = Info.to(Default)
+
     disable_logging = (
         Trace.to(Disabled)
         | Debug.to(Disabled)
         | Default.to(Disabled)
         | Disabled.to(Disabled)
+        | Info.to(Disabled)
     )
 
     def __init__(self, config: "Config", name: str = BITTENSOR_LOGGER_NAME):
@@ -163,6 +170,8 @@ class LoggingMachine(StateMachine, Logger):
             self.enable_trace()
         elif config.debug:
             self.enable_debug()
+        elif config.info:
+            self.enable_info()
         else:
             self.enable_default()
 
@@ -175,7 +184,8 @@ class LoggingMachine(StateMachine, Logger):
         Returns:
             (dict): btlogging's config from Bittensor config or Bittensor config.
         """
-        if hasattr(config, "logging"):
+        # This is to handle nature of DefaultMunch
+        if getattr(config, "logging", None):
             return config.logging
         else:
             return config
@@ -206,15 +216,17 @@ class LoggingMachine(StateMachine, Logger):
         Args:
             config (bittensor.core.config.Config): Bittensor config instance.
         """
-        self._config = config
-        if config.logging_dir and config.record_log:
+        self._config = self._extract_logging_config(config)
+        if self._config.logging_dir and self._config.record_log:
             expanded_dir = os.path.expanduser(config.logging_dir)
             logfile = os.path.abspath(os.path.join(expanded_dir, DEFAULT_LOG_FILE_NAME))
             self._enable_file_logging(logfile)
-        if config.trace:
+        if self._config.trace:
             self.enable_trace()
-        elif config.debug:
+        elif self._config.debug:
             self.enable_debug()
+        elif self._config.info:
+            self.enable_info()
 
     def _create_and_start_listener(self, handlers):
         """
@@ -334,17 +346,8 @@ class LoggingMachine(StateMachine, Logger):
     # Default Logging
     def before_enable_default(self):
         """Logs status before enable Default."""
-        self._logger.info("Enabling default logging.")
+        self._logger.info("Enabling default logging (Warning level)")
         self._logger.setLevel(stdlogging.WARNING)
-        for logger in all_loggers():
-            if logger.name in self._primary_loggers:
-                continue
-            logger.setLevel(stdlogging.CRITICAL)
-
-    def before_enable_info(self):
-        """Logs status before enable Default."""
-        self._logger.info("Enabling default logging.")
-        self._logger.setLevel(stdlogging.INFO)
         for logger in all_loggers():
             if logger.name in self._primary_loggers:
                 continue
@@ -353,6 +356,7 @@ class LoggingMachine(StateMachine, Logger):
     def after_enable_default(self):
         pass
 
+    # Warning
     def before_enable_warning(self):
         """Logs status before enable Warning."""
         self._logger.info("Enabling warning.")
@@ -363,6 +367,20 @@ class LoggingMachine(StateMachine, Logger):
     def after_enable_warning(self):
         """Logs status after enable Warning."""
         self._logger.info("Warning enabled.")
+
+    # Info
+    def before_enable_info(self):
+        """Logs status before enable info."""
+        self._logger.info("Enabling info logging.")
+        self._logger.setLevel(stdlogging.INFO)
+        for logger in all_loggers():
+            if logger.name in self._primary_loggers:
+                continue
+            logger.setLevel(stdlogging.INFO)
+
+    def after_enable_info(self):
+        """Logs status after enable info."""
+        self._logger.info("Info enabled.")
 
     # Trace
     def before_enable_trace(self):
@@ -443,45 +461,55 @@ class LoggingMachine(StateMachine, Logger):
         """
         return self.current_state_value == "Trace"
 
-    def trace(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def trace(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps trace message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.trace(msg, *args, **kwargs)
+        self._logger.trace(
+            msg,
+            *args,
+            **kwargs,
+            stacklevel=stacklevel + CUSTOM_LOGGER_METHOD_STACK_LEVEL,
+        )
 
-    def debug(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def debug(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps debug message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.debug(msg, *args, **kwargs)
+        self._logger.debug(msg, *args, **kwargs, stacklevel=stacklevel + 1)
 
-    def info(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def info(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps info message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.info(msg, *args, **kwargs)
+        self._logger.info(msg, *args, **kwargs, stacklevel=stacklevel + 1)
 
-    def success(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def success(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps success message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.success(msg, *args, **kwargs)
+        self._logger.success(
+            msg,
+            *args,
+            **kwargs,
+            stacklevel=stacklevel + CUSTOM_LOGGER_METHOD_STACK_LEVEL,
+        )
 
-    def warning(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def warning(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps warning message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.warning(msg, *args, **kwargs)
+        self._logger.warning(msg, *args, **kwargs, stacklevel=stacklevel + 1)
 
-    def error(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def error(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps error message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.error(msg, *args, **kwargs)
+        self._logger.error(msg, *args, **kwargs, stacklevel=stacklevel + 1)
 
-    def critical(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def critical(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps critical message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.critical(msg, *args, **kwargs)
+        self._logger.critical(msg, *args, **kwargs, stacklevel=stacklevel + 1)
 
-    def exception(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def exception(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps exception message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.exception(msg, *args, **kwargs)
+        self._logger.exception(msg, *args, **kwargs, stacklevel=stacklevel + 1)
 
     def on(self):
         """Enable default state."""
@@ -508,6 +536,14 @@ class LoggingMachine(StateMachine, Logger):
             if self.current_state_value == "Trace":
                 self.disable_trace()
 
+    def set_info(self, on: bool = True):
+        """Sets Info state."""
+        if on and not self.current_state_value == "Info":
+            self.enable_info()
+        elif not on:
+            if self.current_state_value == "Info":
+                self.disable_info()
+
     def set_warning(self, on: bool = True):
         """Sets Warning state."""
         if on and not self.current_state_value == "Warning":
@@ -526,15 +562,13 @@ class LoggingMachine(StateMachine, Logger):
         if not self.current_state_value == "Console":
             self.enable_console()
 
-    # as an option to be more obvious. `bittensor.logging.set_info()` is the same `bittensor.logging.set_default()`
-    def set_info(self):
-        """Sets Default state."""
-        if not self.current_state_value == "Default":
-            self.enable_info()
-
     def get_level(self) -> int:
         """Returns Logging level."""
         return self._logger.level
+
+    def setLevel(self, level):
+        """Set the specified level on the underlying logger."""
+        self._logger.setLevel(level)
 
     def check_config(self, config: "Config"):
         assert config.logging
@@ -548,11 +582,15 @@ class LoggingMachine(StateMachine, Logger):
         prefix_str = "" if prefix is None else prefix + "."
         try:
             default_logging_debug = os.getenv("BT_LOGGING_DEBUG") or False
+            default_logging_info = os.getenv("BT_LOGGING_INFO") or False
             default_logging_trace = os.getenv("BT_LOGGING_TRACE") or False
             default_logging_record_log = os.getenv("BT_LOGGING_RECORD_LOG") or False
-            default_logging_logging_dir = os.getenv(
-                "BT_LOGGING_LOGGING_DIR"
-            ) or os.path.join("~", ".bittensor", "miners")
+            default_logging_logging_dir = (
+                None
+                if READ_ONLY
+                else os.getenv("BT_LOGGING_LOGGING_DIR")
+                or os.path.join("~", ".bittensor", "miners")
+            )
             parser.add_argument(
                 "--" + prefix_str + "logging.debug",
                 action="store_true",
@@ -564,6 +602,12 @@ class LoggingMachine(StateMachine, Logger):
                 action="store_true",
                 help="""Turn on bittensor trace level information""",
                 default=default_logging_trace,
+            )
+            parser.add_argument(
+                "--" + prefix_str + "logging.info",
+                action="store_true",
+                help="""Turn on bittensor info level information""",
+                default=default_logging_info,
             )
             parser.add_argument(
                 "--" + prefix_str + "logging.record_log",
@@ -590,19 +634,22 @@ class LoggingMachine(StateMachine, Logger):
         """
         parser = argparse.ArgumentParser()
         cls.add_args(parser)
-        return Config(parser, args=[])
+        return Config(parser)
 
     def __call__(
         self,
         config: "Config" = None,
         debug: bool = None,
         trace: bool = None,
+        info: bool = None,
         record_log: bool = None,
         logging_dir: str = None,
     ):
         if config is not None:
-            cfg = copy.deepcopy(config)
-            if debug is not None:
+            cfg = self._extract_logging_config(config)
+            if info is not None:
+                cfg.info = info
+            elif debug is not None:
                 cfg.debug = debug
             elif trace is not None:
                 cfg.trace = trace
@@ -612,6 +659,10 @@ class LoggingMachine(StateMachine, Logger):
                 cfg.logging_dir = logging_dir
         else:
             cfg = LoggingConfig(
-                debug=debug, trace=trace, record_log=record_log, logging_dir=logging_dir
+                debug=debug,
+                trace=trace,
+                info=info,
+                record_log=record_log,
+                logging_dir=logging_dir,
             )
         self.set_config(cfg)

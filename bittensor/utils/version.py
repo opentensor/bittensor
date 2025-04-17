@@ -1,27 +1,11 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
 import time
 from pathlib import Path
 from typing import Optional
 
 import requests
-from packaging.version import Version
+from packaging.version import Version, InvalidVersion
 
+from bittensor import __name__
 from bittensor.core.settings import __version__, PIPADDRESS
 from bittensor.utils.btlogging import logging
 
@@ -132,3 +116,27 @@ def version_checking(timeout: int = 15):
         check_version(timeout)
     except VersionCheckError:
         logging.exception("Version check failed")
+
+
+def check_latest_version_in_pypi():
+    """Check for the latest version of the package on PyPI."""
+    package_name = __name__
+    url = f"https://pypi.org/pypi/{package_name}/json"
+
+    try:
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        latest_version = response.json()["info"]["version"]
+        installed_version = __version__
+        try:
+            if Version(installed_version) < Version(latest_version):
+                print(
+                    f"\n🔔 New version is available `{package_name} v.{latest_version}`"
+                )
+                print("📦 Use command `pip install --upgrade bittensor` to update.")
+        except InvalidVersion:
+            # stay silent if InvalidVersion
+            pass
+    except (requests.RequestException, KeyError) as e:
+        # stay silent if not internet connection or pypi.org issue
+        pass

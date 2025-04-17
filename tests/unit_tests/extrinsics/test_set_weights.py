@@ -2,11 +2,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import torch
-from bittensor_wallet import Wallet
 
 from bittensor.core import subtensor as subtensor_module
 from bittensor.core.extrinsics.set_weights import (
-    do_set_weights,
+    _do_set_weights,
     set_weights_extrinsic,
 )
 from bittensor.core.settings import version_as_int
@@ -18,12 +17,6 @@ def mock_subtensor():
     mock = MagicMock(spec=Subtensor)
     mock.network = "mock_network"
     mock.substrate = MagicMock()
-    return mock
-
-
-@pytest.fixture
-def mock_wallet():
-    mock = MagicMock(spec=Wallet)
     return mock
 
 
@@ -66,7 +59,7 @@ def mock_wallet():
 )
 def test_set_weights_extrinsic(
     mock_subtensor,
-    mock_wallet,
+    fake_wallet,
     uids,
     weights,
     version_key,
@@ -77,16 +70,19 @@ def test_set_weights_extrinsic(
 ):
     uids_tensor = torch.tensor(uids, dtype=torch.int64)
     weights_tensor = torch.tensor(weights, dtype=torch.float32)
-    with patch(
-        "bittensor.utils.weight_utils.convert_weights_and_uids_for_emit",
-        return_value=(uids_tensor, weights_tensor),
-    ), patch(
-        "bittensor.core.extrinsics.set_weights.do_set_weights",
-        return_value=(expected_success, "Mock error message"),
-    ) as mock_do_set_weights:
+    with (
+        patch(
+            "bittensor.utils.weight_utils.convert_weights_and_uids_for_emit",
+            return_value=(uids_tensor, weights_tensor),
+        ),
+        patch(
+            "bittensor.core.extrinsics.set_weights._do_set_weights",
+            return_value=(expected_success, "Mock error message"),
+        ),
+    ):
         result, message = set_weights_extrinsic(
             subtensor=mock_subtensor,
-            wallet=mock_wallet,
+            wallet=fake_wallet,
             netuid=123,
             uids=uids,
             weights=weights,
@@ -99,10 +95,9 @@ def test_set_weights_extrinsic(
         assert message == expected_message, f"Test {expected_message} failed."
 
 
-def test_do_set_weights_is_success(mock_subtensor, mocker):
+def test_do_set_weights_is_success(mock_subtensor, fake_wallet, mocker):
     """Successful _do_set_weights call."""
     # Prep
-    fake_wallet = mocker.MagicMock()
     fake_uids = [1, 2, 3]
     fake_vals = [4, 5, 6]
     fake_netuid = 1
@@ -112,8 +107,8 @@ def test_do_set_weights_is_success(mock_subtensor, mocker):
     mock_subtensor.substrate.submit_extrinsic.return_value.is_success = True
 
     # Call
-    result = do_set_weights(
-        self=mock_subtensor,
+    result = _do_set_weights(
+        subtensor=mock_subtensor,
         wallet=fake_wallet,
         uids=fake_uids,
         vals=fake_vals,
@@ -135,26 +130,18 @@ def test_do_set_weights_is_success(mock_subtensor, mocker):
         },
     )
 
-    mock_subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
-        call=mock_subtensor.substrate.compose_call.return_value,
-        keypair=fake_wallet.hotkey,
-        era={"period": 5},
-    )
+    mock_subtensor.substrate.create_signed_extrinsic.assert_called_once()
+    _, kwargs = mock_subtensor.substrate.create_signed_extrinsic.call_args
+    assert kwargs["call"] == mock_subtensor.substrate.compose_call.return_value
+    assert kwargs["keypair"] == fake_wallet.hotkey
+    assert kwargs["era"] == {"period": 5}
 
-    mock_subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        mock_subtensor.substrate.create_signed_extrinsic.return_value,
-        wait_for_inclusion=fake_wait_for_inclusion,
-        wait_for_finalization=fake_wait_for_finalization,
-    )
-
-    mock_subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
     assert result == (True, "Successfully set weights.")
 
 
-def test_do_set_weights_is_not_success(mock_subtensor, mocker):
+def test_do_set_weights_is_not_success(mock_subtensor, fake_wallet, mocker):
     """Unsuccessful _do_set_weights call."""
     # Prep
-    fake_wallet = mocker.MagicMock()
     fake_uids = [1, 2, 3]
     fake_vals = [4, 5, 6]
     fake_netuid = 1
@@ -166,8 +153,8 @@ def test_do_set_weights_is_not_success(mock_subtensor, mocker):
     subtensor_module.format_error_message = mocked_format_error_message
 
     # Call
-    result = do_set_weights(
-        self=mock_subtensor,
+    result = _do_set_weights(
+        subtensor=mock_subtensor,
         wallet=fake_wallet,
         uids=fake_uids,
         vals=fake_vals,
@@ -189,29 +176,27 @@ def test_do_set_weights_is_not_success(mock_subtensor, mocker):
         },
     )
 
-    mock_subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
-        call=mock_subtensor.substrate.compose_call.return_value,
-        keypair=fake_wallet.hotkey,
-        era={"period": 5},
-    )
+    mock_subtensor.substrate.create_signed_extrinsic.assert_called_once()
+    _, kwargs = mock_subtensor.substrate.create_signed_extrinsic.call_args
+    assert kwargs["call"] == mock_subtensor.substrate.compose_call.return_value
+    assert kwargs["keypair"] == fake_wallet.hotkey
+    assert kwargs["era"] == {"period": 5}
 
     mock_subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        mock_subtensor.substrate.create_signed_extrinsic.return_value,
+        extrinsic=mock_subtensor.substrate.create_signed_extrinsic.return_value,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
     )
 
-    mock_subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
     assert result == (
         False,
         "Subtensor returned `UnknownError(UnknownType)` error. This means: `Unknown Description`.",
     )
 
 
-def test_do_set_weights_no_waits(mock_subtensor, mocker):
+def test_do_set_weights_no_waits(mock_subtensor, fake_wallet, mocker):
     """Successful _do_set_weights call without wait flags for fake_wait_for_inclusion and fake_wait_for_finalization."""
     # Prep
-    fake_wallet = mocker.MagicMock()
     fake_uids = [1, 2, 3]
     fake_vals = [4, 5, 6]
     fake_netuid = 1
@@ -219,8 +204,8 @@ def test_do_set_weights_no_waits(mock_subtensor, mocker):
     fake_wait_for_finalization = False
 
     # Call
-    result = do_set_weights(
-        self=mock_subtensor,
+    result = _do_set_weights(
+        subtensor=mock_subtensor,
         wallet=fake_wallet,
         uids=fake_uids,
         vals=fake_vals,
@@ -242,14 +227,14 @@ def test_do_set_weights_no_waits(mock_subtensor, mocker):
         },
     )
 
-    mock_subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
-        call=mock_subtensor.substrate.compose_call.return_value,
-        keypair=fake_wallet.hotkey,
-        era={"period": 5},
-    )
+    mock_subtensor.substrate.create_signed_extrinsic.assert_called_once()
+    _, kwargs = mock_subtensor.substrate.create_signed_extrinsic.call_args
+    assert kwargs["call"] == mock_subtensor.substrate.compose_call.return_value
+    assert kwargs["keypair"] == fake_wallet.hotkey
+    assert kwargs["era"] == {"period": 5}
 
     mock_subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        mock_subtensor.substrate.create_signed_extrinsic.return_value,
+        extrinsic=mock_subtensor.substrate.create_signed_extrinsic.return_value,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
     )

@@ -1,29 +1,19 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
-from typing import Union
+import asyncio
+import json
+import time
+from collections import deque
+from typing import Optional, Union
 
 from bittensor_wallet.mock.wallet_mock import MockWallet as _MockWallet
 from bittensor_wallet.mock.wallet_mock import get_mock_coldkey
 from bittensor_wallet.mock.wallet_mock import get_mock_hotkey
 from bittensor_wallet.mock.wallet_mock import get_mock_wallet
+from websockets.asyncio.client import ClientConnection, ClientProtocol
+from websockets.uri import parse_uri
 
-from bittensor.utils.balance import Balance
 from bittensor.core.chain_data import AxonInfo, NeuronInfo, PrometheusInfo
+from bittensor.utils.balance import Balance
+from tests.helpers.integration_websocket_data import WEBSOCKET_RESPONSES, METADATA
 
 
 def __mock_wallet_factory__(*_, **__) -> _MockWallet:
@@ -54,6 +44,61 @@ class CLOSE_IN_VALUE:
         ) or ((__o - self.tolerance) <= self.value <= (__o + self.tolerance))
 
 
+class ApproxBalance(CLOSE_IN_VALUE, Balance):
+    def __init__(
+        self,
+        balance: Union[float, int],
+        tolerance: Union[float, int] = 0.1,
+    ):
+        super().__init__(
+            Balance(balance),
+            Balance(tolerance),
+        )
+
+    @property
+    def rao(self):
+        return self.value.rao
+
+
+def assert_submit_signed_extrinsic(
+    substrate,
+    keypair,
+    call_module,
+    call_function,
+    call_params: Optional[dict] = None,
+    era: Optional[dict] = None,
+    nonce: Optional[int] = None,
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = True,
+):
+    substrate.compose_call.assert_called_with(
+        call_module,
+        call_function,
+        call_params,
+    )
+
+    extrinsic = {
+        "call": substrate.compose_call.return_value,
+        "keypair": keypair,
+    }
+
+    if era:
+        extrinsic["era"] = era
+
+    if nonce:
+        extrinsic["nonce"] = nonce
+
+    substrate.create_signed_extrinsic.assert_called_with(
+        **extrinsic,
+    )
+
+    substrate.submit_extrinsic.assert_called_with(
+        substrate.create_signed_extrinsic.return_value,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+
+
 def get_mock_neuron(**kwargs) -> NeuronInfo:
     """
     Returns a mock neuron with the given kwargs overriding the default values.
@@ -63,11 +108,12 @@ def get_mock_neuron(**kwargs) -> NeuronInfo:
         {
             "netuid": -1,  # mock netuid
             "axon_info": AxonInfo(
-                block=0,
                 version=1,
-                ip=0,
+                ip="0.0.0.0",
                 port=0,
                 ip_type=0,
+                hotkey=get_mock_hotkey(),
+                coldkey=get_mock_coldkey(),
                 protocol=0,
                 placeholder1=0,
                 placeholder2=0,
@@ -115,3 +161,50 @@ def get_mock_neuron_by_uid(uid: int, **kwargs) -> NeuronInfo:
     return get_mock_neuron(
         uid=uid, hotkey=get_mock_hotkey(uid), coldkey=get_mock_coldkey(uid), **kwargs
     )
+
+
+class FakeWebsocket(ClientConnection):
+    close_code = None
+
+    def __init__(self, *args, seed, **kwargs):
+        protocol = ClientProtocol(parse_uri("ws://127.0.0.1:9945"))
+        super().__init__(protocol=protocol, **kwargs)
+        self.seed = seed
+        self.received = deque()
+        self._lock = asyncio.Lock()
+
+    def send(self, payload: str, *args, **kwargs):
+        received = json.loads(payload)
+        id_ = received.pop("id")
+        self.received.append((received, id_))
+
+    def recv(self, *args, **kwargs):
+        while len(self.received) == 0:
+            time.sleep(0.1)
+        item, _id = self.received.pop()
+        try:
+            if item["method"] == "state_getMetadata":
+                response = {"jsonrpc": "2.0", "id": _id, "result": METADATA}
+            else:
+                response = WEBSOCKET_RESPONSES[self.seed][item["method"]][
+                    json.dumps(item["params"])
+                ]
+                response["id"] = _id
+            return json.dumps(response)
+        except (KeyError, TypeError):
+            print("ERROR", self.seed, item["method"], item["params"])
+            raise
+
+    def close(self, *args, **kwargs):
+        pass
+
+
+class FakeConnectContextManager:
+    def __init__(self, seed):
+        self.seed = seed
+
+    def __enter__(self):
+        return FakeWebsocket(seed=self.seed)
+
+    def __exit__(self, exc_type, exc, tb):
+        pass

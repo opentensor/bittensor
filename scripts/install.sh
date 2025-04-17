@@ -105,6 +105,7 @@ linux_install_bittensor() {
     git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git fetch origin master ; git checkout master ; git pull --ff-only ; git reset --hard ; git clean -xdf)
     ohai "Installing bittensor"
     $python -m pip install -e ~/.bittensor/bittensor/
+    $python -m pip install -U bittensor-cli
     exit_on_error $? 
 }
 
@@ -163,10 +164,11 @@ mac_update_pip() {
 }
 
 mac_install_bittensor() {
-    ohai "Cloning bittensor@text_prompting into ~/.bittensor/bittensor"
+    ohai "Cloning bittensor into ~/.bittensor/bittensor"
     git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git fetch origin master ; git checkout master ; git pull --ff-only ; git reset --hard; git clean -xdf)
     ohai "Installing bittensor"
     $python -m pip install -e ~/.bittensor/bittensor/
+    $python -m pip install -U bittensor-cli
     exit_on_error $? 
     deactivate
 }
@@ -175,9 +177,9 @@ mac_install_bittensor() {
 OS="$(uname)"
 if [[ "$OS" == "Linux" ]]; then
 
-    which -s apt
+    which -s apt-get
     if [[ $? == 0 ]] ; then
-        abort "This linux based install requires apt. To run with other distros (centos, arch, etc), you will need to manually install the requirements"
+        abort "This linux based install requires apt-get. To run with other distros (centos, arch, etc), you will need to manually install the requirements"
     fi
     echo """
     
@@ -266,8 +268,8 @@ echo ""
 ohai "Welcome. Installation successful"
 echo ""
 echo "- 1. Create a wallet "
-echo "    $ btcli new_coldkey (for holding funds)"
-echo "    $ btcli new_hotkey (for running miners)"
+echo "    $ btcli w new_coldkey # (for holding funds)"
+echo "    $ btcli w new_hotkey # (for running miners)"
 echo ""
 echo "- 2. Run a miner on the prompting network. "
 echo "    $ python3 ~/.bittensor/bittensor/neurons/text/prompting/miners/gpt4all/neuron.py"
@@ -275,7 +277,7 @@ echo ""
 ohai "Extras:"
 echo ""
 echo "- Check your tao balance: "
-echo "    $ btcli wallet overview"
+echo "    $ btcli w overview"
 echo ""
 echo "- Stake to your miners:"
 echo "    $ btcli stake add"

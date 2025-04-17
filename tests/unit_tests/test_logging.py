@@ -38,7 +38,7 @@ def mock_config(tmp_path):
     log_file_path = log_dir / DEFAULT_LOG_FILE_NAME
 
     mock_config = LoggingConfig(
-        debug=False, trace=False, record_log=True, logging_dir=str(log_dir)
+        debug=False, trace=False, info=False, record_log=True, logging_dir=str(log_dir)
     )
 
     yield mock_config, log_file_path
@@ -140,7 +140,9 @@ def test_enable_file_logging_with_new_config(tmp_path):
     log_file_path = log_dir / DEFAULT_LOG_FILE_NAME
 
     # check no file handler is created
-    config = LoggingConfig(debug=False, trace=False, record_log=True, logging_dir=None)
+    config = LoggingConfig(
+        debug=False, trace=False, info=False, record_log=True, logging_dir=None
+    )
     lm = LoggingMachine(config)
     assert not any(
         isinstance(handler, stdlogging.FileHandler) for handler in lm._handlers
@@ -148,7 +150,7 @@ def test_enable_file_logging_with_new_config(tmp_path):
 
     # check file handler now exists
     new_config = LoggingConfig(
-        debug=False, trace=False, record_log=True, logging_dir=str(log_dir)
+        debug=False, trace=False, info=False, record_log=True, logging_dir=str(log_dir)
     )
     lm.set_config(new_config)
     assert any(isinstance(handler, stdlogging.FileHandler) for handler in lm._handlers)
@@ -176,6 +178,19 @@ def test_all_log_levels_output(logging_machine, caplog):
     assert "Test error" in caplog.text
     assert "Test critical" in caplog.text
 
+    records = [(r.module, r.getMessage()) for r in caplog.records]
+
+    assert records == [
+        ("loggingmachine", "Trace enabled."),
+        ("test_logging", "Test trace"),
+        ("test_logging", "Test debug"),
+        ("test_logging", "Test info"),
+        ("test_logging", "Test success"),
+        ("test_logging", "Test warning"),
+        ("test_logging", "Test error"),
+        ("test_logging", "Test critical"),
+    ]
+
 
 @pytest.mark.parametrize(
     "msg, prefix, suffix, expected_result",
@@ -197,3 +212,25 @@ def test_all_log_levels_output(logging_machine, caplog):
 def test_concat(msg, prefix, suffix, expected_result):
     """Test different options of message concatenation with prefix and suffix."""
     assert _concat_message(msg, prefix, suffix) == expected_result
+
+
+def test_logger_level(logging_machine, caplog):
+    """Test get/set Logger level."""
+
+    assert logging_machine.get_level() == stdlogging.WARN
+
+    logging_machine.info("info1")
+    logging_machine.warning("warn1")
+
+    assert "info1" not in caplog.text
+    assert "warn1" in caplog.text
+
+    logging_machine.setLevel(stdlogging.INFO)
+
+    assert logging_machine.get_level() == stdlogging.INFO
+
+    logging_machine.info("info2")
+    logging_machine.warning("warn2")
+
+    assert "info2" in caplog.text
+    assert "warn2" in caplog.text

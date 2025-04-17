@@ -291,7 +291,7 @@ def test_serve_axon_extrinsic(
         serving.do_serve_axon = mocker.MagicMock(return_value=(serve_success, ""))
         # Act
         if not external_ip_success:
-            with pytest.raises(RuntimeError):
+            with pytest.raises(ConnectionError):
                 serving.serve_axon_extrinsic(
                     mock_subtensor,
                     netuid,
@@ -351,20 +351,22 @@ def test_publish_metadata(
     test_id,
 ):
     # Arrange
-    with patch.object(mock_subtensor.substrate, "compose_call"), patch.object(
-        mock_subtensor.substrate, "create_signed_extrinsic"
-    ), patch.object(
-        mock_subtensor.substrate,
-        "submit_extrinsic",
-        return_value=MagicMock(
-            is_success=response_success,
-            process_events=MagicMock(),
-            error_message="error",
+    with (
+        patch.object(mock_subtensor.substrate, "compose_call"),
+        patch.object(mock_subtensor.substrate, "create_signed_extrinsic"),
+        patch.object(
+            mock_subtensor.substrate,
+            "submit_extrinsic",
+            return_value=MagicMock(
+                is_success=response_success,
+                process_events=MagicMock(),
+                error_message="error",
+            ),
         ),
     ):
         # Act
         result = serving.publish_metadata(
-            self=mock_subtensor,
+            subtensor=mock_subtensor,
             wallet=mock_wallet,
             netuid=net_uid,
             data_type=type_u,

@@ -1,27 +1,9 @@
-# The MIT License (MIT)
-# Copyright © 2022 Yuma Rao
-# Copyright © 2022-2023 Opentensor Foundation
-# Copyright © 2023 Opentensor Technologies Inc
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
 import asyncio
 import typing
 from unittest.mock import MagicMock, Mock
 
 import aiohttp
+from bittensor_wallet.mock import get_mock_wallet
 import pytest
 
 from bittensor.core.axon import Axon
@@ -47,16 +29,11 @@ def dummy(synapse: SynapseDummy) -> SynapseDummy:
 
 
 @pytest.fixture
-def setup_dendrite():
+def setup_dendrite(mock_get_external_ip):
     # Assuming bittensor.Wallet() returns a wallet object
     user_wallet = get_mock_wallet()
     dendrite_obj = Dendrite(user_wallet)
-    return dendrite_obj
-
-
-@pytest.fixture
-def dendrite_obj(setup_dendrite):
-    return setup_dendrite
+    yield dendrite_obj
 
 
 @pytest.fixture
@@ -74,7 +51,10 @@ def axon_info():
 @pytest.fixture(scope="session")
 def setup_axon():
     wallet = get_mock_wallet()
-    axon = Axon(wallet)
+    axon = Axon(
+        wallet,
+        external_ip="192.168.1.1",
+    )
     axon.attach(forward_fn=dummy)
     axon.start()
     yield axon
@@ -82,37 +62,46 @@ def setup_axon():
 
 
 def test_init(setup_dendrite):
-    dendrite_obj = setup_dendrite
-    assert isinstance(dendrite_obj, Dendrite)
-    assert dendrite_obj.keypair == setup_dendrite.keypair
+    assert isinstance(setup_dendrite, Dendrite)
 
 
-def test_str(dendrite_obj):
-    expected_string = f"dendrite({dendrite_obj.keypair.ss58_address})"
-    assert str(dendrite_obj) == expected_string
+def test_str(setup_dendrite):
+    expected_string = f"dendrite({setup_dendrite.keypair.ss58_address})"
+    assert str(setup_dendrite) == expected_string
 
 
-def test_repr(dendrite_obj):
-    expected_string = f"dendrite({dendrite_obj.keypair.ss58_address})"
-    assert repr(dendrite_obj) == expected_string
+def test_repr(setup_dendrite):
+    expected_string = f"dendrite({setup_dendrite.keypair.ss58_address})"
+    assert repr(setup_dendrite) == expected_string
 
 
-def test_close(dendrite_obj, setup_axon):
+def test_close(setup_dendrite, setup_axon):
     axon = setup_axon
     # Query the axon to open a session
-    dendrite_obj.query(axon, SynapseDummy(input=1))
+    setup_dendrite.query(axon, SynapseDummy(input=1))
     # Session should be automatically closed after query
-    assert dendrite_obj._session is None
+    assert setup_dendrite._session is None
+
+
+def test_garbage_collection(setup_dendrite):
+    del setup_dendrite  # should not raise an error
 
 
 @pytest.mark.asyncio
-async def test_aclose(dendrite_obj, setup_axon):
+async def test_async_garbage_collection(setup_dendrite, setup_axon):
+    async with setup_dendrite as dendrite:
+        assert (await dendrite.session) is not None
+    del setup_dendrite  # should not raise error
+
+
+@pytest.mark.asyncio
+async def test_aclose(setup_dendrite, setup_axon):
     axon = setup_axon
     # Use context manager to open an async session
-    async with dendrite_obj:
-        await dendrite_obj([axon], SynapseDummy(input=1), deserialize=False)
+    async with setup_dendrite:
+        await setup_dendrite([axon], SynapseDummy(input=1), deserialize=False)
     # Close should automatically be called on the session after context manager scope
-    assert dendrite_obj._session is None
+    assert setup_dendrite._session is None
 
 
 class AsyncMock(Mock):
@@ -128,7 +117,7 @@ class AsyncMock(Mock):
         return self().__await__()
 
 
-def test_dendrite_create_wallet():
+def test_dendrite_create_wallet(mock_get_external_ip):
     d = Dendrite(get_mock_wallet())
     d = Dendrite(get_mock_wallet().hotkey)
     d = Dendrite(get_mock_wallet().coldkeypub)
@@ -136,7 +125,7 @@ def test_dendrite_create_wallet():
 
 
 @pytest.mark.asyncio
-async def test_forward_many():
+async def test_forward_many(mock_get_external_ip):
     n = 10
     d = Dendrite(wallet=get_mock_wallet())
     d.call = AsyncMock()
@@ -153,7 +142,7 @@ async def test_forward_many():
     assert len([resp]) == 1
 
 
-def test_pre_process_synapse():
+def test_pre_process_synapse(mock_get_external_ip):
     d = Dendrite(wallet=get_mock_wallet())
     s = Synapse()
     synapse = d.preprocess_synapse_for_request(
@@ -298,7 +287,7 @@ def test_terminal_info_error_cases(
 
 @pytest.mark.asyncio
 async def test_dendrite__call__success_response(
-    axon_info, dendrite_obj, mock_aio_response
+    axon_info, setup_dendrite, mock_aio_response
 ):
     input_synapse = SynapseDummy(input=1)
     expected_synapse = SynapseDummy(
@@ -318,7 +307,7 @@ async def test_dendrite__call__success_response(
         f"http://127.0.0.1:666/SynapseDummy",
         body=expected_synapse.json(),
     )
-    synapse = await dendrite_obj.call(axon_info, synapse=input_synapse)
+    synapse = await setup_dendrite.call(axon_info, synapse=input_synapse)
 
     assert synapse.input == 1
     assert synapse.output == 2
@@ -329,7 +318,7 @@ async def test_dendrite__call__success_response(
 
 @pytest.mark.asyncio
 async def test_dendrite__call__handles_http_error_response(
-    axon_info, dendrite_obj, mock_aio_response
+    axon_info, setup_dendrite, mock_aio_response
 ):
     status_code = 414
     message = "Custom Error"
@@ -339,7 +328,7 @@ async def test_dendrite__call__handles_http_error_response(
         status=status_code,
         payload={"message": message},
     )
-    synapse = await dendrite_obj.call(axon_info, synapse=SynapseDummy(input=1))
+    synapse = await setup_dendrite.call(axon_info, synapse=SynapseDummy(input=1))
 
     assert synapse.axon.status_code == synapse.dendrite.status_code == status_code
     assert synapse.axon.status_message == synapse.dendrite.status_message == message
@@ -400,9 +389,9 @@ def test_process_error_message(
     synapse_ip,
     synapse_port,
     request_name,
+    setup_dendrite,
 ):
     # Arrange
-    dendrite = Dendrite()
     synapse = Mock()
 
     synapse.timeout = synapse_timeout
@@ -410,7 +399,7 @@ def test_process_error_message(
     synapse.axon.port = synapse_port
 
     # Act
-    result = dendrite.process_error_message(synapse, request_name, exception)
+    result = setup_dendrite.process_error_message(synapse, request_name, exception)
 
     # Assert
     assert result.dendrite.status_code == expected_status_code

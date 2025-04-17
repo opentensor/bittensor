@@ -1,36 +1,23 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
-
+import asyncio
+import contextlib
 import re
+import threading
 import time
 from dataclasses import dataclass
 from typing import Any, Optional, Tuple
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import aiohttp
 import fastapi
 import netaddr
 import pydantic
 import pytest
+import uvicorn
 from fastapi.testclient import TestClient
 from starlette.requests import Request
 
-from bittensor.core.axon import AxonMiddleware, Axon
+from bittensor.core.axon import Axon, AxonMiddleware, FastAPIThreadedServer
 from bittensor.core.errors import RunException
 from bittensor.core.settings import version_as_int
 from bittensor.core.stream import StreamingSynapse
@@ -44,7 +31,7 @@ from bittensor.utils.axon_utils import (
 )
 
 
-def test_attach_initial():
+def test_attach_initial(mock_get_external_ip):
     # Create a mock AxonServer instance
     server = Axon()
 
@@ -89,7 +76,7 @@ def test_attach_initial():
         server.attach(forward_fn, blacklist_fn, priority_fn, wrong_verify_fn)
 
 
-def test_attach():
+def test_attach(mock_get_external_ip):
     # Create a mock AxonServer instance
     server = Axon()
 
@@ -162,7 +149,7 @@ def mock_request():
 
 
 @pytest.fixture
-def axon_instance():
+def axon_instance(mock_get_external_ip):
     axon = Axon()
     axon.required_hash_fields = {"test_endpoint": ["field1", "field2"]}
     axon.forward_class_types = {
@@ -301,16 +288,16 @@ async def test_verify_body_integrity_happy_path(
 
 
 @pytest.mark.parametrize(
-    "body, expected_exception_message",
+    "body, expected_exception_name",
     [
-        (b"", "Expecting value: line 1 column 1 (char 0)"),  # Empty body
-        (b"not_json", "Expecting value: line 1 column 1 (char 0)"),  # Non-JSON body
+        (b"", "JSONDecodeError"),  # Empty body
+        (b"not_json", "JSONDecodeError"),  # Non-JSON body
     ],
     ids=["empty_body", "non_json_body"],
 )
 @pytest.mark.asyncio
 async def test_verify_body_integrity_edge_cases(
-    mock_request, axon_instance, body, expected_exception_message
+    mock_request, axon_instance, body, expected_exception_name
 ):
     # Arrange
     mock_request.body.return_value = body
@@ -318,9 +305,7 @@ async def test_verify_body_integrity_edge_cases(
     # Act & Assert
     with pytest.raises(Exception) as exc_info:
         await axon_instance.verify_body_integrity(mock_request)
-    assert expected_exception_message in str(
-        exc_info.value
-    ), "Expected specific exception message."
+    assert exc_info.typename == expected_exception_name, "Expected specific exception"
 
 
 @pytest.mark.parametrize(
@@ -349,7 +334,7 @@ async def test_verify_body_integrity_error_cases(
         (MockInfo(), "MockInfoString", "edge_case_empty_string"),
     ],
 )
-def test_to_string(info_return, expected_output, test_id):
+def test_to_string(info_return, expected_output, test_id, mock_get_external_ip):
     # Arrange
     axon = Axon()
     with patch.object(axon, "info", return_value=info_return):
@@ -378,7 +363,9 @@ def test_to_string(info_return, expected_output, test_id):
         ),
     ],
 )
-def test_valid_ipv4_and_ipv6_address(ip, port, expected_ip_type, test_id):
+def test_valid_ipv4_and_ipv6_address(
+    ip, port, expected_ip_type, test_id, mock_get_external_ip
+):
     # Arrange
     hotkey = MockHotkey("5EemgxS7cmYbD34esCFoBgUZZC8JdnGtQvV5Qw3QFUCRRtGP")
     coldkey = MockHotkey("5EemgxS7cmYbD34esCFoBgUZZC8JdnGtQvV5Qw3QFUCRRtGP")
@@ -407,7 +394,7 @@ def test_valid_ipv4_and_ipv6_address(ip, port, expected_ip_type, test_id):
             netaddr.core.AddrFormatError,
         ),
     ],
-    ids=["failed to detect a valid IP " "address from %r"],
+    ids=["failed to detect a valid IP address from %r"],
 )
 def test_invalid_ip_address(ip, port, expected_exception):
     # Assert
@@ -451,7 +438,14 @@ def test_invalid_ip_address(ip, port, expected_exception):
     ],
 )
 def test_axon_str_representation(
-    ip, port, ss58_address, started, forward_fns, expected_str, test_id
+    ip,
+    port,
+    ss58_address,
+    started,
+    forward_fns,
+    expected_str,
+    test_id,
+    mock_get_external_ip,
 ):
     # Arrange
     hotkey = MockHotkey(ss58_address)
@@ -687,12 +681,12 @@ def test_allowed_nonce_window_ns():
     expected_window_ns = (
         current_time - ALLOWED_DELTA - (mock_synapse.timeout * NANOSECONDS_IN_SECOND)
     )
-    assert (
-        allowed_window_ns < current_time
-    ), "Allowed window should be less than the current time"
-    assert (
-        allowed_window_ns == expected_window_ns
-    ), f"Expected {expected_window_ns} but got {allowed_window_ns}"
+    assert allowed_window_ns < current_time, (
+        "Allowed window should be less than the current time"
+    )
+    assert allowed_window_ns == expected_window_ns, (
+        f"Expected {expected_window_ns} but got {allowed_window_ns}"
+    )
 
 
 @pytest.mark.parametrize("nonce_offset_seconds", [1, 3, 5, 10])
@@ -709,12 +703,12 @@ def test_nonce_diff_seconds(nonce_offset_seconds):
         ALLOWED_DELTA + (mock_synapse.timeout * NANOSECONDS_IN_SECOND)
     ) / NANOSECONDS_IN_SECOND
 
-    assert (
-        diff_seconds == expected_diff_seconds
-    ), f"Expected {expected_diff_seconds} but got {diff_seconds}"
-    assert (
-        allowed_delta_seconds == expected_allowed_delta_seconds
-    ), f"Expected {expected_allowed_delta_seconds} but got {allowed_delta_seconds}"
+    assert diff_seconds == expected_diff_seconds, (
+        f"Expected {expected_diff_seconds} but got {diff_seconds}"
+    )
+    assert allowed_delta_seconds == expected_allowed_delta_seconds, (
+        f"Expected {expected_allowed_delta_seconds} but got {allowed_delta_seconds}"
+    )
 
 
 # Mimicking axon default_verify nonce verification
@@ -785,3 +779,50 @@ def test_nonce_within_allowed_window(nonce_offset_seconds, expected_result):
                 "computed_body_hash": "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a",
             },
         )
+
+
+@pytest.mark.asyncio
+async def test_threaded_fastapi():
+    server_started = threading.Event()
+    server_stopped = threading.Event()
+
+    @contextlib.asynccontextmanager
+    async def lifespan(app):
+        server_started.set()
+        yield
+        server_stopped.set()
+
+    app = fastapi.FastAPI(
+        lifespan=lifespan,
+    )
+    app.get("/")(lambda: "Hello World")
+
+    server = FastAPIThreadedServer(
+        uvicorn.Config(app, loop="none"),
+    )
+    server.start()
+
+    server_started.wait(3.0)
+
+    async def wait_for_server():
+        while not (server.started or server_stopped.is_set()):
+            await asyncio.sleep(1.0)
+
+    await asyncio.wait_for(wait_for_server(), 7.0)
+
+    assert server.is_running is True
+
+    async with aiohttp.ClientSession(
+        base_url="http://127.0.0.1:8000",
+    ) as session:
+        async with session.get("/") as response:
+            assert await response.text() == '"Hello World"'
+
+        server.stop()
+
+        assert server.should_exit is True
+
+        server_stopped.wait()
+
+        with pytest.raises(aiohttp.ClientConnectorError):
+            await session.get("/")

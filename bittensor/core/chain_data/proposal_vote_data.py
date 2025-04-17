@@ -1,17 +1,13 @@
-from typing import TypedDict
+from dataclasses import dataclass
+
+from bittensor.core.chain_data.info_base import InfoBase
+from bittensor.core.chain_data.utils import decode_account_id
 
 
-# Senate / Proposal data
-class ProposalVoteData(TypedDict):
+@dataclass
+class ProposalVoteData(InfoBase):
     """
-    This TypedDict represents the data structure for a proposal vote in the Senate.
-
-    Attributes:
-        index (int): The index of the proposal.
-        threshold (int): The threshold required for the proposal to pass.
-        ayes (List[str]): List of senators who voted 'aye'.
-        nays (List[str]): List of senators who voted 'nay'.
-        end (int): The ending timestamp of the voting period.
+    Senate / Proposal data
     """
 
     index: int
@@ -19,3 +15,13 @@ class ProposalVoteData(TypedDict):
     ayes: list[str]
     nays: list[str]
     end: int
+
+    @classmethod
+    def from_dict(cls, proposal_dict: dict) -> "ProposalVoteData":
+        return cls(
+            ayes=[decode_account_id(key) for key in proposal_dict["ayes"]],
+            end=proposal_dict["end"],
+            index=proposal_dict["index"],
+            nays=[decode_account_id(key) for key in proposal_dict["nays"]],
+            threshold=proposal_dict["threshold"],
+        )

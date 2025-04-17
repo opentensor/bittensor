@@ -1,5 +1,443 @@
 # Changelog
 
+## 9.3.1a1 /2025-04-14
+
+## What's Changed
+* Release/9.3.0 by @ibraheem-abe in https://github.com/opentensor/bittensor/pull/2805
+* Fix for flaky behavior of `test_incentive`, `test_commit_weights` and `test_set_weights`  by @basfroman in https://github.com/opentensor/bittensor/pull/2795
+* Add `get_next_epoch_start_block` method to Async/Subtensor by @basfroman in https://github.com/opentensor/bittensor/pull/2808
+* Adds compatibility for torch 2.6.0+ by @thewhaleking in https://github.com/opentensor/bittensor/pull/2811
+* f Update CONTRIBUTING.md by @Hack666r in https://github.com/opentensor/bittensor/pull/2813
+* docs: replaced discord link with documentation by @sashaphmn in https://github.com/opentensor/bittensor/pull/2809
+* sometimes it's still flaky because the chain returns data with time offset by @basfroman in https://github.com/opentensor/bittensor/pull/2816
+* Remove requirements directory by @thewhaleking in https://github.com/opentensor/bittensor/pull/2812
+* version in one place by @thewhaleking in https://github.com/opentensor/bittensor/pull/2806
+* Update CONTRIBUTING hyperlinks by @thewhaleking in https://github.com/opentensor/bittensor/pull/2820
+
+## New Contributors
+* @Hack666r made their first contribution in https://github.com/opentensor/bittensor/pull/2813
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.3.0...v9.3.1a1
+
+## 9.3.0 /2025-04-09
+
+## What's Changed
+* More E2E tests by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2754
+* Fix E2E: fix wait_epoch and next_tempo by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2753
+* Add all supported python versions to e2e tests workflow by @basfroman in https://github.com/opentensor/bittensor/pull/2761
+* update docker image name by @basfroman in https://github.com/opentensor/bittensor/pull/2760
+* Add pypi package version checker for `python -m bittensor` by @basfroman in https://github.com/opentensor/bittensor/pull/2762
+* Feat: set_children and get_pending_children methods by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2752
+* Add logic for keep docker image up to date by @basfroman in https://github.com/opentensor/bittensor/pull/2765
+* Fix: CI/CD Set up Python version for E2E tests by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2767
+* Fix E2E Tests: wait for new nonce by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2768
+* Fix e2e `conftest.py` for legacy runner by @basfroman in https://github.com/opentensor/bittensor/pull/2769
+* Fix E2E with devnet-ready by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2776
+* Add compatibility check for 3.13 by @thewhaleking in https://github.com/opentensor/bittensor/pull/2779
+* Fix E2E test_dendrite by making sure Alice is Top validator in Subnet by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2780
+* Add get_owned_hotkeys to subtensor and async one + tests by @basfroman in https://github.com/opentensor/bittensor/pull/2766
+* Add drand-commitments by @basfroman in https://github.com/opentensor/bittensor/pull/2781
+* Missing f-string format by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2785
+* bump version by @basfroman in https://github.com/opentensor/bittensor/pull/2786
+* Improvement and fix for https://github.com/opentensor/bittensor/pull/2781 by @basfroman in https://github.com/opentensor/bittensor/pull/2787
+* Add `stop_existing_test_containers` logic before run e2e test/s by @basfroman in https://github.com/opentensor/bittensor/pull/2790
+* Bump async substrate interface by @thewhaleking in https://github.com/opentensor/bittensor/pull/2788
+* Improve CRv3 functionality  by @basfroman in https://github.com/opentensor/bittensor/pull/2791
+* Improve logic in Balance magic methods by @basfroman in https://github.com/opentensor/bittensor/pull/2764
+* Requirements update by @thewhaleking in https://github.com/opentensor/bittensor/pull/2789
+* remove Levenshtein requirement by @thewhaleking in https://github.com/opentensor/bittensor/pull/2802
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.2.0...v9.3.0
+
+## 9.2.0 /2025-03-18
+
+## What's Changed
+* Fix E2E test_incentive by waiting till start of the very next epoch by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2746
+* New era of e2e Tests Bittensor by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2743
+* Allow installation on Py 3.13 by @thewhaleking in https://github.com/opentensor/bittensor/pull/2756
+* Feat/dynamic stake prices by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2755
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.1.0...v9.2.0
+
+## 9.1.0 /2025-03-12
+
+## What's Changed
+* Refactor duplicated unittests code by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2724
+* Use uv for circleci by @thewhaleking in https://github.com/opentensor/bittensor/pull/2729
+* Fix E2E test_metagraph_info by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2728
+* Tests: deduplicate fake_wallet and correctly create Mock by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2730
+* E2E Test: wait cooldown period to check set_children effect by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2733
+* Tests: wait for Miner/Validator to fully start by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2737
+* All metagraph subtensor methods now use block by @thewhaleking in https://github.com/opentensor/bittensor/pull/2738
+* Tests: increse test_incentive timeout + fix sudo_set_weights_set_rate_limit by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2739
+* Feat/safe staking by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2736
+* 9.0.5: Bumps version and changelog by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2741
+* Tests: enable E2E test_batch_operations by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2744
+* Fix: burned_register supports root subnet (netuid=0 param) by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2732
+* Feat: set_delegate_take by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2731
+* Renames rate_threshold -> rate_tolerance by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2745
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.0.4...v9.1.0
+
+## 9.0.4 /2025-03-06
+
+## What's Changed
+* Release/9.0.3 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2712
+* improve `wait_for_node_start` until 20 mins by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2714
+* More E2E tests by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2678
+* fix(2715): use ChainIdentity for identities by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2718
+* Metagraph use block correctly in `_get_all_stakes_from_chain` by @thewhaleking in https://github.com/opentensor/bittensor/pull/2719
+* Integration tests for async-substrate-interface 1.0.4 compatibility by @thewhaleking in https://github.com/opentensor/bittensor/pull/2720
+* Backmerge main staging 904 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2721
+* Skip E2E test_children by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2723
+* More Subtensor unnitests by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2713
+* Change to pyproject.toml by @thewhaleking in https://github.com/opentensor/bittensor/pull/2504
+* Updates test_incentive by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2722
+* Use uv for gh actions  by @thewhaleking in https://github.com/opentensor/bittensor/pull/2503
+* Bumps async substrate interface by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2725
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.0.3...v9.0.4
+
+## 9.0.3 /2025-02-26
+
+## What's Changed
+* Release/9.0.2 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2696
+* fix: typos in config test by @EricHasegawa in https://github.com/opentensor/bittensor/pull/2693
+* Removes limits in async + unstake_multiple by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2701
+* Fixes get_all_commitments, adds tests. by @thewhaleking in https://github.com/opentensor/bittensor/pull/2699
+* Use `.value` in e2e test by @thewhaleking in https://github.com/opentensor/bittensor/pull/2700
+* Fix e2e test setup by @thewhaleking in https://github.com/opentensor/bittensor/pull/2681
+* Dendrite `__del__` method fix by @thewhaleking in https://github.com/opentensor/bittensor/pull/2702
+* Fix E2E test_set_weights by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2703
+* Updates test incentive by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2688
+* Add `get_timestamp` method by @thewhaleking in https://github.com/opentensor/bittensor/pull/2704
+* fix: async get_delegated by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2706
+* Properly mock data_chain class methods by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2705
+* Install btcli from install sh by @thewhaleking in https://github.com/opentensor/bittensor/pull/2708
+* Bumps dependencies of async substrate + btwallet by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2710
+* Backmerge/main to staging 902 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2711
+
+## New Contributors
+* @EricHasegawa made their first contribution in https://github.com/opentensor/bittensor/pull/2693
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.0.2...v9.0.3
+
+## 9.0.2 /2025-02-24
+
+## What's Changed
+* CI: Upgrade rust compiler for E2E tests by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2690
+* Break away cli reqs by @thewhaleking in https://github.com/opentensor/bittensor/pull/2692
+* Updates DelegateInfo chain data by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2683
+* Backmerge main to staging 901 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2689
+* fix: typos in documentation files by @zeevick10 in https://github.com/opentensor/bittensor/pull/2687
+* Removes tx limit in stake_multiple by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2694
+
+## New Contributors
+* @zeevick10 made their first contribution in https://github.com/opentensor/bittensor/pull/2687
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.0.1...v9.0.2
+
+## 9.0.1 /2025-02-20
+
+## What's Changed
+* Release/9.0.0 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2671
+* fix e2e test by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2673
+* fix e2e test incentive by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2674
+* Add compatibility for read-only systems by @Arthurdw in https://github.com/opentensor/bittensor/pull/2676
+* test: use asynccontextmanager for FastAPI lifespan by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2597
+* test(2472): offline unittests by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2596
+* Removes redundant assignments in Metagraph by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2680
+* Alpha str formatting by @thewhaleking in https://github.com/opentensor/bittensor/pull/2672
+* Add method for fetching all Neuron Certificates on a Netuid by @thewhaleking in https://github.com/opentensor/bittensor/pull/2677
+* Updates tao_stake in MetagraphInfo by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2682
+* fix(2188): configure uvicorn event loop by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2679
+* Refactor AsyncSubtensor aenter logic by @thewhaleking in https://github.com/opentensor/bittensor/pull/2684
+* Backmerge master to staging 900 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2685
+
+## New Contributors
+* @Arthurdw made their first contribution in https://github.com/opentensor/bittensor/pull/2676
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.0.0...v9.0.1
+
+## 9.0.0 /2025-02-13
+
+## What's Changed
+* Optimisations and tests for Async Sync Subtensor by @thewhaleking in https://github.com/opentensor/bittensor/pull/2569
+* [SDK] Get rid of py-substrate-interface (DO NOT MERGE) by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2565
+* Uses the new async_substrate_interface lib by @thewhaleking in https://github.com/opentensor/bittensor/pull/2572
+* AsyncSubstrateInterface Overhaul (with Sync AsyncSubstrate) by @thewhaleking in https://github.com/opentensor/bittensor/pull/2526
+* [SDK] Small improvements by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2575
+* Sync Subtensor warning by @thewhaleking in https://github.com/opentensor/bittensor/pull/2578
+* [SDK] Fixes types in async by @thewhaleking in https://github.com/opentensor/bittensor/pull/2577
+* Release/8.5.2 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2584
+* fix: typos in documentation files by @leopardracer in https://github.com/opentensor/bittensor/pull/2580
+* fix(2337): btlogging setLevel by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2588
+* perf: don't use 2 threads to create FastAPI server by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2592
+* fix(2188): don't allow uvicorn to reconfigure event_loop_policy by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2591
+* Fix spelling errors by @Dimitrolito in https://github.com/opentensor/bittensor/pull/2586
+* Make code as beautiful as it has never been before by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2599
+* test: bring back old (sync subtensor) tests and fix them by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2600
+* YAASO: Yet Another AsyncSubtensor Overhaul by @thewhaleking in https://github.com/opentensor/bittensor/pull/2579
+* Add alias for `Subtensor.commit` as `set_commitment` by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2606
+* [RAO] Add methods to fetch metagraph data from the chain by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2605
+* Rewrite config.py by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2607
+* Update metagraph class with `rao` stuff by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2611
+* [RAO] fix for unit test + refactoring by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2612
+* fix integration metagraph test by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2613
+* Cleanups, fixes, improvements for rao by @thewhaleking in https://github.com/opentensor/bittensor/pull/2614
+* Adds deprecation notice for non-balance amounts by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2615
+* Staging pre merge port rao (New async substrate) by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2610
+* Tests for SyncSubtensor by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2617
+* Many small fixes by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2619
+* Use async-substrate-interface for runtime decoding by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2618
+* Pins torch version to 2.5.1 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2623
+* Fixes, adds stake and other methods by @thewhaleking in https://github.com/opentensor/bittensor/pull/2622
+* Fix typos by @Marcofann in https://github.com/opentensor/bittensor/pull/2620
+* Add `subnet_volume` field to `MetagraphInfo` and `DynamicInfo` by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2624
+* Update wallet creation command logs post-install by @HudsonGraeme in https://github.com/opentensor/bittensor/pull/2621
+* fix subtensor methods for async by @thewhaleking in https://github.com/opentensor/bittensor/pull/2628
+* Subnet burn cost return type by @thewhaleking in https://github.com/opentensor/bittensor/pull/2629
+* Specifies a range of torch versions, rather than a pinned version. by @thewhaleking in https://github.com/opentensor/bittensor/pull/2632
+* Adds subnet registration extrinsic by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2630
+* Bumps btwallet 302 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2633
+* SKD implementation for Subtensor `Feat/RPC Upgrades`. PR #1205 by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2627
+* Bug fixes after release SDK v9.0.0rc1 by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2637
+* Adds Latent Lite endpoint to the SDK by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2641
+* Bringing meta fields to a common form with float values float(TAO) instead of Balance and Tensor by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2642
+* Adds `get_all_commitments` and fixes commitment tests and `query_map` by @thewhaleking in https://github.com/opentensor/bittensor/pull/2644
+* Fix for extra fields from chain data by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2647
+* Fix InfoBase + dataclasses by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2649
+* fix integration tests by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2651
+* feat: Add logging for unexpected header keys in Synapse by @crStiv in https://github.com/opentensor/bittensor/pull/2587
+* Fixes Dendrite new loop close by @thewhaleking in https://github.com/opentensor/bittensor/pull/2654
+* Fix e2e tests by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2639
+* feat/roman/deps by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2655
+* Metagraph Improvements by @thewhaleking in https://github.com/opentensor/bittensor/pull/2659
+* add name and symbol fields to metagraph by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2658
+* Using one determine_chain_endpoint_and_network by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2661
+* Tests: separate `templates` fixture by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2660
+* Merge `async-pre-merge-new-async` to `staging` by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2656
+* Add `set_subnet_identity_extrinsic` and related stuff by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2662
+* Changes the logging level for unexpected header keys to trace by @thewhaleking in https://github.com/opentensor/bittensor/pull/2666
+* Remove logs by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2667
+* Tests: properly handle subprocesses (subtensor, miner, validator) by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2664
+* Last-minute requests by @thewhaleking in https://github.com/opentensor/bittensor/pull/2665
+* Updates tao_weights for mainnet by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2669
+* Update deps and default network/endpoint by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2670
+
+## New Contributors
+* @leopardracer made their first contribution in https://github.com/opentensor/bittensor/pull/2580
+* @Dimitrolito made their first contribution in https://github.com/opentensor/bittensor/pull/2586
+* @Marcofann made their first contribution in https://github.com/opentensor/bittensor/pull/2620
+* @HudsonGraeme made their first contribution in https://github.com/opentensor/bittensor/pull/2621
+* @crStiv made their first contribution in https://github.com/opentensor/bittensor/pull/2587
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.5.2...v9.0.0
+
+## 9.0.0rc6 /2025-02-11
+* Using one determine_chain_endpoint_and_network by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2661
+* Tests: separate templates fixture by @zyzniewski-reef  in https://github.com/opentensor/bittensor/pull/2660
+* add name and symbol fields to metagraph by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2658
+* Metagraph Improvements by @thewhaleking in https://github.com/opentensor/bittensor/pull/2659
+* feat/roman/add-subnet-identity-with-subnet-creation by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2662
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.0.0rc5...v9.0.0rc6
+
+## 9.0.0rc5 /2025-02-07
+* Fix InfoBase + dataclasses @roman-opentensor in https://github.com/opentensor/bittensor/pull/2649
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.0.0rc4...v9.0.0rc5
+
+## 9.0.0rc4 /2025-02-07
+* Fix for extra fields from chain data by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2647
+* Adds get_all_commitments and fixes commitment tests and query_map @thewhaleking in https://github.com/opentensor/bittensor/pull/2644
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.0.0rc2...v9.0.0rc3
+
+## 9.0.0rc3 /2025-02-06
+
+## What's Changed
+* Adds methods to better accommodate the new websocket implementation (long-lived) by @thewhaleking in https://github.com/opentensor/bittensor/commit/3c44be177edef8a799c2c9dc5e49916723cab5c2
+* Adds latent-lite network by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2641
+* Updates async-substrate-interface to 1.0.0rc12 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/commit/9d0b008e6163c84ed9267423324f30c3ec8af289
+* Bringing meta fields to a common form with float values float(TAO) instead of Balance and Tensor by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2642
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.0.0rc2...v9.0.0rc3
+
+## 9.0.0rc2 /2025-02-05
+
+## What's Changed
+* Small bug fixes and improvements by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2637
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.0.0rc1...v9.0.0rc2
+
+## 9.0.0rc1 /2025-02-05
+
+## What's Changed
+* Uses revamped Async Substrate Interface
+* Compatibility with Rao changes added
+* Completely revamped Async Subtensor introduced
+* Numerous improvements, bug fixes, and deprecations
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.5.1...v9.0.0rc1
+
+## 8.5.2 /2025-01-17
+
+## What's Changed
+* Feat/use tx pool for set weights by @camfairchild in https://github.com/opentensor/bittensor/pull/2534
+* fix get_delegates result decoding by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2551
+* [SDK] Handle server connection limit  by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2553
+* Backmerge master to staging post 851 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2557
+* [SDK] Improve InvalidStatus handler by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2558
+* [SDK] Add async version of commit reveal v3 by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2560
+* Use apt-get instead of apt for scripts by @camfairchild in https://github.com/opentensor/bittensor/pull/2571
+* fix _do_stake incorrect arguments error in staking.py by @Assh-codes in https://github.com/opentensor/bittensor/pull/2574
+* Updates tests for btwallet 3.0.0 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2540
+* Bumps cr3 FFI by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2583
+
+## New Contributors
+* @Assh-codes made their first contribution in https://github.com/opentensor/bittensor/pull/2574
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.5.1...v8.5.2
+
+## 8.5.1 /2024-12-16
+
+## What's Changed
+* 8.5.0 bugfixes by @thewhaleking in https://github.com/opentensor/bittensor/pull/2541
+* Removes substrate call in format_error_message by @thewhaleking in https://github.com/opentensor/bittensor/pull/2542
+* Remove torch from the weights calls by @thewhaleking in https://github.com/opentensor/bittensor/pull/2543
+* optional arg fix by @thewhaleking in https://github.com/opentensor/bittensor/pull/2544
+* async cr3 not implemented by @thewhaleking in https://github.com/opentensor/bittensor/pull/2545
+* Backmerge master to staging 851 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2546
+* Adds retry in CRv3 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2547
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.5.0...v8.5.1
+
+## 8.5.0 /2024-12-12
+
+## What's Changed
+* add improved reveal-round params by @JohnReedV in https://github.com/opentensor/bittensor/pull/2509
+* fix: add default value to the get_block_number method in AsyncSubstrateInterface by @FLiotta in https://github.com/opentensor/bittensor/pull/2529
+* Mismatched "archive" index by @thewhaleking in https://github.com/opentensor/bittensor/pull/2530
+* Adds a factory function to create an initialised AsyncSubtensor object. by @thewhaleking in https://github.com/opentensor/bittensor/pull/2516
+* chore: fix some comments by @lvyaoting in https://github.com/opentensor/bittensor/pull/2515
+* Fixes E2E test chain buffer issues on devnet by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2531
+* Added e2e test for CRv3 + enhancements by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2532
+* Backmerge master to staging 850 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2535
+* Enhancement/adds total stake functions by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2537
+* Fixes get_current_block by @thewhaleking in https://github.com/opentensor/bittensor/pull/2536
+* [SDK] Add `commit reveal v3` logic (python part only) by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2484
+
+## New Contributors
+* @JohnReedV made their first contribution in https://github.com/opentensor/bittensor/pull/2509
+* @FLiotta made their first contribution in https://github.com/opentensor/bittensor/pull/2529
+* @lvyaoting made their first contribution in https://github.com/opentensor/bittensor/pull/2515
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.4.5...v8.5.0
+
+## 8.4.5 /2024-12-05
+
+## What's Changed
+* Overrides copy and deep copy for the metagraph by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2523
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.4.4...v8.4.5
+
+## 8.4.4 /2024-12-05
+
+## What's Changed
+* Removes the call that automatically sets everything to warning level debugging by @thewhaleking in https://github.com/opentensor/bittensor/pull/2508
+* Exit `set_weights` on success by @thewhaleking in https://github.com/opentensor/bittensor/pull/2511
+* `test_dendrite` test clean up by @thewhaleking in https://github.com/opentensor/bittensor/pull/2512
+* Adds --logging.info level so it can be set @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2510
+* Allows wallet to be created through configs in the axon if it is provided by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2510
+* Changes verbosity level of ClientConnectorError and TimeoutError in the dendrite to debug by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2510
+* Fixes behaviour of config initialization for axon, subtensor, logging and threadpool by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2510
+* metagraph sync fix by @thewhaleking in https://github.com/opentensor/bittensor/pull/2514
+* Remove metadata retrieval of custom errors from format_error_message by @thewhaleking in https://github.com/opentensor/bittensor/pull/2518
+* Backmerge master to staging for 8.4.4 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2519
+* Updates bt-decode to 0.4.0 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2520
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.4.3...v8.4.4
+
+## 8.4.3 /2024-12-02
+
+## What's Changed
+
+* Fix logging config parsing by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2500
+* Improve  `submit_extrinsic` util by @thewhaleking in https://github.com/opentensor/bittensor/pull/2502
+* Backmerge master to staging for 843 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2505
+* WS ensure_connected socket catch by @thewhaleking in https://github.com/opentensor/bittensor/pull/2507
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.4.2...v8.4.3
+
+## 8.4.2 /2024-11-28
+
+## What's Changed
+
+* Fix submit_extrinsic timeout by @thewhaleking in https://github.com/opentensor/bittensor/pull/2497
+* Backmerge master to staging for 841 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2498
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.4.1...v8.4.2
+
+## 8.4.1 /2024-11-27
+
+## What's Changed
+
+* Backmerge master 840 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2494
+* Enable arguments to be set in axon config by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2493
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.4.0...v8.4.1
+
+## 8.4.0 /2024-11-27
+
+## What's Changed
+
+* Async unittests for `bittensor/core/extrinsics/async_weights.py` by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2425
+* Async unittests for `bittensor/core/extrinsics/async_transfer.py` by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2426
+* Async `unittests for bittensor/core/extrinsics/async_root.py` by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2427
+* Removes Conda Info by @thewhaleking in https://github.com/opentensor/bittensor/pull/2437
+* Fix typos by @omahs in https://github.com/opentensor/bittensor/pull/2440
+* [SDK] Registration related content refactoring by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2439
+* Async unittests for `bittensor/core/extrinsics/async_registration.py` by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2445
+* BittensorConsole class by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2446
+* Improve reconnection logic by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2442
+* E2E tests - Increasing Subtensor coverage (Pt 1) by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2443
+* Add python3.12 support by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2450
+* add neuron certificate discovery by @andreea-popescu-reef in https://github.com/opentensor/bittensor/pull/2267
+* Use websockets for Subtensor by @thewhaleking in https://github.com/opentensor/bittensor/pull/2455
+* Part 2: E2E tests - Increasing Subtensor coverage by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2457
+* Tests for subtensor methods related with `stake` and `unstake` extrinsics by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2458
+* Apply BittensorConsole + logging refactoring by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2452
+* Add staking and unstaking extrinsics by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2456
+* Don't strip ANSI from stdout (fixes #2365) by @vaqxai in https://github.com/opentensor/bittensor/pull/2366
+* Support fastblocks when setting root set weights in e2e tests by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2464
+* Extrinsic Submission Timeout by @thewhaleking in https://github.com/opentensor/bittensor/pull/2448
+* Resync async substrate by @thewhaleking in https://github.com/opentensor/bittensor/pull/2463
+* Fixes logging when setting weights by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2465
+* Integration tests by @thewhaleking in https://github.com/opentensor/bittensor/pull/2433
+* Fixes logic for checking block_since_last_update by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2473
+* Update unit tests websocket by @thewhaleking in https://github.com/opentensor/bittensor/pull/2468
+* Improve MockSubtensor by @thewhaleking in https://github.com/opentensor/bittensor/pull/2469
+* Fixes logging when passing multiple objects by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2477
+* Add script for solving ssl issue by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2474
+* Improve async docstrings by @thewhaleking in https://github.com/opentensor/bittensor/pull/2478
+* fix: increase stacklevel in LoggingMachine log calls by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2476
+* remove uses of return scale obj by @thewhaleking in https://github.com/opentensor/bittensor/pull/2479
+* Backmerge master to staging for 8.4.0 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2482
+* Expand `reuse_block` by @thewhaleking in https://github.com/opentensor/bittensor/pull/2481
+* Add NeuronInfo list from vec u8 by @camfairchild in https://github.com/opentensor/bittensor/pull/2480
+* Update `ensure_connected` for websockets by @thewhaleking in https://github.com/opentensor/bittensor/pull/2486
+* MockSubtensor work offline by @thewhaleking in https://github.com/opentensor/bittensor/pull/2487
+* Add `wait_for_block` method by @thewhaleking in https://github.com/opentensor/bittensor/pull/2489
+* Updates btwallet to 2.1.2 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2490
+* Bumps bittensor wallet to 2.1.3 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2492
+
+## New Contributors
+* @vaqxai made their first contribution in https://github.com/opentensor/bittensor/pull/2366
+* @zyzniewski-reef made their first contribution in https://github.com/opentensor/bittensor/pull/2476
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.3.1...v8.4.0
+
 ## 8.3.1 /2024-11-14
 
 ## What's Changed
