@@ -392,15 +392,21 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
         bob_wallet.coldkey.ss58_address,
     ]
     assert metagraph_info.tao_dividends_per_hotkey == [
-        (alice_wallet.hotkey.ss58_address, metagraph_info.tao_dividends_per_hotkey[0]),
-        (bob_wallet.hotkey.ss58_address, metagraph_info.tao_dividends_per_hotkey[1]),
+        (
+            alice_wallet.hotkey.ss58_address,
+            metagraph_info.tao_dividends_per_hotkey[0][1],
+        ),
+        (bob_wallet.hotkey.ss58_address, metagraph_info.tao_dividends_per_hotkey[1][1]),
     ]
     assert metagraph_info.alpha_dividends_per_hotkey == [
         (
             alice_wallet.hotkey.ss58_address,
-            metagraph_info.alpha_dividends_per_hotkey[0],
+            metagraph_info.alpha_dividends_per_hotkey[0][1],
         ),
-        (bob_wallet.hotkey.ss58_address, metagraph_info.alpha_dividends_per_hotkey[1]),
+        (
+            bob_wallet.hotkey.ss58_address,
+            metagraph_info.alpha_dividends_per_hotkey[1][1],
+        ),
     ]
 
     alice_subnet_netuid = subtensor.get_total_subnets()  # 3
