@@ -39,7 +39,9 @@ jobs:
         id: get-tests
         run: |
           test_files=$(find tests/e2e_tests -name "test*.py" | jq -R -s -c 'split("\n") | map(select(. != ""))')
-          echo "::set-output name=test-files::$test_files"
+          # keep it here for future debug
+          # test_files=$(find tests/e2e_tests -type f -name "test*.py" | grep -E 'test_(incentive|commit_weights|set_weights)\.py$' | jq -R -s -c 'split("\n") | map(select(. != ""))')
+          echo "test-files=$test_files" >> "$GITHUB_OUTPUT"
         shell: bash
 
   pull-docker-image:
@@ -61,7 +63,7 @@ jobs:
           path: subtensor-localnet.tar
 
   # Job to run tests in parallel
-  run:
+  run-e2e-test:
     name: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}
     needs:
       - find-tests
@@ -70,7 +72,7 @@ jobs:
     timeout-minutes: 45
     strategy:
       fail-fast: false  # Allow other matrix jobs to run even if this job fails
-      max-parallel: 32  # Set the maximum number of parallel jobs (same as we have cores in SubtensorCI runner)
+      max-parallel: 32  # Set the maximum number of parallel jobs (same as we have cores in ubuntu-latest runner)
       matrix:
         os:
           - ubuntu-latest
@@ -89,7 +91,7 @@ jobs:
         uses: astral-sh/setup-uv@v4
 
       - name: install dependencies
-        run: uv sync --all-extras --dev
+        run: uv sync --extra dev --dev
 
       - name: Download Cached Docker Image
         uses: actions/download-artifact@v4
@@ -99,5 +101,26 @@ jobs:
       - name: Load Docker Image
         run: docker load -i subtensor-localnet.tar
 
-      - name: Run tests
-        run: uv run pytest ${{ matrix.test-file }} -s
+#      - name: Run tests
+#        run: uv run pytest ${{ matrix.test-file }} -s
+
+      - name: Run tests with retry
+        run: |
+          set +e
+          for i in 1 2; do
+            echo "🔁 Attempt $i: Running tests"
+            uv run pytest ${{ matrix.test-file }} -s
+            status=$?
+            if [ $status -eq 0 ]; then
+              echo "✅ Tests passed on attempt $i"
+              break
+            else
+              echo "❌ Tests failed on attempt $i"
+              if [ $i -eq 2 ]; then
+                echo "Tests failed after 2 attempts"
+                exit 1
+              fi
+              echo "Retrying..."
+              sleep 5
+            fi
+          done

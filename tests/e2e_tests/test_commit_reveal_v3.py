@@ -1,4 +1,5 @@
 import re
+import time
 
 import numpy as np
 import pytest
@@ -12,7 +13,7 @@ from tests.e2e_tests.utils.chain_interactions import (
 )
 
 
-@pytest.mark.parametrize("local_chain", [True], indirect=True)
+# @pytest.mark.parametrize("local_chain", [True], indirect=True)
 @pytest.mark.asyncio
 async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_wallet):
     """
@@ -96,7 +97,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
 
     # Fetch current block and calculate next tempo for the subnet
     current_block = subtensor.get_current_block()
-    upcoming_tempo = next_tempo(current_block, tempo, netuid)
+    upcoming_tempo = next_tempo(current_block, tempo)
     logging.console.info(
         f"Checking if window is too low with Current block: {current_block}, next tempo: {upcoming_tempo}"
     )
@@ -114,7 +115,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
         )
     current_block = subtensor.get_current_block()
     latest_drand_round = subtensor.last_drand_round()
-    upcoming_tempo = next_tempo(current_block, tempo, netuid)
+    upcoming_tempo = next_tempo(current_block, tempo)
     logging.console.info(
         f"Post first wait_interval (to ensure window isnt too low): {current_block}, next tempo: {upcoming_tempo}, drand: {latest_drand_round}"
     )
@@ -142,15 +143,15 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
 
     current_block = subtensor.get_current_block()
     latest_drand_round = subtensor.last_drand_round()
-    upcoming_tempo = next_tempo(current_block, tempo, netuid)
+    upcoming_tempo = next_tempo(current_block, tempo)
     logging.console.info(
         f"After setting weights: Current block: {current_block}, next tempo: {upcoming_tempo}, drand: {latest_drand_round}"
     )
 
     # Ensure the expected drand round is well in the future
-    assert (
-        expected_reveal_round >= latest_drand_round
-    ), "Revealed drand pulse is older than the drand pulse right after setting weights"
+    assert expected_reveal_round >= latest_drand_round + 1, (
+        "Revealed drand pulse is older than the drand pulse right after setting weights"
+    )
 
     # Fetch current commits pending on the chain
     commits_on_chain = subtensor.get_current_weight_commit_info(netuid=netuid)
@@ -177,6 +178,10 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
         f"Latest drand round after waiting for tempo: {latest_drand_round}"
     )
 
+    # wait until last_drand_round is the same or greeter than expected_reveal_round with sleep 3 second (as Drand round period)
+    while expected_reveal_round >= subtensor.last_drand_round():
+        time.sleep(3)
+
     # Fetch weights on the chain as they should be revealed now
     revealed_weights_ = subtensor.weights(netuid=netuid)
 
@@ -190,8 +195,8 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     assert subtensor.get_current_weight_commit_info(netuid=netuid) == []
 
     # Ensure the drand_round is always in the positive w.r.t expected when revealed
-    assert (
-        latest_drand_round - expected_reveal_round >= 0
-    ), f"latest_drand_round ({latest_drand_round}) is less than expected_reveal_round ({expected_reveal_round})"
+    assert latest_drand_round - expected_reveal_round >= 0, (
+        f"latest_drand_round ({latest_drand_round}) is less than expected_reveal_round ({expected_reveal_round})"
+    )
 
     logging.console.info("✅ Passed commit_reveal v3")

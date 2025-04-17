@@ -169,6 +169,7 @@ async def test_set_weights_extrinsic_success_with_finalization(
         version_key=0,
         wait_for_finalization=True,
         wait_for_inclusion=True,
+        period=5,
     )
     assert result is True
     assert message == "Successfully set weights and Finalized."

@@ -60,6 +60,7 @@ from bittensor.core.extrinsics.serving import (
     get_metadata,
     serve_axon_extrinsic,
 )
+from bittensor.core.extrinsics.start_call import start_call_extrinsic
 from bittensor.core.extrinsics.set_weights import set_weights_extrinsic
 from bittensor.core.extrinsics.staking import (
     add_stake_extrinsic,
@@ -516,6 +517,7 @@ class Subtensor(SubtensorMixin):
         return_val = (
             False
             if result is None
+            # not the default key (0x0)
             else result != "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
         )
         return return_val
@@ -1299,6 +1301,28 @@ class Subtensor(SubtensorMixin):
             return NeuronInfo.get_null_neuron()
 
         return NeuronInfo.from_dict(result)
+
+    def get_next_epoch_start_block(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[int]:
+        """
+        Calculates the first block number of the next epoch for the given subnet.
+
+        If `block` is not provided, the current chain block will be used. Epochs are
+        determined based on the subnet's tempo (i.e., blocks per epoch). The result
+        is the block number at which the next epoch will begin.
+
+        Args:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int], optional): The reference block to calculate from.
+                If None, uses the current chain block height.
+
+        Returns:
+            int: The block number at which the next epoch will start.
+        """
+        block = block or self.block
+        tempo = self.tempo(netuid=netuid, block=block)
+        return (((block // tempo) + 1) * tempo) + 1 if tempo else None
 
     def get_owned_hotkeys(
         self,
@@ -2444,7 +2468,7 @@ class Subtensor(SubtensorMixin):
 
         def handler(block_data: dict):
             logging.debug(
-                f'reached block {block_data["header"]["number"]}. Waiting for block {target_block}'
+                f"reached block {block_data['header']['number']}. Waiting for block {target_block}"
             )
             if block_data["header"]["number"] >= target_block:
                 return True
@@ -3100,6 +3124,7 @@ class Subtensor(SubtensorMixin):
         wait_for_finalization: bool = False,
         max_retries: int = 5,
         block_time: float = 12.0,
+        period: int = 5,
     ) -> tuple[bool, str]:
         """
         Sets the inter-neuronal weights for the specified neuron. This process involves specifying the influence or
@@ -3120,6 +3145,7 @@ class Subtensor(SubtensorMixin):
                 ``False``.
             max_retries (int): The number of maximum attempts to set weights. Default is ``5``.
             block_time (float): The amount of seconds for block duration. Default is 12.0 seconds.
+            period (int, optional): The period in seconds to wait for extrinsic inclusion or finalization. Defaults to 5.
 
         Returns:
             tuple[bool, str]: ``True`` if the setting of weights is successful, False otherwise. And `msg`, a string
@@ -3183,6 +3209,7 @@ class Subtensor(SubtensorMixin):
                         version_key=version_key,
                         wait_for_inclusion=wait_for_inclusion,
                         wait_for_finalization=wait_for_finalization,
+                        period=period,
                     )
                 except Exception as e:
                     logging.error(f"Error setting weights: {e}")
@@ -3225,6 +3252,36 @@ class Subtensor(SubtensorMixin):
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             certificate=certificate,
+        )
+
+    def start_call(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> tuple[bool, str]:
+        """
+        Submits a start_call extrinsic to the blockchain, to trigger the start call process for a subnet (used to start a
+        new subnet's emission mechanism).
+
+        Args:
+            wallet (Wallet): The wallet used to sign the extrinsic (must be unlocked).
+            netuid (int): The UID of the target subnet for which the call is being initiated.
+            wait_for_inclusion (bool, optional): Whether to wait for the extrinsic to be included in a block. Defaults to True.
+            wait_for_finalization (bool, optional): Whether to wait for finalization of the extrinsic. Defaults to False.
+
+        Returns:
+            Tuple[bool, str]:
+                - True and a success message if the extrinsic is successfully submitted or processed.
+                - False and an error message if the submission fails or the wallet cannot be unlocked.
+        """
+        return start_call_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
         )
 
     def swap_stake(

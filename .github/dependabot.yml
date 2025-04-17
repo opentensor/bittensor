@@ -1,8 +1,7 @@
 version: 2
 updates:
   - package-ecosystem: "pip"
-    directory: ""
-    file: "requirements/prod.txt"
+    directory: "/"
     schedule:
       interval: "daily"
     open-pull-requests-limit: 0  # Only security updates will be opened as PRs

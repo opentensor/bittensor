@@ -57,6 +57,7 @@ from bittensor.core.extrinsics.asyncex.serving import (
     publish_metadata,
     get_metadata,
 )
+from bittensor.core.extrinsics.asyncex.start_call import start_call_extrinsic
 from bittensor.core.extrinsics.asyncex.serving import serve_axon_extrinsic
 from bittensor.core.extrinsics.asyncex.staking import (
     add_stake_extrinsic,
@@ -752,6 +753,7 @@ class AsyncSubtensor(SubtensorMixin):
         return_val = (
             False
             if result is None
+            # not the default key (0x0)
             else result != "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
         )
         return return_val
@@ -1686,6 +1688,38 @@ class AsyncSubtensor(SubtensorMixin):
                 block_hash=block_hash,
                 reuse_block=reuse_block,
             )
+
+    async def get_next_epoch_start_block(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional[int]:
+        """
+        Calculates the first block number of the next epoch for the given subnet.
+
+        If `block` is not provided, the current chain block will be used. Epochs are
+        determined based on the subnet's tempo (i.e., blocks per epoch). The result
+        is the block number at which the next epoch will begin.
+
+        Args:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int], optional): The reference block to calculate from.
+                If None, uses the current chain block height.
+            block_hash (Optional[int]): The blockchain block number at which to perform the query.
+            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
+
+
+        Returns:
+            int: The block number at which the next epoch will start.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        if not block_hash and reuse_block:
+            block_hash = self.substrate.last_block_hash
+        block = await self.substrate.get_block_number(block_hash=block_hash)
+        tempo = await self.tempo(netuid=netuid, block_hash=block_hash)
+        return (((block // tempo) + 1) * tempo) + 1 if tempo else None
 
     async def get_owned_hotkeys(
         self,
@@ -2972,7 +3006,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         async def handler(block_data: dict):
             logging.debug(
-                f'reached block {block_data["header"]["number"]}. Waiting for block {target_block}'
+                f"reached block {block_data['header']['number']}. Waiting for block {target_block}"
             )
             if block_data["header"]["number"] >= target_block:
                 return True
@@ -3149,7 +3183,7 @@ class AsyncSubtensor(SubtensorMixin):
                 return True, ""
 
             if raise_error:
-                raise ChainError.from_error(response.error_message)
+                raise ChainError.from_error(await response.error_message)
 
             return False, format_error_message(await response.error_message)
 
@@ -3813,6 +3847,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = False,
         max_retries: int = 5,
         block_time: float = 12.0,
+        period: int = 5,
     ):
         """
         Sets the inter-neuronal weights for the specified neuron. This process involves specifying the influence or
@@ -3833,6 +3868,7 @@ class AsyncSubtensor(SubtensorMixin):
                 ``False``.
             max_retries (int): The number of maximum attempts to set weights. Default is ``5``.
             block_time (float): The amount of seconds for block duration. Default is 12.0 seconds.
+            period (int, optional): The period in seconds to wait for extrinsic inclusion or finalization. Defaults to 5.
 
         Returns:
             tuple[bool, str]: ``True`` if the setting of weights is successful, False otherwise. And `msg`, a string
@@ -3907,6 +3943,7 @@ class AsyncSubtensor(SubtensorMixin):
                         version_key=version_key,
                         wait_for_inclusion=wait_for_inclusion,
                         wait_for_finalization=wait_for_finalization,
+                        period=period,
                     )
                 except Exception as e:
                     logging.error(f"Error setting weights: {e}")
@@ -3949,6 +3986,36 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             certificate=certificate,
+        )
+
+    async def start_call(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> tuple[bool, str]:
+        """
+        Submits a start_call extrinsic to the blockchain, to trigger the start call process for a subnet (used to start a
+        new subnet's emission mechanism).
+
+        Args:
+            wallet (Wallet): The wallet used to sign the extrinsic (must be unlocked).
+            netuid (int): The UID of the target subnet for which the call is being initiated.
+            wait_for_inclusion (bool, optional): Whether to wait for the extrinsic to be included in a block. Defaults to True.
+            wait_for_finalization (bool, optional): Whether to wait for finalization of the extrinsic. Defaults to False.
+
+        Returns:
+            Tuple[bool, str]:
+                - True and a success message if the extrinsic is successfully submitted or processed.
+                - False and an error message if the submission fails or the wallet cannot be unlocked.
+        """
+        return await start_call_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
         )
 
     async def swap_stake(
