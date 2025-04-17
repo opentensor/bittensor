@@ -49,7 +49,9 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     alice_subnet_netuid = 2
 
     # Register the subnet through Alice
-    assert subtensor.register_subnet(alice_wallet, True, True), "Unable to register the subnet"
+    assert subtensor.register_subnet(alice_wallet, True, True), (
+        "Unable to register the subnet"
+    )
 
     # Verify subnet was created successfully
     assert subtensor.subnet_exists(alice_subnet_netuid), (
