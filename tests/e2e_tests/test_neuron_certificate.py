@@ -25,9 +25,9 @@ async def test_neuron_certificate(subtensor, alice_wallet):
     assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
     # Register Alice as a neuron on the subnet
-    assert subtensor.burned_register(
-        alice_wallet, netuid
-    ), "Unable to register Alice as a neuron"
+    assert subtensor.burned_register(alice_wallet, netuid), (
+        "Unable to register Alice as a neuron"
+    )
 
     # Serve Alice's axon with a certificate
     axon = Axon(wallet=alice_wallet)
