@@ -34,12 +34,12 @@ async def test_axon(subtensor, templates, alice_wallet):
     # Validate current metagraph stats
     old_axon = metagraph.axons[0]
     assert len(metagraph.axons) == 1, f"Expected 1 axon, but got {len(metagraph.axons)}"
-    assert (
-        old_axon.hotkey == alice_wallet.hotkey.ss58_address
-    ), "Hotkey mismatch for the axon"
-    assert (
-        old_axon.coldkey == alice_wallet.coldkey.ss58_address
-    ), "Coldkey mismatch for the axon"
+    assert old_axon.hotkey == alice_wallet.hotkey.ss58_address, (
+        "Hotkey mismatch for the axon"
+    )
+    assert old_axon.coldkey == alice_wallet.coldkey.ss58_address, (
+        "Coldkey mismatch for the axon"
+    )
     assert old_axon.ip == "0.0.0.0", f"Expected IP 0.0.0.0, but got {old_axon.ip}"
     assert old_axon.port == 0, f"Expected port 0, but got {old_axon.port}"
     assert old_axon.ip_type == 0, f"Expected IP type 0, but got {old_axon.ip_type}"
@@ -54,30 +54,30 @@ async def test_axon(subtensor, templates, alice_wallet):
         external_ip = networking.get_external_ip()
 
     # Assert updated attributes
-    assert (
-        len(metagraph.axons) == 1
-    ), f"Expected 1 axon, but got {len(metagraph.axons)} after mining"
+    assert len(metagraph.axons) == 1, (
+        f"Expected 1 axon, but got {len(metagraph.axons)} after mining"
+    )
 
-    assert (
-        len(metagraph.neurons) == 1
-    ), f"Expected 1 neuron, but got {len(metagraph.neurons)}"
+    assert len(metagraph.neurons) == 1, (
+        f"Expected 1 neuron, but got {len(metagraph.neurons)}"
+    )
 
-    assert (
-        updated_axon.ip == external_ip
-    ), f"Expected IP {external_ip}, but got {updated_axon.ip}"
+    assert updated_axon.ip == external_ip, (
+        f"Expected IP {external_ip}, but got {updated_axon.ip}"
+    )
 
-    assert (
-        updated_axon.ip_type == networking.ip_version(external_ip)
-    ), f"Expected IP type {networking.ip_version(external_ip)}, but got {updated_axon.ip_type}"
+    assert updated_axon.ip_type == networking.ip_version(external_ip), (
+        f"Expected IP type {networking.ip_version(external_ip)}, but got {updated_axon.ip_type}"
+    )
 
     assert updated_axon.port == 8091, f"Expected port 8091, but got {updated_axon.port}"
 
-    assert (
-        updated_axon.hotkey == alice_wallet.hotkey.ss58_address
-    ), "Hotkey mismatch after mining"
+    assert updated_axon.hotkey == alice_wallet.hotkey.ss58_address, (
+        "Hotkey mismatch after mining"
+    )
 
-    assert (
-        updated_axon.coldkey == alice_wallet.coldkey.ss58_address
-    ), "Coldkey mismatch after mining"
+    assert updated_axon.coldkey == alice_wallet.coldkey.ss58_address, (
+        "Coldkey mismatch after mining"
+    )
 
     print("✅ Passed test_axon")
