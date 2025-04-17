@@ -141,16 +141,21 @@ def test_register_extrinsic_with_pow(
     mocker,
 ):
     # Arrange
-    with mocker.patch(
-        "bittensor.utils.registration.pow._solve_for_difficulty_fast",
-        return_value=mock_pow_solution if pow_success else None,
-    ), mocker.patch(
-        "bittensor.utils.registration.pow._solve_for_difficulty_fast_cuda",
-        return_value=mock_pow_solution if pow_success else None,
-    ), mocker.patch(
-        "bittensor.core.extrinsics.registration._do_pow_register",
-        return_value=(registration_success, "HotKeyAlreadyRegisteredInSubNet"),
-    ), mocker.patch("torch.cuda.is_available", return_value=cuda):
+    with (
+        mocker.patch(
+            "bittensor.utils.registration.pow._solve_for_difficulty_fast",
+            return_value=mock_pow_solution if pow_success else None,
+        ),
+        mocker.patch(
+            "bittensor.utils.registration.pow._solve_for_difficulty_fast_cuda",
+            return_value=mock_pow_solution if pow_success else None,
+        ),
+        mocker.patch(
+            "bittensor.core.extrinsics.registration._do_pow_register",
+            return_value=(registration_success, "HotKeyAlreadyRegisteredInSubNet"),
+        ),
+        mocker.patch("torch.cuda.is_available", return_value=cuda),
+    ):
         # Act
         if pow_success:
             mock_pow_solution.is_stale.return_value = pow_stale
@@ -204,17 +209,22 @@ def test_burned_register_extrinsic(
     mocker,
 ):
     # Arrange
-    with mocker.patch.object(
-        mock_subtensor, "subnet_exists", return_value=subnet_exists
-    ), mocker.patch.object(
-        mock_subtensor,
-        "get_neuron_for_pubkey_and_subnet",
-        return_value=mocker.MagicMock(is_null=neuron_is_null),
-    ), mocker.patch(
-        "bittensor.core.extrinsics.registration._do_burned_register",
-        return_value=(recycle_success, "Mock error message"),
-    ), mocker.patch.object(
-        mock_subtensor, "is_hotkey_registered", return_value=is_registered
+    with (
+        mocker.patch.object(
+            mock_subtensor, "subnet_exists", return_value=subnet_exists
+        ),
+        mocker.patch.object(
+            mock_subtensor,
+            "get_neuron_for_pubkey_and_subnet",
+            return_value=mocker.MagicMock(is_null=neuron_is_null),
+        ),
+        mocker.patch(
+            "bittensor.core.extrinsics.registration._do_burned_register",
+            return_value=(recycle_success, "Mock error message"),
+        ),
+        mocker.patch.object(
+            mock_subtensor, "is_hotkey_registered", return_value=is_registered
+        ),
     ):
         # Act
         result = registration.burned_register_extrinsic(

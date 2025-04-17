@@ -8,6 +8,7 @@ from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_admin_utils,
     wait_epoch,
 )
+from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 
 
 @pytest.mark.asyncio
@@ -25,19 +26,23 @@ async def test_dendrite(local_chain, subtensor, templates, alice_wallet, bob_wal
         AssertionError: If any of the checks or verifications fail
     """
 
+    alice_subnet_netuid = subtensor.get_total_subnets()  # 2
     logging.console.info("Testing test_dendrite")
-    netuid = 2
 
     # Register a subnet, netuid 2
-    assert subtensor.register_subnet(alice_wallet), "Subnet wasn't created"
+    assert subtensor.register_subnet(alice_wallet, True, True), "Subnet wasn't created"
 
     # Verify subnet <netuid> created successfully
-    assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
+    assert subtensor.subnet_exists(alice_subnet_netuid), (
+        "Subnet wasn't created successfully"
+    )
+
+    assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
 
     # Make sure Alice is Top Validator
     assert subtensor.add_stake(
         alice_wallet,
-        netuid=netuid,
+        netuid=alice_subnet_netuid,
         amount=Balance.from_tao(1),
     )
 
@@ -47,7 +52,7 @@ async def test_dendrite(local_chain, subtensor, templates, alice_wallet, bob_wal
         alice_wallet,
         call_function="sudo_set_max_allowed_validators",
         call_params={
-            "netuid": netuid,
+            "netuid": alice_subnet_netuid,
             "max_allowed_validators": 1,
         },
     )
@@ -58,7 +63,7 @@ async def test_dendrite(local_chain, subtensor, templates, alice_wallet, bob_wal
         alice_wallet,
         call_function="sudo_set_weights_set_rate_limit",
         call_params={
-            "netuid": netuid,
+            "netuid": alice_subnet_netuid,
             "weights_set_rate_limit": 10,
         },
     )
@@ -67,11 +72,11 @@ async def test_dendrite(local_chain, subtensor, templates, alice_wallet, bob_wal
     assert status is True
 
     # Register Bob to the network
-    assert subtensor.burned_register(
-        bob_wallet, netuid
-    ), "Unable to register Bob as a neuron"
+    assert subtensor.burned_register(bob_wallet, alice_subnet_netuid), (
+        "Unable to register Bob as a neuron"
+    )
 
-    metagraph = subtensor.metagraph(netuid)
+    metagraph = subtensor.metagraph(alice_subnet_netuid)
 
     # Assert neurons are Alice and Bob
     assert len(metagraph.neurons) == 2
@@ -89,16 +94,16 @@ async def test_dendrite(local_chain, subtensor, templates, alice_wallet, bob_wal
 
     # Stake to become to top neuron after the first epoch
     tao = Balance.from_tao(10_000)
-    alpha, _ = subtensor.subnet(netuid).tao_to_alpha_with_slippage(tao)
+    alpha, _ = subtensor.subnet(alice_subnet_netuid).tao_to_alpha_with_slippage(tao)
 
     assert subtensor.add_stake(
         bob_wallet,
-        netuid=netuid,
+        netuid=alice_subnet_netuid,
         amount=tao,
     )
 
     # Refresh metagraph
-    metagraph = subtensor.metagraph(netuid)
+    metagraph = subtensor.metagraph(alice_subnet_netuid)
     bob_neuron = metagraph.neurons[1]
 
     # Assert alpha is close to stake equivalent
@@ -110,13 +115,13 @@ async def test_dendrite(local_chain, subtensor, templates, alice_wallet, bob_wal
     assert bob_neuron.validator_trust == 0.0
     assert bob_neuron.pruning_score == 0
 
-    async with templates.validator(bob_wallet, netuid):
+    async with templates.validator(bob_wallet, alice_subnet_netuid):
         await asyncio.sleep(5)  # wait for 5 seconds for the Validator to process
 
-        await wait_epoch(subtensor, netuid=netuid)
+        await wait_epoch(subtensor, netuid=alice_subnet_netuid)
 
         # Refresh metagraph
-        metagraph = subtensor.metagraph(netuid)
+        metagraph = subtensor.metagraph(alice_subnet_netuid)
 
     # Refresh validator neuron
     updated_neuron = metagraph.neurons[1]
