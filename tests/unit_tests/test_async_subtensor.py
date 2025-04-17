@@ -1856,6 +1856,30 @@ async def test_sign_and_send_extrinsic_substrate_request_exception(
 
 
 @pytest.mark.asyncio
+async def test_sign_and_send_extrinsic_raises_error(
+    mock_substrate, subtensor, fake_wallet, mocker
+):
+    mock_substrate.submit_extrinsic.return_value = mocker.AsyncMock(
+        error_message=mocker.AsyncMock(
+            return_value={
+                "name": "Exception",
+            },
+        )(),
+        is_success=mocker.AsyncMock(return_value=False)(),
+    )
+
+    with pytest.raises(
+        async_subtensor.SubstrateRequestException,
+        match="{'name': 'Exception'}",
+    ):
+        await subtensor.sign_and_send_extrinsic(
+            call=mocker.Mock(),
+            wallet=fake_wallet,
+            raise_error=True,
+        )
+
+
+@pytest.mark.asyncio
 async def test_get_children_success(subtensor, mocker):
     """Tests get_children when children are successfully retrieved and formatted."""
     # Preps
@@ -2688,6 +2712,7 @@ async def test_set_weights_success(subtensor, fake_wallet, mocker):
         wait_for_finalization=False,
         wait_for_inclusion=False,
         weights=fake_weights,
+        period=5,
     )
     mocked_weights_rate_limit.assert_called_once_with(fake_netuid)
     assert result is True
@@ -3012,3 +3037,25 @@ async def test_get_owned_hotkeys_return_empty(subtensor, mocker):
         reuse_block_hash=False,
     )
     assert result == []
+
+
+@pytest.mark.asyncio
+async def test_start_call(subtensor, mocker):
+    """Test start_call extrinsic calls properly."""
+    # preps
+    wallet_name = mocker.Mock(spec=Wallet)
+    netuid = 123
+    mocked_extrinsic = mocker.patch.object(async_subtensor, "start_call_extrinsic")
+
+    # Call
+    result = await subtensor.start_call(wallet_name, netuid)
+
+    # Asserts
+    mocked_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet_name,
+        netuid=netuid,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+    )
+    assert result == mocked_extrinsic.return_value

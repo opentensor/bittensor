@@ -394,7 +394,7 @@ def test_valid_ipv4_and_ipv6_address(
             netaddr.core.AddrFormatError,
         ),
     ],
-    ids=["failed to detect a valid IP " "address from %r"],
+    ids=["failed to detect a valid IP address from %r"],
 )
 def test_invalid_ip_address(ip, port, expected_exception):
     # Assert
@@ -681,12 +681,12 @@ def test_allowed_nonce_window_ns():
     expected_window_ns = (
         current_time - ALLOWED_DELTA - (mock_synapse.timeout * NANOSECONDS_IN_SECOND)
     )
-    assert (
-        allowed_window_ns < current_time
-    ), "Allowed window should be less than the current time"
-    assert (
-        allowed_window_ns == expected_window_ns
-    ), f"Expected {expected_window_ns} but got {allowed_window_ns}"
+    assert allowed_window_ns < current_time, (
+        "Allowed window should be less than the current time"
+    )
+    assert allowed_window_ns == expected_window_ns, (
+        f"Expected {expected_window_ns} but got {allowed_window_ns}"
+    )
 
 
 @pytest.mark.parametrize("nonce_offset_seconds", [1, 3, 5, 10])
@@ -703,12 +703,12 @@ def test_nonce_diff_seconds(nonce_offset_seconds):
         ALLOWED_DELTA + (mock_synapse.timeout * NANOSECONDS_IN_SECOND)
     ) / NANOSECONDS_IN_SECOND
 
-    assert (
-        diff_seconds == expected_diff_seconds
-    ), f"Expected {expected_diff_seconds} but got {diff_seconds}"
-    assert (
-        allowed_delta_seconds == expected_allowed_delta_seconds
-    ), f"Expected {expected_allowed_delta_seconds} but got {allowed_delta_seconds}"
+    assert diff_seconds == expected_diff_seconds, (
+        f"Expected {expected_diff_seconds} but got {diff_seconds}"
+    )
+    assert allowed_delta_seconds == expected_allowed_delta_seconds, (
+        f"Expected {expected_allowed_delta_seconds} but got {allowed_delta_seconds}"
+    )
 
 
 # Mimicking axon default_verify nonce verification
