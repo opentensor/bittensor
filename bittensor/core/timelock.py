@@ -1,3 +1,58 @@
+"""
+This module provides functionality for TimeLock Encryption (TLE), a mechanism that encrypts data in a way that it can
+only be decrypted after a specific amount of time (expressed in the form  of Drand rounds). It includes functions
+for encryption, decryption, and handling the decryption process by waiting for the reveal round. The logic is based on
+Drand QuickNet.
+
+Main Functions:
+    - encrypt: Encrypts data and returns the encrypted data along with the reveal round.
+    - decrypt: Decrypts the provided encrypted data when the reveal round is reached.
+    - wait_reveal_and_decrypt: Waits for the reveal round and decrypts the encrypted data.
+
+Usage Example:
+    ```python
+    from bittensor import timelock
+    data = "From Cortex to Bittensor"
+    encrypted_data, reveal_round = timelock.encrypt(data, n_blocks=5)
+    decrypted_data = timelock.wait_reveal_and_decrypt(encrypted_data)
+    ```
+
+Usage Example with custom data:
+    ```python
+    import pickle
+    from dataclasses import dataclass
+
+    from bittensor import timelock
+
+
+    @dataclass
+    class Person:
+        name: str
+        age: int
+
+    # get instance of your data
+    x_person = Person("X Lynch", 123)
+
+    # get bytes of your instance
+    byte_data = pickle.dumps(x_person)
+
+    # get TLE encoded bytes
+    encrypted, reveal_round = timelock.encrypt(byte_data, 1)
+
+    # wait when reveal round appears in Drand QuickNet and get decrypted data
+    decrypted = timelock.wait_reveal_and_decrypt(encrypted_data=encrypted)
+
+    # convert bytes into your instance back
+    x_person_2 = pickle.loads(decrypted)
+
+    # make sure initial and decoded instances are the same
+    assert x_person == x_person_2
+    ```
+
+Note:
+For handling fast-block nodes, set the `block_time` parameter to 0.25 seconds during encryption.
+"""
+
 import struct
 import time
 from typing import Optional, Union
