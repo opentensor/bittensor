@@ -49,7 +49,7 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     alice_subnet_netuid = 2
 
     # Register the subnet through Alice
-    assert subtensor.register_subnet(alice_wallet), "Unable to register the subnet"
+    assert subtensor.register_subnet(alice_wallet, True, True), "Unable to register the subnet"
 
     # Verify subnet was created successfully
     assert subtensor.subnet_exists(alice_subnet_netuid), (
@@ -74,9 +74,6 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     # Refresh the metagraph
     metagraph.sync(subtensor=subtensor)
 
-    # wait for updated information to arrive (important for low resource docker)
-    subtensor.wait_for_block(subtensor.block + 10)
-
     # Assert metagraph has Alice and Bob neurons
     assert len(metagraph.uids) == 2, "Metagraph doesn't have exactly 2 neurons"
     assert metagraph.hotkeys[0] == alice_wallet.hotkey.ss58_address, (
@@ -97,8 +94,12 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
 
     # Fetch neuron info of Bob through subtensor and metagraph
     neuron_info_bob = subtensor.neuron_for_uid(uid, netuid=alice_subnet_netuid)
+    print(">>> neuron_info_bob", neuron_info_bob)
     metagraph_dict = neuron_to_dict(metagraph.neurons[uid])
     subtensor_dict = neuron_to_dict(neuron_info_bob)
+
+    print(">>> metagraph_dict", metagraph_dict)
+    print(">>> subtensor_dict", subtensor_dict)
 
     # Verify neuron info is the same in both objects
     assert metagraph_dict == subtensor_dict, (
