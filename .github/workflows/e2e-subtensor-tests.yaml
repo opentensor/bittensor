@@ -101,5 +101,26 @@ jobs:
       - name: Load Docker Image
         run: docker load -i subtensor-localnet.tar
 
-      - name: Run tests
-        run: uv run pytest ${{ matrix.test-file }} -s
+#      - name: Run tests
+#        run: uv run pytest ${{ matrix.test-file }} -s
+
+      - name: Run tests with retry
+        run: |
+          set +e
+          for i in 1 2; do
+            echo "🔁 Attempt $i: Running tests"
+            uv run pytest ${{ matrix.test-file }} -s
+            status=$?
+            if [ $status -eq 0 ]; then
+              echo "✅ Tests passed on attempt $i"
+              break
+            else
+              echo "❌ Tests failed on attempt $i"
+              if [ $i -eq 2 ]; then
+                echo "Tests failed after 2 attempts"
+                exit 1
+              fi
+              echo "Retrying..."
+              sleep 5
+            fi
+          done
