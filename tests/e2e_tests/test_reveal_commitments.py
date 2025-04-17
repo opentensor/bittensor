@@ -3,6 +3,7 @@ import time
 import pytest
 
 from bittensor.utils.btlogging import logging
+from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 
 
 @pytest.mark.parametrize("local_chain", [True], indirect=True)
@@ -37,12 +38,7 @@ async def test_set_reveal_commitment(local_chain, subtensor, alice_wallet, bob_w
         "Unable to register the subnet"
     )
 
-    # make sure we passed start_call limit
-    subtensor.wait_for_block(subtensor.block + 20)
-    status, message = subtensor.start_call(
-        alice_wallet, alice_subnet_netuid, True, True
-    )
-    assert status, message
+    assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
 
     # Register Bob's neuron
     assert subtensor.burned_register(bob_wallet, alice_subnet_netuid, True, True), (

@@ -7,6 +7,7 @@ from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_admin_utils,
     wait_epoch,
 )
+from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 
 DURATION_OF_START_CALL = 10
 
@@ -29,19 +30,14 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     alice_subnet_netuid = subtensor.get_total_subnets()  # 2
 
     # Register root as Alice - the subnet owner and validator
-    assert subtensor.register_subnet(alice_wallet)
+    assert subtensor.register_subnet(alice_wallet, True, True), "Subnet wasn't created"
 
     # Verify subnet <netuid> created successfully
     assert subtensor.subnet_exists(alice_subnet_netuid), (
         "Subnet wasn't created successfully"
     )
 
-    # make sure we passed start_call limit
-    subtensor.wait_for_block(subtensor.block + 20)
-    status, message = subtensor.start_call(
-        alice_wallet, alice_subnet_netuid, True, True
-    )
-    assert status, message
+    assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
 
     # Register Bob as a neuron on the subnet
     assert subtensor.burned_register(bob_wallet, alice_subnet_netuid), (

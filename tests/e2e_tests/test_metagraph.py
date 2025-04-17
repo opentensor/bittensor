@@ -6,6 +6,7 @@ import time
 from bittensor.core.chain_data.metagraph_info import MetagraphInfo
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
+from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 
 NULL_KEY = tuple(bytearray(32))
 
@@ -46,7 +47,7 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
         AssertionError: If any of the checks or verifications fail
     """
     logging.console.info("Testing test_metagraph_command")
-    alice_subnet_netuid = 2
+    alice_subnet_netuid = subtensor.get_total_subnets()  # 2
 
     logging.console.info("Register the subnet through Alice")
     assert subtensor.register_subnet(alice_wallet, True, True), (
@@ -59,8 +60,7 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     )
 
     logging.console.info("Make sure we passed start_call limit (10 blocks)")
-    subtensor.wait_for_block(subtensor.block + 10)
-    assert subtensor.start_call(alice_wallet, alice_subnet_netuid, True, True)[0]
+    assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
 
     logging.console.info("Initialize metagraph")
     metagraph = subtensor.metagraph(netuid=alice_subnet_netuid)
@@ -196,7 +196,7 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
     """
 
     alice_subnet_netuid = subtensor.get_total_subnets()  # 2
-    subtensor.register_subnet(alice_wallet)
+    subtensor.register_subnet(alice_wallet, True, True)
 
     metagraph_info = subtensor.get_metagraph_info(netuid=1, block=1)
 
@@ -370,11 +370,7 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
         metagraph_info,
     ]
 
-    subtensor.wait_for_block(subtensor.block + 20)
-    status, message = subtensor.start_call(
-        alice_wallet, alice_subnet_netuid, True, True
-    )
-    assert status, message
+    assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
 
     assert subtensor.burned_register(
         bob_wallet,

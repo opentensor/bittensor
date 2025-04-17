@@ -5,7 +5,7 @@ from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_admin_utils,
     wait_epoch,
 )
-
+from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 
 SET_CHILDREN_COOLDOWN_PERIOD = 15
 SET_CHILDREN_RATE_LIMIT = 150
@@ -19,15 +19,12 @@ def test_hotkeys(subtensor, alice_wallet, dave_wallet):
     """
 
     dave_subnet_netuid = 2
-    assert subtensor.register_subnet(dave_wallet)
+    assert subtensor.register_subnet(dave_wallet, True, True)
     assert subtensor.subnet_exists(dave_subnet_netuid), (
         f"Subnet #{dave_subnet_netuid} does not exist."
     )
 
-    # make sure we passed start_call limit
-    subtensor.wait_for_block(subtensor.block + 20)
-    status, message = subtensor.start_call(dave_wallet, dave_subnet_netuid, True, True)
-    assert status, message
+    assert wait_to_start_call(subtensor, dave_wallet, dave_subnet_netuid)
 
     coldkey = alice_wallet.coldkeypub.ss58_address
     hotkey = alice_wallet.hotkey.ss58_address
@@ -80,15 +77,12 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
     """
 
     dave_subnet_netuid = 2
-    assert subtensor.register_subnet(dave_wallet)
+    assert subtensor.register_subnet(dave_wallet, True, True)
     assert subtensor.subnet_exists(dave_subnet_netuid), (
         f"Subnet #{dave_subnet_netuid} does not exist."
     )
 
-    # make sure we passed start_call limit
-    subtensor.wait_for_block(subtensor.block + 20)
-    status, message = subtensor.start_call(dave_wallet, dave_subnet_netuid, True, True)
-    assert status, message
+    assert wait_to_start_call(subtensor, dave_wallet, dave_subnet_netuid)
 
     with pytest.raises(bittensor.RegistrationNotPermittedOnRootSubnet):
         subtensor.set_children(

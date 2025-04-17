@@ -12,6 +12,7 @@ from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_admin_utils,
     vote,
 )
+from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 from tests.helpers.helpers import CLOSE_IN_VALUE
 
 DEFAULT_DELEGATE_TAKE = 0.179995422293431
@@ -247,12 +248,7 @@ async def test_delegates(subtensor, alice_wallet, bob_wallet):
         "Subnet wasn't created successfully"
     )
 
-    # make sure we passed start_call limit
-    subtensor.wait_for_block(subtensor.block + 20)
-    status, message = subtensor.start_call(
-        alice_wallet, alice_subnet_netuid, True, True
-    )
-    assert status, message
+    assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
 
     subtensor.add_stake(
         bob_wallet,
@@ -304,12 +300,7 @@ def test_nominator_min_required_stake(local_chain, subtensor, alice_wallet, bob_
         "Subnet wasn't created successfully"
     )
 
-    # make sure we passed start_call limit
-    subtensor.wait_for_block(subtensor.block + 20)
-    status, message = subtensor.start_call(
-        alice_wallet, alice_subnet_netuid, True, True
-    )
-    assert status, message
+    assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
 
     minimum_required_stake = subtensor.get_minimum_required_stake()
 

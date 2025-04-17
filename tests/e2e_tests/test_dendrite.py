@@ -8,6 +8,7 @@ from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_admin_utils,
     wait_epoch,
 )
+from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 
 
 @pytest.mark.asyncio
@@ -29,19 +30,14 @@ async def test_dendrite(local_chain, subtensor, templates, alice_wallet, bob_wal
     logging.console.info("Testing test_dendrite")
 
     # Register a subnet, netuid 2
-    assert subtensor.register_subnet(alice_wallet), "Subnet wasn't created"
+    assert subtensor.register_subnet(alice_wallet, True, True), "Subnet wasn't created"
 
     # Verify subnet <netuid> created successfully
     assert subtensor.subnet_exists(alice_subnet_netuid), (
         "Subnet wasn't created successfully"
     )
 
-    # make sure we passed start_call limit
-    subtensor.wait_for_block(subtensor.block + 20)
-    status, message = subtensor.start_call(
-        alice_wallet, alice_subnet_netuid, True, True
-    )
-    assert status, message
+    assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
 
     # Make sure Alice is Top Validator
     assert subtensor.add_stake(

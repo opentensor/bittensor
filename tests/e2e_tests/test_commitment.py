@@ -3,20 +3,19 @@ from async_substrate_interface.errors import SubstrateRequestException
 
 from bittensor import logging
 from tests.e2e_tests.utils.chain_interactions import sudo_set_admin_utils
+from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 
 logging.set_trace()
 
 
 def test_commitment(local_chain, subtensor, alice_wallet, dave_wallet):
     dave_subnet_netuid = 2
-    assert subtensor.register_subnet(dave_wallet)
+    assert subtensor.register_subnet(dave_wallet, True, True)
     assert subtensor.subnet_exists(dave_subnet_netuid), (
         "Subnet wasn't created successfully"
     )
 
-    subtensor.wait_for_block(subtensor.block + 20)
-    status, message = subtensor.start_call(dave_wallet, dave_subnet_netuid, True, True)
-    assert status, message
+    assert wait_to_start_call(subtensor, dave_wallet, dave_subnet_netuid, 10)
 
     with pytest.raises(SubstrateRequestException, match="AccountNotAllowedCommit"):
         subtensor.set_commitment(
