@@ -5,16 +5,10 @@
 
 name: Monitor SDK Requirements Size
 
-#on:
-#  pull_request:
-#    types: [opened]
-#    branches: [master]
-
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
-    branches:
-      - master
+    types: [opened]
+    branches: [master]
 
 permissions:
   pull-requests: write
