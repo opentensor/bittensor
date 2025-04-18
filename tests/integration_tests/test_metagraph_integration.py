@@ -1,10 +1,11 @@
+import os
 from unittest import mock
 
-import bittensor
 import torch
-import os
-from bittensor.utils.mock import MockSubtensor
+
+import bittensor
 from bittensor.core.metagraph import METAGRAPH_STATE_DICT_NDARRAY_KEYS, get_save_dir
+from bittensor.utils.mock import MockSubtensor
 
 _subtensor_mock: MockSubtensor = MockSubtensor()
 
