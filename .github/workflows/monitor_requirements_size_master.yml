@@ -1,0 +1,76 @@
+# This workflow measures the disk size of a virtual environment
+# after installing the Bittensor SDK across multiple Python versions.
+# It runs only when a new pull request targets the master branch,
+# and posts a comment with the results.
+
+name: Monitor SDK Requirements Size
+
+on:
+  pull_request:
+    types: [opened]
+    branches: [master]
+
+jobs:
+  measure-venv:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+
+    name: Python ${{ matrix.python-version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Create virtualenv and install Bittensor SDK
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install .
+
+      - name: Measure venv folder size
+        id: venv-size
+        run: |
+          du -sm venv | cut -f1 > venv_size_mb.txt
+          echo "venv_size=$(cat venv_size_mb.txt)" >> $GITHUB_OUTPUT
+
+      - name: Save size for summary
+        run: |
+          echo "Python ${{ matrix.python-version }}: ${{ steps.venv-size.outputs.venv_size }} MB" >> $GITHUB_WORKSPACE/venv_sizes.txt
+
+      - name: Upload summary file as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: venv_sizes
+          path: $GITHUB_WORKSPACE/venv_sizes.txt
+
+  comment-on-pr:
+    if: github.event_name == 'pull_request' && github.base_ref == 'master'
+    runs-on: ubuntu-latest
+    needs: measure-venv
+
+    steps:
+      - name: Download summary
+        uses: actions/download-artifact@v4
+        with:
+          name: venv_sizes
+          path: .
+
+      - name: Read summary and comment it
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const comment = fs.readFileSync('venv_sizes.txt', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.payload.pull_request.number,
+              owner: context.repo.owner,
+              repo: context.repo.name,
+              body: `Bittensor SDK virtual environment sizes by Python version:**\n\n\`\`\`\n${comment}\n\`\`\``
+            });
