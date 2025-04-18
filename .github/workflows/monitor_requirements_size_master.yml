@@ -27,7 +27,7 @@ jobs:
       py310: ${{ steps.set-output.outputs.py310 }}
       py311: ${{ steps.set-output.outputs.py311 }}
       py312: ${{ steps.set-output.outputs.py312 }}
-#      py313: ${{ steps.set-output.outputs.py313 }}
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -52,7 +52,6 @@ jobs:
             3.10) echo "py310=$SIZE" >> $GITHUB_OUTPUT ;;
             3.11) echo "py311=$SIZE" >> $GITHUB_OUTPUT ;;
             3.12) echo "py312=$SIZE" >> $GITHUB_OUTPUT ;;
-#            3.13) echo "py313=$SIZE" >> $GITHUB_OUTPUT ;;
           esac
 
   comment-on-pr:
@@ -69,7 +68,6 @@ jobs:
             "3.10": "${{ needs.measure-venv.outputs.py310 || 'N/A' }}",
             "3.11": "${{ needs.measure-venv.outputs.py311 || 'N/A' }}",
             "3.12": "${{ needs.measure-venv.outputs.py312 || 'N/A' }}",
-#            "3.13": "${{ needs.measure-venv.outputs.py313 || 'N/A' }}"
           };
           const lines = Object.entries(sizes).map(([ver, size]) => `Python ${ver}: ${size} MB`);
           const body = `Bittensor SDK virtual environment sizes by Python version:**\n\n\`\`\`\n${lines.join("\n")}\n\`\`\``;
