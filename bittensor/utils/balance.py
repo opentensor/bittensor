@@ -362,7 +362,9 @@ def fixed_to_float(
 
 # lowercase is added for backwards compatibility to not break API
 units = UNITS = [
-    b"\xce\xa4".decode(),  # Τ (Upper case Tau, 0)
+    chr(
+        0x03C4
+    ),  # τ Note: the subnet symbol for sn 0 is b"\xce\xa4" / Τ / Tau — however the currency/balance is τ (Tao)
     b"\xce\xb1".decode(),  # α (Alpha, 1)
     b"\xce\xb2".decode(),  # β (Beta, 2)
     b"\xce\xb3".decode(),  # γ (Gamma, 3)
