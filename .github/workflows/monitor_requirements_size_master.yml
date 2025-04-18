@@ -5,10 +5,16 @@
 
 name: Monitor SDK Requirements Size
 
+#on:
+#  pull_request:
+#    types: [opened]
+#    branches: [master]
+
 on:
   pull_request:
-    types: [opened, synchronize]
-    branches: [master]
+    types: [opened, synchronize, reopened]
+    branches:
+      - master
 
 jobs:
   measure-venv:
