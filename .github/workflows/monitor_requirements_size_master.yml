@@ -2,7 +2,6 @@
 # after installing the Bittensor SDK across multiple Python versions.
 # It runs only when a new pull request targets the master branch,
 # and posts a comment with the results.
-
 name: Monitor SDK Requirements Size
 
 on:
