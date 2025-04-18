@@ -168,21 +168,7 @@ class RetrySubstrate:
             return method_(*args, **kwargs)
         except (MaxRetriesExceeded, ConnectionError, ConnectionRefusedError) as e:
             try:
-                next_network = next(self.fallback_chains)
-                if e.__class__ == MaxRetriesExceeded:
-                    logging.error(
-                        f"Max retries exceeded with {self._substrate.url}. Retrying with {next_network}."
-                    )
-                else:
-                    print(f"Connection error. Trying again with {next_network}")
-                self._substrate = self._substrate_class(
-                    url=next_network,
-                    ss58_format=self.ss58_format,
-                    type_registry=self.type_registry,
-                    use_remote_preset=self.use_remote_preset,
-                    chain_name=self.chain_name,
-                    _mock=self._mock,
-                )
+                self._reinstantiate_substrate()
                 method_ = getattr(self._substrate, method)
                 return self._retry(method_(*args, **kwargs))
             except StopIteration:
@@ -200,21 +186,7 @@ class RetrySubstrate:
                 return method_(*args, **kwargs)
         except (MaxRetriesExceeded, ConnectionError, ConnectionRefusedError) as e:
             try:
-                next_network = next(self.fallback_chains)
-                if e.__class__ == MaxRetriesExceeded:
-                    logging.error(
-                        f"Max retries exceeded with {self._substrate.url}. Retrying with {next_network}."
-                    )
-                else:
-                    print(f"Connection error. Trying again with {next_network}")
-                self._substrate = self._substrate_class(
-                    url=next_network,
-                    ss58_format=self.ss58_format,
-                    type_registry=self.type_registry,
-                    use_remote_preset=self.use_remote_preset,
-                    chain_name=self.chain_name,
-                    _mock=self._mock,
-                )
+                self._reinstantiate_substrate(e)
                 method_ = getattr(self._substrate, method)
                 if asyncio.iscoroutinefunction(method_):
                     return await method_(*args, **kwargs)
@@ -225,6 +197,23 @@ class RetrySubstrate:
                     f"Max retries exceeded with {self._substrate.url}. No more fallback chains."
                 )
                 raise MaxRetriesExceeded
+
+    def _reinstantiate_substrate(self, e: Optional[Exception] = None) -> None:
+        next_network = next(self.fallback_chains)
+        if e.__class__ == MaxRetriesExceeded:
+            logging.error(
+                f"Max retries exceeded with {self._substrate.url}. Retrying with {next_network}."
+            )
+        else:
+            print(f"Connection error. Trying again with {next_network}")
+        self._substrate = self._substrate_class(
+            url=next_network,
+            ss58_format=self.ss58_format,
+            type_registry=self.type_registry,
+            use_remote_preset=self.use_remote_preset,
+            chain_name=self.chain_name,
+            _mock=self._mock,
+        )
 
 
 class SubtensorMixin(ABC):
