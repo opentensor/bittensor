@@ -79,7 +79,7 @@ from bittensor.core.extrinsics.asyncex.weights import (
 )
 from bittensor.core.metagraph import AsyncMetagraph
 from bittensor.core.settings import version_as_int, TYPE_REGISTRY
-from bittensor.core.types import ParamWithTypes, SubtensorMixin
+from bittensor.core.types import ParamWithTypes, SubtensorMixin, RetrySubstrate
 from bittensor.utils import (
     Certificate,
     decode_hex_identity_dict,
@@ -90,6 +90,7 @@ from bittensor.utils import (
     u16_normalized_float,
     u64_normalized_float,
     unlock_key,
+    determine_chain_endpoint_and_network,
 )
 from bittensor.utils.balance import (
     Balance,
@@ -115,6 +116,8 @@ class AsyncSubtensor(SubtensorMixin):
         config: Optional["Config"] = None,
         _mock: bool = False,
         log_verbose: bool = False,
+        fallback_chains: Optional[list[str]] = None,
+        retry_forever: bool = False,
     ):
         """
         Initializes an instance of the AsyncSubtensor class.
@@ -124,10 +127,13 @@ class AsyncSubtensor(SubtensorMixin):
             config (Optional[Config]): Configuration object for the AsyncSubtensor instance.
             _mock: Whether this is a mock instance. Mainly just for use in testing.
             log_verbose (bool): Enables or disables verbose logging.
+            fallback_chains: list of chain urls to try if the initial one fails
+            retry_forever: whether to continuously try the chains indefinitely if timeout failure
 
         Raises:
             Any exceptions raised during the setup, configuration, or connection process.
         """
+        fallback_chains_ = fallback_chains or []
         if config is None:
             config = AsyncSubtensor.config()
         self._config = copy.deepcopy(config)
@@ -135,6 +141,9 @@ class AsyncSubtensor(SubtensorMixin):
             network, self._config
         )
         self._mock = _mock
+        fallback_chain_urls = [
+            determine_chain_endpoint_and_network(x)[1] for x in fallback_chains_
+        ]
 
         self.log_verbose = log_verbose
         self._check_and_log_network_settings()
@@ -143,13 +152,16 @@ class AsyncSubtensor(SubtensorMixin):
             f"Connecting to network: [blue]{self.network}[/blue], "
             f"chain_endpoint: [blue]{self.chain_endpoint}[/blue]..."
         )
-        self.substrate = AsyncSubstrateInterface(
-            url=self.chain_endpoint,
+        self.substrate = RetrySubstrate(
+            AsyncSubstrateInterface,
+            main_url=self.chain_endpoint,
             ss58_format=SS58_FORMAT,
             type_registry=TYPE_REGISTRY,
             use_remote_preset=True,
             chain_name="Bittensor",
             _mock=_mock,
+            fallback_chains=fallback_chain_urls,
+            retry_forever=retry_forever,
         )
         if self.log_verbose:
             logging.info(

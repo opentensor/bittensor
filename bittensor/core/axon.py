@@ -504,9 +504,9 @@ class Axon:
             )
 
         param_class = first_param.annotation
-        assert issubclass(param_class, Synapse), (
-            "The first argument of forward_fn must inherit from bittensor.Synapse"
-        )
+        assert issubclass(
+            param_class, Synapse
+        ), "The first argument of forward_fn must inherit from bittensor.Synapse"
         request_name = param_class.__name__
 
         async def endpoint(*args, **kwargs):
@@ -580,19 +580,19 @@ class Axon:
             blacklist_sig = Signature(
                 expected_params, return_annotation=Tuple[bool, str]
             )
-            assert signature(blacklist_fn) == blacklist_sig, (
-                f"The blacklist_fn function must have the signature: blacklist( synapse: {request_name} ) -> tuple[bool, str]"
-            )
+            assert (
+                signature(blacklist_fn) == blacklist_sig
+            ), f"The blacklist_fn function must have the signature: blacklist( synapse: {request_name} ) -> tuple[bool, str]"
         if priority_fn:
             priority_sig = Signature(expected_params, return_annotation=float)
-            assert signature(priority_fn) == priority_sig, (
-                f"The priority_fn function must have the signature: priority( synapse: {request_name} ) -> float"
-            )
+            assert (
+                signature(priority_fn) == priority_sig
+            ), f"The priority_fn function must have the signature: priority( synapse: {request_name} ) -> float"
         if verify_fn:
             verify_sig = Signature(expected_params, return_annotation=None)
-            assert signature(verify_fn) == verify_sig, (
-                f"The verify_fn function must have the signature: verify( synapse: {request_name} ) -> None"
-            )
+            assert (
+                signature(verify_fn) == verify_sig
+            ), f"The verify_fn function must have the signature: verify( synapse: {request_name} ) -> None"
 
         # Store functions in appropriate attribute dictionaries
         self.forward_class_types[request_name] = param_class
@@ -747,9 +747,9 @@ class Axon:
         Raises:
             AssertionError: If the axon or external ports are not in range [1024, 65535]
         """
-        assert 1024 < config.axon.port < 65535, (
-            "Axon port must be in range [1024, 65535]"
-        )
+        assert (
+            1024 < config.axon.port < 65535
+        ), "Axon port must be in range [1024, 65535]"
 
         assert config.axon.external_port is None or (
             1024 < config.axon.external_port < 65535
