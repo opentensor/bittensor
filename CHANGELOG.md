@@ -1,6 +1,6 @@
 # Changelog
 
-## 9.3.1a1 /2025-04-14
+## 9.4.0 /2025-04-17
 
 ## What's Changed
 * Release/9.3.0 by @ibraheem-abe in https://github.com/opentensor/bittensor/pull/2805
@@ -13,11 +13,32 @@
 * Remove requirements directory by @thewhaleking in https://github.com/opentensor/bittensor/pull/2812
 * version in one place by @thewhaleking in https://github.com/opentensor/bittensor/pull/2806
 * Update CONTRIBUTING hyperlinks by @thewhaleking in https://github.com/opentensor/bittensor/pull/2820
+* 9.3.1a1: Updates changelog by @ibraheem-abe in https://github.com/opentensor/bittensor/pull/2821
+* Remove cubit as extra by @thewhaleking in https://github.com/opentensor/bittensor/pull/2823
+* fix/roman/get-metagraph-identities by @basfroman in https://github.com/opentensor/bittensor/pull/2826
+* Replace waiting logic for `test_commit_reveal_v3.py` by @basfroman in https://github.com/opentensor/bittensor/pull/2827
+* Add `start_call` extrinsic to the sdk by @basfroman in https://github.com/opentensor/bittensor/pull/2828
+* Add `timelock` module by @basfroman in https://github.com/opentensor/bittensor/pull/2824
+* Fix: raise_error=True in AsyncSubtensor fails to get error_message by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2771
+* Fix: async set_subnet_identity_extrinsic doesn't sign the extrinsic by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2772
+* Update settings.py by @petryshkaCODE in https://github.com/opentensor/bittensor/pull/2814
+* Bumping ruff version by @basfroman in https://github.com/opentensor/bittensor/pull/2831
+* Fix and improve e2e tests after `start call` new limit in subtensor by @basfroman in https://github.com/opentensor/bittensor/pull/2830
+* Add `bittensor.timelock` module description by @basfroman in https://github.com/opentensor/bittensor/pull/2833
+* fix: Update broken link in `CONTRIBUTING.md` by @cypherpepe in https://github.com/opentensor/bittensor/pull/2818
+* docs: added a new badge by @sashaphmn in https://github.com/opentensor/bittensor/pull/2819
+* Fix AxonInfo initialization in get_mock_neuron function by @VolodymyrBg in https://github.com/opentensor/bittensor/pull/2803
+* Dendrite: log ClientOSError as Debug by @Thykof in https://github.com/opentensor/bittensor/pull/2770
+* remove `rao` endpoint from settings by @basfroman in https://github.com/opentensor/bittensor/pull/2834
 
 ## New Contributors
 * @Hack666r made their first contribution in https://github.com/opentensor/bittensor/pull/2813
+* @petryshkaCODE made their first contribution in https://github.com/opentensor/bittensor/pull/2814
+* @cypherpepe made their first contribution in https://github.com/opentensor/bittensor/pull/2818
+* @VolodymyrBg made their first contribution in https://github.com/opentensor/bittensor/pull/2803
+* @Thykof made their first contribution in https://github.com/opentensor/bittensor/pull/2770
 
-**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.3.0...v9.3.1a1
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.3.0...v9.4.0
 
 ## 9.3.0 /2025-04-09
 
