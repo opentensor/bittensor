@@ -16,6 +16,10 @@ on:
     branches:
       - master
 
+permissions:
+  pull-requests: write
+  contents: read
+
 jobs:
   measure-venv:
     runs-on: ubuntu-latest
