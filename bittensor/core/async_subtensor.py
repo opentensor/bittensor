@@ -9,7 +9,7 @@ import asyncstdlib as a
 import numpy as np
 import scalecodec
 from async_substrate_interface import AsyncSubstrateInterface
-from bittensor_commit_reveal import get_encrypted_commitment
+from bittensor_drand import get_encrypted_commitment
 from bittensor_wallet.utils import SS58_FORMAT
 from numpy.typing import NDArray
 from scalecodec import GenericCall

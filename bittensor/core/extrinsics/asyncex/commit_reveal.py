@@ -3,7 +3,7 @@
 from typing import Optional, Union, TYPE_CHECKING
 
 import numpy as np
-from bittensor_commit_reveal import get_encrypted_commit
+from bittensor_drand import get_encrypted_commit
 from numpy.typing import NDArray
 
 from bittensor.core.settings import version_as_int

@@ -57,7 +57,7 @@ import struct
 import time
 from typing import Optional, Union
 
-from bittensor_commit_reveal import (
+from bittensor_drand import (
     encrypt as _btr_encrypt,
     decrypt as _btr_decrypt,
     get_latest_round,

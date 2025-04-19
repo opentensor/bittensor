@@ -8,7 +8,7 @@ import scalecodec
 from async_substrate_interface.errors import SubstrateRequestException
 from async_substrate_interface.sync_substrate import SubstrateInterface
 from async_substrate_interface.types import ScaleObj
-from bittensor_commit_reveal import get_encrypted_commitment
+from bittensor_drand import get_encrypted_commitment
 from numpy.typing import NDArray
 
 from bittensor.core.async_subtensor import ProposalVoteData

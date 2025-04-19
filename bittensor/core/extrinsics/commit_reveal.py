@@ -2,7 +2,7 @@
 
 from typing import Union, TYPE_CHECKING, Optional
 
-from bittensor_commit_reveal import get_encrypted_commit
+from bittensor_drand import get_encrypted_commit
 import numpy as np
 from numpy.typing import NDArray
 
