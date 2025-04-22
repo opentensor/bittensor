@@ -3444,7 +3444,7 @@ class Subtensor(SubtensorMixin):
                 removed.
             hotkey_ss58 (Optional[str]): The ``SS58`` address of the hotkey account to unstake from.
             netuid (Optional[int]): The unique identifier of the subnet.
-            amount (Balance): The amount of TAO to unstake. If not specified, unstakes all.
+            amount (Balance): The amount of alpha to unstake. If not specified, unstakes all.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
             safe_staking (bool): If true, enables price safety checks to protect against fluctuating prices. The unstake
