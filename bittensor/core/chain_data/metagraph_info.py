@@ -177,8 +177,12 @@ class MetagraphInfo(InfoBase):
             identity=decoded["identity"],
             network_registered_at=decoded["network_registered_at"],
             # Keys for owner.
-            owner_hotkey=decode_account_id(decoded["owner_hotkey"][0]) if decoded.get("owner_hotkey") else None,
-            owner_coldkey=decode_account_id(decoded["owner_coldkey"][0]) if decoded.get("owner_coldkey") else None,
+            owner_hotkey=decode_account_id(decoded["owner_hotkey"][0])
+            if decoded.get("owner_hotkey")
+            else None,
+            owner_coldkey=decode_account_id(decoded["owner_coldkey"][0])
+            if decoded.get("owner_coldkey")
+            else None,
             # Tempo terms.
             block=decoded["block"],
             tempo=decoded["tempo"],
