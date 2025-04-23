@@ -1503,8 +1503,15 @@ class AsyncSubtensor(SubtensorMixin):
         """
         indices = SelectiveMetagraphIndex.all_indices()
 
-        if field_indices and isinstance(field_indices, list):
-            indices = [f.value for f in field_indices]
+        if field_indices:
+            if isinstance(field_indices, list) and all(
+                isinstance(f, SelectiveMetagraphIndex) for f in field_indices
+            ):
+                indices = [f.value for f in field_indices]
+            else:
+                raise ValueError(
+                    "`field_indices` must be a list of SelectiveMetagraphIndex items."
+                )
 
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not block_hash and reuse_block:

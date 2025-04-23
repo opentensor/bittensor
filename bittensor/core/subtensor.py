@@ -1160,8 +1160,15 @@ class Subtensor(SubtensorMixin):
         """
         indices = SelectiveMetagraphIndex.all_indices()
 
-        if field_indices and isinstance(field_indices, list):
-            indices = [f.value for f in field_indices]
+        if field_indices:
+            if isinstance(field_indices, list) and all(
+                isinstance(f, SelectiveMetagraphIndex) for f in field_indices
+            ):
+                indices = [f.value for f in field_indices]
+            else:
+                raise ValueError(
+                    "`field_indices` must be a list of SelectiveMetagraphIndex items."
+                )
 
         block_hash = self.determine_block_hash(block)
         query = self.substrate.runtime_call(
