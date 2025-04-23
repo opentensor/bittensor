@@ -157,10 +157,10 @@ class MetagraphInfo(InfoBase):
             decoded.update({"symbol": bytes(symbol).decode()})
 
         ii_list = []
-        if decoded.get("identity"):
+        if decoded.get("identity") is not None:
             ii_list.append("identity")
 
-        if decoded.get("identities"):
+        if decoded.get("identities") is not None:
             ii_list.append("identities")
 
         for key in ii_list:
@@ -178,10 +178,10 @@ class MetagraphInfo(InfoBase):
             network_registered_at=decoded["network_registered_at"],
             # Keys for owner.
             owner_hotkey=decode_account_id(decoded["owner_hotkey"][0])
-            if decoded.get("owner_hotkey")
+            if decoded.get("owner_hotkey") is not None
             else None,
             owner_coldkey=decode_account_id(decoded["owner_coldkey"][0])
-            if decoded.get("owner_coldkey")
+            if decoded.get("owner_coldkey") is not None
             else None,
             # Tempo terms.
             block=decoded["block"],
@@ -202,17 +202,17 @@ class MetagraphInfo(InfoBase):
             moving_price=Balance.from_tao(
                 fixed_to_float(decoded.get("moving_price"), 32)
             )
-            if decoded.get("moving_price")
+            if decoded.get("moving_price") is not None
             else None,
             # Hparams for epoch
             rho=decoded["rho"],
             kappa=decoded["kappa"],
             # Validator params
             min_allowed_weights=u16tf(decoded["min_allowed_weights"])
-            if decoded["min_allowed_weights"]
+            if decoded.get("min_allowed_weights") is not None
             else None,
             max_weights_limit=u16tf(decoded["max_weights_limit"])
-            if decoded["max_weights_limit"]
+            if decoded["max_weights_limit"] is not None
             else None,
             weights_version=decoded["weights_version"],
             weights_rate_limit=decoded["weights_rate_limit"],
@@ -222,20 +222,22 @@ class MetagraphInfo(InfoBase):
             num_uids=decoded["num_uids"],
             max_uids=decoded["max_uids"],
             burn=_tbwu(decoded["burn"]),
-            difficulty=u64tf(decoded["difficulty"]) if decoded["difficulty"] else None,
+            difficulty=u64tf(decoded["difficulty"])
+            if decoded["difficulty"] is not None
+            else None,
             registration_allowed=decoded["registration_allowed"],
             pow_registration_allowed=decoded["pow_registration_allowed"],
             immunity_period=decoded["immunity_period"],
             min_difficulty=u64tf(decoded["min_difficulty"])
-            if decoded["min_difficulty"]
+            if decoded["min_difficulty"] is not None
             else None,
             max_difficulty=u64tf(decoded["max_difficulty"])
-            if decoded["max_difficulty"]
+            if decoded["max_difficulty"] is not None
             else None,
             min_burn=_tbwu(decoded["min_burn"]),
             max_burn=_tbwu(decoded["max_burn"]),
             adjustment_alpha=u64tf(decoded["adjustment_alpha"])
-            if decoded["adjustment_alpha"]
+            if decoded["adjustment_alpha"] is not None
             else None,
             adjustment_interval=decoded["adjustment_interval"],
             target_regs_per_interval=decoded["target_regs_per_interval"],
@@ -246,69 +248,73 @@ class MetagraphInfo(InfoBase):
             commit_reveal_period=decoded["commit_reveal_period"],
             # Bonds
             liquid_alpha_enabled=decoded["liquid_alpha_enabled"],
-            alpha_high=u16tf(decoded["alpha_high"]) if decoded["alpha_high"] else None,
-            alpha_low=u16tf(decoded["alpha_low"]) if decoded["alpha_low"] else None,
+            alpha_high=u16tf(decoded["alpha_high"])
+            if decoded["alpha_high"] is not None
+            else None,
+            alpha_low=u16tf(decoded["alpha_low"])
+            if decoded["alpha_low"] is not None
+            else None,
             bonds_moving_avg=u64tf(decoded["bonds_moving_avg"])
-            if decoded["bonds_moving_avg"]
+            if decoded["bonds_moving_avg"] is not None
             else None,
             # Metagraph info.
             hotkeys=[decode_account_id(ck) for ck in decoded.get("hotkeys", [])]
-            if decoded.get("hotkeys")
+            if decoded.get("hotkeys") is not None
             else None,
             coldkeys=[decode_account_id(hk) for hk in decoded.get("coldkeys", [])]
-            if decoded.get("coldkeys")
+            if decoded.get("coldkeys") is not None
             else None,
             identities=decoded["identities"],
             axons=decoded.get("axons", []),
             active=decoded["active"],
             validator_permit=decoded["validator_permit"],
             pruning_score=[u16tf(ps) for ps in decoded.get("pruning_score", [])]
-            if decoded.get("pruning_score")
+            if decoded.get("pruning_score") is not None
             else None,
             last_update=decoded["last_update"],
             emission=[_tbwu(em, _netuid) for em in decoded.get("emission", [])]
-            if decoded.get("emission")
+            if decoded.get("emission") is not None
             else None,
             dividends=[u16tf(dv) for dv in decoded.get("dividends", [])]
-            if decoded.get("dividends")
+            if decoded.get("dividends") is not None
             else None,
             incentives=[u16tf(ic) for ic in decoded.get("incentives", [])]
-            if decoded.get("incentives")
+            if decoded.get("incentives") is not None
             else None,
             consensus=[u16tf(cs) for cs in decoded.get("consensus", [])]
-            if decoded.get("consensus")
+            if decoded.get("consensus") is not None
             else None,
             trust=[u16tf(tr) for tr in decoded.get("trust", [])]
-            if decoded.get("trust")
+            if decoded.get("trust") is not None
             else None,
             rank=[u16tf(rk) for rk in decoded.get("rank", [])]
-            if decoded.get("rank")
+            if decoded.get("rank") is not None
             else None,
             block_at_registration=decoded["block_at_registration"],
             alpha_stake=[_tbwu(ast, _netuid) for ast in decoded["alpha_stake"]]
-            if decoded.get("alpha_stake")
+            if decoded.get("alpha_stake") is not None
             else None,
             tao_stake=[
                 _tbwu(ts) * settings.ROOT_TAO_STAKE_WEIGHT
                 for ts in decoded["tao_stake"]
             ]
-            if decoded.get("tao_stake")
+            if decoded.get("tao_stake") is not None
             else None,
             total_stake=[_tbwu(ts, _netuid) for ts in decoded["total_stake"]]
-            if decoded.get("total_stake")
+            if decoded.get("total_stake") is not None
             else None,
             # Dividend break down
             tao_dividends_per_hotkey=[
                 (decode_account_id(alpha[0]), _tbwu(alpha[1]))
                 for alpha in decoded["tao_dividends_per_hotkey"]
             ]
-            if decoded.get("tao_dividends_per_hotkey")
+            if decoded.get("tao_dividends_per_hotkey") is not None
             else None,
             alpha_dividends_per_hotkey=[
                 (decode_account_id(adphk[0]), _tbwu(adphk[1], _netuid))
                 for adphk in decoded["alpha_dividends_per_hotkey"]
             ]
-            if decoded.get("alpha_dividends_per_hotkey")
+            if decoded.get("alpha_dividends_per_hotkey") is not None
             else None,
         )
 
