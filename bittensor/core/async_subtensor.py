@@ -1471,7 +1471,7 @@ class AsyncSubtensor(SubtensorMixin):
     async def get_metagraph_info(
         self,
         netuid: int,
-        field_indices: Optional[list["SelectiveMetagraphIndex"]] = None,
+        field_indexes: Optional[list["SelectiveMetagraphIndex"]] = None,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
@@ -1481,7 +1481,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Arguments:
             netuid (int): The NetUID of the subnet to query.
-            field_indices (Optional[list[SelectiveMetagraphIndex]]): An optional list of SelectiveMetagraphIndex values
+            field_indexes (Optional[list[SelectiveMetagraphIndex]]): An optional list of SelectiveMetagraphIndex values
                 specifying which fields to retrieve. If not provided, all available fields will be returned.
             block: the block number at which to retrieve the hyperparameter. Do not specify if using block_hash or
                 reuse_block
@@ -1498,19 +1498,19 @@ class AsyncSubtensor(SubtensorMixin):
 
             partial_meta_info = subtensor.get_metagraph_info(
                 netuid=2,
-                field_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
+                field_indexes=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
             )
         """
         indexes = SelectiveMetagraphIndex.all_indices()
 
-        if field_indices:
-            if isinstance(field_indices, list) and all(
-                isinstance(f, SelectiveMetagraphIndex) for f in field_indices
+        if field_indexes:
+            if isinstance(field_indexes, list) and all(
+                isinstance(f, SelectiveMetagraphIndex) for f in field_indexes
             ):
-                indexes = [f.value for f in field_indices]
+                indexes = [f.value for f in field_indexes]
             else:
                 raise ValueError(
-                    "`field_indices` must be a list of SelectiveMetagraphIndex items."
+                    "`field_indexes` must be a list of SelectiveMetagraphIndex items."
                 )
 
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)

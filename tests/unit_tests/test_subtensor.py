@@ -3440,7 +3440,7 @@ def test_get_metagraph_info_specific_fields(subtensor, mocker):
     )
 
     # Call
-    result = subtensor.get_metagraph_info(netuid=netuid, field_indices=fields)
+    result = subtensor.get_metagraph_info(netuid=netuid, field_indexes=fields)
 
     # Asserts
     assert result == "parsed_metagraph"
@@ -3464,12 +3464,12 @@ def test_get_metagraph_info_specific_fields(subtensor, mocker):
     ],
 )
 def test_get_metagraph_info_invalid_field_indices(subtensor, wrong_fields):
-    """Test get_metagraph_info raises ValueError on invalid field_indices."""
+    """Test get_metagraph_info raises ValueError on invalid field_indexes."""
     with pytest.raises(
         ValueError,
-        match="`field_indices` must be a list of SelectiveMetagraphIndex items.",
+        match="`field_indexes` must be a list of SelectiveMetagraphIndex items.",
     ):
-        subtensor.get_metagraph_info(netuid=1, field_indices=wrong_fields)
+        subtensor.get_metagraph_info(netuid=1, field_indexes=wrong_fields)
 
 
 def test_get_metagraph_info_subnet_not_exist(subtensor, mocker):
