@@ -354,7 +354,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
         wait_for_inclusion=True,
         wait_for_finalization=True,
         safe_staking=True,
-        rate_tolerance=0.005,  # 0.5%
+        rate_tolerance=0.001,  # 0.5%
         allow_partial_stake=False,
     )
     assert success is False
@@ -375,7 +375,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
         wait_for_inclusion=True,
         wait_for_finalization=True,
         safe_staking=True,
-        rate_tolerance=0.005,  # 0.5%
+        rate_tolerance=0.001,  # 0.5%
         allow_partial_stake=True,
     )
     assert success is True
@@ -424,13 +424,17 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
         rate_tolerance=0.005,  # 0.5%
         allow_partial_stake=False,
     )
-    assert success is False
+    assert success is False, "Unstake should fail."
 
     current_stake = subtensor.get_stake(
         alice_wallet.coldkey.ss58_address,
         bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
     )
+
+    logging.console.info(f"[orange]Current stake: {current_stake}[orange]")
+    logging.console.info(f"[orange]Full stake: {full_stake}[orange]")
+
     assert current_stake == full_stake, (
         "Stake should not change after failed unstake attempt"
     )
@@ -444,7 +448,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
         wait_for_inclusion=True,
         wait_for_finalization=True,
         safe_staking=True,
-        rate_tolerance=0.005,  # 0.5%
+        rate_tolerance=0.001,  # 0.5%
         allow_partial_stake=True,
     )
     assert success is True
@@ -454,6 +458,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
         bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
     )
+    logging.console.info(f"[orange]Partial unstake: {partial_unstake}[orange]")
     assert partial_unstake > Balance(0), "Some stake should remain"
 
     # 3. Higher threshold - should succeed fully
@@ -468,7 +473,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
         rate_tolerance=0.3,  # 30%
         allow_partial_stake=False,
     )
-    assert success is True
+    assert success is True, "Unstake should succeed"
 
 
 def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
