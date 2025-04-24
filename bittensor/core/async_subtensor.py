@@ -1494,9 +1494,9 @@ class AsyncSubtensor(SubtensorMixin):
                 with the given netuid does not exist.
 
         Example:
-            meta_info = subtensor.get_metagraph_info(netuid=2)
+            meta_info = await subtensor.get_metagraph_info(netuid=2)
 
-            partial_meta_info = subtensor.get_metagraph_info(
+            partial_meta_info = await subtensor.get_metagraph_info(
                 netuid=2,
                 field_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
             )
