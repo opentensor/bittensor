@@ -1501,13 +1501,13 @@ class AsyncSubtensor(SubtensorMixin):
                 field_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
             )
         """
-        indices = SelectiveMetagraphIndex.all_indices()
+        indexes = SelectiveMetagraphIndex.all_indices()
 
         if field_indices:
             if isinstance(field_indices, list) and all(
                 isinstance(f, SelectiveMetagraphIndex) for f in field_indices
             ):
-                indices = [f.value for f in field_indices]
+                indexes = [f.value for f in field_indices]
             else:
                 raise ValueError(
                     "`field_indices` must be a list of SelectiveMetagraphIndex items."
@@ -1520,7 +1520,7 @@ class AsyncSubtensor(SubtensorMixin):
         query = await self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
             "get_selective_metagraph",
-            params=[netuid, indices],
+            params=[netuid, indexes if 0 in indexes else [0] + indexes],
             block_hash=block_hash,
         )
         if query.value is None:
