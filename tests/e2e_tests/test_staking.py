@@ -354,7 +354,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
         wait_for_inclusion=True,
         wait_for_finalization=True,
         safe_staking=True,
-        rate_tolerance=0.001,  # 0.5%
+        rate_tolerance=0.005,  # 0.5%
         allow_partial_stake=False,
     )
     assert success is False
@@ -375,7 +375,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
         wait_for_inclusion=True,
         wait_for_finalization=True,
         safe_staking=True,
-        rate_tolerance=0.001,  # 0.5%
+        rate_tolerance=0.005,  # 0.5%
         allow_partial_stake=True,
     )
     assert success is True
@@ -448,7 +448,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
         wait_for_inclusion=True,
         wait_for_finalization=True,
         safe_staking=True,
-        rate_tolerance=0.001,  # 0.5%
+        rate_tolerance=0.005,  # 0.5%
         allow_partial_stake=True,
     )
     assert success is True
