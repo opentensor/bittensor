@@ -456,7 +456,7 @@ def test_metagraph_info_with_indexes(subtensor, alice_wallet, bob_wallet):
     ]
 
     metagraph_info = subtensor.get_metagraph_info(
-        netuid=alice_subnet_netuid, field_indexes=field_indices
+        netuid=alice_subnet_netuid, field_indices=field_indices
     )
 
     assert metagraph_info == MetagraphInfo(
@@ -563,7 +563,7 @@ def test_metagraph_info_with_indexes(subtensor, alice_wallet, bob_wallet):
     ]
 
     metagraph_info = subtensor.get_metagraph_info(
-        netuid=alice_subnet_netuid, field_indexes=fields
+        netuid=alice_subnet_netuid, field_indices=fields
     )
 
     assert metagraph_info == MetagraphInfo(
