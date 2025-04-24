@@ -3447,7 +3447,7 @@ def test_get_metagraph_info_specific_fields(subtensor, mocker):
     mock_runtime_call.assert_called_once_with(
         "SubnetInfoRuntimeApi",
         "get_selective_metagraph",
-        params=[netuid, [f.value for f in fields]],
+        params=[netuid, [0] + [f.value for f in fields]],
         block_hash=subtensor.determine_block_hash(None),
     )
     mock_from_dict.assert_called_once_with(mock_value)
