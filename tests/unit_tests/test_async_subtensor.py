@@ -3112,7 +3112,7 @@ async def test_get_metagraph_info_specific_fields(subtensor, mocker):
     )
 
     # Call
-    result = await subtensor.get_metagraph_info(netuid=netuid, field_indexes=fields)
+    result = await subtensor.get_metagraph_info(netuid=netuid, field_indices=fields)
 
     # Asserts
     assert result == "parsed_metagraph"
@@ -3137,12 +3137,12 @@ async def test_get_metagraph_info_specific_fields(subtensor, mocker):
 )
 @pytest.mark.asyncio
 async def test_get_metagraph_info_invalid_field_indices(subtensor, wrong_fields):
-    """Test get_metagraph_info raises ValueError on invalid field_indexes."""
+    """Test get_metagraph_info raises ValueError on invalid field_indices."""
     with pytest.raises(
         ValueError,
-        match="`field_indexes` must be a list of SelectiveMetagraphIndex items.",
+        match="`field_indices` must be a list of SelectiveMetagraphIndex items.",
     ):
-        await subtensor.get_metagraph_info(netuid=1, field_indexes=wrong_fields)
+        await subtensor.get_metagraph_info(netuid=1, field_indices=wrong_fields)
 
 
 @pytest.mark.asyncio
