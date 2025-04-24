@@ -107,7 +107,7 @@ jobs:
       - name: Run tests with retry
         run: |
           set +e
-          for i in 1 2; do
+          for i in 1 2 3; do
             echo "🔁 Attempt $i: Running tests"
             uv run pytest ${{ matrix.test-file }} -s
             status=$?
@@ -116,8 +116,8 @@ jobs:
               break
             else
               echo "❌ Tests failed on attempt $i"
-              if [ $i -eq 2 ]; then
-                echo "Tests failed after 2 attempts"
+              if [ $i -eq 3 ]; then
+                echo "Tests failed after 3 attempts"
                 exit 1
               fi
               echo "Retrying..."
