@@ -153,7 +153,7 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
 @pytest.mark.asyncio
 async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wallet):
     """
-    Tests that commiting weights doesn't re-use a nonce in the transaction pool.
+    Tests that committing weights doesn't re-use a nonce in the transaction pool.
 
     Steps:
         1. Register a subnet through Alice
