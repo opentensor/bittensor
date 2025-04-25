@@ -9,6 +9,7 @@ import asyncstdlib as a
 import numpy as np
 import scalecodec
 from async_substrate_interface import AsyncSubstrateInterface
+async_substrate_interface.substrate_addons import RetrySubstrate
 from bittensor_commit_reveal import get_encrypted_commitment
 from bittensor_wallet.utils import SS58_FORMAT
 from numpy.typing import NDArray
@@ -79,7 +80,7 @@ from bittensor.core.extrinsics.asyncex.weights import (
 )
 from bittensor.core.metagraph import AsyncMetagraph
 from bittensor.core.settings import version_as_int, TYPE_REGISTRY
-from bittensor.core.types import ParamWithTypes, SubtensorMixin, RetrySubstrate
+from bittensor.core.types import ParamWithTypes, SubtensorMixin
 from bittensor.utils import (
     Certificate,
     decode_hex_identity_dict,

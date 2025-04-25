@@ -7,6 +7,7 @@ import numpy as np
 import scalecodec
 from async_substrate_interface.errors import SubstrateRequestException
 from async_substrate_interface.sync_substrate import SubstrateInterface
+from async_substrate_interface.substrate_addons import RetrySubstrate
 from async_substrate_interface.types import ScaleObj
 from bittensor_commit_reveal import get_encrypted_commitment
 from numpy.typing import NDArray
@@ -81,7 +82,7 @@ from bittensor.core.settings import (
     SS58_FORMAT,
     TYPE_REGISTRY,
 )
-from bittensor.core.types import ParamWithTypes, SubtensorMixin, RetrySubstrate
+from bittensor.core.types import ParamWithTypes, SubtensorMixin
 from bittensor.utils import (
     Certificate,
     decode_hex_identity_dict,

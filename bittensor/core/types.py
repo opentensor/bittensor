@@ -1,13 +1,7 @@
-import asyncio
 from abc import ABC
 import argparse
-from functools import partial
-from itertools import cycle
-from typing import TypedDict, Optional, Union, Type
+from typing import TypedDict, Optional
 
-from async_substrate_interface.sync_substrate import SubstrateInterface
-from async_substrate_interface.async_substrate import AsyncSubstrateInterface
-from async_substrate_interface.errors import MaxRetriesExceeded
 
 from bittensor.utils import networking, Certificate
 from bittensor.utils.btlogging import logging
