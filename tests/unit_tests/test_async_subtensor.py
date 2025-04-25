@@ -8,10 +8,13 @@ from bittensor_wallet import Wallet
 from bittensor import u64_normalized_float
 from bittensor.core import async_subtensor
 from bittensor.core.async_subtensor import AsyncSubtensor
-from bittensor.core.chain_data.chain_identity import ChainIdentity
-from bittensor.core.chain_data.neuron_info import NeuronInfo
-from bittensor.core.chain_data.stake_info import StakeInfo
-from bittensor.core.chain_data import proposal_vote_data
+from bittensor.core.chain_data import (
+    proposal_vote_data,
+    ChainIdentity,
+    NeuronInfo,
+    StakeInfo,
+    SelectiveMetagraphIndex,
+)
 from bittensor.utils import U64_MAX
 from bittensor.utils.balance import Balance
 from tests.helpers.helpers import assert_submit_signed_extrinsic
@@ -3059,3 +3062,103 @@ async def test_start_call(subtensor, mocker):
         wait_for_finalization=False,
     )
     assert result == mocked_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_metagraph_info_all_fields(subtensor, mocker):
+    """Test get_metagraph_info with all fields (default behavior)."""
+    # Preps
+    netuid = 1
+    mock_value = {"mock": "data"}
+
+    mock_runtime_call = mocker.patch.object(
+        subtensor.substrate,
+        "runtime_call",
+        return_value=mocker.AsyncMock(value=mock_value),
+    )
+    mock_from_dict = mocker.patch.object(
+        async_subtensor.MetagraphInfo, "from_dict", return_value="parsed_metagraph"
+    )
+
+    # Call
+    result = await subtensor.get_metagraph_info(netuid=netuid)
+
+    # Asserts
+    assert result == "parsed_metagraph"
+    mock_runtime_call.assert_awaited_once_with(
+        "SubnetInfoRuntimeApi",
+        "get_selective_metagraph",
+        params=[netuid, SelectiveMetagraphIndex.all_indices()],
+        block_hash=await subtensor.determine_block_hash(None),
+    )
+    mock_from_dict.assert_called_once_with(mock_value)
+
+
+@pytest.mark.asyncio
+async def test_get_metagraph_info_specific_fields(subtensor, mocker):
+    """Test get_metagraph_info with specific fields."""
+    # Preps
+    netuid = 1
+    mock_value = {"mock": "data"}
+    fields = [SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkey]
+
+    mock_runtime_call = mocker.patch.object(
+        subtensor.substrate,
+        "runtime_call",
+        return_value=mocker.AsyncMock(value=mock_value),
+    )
+    mock_from_dict = mocker.patch.object(
+        async_subtensor.MetagraphInfo, "from_dict", return_value="parsed_metagraph"
+    )
+
+    # Call
+    result = await subtensor.get_metagraph_info(netuid=netuid, field_indices=fields)
+
+    # Asserts
+    assert result == "parsed_metagraph"
+    mock_runtime_call.assert_awaited_once_with(
+        "SubnetInfoRuntimeApi",
+        "get_selective_metagraph",
+        params=[netuid, [0] + [f.value for f in fields]],
+        block_hash=await subtensor.determine_block_hash(None),
+    )
+    mock_from_dict.assert_called_once_with(mock_value)
+
+
+@pytest.mark.parametrize(
+    "wrong_fields",
+    [
+        [
+            "invalid",
+        ],
+        [SelectiveMetagraphIndex.Active, 1],
+        [1, 2, 3],
+    ],
+)
+@pytest.mark.asyncio
+async def test_get_metagraph_info_invalid_field_indices(subtensor, wrong_fields):
+    """Test get_metagraph_info raises ValueError on invalid field_indices."""
+    with pytest.raises(
+        ValueError,
+        match="`field_indices` must be a list of SelectiveMetagraphIndex items.",
+    ):
+        await subtensor.get_metagraph_info(netuid=1, field_indices=wrong_fields)
+
+
+@pytest.mark.asyncio
+async def test_get_metagraph_info_subnet_not_exist(subtensor, mocker):
+    """Test get_metagraph_info returns None when subnet doesn't exist."""
+    netuid = 1
+    mocker.patch.object(
+        subtensor.substrate,
+        "runtime_call",
+        return_value=mocker.AsyncMock(value=None),
+    )
+
+    mocked_logger = mocker.Mock()
+    mocker.patch("bittensor.core.subtensor.logging.error", new=mocked_logger)
+
+    result = await subtensor.get_metagraph_info(netuid=netuid)
+
+    assert result is None
+    mocked_logger.assert_called_once_with(f"Subnet {netuid} does not exist.")
