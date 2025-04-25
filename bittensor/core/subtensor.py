@@ -1629,41 +1629,121 @@ class Subtensor(SubtensorMixin):
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[Union[list, "SubnetHyperparameters"]]:
         """
-        Retrieves the hyperparameters for a specific subnet within the Bittensor network. These hyperparameters define
-            the operational settings and rules governing the subnet's behavior.
+        Retrieves hyperparameters for a specific subnet in the Bittensor network. These hyperparameters are essential
+            for understanding and interacting with the subnet's unique operational parameters and rules.
 
         Arguments:
-            netuid (int): The network UID of the subnet to query.
+            netuid (int): The unique identifier of the subnet.
             block (Optional[int]): The blockchain block number for the query.
 
         Returns:
-            The subnet's hyperparameters, or `None` if not available.
-
-        Understanding the hyperparameters is crucial for comprehending how subnets are configured and managed, and how
-            they interact with the network's consensus and incentive mechanisms.
+            Optional[Union[list, SubnetHyperparameters]]: A structure containing the subnet's hyperparameters if the
+                subnet exists, ``None`` otherwise.
         """
-        result = self.query_runtime_api(
+        subnet_exists = self.subnet_exists(netuid=netuid, block=block)
+        if not subnet_exists:
+            return None
+
+        return self.query_runtime_api(
             runtime_api="SubnetInfoRuntimeApi",
             method="get_subnet_hyperparams",
             params=[netuid],
             block=block,
         )
 
-        if not result:
+    def get_subnet_owner_hotkey(
+        self, 
+        netuid: int, 
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False
+    ) -> Optional[str]:
+        """
+        Retrieves the hotkey of the owner for a specific subnet.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query. Do not specify if using block_hash or reuse_block.
+            block_hash (Optional[str]): The hash of the blockchain block number for the query. Do not specify if using block or reuse_block.
+            reuse_block (bool): Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+
+        Returns:
+            Optional[str]: The SS58 address of the subnet owner's hotkey if the subnet exists, `None` otherwise.
+        """
+        # Ensure that only one of the parameters is specified.
+        if sum(bool(x) for x in [block is not None, block_hash is not None, reuse_block]) > 1:
+            raise ValueError(
+                "Only one of `block`, `block_hash`, or `reuse_block` can be specified."
+            )
+            
+        final_block_hash = None
+        if block_hash:
+            final_block_hash = block_hash
+        elif block:
+            final_block_hash = self.get_block_hash(block)
+        elif reuse_block:
+            final_block_hash = self.substrate.last_block_hash
+        
+        # Use subnet_exists with the appropriate parameter based on what was provided
+        if block is not None:
+            if not self.subnet_exists(netuid, block=block):
+                logging.debug(f"Subnet {netuid} does not exist.")
+                return None
+        else:
+            # For substrate interface calls using block_hash
+            subnet_exists_result = self.substrate.query(
+                module="SubtensorModule", 
+                storage_function="NetworksAdded", 
+                params=[netuid],
+                block_hash=final_block_hash
+            )
+            if not subnet_exists_result or not subnet_exists_result.value:
+                logging.debug(f"Subnet {netuid} does not exist.")
+                return None
+
+        # Query with the appropriate parameter based on what was provided
+        if block is not None:
+            owner_hotkey = self.query_subtensor(
+                name="SubnetOwnerHotkey",
+                params=[netuid],
+                block=block,
+            )
+        else:
+            owner_hotkey = self.substrate.query(
+                module="SubtensorModule",
+                storage_function="SubnetOwnerHotkey", 
+                params=[netuid],
+                block_hash=final_block_hash,
+                reuse_block_hash=reuse_block
+            )
+
+        if owner_hotkey is None:
+            # Should not happen if subnet_exists check passes, but handle defensively
             return None
 
-        return SubnetHyperparameters.from_dict(result)
+        # Check if the returned hotkey is valid (basic check)
+        if is_valid_ss58_address(owner_hotkey):
+            return owner_hotkey
+        
+        logging.error(
+            f"Received invalid owner hotkey format for subnet {netuid}: {owner_hotkey}"
+        )
+        return None
 
     def get_subnet_reveal_period_epochs(
         self, netuid: int, block: Optional[int] = None
     ) -> int:
-        """Retrieve the SubnetRevealPeriodEpochs hyperparameter."""
-        return cast(
-            int,
-            self.get_hyperparameter(
-                param_name="RevealPeriodEpochs", block=block, netuid=netuid
-            ),
-        )
+        """
+        Retrieves the reveal period in epochs for a specific subnet.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query.
+
+        Returns:
+            int: The commit reveal period in epochs for the subnet
+        """
+        return self.get_hyperparameter(param_name="RevealPeriodEpochs", netuid=netuid, block=block)  # type: ignore
 
     def get_subnets(self, block: Optional[int] = None) -> list[int]:
         """
@@ -3482,37 +3562,3 @@ class Subtensor(SubtensorMixin):
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
-
-    def get_subnet_owner_hotkey(
-        self, netuid: int, block: Optional[int] = None
-    ) -> Optional[str]:
-        """
-        Retrieves the hotkey of the owner for a specific subnet.
-
-        Arguments:
-            netuid (int): The unique identifier of the subnet.
-            block (Optional[int]): The blockchain block number for the query.
-
-        Returns:
-            Optional[str]: The SS58 address of the subnet owner's hotkey if the subnet exists, `None` otherwise.
-        """
-        if not self.subnet_exists(netuid, block=block):
-            logging.debug(f"Subnet {netuid} does not exist.")
-            return None
-
-        owner_hotkey = self.query_subtensor( # Use result directly
-            name="SubnetOwnerHotkey", params=[netuid], block=block
-        )
-
-        if owner_hotkey is None:
-            # Should not happen if subnet_exists check passes, but handle defensively
-            return None
-
-        # Check if the returned hotkey is valid (basic check)
-        if is_valid_ss58_address(owner_hotkey):
-            return owner_hotkey
-        
-        logging.debug(
-            f"Received invalid owner hotkey format for subnet {netuid}: {owner_hotkey}"
-        )
-        return None
