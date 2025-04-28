@@ -1133,18 +1133,18 @@ class Subtensor(SubtensorMixin):
     def get_metagraph_info(
         self,
         netuid: int,
-        field_indices: Optional[list["SelectiveMetagraphIndex"]] = None,
+        field_indices: Optional[list[Union["SelectiveMetagraphIndex", int]]] = None,
         block: Optional[int] = None,
     ) -> Optional[MetagraphInfo]:
         """
         Retrieves full or partial metagraph information for the specified subnet (netuid).
 
         Arguments:
-            netuid (int): The NetUID of the subnet to query.
-            field_indices (Optional[list[SelectiveMetagraphIndex]]): An optional list of SelectiveMetagraphIndex values
-                specifying which fields to retrieve. If not provided, all available fields will be returned.
-            block (Optional[int]):The block number at which to query the data. If not specified, the current block or
-                one determined via reuse_block or block_hash will be used.
+            netuid: The NetUID of the subnet to query.
+            field_indices: An optional list of SelectiveMetagraphIndex values specifying which fields to retrieve. If
+                not provided, all available fields will be returned.
+            block: The block number at which to query the data. If not specified, the current block or one determined
+                via reuse_block or block_hash will be used.
 
         Returns:
             Optional[MetagraphInfo]: A MetagraphInfo object containing the requested subnet data, or None if the subnet
@@ -1162,9 +1162,12 @@ class Subtensor(SubtensorMixin):
 
         if field_indices:
             if isinstance(field_indices, list) and all(
-                isinstance(f, SelectiveMetagraphIndex) for f in field_indices
+                isinstance(f, (SelectiveMetagraphIndex, int)) for f in field_indices
             ):
-                indexes = [f.value for f in field_indices]
+                indexes = [
+                    f.value if isinstance(f, SelectiveMetagraphIndex) else f
+                    for f in field_indices
+                ]
             else:
                 raise ValueError(
                     "`field_indices` must be a list of SelectiveMetagraphIndex items."
