@@ -3428,7 +3428,7 @@ def test_get_metagraph_info_specific_fields(subtensor, mocker):
     # Preps
     netuid = 1
     mock_value = {"mock": "data"}
-    fields = [SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkey]
+    fields = [SelectiveMetagraphIndex.Name, 5]
 
     mock_runtime_call = mocker.patch.object(
         subtensor.substrate,
@@ -3447,7 +3447,13 @@ def test_get_metagraph_info_specific_fields(subtensor, mocker):
     mock_runtime_call.assert_called_once_with(
         "SubnetInfoRuntimeApi",
         "get_selective_metagraph",
-        params=[netuid, [0] + [f.value for f in fields]],
+        params=[
+            netuid,
+            [0]
+            + [
+                f.value if isinstance(f, SelectiveMetagraphIndex) else f for f in fields
+            ],
+        ],
         block_hash=subtensor.determine_block_hash(None),
     )
     mock_from_dict.assert_called_once_with(mock_value)
@@ -3459,8 +3465,8 @@ def test_get_metagraph_info_specific_fields(subtensor, mocker):
         [
             "invalid",
         ],
-        [SelectiveMetagraphIndex.Active, 1],
-        [1, 2, 3],
+        [SelectiveMetagraphIndex.Active, 1, "f"],
+        [1, 2, 3, "f"],
     ],
 )
 def test_get_metagraph_info_invalid_field_indices(subtensor, wrong_fields):
