@@ -16,17 +16,18 @@ from scalecodec import GenericCall
 
 from bittensor.core.chain_data import (
     DelegateInfo,
-    StakeInfo,
+    DynamicInfo,
     MetagraphInfo,
     NeuronInfoLite,
     NeuronInfo,
     ProposalVoteData,
+    StakeInfo,
+    SelectiveMetagraphIndex,
     SubnetHyperparameters,
     SubnetIdentity,
     SubnetInfo,
     WeightCommitInfo,
     decode_account_id,
-    DynamicInfo,
 )
 from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.delegate_info import DelegatedInfo
@@ -1470,15 +1471,18 @@ class AsyncSubtensor(SubtensorMixin):
     async def get_metagraph_info(
         self,
         netuid: int,
+        field_indices: Optional[list["SelectiveMetagraphIndex"]] = None,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[MetagraphInfo]:
         """
-        Retrieves the MetagraphInfo dataclass from the node for a single subnet (netuid)
+        Retrieves full or partial metagraph information for the specified subnet (netuid).
 
         Arguments:
-            netuid: The NetUID of the subnet.
+            netuid (int): The NetUID of the subnet to query.
+            field_indices (Optional[list[SelectiveMetagraphIndex]]): An optional list of SelectiveMetagraphIndex values
+                specifying which fields to retrieve. If not provided, all available fields will be returned.
             block: the block number at which to retrieve the hyperparameter. Do not specify if using block_hash or
                 reuse_block
             block_hash: The hash of blockchain block number for the query. Do not specify if using
@@ -1486,16 +1490,37 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
 
         Returns:
-            MetagraphInfo dataclass
+            Optional[MetagraphInfo]: A MetagraphInfo object containing the requested subnet data, or None if the subnet
+                with the given netuid does not exist.
+
+        Example:
+            meta_info = await subtensor.get_metagraph_info(netuid=2)
+
+            partial_meta_info = await subtensor.get_metagraph_info(
+                netuid=2,
+                field_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
+            )
         """
+        indexes = SelectiveMetagraphIndex.all_indices()
+
+        if field_indices:
+            if isinstance(field_indices, list) and all(
+                isinstance(f, SelectiveMetagraphIndex) for f in field_indices
+            ):
+                indexes = [f.value for f in field_indices]
+            else:
+                raise ValueError(
+                    "`field_indices` must be a list of SelectiveMetagraphIndex items."
+                )
+
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not block_hash and reuse_block:
             block_hash = self.substrate.last_block_hash
 
         query = await self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
-            "get_metagraph",
-            params=[netuid],
+            "get_selective_metagraph",
+            params=[netuid, indexes if 0 in indexes else [0] + indexes],
             block_hash=block_hash,
         )
         if query.value is None:
@@ -4177,7 +4202,7 @@ class AsyncSubtensor(SubtensorMixin):
                 removed.
             hotkey_ss58 (Optional[str]): The ``SS58`` address of the hotkey account to unstake from.
             netuid (Optional[int]): The unique identifier of the subnet.
-            amount (Balance): The amount of TAO to unstake. If not specified, unstakes all.
+            amount (Balance): The amount of alpha to unstake. If not specified, unstakes all.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
             safe_staking (bool): If true, enables price safety checks to protect against fluctuating prices. The unstake
