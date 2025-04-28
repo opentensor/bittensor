@@ -14,17 +14,18 @@ from numpy.typing import NDArray
 from bittensor.core.async_subtensor import ProposalVoteData
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import (
+    DelegatedInfo,
     DelegateInfo,
     DynamicInfo,
     MetagraphInfo,
     NeuronInfo,
     NeuronInfoLite,
+    SelectiveMetagraphIndex,
     StakeInfo,
+    SubnetInfo,
+    SubnetIdentity,
     SubnetHyperparameters,
     WeightCommitInfo,
-    SubnetIdentity,
-    SubnetInfo,
-    DelegatedInfo,
     decode_account_id,
 )
 from bittensor.core.chain_data.chain_identity import ChainIdentity
@@ -1130,24 +1131,50 @@ class Subtensor(SubtensorMixin):
         return Balance.from_rao(getattr(result, "value", 0))
 
     def get_metagraph_info(
-        self, netuid: int, block: Optional[int] = None
+        self,
+        netuid: int,
+        field_indices: Optional[list["SelectiveMetagraphIndex"]] = None,
+        block: Optional[int] = None,
     ) -> Optional[MetagraphInfo]:
         """
-        Retrieves the MetagraphInfo dataclass from the node for a single subnet (netuid)
+        Retrieves full or partial metagraph information for the specified subnet (netuid).
 
         Arguments:
-            netuid: The NetUID of the subnet.
-            block: the block number at which to retrieve the hyperparameter. Do not specify if using block_hash or
-                reuse_block
+            netuid (int): The NetUID of the subnet to query.
+            field_indices (Optional[list[SelectiveMetagraphIndex]]): An optional list of SelectiveMetagraphIndex values
+                specifying which fields to retrieve. If not provided, all available fields will be returned.
+            block (Optional[int]):The block number at which to query the data. If not specified, the current block or
+                one determined via reuse_block or block_hash will be used.
 
         Returns:
-            MetagraphInfo dataclass
+            Optional[MetagraphInfo]: A MetagraphInfo object containing the requested subnet data, or None if the subnet
+                with the given netuid does not exist.
+
+        Example:
+            meta_info = subtensor.get_metagraph_info(netuid=2)
+
+            partial_meta_info = subtensor.get_metagraph_info(
+                netuid=2,
+                field_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
+            )
         """
+        indexes = SelectiveMetagraphIndex.all_indices()
+
+        if field_indices:
+            if isinstance(field_indices, list) and all(
+                isinstance(f, SelectiveMetagraphIndex) for f in field_indices
+            ):
+                indexes = [f.value for f in field_indices]
+            else:
+                raise ValueError(
+                    "`field_indices` must be a list of SelectiveMetagraphIndex items."
+                )
+
         block_hash = self.determine_block_hash(block)
         query = self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
-            "get_metagraph",
-            params=[netuid],
+            "get_selective_metagraph",
+            params=[netuid, indexes if 0 in indexes else [0] + indexes],
             block_hash=block_hash,
         )
         if query.value is None:
@@ -3444,7 +3471,7 @@ class Subtensor(SubtensorMixin):
                 removed.
             hotkey_ss58 (Optional[str]): The ``SS58`` address of the hotkey account to unstake from.
             netuid (Optional[int]): The unique identifier of the subnet.
-            amount (Balance): The amount of TAO to unstake. If not specified, unstakes all.
+            amount (Balance): The amount of alpha to unstake. If not specified, unstakes all.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
             safe_staking (bool): If true, enables price safety checks to protect against fluctuating prices. The unstake
