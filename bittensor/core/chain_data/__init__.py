@@ -16,6 +16,7 @@ from .metagraph_info import (
     MetagraphInfoEmissions,
     MetagraphInfoPool,
     MetagraphInfoParams,
+    SelectiveMetagraphIndex,
 )
 from .neuron_info import NeuronInfo
 from .neuron_info_lite import NeuronInfoLite
@@ -50,6 +51,7 @@ __all__ = [
     ProposalCallData,
     ProposalVoteData,
     ScheduledColdkeySwapInfo,
+    SelectiveMetagraphIndex,
     StakeInfo,
     SubnetHyperparameters,
     SubnetIdentity,
