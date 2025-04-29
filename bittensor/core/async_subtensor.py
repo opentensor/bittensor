@@ -9,7 +9,7 @@ import asyncstdlib as a
 import numpy as np
 import scalecodec
 from async_substrate_interface import AsyncSubstrateInterface
-from bittensor_commit_reveal import get_encrypted_commitment
+from bittensor_drand import get_encrypted_commitment
 from bittensor_wallet.utils import SS58_FORMAT
 from numpy.typing import NDArray
 from scalecodec import GenericCall
@@ -1480,9 +1480,9 @@ class AsyncSubtensor(SubtensorMixin):
         Retrieves full or partial metagraph information for the specified subnet (netuid).
 
         Arguments:
-            netuid (int): The NetUID of the subnet to query.
-            field_indices (Optional[list[SelectiveMetagraphIndex]]): An optional list of SelectiveMetagraphIndex values
-                specifying which fields to retrieve. If not provided, all available fields will be returned.
+            netuid: The NetUID of the subnet to query.
+            field_indices: An optional list of SelectiveMetagraphIndex values specifying which fields to retrieve. If
+                not provided, all available fields will be returned.
             block: the block number at which to retrieve the hyperparameter. Do not specify if using block_hash or
                 reuse_block
             block_hash: The hash of blockchain block number for the query. Do not specify if using
@@ -1505,9 +1505,12 @@ class AsyncSubtensor(SubtensorMixin):
 
         if field_indices:
             if isinstance(field_indices, list) and all(
-                isinstance(f, SelectiveMetagraphIndex) for f in field_indices
+                isinstance(f, (SelectiveMetagraphIndex, int)) for f in field_indices
             ):
-                indexes = [f.value for f in field_indices]
+                indexes = [
+                    f.value if isinstance(f, SelectiveMetagraphIndex) else f
+                    for f in field_indices
+                ]
             else:
                 raise ValueError(
                     "`field_indices` must be a list of SelectiveMetagraphIndex items."
