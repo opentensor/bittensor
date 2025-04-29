@@ -580,6 +580,23 @@ class AsyncSubtensor(SubtensorMixin):
         subnets = DynamicInfo.list_from_dicts(query.decode())
         return subnets
 
+    async def blocks_since_last_step(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[int]:
+        """Returns number of blocks since the last epoch of the subnet.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnetwork.
+            block: the block number for this query.
+
+        Returns:
+            block number of the last step in the subnet.
+        """
+        query = await self.query_subtensor(
+            name="BlocksSinceLastStep", block=block, params=[netuid]
+        )
+        return query.value if query is not None and hasattr(query, "value") else query
+
     async def blocks_since_last_update(self, netuid: int, uid: int) -> Optional[int]:
         """
         Returns the number of blocks since the last update for a specific UID in the subnetwork.
@@ -3149,6 +3166,46 @@ class AsyncSubtensor(SubtensorMixin):
         ).value
         return datetime.fromtimestamp(unix / 1000, tz=timezone.utc)
 
+    async def get_subnet_owner_hotkey(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[str]:
+        """
+        Retrieves the hotkey of the subnet owner for a given network UID.
+
+        This function queries the subtensor network to fetch the hotkey of the owner of a subnet specified by its
+        netuid. If no data is found or the query fails, the function returns None.
+
+        Arguments:
+            netuid: The network UID of the subnet to fetch the owner's hotkey for.
+            block: The specific block number to query the data from.
+
+        Returns:
+            The hotkey of the subnet owner if available; None otherwise.
+        """
+        return await self.query_subtensor(
+            name="SubnetOwnerHotkey", params=[netuid], block=block
+        )
+
+    async def get_subnet_validator_permits(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[list[bool]]:
+        """
+        Retrieves the list of validator permits for a given subnet as boolean values.
+
+        Arguments:
+            netuid: The unique identifier of the subnetwork.
+            block: The blockchain block number for the query.
+
+        Returns:
+            A list of boolean values representing validator permits, or None if not available.
+        """
+        query = await self.query_subtensor(
+            name="ValidatorPermit",
+            params=[netuid],
+            block=block,
+        )
+        return query.value if query is not None and hasattr(query, "value") else query
+
     # Extrinsics helper ================================================================================================
 
     async def sign_and_send_extrinsic(
@@ -3172,6 +3229,9 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_inclusion (bool): whether to wait until the extrinsic call is included on the chain
             wait_for_finalization (bool): whether to wait until the extrinsic call is finalized on the chain
             sign_with: the wallet's keypair to use for the signing. Options are "coldkey", "hotkey", "coldkeypub"
+            use_nonce: unique identifier for the transaction related with hot/coldkey.
+            period: the period of the transaction as ERA part for transaction. Means how many blocks the transaction will be valid for.
+            nonce_key: the type on nonce to use. Options are "hotkey" or "coldkey".
             raise_error: raises relevant exception rather than returning `False` if unsuccessful.
 
         Returns:
