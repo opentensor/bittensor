@@ -3168,3 +3168,138 @@ async def test_get_metagraph_info_subnet_not_exist(subtensor, mocker):
 
     assert result is None
     mocked_logger.assert_called_once_with(f"Subnet {netuid} does not exist.")
+
+
+@pytest.mark.asyncio
+async def test_blocks_since_last_step_with_value(subtensor, mocker):
+    """Test blocks_since_last_step returns correct value."""
+    # preps
+    netuid = 1
+    block = 123
+    mocked_query_subtensor = mocker.AsyncMock()
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # call
+    result = await subtensor.blocks_since_last_step(netuid=netuid, block=block)
+
+    # asserts
+    mocked_query_subtensor.assert_awaited_once_with(
+        name="BlocksSinceLastStep",
+        block=block,
+        params=[netuid],
+    )
+
+    assert result == mocked_query_subtensor.return_value.value
+
+
+@pytest.mark.asyncio
+async def test_blocks_since_last_step_is_none(subtensor, mocker):
+    """Test blocks_since_last_step returns None correctly."""
+    # preps
+    netuid = 1
+    block = 123
+    mocked_query_subtensor = mocker.AsyncMock(return_value=None)
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # call
+    result = await subtensor.blocks_since_last_step(netuid=netuid, block=block)
+
+    # asserts
+    mocked_query_subtensor.assert_awaited_once_with(
+        name="BlocksSinceLastStep",
+        block=block,
+        params=[netuid],
+    )
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_subnet_owner_hotkey_has_return(subtensor, mocker):
+    """Test get_subnet_owner_hotkey returns correct value."""
+    # preps
+    netuid = 14
+    block = 123
+    expected_owner_hotkey = "owner_hotkey"
+    mocked_query_subtensor = mocker.AsyncMock(return_value=expected_owner_hotkey)
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # call
+    result = await subtensor.get_subnet_owner_hotkey(netuid=netuid, block=block)
+
+    # asserts
+    mocked_query_subtensor.assert_awaited_once_with(
+        name="SubnetOwnerHotkey",
+        block=block,
+        params=[netuid],
+    )
+
+    assert result == expected_owner_hotkey
+
+
+@pytest.mark.asyncio
+async def test_get_subnet_owner_hotkey_is_none(subtensor, mocker):
+    """Test get_subnet_owner_hotkey returns None correctly."""
+    # preps
+    netuid = 14
+    block = 123
+    mocked_query_subtensor = mocker.AsyncMock(return_value=None)
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # call
+    result = await subtensor.get_subnet_owner_hotkey(netuid=netuid, block=block)
+
+    # asserts
+    mocked_query_subtensor.assert_awaited_once_with(
+        name="SubnetOwnerHotkey",
+        block=block,
+        params=[netuid],
+    )
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_subnet_validator_permits_has_values(subtensor, mocker):
+    """Test get_subnet_validator_permits returns correct value."""
+    # preps
+    netuid = 14
+    block = 123
+    expected_validator_permits = [False, True, False]
+    mocked_query_subtensor = mocker.AsyncMock(return_value=expected_validator_permits)
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # call
+    result = await subtensor.get_subnet_validator_permits(netuid=netuid, block=block)
+
+    # asserts
+    mocked_query_subtensor.assert_awaited_once_with(
+        name="ValidatorPermit",
+        block=block,
+        params=[netuid],
+    )
+
+    assert result == expected_validator_permits
+
+
+@pytest.mark.asyncio
+async def test_get_subnet_validator_permits_is_none(subtensor, mocker):
+    """Test get_subnet_validator_permits returns correct value."""
+    # preps
+    netuid = 14
+    block = 123
+
+    mocked_query_subtensor = mocker.AsyncMock(return_value=None)
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # call
+    result = await subtensor.get_subnet_validator_permits(netuid=netuid, block=block)
+
+    # asserts
+    mocked_query_subtensor.assert_awaited_once_with(
+        name="ValidatorPermit",
+        block=block,
+        params=[netuid],
+    )
+
+    assert result is None
