@@ -1,10 +1,11 @@
+import os
 from unittest import mock
 
-import bittensor
 import torch
-import os
-from bittensor.utils.mock import MockSubtensor
+
+import bittensor
 from bittensor.core.metagraph import METAGRAPH_STATE_DICT_NDARRAY_KEYS, get_save_dir
+from bittensor.utils.mock import MockSubtensor
 
 _subtensor_mock: MockSubtensor = MockSubtensor()
 
@@ -42,10 +43,11 @@ class TestMetagraph:
             self.metagraph.sync(lite=True, block=0, subtensor=self.sub)
 
     def test_load_sync_save(self):
-        with mock.patch.object(
-            self.sub, "neurons_lite", return_value=[]
-        ), mock.patch.object(
-            self.sub, "get_metagraph_info", return_value=mock.MagicMock()
+        with (
+            mock.patch.object(self.sub, "neurons_lite", return_value=[]),
+            mock.patch.object(
+                self.sub, "get_metagraph_info", return_value=mock.MagicMock()
+            ),
         ):
             self.metagraph.sync(lite=True, subtensor=self.sub)
             self.metagraph.save()
@@ -53,10 +55,11 @@ class TestMetagraph:
             self.metagraph.save()
 
     def test_load_sync_save_from_torch(self):
-        with mock.patch.object(
-            self.sub, "neurons_lite", return_value=[]
-        ), mock.patch.object(
-            self.sub, "get_metagraph_info", return_value=mock.MagicMock()
+        with (
+            mock.patch.object(self.sub, "neurons_lite", return_value=[]),
+            mock.patch.object(
+                self.sub, "get_metagraph_info", return_value=mock.MagicMock()
+            ),
         ):
             self.metagraph.sync(lite=True, subtensor=self.sub)
 

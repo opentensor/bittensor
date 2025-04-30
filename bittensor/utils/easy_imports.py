@@ -27,7 +27,7 @@ from bittensor_wallet.keyfile import (  # noqa: F401
 )
 from bittensor_wallet.wallet import display_mnemonic_msg, Wallet  # noqa: F401
 
-from bittensor.core import settings
+from bittensor.core import settings, timelock  # noqa: F401
 from bittensor.core.async_subtensor import AsyncSubtensor
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import (  # noqa: F401
@@ -47,6 +47,7 @@ from bittensor.core.chain_data import (  # noqa: F401
     ProposalCallData,
     ProposalVoteData,
     ScheduledColdkeySwapInfo,
+    SelectiveMetagraphIndex,
     StakeInfo,
     SubnetHyperparameters,
     SubnetIdentity,

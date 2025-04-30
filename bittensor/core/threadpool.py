@@ -219,7 +219,7 @@ class PriorityThreadPoolExecutor(_base.Executor):
                 raise RuntimeError("cannot schedule new futures after shutdown")
             if _shutdown:
                 raise RuntimeError(
-                    "cannot schedule new futures after " "interpreter shutdown"
+                    "cannot schedule new futures after interpreter shutdown"
                 )
 
             priority = kwargs.get("priority", random.randint(0, 1000000))
@@ -269,7 +269,7 @@ class PriorityThreadPoolExecutor(_base.Executor):
     def _initializer_failed(self):
         with self._shutdown_lock:
             self._broken = (
-                "A thread initializer failed, the thread pool " "is not usable anymore"
+                "A thread initializer failed, the thread pool is not usable anymore"
             )
             # Drain work queue and mark pending futures failed
             while True:

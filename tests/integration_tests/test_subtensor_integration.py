@@ -1,10 +1,10 @@
 import pytest
 
-from bittensor import NeuronInfo
-from bittensor.core.chain_data.axon_info import AxonInfo
+from bittensor.core.chain_data import AxonInfo, NeuronInfo
 from bittensor.core.subtensor import Subtensor
 from bittensor.utils.balance import Balance
 from tests.helpers.helpers import FakeWebsocket
+from bittensor.utils.mock.subtensor_mock import MockSubtensor
 
 
 @pytest.fixture
@@ -40,13 +40,14 @@ async def test_get_all_subnets_info(mocker):
     assert result[1].blocks_since_epoch == 88
 
 
-@pytest.mark.asyncio
-async def test_metagraph(mocker):
-    subtensor = await prepare_test(mocker, "metagraph")
-    result = subtensor.metagraph(1)
-    assert result.n == 1
-    assert result.netuid == 1
-    assert result.block == 3264143
+# TODO: Improve integration tests workflow (https://github.com/opentensor/bittensor/issues/2435#issuecomment-2825858004)
+# @pytest.mark.asyncio
+# async def test_metagraph(mocker):
+#     subtensor = await prepare_test(mocker, "metagraph")
+#     result = subtensor.metagraph(1)
+#     assert result.n == 1
+#     assert result.netuid == 1
+#     assert result.block == 3264143
 
 
 @pytest.mark.asyncio
@@ -126,3 +127,27 @@ async def test_get_neuron_for_pubkey_and_subnet(mocker):
     assert isinstance(result.total_stake, Balance)
     assert isinstance(result.axon_info, AxonInfo)
     assert result.is_null is False
+
+
+def test_mock_subtensor_force_register_neuron():
+    """Tests the force_register_neuron method of the MockSubtensor class."""
+    # Preps
+    test_netuid = 1
+    subtensor = MockSubtensor()
+    subtensor.create_subnet(netuid=test_netuid)
+
+    uid1 = subtensor.force_register_neuron(test_netuid, "hk1", "cc1")
+    uid2 = subtensor.force_register_neuron(test_netuid, "hk2", "cc2")
+
+    # Calls
+    neurons = subtensor.neurons(test_netuid)
+    neuron1 = subtensor.neuron_for_uid(uid1, test_netuid)
+    neuron2 = subtensor.neuron_for_uid(uid2, test_netuid)
+
+    # Assertions
+    assert len(neurons) == 2
+    assert [neuron1, neuron2] == neurons
+    assert neuron1.hotkey == "hk1"
+    assert neuron1.coldkey == "cc1"
+    assert neuron2.hotkey == "hk2"
+    assert neuron2.coldkey == "cc2"

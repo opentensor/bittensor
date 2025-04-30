@@ -9,24 +9,25 @@ import asyncstdlib as a
 import numpy as np
 import scalecodec
 from async_substrate_interface import AsyncSubstrateInterface
-from bittensor_commit_reveal import get_encrypted_commitment
+from bittensor_drand import get_encrypted_commitment
 from bittensor_wallet.utils import SS58_FORMAT
 from numpy.typing import NDArray
 from scalecodec import GenericCall
 
 from bittensor.core.chain_data import (
     DelegateInfo,
-    StakeInfo,
+    DynamicInfo,
     MetagraphInfo,
     NeuronInfoLite,
     NeuronInfo,
     ProposalVoteData,
+    StakeInfo,
+    SelectiveMetagraphIndex,
     SubnetHyperparameters,
     SubnetIdentity,
     SubnetInfo,
     WeightCommitInfo,
     decode_account_id,
-    DynamicInfo,
 )
 from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.delegate_info import DelegatedInfo
@@ -57,6 +58,7 @@ from bittensor.core.extrinsics.asyncex.serving import (
     publish_metadata,
     get_metadata,
 )
+from bittensor.core.extrinsics.asyncex.start_call import start_call_extrinsic
 from bittensor.core.extrinsics.asyncex.serving import serve_axon_extrinsic
 from bittensor.core.extrinsics.asyncex.staking import (
     add_stake_extrinsic,
@@ -583,6 +585,23 @@ class AsyncSubtensor(SubtensorMixin):
         subnets = DynamicInfo.list_from_dicts(query.decode())
         return subnets
 
+    async def blocks_since_last_step(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[int]:
+        """Returns number of blocks since the last epoch of the subnet.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnetwork.
+            block: the block number for this query.
+
+        Returns:
+            block number of the last step in the subnet.
+        """
+        query = await self.query_subtensor(
+            name="BlocksSinceLastStep", block=block, params=[netuid]
+        )
+        return query.value if query is not None and hasattr(query, "value") else query
+
     async def blocks_since_last_update(self, netuid: int, uid: int) -> Optional[int]:
         """
         Returns the number of blocks since the last update for a specific UID in the subnetwork.
@@ -757,6 +776,7 @@ class AsyncSubtensor(SubtensorMixin):
         return_val = (
             False
             if result is None
+            # not the default key (0x0)
             else result != "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
         )
         return return_val
@@ -1473,15 +1493,18 @@ class AsyncSubtensor(SubtensorMixin):
     async def get_metagraph_info(
         self,
         netuid: int,
+        field_indices: Optional[list["SelectiveMetagraphIndex"]] = None,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[MetagraphInfo]:
         """
-        Retrieves the MetagraphInfo dataclass from the node for a single subnet (netuid)
+        Retrieves full or partial metagraph information for the specified subnet (netuid).
 
         Arguments:
-            netuid: The NetUID of the subnet.
+            netuid: The NetUID of the subnet to query.
+            field_indices: An optional list of SelectiveMetagraphIndex values specifying which fields to retrieve. If
+                not provided, all available fields will be returned.
             block: the block number at which to retrieve the hyperparameter. Do not specify if using block_hash or
                 reuse_block
             block_hash: The hash of blockchain block number for the query. Do not specify if using
@@ -1489,16 +1512,40 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
 
         Returns:
-            MetagraphInfo dataclass
+            Optional[MetagraphInfo]: A MetagraphInfo object containing the requested subnet data, or None if the subnet
+                with the given netuid does not exist.
+
+        Example:
+            meta_info = await subtensor.get_metagraph_info(netuid=2)
+
+            partial_meta_info = await subtensor.get_metagraph_info(
+                netuid=2,
+                field_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
+            )
         """
+        indexes = SelectiveMetagraphIndex.all_indices()
+
+        if field_indices:
+            if isinstance(field_indices, list) and all(
+                isinstance(f, (SelectiveMetagraphIndex, int)) for f in field_indices
+            ):
+                indexes = [
+                    f.value if isinstance(f, SelectiveMetagraphIndex) else f
+                    for f in field_indices
+                ]
+            else:
+                raise ValueError(
+                    "`field_indices` must be a list of SelectiveMetagraphIndex items."
+                )
+
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not block_hash and reuse_block:
             block_hash = self.substrate.last_block_hash
 
         query = await self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
-            "get_metagraph",
-            params=[netuid],
+            "get_selective_metagraph",
+            params=[netuid, indexes if 0 in indexes else [0] + indexes],
             block_hash=block_hash,
         )
         if query.value is None:
@@ -1691,6 +1738,38 @@ class AsyncSubtensor(SubtensorMixin):
                 block_hash=block_hash,
                 reuse_block=reuse_block,
             )
+
+    async def get_next_epoch_start_block(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional[int]:
+        """
+        Calculates the first block number of the next epoch for the given subnet.
+
+        If `block` is not provided, the current chain block will be used. Epochs are
+        determined based on the subnet's tempo (i.e., blocks per epoch). The result
+        is the block number at which the next epoch will begin.
+
+        Args:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int], optional): The reference block to calculate from.
+                If None, uses the current chain block height.
+            block_hash (Optional[int]): The blockchain block number at which to perform the query.
+            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
+
+
+        Returns:
+            int: The block number at which the next epoch will start.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        if not block_hash and reuse_block:
+            block_hash = self.substrate.last_block_hash
+        block = await self.substrate.get_block_number(block_hash=block_hash)
+        tempo = await self.tempo(netuid=netuid, block_hash=block_hash)
+        return (((block // tempo) + 1) * tempo) + 1 if tempo else None
 
     async def get_owned_hotkeys(
         self,
@@ -2977,7 +3056,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         async def handler(block_data: dict):
             logging.debug(
-                f'reached block {block_data["header"]["number"]}. Waiting for block {target_block}'
+                f"reached block {block_data['header']['number']}. Waiting for block {target_block}"
             )
             if block_data["header"]["number"] >= target_block:
                 return True
@@ -3092,6 +3171,46 @@ class AsyncSubtensor(SubtensorMixin):
         ).value
         return datetime.fromtimestamp(unix / 1000, tz=timezone.utc)
 
+    async def get_subnet_owner_hotkey(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[str]:
+        """
+        Retrieves the hotkey of the subnet owner for a given network UID.
+
+        This function queries the subtensor network to fetch the hotkey of the owner of a subnet specified by its
+        netuid. If no data is found or the query fails, the function returns None.
+
+        Arguments:
+            netuid: The network UID of the subnet to fetch the owner's hotkey for.
+            block: The specific block number to query the data from.
+
+        Returns:
+            The hotkey of the subnet owner if available; None otherwise.
+        """
+        return await self.query_subtensor(
+            name="SubnetOwnerHotkey", params=[netuid], block=block
+        )
+
+    async def get_subnet_validator_permits(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[list[bool]]:
+        """
+        Retrieves the list of validator permits for a given subnet as boolean values.
+
+        Arguments:
+            netuid: The unique identifier of the subnetwork.
+            block: The blockchain block number for the query.
+
+        Returns:
+            A list of boolean values representing validator permits, or None if not available.
+        """
+        query = await self.query_subtensor(
+            name="ValidatorPermit",
+            params=[netuid],
+            block=block,
+        )
+        return query.value if query is not None and hasattr(query, "value") else query
+
     # Extrinsics helper ================================================================================================
 
     async def sign_and_send_extrinsic(
@@ -3115,6 +3234,9 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_inclusion (bool): whether to wait until the extrinsic call is included on the chain
             wait_for_finalization (bool): whether to wait until the extrinsic call is finalized on the chain
             sign_with: the wallet's keypair to use for the signing. Options are "coldkey", "hotkey", "coldkeypub"
+            use_nonce: unique identifier for the transaction related with hot/coldkey.
+            period: the period of the transaction as ERA part for transaction. Means how many blocks the transaction will be valid for.
+            nonce_key: the type on nonce to use. Options are "hotkey" or "coldkey".
             raise_error: raises relevant exception rather than returning `False` if unsuccessful.
 
         Returns:
@@ -3154,7 +3276,7 @@ class AsyncSubtensor(SubtensorMixin):
                 return True, ""
 
             if raise_error:
-                raise ChainError.from_error(response.error_message)
+                raise ChainError.from_error(await response.error_message)
 
             return False, format_error_message(await response.error_message)
 
@@ -3324,7 +3446,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
                 ``False``.
             max_retries (int): The number of maximum attempts to commit weights. Default is ``5``.
-            era (ExtrinsicEraTypes, optional): Blocks for which the transaction should be valid.
+            era: Blocks for which the transaction should be valid.
 
         Returns:
             tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string
@@ -3968,6 +4090,36 @@ class AsyncSubtensor(SubtensorMixin):
             certificate=certificate,
         )
 
+    async def start_call(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> tuple[bool, str]:
+        """
+        Submits a start_call extrinsic to the blockchain, to trigger the start call process for a subnet (used to start a
+        new subnet's emission mechanism).
+
+        Args:
+            wallet (Wallet): The wallet used to sign the extrinsic (must be unlocked).
+            netuid (int): The UID of the target subnet for which the call is being initiated.
+            wait_for_inclusion (bool, optional): Whether to wait for the extrinsic to be included in a block. Defaults to True.
+            wait_for_finalization (bool, optional): Whether to wait for finalization of the extrinsic. Defaults to False.
+
+        Returns:
+            Tuple[bool, str]:
+                - True and a success message if the extrinsic is successfully submitted or processed.
+                - False and an error message if the submission fails or the wallet cannot be unlocked.
+        """
+        return await start_call_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
     async def swap_stake(
         self,
         wallet: "Wallet",
@@ -4127,7 +4279,7 @@ class AsyncSubtensor(SubtensorMixin):
                 removed.
             hotkey_ss58 (Optional[str]): The ``SS58`` address of the hotkey account to unstake from.
             netuid (Optional[int]): The unique identifier of the subnet.
-            amount (Balance): The amount of TAO to unstake. If not specified, unstakes all.
+            amount (Balance): The amount of alpha to unstake. If not specified, unstakes all.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
             safe_staking (bool): If true, enables price safety checks to protect against fluctuating prices. The unstake

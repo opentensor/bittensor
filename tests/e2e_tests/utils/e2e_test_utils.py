@@ -94,6 +94,8 @@ class Templates:
             self.started = asyncio.Event()
 
         async def __aenter__(self):
+            env = os.environ.copy()
+            env["BT_LOGGING_INFO"] = "1"
             self.process = await asyncio.create_subprocess_exec(
                 sys.executable,
                 f"{self.dir}/miner.py",
@@ -109,15 +111,19 @@ class Templates:
                 self.wallet.name,
                 "--wallet.hotkey",
                 "default",
-                env={
-                    "BT_LOGGING_INFO": "1",
-                },
+                env=env,
                 stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
             )
 
             self.__reader_task = asyncio.create_task(self._reader())
 
-            await asyncio.wait_for(self.started.wait(), 30)
+            try:
+                await asyncio.wait_for(self.started.wait(), 60)
+            except asyncio.TimeoutError:
+                self.process.kill()
+                await self.process.wait()
+                raise RuntimeError("Miner failed to start within timeout")
 
             return self
 
@@ -129,6 +135,14 @@ class Templates:
 
         async def _reader(self):
             async for line in self.process.stdout:
+                try:
+                    bittensor.logging.console.info(
+                        f"[green]MINER LOG: {line.split(b'|')[-1].strip().decode()}[/blue]"
+                    )
+                except BaseException:
+                    # skipp empty lines
+                    pass
+
                 if b"Starting main loop" in line:
                     self.started.set()
 
@@ -143,6 +157,8 @@ class Templates:
             self.set_weights = asyncio.Event()
 
         async def __aenter__(self):
+            env = os.environ.copy()
+            env["BT_LOGGING_INFO"] = "1"
             self.process = await asyncio.create_subprocess_exec(
                 sys.executable,
                 f"{self.dir}/validator.py",
@@ -158,15 +174,19 @@ class Templates:
                 self.wallet.name,
                 "--wallet.hotkey",
                 "default",
-                env={
-                    "BT_LOGGING_INFO": "1",
-                },
+                env=env,
                 stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
             )
 
             self.__reader_task = asyncio.create_task(self._reader())
 
-            await asyncio.wait_for(self.started.wait(), 30)
+            try:
+                await asyncio.wait_for(self.started.wait(), 60)
+            except asyncio.TimeoutError:
+                self.process.kill()
+                await self.process.wait()
+                raise RuntimeError("Validator failed to start within timeout")
 
             return self
 
@@ -178,9 +198,19 @@ class Templates:
 
         async def _reader(self):
             async for line in self.process.stdout:
+                try:
+                    bittensor.logging.console.info(
+                        f"[orange]VALIDATOR LOG: {line.split(b'|')[-1].strip().decode()}[/orange]"
+                    )
+                except BaseException:
+                    # skipp empty lines
+                    pass
+
                 if b"Starting validator loop." in line:
+                    bittensor.logging.console.info("Validator started.")
                     self.started.set()
                 elif b"Successfully set weights and Finalized." in line:
+                    bittensor.logging.console.info("Validator is setting weights.")
                     self.set_weights.set()
 
     def __init__(self):
@@ -198,3 +228,42 @@ class Templates:
 
     def validator(self, wallet, netuid):
         return self.Validator(self.dir, wallet, netuid)
+
+
+def wait_to_start_call(
+    subtensor: "bittensor.Subtensor",
+    subnet_owner_wallet: "bittensor.Wallet",
+    netuid: int,
+    in_blocks: int = 10,
+):
+    """Waits for a certain number of blocks before making a start call."""
+    # make sure we passed start_call limit
+    subtensor.wait_for_block(subtensor.block + in_blocks + 1)
+    status, message = subtensor.start_call(
+        wallet=subnet_owner_wallet,
+        netuid=netuid,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert status, message
+    return True
+
+
+async def async_wait_to_start_call(
+    subtensor: "bittensor.AsyncSubtensor",
+    subnet_owner_wallet: "bittensor.Wallet",
+    netuid: int,
+    in_blocks: int = 10,
+):
+    """Waits for a certain number of blocks before making a start call."""
+    # make sure we passed start_call limit
+    current_block = await subtensor.block
+    await subtensor.wait_for_block(current_block + in_blocks + 1)
+    status, message = await subtensor.start_call(
+        wallet=subnet_owner_wallet,
+        netuid=netuid,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert status, message
+    return True

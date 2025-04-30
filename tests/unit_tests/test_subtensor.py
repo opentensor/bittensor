@@ -1,20 +1,3 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the "Software"), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
 import argparse
 import unittest.mock as mock
 import datetime
@@ -31,6 +14,7 @@ from bittensor.core import settings
 from bittensor.core import subtensor as subtensor_module
 from bittensor.core.async_subtensor import AsyncSubtensor, logging
 from bittensor.core.axon import Axon
+from bittensor.core.chain_data import SubnetHyperparameters, SelectiveMetagraphIndex
 from bittensor.core.chain_data import SubnetHyperparameters
 from bittensor.core.extrinsics.options import ExtrinsicEra
 from bittensor.core.extrinsics.serving import do_serve_axon
@@ -94,14 +78,14 @@ def test_methods_comparable(mock_substrate):
 
     # Assertions
     for method in subtensor_methods:
-        assert (
-            method in async_subtensor_methods
-        ), f"`Subtensor.{method}` not in `AsyncSubtensor` class."
+        assert method in async_subtensor_methods, (
+            f"`Subtensor.{method}` not in `AsyncSubtensor` class."
+        )
 
     for method in async_subtensor_methods:
-        assert (
-            method in subtensor_methods
-        ), f"`AsyncSubtensor.{method}` not in `Subtensor` class."
+        assert method in subtensor_methods, (
+            f"`AsyncSubtensor.{method}` not in `Subtensor` class."
+        )
 
 
 def test_serve_axon_with_external_ip_set():
@@ -510,9 +494,9 @@ def test_hyperparameter_normalization(
     if is_balance:
         numeric_value = float(str(norm_value).lstrip(settings.TAO_SYMBOL))
         expected_tao = mid_value / 1e9
-        assert (
-            numeric_value == expected_tao
-        ), f"Mismatch in tao value for {param_name} at mid value"
+        assert numeric_value == expected_tao, (
+            f"Mismatch in tao value for {param_name} at mid value"
+        )
     else:
         assert float(norm_value) == 0.5, f"Failed mid-point test for {param_name}"
 
@@ -524,9 +508,9 @@ def test_hyperparameter_normalization(
     if is_balance:
         numeric_value = float(str(norm_value).lstrip(settings.TAO_SYMBOL))
         expected_tao = max_value / 1e9
-        assert (
-            numeric_value == expected_tao
-        ), f"Mismatch in tao value for {param_name} at max value"
+        assert numeric_value == expected_tao, (
+            f"Mismatch in tao value for {param_name} at max value"
+        )
     else:
         assert float(norm_value) == 1.0, f"Failed max value test for {param_name}"
 
@@ -538,9 +522,9 @@ def test_hyperparameter_normalization(
     if is_balance:
         numeric_value = float(str(norm_value).lstrip(settings.TAO_SYMBOL))
         expected_tao = zero_value / 1e9
-        assert (
-            numeric_value == expected_tao
-        ), f"Mismatch in tao value for {param_name} at zero value"
+        assert numeric_value == expected_tao, (
+            f"Mismatch in tao value for {param_name} at zero value"
+        )
     else:
         assert float(norm_value) == 0.0, f"Failed zero value test for {param_name}"
 
@@ -3394,3 +3378,255 @@ def test_get_owned_hotkeys_return_empty(subtensor, mocker):
         reuse_block_hash=False,
     )
     assert result == []
+
+
+def test_start_call(subtensor, mocker):
+    """Test start_call extrinsic calls properly."""
+    # preps
+    wallet_name = mocker.Mock(spec=Wallet)
+    netuid = 123
+    mocked_extrinsic = mocker.patch.object(subtensor_module, "start_call_extrinsic")
+
+    # Call
+    result = subtensor.start_call(wallet_name, netuid)
+
+    # Asserts
+    mocked_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet_name,
+        netuid=netuid,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+    )
+    assert result == mocked_extrinsic.return_value
+
+
+def test_get_metagraph_info_all_fields(subtensor, mocker):
+    """Test get_metagraph_info with all fields (default behavior)."""
+    # Preps
+    netuid = 1
+    mock_value = {"mock": "data"}
+
+    mock_runtime_call = mocker.patch.object(
+        subtensor.substrate,
+        "runtime_call",
+        return_value=mocker.Mock(value=mock_value),
+    )
+    mock_from_dict = mocker.patch.object(
+        subtensor_module.MetagraphInfo, "from_dict", return_value="parsed_metagraph"
+    )
+
+    # Call
+    result = subtensor.get_metagraph_info(netuid=netuid)
+
+    # Asserts
+    assert result == "parsed_metagraph"
+    mock_runtime_call.assert_called_once_with(
+        "SubnetInfoRuntimeApi",
+        "get_selective_metagraph",
+        params=[netuid, SelectiveMetagraphIndex.all_indices()],
+        block_hash=subtensor.determine_block_hash(None),
+    )
+    mock_from_dict.assert_called_once_with(mock_value)
+
+
+def test_get_metagraph_info_specific_fields(subtensor, mocker):
+    """Test get_metagraph_info with specific fields."""
+    # Preps
+    netuid = 1
+    mock_value = {"mock": "data"}
+    fields = [SelectiveMetagraphIndex.Name, 5]
+
+    mock_runtime_call = mocker.patch.object(
+        subtensor.substrate,
+        "runtime_call",
+        return_value=mocker.Mock(value=mock_value),
+    )
+    mock_from_dict = mocker.patch.object(
+        subtensor_module.MetagraphInfo, "from_dict", return_value="parsed_metagraph"
+    )
+
+    # Call
+    result = subtensor.get_metagraph_info(netuid=netuid, field_indices=fields)
+
+    # Asserts
+    assert result == "parsed_metagraph"
+    mock_runtime_call.assert_called_once_with(
+        "SubnetInfoRuntimeApi",
+        "get_selective_metagraph",
+        params=[
+            netuid,
+            [0]
+            + [
+                f.value if isinstance(f, SelectiveMetagraphIndex) else f for f in fields
+            ],
+        ],
+        block_hash=subtensor.determine_block_hash(None),
+    )
+    mock_from_dict.assert_called_once_with(mock_value)
+
+
+@pytest.mark.parametrize(
+    "wrong_fields",
+    [
+        [
+            "invalid",
+        ],
+        [SelectiveMetagraphIndex.Active, 1, "f"],
+        [1, 2, 3, "f"],
+    ],
+)
+def test_get_metagraph_info_invalid_field_indices(subtensor, wrong_fields):
+    """Test get_metagraph_info raises ValueError on invalid field_indices."""
+    with pytest.raises(
+        ValueError,
+        match="`field_indices` must be a list of SelectiveMetagraphIndex items.",
+    ):
+        subtensor.get_metagraph_info(netuid=1, field_indices=wrong_fields)
+
+
+def test_get_metagraph_info_subnet_not_exist(subtensor, mocker):
+    """Test get_metagraph_info returns None when subnet doesn't exist."""
+    netuid = 1
+    mocker.patch.object(
+        subtensor.substrate,
+        "runtime_call",
+        return_value=mocker.Mock(value=None),
+    )
+
+    mocked_logger = mocker.Mock()
+    mocker.patch("bittensor.core.subtensor.logging.error", new=mocked_logger)
+
+    result = subtensor.get_metagraph_info(netuid=netuid)
+
+    assert result is None
+    mocked_logger.assert_called_once_with(f"Subnet {netuid} does not exist.")
+
+
+def test_blocks_since_last_step_with_value(subtensor, mocker):
+    """Test blocks_since_last_step returns correct value."""
+    # preps
+    netuid = 1
+    block = 123
+    mocked_query_subtensor = mocker.MagicMock()
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # call
+    result = subtensor.blocks_since_last_step(netuid=netuid, block=block)
+
+    # asserts
+    mocked_query_subtensor.assert_called_once_with(
+        name="BlocksSinceLastStep",
+        block=block,
+        params=[netuid],
+    )
+
+    assert result == mocked_query_subtensor.return_value.value
+
+
+def test_blocks_since_last_step_is_none(subtensor, mocker):
+    """Test blocks_since_last_step returns None correctly."""
+    # preps
+    netuid = 1
+    block = 123
+    mocked_query_subtensor = mocker.MagicMock(return_value=None)
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # call
+    result = subtensor.blocks_since_last_step(netuid=netuid, block=block)
+
+    # asserts
+    mocked_query_subtensor.assert_called_once_with(
+        name="BlocksSinceLastStep",
+        block=block,
+        params=[netuid],
+    )
+
+    assert result is None
+
+
+def test_get_subnet_owner_hotkey_has_return(subtensor, mocker):
+    """Test get_subnet_owner_hotkey returns correct value."""
+    # preps
+    netuid = 14
+    block = 123
+    expected_owner_hotkey = "owner_hotkey"
+    mocked_query_subtensor = mocker.MagicMock(return_value=expected_owner_hotkey)
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # call
+    result = subtensor.get_subnet_owner_hotkey(netuid=netuid, block=block)
+
+    # asserts
+    mocked_query_subtensor.assert_called_once_with(
+        name="SubnetOwnerHotkey",
+        block=block,
+        params=[netuid],
+    )
+
+    assert result == expected_owner_hotkey
+
+
+def test_get_subnet_owner_hotkey_is_none(subtensor, mocker):
+    """Test get_subnet_owner_hotkey returns None correctly."""
+    # preps
+    netuid = 14
+    block = 123
+    mocked_query_subtensor = mocker.MagicMock(return_value=None)
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # call
+    result = subtensor.get_subnet_owner_hotkey(netuid=netuid, block=block)
+
+    # asserts
+    mocked_query_subtensor.assert_called_once_with(
+        name="SubnetOwnerHotkey",
+        block=block,
+        params=[netuid],
+    )
+
+    assert result is None
+
+
+def test_get_subnet_validator_permits_has_values(subtensor, mocker):
+    """Test get_subnet_validator_permits returns correct value."""
+    # preps
+    netuid = 14
+    block = 123
+    expected_validator_permits = [False, True, False]
+    mocked_query_subtensor = mocker.MagicMock(return_value=expected_validator_permits)
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # call
+    result = subtensor.get_subnet_validator_permits(netuid=netuid, block=block)
+
+    # asserts
+    mocked_query_subtensor.assert_called_once_with(
+        name="ValidatorPermit",
+        block=block,
+        params=[netuid],
+    )
+
+    assert result == expected_validator_permits
+
+
+def test_get_subnet_validator_permits_is_none(subtensor, mocker):
+    """Test get_subnet_validator_permits returns correct value."""
+    # preps
+    netuid = 14
+    block = 123
+
+    mocked_query_subtensor = mocker.MagicMock(return_value=None)
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # call
+    result = subtensor.get_subnet_validator_permits(netuid=netuid, block=block)
+
+    # asserts
+    mocked_query_subtensor.assert_called_once_with(
+        name="ValidatorPermit",
+        block=block,
+        params=[netuid],
+    )
+
+    assert result is None

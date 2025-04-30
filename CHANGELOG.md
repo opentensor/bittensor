@@ -1,5 +1,75 @@
 # Changelog
 
+## 9.4.0 /2025-04-17
+
+## What's Changed
+* Release/9.3.0 by @ibraheem-abe in https://github.com/opentensor/bittensor/pull/2805
+* Fix for flaky behavior of `test_incentive`, `test_commit_weights` and `test_set_weights`  by @basfroman in https://github.com/opentensor/bittensor/pull/2795
+* Add `get_next_epoch_start_block` method to Async/Subtensor by @basfroman in https://github.com/opentensor/bittensor/pull/2808
+* Adds compatibility for torch 2.6.0+ by @thewhaleking in https://github.com/opentensor/bittensor/pull/2811
+* f Update CONTRIBUTING.md by @Hack666r in https://github.com/opentensor/bittensor/pull/2813
+* docs: replaced discord link with documentation by @sashaphmn in https://github.com/opentensor/bittensor/pull/2809
+* sometimes it's still flaky because the chain returns data with time offset by @basfroman in https://github.com/opentensor/bittensor/pull/2816
+* Remove requirements directory by @thewhaleking in https://github.com/opentensor/bittensor/pull/2812
+* version in one place by @thewhaleking in https://github.com/opentensor/bittensor/pull/2806
+* Update CONTRIBUTING hyperlinks by @thewhaleking in https://github.com/opentensor/bittensor/pull/2820
+* 9.3.1a1: Updates changelog by @ibraheem-abe in https://github.com/opentensor/bittensor/pull/2821
+* Remove cubit as extra by @thewhaleking in https://github.com/opentensor/bittensor/pull/2823
+* fix/roman/get-metagraph-identities by @basfroman in https://github.com/opentensor/bittensor/pull/2826
+* Replace waiting logic for `test_commit_reveal_v3.py` by @basfroman in https://github.com/opentensor/bittensor/pull/2827
+* Add `start_call` extrinsic to the sdk by @basfroman in https://github.com/opentensor/bittensor/pull/2828
+* Add `timelock` module by @basfroman in https://github.com/opentensor/bittensor/pull/2824
+* Fix: raise_error=True in AsyncSubtensor fails to get error_message by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2771
+* Fix: async set_subnet_identity_extrinsic doesn't sign the extrinsic by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2772
+* Update settings.py by @petryshkaCODE in https://github.com/opentensor/bittensor/pull/2814
+* Bumping ruff version by @basfroman in https://github.com/opentensor/bittensor/pull/2831
+* Fix and improve e2e tests after `start call` new limit in subtensor by @basfroman in https://github.com/opentensor/bittensor/pull/2830
+* Add `bittensor.timelock` module description by @basfroman in https://github.com/opentensor/bittensor/pull/2833
+* fix: Update broken link in `CONTRIBUTING.md` by @cypherpepe in https://github.com/opentensor/bittensor/pull/2818
+* docs: added a new badge by @sashaphmn in https://github.com/opentensor/bittensor/pull/2819
+* Fix AxonInfo initialization in get_mock_neuron function by @VolodymyrBg in https://github.com/opentensor/bittensor/pull/2803
+* Dendrite: log ClientOSError as Debug by @Thykof in https://github.com/opentensor/bittensor/pull/2770
+* remove `rao` endpoint from settings by @basfroman in https://github.com/opentensor/bittensor/pull/2834
+
+## New Contributors
+* @Hack666r made their first contribution in https://github.com/opentensor/bittensor/pull/2813
+* @petryshkaCODE made their first contribution in https://github.com/opentensor/bittensor/pull/2814
+* @cypherpepe made their first contribution in https://github.com/opentensor/bittensor/pull/2818
+* @VolodymyrBg made their first contribution in https://github.com/opentensor/bittensor/pull/2803
+* @Thykof made their first contribution in https://github.com/opentensor/bittensor/pull/2770
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.3.0...v9.4.0
+
+## 9.3.0 /2025-04-09
+
+## What's Changed
+* More E2E tests by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2754
+* Fix E2E: fix wait_epoch and next_tempo by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2753
+* Add all supported python versions to e2e tests workflow by @basfroman in https://github.com/opentensor/bittensor/pull/2761
+* update docker image name by @basfroman in https://github.com/opentensor/bittensor/pull/2760
+* Add pypi package version checker for `python -m bittensor` by @basfroman in https://github.com/opentensor/bittensor/pull/2762
+* Feat: set_children and get_pending_children methods by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2752
+* Add logic for keep docker image up to date by @basfroman in https://github.com/opentensor/bittensor/pull/2765
+* Fix: CI/CD Set up Python version for E2E tests by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2767
+* Fix E2E Tests: wait for new nonce by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2768
+* Fix e2e `conftest.py` for legacy runner by @basfroman in https://github.com/opentensor/bittensor/pull/2769
+* Fix E2E with devnet-ready by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2776
+* Add compatibility check for 3.13 by @thewhaleking in https://github.com/opentensor/bittensor/pull/2779
+* Fix E2E test_dendrite by making sure Alice is Top validator in Subnet by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2780
+* Add get_owned_hotkeys to subtensor and async one + tests by @basfroman in https://github.com/opentensor/bittensor/pull/2766
+* Add drand-commitments by @basfroman in https://github.com/opentensor/bittensor/pull/2781
+* Missing f-string format by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2785
+* bump version by @basfroman in https://github.com/opentensor/bittensor/pull/2786
+* Improvement and fix for https://github.com/opentensor/bittensor/pull/2781 by @basfroman in https://github.com/opentensor/bittensor/pull/2787
+* Add `stop_existing_test_containers` logic before run e2e test/s by @basfroman in https://github.com/opentensor/bittensor/pull/2790
+* Bump async substrate interface by @thewhaleking in https://github.com/opentensor/bittensor/pull/2788
+* Improve CRv3 functionality  by @basfroman in https://github.com/opentensor/bittensor/pull/2791
+* Improve logic in Balance magic methods by @basfroman in https://github.com/opentensor/bittensor/pull/2764
+* Requirements update by @thewhaleking in https://github.com/opentensor/bittensor/pull/2789
+* remove Levenshtein requirement by @thewhaleking in https://github.com/opentensor/bittensor/pull/2802
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.2.0...v9.3.0
+
 ## 9.2.0 /2025-03-18
 
 ## What's Changed

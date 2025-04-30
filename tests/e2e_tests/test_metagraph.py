@@ -4,8 +4,10 @@ import shutil
 import time
 
 from bittensor.core.chain_data.metagraph_info import MetagraphInfo
+from bittensor.core.chain_data import SelectiveMetagraphIndex
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
+from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 
 NULL_KEY = tuple(bytearray(32))
 
@@ -46,98 +48,106 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
         AssertionError: If any of the checks or verifications fail
     """
     logging.console.info("Testing test_metagraph_command")
-    netuid = 2
+    alice_subnet_netuid = subtensor.get_total_subnets()  # 2
 
-    # Register the subnet through Alice
-    assert subtensor.register_subnet(alice_wallet), "Unable to register the subnet"
+    logging.console.info("Register the subnet through Alice")
+    assert subtensor.register_subnet(alice_wallet, True, True), (
+        "Unable to register the subnet"
+    )
 
-    # Verify subnet was created successfully
-    assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
+    logging.console.info("Verify subnet was created successfully")
+    assert subtensor.subnet_exists(alice_subnet_netuid), (
+        "Subnet wasn't created successfully"
+    )
 
-    # Initialize metagraph
-    metagraph = subtensor.metagraph(netuid=netuid)
+    logging.console.info("Make sure we passed start_call limit (10 blocks)")
+    assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
 
-    # Assert metagraph has only Alice (owner)
+    logging.console.info("Initialize metagraph")
+    metagraph = subtensor.metagraph(netuid=alice_subnet_netuid)
+
+    logging.console.info("Assert metagraph has only Alice (owner)")
     assert len(metagraph.uids) == 1, "Metagraph doesn't have exactly 1 neuron"
 
-    # Register Bob to the subnet
-    assert subtensor.burned_register(
-        bob_wallet, netuid
-    ), "Unable to register Bob as a neuron"
+    logging.console.info("Register Bob to the subnet")
+    assert subtensor.burned_register(bob_wallet, alice_subnet_netuid), (
+        "Unable to register Bob as a neuron"
+    )
 
-    # Refresh the metagraph
+    logging.console.info("Refresh the metagraph")
     metagraph.sync(subtensor=subtensor)
 
-    # Assert metagraph has Alice and Bob neurons
+    logging.console.info("Assert metagraph has Alice and Bob neurons")
     assert len(metagraph.uids) == 2, "Metagraph doesn't have exactly 2 neurons"
-    assert (
-        metagraph.hotkeys[0] == alice_wallet.hotkey.ss58_address
-    ), "Alice's hotkey doesn't match in metagraph"
-    assert (
-        metagraph.hotkeys[1] == bob_wallet.hotkey.ss58_address
-    ), "Bob's hotkey doesn't match in metagraph"
+    assert metagraph.hotkeys[0] == alice_wallet.hotkey.ss58_address, (
+        "Alice's hotkey doesn't match in metagraph"
+    )
+    assert metagraph.hotkeys[1] == bob_wallet.hotkey.ss58_address, (
+        "Bob's hotkey doesn't match in metagraph"
+    )
     assert len(metagraph.coldkeys) == 2, "Metagraph doesn't have exactly 2 coldkey"
     assert metagraph.n.max() == 2, "Metagraph's max n is not 2"
     assert metagraph.n.min() == 2, "Metagraph's min n is not 2"
     assert len(metagraph.addresses) == 2, "Metagraph doesn't have exactly 2 address"
 
-    # Fetch UID of Bob
+    logging.console.info("Fetch UID of Bob")
     uid = subtensor.get_uid_for_hotkey_on_subnet(
-        bob_wallet.hotkey.ss58_address, netuid=netuid
+        bob_wallet.hotkey.ss58_address, netuid=alice_subnet_netuid
     )
 
-    # Fetch neuron info of Bob through subtensor and metagraph
-    neuron_info_bob = subtensor.neuron_for_uid(uid, netuid=netuid)
+    logging.console.info("Fetch neuron info of Bob through subtensor and metagraph")
+    neuron_info_bob = subtensor.neuron_for_uid(uid, netuid=alice_subnet_netuid)
+
     metagraph_dict = neuron_to_dict(metagraph.neurons[uid])
     subtensor_dict = neuron_to_dict(neuron_info_bob)
 
-    # Verify neuron info is the same in both objects
-    assert (
-        metagraph_dict == subtensor_dict
-    ), "Neuron info of Bob doesn't match b/w metagraph & subtensor"
+    logging.console.info("Verify neuron info is the same in both objects")
+    assert metagraph_dict == subtensor_dict, (
+        "Neuron info of Bob doesn't match b/w metagraph & subtensor"
+    )
 
-    # Create pre_dave metagraph for future verifications
-    metagraph_pre_dave = subtensor.metagraph(netuid=netuid)
+    logging.console.info("Create pre_dave metagraph for future verifications")
+    metagraph_pre_dave = subtensor.metagraph(netuid=alice_subnet_netuid)
 
-    # Register Dave as a neuron
-    assert subtensor.burned_register(
-        dave_wallet, netuid
-    ), "Unable to register Dave as a neuron"
+    logging.console.info("Register Dave as a neuron")
+    assert subtensor.burned_register(dave_wallet, alice_subnet_netuid), (
+        "Unable to register Dave as a neuron"
+    )
 
     metagraph.sync(subtensor=subtensor)
 
-    # Assert metagraph now includes Dave's neuron
-    assert (
-        len(metagraph.uids) == 3
-    ), "Metagraph doesn't have exactly 3 neurons post Dave"
-    assert (
-        metagraph.hotkeys[2] == dave_wallet.hotkey.ss58_address
-    ), "Neuron's hotkey in metagraph doesn't match"
-    assert (
-        len(metagraph.coldkeys) == 3
-    ), "Metagraph doesn't have exactly 3 coldkeys post Dave"
+    logging.console.info("Assert metagraph now includes Dave's neuron")
+    assert len(metagraph.uids) == 3, (
+        "Metagraph doesn't have exactly 3 neurons post Dave"
+    )
+    assert metagraph.hotkeys[2] == dave_wallet.hotkey.ss58_address, (
+        "Neuron's hotkey in metagraph doesn't match"
+    )
+    assert len(metagraph.coldkeys) == 3, (
+        "Metagraph doesn't have exactly 3 coldkeys post Dave"
+    )
     assert metagraph.n.max() == 3, "Metagraph's max n is not 3 post Dave"
     assert metagraph.n.min() == 3, "Metagraph's min n is not 3 post Dave"
     assert len(metagraph.addresses) == 3, "Metagraph doesn't have 3 addresses post Dave"
 
-    # Add stake by Bob
+    logging.console.info("Add stake by Bob")
     tao = Balance.from_tao(10_000)
-    alpha, _ = subtensor.subnet(netuid).tao_to_alpha_with_slippage(tao)
+    alpha, _ = subtensor.subnet(alice_subnet_netuid).tao_to_alpha_with_slippage(tao)
     assert subtensor.add_stake(
         bob_wallet,
-        netuid=netuid,
+        netuid=alice_subnet_netuid,
         amount=tao,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     ), "Failed to add stake for Bob"
 
-    # Assert stake is added after updating metagraph
+    logging.console.info("Assert stake is added after updating metagraph")
     metagraph.sync(subtensor=subtensor)
-    assert (
-        0.95 < metagraph.neurons[1].stake.rao / alpha.rao < 1.05
-    ), "Bob's stake not updated in metagraph"
+    assert 0.95 < metagraph.neurons[1].stake.rao / alpha.rao < 1.05, (
+        "Bob's stake not updated in metagraph"
+    )
 
-    # Test the save() and load() mechanism
+    logging.console.info("Test the save() and load() mechanism")
     # We save the metagraph and pre_dave loads it
     # We do this in the /tmp dir to avoid interfering or interacting with user data
     metagraph_save_root_dir = ["/", "tmp", "bittensor-e2e", "metagraphs"]
@@ -149,35 +159,35 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     finally:
         shutil.rmtree(os.path.join(*metagraph_save_root_dir))
 
-    # Ensure data is synced between two metagraphs
-    assert len(metagraph.uids) == len(
-        metagraph_pre_dave.uids
-    ), "UID count mismatch after save and load"
-    assert (
-        metagraph.uids == metagraph_pre_dave.uids
-    ).all(), "UIDs don't match after save and load"
+    logging.console.info("Ensure data is synced between two metagraphs")
+    assert len(metagraph.uids) == len(metagraph_pre_dave.uids), (
+        "UID count mismatch after save and load"
+    )
+    assert (metagraph.uids == metagraph_pre_dave.uids).all(), (
+        "UIDs don't match after save and load"
+    )
 
-    assert len(metagraph.axons) == len(
-        metagraph_pre_dave.axons
-    ), "Axon count mismatch after save and load"
-    assert (
-        metagraph.axons[1].hotkey == metagraph_pre_dave.axons[1].hotkey
-    ), "Axon hotkey mismatch after save and load"
-    assert (
-        metagraph.axons == metagraph_pre_dave.axons
-    ), "Axons don't match after save and load"
+    assert len(metagraph.axons) == len(metagraph_pre_dave.axons), (
+        "Axon count mismatch after save and load"
+    )
+    assert metagraph.axons[1].hotkey == metagraph_pre_dave.axons[1].hotkey, (
+        "Axon hotkey mismatch after save and load"
+    )
+    assert metagraph.axons == metagraph_pre_dave.axons, (
+        "Axons don't match after save and load"
+    )
 
-    assert len(metagraph.neurons) == len(
-        metagraph_pre_dave.neurons
-    ), "Neuron count mismatch after save and load"
-    assert (
-        metagraph.neurons == metagraph_pre_dave.neurons
-    ), "Neurons don't match after save and load"
+    assert len(metagraph.neurons) == len(metagraph_pre_dave.neurons), (
+        "Neuron count mismatch after save and load"
+    )
+    assert metagraph.neurons == metagraph_pre_dave.neurons, (
+        "Neurons don't match after save and load"
+    )
 
     logging.console.info("✅ Passed test_metagraph")
 
 
-def test_metagraph_info(subtensor, alice_wallet):
+def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
     """
     Tests:
     - Check MetagraphInfo
@@ -185,6 +195,9 @@ def test_metagraph_info(subtensor, alice_wallet):
     - Register Subnet
     - Check MetagraphInfo is updated
     """
+
+    alice_subnet_netuid = subtensor.get_total_subnets()  # 2
+    subtensor.register_subnet(alice_wallet, True, True)
 
     metagraph_info = subtensor.get_metagraph_info(netuid=1, block=1)
 
@@ -194,22 +207,22 @@ def test_metagraph_info(subtensor, alice_wallet):
         symbol="α",
         identity=None,
         network_registered_at=0,
-        owner_hotkey=(NULL_KEY,),
-        owner_coldkey=(NULL_KEY,),
+        owner_hotkey="5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
+        owner_coldkey="5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
         block=1,
         tempo=100,
         last_step=0,
         blocks_since_last_step=1,
         subnet_emission=Balance(0),
-        alpha_in=Balance.from_tao(10),
-        alpha_out=Balance.from_tao(1),
+        alpha_in=Balance.from_tao(10).set_unit(netuid=alice_subnet_netuid),
+        alpha_out=Balance.from_tao(1).set_unit(netuid=alice_subnet_netuid),
         tao_in=Balance.from_tao(10),
-        alpha_out_emission=Balance(0),
-        alpha_in_emission=Balance(0),
+        alpha_out_emission=Balance(0).set_unit(netuid=alice_subnet_netuid),
+        alpha_in_emission=Balance(0).set_unit(netuid=alice_subnet_netuid),
         tao_in_emission=Balance(0),
-        pending_alpha_emission=Balance(0),
+        pending_alpha_emission=Balance(0).set_unit(netuid=alice_subnet_netuid),
         pending_root_emission=Balance(0),
-        subnet_volume=Balance(0),
+        subnet_volume=Balance(0).set_unit(netuid=alice_subnet_netuid),
         moving_price=Balance(0),
         rho=10,
         kappa=32767,
@@ -243,7 +256,7 @@ def test_metagraph_info(subtensor, alice_wallet):
         bonds_moving_avg=4.87890977618477e-14,
         hotkeys=["5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"],
         coldkeys=["5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"],
-        identities={},
+        identities=[None],
         axons=(
             {
                 "block": 0,
@@ -260,16 +273,16 @@ def test_metagraph_info(subtensor, alice_wallet):
         validator_permit=(False,),
         pruning_score=[0.0],
         last_update=(0,),
-        emission=[Balance(0)],
+        emission=[Balance(0).set_unit(alice_subnet_netuid)],
         dividends=[0.0],
         incentives=[0.0],
         consensus=[0.0],
         trust=[0.0],
         rank=[0.0],
         block_at_registration=(0,),
-        alpha_stake=[Balance.from_tao(1.0)],
+        alpha_stake=[Balance.from_tao(1.0).set_unit(alice_subnet_netuid)],
         tao_stake=[Balance(0)],
-        total_stake=[Balance.from_tao(1.0)],
+        total_stake=[Balance.from_tao(1.0).set_unit(alice_subnet_netuid)],
         tao_dividends_per_hotkey=[
             ("5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM", Balance(0))
         ],
@@ -287,18 +300,18 @@ def test_metagraph_info(subtensor, alice_wallet):
             symbol="Τ",
             identity=None,
             network_registered_at=0,
-            owner_hotkey=(NULL_KEY,),
-            owner_coldkey=(NULL_KEY,),
+            owner_hotkey="5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
+            owner_coldkey="5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
             block=1,
             tempo=100,
             last_step=0,
             blocks_since_last_step=1,
             subnet_emission=Balance(0),
-            alpha_in=Balance(0),
-            alpha_out=Balance(0),
+            alpha_in=Balance(0).set_unit(netuid=alice_subnet_netuid),
+            alpha_out=Balance(0).set_unit(netuid=alice_subnet_netuid),
             tao_in=Balance(0),
-            alpha_out_emission=Balance(0),
-            alpha_in_emission=Balance(0),
+            alpha_out_emission=Balance(0).set_unit(netuid=alice_subnet_netuid),
+            alpha_in_emission=Balance(0).set_unit(netuid=alice_subnet_netuid),
             tao_in_emission=Balance(0),
             pending_alpha_emission=Balance(0),
             pending_root_emission=Balance(0),
@@ -358,53 +371,296 @@ def test_metagraph_info(subtensor, alice_wallet):
         metagraph_info,
     ]
 
-    subtensor.burned_register(
-        alice_wallet,
-        netuid=1,
+    assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
+
+    assert subtensor.burned_register(
+        bob_wallet,
+        netuid=alice_subnet_netuid,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
 
-    metagraph_info = subtensor.get_metagraph_info(netuid=1)
+    metagraph_info = subtensor.get_metagraph_info(netuid=alice_subnet_netuid)
 
     assert metagraph_info.num_uids == 2
     assert metagraph_info.hotkeys == [
-        "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
         alice_wallet.hotkey.ss58_address,
+        bob_wallet.hotkey.ss58_address,
     ]
     assert metagraph_info.coldkeys == [
-        "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
         alice_wallet.coldkey.ss58_address,
+        bob_wallet.coldkey.ss58_address,
     ]
     assert metagraph_info.tao_dividends_per_hotkey == [
-        ("5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM", Balance(0)),
-        (alice_wallet.hotkey.ss58_address, Balance(0)),
+        (
+            alice_wallet.hotkey.ss58_address,
+            metagraph_info.tao_dividends_per_hotkey[0][1],
+        ),
+        (bob_wallet.hotkey.ss58_address, metagraph_info.tao_dividends_per_hotkey[1][1]),
     ]
     assert metagraph_info.alpha_dividends_per_hotkey == [
-        ("5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM", Balance(0)),
-        (alice_wallet.hotkey.ss58_address, Balance(0)),
+        (
+            alice_wallet.hotkey.ss58_address,
+            metagraph_info.alpha_dividends_per_hotkey[0][1],
+        ),
+        (
+            bob_wallet.hotkey.ss58_address,
+            metagraph_info.alpha_dividends_per_hotkey[1][1],
+        ),
     ]
 
-    subtensor.register_subnet(
+    alice_subnet_netuid = subtensor.get_total_subnets()  # 3
+    assert subtensor.register_subnet(
         alice_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
 
     block = subtensor.get_current_block()
-    metagraph_info = subtensor.get_metagraph_info(netuid=2, block=block)
+    metagraph_info = subtensor.get_metagraph_info(
+        netuid=alice_subnet_netuid, block=block
+    )
 
-    assert metagraph_info.owner_coldkey == (tuple(alice_wallet.hotkey.public_key),)
-    assert metagraph_info.owner_hotkey == (tuple(alice_wallet.coldkey.public_key),)
+    assert metagraph_info.owner_coldkey == alice_wallet.hotkey.ss58_address
+    assert metagraph_info.owner_hotkey == alice_wallet.coldkey.ss58_address
 
     metagraph_infos = subtensor.get_all_metagraphs_info(block)
 
-    assert len(metagraph_infos) == 3
+    assert len(metagraph_infos) == 4
     assert metagraph_infos[-1] == metagraph_info
 
-    metagraph_info = subtensor.get_metagraph_info(netuid=3)
+    # non-existed subnet
+    metagraph_info = subtensor.get_metagraph_info(netuid=alice_subnet_netuid + 1)
 
     assert metagraph_info is None
+
+
+def test_metagraph_info_with_indexes(subtensor, alice_wallet, bob_wallet):
+    """
+    Tests:
+    - Check MetagraphInfo
+    - Register Neuron
+    - Register Subnet
+    - Check MetagraphInfo is updated
+    """
+
+    alice_subnet_netuid = subtensor.get_total_subnets()  # 2
+    subtensor.register_subnet(alice_wallet, True, True)
+
+    field_indices = [
+        SelectiveMetagraphIndex.Name,
+        SelectiveMetagraphIndex.Active,
+        SelectiveMetagraphIndex.OwnerHotkey,
+        SelectiveMetagraphIndex.OwnerColdkey,
+        SelectiveMetagraphIndex.Axons,
+    ]
+
+    metagraph_info = subtensor.get_metagraph_info(
+        netuid=alice_subnet_netuid, field_indices=field_indices
+    )
+
+    assert metagraph_info == MetagraphInfo(
+        netuid=alice_subnet_netuid,
+        name="omron",
+        owner_hotkey=alice_wallet.hotkey.ss58_address,
+        owner_coldkey=alice_wallet.coldkey.ss58_address,
+        active=(True,),
+        axons=(
+            {
+                "block": 0,
+                "ip": 0,
+                "ip_type": 0,
+                "placeholder1": 0,
+                "placeholder2": 0,
+                "port": 0,
+                "protocol": 0,
+                "version": 0,
+            },
+        ),
+        symbol=None,
+        identity=None,
+        network_registered_at=None,
+        block=None,
+        tempo=None,
+        last_step=None,
+        blocks_since_last_step=None,
+        subnet_emission=None,
+        alpha_in=None,
+        alpha_out=None,
+        tao_in=None,
+        alpha_out_emission=None,
+        alpha_in_emission=None,
+        tao_in_emission=None,
+        pending_alpha_emission=None,
+        pending_root_emission=None,
+        subnet_volume=None,
+        moving_price=None,
+        rho=None,
+        kappa=None,
+        min_allowed_weights=None,
+        max_weights_limit=None,
+        weights_version=None,
+        weights_rate_limit=None,
+        activity_cutoff=None,
+        max_validators=None,
+        num_uids=None,
+        max_uids=None,
+        burn=None,
+        difficulty=None,
+        registration_allowed=None,
+        pow_registration_allowed=None,
+        immunity_period=None,
+        min_difficulty=None,
+        max_difficulty=None,
+        min_burn=None,
+        max_burn=None,
+        adjustment_alpha=None,
+        adjustment_interval=None,
+        target_regs_per_interval=None,
+        max_regs_per_block=None,
+        serving_rate_limit=None,
+        commit_reveal_weights_enabled=None,
+        commit_reveal_period=None,
+        liquid_alpha_enabled=None,
+        alpha_high=None,
+        alpha_low=None,
+        bonds_moving_avg=None,
+        hotkeys=None,
+        coldkeys=None,
+        identities=None,
+        validator_permit=None,
+        pruning_score=None,
+        last_update=None,
+        emission=None,
+        dividends=None,
+        incentives=None,
+        consensus=None,
+        trust=None,
+        rank=None,
+        block_at_registration=None,
+        alpha_stake=None,
+        tao_stake=None,
+        total_stake=None,
+        tao_dividends_per_hotkey=None,
+        alpha_dividends_per_hotkey=None,
+    )
+
+    assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
+
+    assert subtensor.burned_register(
+        bob_wallet,
+        netuid=alice_subnet_netuid,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    fields = [
+        SelectiveMetagraphIndex.Name,
+        SelectiveMetagraphIndex.Active,
+        SelectiveMetagraphIndex.OwnerHotkey,
+        SelectiveMetagraphIndex.OwnerColdkey,
+        SelectiveMetagraphIndex.Axons,
+    ]
+
+    metagraph_info = subtensor.get_metagraph_info(
+        netuid=alice_subnet_netuid, field_indices=fields
+    )
+
+    assert metagraph_info == MetagraphInfo(
+        netuid=alice_subnet_netuid,
+        name="omron",
+        owner_hotkey=alice_wallet.hotkey.ss58_address,
+        owner_coldkey=alice_wallet.coldkey.ss58_address,
+        active=(True, True),
+        axons=(
+            {
+                "block": 0,
+                "ip": 0,
+                "ip_type": 0,
+                "placeholder1": 0,
+                "placeholder2": 0,
+                "port": 0,
+                "protocol": 0,
+                "version": 0,
+            },
+            {
+                "block": 0,
+                "ip": 0,
+                "ip_type": 0,
+                "placeholder1": 0,
+                "placeholder2": 0,
+                "port": 0,
+                "protocol": 0,
+                "version": 0,
+            },
+        ),
+        symbol=None,
+        identity=None,
+        network_registered_at=None,
+        block=None,
+        tempo=None,
+        last_step=None,
+        blocks_since_last_step=None,
+        subnet_emission=None,
+        alpha_in=None,
+        alpha_out=None,
+        tao_in=None,
+        alpha_out_emission=None,
+        alpha_in_emission=None,
+        tao_in_emission=None,
+        pending_alpha_emission=None,
+        pending_root_emission=None,
+        subnet_volume=None,
+        moving_price=None,
+        rho=None,
+        kappa=None,
+        min_allowed_weights=None,
+        max_weights_limit=None,
+        weights_version=None,
+        weights_rate_limit=None,
+        activity_cutoff=None,
+        max_validators=None,
+        num_uids=None,
+        max_uids=None,
+        burn=None,
+        difficulty=None,
+        registration_allowed=None,
+        pow_registration_allowed=None,
+        immunity_period=None,
+        min_difficulty=None,
+        max_difficulty=None,
+        min_burn=None,
+        max_burn=None,
+        adjustment_alpha=None,
+        adjustment_interval=None,
+        target_regs_per_interval=None,
+        max_regs_per_block=None,
+        serving_rate_limit=None,
+        commit_reveal_weights_enabled=None,
+        commit_reveal_period=None,
+        liquid_alpha_enabled=None,
+        alpha_high=None,
+        alpha_low=None,
+        bonds_moving_avg=None,
+        hotkeys=None,
+        coldkeys=None,
+        identities=None,
+        validator_permit=None,
+        pruning_score=None,
+        last_update=None,
+        emission=None,
+        dividends=None,
+        incentives=None,
+        consensus=None,
+        trust=None,
+        rank=None,
+        block_at_registration=None,
+        alpha_stake=None,
+        tao_stake=None,
+        total_stake=None,
+        tao_dividends_per_hotkey=None,
+        alpha_dividends_per_hotkey=None,
+    )
 
 
 def test_blocks(subtensor):

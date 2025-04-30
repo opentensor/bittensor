@@ -19,9 +19,9 @@ async def test_set_subnet_identity_extrinsic_happy_pass(subtensor, alice_wallet)
     assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
     # make sure subnet_identity is empty
-    assert (
-        subtensor.subnet(netuid).subnet_identity is None
-    ), "Subnet identity should be None before set"
+    assert subtensor.subnet(netuid).subnet_identity is None, (
+        "Subnet identity should be None before set"
+    )
 
     # prepare SubnetIdentity for subnet
     subnet_identity = SubnetIdentity(
@@ -78,9 +78,9 @@ async def test_set_subnet_identity_extrinsic_failed(
     assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
     # make sure subnet_identity is empty
-    assert (
-        subtensor.subnet(netuid).subnet_identity is None
-    ), "Subnet identity should be None before set"
+    assert subtensor.subnet(netuid).subnet_identity is None, (
+        "Subnet identity should be None before set"
+    )
 
     # prepare SubnetIdentity for subnet
     subnet_identity = SubnetIdentity(
