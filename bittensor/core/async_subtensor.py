@@ -58,12 +58,12 @@ from bittensor.core.extrinsics.asyncex.serving import (
     publish_metadata,
     get_metadata,
 )
-from bittensor.core.extrinsics.asyncex.start_call import start_call_extrinsic
 from bittensor.core.extrinsics.asyncex.serving import serve_axon_extrinsic
 from bittensor.core.extrinsics.asyncex.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
 )
+from bittensor.core.extrinsics.asyncex.start_call import start_call_extrinsic
 from bittensor.core.extrinsics.asyncex.take import (
     decrease_take_extrinsic,
     increase_take_extrinsic,
@@ -135,7 +135,6 @@ class AsyncSubtensor(SubtensorMixin):
         self.chain_endpoint, self.network = AsyncSubtensor.setup_config(
             network, self._config
         )
-        self._mock = _mock
 
         self.log_verbose = log_verbose
         self._check_and_log_network_settings()
@@ -229,7 +228,7 @@ class AsyncSubtensor(SubtensorMixin):
         call_definition: dict[str, list["ParamWithTypes"]],
         params: Union[list[Any], dict[str, Any]],
     ) -> str:
-        """Returns a hex encoded string of the params using their types."""
+        """Returns a hex-encoded string of the params using their types."""
         param_data = scalecodec.ScaleBytes(b"")
 
         for i, param in enumerate(call_definition["params"]):

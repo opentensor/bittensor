@@ -61,12 +61,12 @@ from bittensor.core.extrinsics.serving import (
     get_metadata,
     serve_axon_extrinsic,
 )
-from bittensor.core.extrinsics.start_call import start_call_extrinsic
 from bittensor.core.extrinsics.set_weights import set_weights_extrinsic
 from bittensor.core.extrinsics.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
 )
+from bittensor.core.extrinsics.start_call import start_call_extrinsic
 from bittensor.core.extrinsics.take import (
     decrease_take_extrinsic,
     increase_take_extrinsic,
@@ -110,7 +110,7 @@ if TYPE_CHECKING:
 
 
 class Subtensor(SubtensorMixin):
-    """Thin layer for interacting with Substrate Interface. Mostly a collection of frequently-used calls."""
+    """Thin layer for interacting with Substrate Interface. Mostly a collection of frequently used calls."""
 
     def __init__(
         self,
@@ -135,7 +135,6 @@ class Subtensor(SubtensorMixin):
             config = self.config()
         self._config = copy.deepcopy(config)
         self.chain_endpoint, self.network = self.setup_config(network, self._config)
-        self._mock = _mock
 
         self.log_verbose = log_verbose
         self._check_and_log_network_settings()
