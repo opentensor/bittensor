@@ -1,8 +1,10 @@
 """Module with helper functions for extrinsics."""
 
 from typing import TYPE_CHECKING, Union
+
 import numpy as np
 from numpy.typing import NDArray
+
 from bittensor.utils.balance import Balance
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 
