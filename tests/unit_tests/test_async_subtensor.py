@@ -2853,6 +2853,7 @@ async def test_commit_weights_success(subtensor, fake_wallet, mocker):
         commit_hash="fake_commit_hash",
         wait_for_inclusion=False,
         wait_for_finalization=False,
+        period=16,
     )
     assert result is True
     assert message == "Success"

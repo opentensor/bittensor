@@ -1963,6 +1963,7 @@ def test_commit_weights(subtensor, fake_wallet, mocker):
         commit_hash=mocked_generate_weight_hash.return_value,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        period=16
     )
     assert result == expected_result
 
@@ -2002,6 +2003,7 @@ def test_reveal_weights(subtensor, fake_wallet, mocker):
         salt=salt,
         wait_for_inclusion=False,
         wait_for_finalization=False,
+        period=16
     )
 
 
