@@ -17,6 +17,7 @@ def _get_stake_in_origin_and_dest(
     origin_netuid: int,
     destination_netuid: int,
 ) -> tuple[Balance, Balance]:
+    """Gets the current stake balances for both origin and destination addresses in their respective subnets."""
     block = subtensor.get_current_block()
     stake_in_origin = subtensor.get_stake(
         coldkey_ss58=origin_coldkey_ss58,
@@ -43,6 +44,7 @@ def transfer_stake_extrinsic(
     amount: Optional[Balance] = None,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
+    period: Optional[int] = None,
 ) -> bool:
     """
     Transfers stake from one subnet to another while changing the coldkey owner.
@@ -57,6 +59,9 @@ def transfer_stake_extrinsic(
         amount (Union[Balance, float, int]): Amount to transfer.
         wait_for_inclusion (bool): If true, waits for inclusion before returning.
         wait_for_finalization (bool): If true, waits for finalization before returning.
+        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         success (bool): True if the transfer was successful.
@@ -113,6 +118,7 @@ def transfer_stake_extrinsic(
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            period=period,
         )
 
         if success:
