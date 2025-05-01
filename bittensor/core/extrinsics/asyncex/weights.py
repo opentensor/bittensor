@@ -22,19 +22,22 @@ async def _do_commit_weights(
     commit_hash: str,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
+    period: Optional[int] = None,
 ) -> tuple[bool, Optional[str]]:
     """
     Internal method to send a transaction to the Bittensor blockchain, committing the hash of a neuron's weights.
     This method constructs and submits the transaction, handling retries and blockchain communication.
 
     Args:
-        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The subtensor instance used for blockchain
-            interaction.
+        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The subtensor instance used for blockchain interaction.
         wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the weights.
         netuid (int): The unique identifier of the subnet.
         commit_hash (str): The hash of the neuron's weights to be committed.
         wait_for_inclusion (bool): Waits for the transaction to be included in a block.
         wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
@@ -56,6 +59,7 @@ async def _do_commit_weights(
         wait_for_inclusion,
         wait_for_finalization,
         use_nonce=True,
+        period=period,
         nonce_key="hotkey",
         sign_with="hotkey",
     )
@@ -68,6 +72,7 @@ async def commit_weights_extrinsic(
     commit_hash: str,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
+    period: Optional[int] = None,
 ) -> tuple[bool, str]:
     """
     Commits a hash of the neuron's weights to the Bittensor blockchain using the provided wallet.
@@ -81,6 +86,9 @@ async def commit_weights_extrinsic(
         commit_hash (str): The hash of the neuron's weights to be committed.
         wait_for_inclusion (bool): Waits for the transaction to be included in a block.
         wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string
@@ -97,6 +105,7 @@ async def commit_weights_extrinsic(
         commit_hash=commit_hash,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        period=period,
     )
 
     if success:

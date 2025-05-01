@@ -17,6 +17,7 @@ def _do_commit_weights(
     commit_hash: str,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
+    period: Optional[int] = None,
 ) -> tuple[bool, Optional[str]]:
     """
     Internal method to send a transaction to the Bittensor blockchain, committing the hash of a neuron's weights.
@@ -29,6 +30,9 @@ def _do_commit_weights(
         commit_hash (str): The hash of the neuron's weights to be committed.
         wait_for_inclusion (bool): Waits for the transaction to be included in a block.
         wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
@@ -50,6 +54,7 @@ def _do_commit_weights(
         wait_for_inclusion,
         wait_for_finalization,
         use_nonce=True,
+        period=period,
         sign_with="hotkey",
         nonce_key="hotkey",
     )
@@ -62,6 +67,7 @@ def commit_weights_extrinsic(
     commit_hash: str,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
+    period: Optional[int] = None,
 ) -> tuple[bool, str]:
     """
     Commits a hash of the neuron's weights to the Bittensor blockchain using the provided wallet.
@@ -74,6 +80,9 @@ def commit_weights_extrinsic(
         commit_hash (str): The hash of the neuron's weights to be committed.
         wait_for_inclusion (bool): Waits for the transaction to be included in a block.
         wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string
@@ -90,6 +99,7 @@ def commit_weights_extrinsic(
         commit_hash=commit_hash,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        period=period,
     )
 
     if success:
