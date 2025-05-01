@@ -3426,6 +3426,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         max_retries: int = 5,
+        period: Optional[int] = 16,
     ) -> tuple[bool, str]:
         """
         Commits a hash of the neuron's weights to the Bittensor blockchain using the provided wallet.
@@ -3438,15 +3439,19 @@ class AsyncSubtensor(SubtensorMixin):
             uids (np.ndarray): NumPy array of neuron UIDs for which weights are being committed.
             weights (np.ndarray): NumPy array of weight values corresponding to each UID.
             version_key (int): Version key for compatibility with the network. Default is ``int representation of
-                Bittensor version.``.
+                a Bittensor version.``.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
                 ``False``.
             max_retries (int): The number of maximum attempts to commit weights. Default is ``5``.
+            period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
 
         Returns:
-            tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string
-                value describing the success or potential error.
+            tuple[bool, str]:
+                `True` if the weight commitment is successful, False otherwise.
+                `msg` is a string value describing the success or potential error.
 
         This function allows neurons to create a tamper-proof record of their weight distribution at a specific point
             in time, enhancing transparency and accountability within the Bittensor network.
@@ -3456,8 +3461,9 @@ class AsyncSubtensor(SubtensorMixin):
         message = "No attempt made. Perhaps it is too soon to commit weights!"
 
         logging.info(
-            f"Committing weights with params: netuid={netuid}, uids={uids}, weights={weights}, "
-            f"version_key={version_key}"
+            f"Committing weights with params: "
+            f"netuid=[blue]{netuid}[/blue], uids=[blue]{uids}[/blue], weights=[blue]{weights}[/blue], "
+            f"version_key=[blue]{version_key}[/blue]"
         )
 
         # Generate the hash of the weights
@@ -3479,12 +3485,12 @@ class AsyncSubtensor(SubtensorMixin):
                     commit_hash=commit_hash,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
+                    period=period,
                 )
                 if success:
                     break
             except Exception as e:
                 logging.error(f"Error committing weights: {e}")
-            finally:
                 retries += 1
 
         return success, message
