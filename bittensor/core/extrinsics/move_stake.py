@@ -316,6 +316,7 @@ def move_stake_extrinsic(
     amount: Optional[Balance] = None,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
+    period: Optional[int] = None,
 ) -> bool:
     """
     Moves stake to a different hotkey and/or subnet while keeping the same coldkey owner.
@@ -330,6 +331,9 @@ def move_stake_extrinsic(
         amount (Union[Balance, float]): Amount to move.
         wait_for_inclusion (bool): If true, waits for inclusion before returning.
         wait_for_finalization (bool): If true, waits for finalization before returning.
+        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         success (bool): True if the move was successful.
@@ -375,6 +379,7 @@ def move_stake_extrinsic(
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            period=period,
         )
 
         if success:
