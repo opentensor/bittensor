@@ -3402,6 +3402,7 @@ class Subtensor(SubtensorMixin):
         safe_staking: bool = False,
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
+        period: Optional[int] = None,
     ) -> bool:
         """
         Moves stake between subnets while keeping the same coldkey-hotkey pair ownership.
@@ -3424,6 +3425,9 @@ class Subtensor(SubtensorMixin):
             rate_tolerance (float): The maximum allowed increase in the price ratio between subnets
                 (origin_price/destination_price). For example, 0.005 = 0.5% maximum increase. Only used
                 when safe_staking is True. Default is 0.005.
+            period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
 
 
         Returns:
@@ -3449,6 +3453,7 @@ class Subtensor(SubtensorMixin):
             safe_staking=safe_staking,
             allow_partial_stake=allow_partial_stake,
             rate_tolerance=rate_tolerance,
+            period=period,
         )
 
     def transfer(
