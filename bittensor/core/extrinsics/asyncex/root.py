@@ -1,7 +1,6 @@
 import asyncio
-from typing import Union, TYPE_CHECKING
+from typing import Optional, Union, TYPE_CHECKING
 
-from bittensor_wallet import Wallet
 import numpy as np
 from numpy.typing import NDArray
 
@@ -12,9 +11,11 @@ from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import (
     normalize_max_weight,
     convert_weights_and_uids_for_emit,
+    convert_netuids_and_weights
 )
 
 if TYPE_CHECKING:
+    from bittensor_wallet import Wallet
     from bittensor.core.async_subtensor import AsyncSubtensor
 
 
@@ -47,8 +48,9 @@ async def root_register_extrinsic(
     wallet: "Wallet",
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    period: Optional[int] = None,
 ) -> bool:
-    """Registers the wallet to root network.
+    """Registers the wallet to the root network.
 
     Arguments:
         subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The AsyncSubtensor object
@@ -57,6 +59,9 @@ async def root_register_extrinsic(
             `False` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
             `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
+        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion,
@@ -112,15 +117,16 @@ async def root_register_extrinsic(
         call_function="root_register",
         call_params={"hotkey": wallet.hotkey.ss58_address},
     )
-    success, err_msg = await subtensor.sign_and_send_extrinsic(
+    success, message = await subtensor.sign_and_send_extrinsic(
         call,
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        period=period,
     )
 
     if not success:
-        logging.error(f":cross_mark: [red]Failed error:[/red] {err_msg}")
+        logging.error(f":cross_mark: [red]Failed error:[/red] {message}")
         await asyncio.sleep(0.5)
         return False
 
@@ -151,7 +157,7 @@ async def _do_set_root_weights(
     version_key: int = 0,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-    period: int = 5,
+    period: Optional[int] = 8,
 ) -> tuple[bool, str]:
     """
     Sets the root weights on the Subnet for the given wallet hotkey account.
@@ -171,7 +177,9 @@ async def _do_set_root_weights(
             False.
         wait_for_finalization (bool, optional): If True, waits for the extrinsic to be finalized on the chain. Defaults
             to False.
-        period (int, optional): The period in seconds to wait for extrinsic inclusion or finalization. Defaults to 5.
+        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         tuple: Returns a tuple containing a boolean indicating success and a message describing the result of the
@@ -189,30 +197,23 @@ async def _do_set_root_weights(
         },
     )
 
-    next_nonce = await subtensor.substrate.get_account_next_index(
-        wallet.hotkey.ss58_address
-    )
-
-    # Period dictates how long the extrinsic will stay as part of waiting pool
-    extrinsic = await subtensor.substrate.create_signed_extrinsic(
+    success, message = await subtensor.sign_and_send_extrinsic(
         call=call,
-        keypair=wallet.coldkey,
-        era={"period": period},
-        nonce=next_nonce,
-    )
-    response = await subtensor.substrate.submit_extrinsic(
-        extrinsic=extrinsic,
+        wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        use_nonce=True,
+        period=period,
     )
+
     # We only wait here if we expect finalization.
     if not wait_for_finalization and not wait_for_inclusion:
         return True, "Not waiting for finalization or inclusion."
 
-    if await response.is_success:
+    if success:
         return True, "Successfully set weights."
 
-    return False, format_error_message(await response.error_message)
+    return False, message
 
 
 async def set_root_weights_extrinsic(
@@ -223,20 +224,24 @@ async def set_root_weights_extrinsic(
     version_key: int = 0,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
+    period: Optional[int] = None,
 ) -> bool:
-    """Sets the given weights and values on chain for wallet hotkey account.
+    """Sets the given weights and values on a chain for a wallet hotkey account.
 
     Arguments:
         subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The AsyncSubtensor object
         wallet (bittensor_wallet.Wallet): Bittensor wallet object.
         netuids (Union[NDArray[np.int64], list[int]]): The `netuid` of the subnet to set weights for.
-        weights (Union[NDArray[np.float32], list[float]]): Weights to set. These must be `float` s and must correspond
+        weights (Union[NDArray[np.float32], list[Float]]): Weights to set. These must be `Float`s and must correspond
             to the passed `netuid` s.
         version_key (int): The version key of the validator.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns
             `False` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning `
             True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
+        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion, the
@@ -254,13 +259,10 @@ async def set_root_weights_extrinsic(
         logging.error(unlock.message)
         return False
 
-    # First convert types.
-    if isinstance(netuids, list):
-        netuids = np.array(netuids, dtype=np.int64)
-    if isinstance(weights, list):
-        weights = np.array(weights, dtype=np.float32)
+    # Convert types.
+    netuids, weights = convert_netuids_and_weights(netuids, weights)
 
-    logging.debug("Fetching weight limits")
+    logging.debug("[magenta]Fetching weight limits ...[/magenta]")
     min_allowed_weights, max_weight_limit = await _get_limits(subtensor)
 
     # Get non zero values.
@@ -274,7 +276,7 @@ async def set_root_weights_extrinsic(
         )
 
     # Normalize the weights to max value.
-    logging.info("Normalizing weights")
+    logging.info("[magenta]Normalizing weights ...[/magenta]")
     formatted_weights = normalize_max_weight(x=weights, limit=max_weight_limit)
     logging.info(
         f"Raw weights -> Normalized weights: [blue]{weights}[/blue] -> [green]{formatted_weights}[/green]"
@@ -292,10 +294,8 @@ async def set_root_weights_extrinsic(
             version_key=version_key,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            period=period,
         )
-
-        if not wait_for_finalization and not wait_for_inclusion:
-            return True
 
         if success is True:
             logging.info(":white_heavy_check_mark: [green]Finalized[/green]")
