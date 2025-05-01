@@ -57,7 +57,11 @@ def wait_for_node_start(process, timestamp=None):
 def local_chain(request):
     """Determines whether to run the localnet.sh script in a subprocess or a Docker container."""
     args = request.param if hasattr(request, "param") else None
-    params = "" if args is None else f"{args}"
+
+    # passed env variable to control node mod (non-/fast-blocks)
+    non_fast_mode = os.getenv("NON_FAST_BLOCKS") == "1"
+    params = "" if args is None else f"{args}" + "True" if non_fast_mode is True else "False"
+
     if shutil.which("docker") and not os.getenv("USE_DOCKER") == "0":
         yield from docker_runner(params)
     else:
