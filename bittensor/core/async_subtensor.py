@@ -3382,6 +3382,7 @@ class AsyncSubtensor(SubtensorMixin):
         netuid: int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
+        period: Optional[int] = None,
     ) -> bool:
         """
         Registers a neuron on the Bittensor network by recycling TAO. This method of registration involves recycling
@@ -3394,6 +3395,9 @@ class AsyncSubtensor(SubtensorMixin):
                 `False`.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
                 Defaults to `True`.
+            period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
 
         Returns:
             bool: ``True`` if the registration is successful, False otherwise.
@@ -3413,6 +3417,7 @@ class AsyncSubtensor(SubtensorMixin):
                 netuid=netuid,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
+                period=period
             )
 
     async def commit_weights(
@@ -3554,6 +3559,7 @@ class AsyncSubtensor(SubtensorMixin):
         num_processes: Optional[int] = None,
         update_interval: Optional[int] = None,
         log_verbose: bool = False,
+        period: Optional[int] = None,
     ):
         """
         Registers a neuron on the Bittensor network using the provided wallet.
@@ -3576,6 +3582,9 @@ class AsyncSubtensor(SubtensorMixin):
             num_processes (Optional[int]): The number of processes to use to register. Default to `None`.
             update_interval (Optional[int]): The number of nonces to solve between updates.  Default to `None`.
             log_verbose (bool): If ``true``, the registration process will log more information.  Default to `False`.
+            period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
 
         Returns:
             bool: ``True`` if the registration is successful, False otherwise.
@@ -3597,6 +3606,7 @@ class AsyncSubtensor(SubtensorMixin):
             dev_id=dev_id,
             output_in_place=output_in_place,
             log_verbose=log_verbose,
+            period=period,
         )
 
     async def register_subnet(
@@ -3604,6 +3614,7 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
+        period: Optional[int] = None,
     ) -> bool:
         """
         Registers a new subnetwork on the Bittensor network.
@@ -3614,6 +3625,9 @@ class AsyncSubtensor(SubtensorMixin):
                 false if the extrinsic fails to enter the block within the timeout. Default is False.
             wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
                 true, or returns false if the extrinsic fails to be finalized within the timeout. Default is True.
+            period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
 
         Returns:
             bool: True if the subnet registration was successful, False otherwise.
@@ -3624,6 +3638,7 @@ class AsyncSubtensor(SubtensorMixin):
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            period=period,
         )
 
     async def reveal_weights(
@@ -3907,6 +3922,7 @@ class AsyncSubtensor(SubtensorMixin):
         subnet_identity: SubnetIdentity,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
+        period: Optional[int] = None,
     ) -> tuple[bool, str]:
         """
         Sets the identity of a subnet for a specific wallet and network.
@@ -3918,6 +3934,9 @@ class AsyncSubtensor(SubtensorMixin):
                 repository, contact, URL, discord, description, and any additional metadata.
             wait_for_inclusion (bool): Indicates if the function should wait for the transaction to be included in the block.
             wait_for_finalization (bool): Indicates if the function should wait for the transaction to reach finalization.
+            period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
 
         Returns:
             tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
@@ -3936,6 +3955,7 @@ class AsyncSubtensor(SubtensorMixin):
             additional=subnet_identity.additional,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            period=period,
         )
 
     async def set_weights(
@@ -3964,12 +3984,12 @@ class AsyncSubtensor(SubtensorMixin):
             weights (Union[NDArray[np.float32], torch.FloatTensor, list]): The corresponding weights to be set for each
                 UID.
             version_key (int): Version key for compatibility with the network.  Default is int representation of
-                Bittensor version.
+                a Bittensor version.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
                 ``False``.
             max_retries (int): The number of maximum attempts to set weights. Default is ``5``.
-            block_time (float): The amount of seconds for block duration. Default is 12.0 seconds.
+            block_time (float): The number of seconds for block duration. Default is 12.0 seconds.
             period (int, optional): The period in seconds to wait for extrinsic inclusion or finalization. Defaults to 5.
 
         Returns:
