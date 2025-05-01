@@ -103,6 +103,7 @@ def test_root_register_extrinsic(
             wallet=mock_wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            period=None
         )
 
 

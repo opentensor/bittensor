@@ -2804,6 +2804,7 @@ async def test_root_set_weights_success(subtensor, fake_wallet, mocker):
         version_key=0,
         wait_for_finalization=True,
         wait_for_inclusion=True,
+        period=None,
     )
     assert result == mocked_set_root_weights_extrinsic.return_value
 
