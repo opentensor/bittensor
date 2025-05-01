@@ -3506,6 +3506,7 @@ class AsyncSubtensor(SubtensorMixin):
         amount: Balance,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
+        period: Optional[int] = None,
     ) -> bool:
         """
         Moves stake to a different hotkey and/or subnet.
@@ -3519,6 +3520,9 @@ class AsyncSubtensor(SubtensorMixin):
             amount (Balance): Amount of stake to move.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
 
         Returns:
             success (bool): True if the stake movement was successful.
@@ -3534,6 +3538,7 @@ class AsyncSubtensor(SubtensorMixin):
             amount=amount,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            period=period,
         )
 
     async def register(
@@ -4128,6 +4133,7 @@ class AsyncSubtensor(SubtensorMixin):
         safe_staking: bool = False,
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
+        period: Optional[int] = None,
     ) -> bool:
         """
         Moves stake between subnets while keeping the same coldkey-hotkey pair ownership.
@@ -4150,6 +4156,9 @@ class AsyncSubtensor(SubtensorMixin):
             rate_tolerance (float): The maximum allowed increase in the price ratio between subnets
                 (origin_price/destination_price). For example, 0.005 = 0.5% maximum increase. Only used
                 when safe_staking is True. Default is 0.005.
+            period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
 
         Returns:
             success (bool): True if the extrinsic was successful.
@@ -4174,6 +4183,7 @@ class AsyncSubtensor(SubtensorMixin):
             safe_staking=safe_staking,
             allow_partial_stake=allow_partial_stake,
             rate_tolerance=rate_tolerance,
+            period=period
         )
 
     async def transfer_stake(
@@ -4186,6 +4196,7 @@ class AsyncSubtensor(SubtensorMixin):
         amount: Balance,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
+        period: Optional[int] = None,
     ) -> bool:
         """
         Transfers stake from one subnet to another while changing the coldkey owner.
@@ -4199,6 +4210,9 @@ class AsyncSubtensor(SubtensorMixin):
             amount (Balance): Amount to transfer.
             wait_for_inclusion (bool): If true, waits for inclusion before returning.
             wait_for_finalization (bool): If true, waits for finalization before returning.
+            period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
 
         Returns:
             success (bool): True if the transfer was successful.
@@ -4214,6 +4228,7 @@ class AsyncSubtensor(SubtensorMixin):
             amount=amount,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            period=period,
         )
 
     async def transfer(
