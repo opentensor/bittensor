@@ -3206,6 +3206,7 @@ def test_set_subnet_identity(mocker, subtensor, fake_wallet):
         additional=fake_subnet_identity.additional,
         wait_for_finalization=True,
         wait_for_inclusion=False,
+        period=None,
     )
     assert result == mocked_extrinsic.return_value
 

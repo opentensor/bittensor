@@ -450,6 +450,7 @@ async def test_register_extrinsic_max_attempts_reached(subtensor, fake_wallet, m
         pow_result=fake_pow_result,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        period=None,
     )
     assert result is False
 
@@ -510,6 +511,7 @@ async def test_set_subnet_identity_extrinsic_is_success(subtensor, fake_wallet, 
         wallet=fake_wallet,
         wait_for_inclusion=False,
         wait_for_finalization=True,
+        period=None,
     )
 
     assert result == (True, "Identities for subnet 123 are set.")
@@ -574,6 +576,7 @@ async def test_set_subnet_identity_extrinsic_is_failed(subtensor, fake_wallet, m
         wallet=fake_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        period=None,
     )
 
     assert result == (

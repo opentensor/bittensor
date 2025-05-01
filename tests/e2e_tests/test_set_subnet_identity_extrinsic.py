@@ -10,7 +10,7 @@ async def test_set_subnet_identity_extrinsic_happy_pass(subtensor, alice_wallet)
         "[magenta]Testing `set_subnet_identity_extrinsic` with success result.[/magenta]"
     )
 
-    netuid = 2
+    netuid = subtensor.get_total_subnets()  # 2
 
     # Register a subnet, netuid 2
     assert subtensor.register_subnet(alice_wallet), "Subnet wasn't created"

@@ -2551,6 +2551,7 @@ async def test_register_success(subtensor, fake_wallet, mocker):
         wait_for_finalization=True,
         wait_for_inclusion=False,
         wallet=fake_wallet,
+        period=None,
     )
     assert result == mocked_register_extrinsic.return_value
 
@@ -2956,6 +2957,7 @@ async def test_set_subnet_identity(mocker, subtensor, fake_wallet):
         additional=fake_subnet_identity.additional,
         wait_for_finalization=True,
         wait_for_inclusion=False,
+        period=None,
     )
     assert result == mocked_extrinsic.return_value
 
