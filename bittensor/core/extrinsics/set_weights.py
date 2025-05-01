@@ -5,8 +5,9 @@ from typing import Union, TYPE_CHECKING, Optional
 import numpy as np
 from numpy.typing import NDArray
 
+from bittensor.core.extrinsics.utils import convert_and_normalize_weights_and_uids
 from bittensor.core.settings import version_as_int
-from bittensor.utils import format_error_message, weight_utils
+from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
@@ -60,7 +61,7 @@ def _do_set_weights(
         },
     )
     next_nonce = subtensor.substrate.get_account_next_index(wallet.hotkey.ss58_address)
-    # Period dictates how long the extrinsic will stay as part of waiting pool
+    # Period dictates how long the extrinsic will stay as part of the waiting pool
     extrinsic = subtensor.substrate.create_signed_extrinsic(
         call=call,
         keypair=wallet.hotkey,
@@ -93,7 +94,7 @@ def set_weights_extrinsic(
     wait_for_finalization: bool = False,
     period: int = 5,
 ) -> tuple[bool, str]:
-    """Sets the given weights and values on chain for wallet hotkey account.
+    """Sets the given weights and values on a chain for a wallet hotkey account.
 
     Args:
         subtensor (bittensor.core.async_subtensor.AsyncSubtensor): Bittensor subtensor object.
@@ -113,16 +114,14 @@ def set_weights_extrinsic(
         success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
             finalization / inclusion, the response is ``True``.
     """
-    # First convert types.
+    # Convert types.
     if isinstance(uids, list):
         uids = np.array(uids, dtype=np.int64)
     if isinstance(weights, list):
         weights = np.array(weights, dtype=np.float32)
 
     # Reformat and normalize.
-    weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
-        uids, weights
-    )
+    weight_uids, weight_vals = convert_and_normalize_weights_and_uids(uids, weights)
 
     logging.info(
         f":satellite: [magenta]Setting weights on [/magenta][blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
