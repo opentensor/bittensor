@@ -5,9 +5,8 @@ from typing import Union, TYPE_CHECKING, Optional
 import numpy as np
 from numpy.typing import NDArray
 
-import bittensor.utils.weight_utils as weight_utils
+from bittensor.core.extrinsics.utils import convert_and_normalize_weights_and_uids
 from bittensor.core.settings import version_as_int
-from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
@@ -119,7 +118,7 @@ async def _do_reveal_weights(
     version_key: int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-) -> tuple[bool, Optional[dict]]:
+) -> tuple[bool, str]:
     """
     Internal method to send a transaction to the Bittensor blockchain, revealing the weights for a specific subnet.
     This method constructs and submits the transaction, handling retries and blockchain communication.
@@ -137,7 +136,7 @@ async def _do_reveal_weights(
         wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
 
     Returns:
-        tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+        tuple[bool, str]: A tuple containing a success flag and an optional error message.
 
     This method ensures that the weight revelation is securely recorded on the Bittensor blockchain, providing
         transparency and accountability for the neuron's weight distribution.
@@ -181,8 +180,7 @@ async def reveal_weights_extrinsic(
     This function is a wrapper around the `_do_reveal_weights` method.
 
     Args:
-        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The subtensor instance used for blockchain
-            interaction.
+        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The subtensor instance used for blockchain interaction.
         wallet (bittensor_wallet.Wallet): The wallet associated with the neuron revealing the weights.
         netuid (int): The unique identifier of the subnet.
         uids (list[int]): List of neuron UIDs for which weights are being revealed.
@@ -217,7 +215,6 @@ async def reveal_weights_extrinsic(
         logging.info(success_message)
         return True, success_message
 
-    error_message = format_error_message(error_message)
     logging.error(f"Failed to reveal weights: {error_message}")
     return False, error_message
 
@@ -232,7 +229,7 @@ async def _do_set_weights(
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
     period: int = 5,
-) -> tuple[bool, Optional[str]]:  # (success, error_message)
+) -> tuple[bool, str]:  # (success, error_message)
     """
     Internal method to send a transaction to the Bittensor blockchain, setting weights
     for specified neurons. This method constructs and submits the transaction, handling
@@ -250,7 +247,7 @@ async def _do_set_weights(
         period (int, optional): The period in seconds to wait for extrinsic inclusion or finalization. Defaults to 5.
 
     Returns:
-        Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+        Tuple[bool, str]: A tuple containing a success flag and an optional error message.
 
     This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their
         trust in other neurons based on observed performance and contributions.
@@ -289,7 +286,7 @@ async def set_weights_extrinsic(
     wait_for_finalization: bool = False,
     period: int = 5,
 ) -> tuple[bool, str]:
-    """Sets the given weights and values on chain for wallet hotkey account.
+    """Sets the given weights and values on a chain for a wallet hotkey account.
 
     Args:
         subtensor (bittensor.core.async_subtensor.AsyncSubtensor): Bittensor subtensor object.
@@ -309,16 +306,8 @@ async def set_weights_extrinsic(
         success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
             finalization / inclusion, the response is ``True``.
     """
-    # First convert types.
-    if isinstance(uids, list):
-        uids = np.array(uids, dtype=np.int64)
-    if isinstance(weights, list):
-        weights = np.array(weights, dtype=np.float32)
 
-    # Reformat and normalize.
-    weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
-        uids, weights
-    )
+    weight_uids, weight_vals = convert_and_normalize_weights_and_uids(uids, weights)
 
     logging.info(
         f":satellite: [magenta]Setting weights on [/magenta][blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
