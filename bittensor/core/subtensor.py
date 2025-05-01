@@ -2936,6 +2936,7 @@ class Subtensor(SubtensorMixin):
         amount: Balance,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
+        period: Optional[int] = None,
     ) -> bool:
         """
         Moves stake to a different hotkey and/or subnet.
@@ -2949,6 +2950,9 @@ class Subtensor(SubtensorMixin):
             amount (Balance): Amount of stake to move.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
 
         Returns:
             success (bool): True if the stake movement was successful.
@@ -2964,6 +2968,7 @@ class Subtensor(SubtensorMixin):
             amount=amount,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            period=period,
         )
 
     def register(
