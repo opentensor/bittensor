@@ -1,103 +1,15 @@
 """Module with helper functions for extrinsics."""
 
 from typing import TYPE_CHECKING, Union
-
 import numpy as np
-from async_substrate_interface.errors import SubstrateRequestException
 from numpy.typing import NDArray
-
-from bittensor.utils import format_error_message
 from bittensor.utils.balance import Balance
-from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
-    from bittensor.core.async_subtensor import AsyncSubtensor
-    from async_substrate_interface import (
-        AsyncExtrinsicReceipt,
-        ExtrinsicReceipt,
-    )
-    from bittensor.core.subtensor import Subtensor
     from bittensor.core.chain_data import StakeInfo
-    from scalecodec.types import GenericExtrinsic
     from bittensor.utils.registration import torch
-
-
-def submit_extrinsic(
-    subtensor: "Subtensor",
-    extrinsic: "GenericExtrinsic",
-    wait_for_inclusion: bool,
-    wait_for_finalization: bool,
-) -> "ExtrinsicReceipt":
-    """
-    Submits an extrinsic to the substrate blockchain and handles potential exceptions.
-
-    This function attempts to submit an extrinsic to the substrate blockchain with specified options
-    for waiting for inclusion in a block and/or finalization. If an exception occurs during submission,
-    it logs the error and re-raises the exception.
-
-    Args:
-        subtensor: The Subtensor instance used to interact with the blockchain.
-        extrinsic (scalecodec.types.GenericExtrinsic): The extrinsic to be submitted to the blockchain.
-        wait_for_inclusion (bool): Whether to wait for the extrinsic to be included in a block.
-        wait_for_finalization (bool): Whether to wait for the extrinsic to be finalized on the blockchain.
-
-    Returns:
-        response: The response from the substrate after submitting the extrinsic.
-
-    Raises:
-        SubstrateRequestException: If the submission of the extrinsic fails, the error is logged and re-raised.
-    """
-    try:
-        return subtensor.substrate.submit_extrinsic(
-            extrinsic,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
-    except SubstrateRequestException as e:
-        logging.error(format_error_message(e.args[0]))
-        # Re-raise the exception for retrying of the extrinsic call. If we remove the retry logic,
-        # the raise will need to be removed.
-        raise
-
-
-async def async_submit_extrinsic(
-    subtensor: "AsyncSubtensor",
-    extrinsic: "GenericExtrinsic",
-    wait_for_inclusion: bool,
-    wait_for_finalization: bool,
-) -> "AsyncExtrinsicReceipt":
-    """
-    Submits an extrinsic to the substrate blockchain and handles potential exceptions.
-
-    This function attempts to submit an extrinsic to the substrate blockchain with specified options
-    for waiting for inclusion in a block and/or finalization. If an exception occurs during submission,
-    it logs the error and re-raises the exception.
-
-    Args:
-        subtensor: The AsyncSubtensor instance used to interact with the blockchain.
-        extrinsic: The extrinsic to be submitted to the blockchain.
-        wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
-        wait_for_finalization: Whether to wait for the extrinsic to be finalized on the blockchain.
-
-    Returns:
-        response: The response from the substrate after submitting the extrinsic.
-
-    Raises:
-        SubstrateRequestException: If the submission of the extrinsic fails, the error is logged and re-raised.
-    """
-    try:
-        return await subtensor.substrate.submit_extrinsic(
-            extrinsic,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
-    except SubstrateRequestException as e:
-        logging.error(format_error_message(e.args[0]))
-        # Re-raise the exception for retrying of the extrinsic call. If we remove the retry logic,
-        # the raise will need to be removed.
-        raise
 
 
 def get_old_stakes(
@@ -105,7 +17,7 @@ def get_old_stakes(
     hotkey_ss58s: list[str],
     netuids: list[int],
     all_stakes: list["StakeInfo"],
-) -> list[Balance]:
+) -> list["Balance"]:
     """
     Retrieve the previous staking balances for a wallet's hotkeys across given netuids.
 
@@ -114,10 +26,10 @@ def get_old_stakes(
     a default balance of zero is returned.
 
     Args:
-        wallet (Wallet): The wallet containing the coldkey to compare with stake data.
-        hotkey_ss58s (list[str]): List of hotkey SS58 addresses for which stakes are retrieved.
-        netuids (list[int]): List of network unique identifiers (netuids) corresponding to the hotkeys.
-        all_stakes (list[StakeInfo]): A collection of all staking information to search through.
+        wallet: The wallet containing the coldkey to compare with stake data.
+        hotkey_ss58s: List of hotkey SS58 addresses for which stakes are retrieved.
+        netuids: List of network unique identifiers (netuids) corresponding to the hotkeys.
+        all_stakes: A collection of all staking information to search through.
 
     Returns:
         list[Balance]: A list of Balances, each representing the stake for a given hotkey and netuid.
