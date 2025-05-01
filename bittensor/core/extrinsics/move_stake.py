@@ -166,6 +166,7 @@ def swap_stake_extrinsic(
     safe_staking: bool = False,
     allow_partial_stake: bool = False,
     rate_tolerance: float = 0.005,
+    period: Optional[int] = None,
 ) -> bool:
     """
     Moves stake between subnets while keeping the same coldkey-hotkey pair ownership.
@@ -181,7 +182,10 @@ def swap_stake_extrinsic(
         wait_for_finalization (bool): If true, waits for finalization before returning.
         safe_staking (bool): If true, enables price safety checks to protect against price impact.
         allow_partial_stake (bool): If true, allows partial stake swaps when the full amount would exceed the price tolerance.
-        rate_tolerance (float): Maximum allowed increase in price ratio (0.005 = 0.5%).
+        rate_tolerance (float): Maximum allowed increase in a price ratio (0.005 = 0.5%).
+        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         success (bool): True if the swap was successful.
@@ -261,6 +265,7 @@ def swap_stake_extrinsic(
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            period=period,
         )
 
         if success:
