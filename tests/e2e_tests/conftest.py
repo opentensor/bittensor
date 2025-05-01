@@ -59,7 +59,7 @@ def local_chain(request):
     args = request.param if hasattr(request, "param") else None
 
     # passed env variable to control node mod (non-/fast-blocks)
-    fast_blocks = "True" if (os.getenv("FAST_BLOCKS") == "1") is True else "False"
+    fast_blocks = "False" if (os.getenv("FAST_BLOCKS") == "0") is True else "True"
     params = f"{fast_blocks}" if args is None else f"{fast_blocks} {args} "
 
     if shutil.which("docker") and not os.getenv("USE_DOCKER") == "0":
