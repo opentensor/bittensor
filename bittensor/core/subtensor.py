@@ -3139,7 +3139,7 @@ class Subtensor(SubtensorMixin):
         wait_for_finalization: bool = False,
     ) -> bool:
         """
-        Set weights for root network.
+        Set weights for the root network.
 
         Arguments:
             wallet (bittensor_wallet.Wallet): bittensor wallet instance.
@@ -3216,7 +3216,7 @@ class Subtensor(SubtensorMixin):
         wait_for_finalization: bool = False,
         max_retries: int = 5,
         block_time: float = 12.0,
-        period: int = 8,
+        period: int = 16,
     ) -> tuple[bool, str]:
         """
         Sets the inter-neuronal weights for the specified neuron. This process involves specifying the influence or
@@ -3235,7 +3235,7 @@ class Subtensor(SubtensorMixin):
             block_time: The number of seconds for block duration. Default is 12.0 seconds.
             period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
+                You can think of it as an expiration date for the transaction. Default is 16.
 
         Returns:
             tuple:
