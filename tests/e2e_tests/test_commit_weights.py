@@ -19,14 +19,14 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
 
     Steps:
         1. Register a subnet through Alice
-        2. Enable commit-reveal mechanism on the subnet
+        2. Enable a commit-reveal mechanism on subnet
         3. Lower the commit_reveal interval and rate limit
         4. Commit weights and verify
         5. Wait interval & reveal weights and verify
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    netuid = 2
+    netuid = subtensor.get_total_subnets()  # 2
 
     print("Testing test_commit_and_reveal_weights")
 
@@ -153,12 +153,12 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
 @pytest.mark.asyncio
 async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wallet):
     """
-    Tests that committing weights doesn't re-use a nonce in the transaction pool.
+    Tests that committing weights doesn't re-use nonce in the transaction pool.
 
     Steps:
         1. Register a subnet through Alice
         2. Register Alice's neuron and add stake
-        3. Enable commit-reveal mechanism on the subnet
+        3. Enable a commit-reveal mechanism on subnet
         4. Lower the commit_reveal interval and rate limit
         5. Commit weights three times
         6. Assert that all commits succeeded
@@ -166,7 +166,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
         AssertionError: If any of the checks or verifications fail
     """
     subnet_tempo = 50
-    netuid = 2
+    netuid = subtensor.get_total_subnets()  # 2
 
     # Wait for 2 tempos to pass as CR3 only reveals weights after 2 tempos
     subtensor.wait_for_block(subnet_tempo * 2 + 1)
@@ -226,7 +226,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     # wait while weights_rate_limit changes applied.
     subtensor.wait_for_block(subnet_tempo + 1)
 
-    # create different commited data to avoid coming into pool black list with the error
+    # Create different commited data to avoid coming into the pool's blacklist with the error
     #   Failed to commit weights: Subtensor returned `Custom type(1012)` error. This means: `Transaction is temporarily
     #   banned`.Failed to commit weights: Subtensor returned `Custom type(1012)` error. This means: `Transaction is
     #   temporarily banned`.`
@@ -245,7 +245,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
         f"{subtensor.substrate.get_account_next_index(alice_wallet.hotkey.ss58_address)}[/orange]"
     )
 
-    # 3 time doing call if nonce wasn't updated, then raise error
+    # 3 time doing call if nonce wasn't updated, then raise the error
     @retry.retry(exceptions=Exception, tries=3, delay=1)
     @execute_and_wait_for_next_nonce(subtensor=subtensor, wallet=alice_wallet)
     def send_commit(salt_, weight_uids_, weight_vals_):
@@ -260,7 +260,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
         )
         assert success is True, message
 
-    # send some amount of commit weights
+    # Send some number of commit weights
     AMOUNT_OF_COMMIT_WEIGHTS = 3
     for call in range(AMOUNT_OF_COMMIT_WEIGHTS):
         weight_uids, weight_vals, salt = get_weights_and_salt(call)
