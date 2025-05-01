@@ -190,7 +190,7 @@ def convert_weights_and_uids_for_emit(
             f"Passed weights and uids must have the same length, got {len(uids)} and {len(weights)}"
         )
     if sum(weights) == 0:
-        return [], []  # Nothing to set on chain.
+        return [], []  # Nothing to set on a chain.
     else:
         max_weight = float(max(weights))
         weights = [
@@ -249,7 +249,7 @@ def process_weights_for_netuid(
     logging.debug(f"subtensor: {subtensor}")
     logging.debug(f"metagraph: {metagraph}")
 
-    # Get latest metagraph from chain if metagraph is None.
+    # Get latest metagraph from a chain if metagraph is None.
     if metagraph is None:
         metagraph = subtensor.metagraph(netuid)
 
@@ -440,3 +440,49 @@ def generate_weight_hash(
     commit_hash = "0x" + blake2b_hash.hexdigest()
 
     return commit_hash
+
+
+def convert_netuids_and_weights(
+    netuids: Union[NDArray[np.int64], list],
+    weights: Union[NDArray[np.float32], list],
+) -> tuple[np.ndarray, np.ndarray]:
+    """Converts netuids and weights to numpy arrays if they are not already.
+
+    Arguments:
+        netuids (Union[NDArray[np.int64], list]): The uint64 uids of destination neurons.
+        weights (Union[NDArray[np.float32], list]): The weights to set. These must be floated.
+
+    Returns:
+        tuple[ndarray, ndarray]: Bytes converted netuids and weights.
+    """
+    if isinstance(netuids, list):
+        netuids = np.array(netuids, dtype=np.int64)
+    if isinstance(weights, list):
+        weights = np.array(weights, dtype=np.float32)
+    return netuids, weights
+
+
+def convert_and_normalize_weights_and_uids(
+        uids: Union[NDArray[np.int64], "torch.LongTensor", list],
+        weights: Union[NDArray[np.float32], "torch.FloatTensor", list],
+) -> tuple[list[int], list[int]]:
+    """Converts weights and uids to numpy arrays if they are not already.
+
+    Arguments:
+        uids (Union[NDArray[np.int64], torch.LongTensor, list]): The ``uint64`` uids of destination neurons.
+        weights (Union[NDArray[np.float32], torch.FloatTensor, list]): The weights to set. These must be ``float`` s
+            and correspond to the passed ``uid`` s.
+
+    Returns:
+        weight_uids, weight_vals: Bytes converted weights and uids
+    """
+    if isinstance(uids, list):
+        uids = np.array(uids, dtype=np.int64)
+    if isinstance(weights, list):
+        weights = np.array(weights, dtype=np.float32)
+
+    # Reformat and normalize.
+    weight_uids, weight_vals = convert_weights_and_uids_for_emit(
+        uids, weights
+    )
+    return weight_uids, weight_vals

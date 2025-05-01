@@ -5,9 +5,9 @@ from typing import Union, TYPE_CHECKING, Optional
 import numpy as np
 from numpy.typing import NDArray
 
-from bittensor.core.extrinsics.utils import convert_and_normalize_weights_and_uids
 from bittensor.core.settings import version_as_int
 from bittensor.utils.btlogging import logging
+from bittensor.utils.weight_utils import convert_and_normalize_weights_and_uids
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
