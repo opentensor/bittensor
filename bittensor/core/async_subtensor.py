@@ -3024,7 +3024,7 @@ class AsyncSubtensor(SubtensorMixin):
             Optional[int]: The transaction rate limit of the network, None if not available.
 
         The transaction rate limit is an essential parameter for ensuring the stability and scalability of the Bittensor
-            network. It helps in managing network load and preventing congestion, thereby maintaining efficient and
+            network. It helps in managing a network load and preventing congestion, thereby maintaining efficient and
             timely transaction processing.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
@@ -3039,14 +3039,14 @@ class AsyncSubtensor(SubtensorMixin):
         waits for the next block.
 
         Args:
-            block (Optional[int]): The block number to wait for. If None, waits for next block.
+            block (Optional[int]): The block number to wait for. If None, waits for the next block.
 
         Returns:
             bool: True if the target block was reached, False if timeout occurred.
 
         Example:
             await subtensor.wait_for_block() # Waits for next block
-            await subtensor.wait_for_block(block=1234) # Waits for specific block
+            await subtensor.wait_for_block(block=1234) # Waits for a specific block
         """
 
         async def handler(block_data: dict):
@@ -3055,6 +3055,7 @@ class AsyncSubtensor(SubtensorMixin):
             )
             if block_data["header"]["number"] >= target_block:
                 return True
+            return None
 
         current_block = await self.substrate.get_block()
         current_block_hash = current_block.get("header", {}).get("hash")
