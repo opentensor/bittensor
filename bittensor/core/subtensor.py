@@ -2839,6 +2839,7 @@ class Subtensor(SubtensorMixin):
                 wallet=wallet,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
+                period=period,
             )
 
         return burned_register_extrinsic(
@@ -3141,6 +3142,7 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
+        period: Optional[int] = None,
     ) -> bool:
         """
         Register neuron by recycling some TAO.
@@ -3150,6 +3152,9 @@ class Subtensor(SubtensorMixin):
             wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
                 ``False``.
+            period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
 
         Returns:
             `True` if registration was successful, otherwise `False`.
@@ -3160,6 +3165,7 @@ class Subtensor(SubtensorMixin):
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            period=period,
         )
 
     def root_set_weights(
@@ -3170,6 +3176,7 @@ class Subtensor(SubtensorMixin):
         version_key: int = 0,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
+        period: Optional[int] = None,
     ) -> bool:
         """
         Set weights for the root network.
@@ -3183,6 +3190,9 @@ class Subtensor(SubtensorMixin):
                 ``False``.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
                 Defaults to ``False``.
+            period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
 
         Returns:
             `True` if the setting of weights is successful, `False` otherwise.
@@ -3198,6 +3208,7 @@ class Subtensor(SubtensorMixin):
             version_key=version_key,
             wait_for_finalization=wait_for_finalization,
             wait_for_inclusion=wait_for_inclusion,
+            period=period,
         )
 
     def set_subnet_identity(
