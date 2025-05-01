@@ -100,7 +100,6 @@ async def commit_weights_extrinsic(
     This function provides a user-friendly interface for committing weights to the Bittensor blockchain, ensuring proper
         error handling and user interaction when required.
     """
-
     success, error_message = await _do_commit_weights(
         subtensor=subtensor,
         wallet=wallet,
@@ -159,7 +158,6 @@ async def _do_reveal_weights(
     This method ensures that the weight revelation is securely recorded on the Bittensor blockchain, providing
         transparency and accountability for the neuron's weight distribution.
     """
-
     call = await subtensor.substrate.compose_call(
         call_module="SubtensorModule",
         call_function="reveal_weights",
@@ -221,7 +219,6 @@ async def reveal_weights_extrinsic(
     This function provides a user-friendly interface for revealing weights on the Bittensor blockchain, ensuring proper
         error handling and user interaction when required.
     """
-
     success, error_message = await _do_reveal_weights(
         subtensor=subtensor,
         wallet=wallet,
@@ -278,7 +275,6 @@ async def _do_set_weights(
     This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their
         trust in other neurons based on observed performance and contributions.
     """
-
     call = await subtensor.substrate.compose_call(
         call_module="SubtensorModule",
         call_function="set_weights",
@@ -333,7 +329,6 @@ async def set_weights_extrinsic(
             `True` if the weight commitment is successful, `False` otherwise.
             `msg` is a string value describing the success or potential error.
     """
-
     weight_uids, weight_vals = convert_and_normalize_weights_and_uids(uids, weights)
 
     logging.info(

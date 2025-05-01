@@ -2,7 +2,6 @@
 
 from typing import TYPE_CHECKING, Optional
 
-from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
