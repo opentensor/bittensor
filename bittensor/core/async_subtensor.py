@@ -3216,7 +3216,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = False,
         sign_with: str = "coldkey",
         use_nonce: bool = False,
-        period: Optional[int] = 64,  # 96 seconds for non-fast-blocks and 2 seconds for fast-blocks
+        period: Optional[int] = None,
         nonce_key: str = "hotkey",
         raise_error: bool = False,
     ) -> tuple[bool, str]:
