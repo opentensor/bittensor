@@ -47,29 +47,3 @@ def get_old_stakes(
         )
         for hotkey_ss58, netuid in zip(hotkey_ss58s, netuids)
     ]
-
-
-def convert_and_normalize_weights_and_uids(
-        uids: Union[NDArray[np.int64], "torch.LongTensor", list],
-        weights: Union[NDArray[np.float32], "torch.FloatTensor", list],
-) -> tuple[list[int], list[int]]:
-    """Converts weights and uids to numpy arrays if they are not already.
-
-    Arguments:
-        uids (Union[NDArray[np.int64], torch.LongTensor, list]): The ``uint64`` uids of destination neurons.
-        weights (Union[NDArray[np.float32], torch.FloatTensor, list]): The weights to set. These must be ``float`` s
-            and correspond to the passed ``uid`` s.
-
-    Returns:
-        weight_uids, weight_vals: Bytes converted weights and uids
-    """
-    if isinstance(uids, list):
-        uids = np.array(uids, dtype=np.int64)
-    if isinstance(weights, list):
-        weights = np.array(weights, dtype=np.float32)
-
-    # Reformat and normalize.
-    weight_uids, weight_vals = convert_weights_and_uids_for_emit(
-        uids, weights
-    )
-    return weight_uids, weight_vals
