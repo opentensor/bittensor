@@ -1,12 +1,15 @@
 """Module with helper functions for extrinsics."""
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
+import numpy as np
 from async_substrate_interface.errors import SubstrateRequestException
+from numpy.typing import NDArray
 
 from bittensor.utils import format_error_message
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
+from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -18,6 +21,7 @@ if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
     from bittensor.core.chain_data import StakeInfo
     from scalecodec.types import GenericExtrinsic
+    from bittensor.utils.registration import torch
 
 
 def submit_extrinsic(
@@ -105,9 +109,9 @@ def get_old_stakes(
     """
     Retrieve the previous staking balances for a wallet's hotkeys across given netuids.
 
-    This function searches through the provided staking data to find the stake amounts
-    for the specified hotkeys and netuids associated with the wallet's coldkey. If no match
-    is found for a particular hotkey and netuid combination, a default balance of zero is returned.
+    This function searches through the provided staking data to find the stake amounts for the specified hotkeys and
+    netuids associated with the wallet's coldkey. If no match is found for a particular hotkey and netuid combination,
+    a default balance of zero is returned.
 
     Args:
         wallet (Wallet): The wallet containing the coldkey to compare with stake data.
@@ -129,3 +133,29 @@ def get_old_stakes(
         )
         for hotkey_ss58, netuid in zip(hotkey_ss58s, netuids)
     ]
+
+
+def convert_and_normalize_weights_and_uids(
+        uids: Union[NDArray[np.int64], "torch.LongTensor", list],
+        weights: Union[NDArray[np.float32], "torch.FloatTensor", list],
+) -> tuple[list[int], list[int]]:
+    """Converts weights and uids to numpy arrays if they are not already.
+
+    Arguments:
+        uids (Union[NDArray[np.int64], torch.LongTensor, list]): The ``uint64`` uids of destination neurons.
+        weights (Union[NDArray[np.float32], torch.FloatTensor, list]): The weights to set. These must be ``float`` s
+            and correspond to the passed ``uid`` s.
+
+    Returns:
+        weight_uids, weight_vals: Bytes converted weights and uids
+    """
+    if isinstance(uids, list):
+        uids = np.array(uids, dtype=np.int64)
+    if isinstance(weights, list):
+        weights = np.array(weights, dtype=np.float32)
+
+    # Reformat and normalize.
+    weight_uids, weight_vals = convert_weights_and_uids_for_emit(
+        uids, weights
+    )
+    return weight_uids, weight_vals
