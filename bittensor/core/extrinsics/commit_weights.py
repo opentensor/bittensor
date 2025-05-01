@@ -18,7 +18,7 @@ def _do_commit_weights(
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
     period: Optional[int] = None,
-) -> tuple[bool, Optional[str]]:
+) -> tuple[bool, str]:
     """
     Internal method to send a transaction to the Bittensor blockchain, committing the hash of a neuron's weights.
     This method constructs and submits the transaction, handling retries and blockchain communication.
@@ -35,7 +35,9 @@ def _do_commit_weights(
             You can think of it as an expiration date for the transaction.
 
     Returns:
-        tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+        tuple[bool, str]:
+            `True` if the weight commitment is successful, `False` otherwise.
+            `msg` is a string value describing the success or potential error.
 
     This method ensures that the weight commitment is securely recorded on the Bittensor blockchain, providing a
         verifiable record of the neuron's weight distribution at a specific point in time.
@@ -85,8 +87,9 @@ def commit_weights_extrinsic(
             You can think of it as an expiration date for the transaction.
 
     Returns:
-        tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string
-        value describing the success or potential error.
+        tuple[bool, str]:
+            `True` if the weight commitment is successful, `False` otherwise.
+            `msg` is a string value describing the success or potential error.
 
     This function provides a user-friendly interface for committing weights to the Bittensor blockchain, ensuring proper
         error handling and user interaction when required.
@@ -121,7 +124,7 @@ def _do_reveal_weights(
     version_key: int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-) -> tuple[bool, Optional[dict]]:
+) -> tuple[bool, str]:
     """
     Internal method to send a transaction to the Bittensor blockchain, revealing the weights for a specific subnet.
     This method constructs and submits the transaction, handling retries and blockchain communication.
@@ -138,7 +141,9 @@ def _do_reveal_weights(
         wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
 
     Returns:
-        tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+        tuple[bool, str]:
+            `True` if the weight commitment is successful, `False` otherwise.
+            `msg` is a string value describing the success or potential error.
 
     This method ensures that the weight revelation is securely recorded on the Bittensor blockchain, providing
         transparency and accountability for the neuron's weight distribution.
@@ -193,8 +198,9 @@ def reveal_weights_extrinsic(
         wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
 
     Returns:
-        tuple[bool, str]: ``True`` if the weight revelation is successful, False otherwise. And `msg`, a string value
-            describing the success or potential error.
+        tuple[bool, str]:
+            `True` if the weight commitment is successful, `False` otherwise.
+            `msg` is a string value describing the success or potential error.
 
     This function provides a user-friendly interface for revealing weights on the Bittensor blockchain, ensuring proper
         error handling and user interaction when required.
@@ -217,6 +223,6 @@ def reveal_weights_extrinsic(
         logging.info(success_message)
         return True, success_message
 
-    error_message = format_error_message(error_message)
+    error_message = error_message
     logging.error(f"Failed to reveal weights: {error_message}")
     return False, error_message
