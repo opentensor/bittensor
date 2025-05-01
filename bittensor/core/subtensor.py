@@ -2503,7 +2503,7 @@ class Subtensor(SubtensorMixin):
         waits for the next block.
 
         Args:
-            block (Optional[int]): The block number to wait for. If None, waits for next block.
+            block (Optional[int]): The block number to wait for. If None, waits for the next block.
 
         Returns:
             bool: True if the target block was reached, False if timeout occurred.
@@ -2522,7 +2522,7 @@ class Subtensor(SubtensorMixin):
             )
             if block_data["header"]["number"] >= target_block:
                 return True
-            return False
+            return None
 
         current_block = self.substrate.get_block()
         current_block_hash = current_block.get("header", {}).get("hash")
