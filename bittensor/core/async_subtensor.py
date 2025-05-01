@@ -3216,7 +3216,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = False,
         sign_with: str = "coldkey",
         use_nonce: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = 64,  # 96 seconds for non-fast-blocks and 2 seconds for fast-blocks
         nonce_key: str = "hotkey",
         raise_error: bool = False,
     ) -> tuple[bool, str]:
@@ -3230,9 +3230,12 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization (bool): whether to wait until the extrinsic call is finalized on the chain
             sign_with: the wallet's keypair to use for the signing. Options are "coldkey", "hotkey", "coldkeypub"
             use_nonce: unique identifier for the transaction related with hot/coldkey.
-            period: the period of the transaction as ERA part for transaction. Means how many blocks the transaction will be valid for.
+            period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
             nonce_key: the type on nonce to use. Options are "hotkey" or "coldkey".
-            raise_error: raises relevant exception rather than returning `False` if unsuccessful.
+            nonce_key: the type on nonce to use. Options are "hotkey" or "coldkey".
+            raise_error: raises a relevant exception rather than returning `False` if unsuccessful.
 
         Returns:
             (success, error message)
