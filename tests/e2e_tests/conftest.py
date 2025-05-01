@@ -59,8 +59,8 @@ def local_chain(request):
     args = request.param if hasattr(request, "param") else None
 
     # passed env variable to control node mod (non-/fast-blocks)
-    non_fast_mode = os.getenv("NON_FAST_BLOCKS") == "1"
-    params = "" if args is None else f"{args}" + "True" if non_fast_mode is True else "False"
+    fast_blocks = "True" if (os.getenv("FAST_BLOCKS") == "1") is True else "False"
+    params = f"{fast_blocks}" if args is None else f"{fast_blocks} {args} "
 
     if shutil.which("docker") and not os.getenv("USE_DOCKER") == "0":
         yield from docker_runner(params)
@@ -69,7 +69,7 @@ def local_chain(request):
             if sys.platform.startswith("linux"):
                 docker_command = (
                     "Install docker with command "
-                    "[blue]sudo apt-get update && sudo apt-get install docker.io -y[/blue]"
+                    "[blue]sudo apt-gat update && sudo apt-get install docker.io -y[/blue]"
                     " or use documentation [blue]https://docs.docker.com/engine/install/[/blue]"
                 )
             elif sys.platform == "darwin":
@@ -95,7 +95,7 @@ def legacy_runner(params):
         logging.warning("LOCALNET_SH_PATH env variable is not set, e2e test skipped.")
         pytest.skip("LOCALNET_SH_PATH environment variable is not set.")
 
-    # Check if param is None, and handle it accordingly
+    # Check if param is None and handle it accordingly
     args = "" if params is None else f"{params}"
 
     # Compile commands to send to process
