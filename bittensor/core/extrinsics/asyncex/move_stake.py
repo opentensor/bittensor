@@ -1,5 +1,5 @@
 import asyncio
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -18,6 +18,7 @@ async def _get_stake_in_origin_and_dest(
     origin_netuid: int,
     destination_netuid: int,
 ) -> tuple[Balance, Balance]:
+    """Gets the current stake balances for both origin and destination addresses in their respective subnets."""
     block_hash = await subtensor.substrate.get_chain_head()
     stake_in_origin, stake_in_destination = await asyncio.gather(
         subtensor.get_stake(
@@ -46,6 +47,7 @@ async def transfer_stake_extrinsic(
     amount: Balance,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
+    period: Optional[int] = None,
 ) -> bool:
     """
     Transfers stake from one coldkey to another in the Bittensor network.
@@ -60,6 +62,9 @@ async def transfer_stake_extrinsic(
         amount (Balance): The amount of stake to transfer as a `Balance` object.
         wait_for_inclusion (bool): If True, waits for transaction inclusion in a block. Defaults to `True`.
         wait_for_finalization (bool): If True, waits for transaction finalization. Defaults to `False`.
+        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         bool: True if the transfer was successful, False otherwise.
@@ -116,6 +121,7 @@ async def transfer_stake_extrinsic(
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            period=period,
         )
 
         if success:
@@ -163,6 +169,7 @@ async def swap_stake_extrinsic(
     safe_staking: bool = False,
     allow_partial_stake: bool = False,
     rate_tolerance: float = 0.005,
+    period: Optional[int] = None,
 ) -> bool:
     """
     Swaps stake from one subnet to another for a given hotkey in the Bittensor network.
@@ -179,6 +186,9 @@ async def swap_stake_extrinsic(
         safe_staking (bool): If true, enables price safety checks to protect against price impact.
         allow_partial_stake (bool): If true, allows partial stake swaps when the full amount would exceed the price tolerance.
         rate_tolerance (float): Maximum allowed increase in price ratio (0.005 = 0.5%).
+        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         bool: True if the swap was successful, False otherwise.
@@ -259,6 +269,7 @@ async def swap_stake_extrinsic(
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            period=period,
         )
 
         if success:
@@ -309,6 +320,7 @@ async def move_stake_extrinsic(
     amount: Balance,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
+    period: Optional[int] = None,
 ) -> bool:
     """
     Moves stake from one hotkey to another within subnets in the Bittensor network.
@@ -323,6 +335,9 @@ async def move_stake_extrinsic(
         amount (Balance): The amount of stake to move as a `Balance` object.
         wait_for_inclusion (bool): If True, waits for transaction inclusion in a block. Defaults to True.
         wait_for_finalization (bool): If True, waits for transaction finalization. Defaults to False.
+        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         bool: True if the move was successful, False otherwise.
@@ -369,6 +384,7 @@ async def move_stake_extrinsic(
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            period=period,
         )
 
         if success:
