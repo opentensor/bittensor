@@ -155,7 +155,7 @@ def test_commit_reveal_v3_extrinsic_success_with_torch(
     mocked_weights = mocker.Mock()
     mocked_convert_weights_and_uids_for_emit = mocker.patch.object(
         commit_reveal,
-        "convert_weights_and_uids_for_emit",
+        "convert_and_normalize_weights_and_uids",
         return_value=(mocked_uids, mocked_weights),
     )
     mocker.patch.object(subtensor, "get_subnet_reveal_period_epochs")
@@ -183,6 +183,7 @@ def test_commit_reveal_v3_extrinsic_success_with_torch(
         weights=fake_weights,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        period=None,
     )
 
     # Asserts
@@ -209,6 +210,7 @@ def test_commit_reveal_v3_extrinsic_success_with_torch(
         reveal_round=fake_reveal_round,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        period=None,
     )
 
 
@@ -223,7 +225,7 @@ def test_commit_reveal_v3_extrinsic_success_with_numpy(
 
     mock_convert = mocker.patch.object(
         commit_reveal,
-        "convert_weights_and_uids_for_emit",
+        "convert_and_normalize_weights_and_uids",
         return_value=(fake_uids, fake_weights),
     )
     mock_encode_drand = mocker.patch.object(
@@ -272,7 +274,7 @@ def test_commit_reveal_v3_extrinsic_response_false(
     # Mocks
     mocker.patch.object(
         commit_reveal,
-        "convert_weights_and_uids_for_emit",
+        "convert_and_normalize_weights_and_uids",
         return_value=(fake_uids, fake_weights),
     )
     mocker.patch.object(
@@ -312,6 +314,7 @@ def test_commit_reveal_v3_extrinsic_response_false(
         reveal_round=fake_reveal_round,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        period=None,
     )
 
 
@@ -324,7 +327,7 @@ def test_commit_reveal_v3_extrinsic_exception(mocker, subtensor, fake_wallet):
 
     mocker.patch.object(
         commit_reveal,
-        "convert_weights_and_uids_for_emit",
+        "convert_and_normalize_weights_and_uids",
         side_effect=Exception("Test Error"),
     )
 
