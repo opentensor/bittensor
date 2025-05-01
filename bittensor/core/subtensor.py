@@ -2812,6 +2812,7 @@ class Subtensor(SubtensorMixin):
         netuid: int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
+        period: Optional[int] = None,
     ) -> bool:
         """
         Registers a neuron on the Bittensor network by recycling TAO. This method of registration involves recycling
@@ -2824,6 +2825,9 @@ class Subtensor(SubtensorMixin):
                 `False`.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
                 Defaults to `True`.
+            period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
 
         Returns:
             bool: ``True`` if the registration is successful, False otherwise.
@@ -2843,6 +2847,7 @@ class Subtensor(SubtensorMixin):
             netuid=netuid,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            period=period,
         )
 
     def commit_weights(
@@ -2984,6 +2989,7 @@ class Subtensor(SubtensorMixin):
         num_processes: Optional[int] = None,
         update_interval: Optional[int] = None,
         log_verbose: bool = False,
+        period: Optional[int] = None,
     ) -> bool:
         """
         Registers a neuron on the Bittensor network using the provided wallet.
@@ -3006,6 +3012,9 @@ class Subtensor(SubtensorMixin):
             num_processes (Optional[int]): The number of processes to use to register. Default to `None`.
             update_interval (Optional[int]): The number of nonces to solve between updates.  Default to `None`.
             log_verbose (bool): If ``true``, the registration process will log more information.  Default to `False`.
+            period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
 
         Returns:
             bool: ``True`` if the registration is successful, False otherwise.
@@ -3027,6 +3036,7 @@ class Subtensor(SubtensorMixin):
             dev_id=dev_id,
             output_in_place=output_in_place,
             log_verbose=log_verbose,
+            period=period,
         )
 
     def register_subnet(
@@ -3034,6 +3044,7 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
+        period: Optional[int] = None,
     ) -> bool:
         """
         Registers a new subnetwork on the Bittensor network.
@@ -3044,6 +3055,9 @@ class Subtensor(SubtensorMixin):
                 false if the extrinsic fails to enter the block within the timeout. Default is False.
             wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
                 true, or returns false if the extrinsic fails to be finalized within the timeout. Default is True.
+            period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
 
         Returns:
             bool: True if the subnet registration was successful, False otherwise.
@@ -3053,6 +3067,7 @@ class Subtensor(SubtensorMixin):
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            period=period,
         )
 
     def reveal_weights(
@@ -3192,6 +3207,7 @@ class Subtensor(SubtensorMixin):
         subnet_identity: SubnetIdentity,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
+        period: Optional[int] = None,
     ) -> tuple[bool, str]:
         """
         Sets the identity of a subnet for a specific wallet and network.
@@ -3203,6 +3219,9 @@ class Subtensor(SubtensorMixin):
                 repository, contact, URL, discord, description, and any additional metadata.
             wait_for_inclusion (bool): Indicates if the function should wait for the transaction to be included in the block.
             wait_for_finalization (bool): Indicates if the function should wait for the transaction to reach finalization.
+            period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
 
         Returns:
             tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
@@ -3221,6 +3240,7 @@ class Subtensor(SubtensorMixin):
             additional=subnet_identity.additional,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            period=period,
         )
 
     def set_weights(
