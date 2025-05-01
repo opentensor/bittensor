@@ -2,13 +2,13 @@
 
 from typing import Union, TYPE_CHECKING, Optional
 
-from bittensor_drand import get_encrypted_commit
 import numpy as np
+from bittensor_drand import get_encrypted_commit
 from numpy.typing import NDArray
 
+from bittensor.core.extrinsics.utils import convert_and_normalize_weights_and_uids
 from bittensor.core.settings import version_as_int
 from bittensor.utils.btlogging import logging
-from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -24,23 +24,27 @@ def _do_commit_reveal_v3(
     reveal_round: int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
+    period: Optional[int] = None,
 ) -> tuple[bool, Optional[str]]:
     """
-    Executes the commit-reveal phase 3 for a given netuid and commit, and optionally waits for extrinsic inclusion or
+    Executes commit-reveal phase 3 for a given netuid and commit, and optionally waits for extrinsic inclusion or
         finalization.
 
     Arguments:
         subtensor: An instance of the Subtensor class.
         wallet: Wallet An instance of the Wallet class containing the user's keypair.
         netuid: int The network unique identifier.
-        commit  bytes The commit data in bytes format.
+        commit: bytes The commit data in bytes format.
         reveal_round: int The round number for the reveal phase.
         wait_for_inclusion: bool, optional Flag indicating whether to wait for the extrinsic to be included in a block.
         wait_for_finalization: bool, optional Flag indicating whether to wait for the extrinsic to be finalized.
+        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         A tuple where the first element is a boolean indicating success or failure, and the second element is an
-            optional string containing error message if any.
+            optional string containing an error message if any.
     """
     logging.info(
         f"Committing weights hash [blue]{commit.hex()}[/blue] for subnet #[blue]{netuid}[/blue] with "
@@ -57,7 +61,12 @@ def _do_commit_reveal_v3(
         },
     )
     return subtensor.sign_and_send_extrinsic(
-        call, wallet, wait_for_inclusion, wait_for_finalization, sign_with="hotkey"
+        call=call,
+        wallet=wallet,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+        sign_with="hotkey",
+        period=period
     )
 
 
@@ -70,10 +79,11 @@ def commit_reveal_v3_extrinsic(
     version_key: int = version_as_int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-    block_time: float = 12.0,
+    block_time: Union[int, float] = 12.0,
+    period: Optional[int] = None,
 ) -> tuple[bool, str]:
     """
-    Commits and reveals weights for given subtensor and wallet with provided uids and weights.
+    Commits and reveals weights for a given subtensor and wallet with provided uids and weights.
 
     Arguments:
         subtensor: The Subtensor instance.
@@ -84,21 +94,17 @@ def commit_reveal_v3_extrinsic(
         version_key: The version key to use for committing and revealing. Default is version_as_int.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction. Default is False.
         wait_for_finalization: Whether to wait for the finalization of the transaction. Default is False.
-        block_time (float): The amount of seconds for block duration. Default is 12.0 seconds.
+        block_time (float): The number of seconds for block duration. Default is 12.0 seconds.
+        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
 
     Returns:
         tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure, and the second
             element is a message associated with the result
     """
     try:
-        # Convert uids and weights
-        if isinstance(uids, list):
-            uids = np.array(uids, dtype=np.int64)
-        if isinstance(weights, list):
-            weights = np.array(weights, dtype=np.float32)
-
-        # Reformat and normalize.
-        uids, weights = convert_weights_and_uids_for_emit(uids, weights)
+        uids, weights = convert_and_normalize_weights_and_uids(uids, weights)
 
         current_block = subtensor.get_current_block()
         subnet_hyperparameters = subtensor.get_subnet_hyperparameters(
@@ -127,6 +133,7 @@ def commit_reveal_v3_extrinsic(
             reveal_round=reveal_round,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            period=period,
         )
 
         if success is not True:
