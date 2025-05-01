@@ -3216,7 +3216,7 @@ class Subtensor(SubtensorMixin):
         wait_for_finalization: bool = False,
         max_retries: int = 5,
         block_time: float = 12.0,
-        period: int = 5,
+        period: int = 8,
     ) -> tuple[bool, str]:
         """
         Sets the inter-neuronal weights for the specified neuron. This process involves specifying the influence or
@@ -3224,27 +3224,26 @@ class Subtensor(SubtensorMixin):
             decentralized learning architecture.
 
         Arguments:
-            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron setting the weights.
-            netuid (int): The unique identifier of the subnet.
-            uids (Union[NDArray[np.int64], torch.LongTensor, list]): The list of neuron UIDs that the weights are being
-                set for.
-            weights (Union[NDArray[np.float32], torch.FloatTensor, list]): The corresponding weights to be set for each
-                UID.
-            version_key (int): Version key for compatibility with the network.  Default is int representation of
-                Bittensor version.
-            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
-            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
-                ``False``.
-            max_retries (int): The number of maximum attempts to set weights. Default is ``5``.
-            block_time (float): The amount of seconds for block duration. Default is 12.0 seconds.
-            period (int, optional): The period in seconds to wait for extrinsic inclusion or finalization. Defaults to 5.
+            wallet: The wallet associated with the neuron setting the weights.
+            netuid: The unique identifier of the subnet.
+            uids: The list of neuron UIDs that the weights are being set for.
+            weights: The corresponding weights to be set for each UID.
+            version_key: Version key for compatibility with the network.  Default is int representation of a Bittensor version.
+            wait_for_inclusion: Waits for the transaction to be included in a block. Default is ``False``.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Default is ``False``.
+            max_retries: The number of maximum attempts to set weights. Default is ``5``.
+            block_time: The number of seconds for block duration. Default is 12.0 seconds.
+            period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
 
         Returns:
-            tuple[bool, str]: ``True`` if the setting of weights is successful, False otherwise. And `msg`, a string
-                value describing the success or potential error.
+            tuple:
+                ``True`` if the setting of weights is successful, False otherwise.
+                `msg` is a string value describing the success or potential error.
 
         This function is crucial in shaping the network's collective intelligence, where each neuron's learning and
-            contribution are influenced by the weights it sets towards others【81†source】.
+            contribution are influenced by the weights it sets towards others.
         """
 
         def _blocks_weight_limit() -> bool:
@@ -3268,7 +3267,8 @@ class Subtensor(SubtensorMixin):
 
             while retries < max_retries and success is False and _blocks_weight_limit():
                 logging.info(
-                    f"Committing weights for subnet #{netuid}. Attempt {retries + 1} of {max_retries}."
+                    f"Committing weights for subnet [blue]{netuid}[/blue]. "
+                    f"Attempt [blue]{retries + 1}[blue] of [green]{max_retries}[/green]."
                 )
                 success, message = commit_reveal_v3_extrinsic(
                     subtensor=self,
@@ -3280,17 +3280,18 @@ class Subtensor(SubtensorMixin):
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                     block_time=block_time,
+                    period=period,
                 )
                 retries += 1
             return success, message
         else:
-            # go with classic `set weights extrinsic`
+            # go with classic `set_weights_extrinsic`
 
             while retries < max_retries and success is False and _blocks_weight_limit():
                 try:
                     logging.info(
-                        f"Setting weights for subnet #[blue]{netuid}[/blue]. "
-                        f"Attempt [blue]{retries + 1} of {max_retries}[/blue]."
+                        f"Setting weights for subnet [blue]{netuid}[/blue]. "
+                        f"Attempt [blue]{retries + 1}[/blue] of [green]{max_retries}[/green]."
                     )
                     success, message = set_weights_extrinsic(
                         subtensor=self,
@@ -3305,7 +3306,6 @@ class Subtensor(SubtensorMixin):
                     )
                 except Exception as e:
                     logging.error(f"Error setting weights: {e}")
-                finally:
                     retries += 1
 
             return success, message
