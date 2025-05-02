@@ -205,7 +205,9 @@ async def add_stake_extrinsic(
             return False
 
     except SubstrateRequestException as error:
-        logging.error(f":cross_mark: [red]Add Stake Error: {format_error_message(error)}[/red]")
+        logging.error(
+            f":cross_mark: [red]Add Stake Error: {format_error_message(error)}[/red]"
+        )
         return False
 
 
@@ -402,7 +404,9 @@ async def add_stake_multiple_extrinsic(
                 continue
 
         except SubstrateRequestException as error:
-            logging.error(f":cross_mark: [red]Add Stake Multiple error: {format_error_message(error)}[/red]")
+            logging.error(
+                f":cross_mark: [red]Add Stake Multiple error: {format_error_message(error)}[/red]"
+            )
             continue
 
     if successful_stakes != 0:

@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Optional
 
-from bittensor.utils import unlock_key, format_error_message
+from bittensor.utils import unlock_key
 from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
@@ -51,7 +51,7 @@ async def start_call_extrinsic(
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            period=period
+            period=period,
         )
 
         if not wait_for_finalization and not wait_for_inclusion:

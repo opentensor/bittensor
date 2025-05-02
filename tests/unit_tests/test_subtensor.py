@@ -1269,7 +1269,7 @@ def test_commit(subtensor, fake_wallet, mocker):
         netuid=fake_netuid,
         data_type=f"Raw{len(fake_data)}",
         data=fake_data.encode(),
-        period=None
+        period=None,
     )
     assert result is mocked_publish_metadata.return_value
 
@@ -1492,7 +1492,7 @@ def test_do_serve_axon_is_success(
         wallet=fake_wallet,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
-        period=None
+        period=None,
     )
 
     assert result[0] is True
@@ -1505,7 +1505,9 @@ def test_do_serve_axon_is_not_success(subtensor, fake_wallet, mocker, fake_call_
     fake_wait_for_inclusion = True
     fake_wait_for_finalization = True
 
-    mocker.patch.object(subtensor, "sign_and_send_extrinsic", return_value=(False, None))
+    mocker.patch.object(
+        subtensor, "sign_and_send_extrinsic", return_value=(False, None)
+    )
 
     # Call
     result = do_serve_axon(
@@ -1528,7 +1530,7 @@ def test_do_serve_axon_is_not_success(subtensor, fake_wallet, mocker, fake_call_
         wallet=fake_wallet,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
-        period=None
+        period=None,
     )
 
     assert result == (False, None)
@@ -1541,7 +1543,9 @@ def test_do_serve_axon_no_waits(subtensor, fake_wallet, mocker, fake_call_params
     fake_wait_for_finalization = False
 
     mocked_sign_and_send_extrinsic = mocker.Mock(return_value=(True, ""))
-    mocker.patch.object(subtensor, "sign_and_send_extrinsic", new=mocked_sign_and_send_extrinsic)
+    mocker.patch.object(
+        subtensor, "sign_and_send_extrinsic", new=mocked_sign_and_send_extrinsic
+    )
 
     # Call
     result = do_serve_axon(
@@ -1564,7 +1568,7 @@ def test_do_serve_axon_no_waits(subtensor, fake_wallet, mocker, fake_call_params
         wallet=fake_wallet,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
-        period=None
+        period=None,
     )
     assert result == (True, "")
 
@@ -1956,7 +1960,7 @@ def test_commit_weights(subtensor, fake_wallet, mocker):
         commit_hash=mocked_generate_weight_hash.return_value,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
-        period=16
+        period=16,
     )
     assert result == expected_result
 
@@ -1996,7 +2000,7 @@ def test_reveal_weights(subtensor, fake_wallet, mocker):
         salt=salt,
         wait_for_inclusion=False,
         wait_for_finalization=False,
-        period=16
+        period=16,
     )
 
 

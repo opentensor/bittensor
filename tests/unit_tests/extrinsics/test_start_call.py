@@ -33,7 +33,7 @@ def test_start_call_extrinsics(subtensor, mocker, fake_wallet):
         wallet=wallet,
         wait_for_inclusion=True,
         wait_for_finalization=False,
-        period=None
+        period=None,
     )
 
     assert success is True

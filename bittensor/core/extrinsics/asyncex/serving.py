@@ -221,7 +221,7 @@ async def serve_axon_extrinsic(
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
         certificate=certificate,
-        period=period
+        period=period,
     )
     return serve_success
 

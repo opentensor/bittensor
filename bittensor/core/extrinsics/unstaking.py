@@ -186,7 +186,9 @@ def unstake_extrinsic(
             return False
 
     except SubstrateRequestException as error:
-        logging.error(f":cross_mark: [red]Unstake filed with error: {format_error_message(error)}[/red]")
+        logging.error(
+            f":cross_mark: [red]Unstake filed with error: {format_error_message(error)}[/red]"
+        )
         return False
 
 
@@ -342,7 +344,9 @@ def unstake_multiple_extrinsic(
                 continue
 
         except SubstrateRequestException as error:
-            logging.error(f":cross_mark: [red]Multiple unstake filed with error: {format_error_message(error)}[/red]")
+            logging.error(
+                f":cross_mark: [red]Multiple unstake filed with error: {format_error_message(error)}[/red]"
+            )
             return False
 
     if successful_unstakes != 0:

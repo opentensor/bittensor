@@ -452,7 +452,9 @@ class Subtensor(SubtensorMixin):
 
         return b_map
 
-    def commit(self, wallet, netuid: int, data: str, period: Optional[int] = None) -> bool:
+    def commit(
+        self, wallet, netuid: int, data: str, period: Optional[int] = None
+    ) -> bool:
         """
         Commits arbitrary data to the Bittensor network by publishing metadata.
 
@@ -3229,7 +3231,7 @@ class Subtensor(SubtensorMixin):
                 wait_for_finalization=wait_for_finalization,
                 wait_for_inclusion=wait_for_inclusion,
                 raise_error=raise_error,
-                period=period
+                period=period,
             )
         else:
             success, error = decrease_take_extrinsic(
@@ -3240,7 +3242,7 @@ class Subtensor(SubtensorMixin):
                 wait_for_finalization=wait_for_finalization,
                 wait_for_inclusion=wait_for_inclusion,
                 raise_error=raise_error,
-                period=period
+                period=period,
             )
 
         if success:

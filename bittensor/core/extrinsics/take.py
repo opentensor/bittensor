@@ -54,7 +54,7 @@ def increase_take_extrinsic(
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
-        period=period,   
+        period=period,
         raise_error=raise_error,
     )
 
@@ -70,7 +70,7 @@ def decrease_take_extrinsic(
     period: Optional[int] = None,
 ) -> tuple[bool, str]:
     """Sets the delegate 'take' percentage for a neuron identified by its hotkey.
-    
+
     Args:
         subtensor (Subtensor): Blockchain connection.
         wallet (Wallet): The wallet to sign the extrinsic.

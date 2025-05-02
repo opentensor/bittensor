@@ -7,7 +7,10 @@ from numpy.typing import NDArray
 
 from bittensor.core.settings import version_as_int
 from bittensor.utils.btlogging import logging
-from bittensor.utils.weight_utils import convert_and_normalize_weights_and_uids, convert_uids_and_weights
+from bittensor.utils.weight_utils import (
+    convert_and_normalize_weights_and_uids,
+    convert_uids_and_weights,
+)
 
 if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor

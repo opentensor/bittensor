@@ -16,7 +16,7 @@ from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import (
     normalize_max_weight,
     convert_weights_and_uids_for_emit,
-    convert_uids_and_weights
+    convert_uids_and_weights,
 )
 
 if TYPE_CHECKING:

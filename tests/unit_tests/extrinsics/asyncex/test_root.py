@@ -389,7 +389,9 @@ async def test_do_set_root_weights_failure(subtensor, fake_wallet, mocker):
     fake_call = mocker.AsyncMock()
 
     mocker.patch.object(subtensor.substrate, "compose_call", return_value=fake_call)
-    mocker.patch.object(subtensor, "sign_and_send_extrinsic", return_value=(False, "Transaction failed"))
+    mocker.patch.object(
+        subtensor, "sign_and_send_extrinsic", return_value=(False, "Transaction failed")
+    )
 
     # Call
     result, message = await async_root._do_set_root_weights(
@@ -419,7 +421,9 @@ async def test_do_set_root_weights_no_waiting(subtensor, fake_wallet, mocker):
 
     mocker.patch.object(subtensor.substrate, "compose_call", return_value=fake_call)
     mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=(True, "Not waiting for finalization or inclusion.")
+        subtensor,
+        "sign_and_send_extrinsic",
+        return_value=(True, "Not waiting for finalization or inclusion."),
     )
 
     # Call
