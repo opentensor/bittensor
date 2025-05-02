@@ -4,7 +4,7 @@ from async_substrate_interface.errors import SubstrateRequestException
 
 from bittensor.core.errors import StakeError, NotRegisteredError
 from bittensor.core.extrinsics.utils import get_old_stakes
-from bittensor.utils import unlock_key
+from bittensor.utils import unlock_key, format_error_message
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 
@@ -199,8 +199,8 @@ def add_stake_extrinsic(
                 logging.error(f":cross_mark: [red]Failed: {message}.[/red]")
             return False
 
-    except SubstrateRequestException as e:
-        logging.error(f":cross_mark: [red]Add Stake Error: {e}[/red]")
+    except SubstrateRequestException as error:
+        logging.error(f":cross_mark: [red]Add Stake Error: {format_error_message((error))}[/red]")
         return False
 
 
@@ -385,13 +385,8 @@ def add_stake_multiple_extrinsic(
                 logging.error(f":cross_mark: [red]Failed[/red]: {message}")
                 continue
 
-        except NotRegisteredError:
-            logging.error(
-                f":cross_mark: [red]Hotkey: {hotkey_ss58} is not registered.[/red]"
-            )
-            continue
-        except StakeError as e:
-            logging.error(f":cross_mark: [red]Stake Error: {e}[/red]")
+        except SubstrateRequestException as error:
+            logging.error(f":cross_mark: [red]Add Stake Multiple error: {format_error_message(error)}[/red]")
             continue
 
     if successful_stakes != 0:
