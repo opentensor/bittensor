@@ -25,7 +25,7 @@ def _do_commit_reveal_v3(
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
     period: Optional[int] = None,
-) -> tuple[bool, Optional[str]]:
+) -> tuple[bool, str]:
     """
     Executes commit-reveal phase 3 for a given netuid and commit, and optionally waits for extrinsic inclusion or
         finalization.
@@ -43,8 +43,8 @@ def _do_commit_reveal_v3(
             You can think of it as an expiration date for the transaction.
 
     Returns:
-        A tuple where the first element is a boolean indicating success or failure, and the second element is an
-            optional string containing an error message if any.
+        A tuple where the first element is a boolean indicating success or failure, and the second element is a string
+            containing an error message if any.
     """
     logging.info(
         f"Committing weights hash [blue]{commit.hex()}[/blue] for subnet #[blue]{netuid}[/blue] with "
