@@ -452,7 +452,7 @@ class Subtensor(SubtensorMixin):
 
         return b_map
 
-    def commit(self, wallet, netuid: int, data: str) -> bool:
+    def commit(self, wallet, netuid: int, data: str, period: Optional[int] = None) -> bool:
         """
         Commits arbitrary data to the Bittensor network by publishing metadata.
 
@@ -460,6 +460,12 @@ class Subtensor(SubtensorMixin):
             wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the data.
             netuid (int): The unique identifier of the subnetwork.
             data (str): The data to be committed to the network.
+            period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+
+        Returns:
+            bool: `True` if the commitment was successful, `False` otherwise.
         """
         return publish_metadata(
             subtensor=self,
@@ -467,6 +473,7 @@ class Subtensor(SubtensorMixin):
             netuid=netuid,
             data_type=f"Raw{len(data)}",
             data=data.encode(),
+            period=period,
         )
 
     # add explicit alias
@@ -476,7 +483,7 @@ class Subtensor(SubtensorMixin):
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[bool]:
         """
-        Check if commit-reveal mechanism is enabled for a given network at a specific block.
+        Check if a commit-reveal mechanism is enabled for a given network at a specific block.
 
         Arguments:
             netuid: The network identifier for which to check the commit-reveal mechanism.
@@ -2368,6 +2375,7 @@ class Subtensor(SubtensorMixin):
         data: str,
         blocks_until_reveal: int = 360,
         block_time: Union[int, float] = 12,
+        period: Optional[int] = None,
     ) -> tuple[bool, int]:
         """
         Commits arbitrary data to the Bittensor network by publishing metadata.
@@ -2377,9 +2385,11 @@ class Subtensor(SubtensorMixin):
             netuid (int): The unique identifier of the subnetwork.
             data (str): The data to be committed to the network.
             blocks_until_reveal (int): The number of blocks from now after which the data will be revealed. Defaults to `360`.
-                Then amount of blocks in one epoch.
+                Then number of blocks in one epoch.
             block_time (Union[int, float]): The number of seconds between each block. Defaults to `12`.
-
+            period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
         Returns:
             bool: `True` if the commitment was successful, `False` otherwise.
 
@@ -2399,6 +2409,7 @@ class Subtensor(SubtensorMixin):
             netuid=netuid,
             data_type=f"TimelockEncrypted",
             data=data_,
+            period=period,
         ), reveal_round
 
     def subnet(self, netuid: int, block: Optional[int] = None) -> Optional[DynamicInfo]:
@@ -3366,6 +3377,7 @@ class Subtensor(SubtensorMixin):
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
         certificate: Optional[Certificate] = None,
+        period: Optional[int] = None,
     ) -> bool:
         """
         Registers an ``Axon`` serving endpoint on the Bittensor network for a specific neuron. This function is used to
@@ -3379,6 +3391,9 @@ class Subtensor(SubtensorMixin):
                 ``True``.
             certificate (bittensor.utils.Certificate): Certificate to use for TLS. If ``None``, no TLS will be used.
                 Defaults to ``None``.
+            period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
 
         Returns:
             bool: ``True`` if the Axon serve registration is successful, False otherwise.
@@ -3393,6 +3408,7 @@ class Subtensor(SubtensorMixin):
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             certificate=certificate,
+            period=period,
         )
 
     def start_call(
@@ -3463,7 +3479,6 @@ class Subtensor(SubtensorMixin):
             period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
-
 
         Returns:
             success (bool): True if the extrinsic was successful.
