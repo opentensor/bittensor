@@ -12,6 +12,9 @@ on:
     branches: [master, development, staging]
     types: [ opened, synchronize, reopened, ready_for_review ]
 
+  schedule:
+    - cron: '0 9 * * *'  # Run every night at 2:00 PST
+
   workflow_dispatch:
     inputs:
       verbose:

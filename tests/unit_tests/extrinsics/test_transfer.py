@@ -10,7 +10,8 @@ def test_do_transfer_is_success_true(subtensor, fake_wallet, mocker):
     fake_wait_for_inclusion = True
     fake_wait_for_finalization = True
 
-    subtensor.substrate.submit_extrinsic.return_value.is_success = True
+    mocker.patch.object(subtensor, "sign_and_send_extrinsic", return_value=(True, ""))
+    mocker.patch.object(subtensor, "get_block_hash", return_value=1)
 
     # Call
     result = _do_transfer(
@@ -28,20 +29,15 @@ def test_do_transfer_is_success_true(subtensor, fake_wallet, mocker):
         call_function="transfer_allow_death",
         call_params={"dest": fake_dest, "value": fake_transfer_balance.rao},
     )
-    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value, keypair=fake_wallet.coldkey
-    )
-    subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        extrinsic=subtensor.substrate.create_signed_extrinsic.return_value,
+    subtensor.sign_and_send_extrinsic.assert_called_once_with(
+        call=subtensor.substrate.compose_call.return_value,
+        wallet=fake_wallet,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
+        period=None,
     )
     # subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
-    assert result == (
-        True,
-        subtensor.substrate.submit_extrinsic.return_value.block_hash,
-        "Success with response.",
-    )
+    assert result == (True, 1, "Success with response.")
 
 
 def test_do_transfer_is_success_false(subtensor, fake_wallet, mocker):
@@ -52,13 +48,8 @@ def test_do_transfer_is_success_false(subtensor, fake_wallet, mocker):
     fake_wait_for_inclusion = True
     fake_wait_for_finalization = True
 
-    subtensor.substrate.submit_extrinsic.return_value.is_success = False
-
-    mocked_format_error_message = mocker.Mock()
-    mocker.patch(
-        "bittensor.core.extrinsics.transfer.format_error_message",
-        mocked_format_error_message,
-    )
+    mocker.patch.object(subtensor, "sign_and_send_extrinsic", return_value=(False, ""))
+    mocker.patch.object(subtensor, "get_block_hash", return_value=1)
 
     # Call
     result = _do_transfer(
@@ -76,23 +67,15 @@ def test_do_transfer_is_success_false(subtensor, fake_wallet, mocker):
         call_function="transfer_allow_death",
         call_params={"dest": fake_dest, "value": fake_transfer_balance.rao},
     )
-    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value, keypair=fake_wallet.coldkey
-    )
-    subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        extrinsic=subtensor.substrate.create_signed_extrinsic.return_value,
+    subtensor.sign_and_send_extrinsic.assert_called_once_with(
+        call=subtensor.substrate.compose_call.return_value,
+        wallet=fake_wallet,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
-    )
-    mocked_format_error_message.assert_called_once_with(
-        subtensor.substrate.submit_extrinsic.return_value.error_message
+        period=None,
     )
 
-    assert result == (
-        False,
-        "",
-        mocked_format_error_message.return_value,
-    )
+    assert result == (False, "", "")
 
 
 def test_do_transfer_no_waits(subtensor, fake_wallet, mocker):
@@ -103,6 +86,10 @@ def test_do_transfer_no_waits(subtensor, fake_wallet, mocker):
     fake_wait_for_inclusion = False
     fake_wait_for_finalization = False
 
+    mocker.patch.object(
+        subtensor, "sign_and_send_extrinsic", return_value=(True, "msg")
+    )
+
     # Call
     result = _do_transfer(
         subtensor,
@@ -119,12 +106,11 @@ def test_do_transfer_no_waits(subtensor, fake_wallet, mocker):
         call_function="transfer_allow_death",
         call_params={"dest": fake_dest, "value": fake_transfer_balance.rao},
     )
-    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value, keypair=fake_wallet.coldkey
-    )
-    subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        extrinsic=subtensor.substrate.create_signed_extrinsic.return_value,
+    subtensor.sign_and_send_extrinsic.assert_called_once_with(
+        call=subtensor.substrate.compose_call.return_value,
+        wallet=fake_wallet,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
+        period=None,
     )
-    assert result == (True, "", "Success, extrinsic submitted without waiting.")
+    assert result == (True, "", "msg")

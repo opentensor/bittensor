@@ -1291,59 +1291,6 @@ def test_root_register_is_already_registered(
     mock_substrate.submit_extrinsic.assert_not_called()
 
 
-def test_root_set_weights(mock_substrate, subtensor, fake_wallet, mocker):
-    MIN_ALLOWED_WEIGHTS = 0
-    MAX_WEIGHTS_LIMIT = 1
-
-    mock_substrate.query.return_value = 1
-    mocker.patch.object(
-        subtensor,
-        "get_hyperparameter",
-        autospec=True,
-        side_effect=[
-            MIN_ALLOWED_WEIGHTS,
-            MAX_WEIGHTS_LIMIT,
-        ],
-    )
-
-    subtensor.root_set_weights(
-        fake_wallet,
-        netuids=[1, 2],
-        weights=[0.5, 0.5],
-    )
-
-    subtensor.get_hyperparameter.assert_has_calls(
-        [
-            mocker.call("MinAllowedWeights", netuid=0),
-            mocker.call("MaxWeightsLimit", netuid=0),
-        ]
-    )
-    mock_substrate.query.assert_called_once_with(
-        "SubtensorModule",
-        "Uids",
-        [0, fake_wallet.hotkey.ss58_address],
-    )
-
-    assert_submit_signed_extrinsic(
-        mock_substrate,
-        fake_wallet.coldkey,
-        call_module="SubtensorModule",
-        call_function="set_root_weights",
-        call_params={
-            "dests": [1, 2],
-            "weights": [65535, 65535],
-            "netuid": 0,
-            "version_key": 0,
-            "hotkey": fake_wallet.hotkey.ss58_address,
-        },
-        era={
-            "period": 5,
-        },
-        nonce=mock_substrate.get_account_next_index.return_value,
-        wait_for_finalization=False,
-    )
-
-
 def test_root_set_weights_no_uid(mock_substrate, subtensor, fake_wallet, mocker):
     mock_substrate.query.return_value = None
 

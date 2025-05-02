@@ -1,9 +1,8 @@
 import asyncio
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from bittensor.core.settings import NETWORK_EXPLORER_MAP
 from bittensor.utils import (
-    format_error_message,
     get_explorer_url_for_network,
     is_valid_bittensor_address_or_public_key,
     unlock_key,
@@ -23,6 +22,7 @@ async def _do_transfer(
     amount: "Balance",
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
+    period: Optional[int] = None,
 ) -> tuple[bool, str, str]:
     """
     Makes transfer from wallet to destination public key address.
@@ -34,8 +34,11 @@ async def _do_transfer(
         amount (bittensor.utils.balance.Balance): Amount to stake as Bittensor balance.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns
             `False` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):  If set, waits for the extrinsic to be finalized on the chain before returning
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
             `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted.
+            If the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         success, block hash, formatted error message
@@ -45,24 +48,25 @@ async def _do_transfer(
         call_function="transfer_allow_death",
         call_params={"dest": destination, "value": amount.rao},
     )
-    extrinsic = await subtensor.substrate.create_signed_extrinsic(
-        call=call, keypair=wallet.coldkey
-    )
-    response = await subtensor.substrate.submit_extrinsic(
-        extrinsic=extrinsic,
+
+    success, message = await subtensor.sign_and_send_extrinsic(
+        call=call,
+        wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        period=period,
     )
+
     # We only wait here if we expect finalization.
     if not wait_for_finalization and not wait_for_inclusion:
-        return True, "", "Success, extrinsic submitted without waiting."
+        return True, "", message
 
     # Otherwise continue with finalization.
-    if await response.is_success:
-        block_hash_ = response.block_hash
+    if success:
+        block_hash_ = await subtensor.get_block_hash()
         return True, block_hash_, "Success with response."
 
-    return False, "", format_error_message(await response.error_message)
+    return False, "", message
 
 
 async def transfer_extrinsic(
@@ -74,6 +78,7 @@ async def transfer_extrinsic(
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
     keep_alive: bool = True,
+    period: Optional[int] = None,
 ) -> bool:
     """Transfers funds from this wallet to the destination public key address.
 
@@ -85,9 +90,12 @@ async def transfer_extrinsic(
         transfer_all (bool): Whether to transfer all funds from this wallet to the destination address.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns
             `False` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):  If set, waits for the extrinsic to be finalized on the chain before returning
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
             `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
         keep_alive (bool): If set, keeps the account alive by keeping the balance above the existential deposit.
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted.
+            If the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         success (bool): Flag is `True` if extrinsic was finalized or included in the block. If we did not wait for
@@ -100,6 +108,7 @@ async def transfer_extrinsic(
             f":cross_mark: [red]Invalid destination SS58 address[/red]: {destination}"
         )
         return False
+
     logging.info(f"Initiating transfer on network: {subtensor.network}")
     # Unlock wallet coldkey.
     if not (unlock := unlock_key(wallet)).success:
@@ -148,6 +157,7 @@ async def transfer_extrinsic(
         amount=amount,
         wait_for_finalization=wait_for_finalization,
         wait_for_inclusion=wait_for_inclusion,
+        period=period,
     )
 
     if success:
@@ -173,6 +183,6 @@ async def transfer_extrinsic(
             f"Balance: [blue]{account_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
         )
         return True
-    else:
-        logging.error(f":cross_mark: [red]Failed[/red]: {err_msg}")
-        return False
+
+    logging.error(f":cross_mark: [red]Failed[/red]: {err_msg}")
+    return False
