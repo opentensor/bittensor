@@ -318,7 +318,7 @@ async def set_weights_extrinsic(
     wait_for_finalization: bool = False,
     period: Optional[int] = 8,
 ) -> tuple[bool, str]:
-    """Sets the given weights and values on a chain for a wallet hotkey account.
+    """Sets the given weights and values on chain for a given wallet hotkey account.
 
     Args:
         subtensor (bittensor.core.async_subtensor.AsyncSubtensor): Bittensor subtensor object.
