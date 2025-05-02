@@ -3552,7 +3552,7 @@ class Subtensor(SubtensorMixin):
         Arguments:
             wallet (bittensor_wallet.Wallet): Source wallet for the transfer.
             dest (str): Destination address for the transfer.
-            amount (float): Number of tokens to transfer.
+            amount (float): Amount of tao to transfer.
             transfer_all (bool): Flag to transfer all tokens. Default is ``False``.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.  Default is ``True``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.  Default is
