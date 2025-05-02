@@ -169,6 +169,7 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
         amount=stake_bob,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        period=16,
     )
 
     assert success is True
