@@ -1,11 +1,12 @@
 from bittensor.core.subtensor import Subtensor
 from bittensor.core.subtensor_api import SubtensorApi
+import pytest
 
 
-def test_properties_methods_comparable():
+def test_properties_methods_comparable(other_class: "Subtensor" = None):
     """Verifies that methods in SubtensorApi and its properties contains all Subtensors methods."""
     # Preps
-    subtensor = Subtensor(_mock=True)
+    subtensor = other_class(_mock=True) if other_class else Subtensor(_mock=True)
     subtensor_api = SubtensorApi(_mock=True)
 
     subtensor_methods = [m for m in dir(subtensor) if not m.startswith("_")]
@@ -56,10 +57,12 @@ def test_properties_methods_comparable():
         )
 
 
-def test__methods_comparable_with_passed_subtensor_fields():
+def test__methods_comparable_with_passed_subtensor_fields(
+    other_class: "Subtensor" = None,
+):
     """Verifies that methods in SubtensorApi contains all Subtensors methods if `subtensor_fields=True` is passed."""
     # Preps
-    subtensor = Subtensor(_mock=True)
+    subtensor = other_class(_mock=True) if other_class else Subtensor(_mock=True)
     subtensor_api = SubtensorApi(_mock=True, subtensor_fields=True)
 
     subtensor_methods = [m for m in dir(subtensor) if not m.startswith("_")]
@@ -75,3 +78,17 @@ def test__methods_comparable_with_passed_subtensor_fields():
         assert method in subtensor_api_methods, (
             f"`Subtensor.{method}`is not present in class `SubtensorApi`."
         )
+
+
+def test_failed_if_subtensor_has_new_method():
+    """Verifies that SubtensorApi fails if Subtensor has a new method."""
+    # Preps
+
+    class SubtensorWithNewMethod(Subtensor):
+        def return_my_id(self):
+            return id(self)
+
+    # Call and assert
+
+    with pytest.raises(AssertionError):
+        test_properties_methods_comparable(other_class=SubtensorWithNewMethod)
