@@ -3247,7 +3247,7 @@ class AsyncSubtensor(SubtensorMixin):
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
             nonce_key: the type on nonce to use. Options are "hotkey" or "coldkey".
-            nonce_key: the type on nonce to use. Options are "hotkey" or "coldkey".
+            nonce_key: the type on nonce to use. Options are "hotkey", "coldkey", or "coldkeypub".
             raise_error: raises a relevant exception rather than returning `False` if unsuccessful.
 
         Returns:
