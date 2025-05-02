@@ -4,7 +4,7 @@ from bittensor.core.async_subtensor import AsyncSubtensor as _AsyncSubtensor
 from bittensor.core.subtensor import Subtensor as _Subtensor
 
 
-class Subnet:
+class Subnets:
     """Class for managing subnet operations."""
 
     def __init__(self, subtensor: Union["_Subtensor", "_AsyncSubtensor"]):
@@ -43,4 +43,3 @@ class Subnet:
         self.tempo = subtensor.tempo
         self.weights_rate_limit = subtensor.weights_rate_limit
         self.weights = subtensor.weights
-
