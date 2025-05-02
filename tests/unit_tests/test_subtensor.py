@@ -1234,6 +1234,7 @@ def test_serve_axon(subtensor, mocker):
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
         certificate=fake_certificate,
+        period=None,
     )
     assert result == mocked_serve_axon_extrinsic.return_value
 
@@ -1252,7 +1253,7 @@ def test_get_block_hash(subtensor, mocker):
 
 
 def test_commit(subtensor, fake_wallet, mocker):
-    """Test successful commit call."""
+    """Test a successful commit call."""
     # Preps
     fake_netuid = 1
     fake_data = "some data to network"
@@ -1268,6 +1269,7 @@ def test_commit(subtensor, fake_wallet, mocker):
         netuid=fake_netuid,
         data_type=f"Raw{len(fake_data)}",
         data=fake_data.encode(),
+        period=None
     )
     assert result is mocked_publish_metadata.return_value
 
@@ -1466,7 +1468,7 @@ def test_do_serve_axon_is_success(
     fake_wait_for_inclusion = True
     fake_wait_for_finalization = True
 
-    subtensor.substrate.submit_extrinsic.return_value.is_success = True
+    mocker.patch.object(subtensor, "sign_and_send_extrinsic", return_value=(True, ""))
 
     # Call
     result = do_serve_axon(
@@ -1484,20 +1486,16 @@ def test_do_serve_axon_is_success(
         call_params=fake_call_params,
     )
 
-    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
+    subtensor.sign_and_send_extrinsic.assert_called_once_with(
         call=subtensor.substrate.compose_call.return_value,
-        keypair=fake_wallet.hotkey,
-    )
-
-    subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        extrinsic=subtensor.substrate.create_signed_extrinsic.return_value,
+        wallet=fake_wallet,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
+        period=None
     )
 
-    # subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
     assert result[0] is True
-    assert result[1] is None
+    assert result[1] is ""
 
 
 def test_do_serve_axon_is_not_success(subtensor, fake_wallet, mocker, fake_call_params):
@@ -1506,7 +1504,7 @@ def test_do_serve_axon_is_not_success(subtensor, fake_wallet, mocker, fake_call_
     fake_wait_for_inclusion = True
     fake_wait_for_finalization = True
 
-    subtensor.substrate.submit_extrinsic.return_value.is_success = None
+    mocker.patch.object(subtensor, "sign_and_send_extrinsic", return_value=(False, None))
 
     # Call
     result = do_serve_axon(
@@ -1524,21 +1522,15 @@ def test_do_serve_axon_is_not_success(subtensor, fake_wallet, mocker, fake_call_
         call_params=fake_call_params,
     )
 
-    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
+    subtensor.sign_and_send_extrinsic.assert_called_once_with(
         call=subtensor.substrate.compose_call.return_value,
-        keypair=fake_wallet.hotkey,
-    )
-
-    subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        extrinsic=subtensor.substrate.create_signed_extrinsic.return_value,
+        wallet=fake_wallet,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
+        period=None
     )
 
-    assert result == (
-        False,
-        subtensor.substrate.submit_extrinsic.return_value.error_message,
-    )
+    assert result == (False, None)
 
 
 def test_do_serve_axon_no_waits(subtensor, fake_wallet, mocker, fake_call_params):
@@ -1547,6 +1539,9 @@ def test_do_serve_axon_no_waits(subtensor, fake_wallet, mocker, fake_call_params
     fake_wait_for_inclusion = False
     fake_wait_for_finalization = False
 
+    mocked_sign_and_send_extrinsic = mocker.Mock(return_value=(True, ""))
+    mocker.patch.object(subtensor, "sign_and_send_extrinsic", new=mocked_sign_and_send_extrinsic)
+
     # Call
     result = do_serve_axon(
         subtensor=subtensor,
@@ -1563,17 +1558,14 @@ def test_do_serve_axon_no_waits(subtensor, fake_wallet, mocker, fake_call_params
         call_params=fake_call_params,
     )
 
-    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
+    mocked_sign_and_send_extrinsic.assert_called_once_with(
         call=subtensor.substrate.compose_call.return_value,
-        keypair=fake_wallet.hotkey,
-    )
-
-    subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        extrinsic=subtensor.substrate.create_signed_extrinsic.return_value,
+        wallet=fake_wallet,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
+        period=None
     )
-    assert result == (True, None)
+    assert result == (True, "")
 
 
 def test_immunity_period(subtensor, mocker):
