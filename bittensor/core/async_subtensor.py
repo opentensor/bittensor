@@ -3677,6 +3677,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         max_retries: int = 5,
+        period: Optional[int] = None,
     ) -> tuple[bool, str]:
         """
         Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
@@ -3689,11 +3690,14 @@ class AsyncSubtensor(SubtensorMixin):
             weights (np.ndarray): NumPy array of weight values corresponding to each UID.
             salt (np.ndarray): NumPy array of salt values corresponding to the hash function.
             version_key (int): Version key for compatibility with the network. Default is ``int representation of
-                Bittensor version``.
+                a Bittensor version``.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
                 ``False``.
             max_retries (int): The number of maximum attempts to reveal weights. Default is ``5``.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
 
         Returns:
             tuple[bool, str]: ``True`` if the weight revelation is successful, False otherwise. And `msg`, a string
@@ -3718,12 +3722,12 @@ class AsyncSubtensor(SubtensorMixin):
                     version_key=version_key,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
+                    period=period,
                 )
                 if success:
                     break
             except Exception as e:
                 logging.error(f"Error revealing weights: {e}")
-            finally:
                 retries += 1
 
         return success, message
@@ -3812,9 +3816,10 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
         raise_error: bool = False,
+        period: Optional[int] = None,
     ) -> tuple[bool, str]:
         """
-        Allows a coldkey to set children keys.
+        Allows a coldkey to set children-keys.
 
         Arguments:
             wallet (bittensor_wallet.Wallet): bittensor wallet instance.
@@ -3823,7 +3828,10 @@ class AsyncSubtensor(SubtensorMixin):
             children (list[tuple[float, str]]): A list of children with their proportions.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
-            raise_error: Raises relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+           period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
 
         Returns:
             tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
@@ -3870,6 +3878,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_inclusion,
             wait_for_finalization,
             raise_error=raise_error,
+            period=period,
         )
 
     async def set_delegate_take(
@@ -4257,6 +4266,48 @@ class AsyncSubtensor(SubtensorMixin):
             period=period
         )
 
+    async def transfer(
+        self,
+        wallet: "Wallet",
+        dest: str,
+        amount: Balance,
+        transfer_all: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        keep_alive: bool = True,
+        period: Optional[int] = None,
+    ) -> bool:
+        """
+        Transfer token of amount to destination.
+
+        Arguments:
+            wallet (bittensor_wallet.Wallet): Source wallet for the transfer.
+            dest (str): Destination address for the transfer.
+            amount (float): Number of tokens to transfer.
+            transfer_all (bool): Flag to transfer all tokens. Default is ``False``.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.  Default is ``True``.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.  Default is
+                ``False``.
+            keep_alive (bool): Flag to keep the connection alive. Default is ``True``.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+        Returns:
+            `True` if the transferring was successful, otherwise `False`.
+        """
+        amount = check_and_convert_to_balance(amount)
+        return await transfer_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            dest=dest,
+            amount=amount,
+            transfer_all=transfer_all,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            keep_alive=keep_alive,
+            period=period,
+        )
+
     async def transfer_stake(
         self,
         wallet: "Wallet",
@@ -4299,48 +4350,6 @@ class AsyncSubtensor(SubtensorMixin):
             amount=amount,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            period=period,
-        )
-
-    async def transfer(
-        self,
-        wallet: "Wallet",
-        dest: str,
-        amount: Balance,
-        transfer_all: bool = False,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-        keep_alive: bool = True,
-        period: Optional[int] = None,
-    ) -> bool:
-        """
-        Transfer token of amount to destination.
-
-        Arguments:
-            wallet (bittensor_wallet.Wallet): Source wallet for the transfer.
-            dest (str): Destination address for the transfer.
-            amount (float): Number of tokens to transfer.
-            transfer_all (bool): Flag to transfer all tokens. Default is ``False``.
-            wait_for_inclusion (bool): Waits for the transaction to be included in a block.  Default is ``True``.
-            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.  Default is
-                ``False``.
-            keep_alive (bool): Flag to keep the connection alive. Default is ``True``.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-        Returns:
-            `True` if the transferring was successful, otherwise `False`.
-        """
-        amount = check_and_convert_to_balance(amount)
-        return await transfer_extrinsic(
-            subtensor=self,
-            wallet=wallet,
-            dest=dest,
-            amount=amount,
-            transfer_all=transfer_all,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            keep_alive=keep_alive,
             period=period,
         )
 
