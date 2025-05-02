@@ -32,7 +32,7 @@ def add_stake_extrinsic(
     Arguments:
         subtensor: the Subtensor object to use
         wallet: Bittensor wallet object.
-        hotkey_ss58: The `ss58` address of the hotkey account to stake to defaults to the wallet's hotkey.
+        hotkey_ss58: The `ss58` address of the hotkey account to stake to default to the wallet's hotkey.
         netuid (Optional[int]): Subnet unique ID.
         amount: Amount to stake as Bittensor balance, `None` if staking all.
         wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning `True`, or returns
@@ -212,8 +212,9 @@ def add_stake_multiple_extrinsic(
     amounts: Optional[list[Balance]] = None,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
+    period: Optional[int] = None,
 ) -> bool:
-    """Adds stake to each ``hotkey_ss58`` in the list, using each amount, from a common coldkey.
+    """Adds a stake to each ``hotkey_ss58`` in the list, using each amount, from a common coldkey.
 
     Arguments:
         subtensor: The initialized SubtensorInterface object.
@@ -225,6 +226,9 @@ def add_stake_multiple_extrinsic(
             if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning `True`, or
             returns `False` if the extrinsic fails to be finalized within the timeout.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         success: `True` if extrinsic was finalized or included in the block. `True` if any wallet was staked. If we did
@@ -330,17 +334,18 @@ def add_stake_multiple_extrinsic(
                     "netuid": netuid,
                 },
             )
-            staking_response, err_msg = subtensor.sign_and_send_extrinsic(
-                call,
-                wallet,
-                wait_for_inclusion,
-                wait_for_finalization,
+            success, message = subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
                 use_nonce=True,
                 nonce_key="coldkeypub",
                 sign_with="coldkey",
+                period=period,
             )
 
-            if staking_response is True:  # If we successfully staked.
+            if success is True:  # If we successfully staked.
                 # We only wait here if we expect finalization.
 
                 if not wait_for_finalization and not wait_for_inclusion:
@@ -377,7 +382,7 @@ def add_stake_multiple_extrinsic(
                     break
 
             else:
-                logging.error(f":cross_mark: [red]Failed[/red]: {err_msg}")
+                logging.error(f":cross_mark: [red]Failed[/red]: {message}")
                 continue
 
         except NotRegisteredError:
