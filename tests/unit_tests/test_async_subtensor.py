@@ -1821,7 +1821,7 @@ async def test_sign_and_send_extrinsic_success_without_inclusion_finalization(
         wait_for_inclusion=False,
         wait_for_finalization=False,
     )
-    assert result == (True, "")
+    assert result == (True, "Not waiting for finalization or inclusion.")
 
 
 @pytest.mark.asyncio
@@ -2518,6 +2518,7 @@ async def test_transfer_success(subtensor, fake_wallet, mocker):
         wait_for_inclusion=True,
         wait_for_finalization=False,
         keep_alive=True,
+        period=None,
     )
     assert result == mocked_transfer_extrinsic.return_value
 
@@ -2551,6 +2552,7 @@ async def test_register_success(subtensor, fake_wallet, mocker):
         wait_for_finalization=True,
         wait_for_inclusion=False,
         wallet=fake_wallet,
+        period=None,
     )
     assert result == mocked_register_extrinsic.return_value
 
@@ -2666,7 +2668,7 @@ async def test_set_delegate_take_decrease(
 
 @pytest.mark.asyncio
 async def test_set_weights_success(subtensor, fake_wallet, mocker):
-    """Tests set_weights with successful weight setting on the first try."""
+    """Tests set_weights with the successful weight setting on the first try."""
     # Preps
     fake_netuid = 1
     fake_uids = [1, 2, 3]
@@ -2715,7 +2717,7 @@ async def test_set_weights_success(subtensor, fake_wallet, mocker):
         wait_for_finalization=False,
         wait_for_inclusion=False,
         weights=fake_weights,
-        period=5,
+        period=8,
     )
     mocked_weights_rate_limit.assert_called_once_with(fake_netuid)
     assert result is True
@@ -2803,6 +2805,7 @@ async def test_root_set_weights_success(subtensor, fake_wallet, mocker):
         version_key=0,
         wait_for_finalization=True,
         wait_for_inclusion=True,
+        period=None,
     )
     assert result == mocked_set_root_weights_extrinsic.return_value
 
@@ -2853,6 +2856,7 @@ async def test_commit_weights_success(subtensor, fake_wallet, mocker):
         commit_hash="fake_commit_hash",
         wait_for_inclusion=False,
         wait_for_finalization=False,
+        period=16,
     )
     assert result is True
     assert message == "Success"
@@ -2955,6 +2959,7 @@ async def test_set_subnet_identity(mocker, subtensor, fake_wallet):
         additional=fake_subnet_identity.additional,
         wait_for_finalization=True,
         wait_for_inclusion=False,
+        period=None,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3060,6 +3065,7 @@ async def test_start_call(subtensor, mocker):
         netuid=netuid,
         wait_for_inclusion=True,
         wait_for_finalization=False,
+        period=None,
     )
     assert result == mocked_extrinsic.return_value
 
