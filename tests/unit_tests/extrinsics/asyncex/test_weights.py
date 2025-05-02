@@ -43,7 +43,7 @@ async def test_do_set_weights_success(subtensor, fake_wallet, mocker):
 
     # Asserts
     assert result is True
-    assert message == ""
+    assert message == "Successfully set weights."
 
 
 @pytest.mark.asyncio
@@ -131,7 +131,7 @@ async def test_do_set_weights_no_waiting(subtensor, fake_wallet, mocker):
 
     # Asserts
     assert result is True
-    assert message == ""
+    assert message == "Not waiting for finalization or inclusion."
 
 
 @pytest.mark.asyncio
@@ -141,12 +141,14 @@ async def test_set_weights_extrinsic_success_with_finalization(
     """Tests set_weights_extrinsic when weights are successfully set with finalization."""
     # Preps
     fake_netuid = 1
-    fake_uids = [1, 2, 3]
-    fake_weights = [0.1, 0.2, 0.7]
+    fake_uids = mocker.Mock()
+    fake_weights = mocker.Mock()
 
     mocked_do_set_weights = mocker.patch.object(
         async_weights, "_do_set_weights", return_value=(True, "")
     )
+    mocker_converter = mocker.patch.object(async_weights, "convert_and_normalize_weights_and_uids")
+    mocker_converter.return_value = (mocker.Mock(), mocker.Mock())
 
     # Call
     result, message = await async_weights.set_weights_extrinsic(
@@ -160,16 +162,18 @@ async def test_set_weights_extrinsic_success_with_finalization(
     )
 
     # Asserts
+    mocker_converter.assert_called_once_with(fake_uids, fake_weights)
+
     mocked_do_set_weights.assert_called_once_with(
         subtensor=subtensor,
         wallet=fake_wallet,
         netuid=fake_netuid,
-        uids=mocker.ANY,
-        vals=mocker.ANY,
+        uids=mocker_converter.return_value[0],
+        vals=mocker_converter.return_value[1],
         version_key=0,
         wait_for_finalization=True,
         wait_for_inclusion=True,
-        period=5,
+        period=8,
     )
     assert result is True
     assert message == "Successfully set weights and Finalized."
@@ -184,7 +188,7 @@ async def test_set_weights_extrinsic_no_waiting(subtensor, fake_wallet, mocker):
     fake_weights = [0.1, 0.2, 0.7]
 
     mocked_do_set_weights = mocker.patch.object(
-        async_weights, "_do_set_weights", return_value=(True, "")
+        async_weights, "_do_set_weights", return_value=(True, "Not waiting for finalization or inclusion.")
     )
 
     # Call
@@ -380,7 +384,7 @@ async def test_do_commit_weights_no_waiting(subtensor, fake_wallet, mocker):
 
     # Asserts
     assert result is True
-    assert message == ""
+    assert message == "Not waiting for finalization or inclusion."
 
 
 @pytest.mark.asyncio

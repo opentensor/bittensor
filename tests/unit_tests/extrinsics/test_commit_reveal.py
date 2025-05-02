@@ -48,11 +48,8 @@ def test_do_commit_reveal_v3_success(mocker, subtensor, fake_wallet):
     fake_reveal_round = 1
 
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
-    mocked_create_signed_extrinsic = mocker.patch.object(
-        subtensor.substrate, "create_signed_extrinsic"
-    )
-    mocked_submit_extrinsic = mocker.patch.object(
-        subtensor.substrate, "submit_extrinsic"
+    mocked_sign_and_send_extrinsic = mocker.patch.object(
+        subtensor, "sign_and_send_extrinsic", return_value=(True, "")
     )
 
     # Call
@@ -74,14 +71,15 @@ def test_do_commit_reveal_v3_success(mocker, subtensor, fake_wallet):
             "reveal_round": fake_reveal_round,
         },
     )
-    mocked_create_signed_extrinsic.assert_called_once_with(
-        call=mocked_compose_call.return_value, keypair=fake_wallet.hotkey
-    )
-    mocked_submit_extrinsic.assert_called_once_with(
-        mocked_create_signed_extrinsic.return_value,
+    mocked_sign_and_send_extrinsic.assert_called_once_with(
+        call=mocked_compose_call.return_value,
+        wallet=fake_wallet,
         wait_for_inclusion=False,
         wait_for_finalization=False,
+        sign_with="hotkey",
+        period=None,
     )
+
     assert result == (True, "")
 
 
