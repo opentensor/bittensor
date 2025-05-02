@@ -162,8 +162,8 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
     }
 
     success = subtensor.unstake(
-        alice_wallet,
-        bob_wallet.hotkey.ss58_address,
+        wallet=alice_wallet,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
         amount=stake_bob,
         wait_for_inclusion=True,
@@ -173,8 +173,8 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
     assert success is True
 
     stake = subtensor.get_stake(
-        alice_wallet.coldkey.ss58_address,
-        bob_wallet.hotkey.ss58_address,
+        coldkey_ss58=alice_wallet.coldkey.ss58_address,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
     )
 
