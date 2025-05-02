@@ -1327,6 +1327,7 @@ def test_transfer(subtensor, fake_wallet, mocker):
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
         keep_alive=True,
+        period=None,
     )
     assert result == mocked_transfer_extrinsic.return_value
 
@@ -2937,6 +2938,7 @@ def test_unstake_success(mocker, subtensor, fake_wallet):
         safe_staking=False,
         allow_partial_stake=False,
         rate_tolerance=0.005,
+        period=None,
     )
     assert result == mock_unstake_extrinsic.return_value
 
@@ -2973,6 +2975,7 @@ def test_unstake_with_safe_staking(mocker, subtensor, fake_wallet):
         safe_staking=True,
         allow_partial_stake=True,
         rate_tolerance=fake_rate_tolerance,
+        period=None,
     )
     assert result == mock_unstake_extrinsic.return_value
 
@@ -3095,6 +3098,7 @@ def test_unstake_multiple_success(mocker, subtensor, fake_wallet):
         amounts=fake_amounts,
         wait_for_inclusion=True,
         wait_for_finalization=False,
+        period=None,
     )
     assert result == mock_unstake_multiple_extrinsic.return_value
 
