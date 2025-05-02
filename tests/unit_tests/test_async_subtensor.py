@@ -2667,7 +2667,7 @@ async def test_set_delegate_take_decrease(
 
 @pytest.mark.asyncio
 async def test_set_weights_success(subtensor, fake_wallet, mocker):
-    """Tests set_weights with successful weight setting on the first try."""
+    """Tests set_weights with the successful weight setting on the first try."""
     # Preps
     fake_netuid = 1
     fake_uids = [1, 2, 3]
@@ -2716,7 +2716,7 @@ async def test_set_weights_success(subtensor, fake_wallet, mocker):
         wait_for_finalization=False,
         wait_for_inclusion=False,
         weights=fake_weights,
-        period=5,
+        period=8,
     )
     mocked_weights_rate_limit.assert_called_once_with(fake_netuid)
     assert result is True

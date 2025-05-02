@@ -3994,7 +3994,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = False,
         max_retries: int = 5,
         block_time: float = 12.0,
-        period: int = 5,
+        period: Optional[int] = 8,
     ):
         """
         Sets the inter-neuronal weights for the specified neuron. This process involves specifying the influence or
@@ -4015,7 +4015,9 @@ class AsyncSubtensor(SubtensorMixin):
                 ``False``.
             max_retries (int): The number of maximum attempts to set weights. Default is ``5``.
             block_time (float): The number of seconds for block duration. Default is 12.0 seconds.
-            period (int, optional): The period in seconds to wait for extrinsic inclusion or finalization. Defaults to 5.
+            period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction. Default is 16.
 
         Returns:
             tuple[bool, str]: ``True`` if the setting of weights is successful, False otherwise. And `msg`, a string
@@ -4034,6 +4036,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         retries = 0
         success = False
+        message = "No attempt made. Perhaps it is too soon to set weights!"
         if (
             uid := await self.get_uid_for_hotkey_on_subnet(
                 wallet.hotkey.ss58_address, netuid
@@ -4046,7 +4049,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         if (await self.commit_reveal_enabled(netuid=netuid)) is True:
             # go with `commit reveal v3` extrinsic
-            message = "No attempt made. Perhaps it is too soon to commit weights!"
+
             while (
                 retries < max_retries
                 and success is False
@@ -4065,12 +4068,13 @@ class AsyncSubtensor(SubtensorMixin):
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                     block_time=block_time,
+                    period=period,
                 )
                 retries += 1
             return success, message
         else:
             # go with classic `set weights extrinsic`
-            message = "No attempt made. Perhaps it is too soon to set weights!"
+
             while (
                 retries < max_retries
                 and success is False
@@ -4079,7 +4083,7 @@ class AsyncSubtensor(SubtensorMixin):
                 try:
                     logging.info(
                         f"Setting weights for subnet #[blue]{netuid}[/blue]. "
-                        f"Attempt [blue]{retries + 1} of {max_retries}[/blue]."
+                        f"Attempt [blue]{retries + 1}[/blue] of [green]{max_retries}[/green]."
                     )
                     success, message = await set_weights_extrinsic(
                         subtensor=self,
@@ -4094,7 +4098,6 @@ class AsyncSubtensor(SubtensorMixin):
                     )
                 except Exception as e:
                     logging.error(f"Error setting weights: {e}")
-                finally:
                     retries += 1
 
             return success, message
