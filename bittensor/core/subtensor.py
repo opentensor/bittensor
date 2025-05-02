@@ -101,7 +101,7 @@ from bittensor.utils.balance import (
     check_and_convert_to_balance,
 )
 from bittensor.utils.btlogging import logging
-from bittensor.utils.weight_utils import generate_weight_hash
+from bittensor.utils.weight_utils import generate_weight_hash, convert_uids_and_weights
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -3080,8 +3080,7 @@ class Subtensor(SubtensorMixin):
         Returns:
             `True` if the setting of weights is successful, `False` otherwise.
         """
-        netuids_ = np.array(netuids, dtype=np.int64)
-        weights_ = np.array(weights, dtype=np.float32)
+        netuids_, weights_ = convert_uids_and_weights(netuids, weights)
         logging.info(f"Setting weights in network: [blue]{self.network}[/blue]")
         return set_root_weights_extrinsic(
             subtensor=self,
