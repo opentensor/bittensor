@@ -5,7 +5,7 @@ from tests.e2e_tests.utils.chain_interactions import get_dynamic_balance
 from tests.helpers.helpers import ApproxBalance
 from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 
-logging.enable_info()
+logging.enable_debug()
 
 
 def test_single_operation(subtensor, alice_wallet, bob_wallet):
@@ -162,11 +162,11 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
         ),
     }
 
+    # unstale all to check in later
     success = subtensor.unstake(
         wallet=alice_wallet,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
-        amount=stake_bob,
         wait_for_inclusion=True,
         wait_for_finalization=True,
         period=16,
@@ -180,6 +180,7 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
         netuid=alice_subnet_netuid,
     )
 
+    # all balances have been unstaked
     assert stake == Balance(0).set_unit(alice_subnet_netuid)
 
 
