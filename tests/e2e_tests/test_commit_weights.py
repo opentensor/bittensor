@@ -158,7 +158,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     Steps:
         1. Register a subnet through Alice
         2. Register Alice's neuron and add stake
-        3. Enable a commit-reveal mechanism on subnet
+        3. Enable the commit-reveal mechanism on subnet
         4. Lower the commit_reveal interval and rate limit
         5. Commit weights three times
         6. Assert that all commits succeeded
