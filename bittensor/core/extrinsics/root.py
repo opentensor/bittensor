@@ -227,7 +227,7 @@ def set_root_weights_extrinsic(
     wait_for_finalization: bool = False,
     period: Optional[int] = None,
 ) -> bool:
-    """Sets the given weights and values on a chain for a wallet hotkey account.
+    """Sets the given weights and values on chain for a given wallet hotkey account.
 
     Arguments:
         subtensor (bittensor.core.subtensor.Subtensor): The Subtensor object
