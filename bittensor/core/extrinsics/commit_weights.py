@@ -50,10 +50,10 @@ def _do_commit_weights(
         },
     )
     return subtensor.sign_and_send_extrinsic(
-        call,
-        wallet,
-        wait_for_inclusion,
-        wait_for_finalization,
+        call=call,
+        wallet=wallet,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
         use_nonce=True,
         period=period,
         sign_with="hotkey",
@@ -164,10 +164,10 @@ def _do_reveal_weights(
         },
     )
     return subtensor.sign_and_send_extrinsic(
-        call,
-        wallet,
-        wait_for_inclusion,
-        wait_for_finalization,
+        call=call,
+        wallet=wallet,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
         use_nonce=True,
         period=period,
         sign_with="hotkey",

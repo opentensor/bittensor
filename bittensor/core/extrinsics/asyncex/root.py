@@ -118,7 +118,7 @@ async def root_register_extrinsic(
         call_params={"hotkey": wallet.hotkey.ss58_address},
     )
     success, message = await subtensor.sign_and_send_extrinsic(
-        call,
+        call=call,
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,

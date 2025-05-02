@@ -1,17 +1,12 @@
 """Module with helper functions for extrinsics."""
 
-from typing import TYPE_CHECKING, Union
-
-import numpy as np
-from numpy.typing import NDArray
+from typing import TYPE_CHECKING
 
 from bittensor.utils.balance import Balance
-from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.chain_data import StakeInfo
-    from bittensor.utils.registration import torch
 
 
 def get_old_stakes(

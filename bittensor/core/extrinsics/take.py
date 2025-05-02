@@ -50,8 +50,8 @@ def increase_take_extrinsic(
     )
 
     return subtensor.sign_and_send_extrinsic(
-        call,
-        wallet,
+        call=call,
+        wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
         period=period,   
@@ -101,8 +101,8 @@ def decrease_take_extrinsic(
     )
 
     return subtensor.sign_and_send_extrinsic(
-        call,
-        wallet,
+        call=call,
+        wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         raise_error=raise_error,
         wait_for_finalization=wait_for_finalization,

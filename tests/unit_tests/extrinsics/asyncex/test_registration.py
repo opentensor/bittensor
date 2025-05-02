@@ -16,19 +16,8 @@ async def test_do_pow_register_success(subtensor, fake_wallet, mocker):
         seal=b"fake_seal",
     )
 
-    fake_call = mocker.AsyncMock()
-    fake_extrinsic = mocker.AsyncMock()
-    fake_response = mocker.Mock()
-    fake_response.is_success = mocker.AsyncMock(return_value=True)()
-    fake_response.process_events = mocker.AsyncMock()
-
-    mocker.patch.object(subtensor.substrate, "compose_call", return_value=fake_call)
-    mocker.patch.object(
-        subtensor.substrate, "create_signed_extrinsic", return_value=fake_extrinsic
-    )
-    mocker.patch.object(
-        subtensor.substrate, "submit_extrinsic", return_value=fake_response
-    )
+    mocker.patch.object(subtensor.substrate, "compose_call")
+    mocker.patch.object(subtensor, "sign_and_send_extrinsic", new=mocker.AsyncMock(return_value=(True, "")))
 
     # Call
     result, error_message = await async_registration._do_pow_register(
@@ -53,12 +42,12 @@ async def test_do_pow_register_success(subtensor, fake_wallet, mocker):
             "coldkey": "coldkey_ss58",
         },
     )
-    subtensor.substrate.create_signed_extrinsic.assert_awaited_once_with(
-        call=fake_call,
-        keypair=fake_wallet.coldkey,
-    )
-    subtensor.substrate.submit_extrinsic.assert_awaited_once_with(
-        fake_extrinsic, wait_for_inclusion=True, wait_for_finalization=True
+    subtensor.sign_and_send_extrinsic.assert_awaited_once_with(
+        call=subtensor.substrate.compose_call.return_value,
+        wallet=fake_wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        period=None
     )
     assert result is True
     assert error_message == ""
@@ -75,25 +64,9 @@ async def test_do_pow_register_failure(subtensor, fake_wallet, mocker):
         nonce=67890,
         seal=b"fake_seal",
     )
-    fake_err_message = mocker.Mock(autospec=str)
 
-    fake_call = mocker.AsyncMock()
-    fake_extrinsic = mocker.AsyncMock()
-    fake_response = mocker.Mock()
-    fake_response.is_success = mocker.AsyncMock(return_value=False)()
-    fake_response.process_events = mocker.AsyncMock()
-    fake_response.error_message = mocker.AsyncMock(return_value=fake_err_message)()
-
-    mocker.patch.object(subtensor.substrate, "compose_call", return_value=fake_call)
-    mocker.patch.object(
-        subtensor.substrate, "create_signed_extrinsic", return_value=fake_extrinsic
-    )
-    mocker.patch.object(
-        subtensor.substrate, "submit_extrinsic", return_value=fake_response
-    )
-    mocked_format_error_message = mocker.patch.object(
-        async_subtensor, "format_error_message"
-    )
+    mocker.patch.object(subtensor.substrate, "compose_call")
+    mocker.patch.object(subtensor, "sign_and_send_extrinsic")
 
     # Call
     result_error_message = await async_registration._do_pow_register(
@@ -118,16 +91,15 @@ async def test_do_pow_register_failure(subtensor, fake_wallet, mocker):
             "coldkey": "coldkey_ss58",
         },
     )
-    subtensor.substrate.create_signed_extrinsic.assert_awaited_once_with(
-        call=fake_call,
-        keypair=fake_wallet.coldkey,
-    )
-    subtensor.substrate.submit_extrinsic.assert_awaited_once_with(
-        fake_extrinsic, wait_for_inclusion=True, wait_for_finalization=True
+    subtensor.sign_and_send_extrinsic.assert_awaited_once_with(
+        call=subtensor.substrate.compose_call.return_value,
+        wallet=fake_wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        period=None
     )
 
-    mocked_format_error_message.assert_called_once_with(fake_err_message)
-    assert result_error_message == (False, mocked_format_error_message.return_value)
+    assert result_error_message == subtensor.sign_and_send_extrinsic.return_value
 
 
 @pytest.mark.asyncio
@@ -142,20 +114,11 @@ async def test_do_pow_register_no_waiting(subtensor, fake_wallet, mocker):
         seal=b"fake_seal",
     )
 
-    fake_call = mocker.AsyncMock()
-    fake_extrinsic = mocker.AsyncMock()
-    fake_response = mocker.Mock()
-
-    mocker.patch.object(subtensor.substrate, "compose_call", return_value=fake_call)
-    mocker.patch.object(
-        subtensor.substrate, "create_signed_extrinsic", return_value=fake_extrinsic
-    )
-    mocker.patch.object(
-        subtensor.substrate, "submit_extrinsic", return_value=fake_response
-    )
+    mocker.patch.object(subtensor.substrate, "compose_call")
+    mocker.patch.object(subtensor, "sign_and_send_extrinsic")
 
     # Call
-    result, error_message = await async_registration._do_pow_register(
+    result = await async_registration._do_pow_register(
         subtensor=subtensor,
         netuid=1,
         wallet=fake_wallet,
@@ -177,15 +140,15 @@ async def test_do_pow_register_no_waiting(subtensor, fake_wallet, mocker):
             "coldkey": "coldkey_ss58",
         },
     )
-    subtensor.substrate.create_signed_extrinsic.assert_awaited_once_with(
-        call=fake_call,
-        keypair=fake_wallet.coldkey,
+    subtensor.sign_and_send_extrinsic.assert_awaited_once_with(
+        call=subtensor.substrate.compose_call.return_value,
+        wallet=fake_wallet,
+        wait_for_inclusion=False,
+        wait_for_finalization=False,
+        period=None
     )
-    subtensor.substrate.submit_extrinsic.assert_awaited_once_with(
-        fake_extrinsic, wait_for_inclusion=False, wait_for_finalization=False
-    )
-    assert result is True
-    assert error_message == "Not waiting for finalization or inclusion."
+
+    assert result == subtensor.sign_and_send_extrinsic.return_value
 
 
 @pytest.mark.asyncio

@@ -203,7 +203,7 @@ def swap_stake_extrinsic(
 
     # Check sufficient stake
     stake_in_origin, stake_in_destination = _get_stake_in_origin_and_dest(
-        subtensor,
+        subtensor=subtensor,
         origin_hotkey_ss58=hotkey_ss58,
         destination_hotkey_ss58=hotkey_ss58,
         origin_netuid=origin_netuid,
@@ -276,7 +276,7 @@ def swap_stake_extrinsic(
 
             # Get updated stakes
             origin_stake, dest_stake = _get_stake_in_origin_and_dest(
-                subtensor,
+                subtensor=subtensor,
                 origin_hotkey_ss58=hotkey_ss58,
                 destination_hotkey_ss58=hotkey_ss58,
                 origin_netuid=origin_netuid,
@@ -343,7 +343,7 @@ def move_stake_extrinsic(
 
     # Check sufficient stake
     stake_in_origin, stake_in_destination = _get_stake_in_origin_and_dest(
-        subtensor,
+        subtensor=subtensor,
         origin_hotkey_ss58=origin_hotkey,
         destination_hotkey_ss58=destination_hotkey,
         origin_netuid=origin_netuid,
@@ -390,7 +390,7 @@ def move_stake_extrinsic(
 
             # Get updated stakes
             origin_stake, dest_stake = _get_stake_in_origin_and_dest(
-                subtensor,
+                subtensor=subtensor,
                 origin_hotkey_ss58=origin_hotkey,
                 destination_hotkey_ss58=destination_hotkey,
                 origin_netuid=origin_netuid,

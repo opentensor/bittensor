@@ -83,7 +83,7 @@ def root_register_extrinsic(
         block=block,
     )
     balance = subtensor.get_balance(
-        wallet.coldkeypub.ss58_address,
+        address=wallet.coldkeypub.ss58_address,
         block=block,
     )
 
@@ -119,7 +119,7 @@ def root_register_extrinsic(
         call_params={"hotkey": wallet.hotkey.ss58_address},
     )
     success, err_msg = subtensor.sign_and_send_extrinsic(
-        call,
+        call=call,
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
