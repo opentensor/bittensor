@@ -2826,6 +2826,7 @@ def test_add_stake_success(mocker, fake_wallet, subtensor):
         safe_staking=False,
         allow_partial_stake=False,
         rate_tolerance=0.005,
+        period=None,
     )
     assert result == mock_add_stake_extrinsic.return_value
 
@@ -2865,6 +2866,7 @@ def test_add_stake_with_safe_staking(mocker, fake_wallet, subtensor):
         safe_staking=True,
         allow_partial_stake=False,
         rate_tolerance=fake_rate_tolerance,
+        period=None,
     )
     assert result == mock_add_stake_extrinsic.return_value
 
@@ -2898,6 +2900,7 @@ def test_add_stake_multiple_success(mocker, fake_wallet, subtensor):
         amounts=fake_amount,
         wait_for_inclusion=True,
         wait_for_finalization=False,
+        period=None,
     )
     assert result == mock_add_stake_multiple_extrinsic.return_value
 
