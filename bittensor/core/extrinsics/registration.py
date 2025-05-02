@@ -38,7 +38,7 @@ def _do_burned_register(
         wallet (bittensor_wallet.Wallet): The wallet to be registered.
         wait_for_inclusion (bool): Whether to wait for the transaction to be included in a block. Default is False.
         wait_for_finalization (bool): Whether to wait for the transaction to be finalized. Default is True.
-        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
 
@@ -83,7 +83,7 @@ def burned_register_extrinsic(
             returns ``False`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
             ``True``, or returns ``False`` if the extrinsic fails to be finalized within the timeout.
-        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
 
@@ -175,7 +175,7 @@ def _do_pow_register(
         pow_result (POWSolution): The PoW result to register.
         wait_for_inclusion (bool): If ``True``, waits for the extrinsic to be included in a block. Default to `False`.
         wait_for_finalization (bool): If ``True``, waits for the extrinsic to be finalized. Default to `True`.
-        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
 
@@ -221,7 +221,7 @@ def register_subnet_extrinsic(
         wallet (Wallet): The wallet to be used for subnet registration.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning true.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning true.
-        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
 
@@ -301,7 +301,7 @@ def register_extrinsic(
         num_processes: The number of processes to use to register.
         update_interval: The number of nonces to solve between updates.
         log_verbose: If `True`, the registration process will log more information.
-        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
 
@@ -485,7 +485,7 @@ def set_subnet_identity_extrinsic(
         additional (str): Any additional metadata or information related to the subnet.
         wait_for_inclusion (bool): Whether to wait for the extrinsic inclusion in a block (default: False).
         wait_for_finalization (bool): Whether to wait for the extrinsic finalization in a block (default: True).
-        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
 

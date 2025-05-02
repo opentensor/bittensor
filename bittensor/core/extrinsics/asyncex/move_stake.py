@@ -62,7 +62,7 @@ async def transfer_stake_extrinsic(
         amount (Balance): The amount of stake to transfer as a `Balance` object.
         wait_for_inclusion (bool): If True, waits for transaction inclusion in a block. Defaults to `True`.
         wait_for_finalization (bool): If True, waits for transaction finalization. Defaults to `False`.
-        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
 
@@ -185,8 +185,8 @@ async def swap_stake_extrinsic(
         wait_for_finalization (bool): If True, waits for transaction finalization. Defaults to False.
         safe_staking (bool): If true, enables price safety checks to protect against price impact.
         allow_partial_stake (bool): If true, allows partial stake swaps when the full amount would exceed the price tolerance.
-        rate_tolerance (float): Maximum allowed increase in price ratio (0.005 = 0.5%).
-        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+        rate_tolerance (float): Maximum allowed increase in a price ratio (0.005 = 0.5%).
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
 
@@ -335,7 +335,7 @@ async def move_stake_extrinsic(
         amount (Balance): The amount of stake to move as a `Balance` object.
         wait_for_inclusion (bool): If True, waits for transaction inclusion in a block. Defaults to True.
         wait_for_finalization (bool): If True, waits for transaction finalization. Defaults to False.
-        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
 

@@ -34,7 +34,7 @@ def do_serve_axon(
         call_params (bittensor.core.types.AxonServeCallParams): Parameters required for the serve axon call.
         wait_for_inclusion (bool): Waits for the transaction to be included in a block.
         wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
-        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
 
@@ -96,7 +96,7 @@ def serve_extrinsic(
             ``True``, or returns ``False`` if the extrinsic fails to be finalized within the timeout.
         certificate (bittensor.utils.Certificate): Certificate to use for TLS. If ``None``, no TLS will be used.
             Defaults to ``None``.
-        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
 
@@ -180,7 +180,7 @@ def serve_axon_extrinsic(
             ``True``, or returns ``False`` if the extrinsic fails to be finalized within the timeout.
         certificate (bittensor.utils.Certificate): Certificate to use for TLS. If ``None``, no TLS will be used.
             Defaults to ``None``.
-        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
 
@@ -249,7 +249,7 @@ def publish_metadata(
             block before returning. Defaults to ``False``.
         wait_for_finalization (bool, optional): If ``True``, the function will wait for the extrinsic to be finalized
             on the chain before returning. Defaults to ``True``.
-        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
 

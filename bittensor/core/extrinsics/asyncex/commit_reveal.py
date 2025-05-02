@@ -37,7 +37,7 @@ async def _do_commit_reveal_v3(
         reveal_round: int The round number for the reveal phase.
         wait_for_inclusion: bool, optional Flag indicating whether to wait for the extrinsic to be included in a block.
         wait_for_finalization: bool, optional Flag indicating whether to wait for the extrinsic to be finalized.
-        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
 
@@ -94,7 +94,7 @@ async def commit_reveal_v3_extrinsic(
         wait_for_inclusion: Whether to wait for the inclusion of the transaction. Default is False.
         wait_for_finalization: Whether to wait for the finalization of the transaction. Default is False.
         block_time (float): The number of seconds for block duration. Default is 12.0 seconds.
-        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
 
