@@ -1,11 +1,11 @@
 import asyncio
 from typing import Optional, Sequence, TYPE_CHECKING
-
+from async_substrate_interface.errors import SubstrateRequestException
 from bittensor.core.errors import StakeError, NotRegisteredError
+from bittensor.core.extrinsics.utils import get_old_stakes
 from bittensor.utils import unlock_key
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
-from bittensor.core.extrinsics.utils import get_old_stakes
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -24,6 +24,7 @@ async def add_stake_extrinsic(
     safe_staking: bool = False,
     allow_partial_stake: bool = False,
     rate_tolerance: float = 0.005,
+    period: Optional[int] = None,
 ) -> bool:
     """
     Adds the specified amount of stake to passed hotkey `uid`.
@@ -42,10 +43,16 @@ async def add_stake_extrinsic(
         safe_staking: If set, uses safe staking logic
         allow_partial_stake: If set, allows partial stake
         rate_tolerance: The rate tolerance for safe staking
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         success: Flag is `True` if extrinsic was finalized or included in the block. If we did not wait for
                       finalization/inclusion, the response is `True`.
+
+    Raises:
+        SubstrateRequestException: Raised if the extrinsic fails to be included in the block within the timeout.
     """
 
     # Decrypt keys,
@@ -147,13 +154,14 @@ async def add_stake_extrinsic(
             call_params=call_params,
         )
         staking_response, err_msg = await subtensor.sign_and_send_extrinsic(
-            call,
-            wallet,
-            wait_for_inclusion,
-            wait_for_finalization,
+            call=call,
+            wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
             nonce_key="coldkeypub",
             sign_with="coldkey",
             use_nonce=True,
+            period=period,
         )
         if staking_response is True:  # If we successfully staked.
             # We only wait here if we expect finalization.
@@ -163,8 +171,8 @@ async def add_stake_extrinsic(
             logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
 
             logging.info(
-                f":satellite: [magenta]Checking Balance on:[/magenta] [blue]{subtensor.network}[/blue] "
-                "[magenta]...[/magenta]"
+                f":satellite: [magenta]Checking Balance on:[/magenta] "
+                f"[blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
             )
             new_block_hash = await subtensor.substrate.get_chain_head()
             new_balance, new_stake = await asyncio.gather(
@@ -195,15 +203,8 @@ async def add_stake_extrinsic(
                 logging.error(f":cross_mark: [red]Failed: {err_msg}.[/red]")
             return False
 
-    except NotRegisteredError:
-        logging.error(
-            ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
-                wallet.hotkey_str
-            )
-        )
-        return False
-    except StakeError as e:
-        logging.error(f":cross_mark: [red]Stake Error: {e}[/red]")
+    except SubstrateRequestException as e:
+        logging.error(f":cross_mark: [red]Add Stake Error: {e}[/red]")
         return False
 
 
