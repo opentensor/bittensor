@@ -250,7 +250,7 @@ async def _do_set_weights(
     version_key: int = version_as_int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-    period: int = 5,
+    period: Optional[int] = None,
 ) -> tuple[bool, str]:  # (success, error_message)
     """
     Internal method to send a transaction to the Bittensor blockchain, setting weights for specified neurons. This
@@ -265,7 +265,9 @@ async def _do_set_weights(
         version_key (int, optional): Version key for compatibility with the network.
         wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
         wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-        period (int, optional): The period in seconds to wait for extrinsic inclusion or finalization. Defaults to 5.
+        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         tuple[bool, str]:
@@ -285,7 +287,7 @@ async def _do_set_weights(
             "version_key": version_key,
         },
     )
-    return await subtensor.sign_and_send_extrinsic(
+    success, message = await subtensor.sign_and_send_extrinsic(
         call,
         wallet,
         wait_for_inclusion,
@@ -295,6 +297,14 @@ async def _do_set_weights(
         nonce_key="hotkey",
         sign_with="hotkey",
     )
+
+    # We only wait here if we expect finalization.
+    if not wait_for_finalization and not wait_for_inclusion:
+        return True, "Not waiting for finalization or inclusion."
+
+    if success:
+        return success, "Successfully set weights."
+    return success, message
 
 
 async def set_weights_extrinsic(
@@ -306,7 +316,7 @@ async def set_weights_extrinsic(
     version_key: int = 0,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-    period: int = 5,
+    period: Optional[int] = 8,
 ) -> tuple[bool, str]:
     """Sets the given weights and values on a chain for a wallet hotkey account.
 
@@ -322,7 +332,9 @@ async def set_weights_extrinsic(
             returns ``False`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
             ``True``, or returns ``False`` if the extrinsic fails to be finalized within the timeout.
-        period (int, optional): The period in seconds to wait for extrinsic inclusion or finalization. Defaults to 5.
+        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         tuple[bool, str]:
@@ -332,10 +344,12 @@ async def set_weights_extrinsic(
     weight_uids, weight_vals = convert_and_normalize_weights_and_uids(uids, weights)
 
     logging.info(
-        f":satellite: [magenta]Setting weights on [/magenta][blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
+        f":satellite: [magenta]Setting weights on [/magenta]"
+        f"[blue]{subtensor.network}[/blue] "
+        f"[magenta]...[/magenta]"
     )
     try:
-        success, error_message = await _do_set_weights(
+        success, message = await _do_set_weights(
             subtensor=subtensor,
             wallet=wallet,
             netuid=netuid,
@@ -348,15 +362,15 @@ async def set_weights_extrinsic(
         )
 
         if not wait_for_finalization and not wait_for_inclusion:
-            return True, "Not waiting for finalization or inclusion."
+            return True, message
 
         if success is True:
             message = "Successfully set weights and Finalized."
             logging.success(f":white_heavy_check_mark: [green]{message}[/green]")
             return True, message
 
-        logging.error(f"[red]Failed[/red] set weights. Error: {error_message}")
-        return False, error_message
+        logging.error(f"[red]Failed[/red] set weights. Error: {message}")
+        return False, message
 
     except Exception as error:
         logging.error(f":cross_mark: [red]Failed[/red] set weights. Error: {error}")
