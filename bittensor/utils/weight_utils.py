@@ -442,29 +442,29 @@ def generate_weight_hash(
     return commit_hash
 
 
-def convert_netuids_and_weights(
-    netuids: Union[NDArray[np.int64], list],
+def convert_uids_and_weights(
+    uids: Union[NDArray[np.int64], list],
     weights: Union[NDArray[np.float32], list],
 ) -> tuple[np.ndarray, np.ndarray]:
     """Converts netuids and weights to numpy arrays if they are not already.
 
     Arguments:
-        netuids (Union[NDArray[np.int64], list]): The uint64 uids of destination neurons.
+        uids (Union[NDArray[np.int64], list]): The uint64 uids of destination neurons.
         weights (Union[NDArray[np.float32], list]): The weights to set. These must be floated.
 
     Returns:
         tuple[ndarray, ndarray]: Bytes converted netuids and weights.
     """
-    if isinstance(netuids, list):
-        netuids = np.array(netuids, dtype=np.int64)
+    if isinstance(uids, list):
+        uids = np.array(uids, dtype=np.int64)
     if isinstance(weights, list):
         weights = np.array(weights, dtype=np.float32)
-    return netuids, weights
+    return uids, weights
 
 
 def convert_and_normalize_weights_and_uids(
-        uids: Union[NDArray[np.int64], "torch.LongTensor", list],
-        weights: Union[NDArray[np.float32], "torch.FloatTensor", list],
+    uids: Union[NDArray[np.int64], "torch.LongTensor", list],
+    weights: Union[NDArray[np.float32], "torch.FloatTensor", list],
 ) -> tuple[list[int], list[int]]:
     """Converts weights and uids to numpy arrays if they are not already.
 
@@ -476,13 +476,6 @@ def convert_and_normalize_weights_and_uids(
     Returns:
         weight_uids, weight_vals: Bytes converted weights and uids
     """
-    if isinstance(uids, list):
-        uids = np.array(uids, dtype=np.int64)
-    if isinstance(weights, list):
-        weights = np.array(weights, dtype=np.float32)
 
-    # Reformat and normalize.
-    weight_uids, weight_vals = convert_weights_and_uids_for_emit(
-        uids, weights
-    )
-    return weight_uids, weight_vals
+    # Reformat and normalize and return
+    return convert_weights_and_uids_for_emit(*convert_uids_and_weights(uids, weights))
