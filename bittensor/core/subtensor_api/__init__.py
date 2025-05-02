@@ -26,7 +26,7 @@ class SubtensorApi:
         config: Bittensor configuration object. Defaults to `None`.
         log_verbose: If `True`, sets the subtensor to log verbosely. Defaults to `False`.
         async_subtensor: If `True`, uses the async subtensor to create the connection. Defaults to `False`.
-        subtensor_fields: If `True`, all methods from the Subtensor class will be added to the root level of this class.
+        backward_compatibility: If `True`, all methods from the Subtensor class will be added to the root level of this class.
 
     Example:
         # sync version
@@ -46,10 +46,10 @@ class SubtensorApi:
             print(await subtensor.delegates.get_delegate_identities())
             print(await subtensor.chain.tx_rate_limit())
 
-        # using `subtensor_fields`
+        # using `backward_compatibility`
         import bittensor as bt
 
-        subtensor = bt.SubtensorApi(subtensor_fields=True)
+        subtensor = bt.SubtensorApi(backward_compatibility=True)
         print(subtensor.bonds(0))
     """
 
@@ -59,7 +59,7 @@ class SubtensorApi:
         config: Optional["Config"] = None,
         log_verbose: bool = False,
         async_subtensor: bool = False,
-        subtensor_fields: bool = False,
+        backward_compatibility: bool = False,
         _mock: bool = False,
     ):
         self.network = network
@@ -88,7 +88,9 @@ class SubtensorApi:
         self.sign_and_send_extrinsic = self._subtensor.sign_and_send_extrinsic
         self.start_call = self._subtensor.start_call
         self.wait_for_block = self._subtensor.wait_for_block
-        if subtensor_fields:
+
+        # adds all Subtensor methods into main level os SubtensorApi class
+        if backward_compatibility:
             _add_classic_fields(self)
 
     def _get_subtensor(self) -> Union["_Subtensor", "_AsyncSubtensor"]:

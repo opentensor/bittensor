@@ -57,13 +57,13 @@ def test_properties_methods_comparable(other_class: "Subtensor" = None):
         )
 
 
-def test__methods_comparable_with_passed_subtensor_fields(
+def test__methods_comparable_with_passed_backward_compatibility(
     other_class: "Subtensor" = None,
 ):
-    """Verifies that methods in SubtensorApi contains all Subtensors methods if `subtensor_fields=True` is passed."""
+    """Verifies that methods in SubtensorApi contains all Subtensors methods if `backward_compatibility=True` is passed."""
     # Preps
     subtensor = other_class(_mock=True) if other_class else Subtensor(_mock=True)
-    subtensor_api = SubtensorApi(_mock=True, subtensor_fields=True)
+    subtensor_api = SubtensorApi(_mock=True, backward_compatibility=True)
 
     subtensor_methods = [m for m in dir(subtensor) if not m.startswith("_")]
     subtensor_api_methods = [m for m in dir(subtensor_api) if not m.startswith("_")]
