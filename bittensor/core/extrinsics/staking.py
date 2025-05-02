@@ -1,5 +1,7 @@
 from typing import Optional, TYPE_CHECKING, Sequence
 
+from async_substrate_interface.errors import SubstrateRequestException
+
 from bittensor.core.errors import StakeError, NotRegisteredError
 from bittensor.core.extrinsics.utils import get_old_stakes
 from bittensor.utils import unlock_key
@@ -22,6 +24,7 @@ def add_stake_extrinsic(
     safe_staking: bool = False,
     allow_partial_stake: bool = False,
     rate_tolerance: float = 0.005,
+    period: Optional[int] = None,
 ) -> bool:
     """
     Adds the specified amount of stake to passed hotkey `uid`.
@@ -39,10 +42,16 @@ def add_stake_extrinsic(
         safe_staking (bool): If true, enables price safety checks
         allow_partial_stake (bool): If true, allows partial unstaking if price tolerance exceeded
         rate_tolerance (float): Maximum allowed price increase percentage (0.005 = 0.5%)
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         success: Flag is `True` if extrinsic was finalized or included in the block. If we did not wait for
                       finalization/inclusion, the response is `True`.
+
+    Raises:
+        SubstrateRequestException: Raised if the extrinsic fails to be included in the block within the timeout.
     """
 
     # Decrypt keys,
@@ -143,16 +152,17 @@ def add_stake_extrinsic(
             call_params=call_params,
         )
 
-        staking_response, err_msg = subtensor.sign_and_send_extrinsic(
-            call,
-            wallet,
-            wait_for_inclusion,
-            wait_for_finalization,
+        success, message = subtensor.sign_and_send_extrinsic(
+            call=call,
+            wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
             use_nonce=True,
             sign_with="coldkey",
             nonce_key="coldkeypub",
+            period=period,
         )
-        if staking_response is True:  # If we successfully staked.
+        if success is True:  # If we successfully staked.
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
                 return True
@@ -160,8 +170,8 @@ def add_stake_extrinsic(
             logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
 
             logging.info(
-                f":satellite: [magenta]Checking Balance on:[/magenta] [blue]{subtensor.network}[/blue] "
-                "[magenta]...[/magenta]"
+                f":satellite: [magenta]Checking Balance on:[/magenta] "
+                f"[blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
             )
             new_block = subtensor.get_current_block()
             new_balance = subtensor.get_balance(
@@ -181,24 +191,16 @@ def add_stake_extrinsic(
             )
             return True
         else:
-            if safe_staking and "Custom error: 8" in err_msg:
+            if safe_staking and "Custom error: 8" in message:
                 logging.error(
                     ":cross_mark: [red]Failed[/red]: Price exceeded tolerance limit. Either increase price tolerance or enable partial staking."
                 )
             else:
-                logging.error(f":cross_mark: [red]Failed: {err_msg}.[/red]")
+                logging.error(f":cross_mark: [red]Failed: {message}.[/red]")
             return False
 
-    # TODO I don't think these are used. Maybe should just catch SubstrateRequestException?
-    except NotRegisteredError:
-        logging.error(
-            ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
-                wallet.hotkey_str
-            )
-        )
-        return False
-    except StakeError as e:
-        logging.error(f":cross_mark: [red]Stake Error: {e}[/red]")
+    except SubstrateRequestException as e:
+        logging.error(f":cross_mark: [red]Add Stake Error: {e}[/red]")
         return False
 
 
@@ -217,6 +219,7 @@ def add_stake_multiple_extrinsic(
         subtensor: The initialized SubtensorInterface object.
         wallet: Bittensor wallet object for the coldkey.
         hotkey_ss58s: List of hotkeys to stake to.
+        netuids: List of netuids to stake to.
         amounts: List of amounts to stake. If `None`, stake all to the first hotkey.
         wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning `True`, or returns `False`
             if the extrinsic fails to enter the block within the timeout.
