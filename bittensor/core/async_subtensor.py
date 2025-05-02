@@ -3731,9 +3731,11 @@ class AsyncSubtensor(SubtensorMixin):
 
         return success, message
 
+    # TODO: remove `block_hash` argument
     async def root_register(
         self,
         wallet: "Wallet",
+        block_hash: Optional[str] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
         period: Optional[int] = None,
@@ -3743,6 +3745,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Arguments:
             wallet (bittensor_wallet.Wallet): Bittensor wallet instance.
+            block_hash (Optional[str]): This argument will be removed in Bittensor v10
             wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
                 ``False``.
