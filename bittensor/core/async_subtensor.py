@@ -3279,7 +3279,9 @@ class AsyncSubtensor(SubtensorMixin):
             )
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
-                return True, ""
+                message = "Not waiting for finalization or inclusion."
+                logging.debug(message)
+                return True, message
 
             if await response.is_success:
                 return True, ""

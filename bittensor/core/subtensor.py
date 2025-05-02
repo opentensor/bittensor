@@ -2708,7 +2708,9 @@ class Subtensor(SubtensorMixin):
             )
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
-                return True, ""
+                message = f"Not waiting for finalization or inclusion. Extrinsic: {extrinsic}"
+                logging.debug(message)
+                return True, message
 
             if response.is_success:
                 return True, ""
@@ -3276,7 +3278,7 @@ class Subtensor(SubtensorMixin):
         wait_for_finalization: bool = False,
         max_retries: int = 5,
         block_time: float = 12.0,
-        period: int = 16,
+        period: Optional[int] = 16,
     ) -> tuple[bool, str]:
         """
         Sets the inter-neuronal weights for the specified neuron. This process involves specifying the influence or
