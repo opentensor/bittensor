@@ -79,8 +79,8 @@ def decrease_take_extrinsic(
         wait_for_inclusion (bool, optional): Wait for inclusion before returning. Defaults to True.
         wait_for_finalization (bool, optional): Wait for finalization before returning. Defaults to True.
         raise_error (bool, optional): Raise error on failure. Defaults to False.
-        period: The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted.
+            If the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
 
     Returns:
