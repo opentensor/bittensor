@@ -16,7 +16,7 @@ from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import (
     normalize_max_weight,
     convert_weights_and_uids_for_emit,
-    convert_netuids_and_weights
+    convert_uids_and_weights
 )
 
 if TYPE_CHECKING:
@@ -261,7 +261,7 @@ def set_root_weights_extrinsic(
         return False
 
     # Convert types.
-    netuids, weights = convert_netuids_and_weights(netuids, weights)
+    netuids, weights = convert_uids_and_weights(netuids, weights)
 
     logging.debug("[magenta]Fetching weight limits ...[/magenta]")
     min_allowed_weights, max_weight_limit = _get_limits(subtensor)

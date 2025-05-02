@@ -11,7 +11,7 @@ from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import (
     normalize_max_weight,
     convert_weights_and_uids_for_emit,
-    convert_netuids_and_weights
+    convert_uids_and_weights
 )
 
 if TYPE_CHECKING:
@@ -208,7 +208,7 @@ async def _do_set_root_weights(
 
     # We only wait here if we expect finalization.
     if not wait_for_finalization and not wait_for_inclusion:
-        return True, "Not waiting for finalization or inclusion."
+        return True, message
 
     if success:
         return True, "Successfully set weights."
@@ -260,7 +260,7 @@ async def set_root_weights_extrinsic(
         return False
 
     # Convert types.
-    netuids, weights = convert_netuids_and_weights(netuids, weights)
+    netuids, weights = convert_uids_and_weights(netuids, weights)
 
     logging.debug("[magenta]Fetching weight limits ...[/magenta]")
     min_allowed_weights, max_weight_limit = await _get_limits(subtensor)
