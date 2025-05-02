@@ -59,7 +59,7 @@ async def root_register_extrinsic(
             `False` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
             `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
-        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
 
@@ -177,7 +177,7 @@ async def _do_set_root_weights(
             False.
         wait_for_finalization (bool, optional): If True, waits for the extrinsic to be finalized on the chain. Defaults
             to False.
-        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
 
@@ -239,7 +239,7 @@ async def set_root_weights_extrinsic(
             `False` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning `
             True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
-        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
 

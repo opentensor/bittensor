@@ -59,7 +59,7 @@ def transfer_stake_extrinsic(
         amount (Union[Balance, float, int]): Amount to transfer.
         wait_for_inclusion (bool): If true, waits for inclusion before returning.
         wait_for_finalization (bool): If true, waits for finalization before returning.
-        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
 
@@ -183,7 +183,7 @@ def swap_stake_extrinsic(
         safe_staking (bool): If true, enables price safety checks to protect against price impact.
         allow_partial_stake (bool): If true, allows partial stake swaps when the full amount would exceed the price tolerance.
         rate_tolerance (float): Maximum allowed increase in a price ratio (0.005 = 0.5%).
-        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
 
@@ -331,7 +331,7 @@ def move_stake_extrinsic(
         amount (Union[Balance, float]): Amount to move.
         wait_for_inclusion (bool): If true, waits for inclusion before returning.
         wait_for_finalization (bool): If true, waits for finalization before returning.
-        period (int): The number of blocks during which the transaction will remain valid after it's submitted. If
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
 
