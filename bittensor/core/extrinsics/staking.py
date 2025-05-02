@@ -215,7 +215,7 @@ def add_stake_multiple_extrinsic(
     wait_for_finalization: bool = False,
     period: Optional[int] = None,
 ) -> bool:
-    """Adds a stake to each ``hotkey_ss58`` in the list, using each amount, from a common coldkey.
+    """Adds stake to each ``hotkey_ss58`` in the list, using each amount, from a common coldkey.
 
     Arguments:
         subtensor: The initialized SubtensorInterface object.
