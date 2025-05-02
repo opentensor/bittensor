@@ -94,13 +94,14 @@ class SubtensorApi:
     def _get_subtensor(self) -> Union["_Subtensor", "_AsyncSubtensor"]:
         """Returns the subtensor instance based on the provided config and subtensor type flag."""
         if self.is_async:
-            self.initialize = self._subtensor.initialize
-            return _AsyncSubtensor(
+            _subtensor = _AsyncSubtensor(
                 network=self.network,
                 config=self._config,
                 _mock=self._mock,
                 log_verbose=self.log_verbose,
             )
+            self.initialize = _subtensor.initialize
+            return _subtensor
         else:
             return _Subtensor(
                 network=self.network,
