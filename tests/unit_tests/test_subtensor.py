@@ -1203,7 +1203,7 @@ def test_set_weights(subtensor, mocker, fake_wallet):
         version_key=settings.version_as_int,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
-        period=5,
+        period=8,
     )
     assert result == expected_result
 
@@ -1234,6 +1234,7 @@ def test_serve_axon(subtensor, mocker):
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
         certificate=fake_certificate,
+        period=None,
     )
     assert result == mocked_serve_axon_extrinsic.return_value
 
@@ -1252,7 +1253,7 @@ def test_get_block_hash(subtensor, mocker):
 
 
 def test_commit(subtensor, fake_wallet, mocker):
-    """Test successful commit call."""
+    """Test a successful commit call."""
     # Preps
     fake_netuid = 1
     fake_data = "some data to network"
@@ -1268,6 +1269,7 @@ def test_commit(subtensor, fake_wallet, mocker):
         netuid=fake_netuid,
         data_type=f"Raw{len(fake_data)}",
         data=fake_data.encode(),
+        period=None,
     )
     assert result is mocked_publish_metadata.return_value
 
@@ -1325,6 +1327,7 @@ def test_transfer(subtensor, fake_wallet, mocker):
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
         keep_alive=True,
+        period=None,
     )
     assert result == mocked_transfer_extrinsic.return_value
 
@@ -1466,7 +1469,7 @@ def test_do_serve_axon_is_success(
     fake_wait_for_inclusion = True
     fake_wait_for_finalization = True
 
-    subtensor.substrate.submit_extrinsic.return_value.is_success = True
+    mocker.patch.object(subtensor, "sign_and_send_extrinsic", return_value=(True, ""))
 
     # Call
     result = do_serve_axon(
@@ -1484,20 +1487,16 @@ def test_do_serve_axon_is_success(
         call_params=fake_call_params,
     )
 
-    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
+    subtensor.sign_and_send_extrinsic.assert_called_once_with(
         call=subtensor.substrate.compose_call.return_value,
-        keypair=fake_wallet.hotkey,
-    )
-
-    subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        extrinsic=subtensor.substrate.create_signed_extrinsic.return_value,
+        wallet=fake_wallet,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
+        period=None,
     )
 
-    # subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
     assert result[0] is True
-    assert result[1] is None
+    assert result[1] is ""
 
 
 def test_do_serve_axon_is_not_success(subtensor, fake_wallet, mocker, fake_call_params):
@@ -1506,7 +1505,9 @@ def test_do_serve_axon_is_not_success(subtensor, fake_wallet, mocker, fake_call_
     fake_wait_for_inclusion = True
     fake_wait_for_finalization = True
 
-    subtensor.substrate.submit_extrinsic.return_value.is_success = None
+    mocker.patch.object(
+        subtensor, "sign_and_send_extrinsic", return_value=(False, None)
+    )
 
     # Call
     result = do_serve_axon(
@@ -1524,21 +1525,15 @@ def test_do_serve_axon_is_not_success(subtensor, fake_wallet, mocker, fake_call_
         call_params=fake_call_params,
     )
 
-    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
+    subtensor.sign_and_send_extrinsic.assert_called_once_with(
         call=subtensor.substrate.compose_call.return_value,
-        keypair=fake_wallet.hotkey,
-    )
-
-    subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        extrinsic=subtensor.substrate.create_signed_extrinsic.return_value,
+        wallet=fake_wallet,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
+        period=None,
     )
 
-    assert result == (
-        False,
-        subtensor.substrate.submit_extrinsic.return_value.error_message,
-    )
+    assert result == (False, None)
 
 
 def test_do_serve_axon_no_waits(subtensor, fake_wallet, mocker, fake_call_params):
@@ -1547,6 +1542,11 @@ def test_do_serve_axon_no_waits(subtensor, fake_wallet, mocker, fake_call_params
     fake_wait_for_inclusion = False
     fake_wait_for_finalization = False
 
+    mocked_sign_and_send_extrinsic = mocker.Mock(return_value=(True, ""))
+    mocker.patch.object(
+        subtensor, "sign_and_send_extrinsic", new=mocked_sign_and_send_extrinsic
+    )
+
     # Call
     result = do_serve_axon(
         subtensor=subtensor,
@@ -1563,17 +1563,14 @@ def test_do_serve_axon_no_waits(subtensor, fake_wallet, mocker, fake_call_params
         call_params=fake_call_params,
     )
 
-    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
+    mocked_sign_and_send_extrinsic.assert_called_once_with(
         call=subtensor.substrate.compose_call.return_value,
-        keypair=fake_wallet.hotkey,
-    )
-
-    subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        extrinsic=subtensor.substrate.create_signed_extrinsic.return_value,
+        wallet=fake_wallet,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
+        period=None,
     )
-    assert result == (True, None)
+    assert result == (True, "")
 
 
 def test_immunity_period(subtensor, mocker):
@@ -1963,6 +1960,7 @@ def test_commit_weights(subtensor, fake_wallet, mocker):
         commit_hash=mocked_generate_weight_hash.return_value,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        period=16,
     )
     assert result == expected_result
 
@@ -2002,6 +2000,7 @@ def test_reveal_weights(subtensor, fake_wallet, mocker):
         salt=salt,
         wait_for_inclusion=False,
         wait_for_finalization=False,
+        period=16,
     )
 
 
@@ -2831,6 +2830,7 @@ def test_add_stake_success(mocker, fake_wallet, subtensor):
         safe_staking=False,
         allow_partial_stake=False,
         rate_tolerance=0.005,
+        period=None,
     )
     assert result == mock_add_stake_extrinsic.return_value
 
@@ -2870,6 +2870,7 @@ def test_add_stake_with_safe_staking(mocker, fake_wallet, subtensor):
         safe_staking=True,
         allow_partial_stake=False,
         rate_tolerance=fake_rate_tolerance,
+        period=None,
     )
     assert result == mock_add_stake_extrinsic.return_value
 
@@ -2903,6 +2904,7 @@ def test_add_stake_multiple_success(mocker, fake_wallet, subtensor):
         amounts=fake_amount,
         wait_for_inclusion=True,
         wait_for_finalization=False,
+        period=None,
     )
     assert result == mock_add_stake_multiple_extrinsic.return_value
 
@@ -2939,6 +2941,7 @@ def test_unstake_success(mocker, subtensor, fake_wallet):
         safe_staking=False,
         allow_partial_stake=False,
         rate_tolerance=0.005,
+        period=None,
     )
     assert result == mock_unstake_extrinsic.return_value
 
@@ -2975,6 +2978,7 @@ def test_unstake_with_safe_staking(mocker, subtensor, fake_wallet):
         safe_staking=True,
         allow_partial_stake=True,
         rate_tolerance=fake_rate_tolerance,
+        period=None,
     )
     assert result == mock_unstake_extrinsic.return_value
 
@@ -3018,6 +3022,7 @@ def test_swap_stake_success(mocker, subtensor, fake_wallet):
         safe_staking=False,
         allow_partial_stake=False,
         rate_tolerance=0.005,
+        period=None,
     )
     assert result == mock_swap_stake_extrinsic.return_value
 
@@ -3062,6 +3067,7 @@ def test_swap_stake_with_safe_staking(mocker, subtensor, fake_wallet):
         safe_staking=True,
         allow_partial_stake=True,
         rate_tolerance=fake_rate_tolerance,
+        period=None,
     )
     assert result == mock_swap_stake_extrinsic.return_value
 
@@ -3095,6 +3101,7 @@ def test_unstake_multiple_success(mocker, subtensor, fake_wallet):
         amounts=fake_amounts,
         wait_for_inclusion=True,
         wait_for_finalization=False,
+        period=None,
     )
     assert result == mock_unstake_multiple_extrinsic.return_value
 
@@ -3143,6 +3150,7 @@ def test_set_weights_with_commit_reveal_enabled(subtensor, fake_wallet, mocker):
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
         block_time=12.0,
+        period=8,
     )
     assert result == mocked_commit_reveal_v3_extrinsic.return_value
 
@@ -3200,6 +3208,7 @@ def test_set_subnet_identity(mocker, subtensor, fake_wallet):
         additional=fake_subnet_identity.additional,
         wait_for_finalization=True,
         wait_for_inclusion=False,
+        period=None,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3389,6 +3398,7 @@ def test_start_call(subtensor, mocker):
         netuid=netuid,
         wait_for_inclusion=True,
         wait_for_finalization=False,
+        period=None,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3427,7 +3437,7 @@ def test_get_metagraph_info_specific_fields(subtensor, mocker):
     # Preps
     netuid = 1
     mock_value = {"mock": "data"}
-    fields = [SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkey]
+    fields = [SelectiveMetagraphIndex.Name, 5]
 
     mock_runtime_call = mocker.patch.object(
         subtensor.substrate,
@@ -3446,7 +3456,13 @@ def test_get_metagraph_info_specific_fields(subtensor, mocker):
     mock_runtime_call.assert_called_once_with(
         "SubnetInfoRuntimeApi",
         "get_selective_metagraph",
-        params=[netuid, [0] + [f.value for f in fields]],
+        params=[
+            netuid,
+            [0]
+            + [
+                f.value if isinstance(f, SelectiveMetagraphIndex) else f for f in fields
+            ],
+        ],
         block_hash=subtensor.determine_block_hash(None),
     )
     mock_from_dict.assert_called_once_with(mock_value)
@@ -3458,8 +3474,8 @@ def test_get_metagraph_info_specific_fields(subtensor, mocker):
         [
             "invalid",
         ],
-        [SelectiveMetagraphIndex.Active, 1],
-        [1, 2, 3],
+        [SelectiveMetagraphIndex.Active, 1, "f"],
+        [1, 2, 3, "f"],
     ],
 )
 def test_get_metagraph_info_invalid_field_indices(subtensor, wrong_fields):
@@ -3487,3 +3503,132 @@ def test_get_metagraph_info_subnet_not_exist(subtensor, mocker):
 
     assert result is None
     mocked_logger.assert_called_once_with(f"Subnet {netuid} does not exist.")
+
+
+def test_blocks_since_last_step_with_value(subtensor, mocker):
+    """Test blocks_since_last_step returns correct value."""
+    # preps
+    netuid = 1
+    block = 123
+    mocked_query_subtensor = mocker.MagicMock()
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # call
+    result = subtensor.blocks_since_last_step(netuid=netuid, block=block)
+
+    # asserts
+    mocked_query_subtensor.assert_called_once_with(
+        name="BlocksSinceLastStep",
+        block=block,
+        params=[netuid],
+    )
+
+    assert result == mocked_query_subtensor.return_value.value
+
+
+def test_blocks_since_last_step_is_none(subtensor, mocker):
+    """Test blocks_since_last_step returns None correctly."""
+    # preps
+    netuid = 1
+    block = 123
+    mocked_query_subtensor = mocker.MagicMock(return_value=None)
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # call
+    result = subtensor.blocks_since_last_step(netuid=netuid, block=block)
+
+    # asserts
+    mocked_query_subtensor.assert_called_once_with(
+        name="BlocksSinceLastStep",
+        block=block,
+        params=[netuid],
+    )
+
+    assert result is None
+
+
+def test_get_subnet_owner_hotkey_has_return(subtensor, mocker):
+    """Test get_subnet_owner_hotkey returns correct value."""
+    # preps
+    netuid = 14
+    block = 123
+    expected_owner_hotkey = "owner_hotkey"
+    mocked_query_subtensor = mocker.MagicMock(return_value=expected_owner_hotkey)
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # call
+    result = subtensor.get_subnet_owner_hotkey(netuid=netuid, block=block)
+
+    # asserts
+    mocked_query_subtensor.assert_called_once_with(
+        name="SubnetOwnerHotkey",
+        block=block,
+        params=[netuid],
+    )
+
+    assert result == expected_owner_hotkey
+
+
+def test_get_subnet_owner_hotkey_is_none(subtensor, mocker):
+    """Test get_subnet_owner_hotkey returns None correctly."""
+    # preps
+    netuid = 14
+    block = 123
+    mocked_query_subtensor = mocker.MagicMock(return_value=None)
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # call
+    result = subtensor.get_subnet_owner_hotkey(netuid=netuid, block=block)
+
+    # asserts
+    mocked_query_subtensor.assert_called_once_with(
+        name="SubnetOwnerHotkey",
+        block=block,
+        params=[netuid],
+    )
+
+    assert result is None
+
+
+def test_get_subnet_validator_permits_has_values(subtensor, mocker):
+    """Test get_subnet_validator_permits returns correct value."""
+    # preps
+    netuid = 14
+    block = 123
+    expected_validator_permits = [False, True, False]
+    mocked_query_subtensor = mocker.MagicMock(return_value=expected_validator_permits)
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # call
+    result = subtensor.get_subnet_validator_permits(netuid=netuid, block=block)
+
+    # asserts
+    mocked_query_subtensor.assert_called_once_with(
+        name="ValidatorPermit",
+        block=block,
+        params=[netuid],
+    )
+
+    assert result == expected_validator_permits
+
+
+def test_get_subnet_validator_permits_is_none(subtensor, mocker):
+    """Test get_subnet_validator_permits returns correct value."""
+    # preps
+    netuid = 14
+    block = 123
+
+    mocked_query_subtensor = mocker.MagicMock(return_value=None)
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # call
+    result = subtensor.get_subnet_validator_permits(netuid=netuid, block=block)
+
+    # asserts
+    mocked_query_subtensor.assert_called_once_with(
+        name="ValidatorPermit",
+        block=block,
+        params=[netuid],
+    )
+
+    assert result is None

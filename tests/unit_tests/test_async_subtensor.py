@@ -1821,7 +1821,7 @@ async def test_sign_and_send_extrinsic_success_without_inclusion_finalization(
         wait_for_inclusion=False,
         wait_for_finalization=False,
     )
-    assert result == (True, "")
+    assert result == (True, "Not waiting for finalization or inclusion.")
 
 
 @pytest.mark.asyncio
@@ -2518,6 +2518,7 @@ async def test_transfer_success(subtensor, fake_wallet, mocker):
         wait_for_inclusion=True,
         wait_for_finalization=False,
         keep_alive=True,
+        period=None,
     )
     assert result == mocked_transfer_extrinsic.return_value
 
@@ -2551,6 +2552,7 @@ async def test_register_success(subtensor, fake_wallet, mocker):
         wait_for_finalization=True,
         wait_for_inclusion=False,
         wallet=fake_wallet,
+        period=None,
     )
     assert result == mocked_register_extrinsic.return_value
 
@@ -2666,7 +2668,7 @@ async def test_set_delegate_take_decrease(
 
 @pytest.mark.asyncio
 async def test_set_weights_success(subtensor, fake_wallet, mocker):
-    """Tests set_weights with successful weight setting on the first try."""
+    """Tests set_weights with the successful weight setting on the first try."""
     # Preps
     fake_netuid = 1
     fake_uids = [1, 2, 3]
@@ -2715,7 +2717,7 @@ async def test_set_weights_success(subtensor, fake_wallet, mocker):
         wait_for_finalization=False,
         wait_for_inclusion=False,
         weights=fake_weights,
-        period=5,
+        period=8,
     )
     mocked_weights_rate_limit.assert_called_once_with(fake_netuid)
     assert result is True
@@ -2803,6 +2805,7 @@ async def test_root_set_weights_success(subtensor, fake_wallet, mocker):
         version_key=0,
         wait_for_finalization=True,
         wait_for_inclusion=True,
+        period=None,
     )
     assert result == mocked_set_root_weights_extrinsic.return_value
 
@@ -2853,6 +2856,7 @@ async def test_commit_weights_success(subtensor, fake_wallet, mocker):
         commit_hash="fake_commit_hash",
         wait_for_inclusion=False,
         wait_for_finalization=False,
+        period=16,
     )
     assert result is True
     assert message == "Success"
@@ -2955,6 +2959,7 @@ async def test_set_subnet_identity(mocker, subtensor, fake_wallet):
         additional=fake_subnet_identity.additional,
         wait_for_finalization=True,
         wait_for_inclusion=False,
+        period=None,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3060,6 +3065,7 @@ async def test_start_call(subtensor, mocker):
         netuid=netuid,
         wait_for_inclusion=True,
         wait_for_finalization=False,
+        period=None,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3100,7 +3106,7 @@ async def test_get_metagraph_info_specific_fields(subtensor, mocker):
     # Preps
     netuid = 1
     mock_value = {"mock": "data"}
-    fields = [SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkey]
+    fields = [SelectiveMetagraphIndex.Name, 5]
 
     mock_runtime_call = mocker.patch.object(
         subtensor.substrate,
@@ -3119,7 +3125,13 @@ async def test_get_metagraph_info_specific_fields(subtensor, mocker):
     mock_runtime_call.assert_awaited_once_with(
         "SubnetInfoRuntimeApi",
         "get_selective_metagraph",
-        params=[netuid, [0] + [f.value for f in fields]],
+        params=[
+            netuid,
+            [0]
+            + [
+                f.value if isinstance(f, SelectiveMetagraphIndex) else f for f in fields
+            ],
+        ],
         block_hash=await subtensor.determine_block_hash(None),
     )
     mock_from_dict.assert_called_once_with(mock_value)
@@ -3131,8 +3143,8 @@ async def test_get_metagraph_info_specific_fields(subtensor, mocker):
         [
             "invalid",
         ],
-        [SelectiveMetagraphIndex.Active, 1],
-        [1, 2, 3],
+        [SelectiveMetagraphIndex.Active, 1, "f"],
+        [1, 2, 3, "f"],
     ],
 )
 @pytest.mark.asyncio
@@ -3162,3 +3174,138 @@ async def test_get_metagraph_info_subnet_not_exist(subtensor, mocker):
 
     assert result is None
     mocked_logger.assert_called_once_with(f"Subnet {netuid} does not exist.")
+
+
+@pytest.mark.asyncio
+async def test_blocks_since_last_step_with_value(subtensor, mocker):
+    """Test blocks_since_last_step returns correct value."""
+    # preps
+    netuid = 1
+    block = 123
+    mocked_query_subtensor = mocker.AsyncMock()
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # call
+    result = await subtensor.blocks_since_last_step(netuid=netuid, block=block)
+
+    # asserts
+    mocked_query_subtensor.assert_awaited_once_with(
+        name="BlocksSinceLastStep",
+        block=block,
+        params=[netuid],
+    )
+
+    assert result == mocked_query_subtensor.return_value.value
+
+
+@pytest.mark.asyncio
+async def test_blocks_since_last_step_is_none(subtensor, mocker):
+    """Test blocks_since_last_step returns None correctly."""
+    # preps
+    netuid = 1
+    block = 123
+    mocked_query_subtensor = mocker.AsyncMock(return_value=None)
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # call
+    result = await subtensor.blocks_since_last_step(netuid=netuid, block=block)
+
+    # asserts
+    mocked_query_subtensor.assert_awaited_once_with(
+        name="BlocksSinceLastStep",
+        block=block,
+        params=[netuid],
+    )
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_subnet_owner_hotkey_has_return(subtensor, mocker):
+    """Test get_subnet_owner_hotkey returns correct value."""
+    # preps
+    netuid = 14
+    block = 123
+    expected_owner_hotkey = "owner_hotkey"
+    mocked_query_subtensor = mocker.AsyncMock(return_value=expected_owner_hotkey)
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # call
+    result = await subtensor.get_subnet_owner_hotkey(netuid=netuid, block=block)
+
+    # asserts
+    mocked_query_subtensor.assert_awaited_once_with(
+        name="SubnetOwnerHotkey",
+        block=block,
+        params=[netuid],
+    )
+
+    assert result == expected_owner_hotkey
+
+
+@pytest.mark.asyncio
+async def test_get_subnet_owner_hotkey_is_none(subtensor, mocker):
+    """Test get_subnet_owner_hotkey returns None correctly."""
+    # preps
+    netuid = 14
+    block = 123
+    mocked_query_subtensor = mocker.AsyncMock(return_value=None)
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # call
+    result = await subtensor.get_subnet_owner_hotkey(netuid=netuid, block=block)
+
+    # asserts
+    mocked_query_subtensor.assert_awaited_once_with(
+        name="SubnetOwnerHotkey",
+        block=block,
+        params=[netuid],
+    )
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_subnet_validator_permits_has_values(subtensor, mocker):
+    """Test get_subnet_validator_permits returns correct value."""
+    # preps
+    netuid = 14
+    block = 123
+    expected_validator_permits = [False, True, False]
+    mocked_query_subtensor = mocker.AsyncMock(return_value=expected_validator_permits)
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # call
+    result = await subtensor.get_subnet_validator_permits(netuid=netuid, block=block)
+
+    # asserts
+    mocked_query_subtensor.assert_awaited_once_with(
+        name="ValidatorPermit",
+        block=block,
+        params=[netuid],
+    )
+
+    assert result == expected_validator_permits
+
+
+@pytest.mark.asyncio
+async def test_get_subnet_validator_permits_is_none(subtensor, mocker):
+    """Test get_subnet_validator_permits returns correct value."""
+    # preps
+    netuid = 14
+    block = 123
+
+    mocked_query_subtensor = mocker.AsyncMock(return_value=None)
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # call
+    result = await subtensor.get_subnet_validator_permits(netuid=netuid, block=block)
+
+    # asserts
+    mocked_query_subtensor.assert_awaited_once_with(
+        name="ValidatorPermit",
+        block=block,
+        params=[netuid],
+    )
+
+    assert result is None
