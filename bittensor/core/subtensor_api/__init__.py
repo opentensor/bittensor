@@ -6,12 +6,13 @@ from .chain import Chain as _Chain
 from .commitments import Commitments as _Commitments
 from .delegates import Delegates as _Delegates
 from .extrinsics import Extrinsics as _Extrinsics
-from .metagraph import Metagraphs as _Metagraphs
+from .metagraphs import Metagraphs as _Metagraphs
 from .neurons import Neurons as _Neurons
 from .queries import Queries as _Queries
 from .stakes import Stakes as _Stakes
-from .subnet import Subnet as _Subnet
-from .wallet import Wallet as _Wallet
+from .subnets import Subnets as _Subnets
+from .utils import add_classic_fields as _add_classic_fields
+from .wallets import Wallets as _Wallets
 
 if TYPE_CHECKING:
     from bittensor.core.config import Config
@@ -23,8 +24,9 @@ class SubtensorApi:
     Arguments:
         network: The network to connect to. Defaults to `None` -> `finney`.
         config: Bittensor configuration object. Defaults to `None`.
-        log_verbose: If true, sets the subtensor to log verbosely. Defaults to `False`.
-        async_subtensor: If true, uses the async subtensor to create the connection. Defaults to `False`.
+        log_verbose: If `True`, sets the subtensor to log verbosely. Defaults to `False`.
+        async_subtensor: If `True`, uses the async subtensor to create the connection. Defaults to `False`.
+        subtensor_fields: If `True`, all methods from the Subtensor class will be added to the root level of this class.
 
     Example:
         # sync version
@@ -43,6 +45,12 @@ class SubtensorApi:
             print(await subtensor.block)
             print(await subtensor.delegates.get_delegate_identities())
             print(await subtensor.chain.tx_rate_limit())
+
+        # using `subtensor_fields`
+        import bittensor as bt
+
+        subtensor = bt.SubtensorApi(subtensor_fields=True)
+        print(subtensor.bonds(0))
     """
 
     def __init__(
@@ -51,6 +59,7 @@ class SubtensorApi:
         config: Optional["Config"] = None,
         log_verbose: bool = False,
         async_subtensor: bool = False,
+        subtensor_fields: bool = False,
         _mock: bool = False,
     ):
         self.network = network
@@ -59,6 +68,9 @@ class SubtensorApi:
         self.is_async = async_subtensor
         self._config = config
         self._subtensor = self._get_subtensor()
+
+        # fix naming collision
+        self._neurons = _Neurons(self._subtensor)
 
         # define empty fields
         self.substrate = self._subtensor.substrate
@@ -74,6 +86,8 @@ class SubtensorApi:
         self.sign_and_send_extrinsic = self._subtensor.sign_and_send_extrinsic
         self.start_call = self._subtensor.start_call
         self.wait_for_block = self._subtensor.wait_for_block
+        if subtensor_fields:
+            _add_classic_fields(self)
 
     def _get_subtensor(self) -> Union["_Subtensor", "_AsyncSubtensor"]:
         """Returns the subtensor instance based on the provided config and subtensor type flag."""
@@ -136,7 +150,11 @@ class SubtensorApi:
 
     @property
     def neurons(self):
-        return _Neurons(self._subtensor)
+        return self._neurons
+
+    @neurons.setter
+    def neurons(self, value):
+        self._neurons = value
 
     @property
     def queries(self):
@@ -147,9 +165,9 @@ class SubtensorApi:
         return _Stakes(self._subtensor)
 
     @property
-    def subnet(self):
-        return _Subnet(self._subtensor)
+    def subnets(self):
+        return _Subnets(self._subtensor)
 
     @property
-    def wallet(self):
-        return _Wallet(self._subtensor)
+    def wallets(self):
+        return _Wallets(self._subtensor)
