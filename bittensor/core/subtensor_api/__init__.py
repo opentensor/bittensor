@@ -67,6 +67,8 @@ class SubtensorApi:
         self.log_verbose = log_verbose
         self.is_async = async_subtensor
         self._config = config
+        # assigned only for async instance
+        self.initialize = None
         self._subtensor = self._get_subtensor()
 
         # fix naming collision
@@ -92,6 +94,7 @@ class SubtensorApi:
     def _get_subtensor(self) -> Union["_Subtensor", "_AsyncSubtensor"]:
         """Returns the subtensor instance based on the provided config and subtensor type flag."""
         if self.is_async:
+            self.initialize = self._subtensor.initialize
             return _AsyncSubtensor(
                 network=self.network,
                 config=self._config,
