@@ -190,7 +190,7 @@ def convert_weights_and_uids_for_emit(
             f"Passed weights and uids must have the same length, got {len(uids)} and {len(weights)}"
         )
     if sum(weights) == 0:
-        return [], []  # Nothing to set on a chain.
+        return [], []  # Nothing to set on chain.
     else:
         max_weight = float(max(weights))
         weights = [
