@@ -3101,9 +3101,10 @@ class Subtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
         raise_error: bool = False,
+        period: Optional[int] = None,
     ) -> tuple[bool, str]:
         """
-        Allows a coldkey to set children keys.
+        Allows a coldkey to set children-keys.
 
         Arguments:
             wallet (bittensor_wallet.Wallet): bittensor wallet instance.
@@ -3112,7 +3113,10 @@ class Subtensor(SubtensorMixin):
             children (list[tuple[float, str]]): A list of children with their proportions.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
-            raise_error: Raises relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
 
         Returns:
             tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
@@ -3159,6 +3163,7 @@ class Subtensor(SubtensorMixin):
             wait_for_inclusion,
             wait_for_finalization,
             raise_error=raise_error,
+            period=period,
         )
 
     def set_delegate_take(
