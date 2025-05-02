@@ -69,7 +69,7 @@ def decrease_take_extrinsic(
     raise_error: bool = False,
     period: Optional[int] = None,
 ) -> tuple[bool, str]:
-    """Sets the delegate 'take' percentage for a neuron identified by its hotkey.
+    """Sets the delegate `take` percentage for a neuron identified by its hotkey.
 
     Args:
         subtensor (Subtensor): Blockchain connection.
