@@ -3391,6 +3391,7 @@ def test_start_call(subtensor, mocker):
         netuid=netuid,
         wait_for_inclusion=True,
         wait_for_finalization=False,
+        period=None,
     )
     assert result == mocked_extrinsic.return_value
 
