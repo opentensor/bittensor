@@ -1,7 +1,8 @@
 import asyncio
 from typing import Optional, Sequence, TYPE_CHECKING
+
 from async_substrate_interface.errors import SubstrateRequestException
-from bittensor.core.errors import StakeError, NotRegisteredError
+
 from bittensor.core.extrinsics.utils import get_old_stakes
 from bittensor.utils import unlock_key, format_error_message
 from bittensor.utils.balance import Balance
