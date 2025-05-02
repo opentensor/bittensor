@@ -2566,8 +2566,8 @@ class Subtensor(SubtensorMixin):
             )
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
-                message = f"Not waiting for finalization or inclusion. Extrinsic: {extrinsic}"
-                logging.debug(message)
+                message = f"Not waiting for finalization or inclusion."
+                logging.debug(f"{message}. Extrinsic: {extrinsic}")
                 return True, message
 
             if response.is_success:
@@ -3541,6 +3541,7 @@ class Subtensor(SubtensorMixin):
         wait_for_finalization: bool = False,
         transfer_all: bool = False,
         keep_alive: bool = True,
+        period: Optional[int] = None,
     ) -> bool:
         """
         Transfer token of amount to destination.
@@ -3548,12 +3549,15 @@ class Subtensor(SubtensorMixin):
         Arguments:
             wallet (bittensor_wallet.Wallet): Source wallet for the transfer.
             dest (str): Destination address for the transfer.
-            amount (float): Amount of tokens to transfer.
+            amount (float): Number of tokens to transfer.
             transfer_all (bool): Flag to transfer all tokens. Default is ``False``.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.  Default is ``True``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.  Default is
                 ``False``.
             keep_alive (bool): Flag to keep the connection alive. Default is ``True``.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
 
         Returns:
             `True` if the transferring was successful, otherwise `False`.
@@ -3568,6 +3572,7 @@ class Subtensor(SubtensorMixin):
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             keep_alive=keep_alive,
+            period=period,
         )
 
     def transfer_stake(
