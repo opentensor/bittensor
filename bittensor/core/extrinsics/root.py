@@ -233,7 +233,7 @@ def set_root_weights_extrinsic(
         subtensor (bittensor.core.subtensor.Subtensor): The Subtensor object
         wallet (bittensor_wallet.Wallet): Bittensor wallet object.
         netuids (Union[NDArray[np.int64], list[int]]): The `netuid` of the subnet to set weights for.
-        weights (Union[NDArray[np.float32], list[float]]): Weights to set. These must be `float's and must correspond
+        weights (Union[NDArray[np.float32], list[float]]): Weights to set. These must be floats and must correspond
             to the passed `netuid` s.
         version_key (int): The version key of the validator.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns
