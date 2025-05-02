@@ -4030,7 +4030,7 @@ class AsyncSubtensor(SubtensorMixin):
             weights (Union[NDArray[np.float32], torch.FloatTensor, list]): The corresponding weights to be set for each
                 UID.
             version_key (int): Version key for compatibility with the network.  Default is int representation of
-                a Bittensor version.
+                the Bittensor version.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
                 ``False``.
