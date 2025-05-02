@@ -69,7 +69,7 @@ def local_chain(request):
             if sys.platform.startswith("linux"):
                 docker_command = (
                     "Install docker with command "
-                    "[blue]sudo apt-gat update && sudo apt-get install docker.io -y[/blue]"
+                    "[blue]sudo apt-get update && sudo apt-get install docker.io -y[/blue]"
                     " or use documentation [blue]https://docs.docker.com/engine/install/[/blue]"
                 )
             elif sys.platform == "darwin":
