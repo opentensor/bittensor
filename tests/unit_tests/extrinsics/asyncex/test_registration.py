@@ -17,7 +17,11 @@ async def test_do_pow_register_success(subtensor, fake_wallet, mocker):
     )
 
     mocker.patch.object(subtensor.substrate, "compose_call")
-    mocker.patch.object(subtensor, "sign_and_send_extrinsic", new=mocker.AsyncMock(return_value=(True, "")))
+    mocker.patch.object(
+        subtensor,
+        "sign_and_send_extrinsic",
+        new=mocker.AsyncMock(return_value=(True, "")),
+    )
 
     # Call
     result, error_message = await async_registration._do_pow_register(
@@ -47,7 +51,7 @@ async def test_do_pow_register_success(subtensor, fake_wallet, mocker):
         wallet=fake_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
-        period=None
+        period=None,
     )
     assert result is True
     assert error_message == ""
@@ -96,7 +100,7 @@ async def test_do_pow_register_failure(subtensor, fake_wallet, mocker):
         wallet=fake_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
-        period=None
+        period=None,
     )
 
     assert result_error_message == subtensor.sign_and_send_extrinsic.return_value
@@ -145,7 +149,7 @@ async def test_do_pow_register_no_waiting(subtensor, fake_wallet, mocker):
         wallet=fake_wallet,
         wait_for_inclusion=False,
         wait_for_finalization=False,
-        period=None
+        period=None,
     )
 
     assert result == subtensor.sign_and_send_extrinsic.return_value

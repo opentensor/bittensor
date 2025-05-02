@@ -66,7 +66,7 @@ def _do_commit_reveal_v3(
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
         sign_with="hotkey",
-        period=period
+        period=period,
     )
 
 

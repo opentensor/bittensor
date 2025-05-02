@@ -147,7 +147,9 @@ async def test_set_weights_extrinsic_success_with_finalization(
     mocked_do_set_weights = mocker.patch.object(
         async_weights, "_do_set_weights", return_value=(True, "")
     )
-    mocker_converter = mocker.patch.object(async_weights, "convert_and_normalize_weights_and_uids")
+    mocker_converter = mocker.patch.object(
+        async_weights, "convert_and_normalize_weights_and_uids"
+    )
     mocker_converter.return_value = (mocker.Mock(), mocker.Mock())
 
     # Call
@@ -188,7 +190,9 @@ async def test_set_weights_extrinsic_no_waiting(subtensor, fake_wallet, mocker):
     fake_weights = [0.1, 0.2, 0.7]
 
     mocked_do_set_weights = mocker.patch.object(
-        async_weights, "_do_set_weights", return_value=(True, "Not waiting for finalization or inclusion.")
+        async_weights,
+        "_do_set_weights",
+        return_value=(True, "Not waiting for finalization or inclusion."),
     )
 
     # Call

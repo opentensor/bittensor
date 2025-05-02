@@ -51,7 +51,7 @@ def test_add_stake_extrinsic(mocker):
         nonce_key="coldkeypub",
         sign_with="coldkey",
         use_nonce=True,
-        period=None
+        period=None,
     )
 
 
@@ -139,5 +139,5 @@ def test_add_stake_multiple_extrinsic(mocker):
         nonce_key="coldkeypub",
         sign_with="coldkey",
         use_nonce=True,
-        period=None
+        period=None,
     )

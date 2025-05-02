@@ -13,7 +13,9 @@ async def test_do_transfer_success(subtensor, fake_wallet, mocker):
 
     mocker.patch.object(subtensor.substrate, "compose_call")
     mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", new=mocker.AsyncMock(return_value=(True, ""))
+        subtensor,
+        "sign_and_send_extrinsic",
+        new=mocker.AsyncMock(return_value=(True, "")),
     )
     mocker.patch.object(subtensor, "get_block_hash", return_value=fake_block_hash)
 
@@ -56,7 +58,9 @@ async def test_do_transfer_failure(subtensor, fake_wallet, mocker):
 
     mocker.patch.object(subtensor.substrate, "compose_call")
     mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", new=mocker.AsyncMock(return_value=(False, "Formatted error message"))
+        subtensor,
+        "sign_and_send_extrinsic",
+        new=mocker.AsyncMock(return_value=(False, "Formatted error message")),
     )
     mocker.patch.object(subtensor, "get_block_hash", return_value=fake_block_hash)
 
@@ -99,7 +103,11 @@ async def test_do_transfer_no_waiting(subtensor, fake_wallet, mocker):
 
     mocker.patch.object(subtensor.substrate, "compose_call")
     mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", new=mocker.AsyncMock(return_value=(False, "Success, extrinsic submitted without waiting."))
+        subtensor,
+        "sign_and_send_extrinsic",
+        new=mocker.AsyncMock(
+            return_value=(False, "Success, extrinsic submitted without waiting.")
+        ),
     )
     mocker.patch.object(subtensor, "get_block_hash", return_value=fake_block_hash)
 

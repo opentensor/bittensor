@@ -105,7 +105,9 @@ def test_do_set_weights_is_success(mock_subtensor, fake_wallet, mocker):
     fake_wait_for_finalization = True
 
     mock_subtensor.substrate.submit_extrinsic.return_value.is_success = True
-    mocker.patch.object(mock_subtensor, "sign_and_send_extrinsic", return_value=(True, ""))
+    mocker.patch.object(
+        mock_subtensor, "sign_and_send_extrinsic", return_value=(True, "")
+    )
 
     # Call
     result = _do_set_weights(
@@ -139,7 +141,7 @@ def test_do_set_weights_is_success(mock_subtensor, fake_wallet, mocker):
         nonce_key="hotkey",
         sign_with="hotkey",
         use_nonce=True,
-        period=None
+        period=None,
     )
     assert result == (True, "")
 
@@ -153,7 +155,11 @@ def test_do_set_weights_no_waits(mock_subtensor, fake_wallet, mocker):
     fake_wait_for_inclusion = False
     fake_wait_for_finalization = False
 
-    mocker.patch.object(mock_subtensor, "sign_and_send_extrinsic", return_value=(True, "Not waiting for finalization or inclusion."))
+    mocker.patch.object(
+        mock_subtensor,
+        "sign_and_send_extrinsic",
+        return_value=(True, "Not waiting for finalization or inclusion."),
+    )
 
     # Call
     result = _do_set_weights(
@@ -184,6 +190,6 @@ def test_do_set_weights_no_waits(mock_subtensor, fake_wallet, mocker):
         wallet=fake_wallet,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
-        period=None
+        period=None,
     )
     assert result == (True, "Not waiting for finalization or inclusion.")

@@ -653,7 +653,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         return b_map
 
-    async def commit(self, wallet: "Wallet", netuid: int, data: str, period: Optional[int] = None) -> bool:
+    async def commit(
+        self, wallet: "Wallet", netuid: int, data: str, period: Optional[int] = None
+    ) -> bool:
         """
         Commits arbitrary data to the Bittensor network by publishing metadata.
 
@@ -2856,7 +2858,7 @@ class AsyncSubtensor(SubtensorMixin):
         data: str,
         blocks_until_reveal: int = 360,
         block_time: Union[int, float] = 12,
-        period: Optional[int] = None
+        period: Optional[int] = None,
     ) -> tuple[bool, int]:
         """
         Commits arbitrary data to the Bittensor network by publishing metadata.
@@ -2891,7 +2893,7 @@ class AsyncSubtensor(SubtensorMixin):
             netuid=netuid,
             data_type=f"TimelockEncrypted",
             data=data_,
-            period=period
+            period=period,
         ), reveal_round
 
     async def subnet(
@@ -3442,7 +3444,7 @@ class AsyncSubtensor(SubtensorMixin):
                 netuid=netuid,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                period=period
+                period=period,
             )
 
     async def commit_weights(
@@ -3944,7 +3946,7 @@ class AsyncSubtensor(SubtensorMixin):
                 wait_for_finalization=wait_for_finalization,
                 wait_for_inclusion=wait_for_inclusion,
                 raise_error=raise_error,
-                period=period
+                period=period,
             )
         else:
             success, error = await decrease_take_extrinsic(
@@ -3955,7 +3957,7 @@ class AsyncSubtensor(SubtensorMixin):
                 wait_for_finalization=wait_for_finalization,
                 wait_for_inclusion=wait_for_inclusion,
                 raise_error=raise_error,
-                period=period
+                period=period,
             )
 
         if success:
@@ -4263,7 +4265,7 @@ class AsyncSubtensor(SubtensorMixin):
             safe_staking=safe_staking,
             allow_partial_stake=allow_partial_stake,
             rate_tolerance=rate_tolerance,
-            period=period
+            period=period,
         )
 
     async def transfer(

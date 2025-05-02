@@ -10,7 +10,7 @@ Extrinsics:
 import asyncio
 from typing import Optional, Union, TYPE_CHECKING
 
-from bittensor.utils import unlock_key, format_error_message
+from bittensor.utils import unlock_key
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import log_no_torch_error, create_pow_async, torch
 

@@ -353,7 +353,9 @@ def test_publish_metadata(
     # Arrange
     with (
         patch.object(mock_subtensor.substrate, "compose_call"),
-        patch.object(mock_subtensor, "sign_and_send_extrinsic", return_value=response_success),
+        patch.object(
+            mock_subtensor, "sign_and_send_extrinsic", return_value=response_success
+        ),
     ):
         # Act
         result = serving.publish_metadata(

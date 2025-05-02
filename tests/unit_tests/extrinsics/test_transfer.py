@@ -34,7 +34,7 @@ def test_do_transfer_is_success_true(subtensor, fake_wallet, mocker):
         wallet=fake_wallet,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
-        period=None
+        period=None,
     )
     # subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
     assert result == (True, 1, "Success with response.")
@@ -72,7 +72,7 @@ def test_do_transfer_is_success_false(subtensor, fake_wallet, mocker):
         wallet=fake_wallet,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
-        period=None
+        period=None,
     )
 
     assert result == (False, "", "")
@@ -86,7 +86,9 @@ def test_do_transfer_no_waits(subtensor, fake_wallet, mocker):
     fake_wait_for_inclusion = False
     fake_wait_for_finalization = False
 
-    mocker.patch.object(subtensor, "sign_and_send_extrinsic", return_value=(True, "msg"))
+    mocker.patch.object(
+        subtensor, "sign_and_send_extrinsic", return_value=(True, "msg")
+    )
 
     # Call
     result = _do_transfer(
@@ -109,6 +111,6 @@ def test_do_transfer_no_waits(subtensor, fake_wallet, mocker):
         wallet=fake_wallet,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
-        period=None
+        period=None,
     )
     assert result == (True, "", "msg")
