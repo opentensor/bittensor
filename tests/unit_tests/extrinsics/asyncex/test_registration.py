@@ -185,7 +185,7 @@ async def test_do_pow_register_no_waiting(subtensor, fake_wallet, mocker):
         fake_extrinsic, wait_for_inclusion=False, wait_for_finalization=False
     )
     assert result is True
-    assert error_message == ""
+    assert error_message == "Not waiting for finalization or inclusion."
 
 
 @pytest.mark.asyncio

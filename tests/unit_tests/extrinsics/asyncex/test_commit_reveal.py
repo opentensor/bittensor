@@ -82,7 +82,7 @@ async def test_do_commit_reveal_v3_success(mocker, subtensor, fake_wallet):
         wait_for_inclusion=False,
         wait_for_finalization=False,
     )
-    assert result == (True, "")
+    assert result == (True, "Not waiting for finalization or inclusion.")
 
 
 @pytest.mark.asyncio

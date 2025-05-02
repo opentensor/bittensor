@@ -1821,7 +1821,7 @@ async def test_sign_and_send_extrinsic_success_without_inclusion_finalization(
         wait_for_inclusion=False,
         wait_for_finalization=False,
     )
-    assert result == (True, "")
+    assert result == (True, "Not waiting for finalization or inclusion.")
 
 
 @pytest.mark.asyncio
