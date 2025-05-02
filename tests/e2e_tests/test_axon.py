@@ -13,7 +13,7 @@ async def test_axon(subtensor, templates, alice_wallet):
     Steps:
         1. Register a subnet and register Alice
         2. Check if metagraph.axon is updated and check axon attributes
-        3. Run Alice as a miner on the subnet
+        3. Run Alice as a miner on subnet
         4. Check the metagraph again after running the miner and verify all attributes
     Raises:
         AssertionError: If any of the checks or verifications fail
