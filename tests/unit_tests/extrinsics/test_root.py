@@ -99,10 +99,11 @@ def test_root_register_extrinsic(
             call_params={"hotkey": "fake_hotkey_address"},
         )
         mocked_sign_and_send_extrinsic.assert_called_once_with(
-            mock_subtensor.substrate.compose_call.return_value,
+            call=mock_subtensor.substrate.compose_call.return_value,
             wallet=mock_wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            period=None,
         )
 
 
@@ -125,7 +126,7 @@ def test_root_register_extrinsic_insufficient_balance(
     assert success is False
 
     mock_subtensor.get_balance.assert_called_once_with(
-        mock_wallet.coldkeypub.ss58_address,
+        address=mock_wallet.coldkeypub.ss58_address,
         block=mock_subtensor.get_current_block.return_value,
     )
     mock_subtensor.substrate.submit_extrinsic.assert_not_called()

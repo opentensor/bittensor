@@ -286,6 +286,7 @@ def test_set_subnet_identity_extrinsic_is_success(mock_subtensor, mock_wallet, m
         wallet=mock_wallet,
         wait_for_inclusion=False,
         wait_for_finalization=True,
+        period=None,
     )
 
     assert result == (True, "Identities for subnet 123 are set.")
@@ -347,6 +348,7 @@ def test_set_subnet_identity_extrinsic_is_failed(mock_subtensor, mock_wallet, mo
         wallet=mock_wallet,
         wait_for_inclusion=False,
         wait_for_finalization=True,
+        period=None,
     )
 
     assert result == (
