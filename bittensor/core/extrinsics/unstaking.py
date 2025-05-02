@@ -1,8 +1,9 @@
 from typing import Optional, TYPE_CHECKING
 
-from bittensor.core.errors import StakeError, NotRegisteredError
+from async_substrate_interface.errors import SubstrateRequestException
+
 from bittensor.core.extrinsics.utils import get_old_stakes
-from bittensor.utils import unlock_key
+from bittensor.utils import unlock_key, format_error_message
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 
@@ -22,6 +23,7 @@ def unstake_extrinsic(
     safe_staking: bool = False,
     allow_partial_stake: bool = False,
     rate_tolerance: float = 0.005,
+    period: Optional[int] = None,
 ) -> bool:
     """Removes stake into the wallet coldkey from the specified hotkey ``uid``.
 
@@ -39,6 +41,9 @@ def unstake_extrinsic(
         safe_staking: If true, enables price safety checks
         allow_partial_stake: If true, allows partial unstaking if price tolerance exceeded
         rate_tolerance: Maximum allowed price decrease percentage (0.005 = 0.5%)
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted.
+            If the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
@@ -64,6 +69,7 @@ def unstake_extrinsic(
         block=block,
     )
 
+    # Covert to bittensor.Balance
     if amount is None:
         # Unstake it all.
         logging.warning(
@@ -131,17 +137,18 @@ def unstake_extrinsic(
             call_params=call_params,
         )
 
-        staking_response, err_msg = subtensor.sign_and_send_extrinsic(
-            call,
-            wallet,
-            wait_for_inclusion,
-            wait_for_finalization,
+        success, message = subtensor.sign_and_send_extrinsic(
+            call=call,
+            wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
             nonce_key="coldkeypub",
             sign_with="coldkey",
             use_nonce=True,
+            period=period,
         )
 
-        if staking_response is True:  # If we successfully unstaked.
+        if success is True:  # If we successfully unstaked.
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
                 return True
@@ -170,21 +177,16 @@ def unstake_extrinsic(
             )
             return True
         else:
-            if safe_staking and "Custom error: 8" in err_msg:
+            if safe_staking and "Custom error: 8" in message:
                 logging.error(
                     ":cross_mark: [red]Failed[/red]: Price exceeded tolerance limit. Either increase price tolerance or enable partial staking."
                 )
             else:
-                logging.error(f":cross_mark: [red]Failed: {err_msg}.[/red]")
+                logging.error(f":cross_mark: [red]Failed: {message}.[/red]")
             return False
 
-    except NotRegisteredError:
-        logging.error(
-            f":cross_mark: [red]Hotkey: {wallet.hotkey_str} is not registered.[/red]"
-        )
-        return False
-    except StakeError as e:
-        logging.error(f":cross_mark: [red]Stake Error: {e}[/red]")
+    except SubstrateRequestException as error:
+        logging.error(f":cross_mark: [red]Unstake filed with error: {format_error_message(error)}[/red]")
         return False
 
 
@@ -196,6 +198,7 @@ def unstake_multiple_extrinsic(
     amounts: Optional[list[Balance]] = None,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
+    period: Optional[int] = None,
 ) -> bool:
     """Removes stake from each ``hotkey_ss58`` in the list, using each amount, to a common coldkey.
 
@@ -209,6 +212,9 @@ def unstake_multiple_extrinsic(
             returns ``False`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
             ``True``, or returns ``False`` if the extrinsic fails to be finalized within the timeout.
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted.
+            If the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. Flag is ``True`` if any
@@ -298,13 +304,14 @@ def unstake_multiple_extrinsic(
                 },
             )
             staking_response, err_msg = subtensor.sign_and_send_extrinsic(
-                call,
-                wallet,
-                wait_for_inclusion,
-                wait_for_finalization,
+                call=call,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
                 nonce_key="coldkeypub",
                 sign_with="coldkey",
                 use_nonce=True,
+                period=period,
             )
 
             if staking_response is True:  # If we successfully unstaked.
@@ -334,14 +341,9 @@ def unstake_multiple_extrinsic(
                 logging.error(f":cross_mark: [red]Failed: {err_msg}.[/red]")
                 continue
 
-        except NotRegisteredError:
-            logging.error(
-                f":cross_mark: [red]Hotkey[/red] [blue]{hotkey_ss58}[/blue] [red]is not registered.[/red]"
-            )
-            continue
-        except StakeError as e:
-            logging.error(":cross_mark: [red]Stake Error: {}[/red]".format(e))
-            continue
+        except SubstrateRequestException as error:
+            logging.error(f":cross_mark: [red]Multiple unstake filed with error: {format_error_message(error)}[/red]")
+            return False
 
     if successful_unstakes != 0:
         logging.info(
