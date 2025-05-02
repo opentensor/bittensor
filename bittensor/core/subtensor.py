@@ -2376,9 +2376,6 @@ class Subtensor(SubtensorMixin):
             bool: True if the target block was reached, False if timeout occurred.
 
         Example:
-            >>> import bittensor as bt
-            >>> subtensor = bt.subtensor(network="finney"))
-
             >>> subtensor.wait_for_block() # Waits for the next block
             >>> subtensor.wait_for_block(block=1234) # Waits for a specific block
         """
