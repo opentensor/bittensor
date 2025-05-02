@@ -139,10 +139,10 @@ async def unstake_extrinsic(
             call_params=call_params,
         )
         success, message = await subtensor.sign_and_send_extrinsic(
-            call,
-            wallet,
-            wait_for_inclusion,
-            wait_for_finalization,
+            call=call,
+            wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
             nonce_key="coldkeypub",
             sign_with="coldkey",
             use_nonce=True,
@@ -315,10 +315,10 @@ async def unstake_multiple_extrinsic(
             )
 
             staking_response, err_msg = await subtensor.sign_and_send_extrinsic(
-                call,
-                wallet,
-                wait_for_inclusion,
-                wait_for_finalization,
+                call=call,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
                 nonce_key="coldkeypub",
                 sign_with="coldkey",
                 use_nonce=True,
