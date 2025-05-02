@@ -485,7 +485,7 @@ class Subtensor(SubtensorMixin):
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[bool]:
         """
-        Check if a commit-reveal mechanism is enabled for a given network at a specific block.
+        Check if the commit-reveal mechanism is enabled for a given network at a specific block.
 
         Arguments:
             netuid: The network identifier for which to check the commit-reveal mechanism.
