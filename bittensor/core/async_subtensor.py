@@ -3036,7 +3036,7 @@ class AsyncSubtensor(SubtensorMixin):
             Optional[int]: The transaction rate limit of the network, None if not available.
 
         The transaction rate limit is an essential parameter for ensuring the stability and scalability of the Bittensor
-            network. It helps in managing a network load and preventing congestion, thereby maintaining efficient and
+            network. It helps in managing network load and preventing congestion, thereby maintaining efficient and
             timely transaction processing.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
