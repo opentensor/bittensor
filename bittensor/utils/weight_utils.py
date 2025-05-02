@@ -249,7 +249,7 @@ def process_weights_for_netuid(
     logging.debug(f"subtensor: {subtensor}")
     logging.debug(f"metagraph: {metagraph}")
 
-    # Get latest metagraph from a chain if metagraph is None.
+    # Get latest metagraph from chain if metagraph is None.
     if metagraph is None:
         metagraph = subtensor.metagraph(netuid)
 
