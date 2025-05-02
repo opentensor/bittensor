@@ -39,7 +39,7 @@ def test_do_transfer_is_success_true(subtensor, fake_wallet, mocker):
     # subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
     assert result == (
         True,
-        subtensor.substrate.submit_extrinsic.return_value.block_hash,
+        subtensor.substrate.get_chain_head.return_value,
         "Success with response.",
     )
 
@@ -53,12 +53,6 @@ def test_do_transfer_is_success_false(subtensor, fake_wallet, mocker):
     fake_wait_for_finalization = True
 
     subtensor.substrate.submit_extrinsic.return_value.is_success = False
-
-    mocked_format_error_message = mocker.Mock()
-    mocker.patch(
-        "bittensor.core.extrinsics.transfer.format_error_message",
-        mocked_format_error_message,
-    )
 
     # Call
     result = _do_transfer(
@@ -84,14 +78,11 @@ def test_do_transfer_is_success_false(subtensor, fake_wallet, mocker):
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
     )
-    mocked_format_error_message.assert_called_once_with(
-        subtensor.substrate.submit_extrinsic.return_value.error_message
-    )
 
     assert result == (
         False,
         "",
-        mocked_format_error_message.return_value,
+        "Subtensor returned `UnknownError(UnknownType)` error. This means: `Unknown Description`.",
     )
 
 
@@ -127,4 +118,4 @@ def test_do_transfer_no_waits(subtensor, fake_wallet, mocker):
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
     )
-    assert result == (True, "", "Success, extrinsic submitted without waiting.")
+    assert result == (True, "", "Not waiting for finalization or inclusion.")
