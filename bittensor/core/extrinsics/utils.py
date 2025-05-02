@@ -18,9 +18,9 @@ def get_old_stakes(
     """
     Retrieve the previous staking balances for a wallet's hotkeys across given netuids.
 
-    This function searches through the provided staking data to find the stake amounts
-    for the specified hotkeys and netuids associated with the wallet's coldkey. If no match
-    is found for a particular hotkey and netuid combination, a default balance of zero is returned.
+    This function searches through the provided staking data to find the stake amounts for the specified hotkeys and
+    netuids associated with the wallet's coldkey. If no match is found for a particular hotkey and netuid combination,
+    a default balance of zero is returned.
 
     Args:
         wallet: The wallet containing the coldkey to compare with stake data.

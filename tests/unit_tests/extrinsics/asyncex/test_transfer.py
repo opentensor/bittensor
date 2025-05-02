@@ -9,22 +9,15 @@ async def test_do_transfer_success(subtensor, fake_wallet, mocker):
     # Preps
     fake_destination = "destination_address"
     fake_amount = mocker.Mock(autospec=Balance, rao=1000)
+    fake_block_hash = "fake_block_hash"
 
-    fake_call = mocker.AsyncMock()
-    fake_extrinsic = mocker.AsyncMock()
-    fake_response = mocker.Mock()
-
-    fake_response.is_success = mocker.AsyncMock(return_value=True)()
-    fake_response.process_events = mocker.AsyncMock()
-    fake_response.block_hash = "fake_block_hash"
-
-    mocker.patch.object(subtensor.substrate, "compose_call", return_value=fake_call)
+    mocker.patch.object(subtensor.substrate, "compose_call")
     mocker.patch.object(
-        subtensor.substrate, "create_signed_extrinsic", return_value=fake_extrinsic
+        subtensor,
+        "sign_and_send_extrinsic",
+        new=mocker.AsyncMock(return_value=(True, "")),
     )
-    mocker.patch.object(
-        subtensor.substrate, "submit_extrinsic", return_value=fake_response
-    )
+    mocker.patch.object(subtensor, "get_block_hash", return_value=fake_block_hash)
 
     # Call
     success, block_hash, error_message = await async_transfer._do_transfer(
@@ -37,18 +30,18 @@ async def test_do_transfer_success(subtensor, fake_wallet, mocker):
     )
 
     # Asserts
-    subtensor.substrate.compose_call.assert_called_once_with(
+    subtensor.substrate.compose_call.assert_awaited_once_with(
         call_module="Balances",
         call_function="transfer_allow_death",
         call_params={"dest": fake_destination, "value": fake_amount.rao},
     )
-    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value, keypair=fake_wallet.coldkey
-    )
-    subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        extrinsic=subtensor.substrate.create_signed_extrinsic.return_value,
+
+    subtensor.sign_and_send_extrinsic.assert_awaited_once_with(
+        call=subtensor.substrate.compose_call.return_value,
+        wallet=fake_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        period=None,
     )
     assert success is True
     assert block_hash == "fake_block_hash"
@@ -61,28 +54,15 @@ async def test_do_transfer_failure(subtensor, fake_wallet, mocker):
     # Preps
     fake_destination = "destination_address"
     fake_amount = mocker.Mock(autospec=Balance, rao=1000)
+    fake_block_hash = "fake_block_hash"
 
-    fake_call = mocker.AsyncMock()
-    fake_extrinsic = mocker.AsyncMock()
-    fake_response = mocker.Mock()
-
-    fake_response.is_success = mocker.AsyncMock(return_value=False)()
-    fake_response.process_events = mocker.AsyncMock()
-    fake_response.error_message = mocker.AsyncMock(return_value="Fake error message")()
-
-    mocker.patch.object(subtensor.substrate, "compose_call", return_value=fake_call)
+    mocker.patch.object(subtensor.substrate, "compose_call")
     mocker.patch.object(
-        subtensor.substrate, "create_signed_extrinsic", return_value=fake_extrinsic
+        subtensor,
+        "sign_and_send_extrinsic",
+        new=mocker.AsyncMock(return_value=(False, "Formatted error message")),
     )
-    mocker.patch.object(
-        subtensor.substrate, "submit_extrinsic", return_value=fake_response
-    )
-
-    mocked_format_error_message = mocker.patch.object(
-        async_transfer,
-        "format_error_message",
-        return_value="Formatted error message",
-    )
+    mocker.patch.object(subtensor, "get_block_hash", return_value=fake_block_hash)
 
     # Call
     success, block_hash, error_message = await async_transfer._do_transfer(
@@ -95,22 +75,21 @@ async def test_do_transfer_failure(subtensor, fake_wallet, mocker):
     )
 
     # Asserts
-    subtensor.substrate.compose_call.assert_called_once_with(
+    subtensor.substrate.compose_call.assert_awaited_once_with(
         call_module="Balances",
         call_function="transfer_allow_death",
         call_params={"dest": fake_destination, "value": fake_amount.rao},
     )
-    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value, keypair=fake_wallet.coldkey
-    )
-    subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        extrinsic=subtensor.substrate.create_signed_extrinsic.return_value,
+
+    subtensor.sign_and_send_extrinsic.assert_awaited_once_with(
+        call=subtensor.substrate.compose_call.return_value,
+        wallet=fake_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        period=None,
     )
     assert success is False
     assert block_hash == ""
-    mocked_format_error_message.assert_called_once_with("Fake error message")
     assert error_message == "Formatted error message"
 
 
@@ -120,19 +99,17 @@ async def test_do_transfer_no_waiting(subtensor, fake_wallet, mocker):
     # Preps
     fake_destination = "destination_address"
     fake_amount = mocker.Mock(autospec=Balance, rao=1000)
+    fake_block_hash = "fake_block_hash"
 
-    fake_call = mocker.AsyncMock()
-    fake_extrinsic = mocker.AsyncMock()
-
-    mocker.patch.object(subtensor.substrate, "compose_call", return_value=fake_call)
+    mocker.patch.object(subtensor.substrate, "compose_call")
     mocker.patch.object(
-        subtensor.substrate, "create_signed_extrinsic", return_value=fake_extrinsic
+        subtensor,
+        "sign_and_send_extrinsic",
+        new=mocker.AsyncMock(
+            return_value=(False, "Success, extrinsic submitted without waiting.")
+        ),
     )
-    mocker.patch.object(
-        subtensor.substrate,
-        "submit_extrinsic",
-        return_value=mocker.Mock(),
-    )
+    mocker.patch.object(subtensor, "get_block_hash", return_value=fake_block_hash)
 
     # Call
     success, block_hash, error_message = await async_transfer._do_transfer(
@@ -145,18 +122,18 @@ async def test_do_transfer_no_waiting(subtensor, fake_wallet, mocker):
     )
 
     # Asserts
-    subtensor.substrate.compose_call.assert_called_once_with(
+    subtensor.substrate.compose_call.assert_awaited_once_with(
         call_module="Balances",
         call_function="transfer_allow_death",
         call_params={"dest": fake_destination, "value": fake_amount.rao},
     )
-    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value, keypair=fake_wallet.coldkey
-    )
-    subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        extrinsic=subtensor.substrate.create_signed_extrinsic.return_value,
+
+    subtensor.sign_and_send_extrinsic.assert_awaited_once_with(
+        call=subtensor.substrate.compose_call.return_value,
+        wallet=fake_wallet,
         wait_for_inclusion=False,
         wait_for_finalization=False,
+        period=None,
     )
     assert success is True
     assert block_hash == ""

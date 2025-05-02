@@ -2,14 +2,13 @@ from typing import Optional, Union, TYPE_CHECKING
 
 from bittensor.core.errors import MetadataError
 from bittensor.core.settings import version_as_int
+from bittensor.core.types import AxonServeCallParams
 from bittensor.utils import (
-    format_error_message,
     networking as net,
     unlock_key,
     Certificate,
 )
 from bittensor.utils.btlogging import logging
-from bittensor.core.types import AxonServeCallParams
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -23,7 +22,8 @@ def do_serve_axon(
     call_params: "AxonServeCallParams",
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
-) -> tuple[bool, Optional[dict]]:
+    period: Optional[int] = None,
+) -> tuple[bool, str]:
     """
     Internal method to submit a serve axon transaction to the Bittensor blockchain. This method creates and submits a
         transaction, enabling a neuron's ``Axon`` to serve requests on the network.
@@ -34,6 +34,9 @@ def do_serve_axon(
         call_params (bittensor.core.types.AxonServeCallParams): Parameters required for the serve axon call.
         wait_for_inclusion (bool): Waits for the transaction to be included in a block.
         wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
@@ -51,21 +54,15 @@ def do_serve_axon(
         call_function=call_function,
         call_params=call_params.dict(),
     )
-    extrinsic = subtensor.substrate.create_signed_extrinsic(
-        call=call, keypair=wallet.hotkey
-    )
-    response = subtensor.substrate.submit_extrinsic(
-        extrinsic=extrinsic,
+
+    success, message = subtensor.sign_and_send_extrinsic(
+        call=call,
+        wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        period=period,
     )
-    if wait_for_inclusion or wait_for_finalization:
-        if response.is_success:
-            return True, None
-
-        return False, response.error_message
-
-    return True, None
+    return success, message
 
 
 def serve_extrinsic(
@@ -80,6 +77,7 @@ def serve_extrinsic(
     wait_for_inclusion: bool = False,
     wait_for_finalization=True,
     certificate: Optional[Certificate] = None,
+    period: Optional[int] = None,
 ) -> bool:
     """Subscribes a Bittensor endpoint to the subtensor chain.
 
@@ -98,6 +96,9 @@ def serve_extrinsic(
             ``True``, or returns ``False`` if the extrinsic fails to be finalized within the timeout.
         certificate (bittensor.utils.Certificate): Certificate to use for TLS. If ``None``, no TLS will be used.
             Defaults to ``None``.
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
@@ -130,32 +131,32 @@ def serve_extrinsic(
     neuron_up_to_date = not neuron.is_null and params == neuron
     if neuron_up_to_date:
         logging.debug(
-            f"Axon already served on: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) "
+            f"Axon already served on: [blue]AxonInfo({wallet.hotkey.ss58_address}, {ip}:{port})[/blue]"
         )
         return True
 
     logging.debug(
-        f"Serving axon with: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) -> {subtensor.network}:{netuid}"
+        f"Serving axon with: [blue]AxonInfo({wallet.hotkey.ss58_address}, {ip}:{port})[/blue] -> "
+        f"[green]{subtensor.network}:{netuid}[/green]"
     )
-    success, error_message = do_serve_axon(
+    success, message = do_serve_axon(
         subtensor=subtensor,
         wallet=wallet,
         call_params=params,
         wait_for_finalization=wait_for_finalization,
         wait_for_inclusion=wait_for_inclusion,
+        period=period,
     )
 
-    if wait_for_inclusion or wait_for_finalization:
-        if success is True:
-            logging.debug(
-                f"Axon served with: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) on {subtensor.network}:{netuid} "
-            )
-            return True
-        else:
-            logging.error(f"Failed: {format_error_message(error_message)}")
-            return False
-    else:
+    if success:
+        logging.debug(
+            f"Axon served with: [blue]AxonInfo({wallet.hotkey.ss58_address}, {ip}:{port})[/blue] on "
+            f"[green]{subtensor.network}:{netuid}[/green]"
+        )
         return True
+
+    logging.error(f"Failed: {message}")
+    return False
 
 
 def serve_axon_extrinsic(
@@ -165,6 +166,7 @@ def serve_axon_extrinsic(
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
     certificate: Optional["Certificate"] = None,
+    period: Optional[int] = None,
 ) -> bool:
     """Serves the axon to the network.
 
@@ -178,6 +180,9 @@ def serve_axon_extrinsic(
             ``True``, or returns ``False`` if the extrinsic fails to be finalized within the timeout.
         certificate (bittensor.utils.Certificate): Certificate to use for TLS. If ``None``, no TLS will be used.
             Defaults to ``None``.
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
@@ -213,6 +218,7 @@ def serve_axon_extrinsic(
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
         certificate=certificate,
+        period=period,
     )
     return serve_success
 
@@ -225,6 +231,7 @@ def publish_metadata(
     data: Union[bytes, dict],
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
+    period: Optional[int] = None,
 ) -> bool:
     """
     Publishes metadata on the Bittensor network using the specified wallet and network identifier.
@@ -242,12 +249,15 @@ def publish_metadata(
             block before returning. Defaults to ``False``.
         wait_for_finalization (bool, optional): If ``True``, the function will wait for the extrinsic to be finalized
             on the chain before returning. Defaults to ``True``.
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         bool: ``True`` if the metadata was successfully published (and finalized if specified). ``False`` otherwise.
 
     Raises:
-        MetadataError: If there is an error in submitting the extrinsic or if the response from the blockchain indicates
+        MetadataError: If there is an error in submitting the extrinsic, or if the response from the blockchain indicates
             failure.
     """
 
@@ -264,21 +274,17 @@ def publish_metadata(
         },
     )
 
-    extrinsic = subtensor.substrate.create_signed_extrinsic(
-        call=call, keypair=wallet.hotkey
-    )
-    response = subtensor.substrate.submit_extrinsic(
-        extrinsic=extrinsic,
+    success, message = subtensor.sign_and_send_extrinsic(
+        call=call,
+        wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        period=period,
     )
-    # We only wait here if we expect finalization.
-    if not wait_for_finalization and not wait_for_inclusion:
-        return True
 
-    if response.is_success:
+    if success:
         return True
-    raise MetadataError(format_error_message(response.error_message))
+    raise MetadataError(message)
 
 
 def get_metadata(
