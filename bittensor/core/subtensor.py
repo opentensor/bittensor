@@ -1931,151 +1931,6 @@ class Subtensor(SubtensorMixin):
         )
         return None if call is None else int(call)
 
-    def set_children(
-        self,
-        wallet: "Wallet",
-        hotkey: str,
-        netuid: int,
-        children: list[tuple[float, str]],
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = True,
-        raise_error: bool = False,
-    ) -> tuple[bool, str]:
-        """
-        Allows a coldkey to set children keys.
-
-        Arguments:
-            wallet (bittensor_wallet.Wallet): bittensor wallet instance.
-            hotkey (str): The ``SS58`` address of the neuron's hotkey.
-            netuid (int): The netuid value.
-            children (list[tuple[float, str]]): A list of children with their proportions.
-            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
-            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
-            raise_error: Raises relevant exception rather than returning `False` if unsuccessful.
-
-        Returns:
-            tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
-             operation, and the second element is a message providing additional information.
-
-        Raises:
-            DuplicateChild: There are duplicates in the list of children.
-            InvalidChild: Child is the hotkey.
-            NonAssociatedColdKey: The coldkey does not own the hotkey or the child is the same as the hotkey.
-            NotEnoughStakeToSetChildkeys: Parent key doesn't have minimum own stake.
-            ProportionOverflow: The sum of the proportions does exceed uint64.
-            RegistrationNotPermittedOnRootSubnet: Attempting to register a child on the root network.
-            SubNetworkDoesNotExist: Attempting to register to a non-existent network.
-            TooManyChildren: Too many children in request.
-            TxRateLimitExceeded: Hotkey hit the rate limit.
-            bittensor_wallet.errors.KeyFileError: Failed to decode keyfile data.
-            bittensor_wallet.errors.PasswordError: Decryption failed or wrong password for decryption provided.
-        """
-
-        unlock = unlock_key(wallet, raise_error=raise_error)
-
-        if not unlock.success:
-            return False, unlock.message
-
-        call = self.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="set_children",
-            call_params={
-                "children": [
-                    (
-                        float_to_u64(proportion),
-                        child_hotkey,
-                    )
-                    for proportion, child_hotkey in children
-                ],
-                "hotkey": hotkey,
-                "netuid": netuid,
-            },
-        )
-
-        return self.sign_and_send_extrinsic(
-            call,
-            wallet,
-            wait_for_inclusion,
-            wait_for_finalization,
-            raise_error=raise_error,
-        )
-
-    def set_delegate_take(
-        self,
-        wallet: "Wallet",
-        hotkey_ss58: str,
-        take: float,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = True,
-        raise_error: bool = False,
-    ) -> tuple[bool, str]:
-        """
-        Sets the delegate 'take' percentage for a nueron identified by its hotkey.
-        The 'take' represents the percentage of rewards that the delegate claims from its nominators' stakes.
-
-        Arguments:
-            wallet (bittensor_wallet.Wallet): bittensor wallet instance.
-            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
-            take (float): Percentage reward for the delegate.
-            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
-            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
-            raise_error: Raises relevant exception rather than returning `False` if unsuccessful.
-
-        Returns:
-            tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
-             operation, and the second element is a message providing additional information.
-
-        Raises:
-            DelegateTakeTooHigh: Delegate take is too high.
-            DelegateTakeTooLow: Delegate take is too low.
-            DelegateTxRateLimitExceeded: A transactor exceeded the rate limit for delegate transaction.
-            HotKeyAccountNotExists: The hotkey does not exists.
-            NonAssociatedColdKey: Request to stake, unstake or subscribe is made by a coldkey that is not associated with the hotkey account.
-            bittensor_wallet.errors.PasswordError: Decryption failed or wrong password for decryption provided.
-            bittensor_wallet.errors.KeyFileError: Failed to decode keyfile data.
-
-        The delegate take is a critical parameter in the network's incentive structure, influencing the distribution of
-            rewards among neurons and their nominators.
-        """
-
-        # u16 representation of the take
-        take_u16 = int(take * 0xFFFF)
-
-        current_take = self.get_delegate_take(hotkey_ss58)
-        current_take_u16 = int(current_take * 0xFFFF)
-
-        if current_take_u16 == take_u16:
-            logging.info(":white_heavy_check_mark: [green]Already Set[/green]")
-            return True, ""
-
-        logging.info(f"Updating {hotkey_ss58} take: current={current_take} new={take}")
-
-        if current_take_u16 < take_u16:
-            success, error = increase_take_extrinsic(
-                self,
-                wallet,
-                hotkey_ss58,
-                take_u16,
-                wait_for_finalization=wait_for_finalization,
-                wait_for_inclusion=wait_for_inclusion,
-                raise_error=raise_error,
-            )
-        else:
-            success, error = decrease_take_extrinsic(
-                self,
-                wallet,
-                hotkey_ss58,
-                take_u16,
-                wait_for_finalization=wait_for_finalization,
-                wait_for_inclusion=wait_for_inclusion,
-                raise_error=raise_error,
-            )
-
-        if success:
-            logging.info(":white_heavy_check_mark: [green]Take Updated[/green]")
-
-        return success, error
-
     def is_hotkey_delegate(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         """
         Determines whether a given hotkey (public key) is a delegate on the Bittensor network. This function checks if
@@ -3236,6 +3091,157 @@ class Subtensor(SubtensorMixin):
             wait_for_inclusion=wait_for_inclusion,
             period=period,
         )
+
+    def set_children(
+        self,
+        wallet: "Wallet",
+        hotkey: str,
+        netuid: int,
+        children: list[tuple[float, str]],
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        raise_error: bool = False,
+    ) -> tuple[bool, str]:
+        """
+        Allows a coldkey to set children keys.
+
+        Arguments:
+            wallet (bittensor_wallet.Wallet): bittensor wallet instance.
+            hotkey (str): The ``SS58`` address of the neuron's hotkey.
+            netuid (int): The netuid value.
+            children (list[tuple[float, str]]): A list of children with their proportions.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            raise_error: Raises relevant exception rather than returning `False` if unsuccessful.
+
+        Returns:
+            tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
+             operation, and the second element is a message providing additional information.
+
+        Raises:
+            DuplicateChild: There are duplicates in the list of children.
+            InvalidChild: Child is the hotkey.
+            NonAssociatedColdKey: The coldkey does not own the hotkey or the child is the same as the hotkey.
+            NotEnoughStakeToSetChildkeys: Parent key doesn't have minimum own stake.
+            ProportionOverflow: The sum of the proportions does exceed uint64.
+            RegistrationNotPermittedOnRootSubnet: Attempting to register a child on the root network.
+            SubNetworkDoesNotExist: Attempting to register to a non-existent network.
+            TooManyChildren: Too many children in request.
+            TxRateLimitExceeded: Hotkey hit the rate limit.
+            bittensor_wallet.errors.KeyFileError: Failed to decode keyfile data.
+            bittensor_wallet.errors.PasswordError: Decryption failed or wrong password for decryption provided.
+        """
+
+        unlock = unlock_key(wallet, raise_error=raise_error)
+
+        if not unlock.success:
+            return False, unlock.message
+
+        call = self.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="set_children",
+            call_params={
+                "children": [
+                    (
+                        float_to_u64(proportion),
+                        child_hotkey,
+                    )
+                    for proportion, child_hotkey in children
+                ],
+                "hotkey": hotkey,
+                "netuid": netuid,
+            },
+        )
+
+        return self.sign_and_send_extrinsic(
+            call,
+            wallet,
+            wait_for_inclusion,
+            wait_for_finalization,
+            raise_error=raise_error,
+        )
+
+    def set_delegate_take(
+        self,
+        wallet: "Wallet",
+        hotkey_ss58: str,
+        take: float,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        raise_error: bool = False,
+        period: Optional[int] = None,
+    ) -> tuple[bool, str]:
+        """
+        Sets the delegate 'take' percentage for a neuron identified by its hotkey.
+        The 'take' represents the percentage of rewards that the delegate claims from its nominators' stakes.
+
+        Arguments:
+            wallet (bittensor_wallet.Wallet): bittensor wallet instance.
+            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
+            take (float): Percentage reward for the delegate.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+
+        Returns:
+            tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
+             operation, and the second element is a message providing additional information.
+
+        Raises:
+            DelegateTakeTooHigh: Delegate take is too high.
+            DelegateTakeTooLow: Delegate take is too low.
+            DelegateTxRateLimitExceeded: A transactor exceeded the rate limit for delegate transaction.
+            HotKeyAccountNotExists: The hotkey does not exist.
+            NonAssociatedColdKey: Request to stake, unstake, or subscribe is made by a coldkey that is not associated with the hotkey account.
+            bittensor_wallet.errors.PasswordError: Decryption failed or wrong password for decryption provided.
+            bittensor_wallet.errors.KeyFileError: Failed to decode keyfile data.
+
+        The delegate take is a critical parameter in the network's incentive structure, influencing the distribution of
+            rewards among neurons and their nominators.
+        """
+
+        # u16 representation of the take
+        take_u16 = int(take * 0xFFFF)
+
+        current_take = self.get_delegate_take(hotkey_ss58)
+        current_take_u16 = int(current_take * 0xFFFF)
+
+        if current_take_u16 == take_u16:
+            logging.info(":white_heavy_check_mark: [green]Already Set[/green]")
+            return True, ""
+
+        logging.info(f"Updating {hotkey_ss58} take: current={current_take} new={take}")
+
+        if current_take_u16 < take_u16:
+            success, error = increase_take_extrinsic(
+                self,
+                wallet,
+                hotkey_ss58,
+                take_u16,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_inclusion=wait_for_inclusion,
+                raise_error=raise_error,
+                period=period
+            )
+        else:
+            success, error = decrease_take_extrinsic(
+                self,
+                wallet,
+                hotkey_ss58,
+                take_u16,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_inclusion=wait_for_inclusion,
+                raise_error=raise_error,
+                period=period
+            )
+
+        if success:
+            logging.info(":white_heavy_check_mark: [green]Take Updated[/green]")
+
+        return success, error
 
     def set_subnet_identity(
         self,
