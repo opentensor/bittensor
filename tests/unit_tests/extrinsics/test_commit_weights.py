@@ -13,7 +13,8 @@ def test_do_commit_weights(subtensor, fake_wallet, mocker):
     wait_for_inclusion = True
     wait_for_finalization = True
 
-    subtensor.substrate.submit_extrinsic.return_value.is_success = None
+    mocker.patch.object(subtensor, "sign_and_send_extrinsic", return_value=(False, ""))
+    mocker.patch.object(subtensor, "get_block_hash", return_value=1)
 
     mocked_format_error_message = mocker.Mock()
     mocker.patch(
@@ -41,25 +42,18 @@ def test_do_commit_weights(subtensor, fake_wallet, mocker):
         },
     )
 
-    subtensor.substrate.create_signed_extrinsic.assert_called_once()
-    _, kwargs = subtensor.substrate.create_signed_extrinsic.call_args
-    assert kwargs["call"] == subtensor.substrate.compose_call.return_value
-    assert kwargs["keypair"] == fake_wallet.hotkey
-
-    subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        subtensor.substrate.create_signed_extrinsic.return_value,
+    subtensor.sign_and_send_extrinsic.assert_called_once_with(
+        call=subtensor.substrate.compose_call.return_value,
+        wallet=fake_wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        period=None,
+        nonce_key="hotkey",
+        sign_with="hotkey",
+        use_nonce=True,
     )
 
-    mocked_format_error_message.assert_called_once_with(
-        subtensor.substrate.submit_extrinsic.return_value.error_message,
-    )
-
-    assert result == (
-        False,
-        mocked_format_error_message.return_value,
-    )
+    assert result == (False, "")
 
 
 def test_do_reveal_weights(subtensor, fake_wallet, mocker):
@@ -74,13 +68,7 @@ def test_do_reveal_weights(subtensor, fake_wallet, mocker):
     wait_for_inclusion = True
     wait_for_finalization = True
 
-    subtensor.substrate.submit_extrinsic.return_value.is_success = None
-
-    mocked_format_error_message = mocker.Mock()
-    mocker.patch(
-        "bittensor.core.subtensor.format_error_message",
-        mocked_format_error_message,
-    )
+    mocker.patch.object(subtensor, "sign_and_send_extrinsic")
 
     # Call
     result = _do_reveal_weights(
@@ -108,23 +96,15 @@ def test_do_reveal_weights(subtensor, fake_wallet, mocker):
         },
     )
 
-    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
+    subtensor.sign_and_send_extrinsic(
         call=subtensor.substrate.compose_call.return_value,
-        keypair=fake_wallet.hotkey,
-        nonce=subtensor.substrate.get_account_next_index.return_value,
-    )
-
-    subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        subtensor.substrate.create_signed_extrinsic.return_value,
+        wallet=fake_wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        period=None,
+        nonce_key="hotkey",
+        sign_with="hotkey",
+        use_nonce=True,
     )
 
-    mocked_format_error_message.assert_called_once_with(
-        subtensor.substrate.submit_extrinsic.return_value.error_message,
-    )
-
-    assert result == (
-        False,
-        mocked_format_error_message.return_value,
-    )
+    assert result == subtensor.sign_and_send_extrinsic.return_value

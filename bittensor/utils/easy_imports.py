@@ -47,6 +47,7 @@ from bittensor.core.chain_data import (  # noqa: F401
     ProposalCallData,
     ProposalVoteData,
     ScheduledColdkeySwapInfo,
+    SelectiveMetagraphIndex,
     StakeInfo,
     SubnetHyperparameters,
     SubnetIdentity,
