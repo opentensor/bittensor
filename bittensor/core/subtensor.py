@@ -3432,6 +3432,7 @@ class Subtensor(SubtensorMixin):
         netuid: int,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
+        period: Optional[int] = None,
     ) -> tuple[bool, str]:
         """
         Submits a start_call extrinsic to the blockchain, to trigger the start call process for a subnet (used to start a
@@ -3442,6 +3443,9 @@ class Subtensor(SubtensorMixin):
             netuid (int): The UID of the target subnet for which the call is being initiated.
             wait_for_inclusion (bool, optional): Whether to wait for the extrinsic to be included in a block. Defaults to True.
             wait_for_finalization (bool, optional): Whether to wait for finalization of the extrinsic. Defaults to False.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
 
         Returns:
             Tuple[bool, str]:
@@ -3454,6 +3458,7 @@ class Subtensor(SubtensorMixin):
             netuid=netuid,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            period=period,
         )
 
     def swap_stake(
