@@ -43,13 +43,14 @@ def test_unstake_extrinsic(fake_wallet, mocker):
         },
     )
     fake_subtensor.sign_and_send_extrinsic.assert_called_once_with(
-        fake_subtensor.substrate.compose_call.return_value,
-        fake_wallet,
-        True,
-        True,
+        call=fake_subtensor.substrate.compose_call.return_value,
+        wallet=fake_wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
         sign_with="coldkey",
         nonce_key="coldkeypub",
         use_nonce=True,
+        period=None,
     )
 
 
@@ -109,11 +110,12 @@ def test_unstake_multiple_extrinsic(fake_wallet, mocker):
         },
     )
     fake_subtensor.sign_and_send_extrinsic.assert_called_with(
-        fake_subtensor.substrate.compose_call.return_value,
-        fake_wallet,
-        True,
-        True,
+        call=fake_subtensor.substrate.compose_call.return_value,
+        wallet=fake_wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
         sign_with="coldkey",
         nonce_key="coldkeypub",
         use_nonce=True,
+        period=None,
     )

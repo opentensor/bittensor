@@ -57,7 +57,11 @@ def wait_for_node_start(process, timestamp=None):
 def local_chain(request):
     """Determines whether to run the localnet.sh script in a subprocess or a Docker container."""
     args = request.param if hasattr(request, "param") else None
-    params = "" if args is None else f"{args}"
+
+    # passed env variable to control node mod (non-/fast-blocks)
+    fast_blocks = "False" if (os.getenv("FAST_BLOCKS") == "0") is True else "True"
+    params = f"{fast_blocks}" if args is None else f"{fast_blocks} {args} "
+
     if shutil.which("docker") and not os.getenv("USE_DOCKER") == "0":
         yield from docker_runner(params)
     else:
@@ -91,7 +95,7 @@ def legacy_runner(params):
         logging.warning("LOCALNET_SH_PATH env variable is not set, e2e test skipped.")
         pytest.skip("LOCALNET_SH_PATH environment variable is not set.")
 
-    # Check if param is None, and handle it accordingly
+    # Check if param is None and handle it accordingly
     args = "" if params is None else f"{params}"
 
     # Compile commands to send to process

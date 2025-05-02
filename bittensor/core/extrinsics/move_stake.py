@@ -17,6 +17,7 @@ def _get_stake_in_origin_and_dest(
     origin_netuid: int,
     destination_netuid: int,
 ) -> tuple[Balance, Balance]:
+    """Gets the current stake balances for both origin and destination addresses in their respective subnets."""
     block = subtensor.get_current_block()
     stake_in_origin = subtensor.get_stake(
         coldkey_ss58=origin_coldkey_ss58,
@@ -43,6 +44,7 @@ def transfer_stake_extrinsic(
     amount: Optional[Balance] = None,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
+    period: Optional[int] = None,
 ) -> bool:
     """
     Transfers stake from one subnet to another while changing the coldkey owner.
@@ -57,6 +59,9 @@ def transfer_stake_extrinsic(
         amount (Union[Balance, float, int]): Amount to transfer.
         wait_for_inclusion (bool): If true, waits for inclusion before returning.
         wait_for_finalization (bool): If true, waits for finalization before returning.
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         success (bool): True if the transfer was successful.
@@ -113,6 +118,7 @@ def transfer_stake_extrinsic(
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            period=period,
         )
 
         if success:
@@ -160,6 +166,7 @@ def swap_stake_extrinsic(
     safe_staking: bool = False,
     allow_partial_stake: bool = False,
     rate_tolerance: float = 0.005,
+    period: Optional[int] = None,
 ) -> bool:
     """
     Moves stake between subnets while keeping the same coldkey-hotkey pair ownership.
@@ -175,7 +182,10 @@ def swap_stake_extrinsic(
         wait_for_finalization (bool): If true, waits for finalization before returning.
         safe_staking (bool): If true, enables price safety checks to protect against price impact.
         allow_partial_stake (bool): If true, allows partial stake swaps when the full amount would exceed the price tolerance.
-        rate_tolerance (float): Maximum allowed increase in price ratio (0.005 = 0.5%).
+        rate_tolerance (float): Maximum allowed increase in a price ratio (0.005 = 0.5%).
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         success (bool): True if the swap was successful.
@@ -193,7 +203,7 @@ def swap_stake_extrinsic(
 
     # Check sufficient stake
     stake_in_origin, stake_in_destination = _get_stake_in_origin_and_dest(
-        subtensor,
+        subtensor=subtensor,
         origin_hotkey_ss58=hotkey_ss58,
         destination_hotkey_ss58=hotkey_ss58,
         origin_netuid=origin_netuid,
@@ -255,6 +265,7 @@ def swap_stake_extrinsic(
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            period=period,
         )
 
         if success:
@@ -265,7 +276,7 @@ def swap_stake_extrinsic(
 
             # Get updated stakes
             origin_stake, dest_stake = _get_stake_in_origin_and_dest(
-                subtensor,
+                subtensor=subtensor,
                 origin_hotkey_ss58=hotkey_ss58,
                 destination_hotkey_ss58=hotkey_ss58,
                 origin_netuid=origin_netuid,
@@ -305,6 +316,7 @@ def move_stake_extrinsic(
     amount: Optional[Balance] = None,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
+    period: Optional[int] = None,
 ) -> bool:
     """
     Moves stake to a different hotkey and/or subnet while keeping the same coldkey owner.
@@ -319,6 +331,9 @@ def move_stake_extrinsic(
         amount (Union[Balance, float]): Amount to move.
         wait_for_inclusion (bool): If true, waits for inclusion before returning.
         wait_for_finalization (bool): If true, waits for finalization before returning.
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         success (bool): True if the move was successful.
@@ -328,7 +343,7 @@ def move_stake_extrinsic(
 
     # Check sufficient stake
     stake_in_origin, stake_in_destination = _get_stake_in_origin_and_dest(
-        subtensor,
+        subtensor=subtensor,
         origin_hotkey_ss58=origin_hotkey,
         destination_hotkey_ss58=destination_hotkey,
         origin_netuid=origin_netuid,
@@ -364,6 +379,7 @@ def move_stake_extrinsic(
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            period=period,
         )
 
         if success:
@@ -374,7 +390,7 @@ def move_stake_extrinsic(
 
             # Get updated stakes
             origin_stake, dest_stake = _get_stake_in_origin_and_dest(
-                subtensor,
+                subtensor=subtensor,
                 origin_hotkey_ss58=origin_hotkey,
                 destination_hotkey_ss58=destination_hotkey,
                 origin_netuid=origin_netuid,
