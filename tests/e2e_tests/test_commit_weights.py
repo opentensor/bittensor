@@ -19,7 +19,7 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
 
     Steps:
         1. Register a subnet through Alice
-        2. Enable a commit-reveal mechanism on subnet
+        2. Enable the commit-reveal mechanism on subnet
         3. Lower the commit_reveal interval and rate limit
         4. Commit weights and verify
         5. Wait interval & reveal weights and verify
