@@ -66,67 +66,67 @@ jobs:
           path: subtensor-localnet.tar
 
   # Job to run tests in parallel
-#  run-e2e-test:
-#    name: "FB: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}"
-#    needs:
-#      - find-tests
-#      - pull-docker-image
-#    runs-on: ubuntu-latest
-#    timeout-minutes: 45
-#    strategy:
-#      fail-fast: false  # Allow other matrix jobs to run even if this job fails
-#      max-parallel: 32  # Set the maximum number of parallel jobs (same as we have cores in ubuntu-latest runner)
-#      matrix:
-#        os:
-#          - ubuntu-latest
-#        test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
-#        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
-#    steps:
-#      - name: Check-out repository
-#        uses: actions/checkout@v4
-#
-#      - name: Set up Python ${{ matrix.python-version }}
-#        uses: actions/setup-python@v5
-#        with:
-#          python-version: ${{ matrix.python-version }}
-#
-#      - name: Install uv
-#        uses: astral-sh/setup-uv@v4
-#
-#      - name: install dependencies
-#        run: uv sync --extra dev --dev
-#
-#      - name: Download Cached Docker Image
-#        uses: actions/download-artifact@v4
-#        with:
-#          name: subtensor-localnet
-#
-#      - name: Load Docker Image
-#        run: docker load -i subtensor-localnet.tar
-#
-##      - name: Run tests
-##        run: uv run pytest ${{ matrix.test-file }} -s
-#
-#      - name: Run tests with retry
-#        run: |
-#          set +e
-#          for i in 1 2 3; do
-#            echo "🔁 Attempt $i: Running tests"
-#            uv run pytest ${{ matrix.test-file }} -s
-#            status=$?
-#            if [ $status -eq 0 ]; then
-#              echo "✅ Tests passed on attempt $i"
-#              break
-#            else
-#              echo "❌ Tests failed on attempt $i"
-#              if [ $i -eq 3 ]; then
-#                echo "Tests failed after 3 attempts"
-#                exit 1
-#              fi
-#              echo "Retrying..."
-#              sleep 5
-#            fi
-#          done
+  run-e2e-test:
+    name: "FB: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}"
+    needs:
+      - find-tests
+      - pull-docker-image
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false  # Allow other matrix jobs to run even if this job fails
+      max-parallel: 32  # Set the maximum number of parallel jobs (same as we have cores in ubuntu-latest runner)
+      matrix:
+        os:
+          - ubuntu-latest
+        test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - name: Check-out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: install dependencies
+        run: uv sync --extra dev --dev
+
+      - name: Download Cached Docker Image
+        uses: actions/download-artifact@v4
+        with:
+          name: subtensor-localnet
+
+      - name: Load Docker Image
+        run: docker load -i subtensor-localnet.tar
+
+#      - name: Run tests
+#        run: uv run pytest ${{ matrix.test-file }} -s
+
+      - name: Run tests with retry
+        run: |
+          set +e
+          for i in 1 2 3; do
+            echo "🔁 Attempt $i: Running tests"
+            uv run pytest ${{ matrix.test-file }} -s
+            status=$?
+            if [ $status -eq 0 ]; then
+              echo "✅ Tests passed on attempt $i"
+              break
+            else
+              echo "❌ Tests failed on attempt $i"
+              if [ $i -eq 3 ]; then
+                echo "Tests failed after 3 attempts"
+                exit 1
+              fi
+              echo "Retrying..."
+              sleep 5
+            fi
+          done
 
 # `build-patched-image` and `cron-e2e-test-with-non-fast-block` should run once per week
   build-patched-image:
@@ -154,19 +154,19 @@ jobs:
           git checkout devnet-ready
           sed -i 's|7 \* 24 \* 60 \* 60 / 12 // 7 days|5 // Only 5 blocks for tests|' runtime/src/lib.rs
 
-#      - name: Build Docker image
-#        run: |
-#          cd subtensor
-#          docker build -t subtensor-patched-devnet .
-#
-#      - name: Save Docker image
-#        run: docker save subtensor-patched-devnet -o subtensor-patched-localnet.tar
-#
-#      - name: Upload image as artifact
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: subtensor-patched-localnet
-#          path: subtensor-patched-localnet.tar
+      - name: Build Docker image
+        run: |
+          cd subtensor
+          docker build -t subtensor-patched-devnet .
+
+      - name: Save Docker image
+        run: docker save subtensor-patched-devnet -o subtensor-patched-localnet.tar
+
+      - name: Upload image as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: subtensor-patched-localnet
+          path: subtensor-patched-localnet.tar
 
 
   cron-e2e-test-with-non-fast-block:
@@ -201,13 +201,13 @@ jobs:
       - name: install dependencies
         run: uv sync --extra dev --dev
 
-#      - name: Download Cached Docker Image
-#        uses: actions/download-artifact@v4
-#        with:
-#          name: subtensor-patched-localnet
-#
-#      - name: Load Docker image
-#        run: docker load -i subtensor-patched-localnet.tar
+      - name: Download Cached Docker Image
+        uses: actions/download-artifact@v4
+        with:
+          name: subtensor-patched-localnet
+
+      - name: Load Docker image
+        run: docker load -i subtensor-patched-localnet.tar
 
       - name: Run patched E2E tests
         env:
