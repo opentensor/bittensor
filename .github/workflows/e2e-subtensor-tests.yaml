@@ -67,7 +67,7 @@ jobs:
 
   # Job to run tests in parallel
 #  run-e2e-test:
-#    name: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}
+#    name: "FB: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}"
 #    needs:
 #      - find-tests
 #      - pull-docker-image
@@ -201,13 +201,13 @@ jobs:
       - name: install dependencies
         run: uv sync --extra dev --dev
 
-      - name: Download Cached Docker Image
-        uses: actions/download-artifact@v4
-        with:
-          name: subtensor-patched-localnet
-
-      - name: Load Docker image
-        run: docker load -i subtensor-patched-localnet.tar
+#      - name: Download Cached Docker Image
+#        uses: actions/download-artifact@v4
+#        with:
+#          name: subtensor-patched-localnet
+#
+#      - name: Load Docker image
+#        run: docker load -i subtensor-patched-localnet.tar
 
       - name: Run patched E2E tests
         env:
