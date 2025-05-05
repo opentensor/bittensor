@@ -30,7 +30,9 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    BLOCK_TIME = 0.25 if subtensor.is_fast_blocks() else 12.0  # 12 for non-fast-block, 0.25 for fast block
+    BLOCK_TIME = (
+        0.25 if subtensor.is_fast_blocks() else 12.0
+    )  # 12 for non-fast-block, 0.25 for fast block
     netuid = 2
     logging.console.info("Testing test_commit_and_reveal_weights")
 
@@ -171,7 +173,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
         subtensor,
         netuid=netuid,
         reporting_interval=1,
-        sleep=BLOCK_TIME
+        sleep=BLOCK_TIME,
     )
 
     # Fetch the latest drand pulse

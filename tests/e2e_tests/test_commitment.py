@@ -3,7 +3,10 @@ from async_substrate_interface.errors import SubstrateRequestException
 
 from bittensor import logging
 from tests.e2e_tests.utils.chain_interactions import sudo_set_admin_utils
-from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call, async_wait_to_start_call
+from tests.e2e_tests.utils.e2e_test_utils import (
+    wait_to_start_call,
+    async_wait_to_start_call,
+)
 
 logging.set_trace()
 
