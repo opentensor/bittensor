@@ -171,7 +171,7 @@ jobs:
 
       - name: Run patched E2E tests
         env:
-          FAST_BLOCKS: "False"
+          FAST_BLOCKS: "0"
         run: |
           set +e
           for i in 1 2 3; do
