@@ -33,16 +33,17 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     BLOCK_TIME = (
         0.25 if subtensor.is_fast_blocks() else 12.0
     )  # 12 for non-fast-block, 0.25 for fast block
-    netuid = 2
+    netuid = subtensor.get_total_subnets()  # 2
+
     logging.console.info("Testing test_commit_and_reveal_weights")
 
     # Register root as Alice
     assert subtensor.register_subnet(alice_wallet), "Unable to register the subnet"
 
     # Verify subnet 2 created successfully
-    assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
+    assert subtensor.subnet_exists(netuid), f"Subnet {netuid} wasn't created successfully"
 
-    logging.console.info("Subnet 2 is registered")
+    logging.console.success(f"Subnet {netuid} is registered")
 
     # Enable commit_reveal on the subnet
     assert sudo_set_hyperparameter_bool(
@@ -105,7 +106,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     )
 
     # Wait for 2 tempos to pass as CR3 only reveals weights after 2 tempos + 1
-    subtensor.wait_for_block(subtensor.block + (tempo_set * 2) + 1)
+    subtensor.wait_for_block(tempo_set * 2 + 1)
 
     # Lower than this might mean weights will get revealed before we can check them
     if upcoming_tempo - current_block < 3:

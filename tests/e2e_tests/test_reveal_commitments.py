@@ -81,7 +81,8 @@ async def test_set_reveal_commitment(local_chain, subtensor, alice_wallet, bob_w
     # Sometimes the chain doesn't update the repository right away and the commit doesn't appear in the expected
     # `last_drand_round`. In this case need to wait a bit.
     print(f"Waiting for reveal round {target_reveal_round}")
-    while subtensor.last_drand_round() <= target_reveal_round + 1:
+    chain_offset = 1 if subtensor.is_fast_blocks() else 24
+    while subtensor.last_drand_round() <= target_reveal_round + chain_offset:
         # wait one drand period (3 sec)
         print(f"Current last reveled drand round {subtensor.last_drand_round()}")
         time.sleep(3)
