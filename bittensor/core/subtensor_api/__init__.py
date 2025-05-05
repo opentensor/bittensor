@@ -11,7 +11,7 @@ from .neurons import Neurons as _Neurons
 from .queries import Queries as _Queries
 from .stakes import Stakes as _Stakes
 from .subnets import Subnets as _Subnets
-from .utils import add_classic_fields as _add_classic_fields
+from .utils import add_legacy_methods as _add_classic_fields
 from .wallets import Wallets as _Wallets
 
 if TYPE_CHECKING:
@@ -26,7 +26,7 @@ class SubtensorApi:
         config: Bittensor configuration object. Defaults to `None`.
         log_verbose: If `True`, sets the subtensor to log verbosely. Defaults to `False`.
         async_subtensor: If `True`, uses the async subtensor to create the connection. Defaults to `False`.
-        backward_compatibility: If `True`, all methods from the Subtensor class will be added to the root level of this class.
+        legacy_methods: If `True`, all methods from the Subtensor class will be added to the root level of this class.
 
     Example:
         # sync version
@@ -46,10 +46,10 @@ class SubtensorApi:
             print(await subtensor.delegates.get_delegate_identities())
             print(await subtensor.chain.tx_rate_limit())
 
-        # using `backward_compatibility`
+        # using `legacy_methods`
         import bittensor as bt
 
-        subtensor = bt.SubtensorApi(backward_compatibility=True)
+        subtensor = bt.SubtensorApi(legacy_methods=True)
         print(subtensor.bonds(0))
     """
 
@@ -59,7 +59,7 @@ class SubtensorApi:
         config: Optional["Config"] = None,
         log_verbose: bool = False,
         async_subtensor: bool = False,
-        backward_compatibility: bool = False,
+        legacy_methods: bool = False,
         _mock: bool = False,
     ):
         self.network = network
@@ -90,7 +90,7 @@ class SubtensorApi:
         self.wait_for_block = self._subtensor.wait_for_block
 
         # adds all Subtensor methods into main level os SubtensorApi class
-        if backward_compatibility:
+        if legacy_methods:
             _add_classic_fields(self)
 
     def _get_subtensor(self) -> Union["_Subtensor", "_AsyncSubtensor"]:

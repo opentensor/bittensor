@@ -4,7 +4,7 @@ if TYPE_CHECKING:
     from bittensor.core.subtensor_api import SubtensorApi
 
 
-def add_classic_fields(subtensor: "SubtensorApi"):
+def add_legacy_methods(subtensor: "SubtensorApi"):
     """If SubtensorApi get `subtensor_fields=True` arguments, then all classic Subtensor fields added to root level."""
     subtensor.add_stake = subtensor._subtensor.add_stake
     subtensor.add_stake_multiple = subtensor._subtensor.add_stake_multiple
