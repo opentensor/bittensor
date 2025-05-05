@@ -66,7 +66,7 @@ jobs:
           path: subtensor-localnet.tar
 
   # Job to run tests in parallel
-  run-e2e-test:
+  run-fast-blocks-e2e-test:
     name: "FB: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}"
     needs:
       - find-tests
@@ -128,54 +128,14 @@ jobs:
             fi
           done
 
-# `build-patched-image` and `cron-e2e-test-with-non-fast-block` should run once per week
-  build-patched-image:
-#    if: github.event_name == 'schedule'
-    runs-on: ubuntu-latest
-
-    outputs:
-      image_name: ${{ steps.set-image.outputs.image_name }}
-
-    steps:
-#      - name: Check if today is Saturday
-#        id: set-status
-#        run: |
-#          day=$(date -u +%u)
-#          echo "Today is weekday $day"
-#          if [ "$day" -ne 6 ]; then
-#            echo "image_built=false" >> $GITHUB_OUTPUT
-#          else
-#            echo "image_built=true" >> $GITHUB_OUTPUT
-
-      - name: Clone + Patch (set 5 blocks instead of 7 days)
-        run: |
-          git clone https://github.com/opentensor/subtensor.git
-          cd subtensor
-          git checkout devnet-ready
-          sed -i 's|7 \* 24 \* 60 \* 60 / 12 // 7 days|5 // Only 5 blocks for tests|' runtime/src/lib.rs
-
-      - name: Build Docker image
-        run: |
-          cd subtensor
-          docker build -t subtensor-patched-devnet .
-
-      - name: Save Docker image
-        run: docker save subtensor-patched-devnet -o subtensor-patched-localnet.tar
-
-      - name: Upload image as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: subtensor-patched-localnet
-          path: subtensor-patched-localnet.tar
-
-
-  cron-e2e-test-with-non-fast-block:
+  cron-run-non-fast-blocks-e2e-test:
 #    if: github.event_name == 'schedule' && needs.build-patched-image.outputs.image_built == 'true'
     name: "NFB: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}"
-    needs: [find-tests, build-patched-image]
-
+    needs:
+      - find-tests
+      - pull-docker-image
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    timeout-minutes: 1440
 
     strategy:
       fail-fast: false  # Allow other matrix jobs to run even if this job fails
@@ -204,18 +164,15 @@ jobs:
       - name: Download Cached Docker Image
         uses: actions/download-artifact@v4
         with:
-          name: subtensor-patched-localnet
+          name: subtensor-localnet
 
-      - name: Load Docker image
-        run: docker load -i subtensor-patched-localnet.tar
+      - name: Load Docker Image
+        run: docker load -i subtensor-localnet.tar
 
       - name: Run patched E2E tests
         env:
-          LOCALNET_IMAGE_NAME: "subtensor-patched-localnet"
           FAST_BLOCKS: "False"
         run: |
-          echo "LOCALNET_IMAGE_NAME=${LOCALNET_IMAGE_NAME}"
-          echo "FAST_BLOCKS=${FAST_BLOCKS}"
           set +e
           for i in 1 2 3; do
             echo "🔁 Attempt $i: Running tests"
