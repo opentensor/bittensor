@@ -27,7 +27,7 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
         AssertionError: If any of the checks or verifications fail
     """
     netuid = subtensor.get_total_subnets()  # 2
-
+    set_tempo = 100 if subtensor.is_fast_block else 10
     print("Testing test_commit_and_reveal_weights")
 
     # Register root as Alice
@@ -78,7 +78,7 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
         call_function="sudo_set_tempo",
         call_params={
             "netuid": netuid,
-            "tempo": 100,
+            "tempo": set_tempo,
         },
     )
 
@@ -165,11 +165,11 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    subnet_tempo = 50
+    subnet_tempo = 50 if subtensor.is_fast_block else 10
     netuid = subtensor.get_total_subnets()  # 2
 
     # Wait for 2 tempos to pass as CR3 only reveals weights after 2 tempos
-    subtensor.wait_for_block(subnet_tempo * 2 + 1)
+    subtensor.wait_for_block(subtensor.block + (subnet_tempo * 2) + 1)
 
     print("Testing test_commit_and_reveal_weights")
     # Register root as Alice
@@ -267,8 +267,9 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
 
         send_commit(salt, weight_uids, weight_vals)
 
-        # let's wait for 3 (12 fast blocks) seconds between transactions
-        subtensor.wait_for_block(subtensor.block + 12)
+        # let's wait for 3 (12 fast blocks) seconds between transactions, next block for non-fast-blocks
+        waiting_block = (subtensor.block + 12) if subtensor.is_fast_blocks() else None
+        subtensor.wait_for_block(waiting_block)
 
     logging.console.info(
         f"[orange]Nonce after third commit_weights: "
@@ -276,7 +277,8 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     )
 
     # Wait a few blocks
-    subtensor.wait_for_block(subtensor.block + subtensor.tempo(netuid) * 2)
+    waiting_block = (subtensor.block + subtensor.tempo(netuid) * 2) if subtensor.is_fast_blocks() else None
+    subtensor.wait_for_block(waiting_block)
 
     # Query the WeightCommits storage map for all three salts
     weight_commits = subtensor.query_module(
