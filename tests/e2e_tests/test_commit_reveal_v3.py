@@ -41,7 +41,9 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     assert subtensor.register_subnet(alice_wallet), "Unable to register the subnet"
 
     # Verify subnet 2 created successfully
-    assert subtensor.subnet_exists(netuid), f"Subnet {netuid} wasn't created successfully"
+    assert subtensor.subnet_exists(netuid), (
+        f"Subnet {netuid} wasn't created successfully"
+    )
 
     logging.console.success(f"Subnet {netuid} is registered")
 
