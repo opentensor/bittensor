@@ -2435,6 +2435,10 @@ class AsyncSubtensor(SubtensorMixin):
         )
         return None if call is None else int(call)
 
+    async def is_fast_blocks(self):
+        """Returns True if the node is running with fast blocks. False if not."""
+        return (await self.query_constant("SubtensorModule", "DurationOfStartCall")).value == 10
+
     async def is_hotkey_delegate(
         self,
         hotkey_ss58: str,
