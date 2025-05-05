@@ -195,8 +195,6 @@ def docker_runner(params):
 
     container_name = f"{CONTAINER_NAME_PREFIX}{str(time.time()).replace('.', '_')}"
 
-    localnet_image_name = os.getenv("LOCALNET_IMAGE_NAME")
-
     # Command to start container
     cmds = [
         "docker",
@@ -208,7 +206,7 @@ def docker_runner(params):
         "9944:9944",
         "-p",
         "9945:9945",
-        str(localnet_image_name) if localnet_image_name else LOCALNET_IMAGE_NAME,
+        str(LOCALNET_IMAGE_NAME),
     ]
 
     cmds += params.split() if params else []
