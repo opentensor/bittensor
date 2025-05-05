@@ -96,7 +96,9 @@ async def test_commitment_async(
         "Subnet wasn't created successfully"
     )
 
-    assert async_wait_to_start_call(async_subtensor, dave_wallet, dave_subnet_netuid)
+    assert await async_wait_to_start_call(
+        async_subtensor, dave_wallet, dave_subnet_netuid
+    )
 
     async with async_subtensor as sub:
         with pytest.raises(SubstrateRequestException, match="AccountNotAllowedCommit"):
