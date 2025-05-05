@@ -62,7 +62,7 @@ async def test_root_reg_hyperparams(
 
     # Default immunity period & tempo set through the subtensor side
     default_immunity_period = 5000
-    default_tempo = 10
+    default_tempo = 10 if subtensor.is_fast_blocks() else 100
 
     # 0.2 for root network, 0.8 for sn 1
     # Corresponding to [0.2, 0.8]

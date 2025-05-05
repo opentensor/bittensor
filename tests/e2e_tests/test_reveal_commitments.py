@@ -26,8 +26,8 @@ async def test_set_reveal_commitment(local_chain, subtensor, alice_wallet, bob_w
     Note: Actually we can run this tests in fast block mode. For this we need to set `BLOCK_TIME` to 0.25 and replace
     `False` to `True` in `pytest.mark.parametrize` decorator.
     """
-    BLOCK_TIME = 0.25  # 12 for non-fast-block, 0.25 for fast block
-    BLOCKS_UNTIL_REVEAL = 10
+    BLOCK_TIME = 0.25 if subtensor.is_fast_blocks() else 12.0  # 12 for non-fast-block, 0.25 for fast block
+    BLOCKS_UNTIL_REVEAL = 10 if subtensor.is_fast_blocks() else 5
 
     alice_subnet_netuid = subtensor.get_total_subnets()  # 2
 

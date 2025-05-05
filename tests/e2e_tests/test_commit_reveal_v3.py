@@ -30,7 +30,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    BLOCK_TIME = 0.25  # 12 for non-fast-block, 0.25 for fast block
+    BLOCK_TIME = 0.25 if subtensor.is_fast_blocks() else 12.0  # 12 for non-fast-block, 0.25 for fast block
     netuid = 2
     logging.console.info("Testing test_commit_and_reveal_weights")
 
@@ -74,7 +74,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     logging.console.info("sudo_set_weights_set_rate_limit executed: set to 0")
 
     # Change the tempo of the subnet
-    tempo_set = 50
+    tempo_set = 50 if subtensor.is_fast_blocks() else 10
     assert (
         sudo_set_admin_utils(
             local_chain,
@@ -103,7 +103,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     )
 
     # Wait for 2 tempos to pass as CR3 only reveals weights after 2 tempos + 1
-    subtensor.wait_for_block((tempo_set * 2) + 1)
+    subtensor.wait_for_block(subtensor.block + (tempo_set * 2) + 1)
 
     # Lower than this might mean weights will get revealed before we can check them
     if upcoming_tempo - current_block < 3:
@@ -117,7 +117,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     latest_drand_round = subtensor.last_drand_round()
     upcoming_tempo = next_tempo(current_block, tempo)
     logging.console.info(
-        f"Post first wait_interval (to ensure window isnt too low): {current_block}, next tempo: {upcoming_tempo}, drand: {latest_drand_round}"
+        f"Post first wait_interval (to ensure window isn't too low): {current_block}, next tempo: {upcoming_tempo}, drand: {latest_drand_round}"
     )
 
     # Commit weights
@@ -171,6 +171,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
         subtensor,
         netuid=netuid,
         reporting_interval=1,
+        sleep=BLOCK_TIME
     )
 
     # Fetch the latest drand pulse
