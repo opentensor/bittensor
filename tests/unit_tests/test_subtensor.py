@@ -2258,7 +2258,6 @@ def test_networks_during_connection(mock_substrate, mocker):
         sub.chain_endpoint = settings.NETWORK_MAP.get(network)
 
 
-@pytest.mark.asyncio
 def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker):
     netuids = [1, 2, 3]
     stake_info_dict = {
