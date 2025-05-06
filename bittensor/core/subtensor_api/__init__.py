@@ -88,7 +88,6 @@ class SubtensorApi:
 
         # define empty fields
         self.substrate = self._subtensor.substrate
-        self.add_args = self._subtensor.add_args
         self.chain_endpoint = self._subtensor.chain_endpoint
         self.close = self._subtensor.close
         self.config = self._subtensor.config
@@ -155,6 +154,10 @@ class SubtensorApi:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.substrate.close()
+
+    @classmethod
+    def add_args(cls, parser):
+        _Subtensor.add_args(parser)
 
     @property
     def block(self):
