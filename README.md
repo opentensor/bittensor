@@ -239,18 +239,18 @@ pytest tests/unit_tests
 - are executed very quickly
 - require docker installed in OS
 
-Ho to use:
+How to use:
 ```bash
 pytest tests/e2e_tests
 ```
 
-#### TUsing `legacy runner`:
+#### Using `legacy runner`:
 - Will start compilation of the collected code in your subtensor repository
 - you must provide the `LOCALNET_SH_PATH` variable in the local environment with the path to the file `/scripts/localnet.sh` in the cloned repository within your OS
 - you can use the `BUILD_BINARY=0` variable, this will skip the copy step for each test.
 - you can use the `USE_DOCKER=0` variable, this will run tests using the "legacy runner", even if docker is installed in your OS
 
-#### Ho to use:
+#### How to use:
 Regular e2e tests run
 ```bash
 LOCALNET_SH_PATH=/path/to/your/localnet.sh pytest tests/e2e_tests
