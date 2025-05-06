@@ -18,7 +18,7 @@ def test_hotkeys(subtensor, alice_wallet, dave_wallet):
     - Check if Hotkey is registered
     """
 
-    dave_subnet_netuid = 2
+    dave_subnet_netuid = subtensor.get_total_subnets()  # 2
     assert subtensor.register_subnet(dave_wallet, True, True)
     assert subtensor.subnet_exists(dave_subnet_netuid), (
         f"Subnet #{dave_subnet_netuid} does not exist."
@@ -76,13 +76,25 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
     - Clear children list
     """
 
-    dave_subnet_netuid = 2
+    dave_subnet_netuid = subtensor.get_total_subnets()  # 2
+    set_tempo = 10
     assert subtensor.register_subnet(dave_wallet, True, True)
     assert subtensor.subnet_exists(dave_subnet_netuid), (
         f"Subnet #{dave_subnet_netuid} does not exist."
     )
 
     assert wait_to_start_call(subtensor, dave_wallet, dave_subnet_netuid)
+
+    # set the same tempo for both type of nodes (to avoid tests timeout)
+    assert (
+        sudo_set_admin_utils(
+            local_chain,
+            alice_wallet,
+            call_function="sudo_set_tempo",
+            call_params={"netuid": dave_subnet_netuid, "tempo": set_tempo},
+        )[0]
+        is True
+    )
 
     with pytest.raises(bittensor.RegistrationNotPermittedOnRootSubnet):
         subtensor.set_children(
@@ -235,10 +247,11 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
             "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
         ),
     ]
+    bittensor.logging.console.info(f"cooldown: {cooldown}")
 
     subtensor.wait_for_block(cooldown)
 
-    await wait_epoch(subtensor, netuid=1)
+    await wait_epoch(subtensor, netuid=dave_subnet_netuid)
 
     success, children, error = subtensor.get_children(
         alice_wallet.hotkey.ss58_address,
