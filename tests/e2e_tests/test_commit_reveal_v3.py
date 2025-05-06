@@ -22,7 +22,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     Steps:
         1. Register a subnet through Alice
         2. Register Alice's neuron and add stake
-        3. Enable commit-reveal mechanism on the subnet
+        3. Enable a commit-reveal mechanism on subnet
         4. Lower weights rate limit
         5. Change the tempo for subnet 1
         5. Commit weights and ensure they are committed.
@@ -129,6 +129,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
         wait_for_inclusion=True,
         wait_for_finalization=True,
         block_time=BLOCK_TIME,
+        period=16,
     )
 
     # Assert committing was a success

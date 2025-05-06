@@ -5,7 +5,7 @@ from tests.e2e_tests.utils.chain_interactions import get_dynamic_balance
 from tests.helpers.helpers import ApproxBalance
 from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 
-logging.enable_info()
+logging.enable_debug()
 
 
 def test_single_operation(subtensor, alice_wallet, bob_wallet):
@@ -55,6 +55,7 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
         amount=Balance.from_tao(1),
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        period=16,
     )
 
     assert success is True
@@ -161,23 +162,25 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
         ),
     }
 
+    # unstale all to check in later
     success = subtensor.unstake(
-        alice_wallet,
-        bob_wallet.hotkey.ss58_address,
+        wallet=alice_wallet,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
-        amount=stake_bob,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        period=16,
     )
 
     assert success is True
 
     stake = subtensor.get_stake(
-        alice_wallet.coldkey.ss58_address,
-        bob_wallet.hotkey.ss58_address,
+        coldkey_ss58=alice_wallet.coldkey.ss58_address,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
     )
 
+    # all balances have been unstaked
     assert stake == Balance(0).set_unit(alice_subnet_netuid)
 
 
@@ -424,13 +427,17 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
         rate_tolerance=0.005,  # 0.5%
         allow_partial_stake=False,
     )
-    assert success is False
+    assert success is False, "Unstake should fail."
 
     current_stake = subtensor.get_stake(
         alice_wallet.coldkey.ss58_address,
         bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
     )
+
+    logging.console.info(f"[orange]Current stake: {current_stake}[orange]")
+    logging.console.info(f"[orange]Full stake: {full_stake}[orange]")
+
     assert current_stake == full_stake, (
         "Stake should not change after failed unstake attempt"
     )
@@ -454,6 +461,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
         bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
     )
+    logging.console.info(f"[orange]Partial unstake: {partial_unstake}[orange]")
     assert partial_unstake > Balance(0), "Some stake should remain"
 
     # 3. Higher threshold - should succeed fully
@@ -468,7 +476,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
         rate_tolerance=0.3,  # 30%
         allow_partial_stake=False,
     )
-    assert success is True
+    assert success is True, "Unstake should succeed"
 
 
 def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):

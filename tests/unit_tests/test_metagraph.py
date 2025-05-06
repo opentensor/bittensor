@@ -129,10 +129,10 @@ def mock_subtensor(mocker):
 @pytest.fixture
 def metagraph_instance(mocker):
     metagraph = Metagraph(netuid=1337, sync=False)
-    metagraph._assign_neurons = mocker.AsyncMock()
-    metagraph._set_metagraph_attributes = mocker.AsyncMock()
-    metagraph._set_weights_and_bonds = mocker.AsyncMock()
-    metagraph._get_all_stakes_from_chain = mocker.AsyncMock()
+    metagraph._assign_neurons = mocker.Mock()
+    metagraph._set_metagraph_attributes = mocker.Mock()
+    metagraph._set_weights_and_bonds = mocker.Mock()
+    metagraph._get_all_stakes_from_chain = mocker.Mock()
     return metagraph
 
 
