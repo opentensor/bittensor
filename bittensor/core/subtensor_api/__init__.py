@@ -24,9 +24,11 @@ class SubtensorApi:
     Arguments:
         network: The network to connect to. Defaults to `None` -> `finney`.
         config: Bittensor configuration object. Defaults to `None`.
-        log_verbose: If `True`, sets the subtensor to log verbosely. Defaults to `False`.
-        async_subtensor: If `True`, uses the async subtensor to create the connection. Defaults to `False`.
         legacy_methods: If `True`, all methods from the Subtensor class will be added to the root level of this class.
+        fallback_chains (list): List of fallback chains to use if no network is specified. Defaults to `None`.
+        retry_forever (bool): Whether to retry forever on connection errors. Defaults to `False`.
+        log_verbose (bool): Enables or disables verbose logging.
+        mock: Whether this is a mock instance. Mainly just for use in testing.
 
     Example:
         # sync version
@@ -57,16 +59,21 @@ class SubtensorApi:
         self,
         network: Optional[str] = None,
         config: Optional["Config"] = None,
-        log_verbose: bool = False,
         async_subtensor: bool = False,
         legacy_methods: bool = False,
-        _mock: bool = False,
+        fallback_chains: Optional[list[str]] = None,
+        retry_forever: bool = False,
+        log_verbose: bool = False,
+        mock: bool = False,
     ):
         self.network = network
-        self._mock = _mock
+        self._fallback_chains = fallback_chains
+        self._retry_forever = retry_forever
+        self._mock = mock
         self.log_verbose = log_verbose
         self.is_async = async_subtensor
         self._config = config
+
         # assigned only for async instance
         self.initialize = None
         self._subtensor = self._get_subtensor()
@@ -99,8 +106,10 @@ class SubtensorApi:
             _subtensor = _AsyncSubtensor(
                 network=self.network,
                 config=self._config,
-                _mock=self._mock,
                 log_verbose=self.log_verbose,
+                fallback_chains=self._fallback_chains,
+                retry_forever=self._retry_forever,
+                _mock=self._mock,
             )
             self.initialize = _subtensor.initialize
             return _subtensor
@@ -108,12 +117,18 @@ class SubtensorApi:
             return _Subtensor(
                 network=self.network,
                 config=self._config,
-                _mock=self._mock,
                 log_verbose=self.log_verbose,
+                fallback_chains=self._fallback_chains,
+                retry_forever=self._retry_forever,
+                _mock=self._mock,
             )
 
     def __str__(self):
-        return f"<Network: {self.network}, Chain: {self.chain_endpoint}, {'Async version' if self.is_async else 'Sync version'}>"
+        return (
+            f"<Network: {self.network}, "
+            f"Chain: {self._determine_chain_endpoint()}, "
+            f"{'Async version' if self.is_async else 'Sync version'}>"
+        )
 
     def __repr__(self):
         return self.__str__()
@@ -130,50 +145,68 @@ class SubtensorApi:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.substrate.close()
 
+    def _determine_chain_endpoint(self) -> str:
+        """Determines the connection and mock flag."""
+        if self._mock:
+            return "Mock"
+        return self.substrate.url
+
     @property
     def block(self):
+        """Returns current chain block number."""
         return self._subtensor.block
 
     @property
     def chain(self):
+        """Property to access chain methods."""
         return _Chain(self._subtensor)
 
     @property
     def commitments(self):
+        """Property to access commitments methods."""
         return _Commitments(self._subtensor)
 
     @property
     def delegates(self):
+        """Property to access delegates methods."""
         return _Delegates(self._subtensor)
 
     @property
     def extrinsics(self):
+        """Property to access extrinsics methods."""
         return _Extrinsics(self._subtensor)
 
     @property
     def metagraphs(self):
+        """Property to access metagraphs methods."""
         return _Metagraphs(self._subtensor)
 
     @property
     def neurons(self):
+        """Property to access neurons methods."""
         return self._neurons
 
     @neurons.setter
     def neurons(self, value):
+        """Setter for neurons property."""
         self._neurons = value
 
     @property
     def queries(self):
+        """Property to access queries methods."""
         return _Queries(self._subtensor)
 
     @property
     def stakes(self):
+        """Property to access stakes methods."""
         return _Stakes(self._subtensor)
 
     @property
     def subnets(self):
+        """Property to access subnets methods."""
         return _Subnets(self._subtensor)
 
     @property
     def wallets(self):
+        """Property to access wallets methods."""
         return _Wallets(self._subtensor)
