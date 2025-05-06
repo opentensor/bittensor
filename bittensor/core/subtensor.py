@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, Iterable, Optional, Union, cast
 import numpy as np
 import scalecodec
 from async_substrate_interface.errors import SubstrateRequestException
+from async_substrate_interface.substrate_addons import RetrySyncSubstrate
 from async_substrate_interface.sync_substrate import SubstrateInterface
 from async_substrate_interface.types import ScaleObj
 from bittensor_drand import get_encrypted_commitment
@@ -116,8 +117,10 @@ class Subtensor(SubtensorMixin):
         self,
         network: Optional[str] = None,
         config: Optional["Config"] = None,
-        _mock: bool = False,
         log_verbose: bool = False,
+        fallback_chains: Optional[list[str]] = None,
+        retry_forever: bool = False,
+        _mock: bool = False,
     ):
         """
         Initializes an instance of the Subtensor class.
@@ -125,8 +128,10 @@ class Subtensor(SubtensorMixin):
         Arguments:
             network (str): The network name or type to connect to.
             config (Optional[Config]): Configuration object for the AsyncSubtensor instance.
-            _mock: Whether this is a mock instance. Mainly just for use in testing.
             log_verbose (bool): Enables or disables verbose logging.
+            fallback_chains (list): List of fallback chains to use if no network is specified. Defaults to `None`.
+            retry_forever (bool): Whether to retry forever on connection errors. Defaults to `False`.
+            _mock: Whether this is a mock instance. Mainly just for use in testing.
 
         Raises:
             Any exceptions raised during the setup, configuration, or connection process.
@@ -143,13 +148,8 @@ class Subtensor(SubtensorMixin):
             f"Connecting to network: [blue]{self.network}[/blue], "
             f"chain_endpoint: [blue]{self.chain_endpoint}[/blue]> ..."
         )
-        self.substrate = SubstrateInterface(
-            url=self.chain_endpoint,
-            ss58_format=SS58_FORMAT,
-            type_registry=TYPE_REGISTRY,
-            use_remote_preset=True,
-            chain_name="Bittensor",
-            _mock=_mock,
+        self.substrate = self._get_substrate(
+            fallback_chains=fallback_chains, retry_forever=retry_forever, _mock=_mock
         )
         if self.log_verbose:
             logging.info(
@@ -163,10 +163,40 @@ class Subtensor(SubtensorMixin):
         self.close()
 
     def close(self):
-        """
-        Closes the websocket connection
-        """
+        """Closes the websocket connection."""
         self.substrate.close()
+
+    def _get_substrate(
+        self,
+        fallback_chains: Optional[list[str]] = None,
+        retry_forever: bool = False,
+        _mock: bool = False,
+    ) -> Union[SubstrateInterface, RetrySyncSubstrate]:
+        """Creates the Substrate instance based on provided arguments.
+
+        Arguments:
+            fallback_chains (list): List of fallback chains to use if no network is specified. Defaults to `None`.
+            retry_forever (bool): Whether to retry forever on connection errors. Defaults to `False`.
+            _mock: Whether this is a mock instance. Mainly just for use in testing.
+
+        Returns:
+            the instance of the SubstrateInterface or RetrySyncSubstrate class.
+        """
+        if fallback_chains or retry_forever:
+            return RetrySyncSubstrate(
+                url=self.chain_endpoint,
+                fallback_chains=fallback_chains,
+                retry_forever=retry_forever,
+                _mock=_mock,
+            )
+        return SubstrateInterface(
+            url=self.chain_endpoint,
+            ss58_format=SS58_FORMAT,
+            type_registry=TYPE_REGISTRY,
+            use_remote_preset=True,
+            chain_name="Bittensor",
+            _mock=_mock,
+        )
 
     # Subtensor queries ===========================================================================================
 

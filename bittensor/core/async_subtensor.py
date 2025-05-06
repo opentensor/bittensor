@@ -9,6 +9,7 @@ import asyncstdlib as a
 import numpy as np
 import scalecodec
 from async_substrate_interface import AsyncSubstrateInterface
+from async_substrate_interface.substrate_addons import RetryAsyncSubstrate
 from bittensor_drand import get_encrypted_commitment
 from bittensor_wallet.utils import SS58_FORMAT
 from numpy.typing import NDArray
@@ -114,8 +115,10 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         network: Optional[str] = None,
         config: Optional["Config"] = None,
-        _mock: bool = False,
         log_verbose: bool = False,
+        fallback_chains: Optional[list[str]] = None,
+        retry_forever: bool = False,
+        _mock: bool = False,
     ):
         """
         Initializes an instance of the AsyncSubtensor class.
@@ -123,8 +126,10 @@ class AsyncSubtensor(SubtensorMixin):
         Arguments:
             network (str): The network name or type to connect to.
             config (Optional[Config]): Configuration object for the AsyncSubtensor instance.
-            _mock: Whether this is a mock instance. Mainly just for use in testing.
             log_verbose (bool): Enables or disables verbose logging.
+            fallback_chains (list): List of fallback chains to use if no network is specified. Defaults to `None`.
+            retry_forever (bool): Whether to retry forever on connection errors. Defaults to `False`.
+            _mock: Whether this is a mock instance. Mainly just for use in testing.
 
         Raises:
             Any exceptions raised during the setup, configuration, or connection process.
@@ -150,6 +155,9 @@ class AsyncSubtensor(SubtensorMixin):
             use_remote_preset=True,
             chain_name="Bittensor",
             _mock=_mock,
+        )
+        self.substrate = self._get_substrate(
+            fallback_chains=fallback_chains, retry_forever=retry_forever, _mock=_mock
         )
         if self.log_verbose:
             logging.info(
@@ -282,6 +290,38 @@ class AsyncSubtensor(SubtensorMixin):
         )
 
         return getattr(result, "value", result)
+
+    def _get_substrate(
+        self,
+        fallback_chains: Optional[list[str]] = None,
+        retry_forever: bool = False,
+        _mock: bool = False,
+    ) -> Union[AsyncSubstrateInterface, RetryAsyncSubstrate]:
+        """Creates the Substrate instance based on provided arguments.
+
+        Arguments:
+            fallback_chains (list): List of fallback chains to use if no network is specified. Defaults to `None`.
+            retry_forever (bool): Whether to retry forever on connection errors. Defaults to `False`.
+            _mock: Whether this is a mock instance. Mainly just for use in testing.
+
+        Returns:
+            the instance of the SubstrateInterface or RetrySyncSubstrate class.
+        """
+        if fallback_chains or retry_forever:
+            return RetryAsyncSubstrate(
+                url=self.chain_endpoint,
+                fallback_chains=fallback_chains,
+                retry_forever=retry_forever,
+                _mock=_mock,
+            )
+        return AsyncSubstrateInterface(
+            url=self.chain_endpoint,
+            ss58_format=SS58_FORMAT,
+            type_registry=TYPE_REGISTRY,
+            use_remote_preset=True,
+            chain_name="Bittensor",
+            _mock=_mock,
+        )
 
     # Subtensor queries ===========================================================================================
 
