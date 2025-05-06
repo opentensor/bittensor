@@ -127,7 +127,7 @@ class AsyncSubtensor(SubtensorMixin):
             network (str): The network name or type to connect to.
             config (Optional[Config]): Configuration object for the AsyncSubtensor instance.
             log_verbose (bool): Enables or disables verbose logging.
-            fallback_chains (list): List of fallback chains to use if no network is specified. Defaults to `None`.
+            fallback_chains (list): List of fallback chains endpoints to use if no network is specified. Defaults to `None`.
             retry_forever (bool): Whether to retry forever on connection errors. Defaults to `False`.
             _mock: Whether this is a mock instance. Mainly just for use in testing.
 
@@ -147,14 +147,6 @@ class AsyncSubtensor(SubtensorMixin):
         logging.debug(
             f"Connecting to network: [blue]{self.network}[/blue], "
             f"chain_endpoint: [blue]{self.chain_endpoint}[/blue]..."
-        )
-        self.substrate = AsyncSubstrateInterface(
-            url=self.chain_endpoint,
-            ss58_format=SS58_FORMAT,
-            type_registry=TYPE_REGISTRY,
-            use_remote_preset=True,
-            chain_name="Bittensor",
-            _mock=_mock,
         )
         self.substrate = self._get_substrate(
             fallback_chains=fallback_chains, retry_forever=retry_forever, _mock=_mock
@@ -300,7 +292,7 @@ class AsyncSubtensor(SubtensorMixin):
         """Creates the Substrate instance based on provided arguments.
 
         Arguments:
-            fallback_chains (list): List of fallback chains to use if no network is specified. Defaults to `None`.
+            fallback_chains (list): List of fallback chains endpoints to use if no network is specified. Defaults to `None`.
             retry_forever (bool): Whether to retry forever on connection errors. Defaults to `False`.
             _mock: Whether this is a mock instance. Mainly just for use in testing.
 

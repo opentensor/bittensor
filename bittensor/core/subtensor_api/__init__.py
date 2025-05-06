@@ -53,6 +53,11 @@ class SubtensorApi:
 
         subtensor = bt.SubtensorApi(legacy_methods=True)
         print(subtensor.bonds(0))
+
+        # using `fallback_chains` or `retry_forever`
+        import bittensor as bt
+
+
     """
 
     def __init__(
@@ -123,6 +128,12 @@ class SubtensorApi:
                 _mock=self._mock,
             )
 
+    def _determine_chain_endpoint(self) -> str:
+        """Determines the connection and mock flag."""
+        if self._mock:
+            return "Mock"
+        return self.substrate.url
+
     def __str__(self):
         return (
             f"<Network: {self.network}, "
@@ -144,12 +155,6 @@ class SubtensorApi:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.substrate.close()
-
-    def _determine_chain_endpoint(self) -> str:
-        """Determines the connection and mock flag."""
-        if self._mock:
-            return "Mock"
-        return self.substrate.url
 
     @property
     def block(self):
