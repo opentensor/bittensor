@@ -166,7 +166,7 @@ class SubtensorApi:
 
     @property
     def chain(self):
-        """Property to access chain methods."""
+        """Property of interaction with chain methods."""
         return _Chain(self._subtensor)
 
     @property
@@ -201,7 +201,7 @@ class SubtensorApi:
 
     @property
     def queries(self):
-        """Property to access queries methods."""
+        """Property to access subtensor queries methods."""
         return _Queries(self._subtensor)
 
     @property
@@ -211,10 +211,10 @@ class SubtensorApi:
 
     @property
     def subnets(self):
-        """Property to access subnets methods."""
+        """Property of interaction with subnets methods."""
         return _Subnets(self._subtensor)
 
     @property
     def wallets(self):
-        """Property to access wallets methods."""
+        """Property of interaction methods with cold/hotkeys, and balances, etc."""
         return _Wallets(self._subtensor)
