@@ -321,7 +321,7 @@ def test_serve_axon_extrinsic(
             1,
             "Sha256",
             b"mock_bytes_data",
-            True,
+            (True, ""),
             True,
             "happy-path-wait",
         ),
@@ -331,7 +331,7 @@ def test_serve_axon_extrinsic(
             1,
             "Sha256",
             b"mock_bytes_data",
-            True,
+            (True, ""),
             True,
             "happy-path-no-wait",
         ),
@@ -353,15 +353,8 @@ def test_publish_metadata(
     # Arrange
     with (
         patch.object(mock_subtensor.substrate, "compose_call"),
-        patch.object(mock_subtensor.substrate, "create_signed_extrinsic"),
         patch.object(
-            mock_subtensor.substrate,
-            "submit_extrinsic",
-            return_value=MagicMock(
-                is_success=response_success,
-                process_events=MagicMock(),
-                error_message="error",
-            ),
+            mock_subtensor, "sign_and_send_extrinsic", return_value=response_success
         ),
     ):
         # Act

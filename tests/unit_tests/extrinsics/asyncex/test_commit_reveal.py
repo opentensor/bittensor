@@ -82,7 +82,7 @@ async def test_do_commit_reveal_v3_success(mocker, subtensor, fake_wallet):
         wait_for_inclusion=False,
         wait_for_finalization=False,
     )
-    assert result == (True, "")
+    assert result == (True, "Not waiting for finalization or inclusion.")
 
 
 @pytest.mark.asyncio
@@ -163,7 +163,7 @@ async def test_commit_reveal_v3_extrinsic_success_with_torch(
     mocked_weights = mocker.Mock()
     mocked_convert_weights_and_uids_for_emit = mocker.patch.object(
         async_commit_reveal,
-        "convert_weights_and_uids_for_emit",
+        "convert_and_normalize_weights_and_uids",
         return_value=(mocked_uids, mocked_weights),
     )
     mocked_get_subnet_reveal_period_epochs = mocker.patch.object(
@@ -223,6 +223,7 @@ async def test_commit_reveal_v3_extrinsic_success_with_torch(
         reveal_round=fake_reveal_round,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        period=None,
     )
 
 
@@ -238,7 +239,7 @@ async def test_commit_reveal_v3_extrinsic_success_with_numpy(
 
     mock_convert = mocker.patch.object(
         async_commit_reveal,
-        "convert_weights_and_uids_for_emit",
+        "convert_and_normalize_weights_and_uids",
         return_value=(fake_uids, fake_weights),
     )
     mock_encode_drand = mocker.patch.object(
@@ -288,7 +289,7 @@ async def test_commit_reveal_v3_extrinsic_response_false(
     # Mocks
     mocker.patch.object(
         async_commit_reveal,
-        "convert_weights_and_uids_for_emit",
+        "convert_and_normalize_weights_and_uids",
         return_value=(fake_uids, fake_weights),
     )
     mocker.patch.object(
@@ -328,6 +329,7 @@ async def test_commit_reveal_v3_extrinsic_response_false(
         reveal_round=fake_reveal_round,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        period=None,
     )
 
 
@@ -341,7 +343,7 @@ async def test_commit_reveal_v3_extrinsic_exception(mocker, subtensor, fake_wall
 
     mocker.patch.object(
         async_commit_reveal,
-        "convert_weights_and_uids_for_emit",
+        "convert_and_normalize_weights_and_uids",
         side_effect=Exception("Test Error"),
     )
 
