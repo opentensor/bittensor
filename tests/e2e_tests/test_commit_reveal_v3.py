@@ -129,6 +129,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
         wait_for_inclusion=True,
         wait_for_finalization=True,
         block_time=BLOCK_TIME,
+        period=16,
     )
 
     # Assert committing was a success
