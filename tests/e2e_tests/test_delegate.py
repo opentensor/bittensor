@@ -171,7 +171,7 @@ def test_change_take(local_chain, subtensor, alice_wallet, bob_wallet):
 
 
 @pytest.mark.asyncio
-async def test_delegates(subtensor, alice_wallet, bob_wallet):
+async def test_delegates(local_chain, subtensor, alice_wallet, bob_wallet):
     """
     Tests:
     - Check default Delegates
@@ -240,6 +240,7 @@ async def test_delegates(subtensor, alice_wallet, bob_wallet):
     assert subtensor.get_delegated(bob_wallet.coldkey.ss58_address) == []
 
     alice_subnet_netuid = subtensor.get_total_subnets()  # 2
+    set_tempo = 10
     # Register a subnet, netuid 2
     assert subtensor.register_subnet(alice_wallet), "Subnet wasn't created"
 
@@ -250,6 +251,17 @@ async def test_delegates(subtensor, alice_wallet, bob_wallet):
 
     assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
 
+    # set the same tempo for both type of nodes (fast and non-fast blocks)
+    assert (
+        sudo_set_admin_utils(
+            local_chain,
+            alice_wallet,
+            call_function="sudo_set_tempo",
+            call_params={"netuid": alice_subnet_netuid, "tempo": set_tempo},
+        )[0]
+        is True
+    )
+
     subtensor.add_stake(
         bob_wallet,
         alice_wallet.hotkey.ss58_address,
@@ -258,6 +270,9 @@ async def test_delegates(subtensor, alice_wallet, bob_wallet):
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
+
+    # let chain update validator_permits
+    subtensor.wait_for_block(subtensor.block + set_tempo + 1)
 
     bob_delegated = subtensor.get_delegated(bob_wallet.coldkey.ss58_address)
     assert bob_delegated == [
@@ -272,9 +287,10 @@ async def test_delegates(subtensor, alice_wallet, bob_wallet):
                 bob_delegated[0].total_daily_return.rao
             ),
             netuid=alice_subnet_netuid,
-            stake=get_dynamic_balance(bob_delegated[0].stake.rao),
+            stake=get_dynamic_balance(bob_delegated[0].stake.rao, alice_subnet_netuid),
         ),
     ]
+    bittensor.logging.console.success("Test [green]test_delegates[/green] passed.")
 
 
 def test_nominator_min_required_stake(local_chain, subtensor, alice_wallet, bob_wallet):
