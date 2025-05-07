@@ -144,15 +144,31 @@ class SubtensorApi:
         return self.__str__()
 
     def __enter__(self):
+        if self.is_async:
+            raise NotImplementedError(
+                "Async version of SubtensorApi cannot be used with sync context manager."
+            )
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.is_async:
+            raise NotImplementedError(
+                "Async version of SubtensorApi cannot be used with sync context manager."
+            )
         self.close()
 
     async def __aenter__(self):
+        if not self.is_async:
+            raise NotImplementedError(
+                "Sync version of SubtensorApi cannot be used with async context manager."
+            )
         return await self._subtensor.__aenter__()
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if not self.is_async:
+            raise NotImplementedError(
+                "Sync version of SubtensorApi cannot be used with async context manager."
+            )
         await self.substrate.close()
 
     @classmethod
