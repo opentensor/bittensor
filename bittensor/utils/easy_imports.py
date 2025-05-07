@@ -131,23 +131,6 @@ wallet = Wallet
 subtensor = Subtensor
 synapse = Synapse
 
-__blocktime__ = BLOCKTIME
-__network_explorer_map__ = settings.NETWORK_EXPLORER_MAP
-__pipaddress__ = settings.PIPADDRESS
-__ss58_format__ = settings.SS58_FORMAT
-__type_registry__ = settings.TYPE_REGISTRY
-__ss58_address_length__ = settings.SS58_ADDRESS_LENGTH
-
-__networks__ = settings.NETWORKS
-
-__finney_entrypoint__ = settings.FINNEY_ENTRYPOINT
-__finney_test_entrypoint__ = settings.FINNEY_TEST_ENTRYPOINT
-__archive_entrypoint__ = settings.ARCHIVE_ENTRYPOINT
-__local_entrypoint__ = settings.LOCAL_ENTRYPOINT
-
-__tao_symbol__ = settings.TAO_SYMBOL
-__rao_symbol__ = settings.RAO_SYMBOL
-
 # Makes the `bittensor.utils.mock` subpackage available as `bittensor.mock` for backwards compatibility.
 mock_subpackage = importlib.import_module("bittensor.utils.mock")
 sys.modules["bittensor.mock"] = mock_subpackage
