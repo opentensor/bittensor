@@ -9,7 +9,7 @@ from .extrinsics import Extrinsics as _Extrinsics
 from .metagraphs import Metagraphs as _Metagraphs
 from .neurons import Neurons as _Neurons
 from .queries import Queries as _Queries
-from .stakes import Stakes as _Stakes
+from .staking import Staking as _Staking
 from .subnets import Subnets as _Subnets
 from .utils import add_legacy_methods as _add_classic_fields
 from .wallets import Wallets as _Wallets
@@ -221,9 +221,9 @@ class SubtensorApi:
         return _Queries(self._subtensor)
 
     @property
-    def stakes(self):
-        """Property to access stakes methods."""
-        return _Stakes(self._subtensor)
+    def staking(self):
+        """Property to access staking methods."""
+        return _Staking(self._subtensor)
 
     @property
     def subnets(self):
