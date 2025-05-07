@@ -22,7 +22,7 @@ class SubtensorApi:
     """Subtensor API class.
 
     Arguments:
-        network: The network to connect to. Defaults to `None` -> `finney`.
+        network: The network to connect to. Defaults to `None` -> "finney".
         config: Bittensor configuration object. Defaults to `None`.
         legacy_methods: If `True`, all methods from the Subtensor class will be added to the root level of this class.
         fallback_chains (list): List of fallback chains to use if no network is specified. Defaults to `None`.
