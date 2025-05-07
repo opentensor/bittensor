@@ -185,7 +185,6 @@ class Subtensor(SubtensorMixin):
         if fallback_chains or retry_forever:
             return RetrySyncSubstrate(
                 url=self.chain_endpoint,
-                url=self.chain_endpoint,
                 ss58_format=SS58_FORMAT,
                 type_registry=TYPE_REGISTRY,
                 use_remote_preset=True,
