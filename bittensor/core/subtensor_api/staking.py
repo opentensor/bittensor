@@ -3,8 +3,8 @@ from bittensor.core.subtensor import Subtensor as _Subtensor
 from bittensor.core.async_subtensor import AsyncSubtensor as _AsyncSubtensor
 
 
-class Stakes:
-    """Class for managing stake operations."""
+class Staking:
+    """Class for managing staking operations."""
 
     def __init__(self, subtensor: Union["_Subtensor", "_AsyncSubtensor"]):
         self.add_stake = subtensor.add_stake
