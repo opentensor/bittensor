@@ -74,7 +74,9 @@ def test_hotkeys(subtensor, alice_wallet, dave_wallet):
         )
         is True
     )
-    logging.console.success("Hotkey tests passed.")
+    logging.console.success(
+        f":white_check_mark: Test [green]test_hotkeys[/green] passed"
+    )
 
 
 @pytest.mark.asyncio
@@ -359,4 +361,7 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
             ],
             raise_error=True,
         )
-    logging.console.success("[green]test_children[/green] passed.")
+
+    logging.console.success(
+        f":white_check_mark: Test [green]test_children[/green] passed"
+    )
