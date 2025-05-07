@@ -90,7 +90,8 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
     """
 
     dave_subnet_netuid = subtensor.get_total_subnets()  # 2
-    set_tempo = 10
+    set_tempo = 10  # affect to non-fast-blocks mode
+
     assert subtensor.register_subnet(dave_wallet, True, True)
     assert subtensor.subnet_exists(dave_subnet_netuid), (
         f"Subnet #{dave_subnet_netuid} does not exist."
@@ -99,25 +100,26 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
     assert wait_to_start_call(subtensor, dave_wallet, dave_subnet_netuid)
 
     # set the same tempo for both type of nodes (to avoid tests timeout)
-    assert (
-        sudo_set_admin_utils(
-            local_chain,
-            alice_wallet,
-            call_function="sudo_set_tempo",
-            call_params={"netuid": dave_subnet_netuid, "tempo": set_tempo},
-        )[0]
-        is True
-    )
+    if not subtensor.is_fast_blocks():
+        assert (
+            sudo_set_admin_utils(
+                local_chain,
+                alice_wallet,
+                call_function="sudo_set_tempo",
+                call_params={"netuid": dave_subnet_netuid, "tempo": set_tempo},
+            )[0]
+            is True
+        )
 
-    # assert (
-    #     sudo_set_admin_utils(
-    #         local_chain,
-    #         alice_wallet,
-    #         call_function="sudo_set_tx_rate_limit",
-    #         call_params={"tx_rate_limit": 100},
-    #     )[0]
-    #     is True
-    # )
+        # assert (
+        #     sudo_set_admin_utils(
+        #         local_chain,
+        #         alice_wallet,
+        #         call_function="sudo_set_tx_rate_limit",
+        #         call_params={"tx_rate_limit": 100},
+        #     )[0]
+        #     is True
+        # )
 
     with pytest.raises(RegistrationNotPermittedOnRootSubnet):
         subtensor.set_children(
@@ -269,9 +271,7 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
     assert pending == [(1.0, bob_wallet.hotkey.ss58_address)]
     logging.console.info(f"Cooldown 1 is: {cooldown}")
 
-    subtensor.wait_for_block(cooldown)
-
-    await wait_epoch(subtensor, netuid=dave_subnet_netuid)
+    subtensor.wait_for_block(cooldown + 1)
 
     success, children, error = subtensor.get_children(
         alice_wallet.hotkey.ss58_address,
