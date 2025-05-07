@@ -182,9 +182,7 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
 
     # all balances have been unstaked
     assert stake == Balance(0).set_unit(alice_subnet_netuid)
-    logging.console.success(
-        f":white_check_mark: Test [green]test_single_operation[/green] passed"
-    )
+    logging.console.success(f"✅ Test [green]test_single_operation[/green] passed")
 
 
 def test_batch_operations(subtensor, alice_wallet, bob_wallet):
@@ -306,9 +304,7 @@ def test_batch_operations(subtensor, alice_wallet, bob_wallet):
         bob_wallet.coldkey.ss58_address: Balance.from_tao(999_998),
     }
     assert balances[alice_wallet.coldkey.ss58_address] > alice_balance
-    logging.console.success(
-        f":white_check_mark: Test [green]test_batch_operations[/green] passed"
-    )
+    logging.console.success(f"✅ Test [green]test_batch_operations[/green] passed")
 
 
 def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
@@ -484,7 +480,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
     )
     assert success is True, "Unstake should succeed"
     logging.console.success(
-        f":white_check_mark: Test [green]test_safe_staking_scenarios[/green] passed"
+        f"✅ Test [green]test_safe_staking_scenarios[/green] passed"
     )
 
 
@@ -598,7 +594,7 @@ def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
         "Destination stake should be non-zero after successful swap"
     )
     logging.console.success(
-        f":white_check_mark: Test [green]test_safe_swap_stake_scenarios[/green] passed"
+        f"✅ Test [green]test_safe_swap_stake_scenarios[/green] passed"
     )
 
 
@@ -691,9 +687,7 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet):
             is_registered=True,
         ),
     ]
-    logging.console.success(
-        f":white_check_mark: Test [green]test_move_stake[/green] passed"
-    )
+    logging.console.success(f"✅ Test [green]test_move_stake[/green] passed")
 
 
 def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
@@ -804,6 +798,4 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
             is_registered=False,
         ),
     ]
-    logging.console.success(
-        f":white_check_mark: Test [green]test_transfer_stake[/green] passed"
-    )
+    logging.console.success(f"✅ Test [green]test_transfer_stake[/green] passed")
