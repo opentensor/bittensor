@@ -9,7 +9,9 @@ import pytest
     [
         a
         for a in dir(easy_imports)
-        if (not a.startswith("__") and a not in ["sys", "importlib"])  # we don't care about systemwide pkgs
+        if (
+            not a.startswith("__") and a not in ["sys", "importlib"]
+        )  # we don't care about systemwide pkgs
     ],
 )
 def test_easy_imports(attr):
