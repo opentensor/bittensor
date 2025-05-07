@@ -16,6 +16,7 @@ def test_hotkeys(subtensor, alice_wallet, dave_wallet):
     Tests:
     - Check if Hotkey exists
     - Check if Hotkey is registered
+
     """
 
     dave_subnet_netuid = subtensor.get_total_subnets()  # 2
