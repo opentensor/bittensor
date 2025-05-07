@@ -7,9 +7,9 @@ features in recent versions, allowing users to maintain compatibility with older
 import importlib
 import sys
 
-from bittensor_wallet import Keypair  # noqa: F401
-from bittensor_wallet.errors import KeyFileError  # noqa: F401
-from bittensor_wallet.keyfile import (  # noqa: F401
+from bittensor_wallet import Keypair
+from bittensor_wallet.errors import KeyFileError
+from bittensor_wallet.keyfile import (
     serialized_keypair_to_keyfile_data,
     deserialize_keypair_from_keyfile_data,
     validate_password,
@@ -25,12 +25,12 @@ from bittensor_wallet.keyfile import (  # noqa: F401
     decrypt_keyfile_data,
     Keyfile,
 )
-from bittensor_wallet.wallet import display_mnemonic_msg, Wallet  # noqa: F401
+from bittensor_wallet.wallet import display_mnemonic_msg, Wallet
 
-from bittensor.core import settings, timelock  # noqa: F401
+from bittensor.core import settings, timelock
 from bittensor.core.async_subtensor import AsyncSubtensor
 from bittensor.core.axon import Axon
-from bittensor.core.chain_data import (  # noqa: F401
+from bittensor.core.chain_data import (
     AxonInfo,
     ChainIdentity,
     DelegateInfo,
@@ -55,14 +55,14 @@ from bittensor.core.chain_data import (  # noqa: F401
     SubnetState,
     WeightCommitInfo,
 )
-from bittensor.core.config import (  # noqa: F401
+from bittensor.core.config import (
     InvalidConfigFile,
     DefaultConfig,
     Config,
     T,
 )
-from bittensor.core.dendrite import Dendrite  # noqa: F401
-from bittensor.core.errors import (  # noqa: F401
+from bittensor.core.dendrite import Dendrite
+from bittensor.core.errors import (
     BlacklistedException,
     ChainConnectionError,
     ChainError,
@@ -102,15 +102,13 @@ from bittensor.core.errors import (  # noqa: F401
 )
 from bittensor.core.metagraph import Metagraph
 from bittensor.core.settings import BLOCKTIME
-from bittensor.core.stream import StreamingSynapse  # noqa: F401
+from bittensor.core.stream import StreamingSynapse
 from bittensor.core.subtensor import Subtensor
-from bittensor.core.subtensor_api import SubtensorApi  # noqa: F401
-from bittensor.core.synapse import TerminalInfo, Synapse  # noqa: F401
-from bittensor.core.tensor import Tensor  # noqa: F401
-from bittensor.core.threadpool import (  # noqa: F401
-    PriorityThreadPoolExecutor as PriorityThreadPoolExecutor,
-)
-from bittensor.utils import (  # noqa: F401
+from bittensor.core.subtensor_api import SubtensorApi
+from bittensor.core.synapse import TerminalInfo, Synapse
+from bittensor.core.tensor import Tensor
+from bittensor.core.threadpool import PriorityThreadPoolExecutor
+from bittensor.utils import (
     ss58_to_vec_u8,
     version_checking,
     strtobool,
@@ -120,14 +118,12 @@ from bittensor.utils import (  # noqa: F401
     u64_normalized_float,
     get_hash,
 )
-from bittensor.utils.balance import Balance as Balance  # noqa: F401
+from bittensor.utils.balance import Balance
 from bittensor.utils.balance import tao, rao
 from bittensor.utils.btlogging import logging
-from bittensor.utils.mock.subtensor_mock import MockSubtensor as MockSubtensor  # noqa: F401
-from bittensor.utils.subnets import SubnetsAPI  # noqa: F401
+from bittensor.utils.mock.subtensor_mock import MockSubtensor
+from bittensor.utils.subnets import SubnetsAPI
 
-tao = tao
-rao = rao
 
 # Backwards compatibility with previous bittensor versions.
 async_subtensor = AsyncSubtensor
@@ -201,3 +197,133 @@ def info(on: bool = True):
         on (bool): If True, enables info logging. If False, disables info logging and sets default (WARNING) level.
     """
     logging.set_info(on)
+
+
+__all__ = [
+    "Keypair",
+    "KeyFileError",
+    "serialized_keypair_to_keyfile_data",
+    "deserialize_keypair_from_keyfile_data",
+    "validate_password",
+    "ask_password_to_encrypt",
+    "keyfile_data_is_encrypted_nacl",
+    "keyfile_data_is_encrypted_ansible",
+    "keyfile_data_is_encrypted_legacy",
+    "keyfile_data_is_encrypted",
+    "keyfile_data_encryption_method",
+    "legacy_encrypt_keyfile_data",
+    "encrypt_keyfile_data",
+    "get_coldkey_password_from_environment",
+    "decrypt_keyfile_data",
+    "Keyfile",
+    "display_mnemonic_msg",
+    "Wallet",
+    "settings",
+    "timelock",
+    "AsyncSubtensor",
+    "Axon",
+    "AxonInfo",
+    "ChainIdentity",
+    "DelegateInfo",
+    "DelegateInfoLite",
+    "DynamicInfo",
+    "IPInfo",
+    "MetagraphInfo",
+    "MetagraphInfoEmissions",
+    "MetagraphInfoParams",
+    "MetagraphInfoPool",
+    "NeuronInfo",
+    "NeuronInfoLite",
+    "PrometheusInfo",
+    "ProposalCallData",
+    "ProposalVoteData",
+    "ScheduledColdkeySwapInfo",
+    "SelectiveMetagraphIndex",
+    "StakeInfo",
+    "SubnetHyperparameters",
+    "SubnetIdentity",
+    "SubnetInfo",
+    "SubnetState",
+    "WeightCommitInfo",
+    "InvalidConfigFile",
+    "DefaultConfig",
+    "Config",
+    "T",
+    "Dendrite",
+    "BlacklistedException",
+    "ChainConnectionError",
+    "ChainError",
+    "ChainQueryError",
+    "ChainTransactionError",
+    "DelegateTakeTooHigh",
+    "DelegateTakeTooLow",
+    "DelegateTxRateLimitExceeded",
+    "DuplicateChild",
+    "HotKeyAccountNotExists",
+    "IdentityError",
+    "InternalServerError",
+    "InvalidChild",
+    "InvalidRequestNameError",
+    "MetadataError",
+    "NominationError",
+    "NonAssociatedColdKey",
+    "NotDelegateError",
+    "NotEnoughStakeToSetChildkeys",
+    "NotRegisteredError",
+    "NotVerifiedException",
+    "PostProcessException",
+    "PriorityException",
+    "ProportionOverflow",
+    "RegistrationError",
+    "RegistrationNotPermittedOnRootSubnet",
+    "RunException",
+    "StakeError",
+    "SubNetworkDoesNotExist",
+    "SynapseDendriteNoneException",
+    "SynapseParsingError",
+    "TooManyChildren",
+    "TransferError",
+    "TxRateLimitExceeded",
+    "UnknownSynapseError",
+    "UnstakeError",
+    "Metagraph",
+    "BLOCKTIME",
+    "StreamingSynapse",
+    "Subtensor",
+    "SubtensorApi",
+    "TerminalInfo",
+    "Synapse",
+    "Tensor",
+    "PriorityThreadPoolExecutor",
+    "ss58_to_vec_u8",
+    "version_checking",
+    "strtobool",
+    "get_explorer_url_for_network",
+    "ss58_address_to_bytes",
+    "u16_normalized_float",
+    "u64_normalized_float",
+    "get_hash",
+    "Balance",
+    "tao",
+    "rao",
+    "logging",
+    "MockSubtensor",
+    "SubnetsAPI",
+    "__blocktime__",
+    "__network_explorer_map__",
+    "__pipaddress__",
+    "__ss58_format__",
+    "__type_registry__",
+    "__ss58_address_length__",
+    "__networks__",
+    "__finney_entrypoint__",
+    "__finney_test_entrypoint__",
+    "__archive_entrypoint__",
+    "__local_entrypoint__",
+    "__tao_symbol__",
+    "__rao_symbol__",
+    "trace",
+    "debug",
+    "warning",
+    "info",
+]
