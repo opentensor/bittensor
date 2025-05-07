@@ -1,6 +1,17 @@
 import pytest
 
-import bittensor
+from bittensor.core.errors import (
+    NotEnoughStakeToSetChildkeys,
+    RegistrationNotPermittedOnRootSubnet,
+    SubNetworkDoesNotExist,
+    InvalidChild,
+    TooManyChildren,
+    ProportionOverflow,
+    DuplicateChild,
+    TxRateLimitExceeded,
+    NonAssociatedColdKey,
+)
+from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_admin_utils,
     wait_epoch,
@@ -63,6 +74,7 @@ def test_hotkeys(subtensor, alice_wallet, dave_wallet):
         )
         is True
     )
+    logging.console.success("Hotkey tests passed.")
 
 
 @pytest.mark.asyncio
@@ -97,7 +109,17 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
         is True
     )
 
-    with pytest.raises(bittensor.RegistrationNotPermittedOnRootSubnet):
+    # assert (
+    #     sudo_set_admin_utils(
+    #         local_chain,
+    #         alice_wallet,
+    #         call_function="sudo_set_tx_rate_limit",
+    #         call_params={"tx_rate_limit": 100},
+    #     )[0]
+    #     is True
+    # )
+
+    with pytest.raises(RegistrationNotPermittedOnRootSubnet):
         subtensor.set_children(
             alice_wallet,
             alice_wallet.hotkey.ss58_address,
@@ -106,7 +128,7 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
             raise_error=True,
         )
 
-    with pytest.raises(bittensor.NonAssociatedColdKey):
+    with pytest.raises(NonAssociatedColdKey):
         subtensor.set_children(
             alice_wallet,
             alice_wallet.hotkey.ss58_address,
@@ -115,7 +137,7 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
             raise_error=True,
         )
 
-    with pytest.raises(bittensor.SubNetworkDoesNotExist):
+    with pytest.raises(SubNetworkDoesNotExist):
         subtensor.set_children(
             alice_wallet,
             alice_wallet.hotkey.ss58_address,
@@ -128,10 +150,12 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
         alice_wallet,
         netuid=dave_subnet_netuid,
     )
+    logging.console.success(f"Alice registered on subnet {dave_subnet_netuid}")
     subtensor.burned_register(
         bob_wallet,
         netuid=dave_subnet_netuid,
     )
+    logging.console.success(f"Bob registered on subnet {dave_subnet_netuid}")
 
     success, children, error = subtensor.get_children(
         alice_wallet.hotkey.ss58_address,
@@ -142,7 +166,7 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
     assert success is True
     assert children == []
 
-    with pytest.raises(bittensor.InvalidChild):
+    with pytest.raises(InvalidChild):
         subtensor.set_children(
             alice_wallet,
             alice_wallet.hotkey.ss58_address,
@@ -156,7 +180,7 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
             raise_error=True,
         )
 
-    with pytest.raises(bittensor.TooManyChildren):
+    with pytest.raises(TooManyChildren):
         subtensor.set_children(
             alice_wallet,
             alice_wallet.hotkey.ss58_address,
@@ -171,7 +195,7 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
             raise_error=True,
         )
 
-    with pytest.raises(bittensor.ProportionOverflow):
+    with pytest.raises(ProportionOverflow):
         subtensor.set_children(
             alice_wallet,
             alice_wallet.hotkey.ss58_address,
@@ -189,7 +213,7 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
             raise_error=True,
         )
 
-    with pytest.raises(bittensor.DuplicateChild):
+    with pytest.raises(DuplicateChild):
         subtensor.set_children(
             alice_wallet,
             alice_wallet.hotkey.ss58_address,
@@ -242,13 +266,8 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
         netuid=dave_subnet_netuid,
     )
 
-    assert pending == [
-        (
-            1.0,
-            "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
-        ),
-    ]
-    bittensor.logging.console.info(f"cooldown: {cooldown}")
+    assert pending == [(1.0, bob_wallet.hotkey.ss58_address)]
+    logging.console.info(f"Cooldown 1 is: {cooldown}")
 
     subtensor.wait_for_block(cooldown)
 
@@ -276,7 +295,7 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
 
     assert pending == []
 
-    with pytest.raises(bittensor.TxRateLimitExceeded):
+    with pytest.raises(TxRateLimitExceeded):
         subtensor.set_children(
             alice_wallet,
             alice_wallet.hotkey.ss58_address,
@@ -300,6 +319,8 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
         alice_wallet.hotkey.ss58_address,
         netuid=dave_subnet_netuid,
     )
+
+    logging.console.info(f"Cooldown 2 is: {cooldown}")
 
     assert pending == []
 
@@ -325,7 +346,7 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
         },
     )
 
-    with pytest.raises(bittensor.NotEnoughStakeToSetChildkeys):
+    with pytest.raises(NotEnoughStakeToSetChildkeys):
         subtensor.set_children(
             alice_wallet,
             alice_wallet.hotkey.ss58_address,
@@ -338,3 +359,4 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
             ],
             raise_error=True,
         )
+    logging.console.success("[green]test_children[/green] passed.")
