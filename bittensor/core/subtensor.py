@@ -185,6 +185,10 @@ class Subtensor(SubtensorMixin):
         if fallback_chains or retry_forever:
             return RetrySyncSubstrate(
                 url=self.chain_endpoint,
+                ss58_format=SS58_FORMAT,
+                type_registry=TYPE_REGISTRY,
+                use_remote_preset=True,
+                chain_name="Bittensor",
                 fallback_chains=fallback_chains,
                 retry_forever=retry_forever,
                 _mock=_mock,

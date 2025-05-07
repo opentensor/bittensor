@@ -303,7 +303,11 @@ class AsyncSubtensor(SubtensorMixin):
             return RetryAsyncSubstrate(
                 url=self.chain_endpoint,
                 fallback_chains=fallback_chains,
+                ss58_format=SS58_FORMAT,
+                type_registry=TYPE_REGISTRY,
                 retry_forever=retry_forever,
+                use_remote_preset=True,
+                chain_name="Bittensor",
                 _mock=_mock,
             )
         return AsyncSubstrateInterface(
