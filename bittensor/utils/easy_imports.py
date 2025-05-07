@@ -55,12 +55,7 @@ from bittensor.core.chain_data import (
     SubnetState,
     WeightCommitInfo,
 )
-from bittensor.core.config import (
-    InvalidConfigFile,
-    DefaultConfig,
-    Config,
-    T,
-)
+from bittensor.core.config import Config
 from bittensor.core.dendrite import Dendrite
 from bittensor.core.errors import (
     BlacklistedException,
@@ -245,10 +240,7 @@ __all__ = [
     "SubnetInfo",
     "SubnetState",
     "WeightCommitInfo",
-    "InvalidConfigFile",
-    "DefaultConfig",
     "Config",
-    "T",
     "Dendrite",
     "BlacklistedException",
     "ChainConnectionError",
@@ -318,19 +310,6 @@ __all__ = [
     "wallet",
     "subtensor",
     "synapse",
-    "__blocktime__",
-    "__network_explorer_map__",
-    "__pipaddress__",
-    "__ss58_format__",
-    "__type_registry__",
-    "__ss58_address_length__",
-    "__networks__",
-    "__finney_entrypoint__",
-    "__finney_test_entrypoint__",
-    "__archive_entrypoint__",
-    "__local_entrypoint__",
-    "__tao_symbol__",
-    "__rao_symbol__",
     "trace",
     "debug",
     "warning",
