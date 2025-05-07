@@ -29,7 +29,7 @@ def test_properties_methods_comparable(other_class: "Subtensor" = None):
     ]
     neurons_methods = [m for m in dir(subtensor_api.neurons) if not m.startswith("_")]
     queries_methods = [m for m in dir(subtensor_api.queries) if not m.startswith("_")]
-    stakes_methods = [m for m in dir(subtensor_api.stakes) if not m.startswith("_")]
+    stakes_methods = [m for m in dir(subtensor_api.staking) if not m.startswith("_")]
     subnets_methods = [m for m in dir(subtensor_api.subnets) if not m.startswith("_")]
     wallets_methods = [m for m in dir(subtensor_api.wallets) if not m.startswith("_")]
 
