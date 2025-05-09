@@ -12,14 +12,11 @@ from bittensor.core.errors import (
     NonAssociatedColdKey,
 )
 from bittensor.utils.btlogging import logging
-from tests.e2e_tests.utils.chain_interactions import (
-    sudo_set_admin_utils,
-    wait_epoch,
-)
+from tests.e2e_tests.utils.chain_interactions import sudo_set_admin_utils
 from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 
-SET_CHILDREN_COOLDOWN_PERIOD = 15
-SET_CHILDREN_RATE_LIMIT = 150
+
+SET_CHILDREN_RATE_LIMIT = 15
 
 
 def test_hotkeys(subtensor, alice_wallet, dave_wallet):
@@ -27,9 +24,7 @@ def test_hotkeys(subtensor, alice_wallet, dave_wallet):
     Tests:
     - Check if Hotkey exists
     - Check if Hotkey is registered
-
     """
-
     dave_subnet_netuid = subtensor.get_total_subnets()  # 2
     assert subtensor.register_subnet(dave_wallet, True, True)
     assert subtensor.subnet_exists(dave_subnet_netuid), (
@@ -111,15 +106,15 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
             is True
         )
 
-        # assert (
-        #     sudo_set_admin_utils(
-        #         local_chain,
-        #         alice_wallet,
-        #         call_function="sudo_set_tx_rate_limit",
-        #         call_params={"tx_rate_limit": 100},
-        #     )[0]
-        #     is True
-        # )
+        assert (
+            sudo_set_admin_utils(
+                local_chain,
+                alice_wallet,
+                call_function="sudo_set_tx_rate_limit",
+                call_params={"tx_rate_limit": 0},
+            )[0]
+            is True
+        )
 
     with pytest.raises(RegistrationNotPermittedOnRootSubnet):
         subtensor.set_children(
@@ -269,9 +264,8 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
     )
 
     assert pending == [(1.0, bob_wallet.hotkey.ss58_address)]
-    logging.console.info(f"Cooldown 1 is: {cooldown}")
 
-    subtensor.wait_for_block(cooldown + 1)
+    subtensor.wait_for_block(cooldown + 15)
 
     success, children, error = subtensor.get_children(
         alice_wallet.hotkey.ss58_address,
@@ -280,22 +274,24 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
 
     assert error == ""
     assert success is True
-    assert children == [
-        (
-            1.0,
-            bob_wallet.hotkey.ss58_address,
-        )
-    ]
+    assert children == [(1.0, bob_wallet.hotkey.ss58_address)]
 
     # pending queue is empty
     pending, cooldown = subtensor.get_children_pending(
         alice_wallet.hotkey.ss58_address,
         netuid=dave_subnet_netuid,
     )
-
     assert pending == []
 
     with pytest.raises(TxRateLimitExceeded):
+        set_children_block = subtensor.get_current_block()
+        subtensor.set_children(
+            alice_wallet,
+            alice_wallet.hotkey.ss58_address,
+            netuid=dave_subnet_netuid,
+            children=[],
+            raise_error=True,
+        )
         subtensor.set_children(
             alice_wallet,
             alice_wallet.hotkey.ss58_address,
@@ -319,8 +315,6 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
         alice_wallet.hotkey.ss58_address,
         netuid=dave_subnet_netuid,
     )
-
-    logging.console.info(f"Cooldown 2 is: {cooldown}")
 
     assert pending == []
 
