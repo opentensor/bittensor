@@ -102,7 +102,7 @@ Patchsets and enhancements should always be focused. A pull request could add a 
 Specifically, pull requests must adhere to the following criteria:
 - **Must** branch off from `staging`. Make sure that all your PRs are using `staging` branch as a base or will be closed.
 - Contain fewer than 50 files. PRs with more than 50 files will be closed.
-- Use the specific [template](https://github.com/opentensor/bittensor/blob/master/.github/pull_request_template.md) appropriate to your contribution.
+- Use the specific [template](../.github/pull_request_template.md) appropriate to your contribution.
 - If a PR introduces a new feature, it *must* include corresponding tests.
 - Other PRs (bug fixes, refactoring, etc.) should ideally also have tests, as they provide proof of concept and prevent regression.
 - Categorize your PR properly by using GitHub labels. This aids in the review process by informing reviewers about the type of change at a glance.
