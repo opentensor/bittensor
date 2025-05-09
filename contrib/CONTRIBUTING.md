@@ -127,7 +127,7 @@ Please follow these steps to have your contribution considered by the maintainer
 1. Read the [development workflow](./DEVELOPMENT_WORKFLOW.md) defined for this repository to understand our workflow.
 2. Ensure your PR meets the criteria stated in the 'Pull Request Philosophy' section.
 3. Include relevant tests for any fixed bugs or new features as stated in the [testing guide](./TESTING.md).
-4. Follow all instructions in [the template](https://github.com/opentensor/bittensor/blob/master/.github/pull_request_template.md) to create the PR.
+4. Follow all instructions in [the template](../.github/pull_request_template.md) to create the PR.
 5. Ensure your commit messages are clear and concise. Include the issue number if applicable.
 6. If you have multiple commits, rebase them into a single commit using `git rebase -i`.
 7. Explain what your changes do and why you think they should be merged in the PR description consistent with the [style guide](./STYLE.md).
