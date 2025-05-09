@@ -616,19 +616,31 @@ class AsyncSubtensor(SubtensorMixin):
         return subnets
 
     async def blocks_since_last_step(
-        self, netuid: int, block: Optional[int] = None
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> Optional[int]:
         """Returns number of blocks since the last epoch of the subnet.
 
         Arguments:
             netuid (int): The unique identifier of the subnetwork.
             block: the block number for this query.
+            block_hash: The hash of the blockchain block number for the query. Do not specify if using reuse_block or
+                block.
+            reuse_block: Whether to reuse the last-used blockchain block hash. Do not set if using block_hash or block.
+
 
         Returns:
             block number of the last step in the subnet.
         """
         query = await self.query_subtensor(
-            name="BlocksSinceLastStep", block=block, params=[netuid]
+            name="BlocksSinceLastStep",
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+            params=[netuid],
         )
         return query.value if query is not None and hasattr(query, "value") else query
 
@@ -1803,11 +1815,16 @@ class AsyncSubtensor(SubtensorMixin):
             int: The block number at which the next epoch will start.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        if not block_hash and reuse_block:
-            block_hash = self.substrate.last_block_hash
-        block = await self.substrate.get_block_number(block_hash=block_hash)
-        tempo = await self.tempo(netuid=netuid, block_hash=block_hash)
-        return (((block // tempo) + 1) * tempo) + 1 if tempo else None
+        blocks_since_last_step = await self.blocks_since_last_step(
+            netuid=netuid, block=block, block_hash=block_hash, reuse_block=reuse_block
+        )
+        tempo = await self.tempo(
+            netuid=netuid, block=block, block_hash=block_hash, reuse_block=reuse_block
+        )
+
+        if block and blocks_since_last_step and tempo:
+            return block - blocks_since_last_step + tempo + 1
+        return None
 
     async def get_owned_hotkeys(
         self,
