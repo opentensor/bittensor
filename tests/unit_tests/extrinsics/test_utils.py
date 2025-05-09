@@ -1,26 +1,31 @@
-from unittest.mock import MagicMock
-
-import pytest
-from scalecodec.types import GenericExtrinsic
-
+from bittensor.core.chain_data import StakeInfo
 from bittensor.core.extrinsics import utils
-from bittensor.core.subtensor import Subtensor
+from bittensor.utils.balance import Balance
 
 
-@pytest.fixture
-def mock_subtensor(mock_substrate):
-    mock_subtensor = MagicMock(autospec=Subtensor)
-    mock_subtensor.substrate = mock_substrate
-    yield mock_subtensor
+def test_old_stake(subtensor, mocker):
+    wallet = mocker.Mock(
+        hotkey=mocker.Mock(ss58_address="HK1"),
+        coldkeypub=mocker.Mock(ss58_address="CK1"),
+    )
 
+    expected_stake = Balance.from_tao(100)
 
-@pytest.fixture
-def starting_block():
-    yield {"header": {"number": 1, "hash": "0x0100"}}
+    hotkey_ss58s = ["HK1", "HK2"]
+    netuids = [3, 4]
+    all_stakes = [
+        StakeInfo(
+            hotkey_ss58="HK1",
+            coldkey_ss58="CK1",
+            netuid=3,
+            stake=expected_stake,
+            locked=Balance.from_tao(10),
+            emission=Balance.from_tao(1),
+            drain=0,
+            is_registered=True,
+        ),
+    ]
 
+    result = utils.get_old_stakes(wallet, hotkey_ss58s, netuids, all_stakes)
 
-def test_submit_extrinsic_success(mock_subtensor):
-    mock_subtensor.substrate.submit_extrinsic.return_value = True
-    mock_extrinsic = MagicMock(autospec=GenericExtrinsic)
-    result = utils.submit_extrinsic(mock_subtensor, mock_extrinsic, True, True)
-    assert result is True
+    assert result == [expected_stake, Balance.from_tao(0)]
