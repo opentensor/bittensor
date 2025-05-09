@@ -3192,6 +3192,8 @@ async def test_blocks_since_last_step_with_value(subtensor, mocker):
     mocked_query_subtensor.assert_awaited_once_with(
         name="BlocksSinceLastStep",
         block=block,
+        block_hash=None,
+        reuse_block=False,
         params=[netuid],
     )
 
@@ -3214,6 +3216,8 @@ async def test_blocks_since_last_step_is_none(subtensor, mocker):
     mocked_query_subtensor.assert_awaited_once_with(
         name="BlocksSinceLastStep",
         block=block,
+        block_hash=None,
+        reuse_block=False,
         params=[netuid],
     )
 
