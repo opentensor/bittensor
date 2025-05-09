@@ -101,6 +101,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.get_unstake_fee = subtensor._subtensor.get_unstake_fee
     subtensor.get_vote_data = subtensor._subtensor.get_vote_data
     subtensor.immunity_period = subtensor._subtensor.immunity_period
+    subtensor.is_fast_blocks = subtensor._subtensor.is_fast_blocks
     subtensor.is_hotkey_delegate = subtensor._subtensor.is_hotkey_delegate
     subtensor.is_hotkey_registered = subtensor._subtensor.is_hotkey_registered
     subtensor.is_hotkey_registered_any = subtensor._subtensor.is_hotkey_registered_any
