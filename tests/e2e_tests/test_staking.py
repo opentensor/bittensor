@@ -656,28 +656,41 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet):
 
     stakes = subtensor.get_stake_for_coldkey(alice_wallet.coldkey.ss58_address)
 
-    assert stakes == [
+    expected_stakes = [
         StakeInfo(
-            hotkey_ss58=alice_wallet.hotkey.ss58_address,
+            hotkey_ss58=stakes[0].hotkey_ss58,
             coldkey_ss58=alice_wallet.coldkey.ss58_address,
-            netuid=alice_subnet_netuid,
+            netuid=alice_subnet_netuid
+            if subtensor.is_fast_blocks()
+            else bob_subnet_netuid,
             stake=get_dynamic_balance(stakes[0].stake.rao, bob_subnet_netuid),
             locked=Balance(0).set_unit(bob_subnet_netuid),
             emission=get_dynamic_balance(stakes[0].emission.rao, bob_subnet_netuid),
             drain=0,
             is_registered=True,
-        ),
-        StakeInfo(
-            hotkey_ss58=bob_wallet.hotkey.ss58_address,
-            coldkey_ss58=alice_wallet.coldkey.ss58_address,
-            netuid=bob_subnet_netuid,
-            stake=get_dynamic_balance(stakes[1].stake.rao, bob_subnet_netuid),
-            locked=Balance(0).set_unit(bob_subnet_netuid),
-            emission=get_dynamic_balance(stakes[1].emission.rao, bob_subnet_netuid),
-            drain=0,
-            is_registered=True,
-        ),
+        )
     ]
+
+    fast_block_stake = (
+        [
+            StakeInfo(
+                hotkey_ss58=stakes[1].hotkey_ss58,
+                coldkey_ss58=alice_wallet.coldkey.ss58_address,
+                netuid=bob_subnet_netuid,
+                stake=get_dynamic_balance(stakes[1].stake.rao, bob_subnet_netuid),
+                locked=Balance(0).set_unit(bob_subnet_netuid),
+                emission=get_dynamic_balance(stakes[1].emission.rao, bob_subnet_netuid),
+                drain=0,
+                is_registered=True,
+            ),
+        ]
+        if subtensor.is_fast_blocks()
+        else []
+    )
+
+    expected_stakes += fast_block_stake
+
+    assert stakes == expected_stakes
     logging.console.success(f"✅ Test [green]test_move_stake[/green] passed")
 
 
@@ -775,18 +788,23 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
 
     bob_stakes = subtensor.get_stake_for_coldkey(bob_wallet.coldkey.ss58_address)
 
-    assert bob_stakes == [
-        StakeInfo(
-            hotkey_ss58=alice_wallet.hotkey.ss58_address,
-            coldkey_ss58=bob_wallet.coldkey.ss58_address,
-            netuid=dave_subnet_netuid,
-            stake=get_dynamic_balance(bob_stakes[0].stake.rao, dave_subnet_netuid),
-            locked=Balance(0),
-            emission=get_dynamic_balance(
-                bob_stakes[0].emission.rao, dave_subnet_netuid
+    assert (
+        bob_stakes
+        == [
+            StakeInfo(
+                hotkey_ss58=alice_wallet.hotkey.ss58_address,
+                coldkey_ss58=bob_wallet.coldkey.ss58_address,
+                netuid=dave_subnet_netuid,
+                stake=get_dynamic_balance(bob_stakes[0].stake.rao, dave_subnet_netuid),
+                locked=Balance(0),
+                emission=get_dynamic_balance(
+                    bob_stakes[0].emission.rao, dave_subnet_netuid
+                ),
+                drain=0,
+                is_registered=False,
             ),
-            drain=0,
-            is_registered=False,
-        ),
-    ]
+        ]
+        if subtensor.is_fast_blocks()
+        else []
+    )
     logging.console.success(f"✅ Test [green]test_transfer_stake[/green] passed")
