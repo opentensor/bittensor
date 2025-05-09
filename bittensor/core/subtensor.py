@@ -1410,8 +1410,12 @@ class Subtensor(SubtensorMixin):
             int: The block number at which the next epoch will start.
         """
         block = block or self.block
+        blocks_since_last_step = self.blocks_since_last_step(netuid=netuid, block=block)
         tempo = self.tempo(netuid=netuid, block=block)
-        return (((block // tempo) + 1) * tempo) + 1 if tempo else None
+
+        if block and blocks_since_last_step and tempo:
+            return block - blocks_since_last_step + tempo + 1
+        return None
 
     def get_owned_hotkeys(
         self,
