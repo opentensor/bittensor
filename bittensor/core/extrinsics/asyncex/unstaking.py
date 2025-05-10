@@ -274,7 +274,7 @@ async def unstake_multiple_extrinsic(
     for idx, (hotkey_ss58, amount, old_stake, netuid) in enumerate(
         zip(hotkey_ss58s, amounts, old_stakes, netuids)
     ):
-        # Covert to bittensor.Balance
+        # Convert to bittensor.Balance
         if amount is None:
             # Unstake it all.
             unstaking_balance = old_stake
