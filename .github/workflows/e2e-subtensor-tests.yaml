@@ -130,7 +130,7 @@ jobs:
 
 
   cron-run-non-fast-blocks-e2e-test:
-    # if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule'
     name: "NFB: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}"
     needs:
       - find-tests
