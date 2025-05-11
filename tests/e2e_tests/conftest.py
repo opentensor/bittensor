@@ -279,6 +279,18 @@ def bob_wallet():
 
 
 @pytest.fixture
+def charlie_wallet():
+    keypair, wallet = setup_wallet("//Charlie")
+    return wallet
+
+
+@pytest.fixture
 def dave_wallet():
     keypair, wallet = setup_wallet("//Dave")
+    return wallet
+
+
+@pytest.fixture
+def eve_wallet():
+    keypair, wallet = setup_wallet("//Eve")
     return wallet
