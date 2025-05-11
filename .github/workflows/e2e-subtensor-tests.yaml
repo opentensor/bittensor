@@ -41,9 +41,9 @@ jobs:
       - name: Find test files
         id: get-tests
         run: |
-          # test_files=$(find tests/e2e_tests -name "test*.py" | jq -R -s -c 'split("\n") | map(select(. != ""))')
+          test_files=$(find tests/e2e_tests -name "test*.py" | jq -R -s -c 'split("\n") | map(select(. != ""))')
           # keep it here for future debug
-          test_files=$(find tests/e2e_tests -type f -name "test*.py" | grep -E 'test_(hotkeys|staking)\.py$' | jq -R -s -c 'split("\n") | map(select(. != ""))')
+          # test_files=$(find tests/e2e_tests -type f -name "test*.py" | grep -E 'test_(hotkeys|staking)\.py$' | jq -R -s -c 'split("\n") | map(select(. != ""))')
           echo "test-files=$test_files" >> "$GITHUB_OUTPUT"
         shell: bash
 
@@ -128,8 +128,9 @@ jobs:
             fi
           done
 
+
   cron-run-non-fast-blocks-e2e-test:
-#    if: github.event_name == 'schedule' && needs.build-patched-image.outputs.image_built == 'true'
+    if: github.event_name == 'schedule' && needs.build-patched-image.outputs.image_built == 'true'
     name: "NFB: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}"
     needs:
       - find-tests
