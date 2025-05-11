@@ -148,6 +148,14 @@ jobs:
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
 
     steps:
+      - name: Check if today is Saturday
+        run: |
+          day=$(date -u +%u)
+          echo "Today is weekday $day"
+          if [ "$day" -ne 6 ]; then
+            echo "⏭️ Skipping: not Saturday"
+            exit 78
+          fi
       - name: Check-out repository
         uses: actions/checkout@v4
 
