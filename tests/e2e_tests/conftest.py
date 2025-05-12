@@ -206,9 +206,12 @@ def docker_runner(params):
         "9944:9944",
         "-p",
         "9945:9945",
-        LOCALNET_IMAGE_NAME,
-        params,
+        str(LOCALNET_IMAGE_NAME),
     ]
+
+    cmds += params.split() if params else []
+
+    print("Entire run command: ", cmds)
 
     try_start_docker()
 
@@ -276,6 +279,18 @@ def bob_wallet():
 
 
 @pytest.fixture
+def charlie_wallet():
+    keypair, wallet = setup_wallet("//Charlie")
+    return wallet
+
+
+@pytest.fixture
 def dave_wallet():
     keypair, wallet = setup_wallet("//Dave")
+    return wallet
+
+
+@pytest.fixture
+def eve_wallet():
+    keypair, wallet = setup_wallet("//Eve")
     return wallet

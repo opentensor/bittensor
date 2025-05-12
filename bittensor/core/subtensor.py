@@ -1971,6 +1971,10 @@ class Subtensor(SubtensorMixin):
         )
         return None if call is None else int(call)
 
+    def is_fast_blocks(self):
+        """Returns True if the node is running with fast blocks. False if not."""
+        return self.query_constant("SubtensorModule", "DurationOfStartCall").value == 10
+
     def is_hotkey_delegate(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         """
         Determines whether a given hotkey (public key) is a delegate on the Bittensor network. This function checks if
