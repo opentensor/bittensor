@@ -13,7 +13,7 @@ def test_add_stake_extrinsic(mocker):
             "sign_and_send_extrinsic.return_value": (True, ""),
         }
     )
-    fake_wallet = mocker.Mock(
+    fake_wallet_ = mocker.Mock(
         **{
             "coldkeypub.ss58_address": "hotkey_owner",
         }
@@ -27,7 +27,7 @@ def test_add_stake_extrinsic(mocker):
     # Call
     result = staking.add_stake_extrinsic(
         subtensor=fake_subtensor,
-        wallet=fake_wallet,
+        wallet=fake_wallet_,
         hotkey_ss58=hotkey_ss58,
         netuid=fake_netuid,
         amount=amount,
@@ -44,13 +44,14 @@ def test_add_stake_extrinsic(mocker):
         call_params={"hotkey": "hotkey", "amount_staked": 9, "netuid": 1},
     )
     fake_subtensor.sign_and_send_extrinsic.assert_called_once_with(
-        fake_subtensor.substrate.compose_call.return_value,
-        fake_wallet,
-        True,
-        True,
+        call=fake_subtensor.substrate.compose_call.return_value,
+        wallet=fake_wallet_,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
         nonce_key="coldkeypub",
         sign_with="coldkey",
         use_nonce=True,
+        period=None,
     )
 
 
@@ -85,7 +86,7 @@ def test_add_stake_multiple_extrinsic(mocker):
     mocker.patch.object(
         staking, "get_old_stakes", return_value=[Balance(1.1), Balance(0.3)]
     )
-    fake_wallet = mocker.Mock(
+    fake_wallet_ = mocker.Mock(
         **{
             "coldkeypub.ss58_address": "hotkey_owner",
         }
@@ -99,7 +100,7 @@ def test_add_stake_multiple_extrinsic(mocker):
     # Call
     result = staking.add_stake_multiple_extrinsic(
         subtensor=fake_subtensor,
-        wallet=fake_wallet,
+        wallet=fake_wallet_,
         hotkey_ss58s=hotkey_ss58s,
         netuids=netuids,
         amounts=amounts,
@@ -131,11 +132,12 @@ def test_add_stake_multiple_extrinsic(mocker):
         },
     )
     fake_subtensor.sign_and_send_extrinsic.assert_called_with(
-        fake_subtensor.substrate.compose_call.return_value,
-        fake_wallet,
-        True,
-        True,
+        call=fake_subtensor.substrate.compose_call.return_value,
+        wallet=fake_wallet_,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
         nonce_key="coldkeypub",
         sign_with="coldkey",
         use_nonce=True,
+        period=None,
     )
