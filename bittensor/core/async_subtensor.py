@@ -1573,6 +1573,22 @@ class AsyncSubtensor(SubtensorMixin):
                 field_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
             )
         """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        if not block_hash and reuse_block:
+            block_hash = self.substrate.last_block_hash
+
+        if field_indices is None:
+            query = await self.substrate.runtime_call(
+                "SubnetInfoRuntimeApi",
+                "get_metagraph",
+                params=[netuid],
+                block_hash=block_hash,
+            )
+            if query.value is None:
+                logging.error(f"Subnet {netuid} does not exist.")
+                return None
+            return MetagraphInfo.from_dict(query.value)
+
         indexes = SelectiveMetagraphIndex.all_indices()
 
         if field_indices:
@@ -1588,10 +1604,6 @@ class AsyncSubtensor(SubtensorMixin):
                     "`field_indices` must be a list of SelectiveMetagraphIndex items."
                 )
 
-        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        if not block_hash and reuse_block:
-            block_hash = self.substrate.last_block_hash
-
         query = await self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
             "get_selective_metagraph",
@@ -1601,7 +1613,13 @@ class AsyncSubtensor(SubtensorMixin):
         if query.value is None:
             logging.error(f"Subnet {netuid} does not exist.")
             return None
-        return MetagraphInfo.from_dict(query.value)
+        meta: MetagraphInfo = MetagraphInfo.from_dict(query.value)
+        # TODO: remove this after SelectiveMetagraph is updated in mainnet.
+        if meta.netuid == 0 and meta.name != "root":
+            logging.warning(
+                "Do not use the 'field_indices' argument while you see this message. Mainnet update pending."
+            )
+        return meta
 
     async def get_all_metagraphs_info(
         self,
