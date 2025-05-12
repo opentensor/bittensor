@@ -115,6 +115,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.min_allowed_weights = subtensor._subtensor.min_allowed_weights
     subtensor.move_stake = subtensor._subtensor.move_stake
     subtensor.network = subtensor._subtensor.network
+    subtensor.neurons = subtensor._subtensor.neurons
     subtensor.neuron_for_uid = subtensor._subtensor.neuron_for_uid
     subtensor.neurons_lite = subtensor._subtensor.neurons_lite
     subtensor.query_constant = subtensor._subtensor.query_constant
