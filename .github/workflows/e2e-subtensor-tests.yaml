@@ -43,7 +43,7 @@ jobs:
         run: |
           test_files=$(find tests/e2e_tests -name "test*.py" | jq -R -s -c 'split("\n") | map(select(. != ""))')
           # keep it here for future debug
-          # test_files=$(find tests/e2e_tests -type f -name "test*.py" | grep -E 'test_(incentive|commit_weights|set_weights)\.py$' | jq -R -s -c 'split("\n") | map(select(. != ""))')
+          # test_files=$(find tests/e2e_tests -type f -name "test*.py" | grep -E 'test_(hotkeys|staking)\.py$' | jq -R -s -c 'split("\n") | map(select(. != ""))')
           echo "test-files=$test_files" >> "$GITHUB_OUTPUT"
         shell: bash
 
@@ -66,8 +66,8 @@ jobs:
           path: subtensor-localnet.tar
 
   # Job to run tests in parallel
-  run-e2e-test:
-    name: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}
+  run-fast-blocks-e2e-test:
+    name: "FB: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}"
     needs:
       - find-tests
       - pull-docker-image
@@ -108,6 +108,79 @@ jobs:
 #        run: uv run pytest ${{ matrix.test-file }} -s
 
       - name: Run tests with retry
+        run: |
+          set +e
+          for i in 1 2 3; do
+            echo "🔁 Attempt $i: Running tests"
+            uv run pytest ${{ matrix.test-file }} -s
+            status=$?
+            if [ $status -eq 0 ]; then
+              echo "✅ Tests passed on attempt $i"
+              break
+            else
+              echo "❌ Tests failed on attempt $i"
+              if [ $i -eq 3 ]; then
+                echo "Tests failed after 3 attempts"
+                exit 1
+              fi
+              echo "Retrying..."
+              sleep 5
+            fi
+          done
+
+
+  cron-run-non-fast-blocks-e2e-test:
+    if: github.event_name == 'schedule'
+    name: "NFB: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}"
+    needs:
+      - find-tests
+      - pull-docker-image
+    runs-on: ubuntu-latest
+    timeout-minutes: 1440
+
+    strategy:
+      fail-fast: false  # Allow other matrix jobs to run even if this job fails
+      max-parallel: 32  # Set the maximum number of parallel jobs (same as we have cores in ubuntu-latest runner)
+      matrix:
+        os:
+          - ubuntu-latest
+        test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - name: Check if today is Saturday
+        run: |
+          day=$(date -u +%u)
+          echo "Today is weekday $day"
+          if [ "$day" -ne 6 ]; then
+            echo "⏭️ Skipping: not Saturday"
+            exit 78
+          fi
+      - name: Check-out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: install dependencies
+        run: uv sync --extra dev --dev
+
+      - name: Download Cached Docker Image
+        uses: actions/download-artifact@v4
+        with:
+          name: subtensor-localnet
+
+      - name: Load Docker Image
+        run: docker load -i subtensor-localnet.tar
+
+      - name: Run patched E2E tests
+        env:
+          FAST_BLOCKS: "0"
         run: |
           set +e
           for i in 1 2 3; do
