@@ -234,6 +234,12 @@ pytest tests/unit_tests
 - using a compiler based on the substrait code
 - using an already built docker image (docker runner)
 
+#### Local environment variables:
+- `LOCALNET_SH_PATH` - path to `localnet.sh` script in cloned subtensor repository (for legacy runner);
+- `BUILD_BINARY` - (`=0` or `=1`) - used with `LOCALNET_SH_PATH` for build or not before start localnet node (for legacy runner);
+- `USE_DOCKER` - (`=0` or `=1`) - used if you want to use specific runner to run e2e tests (for docker runner);
+- `FAST_BLOCKS` - (`=0` or `=1`) - allows you to run a localnet node in fast or non-fast blocks mode (for both types of runers).
+
 #### Using `docker runner` (default for now):
 - E2E tests with docker image do not require preliminary compilation
 - are executed very quickly
