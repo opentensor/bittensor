@@ -11,8 +11,7 @@ import time
 import pytest
 from async_substrate_interface import SubstrateInterface
 
-from bittensor.core.async_subtensor import AsyncSubtensor
-from bittensor.core.subtensor import Subtensor
+from bittensor.core.subtensor_api import SubtensorApi
 from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.e2e_test_utils import (
     Templates,
@@ -57,7 +56,11 @@ def wait_for_node_start(process, timestamp=None):
 def local_chain(request):
     """Determines whether to run the localnet.sh script in a subprocess or a Docker container."""
     args = request.param if hasattr(request, "param") else None
-    params = "" if args is None else f"{args}"
+
+    # passed env variable to control node mod (non-/fast-blocks)
+    fast_blocks = "False" if (os.getenv("FAST_BLOCKS") == "0") is True else "True"
+    params = f"{fast_blocks}" if args is None else f"{fast_blocks} {args} "
+
     if shutil.which("docker") and not os.getenv("USE_DOCKER") == "0":
         yield from docker_runner(params)
     else:
@@ -91,7 +94,7 @@ def legacy_runner(params):
         logging.warning("LOCALNET_SH_PATH env variable is not set, e2e test skipped.")
         pytest.skip("LOCALNET_SH_PATH environment variable is not set.")
 
-    # Check if param is None, and handle it accordingly
+    # Check if param is None and handle it accordingly
     args = "" if params is None else f"{params}"
 
     # Compile commands to send to process
@@ -202,9 +205,12 @@ def docker_runner(params):
         "9944:9944",
         "-p",
         "9945:9945",
-        LOCALNET_IMAGE_NAME,
-        params,
+        str(LOCALNET_IMAGE_NAME),
     ]
+
+    cmds += params.split() if params else []
+
+    print("Entire run command: ", cmds)
 
     try_start_docker()
 
@@ -251,12 +257,14 @@ def templates():
 
 @pytest.fixture
 def subtensor(local_chain):
-    return Subtensor(network="ws://localhost:9944")
+    return SubtensorApi(network="ws://localhost:9944", legacy_methods=True)
 
 
 @pytest.fixture
 def async_subtensor(local_chain):
-    return AsyncSubtensor(network="ws://localhost:9944")
+    return SubtensorApi(
+        network="ws://localhost:9944", legacy_methods=True, async_subtensor=True
+    )
 
 
 @pytest.fixture
@@ -272,6 +280,18 @@ def bob_wallet():
 
 
 @pytest.fixture
+def charlie_wallet():
+    keypair, wallet = setup_wallet("//Charlie")
+    return wallet
+
+
+@pytest.fixture
 def dave_wallet():
     keypair, wallet = setup_wallet("//Dave")
+    return wallet
+
+
+@pytest.fixture
+def eve_wallet():
+    keypair, wallet = setup_wallet("//Eve")
     return wallet

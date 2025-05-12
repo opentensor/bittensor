@@ -4,12 +4,16 @@ from bittensor.utils import format_error_message
 
 
 def test_format_error_message_with_right_error_message():
-    """Verify that error message from extrinsic response parses correctly."""
+    """Verify that an error message from extrinsic response parses correctly."""
     # Prep
     fake_error_message = {
         "type": "SomeType",
         "name": "SomeErrorName",
-        "docs": ["Some error description."],
+        "docs": [
+            "Some error description.",
+            "I'm second part.",
+            "Hah, I'm the last one.",
+        ],
     }
 
     # Call
@@ -17,13 +21,14 @@ def test_format_error_message_with_right_error_message():
 
     # Assertions
 
-    assert "SomeType" in result
-    assert "SomeErrorName" in result
-    assert "Some error description." in result
+    assert (
+        result
+        == "Subtensor returned `SomeErrorName(SomeType)` error. This means: `Some error description. I'm second part. Hah, I'm the last one.`."
+    )
 
 
 def test_format_error_message_with_empty_error_message():
-    """Verify that empty error message from extrinsic response parses correctly."""
+    """Verify that an empty error message from extrinsic response parses correctly."""
     # Prep
     fake_error_message = {}
 
