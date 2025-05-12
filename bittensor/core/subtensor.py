@@ -21,7 +21,6 @@ from bittensor.core.chain_data import (
     MetagraphInfo,
     NeuronInfo,
     NeuronInfoLite,
-    SelectiveMetagraphIndex,
     StakeInfo,
     SubnetInfo,
     SubnetIdentity,
@@ -1190,53 +1189,24 @@ class Subtensor(SubtensorMixin):
         return Balance.from_rao(getattr(result, "value", 0))
 
     def get_metagraph_info(
-        self,
-        netuid: int,
-        field_indices: Optional[list[Union["SelectiveMetagraphIndex", int]]] = None,
-        block: Optional[int] = None,
+        self, netuid: int, block: Optional[int] = None
     ) -> Optional[MetagraphInfo]:
         """
-        Retrieves full or partial metagraph information for the specified subnet (netuid).
+        Retrieves the MetagraphInfo dataclass from the node for a single subnet (netuid)
 
         Arguments:
-            netuid: The NetUID of the subnet to query.
-            field_indices: An optional list of SelectiveMetagraphIndex values specifying which fields to retrieve. If
-                not provided, all available fields will be returned.
-            block: The block number at which to query the data. If not specified, the current block or one determined
-                via reuse_block or block_hash will be used.
+            netuid: The NetUID of the subnet.
+            block: the block number at which to retrieve the hyperparameter. Do not specify if using block_hash or
+                reuse_block
 
         Returns:
-            Optional[MetagraphInfo]: A MetagraphInfo object containing the requested subnet data, or None if the subnet
-                with the given netuid does not exist.
-
-        Example:
-            meta_info = subtensor.get_metagraph_info(netuid=2)
-
-            partial_meta_info = subtensor.get_metagraph_info(
-                netuid=2,
-                field_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
-            )
+            MetagraphInfo dataclass
         """
-        indexes = SelectiveMetagraphIndex.all_indices()
-
-        if field_indices:
-            if isinstance(field_indices, list) and all(
-                isinstance(f, (SelectiveMetagraphIndex, int)) for f in field_indices
-            ):
-                indexes = [
-                    f.value if isinstance(f, SelectiveMetagraphIndex) else f
-                    for f in field_indices
-                ]
-            else:
-                raise ValueError(
-                    "`field_indices` must be a list of SelectiveMetagraphIndex items."
-                )
-
         block_hash = self.determine_block_hash(block)
         query = self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
-            "get_selective_metagraph",
-            params=[netuid, indexes if 0 in indexes else [0] + indexes],
+            "get_metagraph",
+            params=[netuid],
             block_hash=block_hash,
         )
         if query.value is None:
