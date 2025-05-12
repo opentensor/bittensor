@@ -11,8 +11,7 @@ import time
 import pytest
 from async_substrate_interface import SubstrateInterface
 
-from bittensor.core.async_subtensor import AsyncSubtensor
-from bittensor.core.subtensor import Subtensor
+from bittensor.core.subtensor_api import SubtensorApi
 from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.e2e_test_utils import (
     Templates,
@@ -258,12 +257,14 @@ def templates():
 
 @pytest.fixture
 def subtensor(local_chain):
-    return Subtensor(network="ws://localhost:9944")
+    return SubtensorApi(network="ws://localhost:9944", legacy_methods=True)
 
 
 @pytest.fixture
 def async_subtensor(local_chain):
-    return AsyncSubtensor(network="ws://localhost:9944")
+    return SubtensorApi(
+        network="ws://localhost:9944", legacy_methods=True, async_subtensor=True
+    )
 
 
 @pytest.fixture
