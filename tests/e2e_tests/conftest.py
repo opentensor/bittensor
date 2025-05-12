@@ -262,7 +262,9 @@ def subtensor(local_chain):
 
 @pytest.fixture
 def async_subtensor(local_chain):
-    return SubtensorApi(network="ws://localhost:9944", legacy_methods=True, async_subtensor=True)
+    return SubtensorApi(
+        network="ws://localhost:9944", legacy_methods=True, async_subtensor=True
+    )
 
 
 @pytest.fixture
