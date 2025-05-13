@@ -2023,6 +2023,25 @@ class Subtensor(SubtensorMixin):
             is not None
         )
 
+    def is_subnet_active(self, netuid: int, block: Optional[int] = None) -> bool:
+        """Verify if subnet with provided netuid is active.
+
+        Args:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query.
+
+        Returns:
+            True if subnet is active, False otherwise.
+
+        This means whether the `start_call` was initiated or not.
+        """
+        query = self.query_subtensor(
+            name="FirstEmissionBlockNumber",
+            block=block,
+            params=[netuid],
+        )
+        return True if query and query.value > 0 else False
+
     def last_drand_round(self) -> Optional[int]:
         """
         Retrieves the last drand round emitted in bittensor. This corresponds when committed weights will be revealed.
