@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Optional
 from bittensor.core.chain_data.axon_info import AxonInfo
 from bittensor.core.chain_data.info_base import InfoBase
 from bittensor.core.chain_data.prometheus_info import PrometheusInfo
-from bittensor.core.chain_data.utils import decode_account_id, process_stake_data
+from bittensor.core.chain_data.utils import process_stake_data
 from bittensor.utils import u16_normalized_float
 from bittensor.utils.balance import Balance
 
@@ -129,8 +129,8 @@ class NeuronInfo(InfoBase):
         """Returns a NeuronInfo object from decoded chain data."""
         stake_dict = process_stake_data(decoded["stake"])
         total_stake = sum(stake_dict.values()) if stake_dict else Balance(0)
-        coldkey = decode_account_id(decoded["coldkey"])
-        hotkey = decode_account_id(decoded["hotkey"])
+        coldkey = decoded["coldkey"]
+        hotkey = decoded["hotkey"]
         return NeuronInfo(
             active=decoded["active"],
             axon_info=AxonInfo.from_dict(

@@ -26,7 +26,6 @@ from bittensor.core.chain_data import (
     SubnetIdentity,
     SubnetHyperparameters,
     WeightCommitInfo,
-    decode_account_id,
 )
 from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.utils import (
@@ -191,6 +190,7 @@ class Subtensor(SubtensorMixin):
                 fallback_chains=fallback_chains,
                 retry_forever=retry_forever,
                 _mock=_mock,
+                legacy_account_id_decode=False,
             )
         return SubstrateInterface(
             url=self.chain_endpoint,
@@ -199,6 +199,7 @@ class Subtensor(SubtensorMixin):
             use_remote_preset=True,
             chain_name="Bittensor",
             _mock=_mock,
+            legacy_account_id_decode=False,
         )
 
     # Subtensor queries ===========================================================================================
@@ -776,9 +777,8 @@ class Subtensor(SubtensorMixin):
                 formatted_children = []
                 for proportion, child in children.value:
                     # Convert U64 to int
-                    formatted_child = decode_account_id(child[0])
                     normalized_proportion = u64_normalized_float(proportion)
-                    formatted_children.append((normalized_proportion, formatted_child))
+                    formatted_children.append((normalized_proportion, child))
                 return True, formatted_children, ""
             else:
                 return True, [], ""
@@ -819,7 +819,7 @@ class Subtensor(SubtensorMixin):
             [
                 (
                     u64_normalized_float(proportion),
-                    decode_account_id(child[0]),
+                    child,
                 )
                 for proportion, child in children
             ],
@@ -866,7 +866,7 @@ class Subtensor(SubtensorMixin):
         )
         result = {}
         for id_, value in query:
-            result[decode_account_id(id_[0])] = decode_metadata(value)
+            result[id_] = decode_metadata(value)
         return result
 
     def get_revealed_commitment_by_hotkey(
@@ -984,6 +984,7 @@ class Subtensor(SubtensorMixin):
             params=[netuid],
             block_hash=self.determine_block_hash(block),
         )
+        # TODO why is this from_vec_u8?
 
         commits = result.records[0][1] if result.records else []
         return [WeightCommitInfo.from_vec_u8(commit) for commit in commits]
@@ -1038,7 +1039,7 @@ class Subtensor(SubtensorMixin):
         )
 
         return {
-            decode_account_id(ss58_address[0]): ChainIdentity.from_dict(
+            ss58_address: ChainIdentity.from_dict(
                 decode_hex_identity_dict(identity.value),
             )
             for ss58_address, identity in identities
@@ -1316,7 +1317,7 @@ class Subtensor(SubtensorMixin):
         )
         output = {}
         for key, item in query_certificates:
-            output[decode_account_id(key)] = Certificate(item.value)
+            output[key] = Certificate(item.value)
         return output
 
     def get_neuron_for_pubkey_and_subnet(
@@ -1412,7 +1413,7 @@ class Subtensor(SubtensorMixin):
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        return [decode_account_id(hotkey[0]) for hotkey in owned_hotkeys or []]
+        return owned_hotkeys or []
 
     def get_stake(
         self,

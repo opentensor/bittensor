@@ -27,7 +27,6 @@ from bittensor.core.chain_data import (
     SubnetIdentity,
     SubnetInfo,
     WeightCommitInfo,
-    decode_account_id,
 )
 from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.delegate_info import DelegatedInfo
@@ -308,6 +307,7 @@ class AsyncSubtensor(SubtensorMixin):
                 use_remote_preset=True,
                 chain_name="Bittensor",
                 _mock=_mock,
+                legacy_account_id_decode=False,
             )
         return AsyncSubstrateInterface(
             url=self.chain_endpoint,
@@ -316,6 +316,7 @@ class AsyncSubtensor(SubtensorMixin):
             use_remote_preset=True,
             chain_name="Bittensor",
             _mock=_mock,
+            legacy_account_id_decode=False,
         )
 
     # Subtensor queries ===========================================================================================
@@ -1007,7 +1008,7 @@ class AsyncSubtensor(SubtensorMixin):
                 formatted_children = []
                 for proportion, child in children.value:
                     # Convert U64 to int
-                    formatted_child = decode_account_id(child[0])
+                    formatted_child = child
                     normalized_proportion = u64_normalized_float(proportion)
                     formatted_children.append((normalized_proportion, formatted_child))
                 return True, formatted_children, ""
@@ -1060,7 +1061,7 @@ class AsyncSubtensor(SubtensorMixin):
             [
                 (
                     u64_normalized_float(proportion),
-                    decode_account_id(child[0]),
+                    child,
                 )
                 for proportion, child in children
             ],
@@ -1136,7 +1137,7 @@ class AsyncSubtensor(SubtensorMixin):
         )
         result = {}
         async for id_, value in query:
-            result[decode_account_id(id_[0])] = decode_metadata(value)
+            result[id_] = decode_metadata(value)
         return result
 
     async def get_revealed_commitment_by_hotkey(
@@ -1345,7 +1346,7 @@ class AsyncSubtensor(SubtensorMixin):
         )
 
         return {
-            decode_account_id(ss58_address[0]): ChainIdentity.from_dict(
+            ss58_address: ChainIdentity.from_dict(
                 decode_hex_identity_dict(identity.value),
             )
             async for ss58_address, identity in identities
@@ -1712,7 +1713,7 @@ class AsyncSubtensor(SubtensorMixin):
         )
         output = {}
         async for key, item in query_certificates:
-            output[decode_account_id(key)] = Certificate(item.value)
+            output[key] = Certificate(item.value)
         return output
 
     async def get_neuron_for_pubkey_and_subnet(
@@ -1825,8 +1826,7 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-
-        return [decode_account_id(hotkey[0]) for hotkey in owned_hotkeys or []]
+        return owned_hotkeys
 
     async def get_stake(
         self,
