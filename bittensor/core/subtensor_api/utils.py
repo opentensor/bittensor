@@ -108,6 +108,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.is_hotkey_registered_on_subnet = (
         subtensor._subtensor.is_hotkey_registered_on_subnet
     )
+    subtensor.is_subnet_active = subtensor._subtensor.is_subnet_active
     subtensor.last_drand_round = subtensor._subtensor.last_drand_round
     subtensor.log_verbose = subtensor._subtensor.log_verbose
     subtensor.max_weight_limit = subtensor._subtensor.max_weight_limit
