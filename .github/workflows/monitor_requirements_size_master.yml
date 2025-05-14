@@ -55,7 +55,6 @@ jobs:
           esac
 
   comment-on-pr:
-#    if: github.event_name == 'pull_request' && github.base_ref == 'master' || contains( github.event.pull_request.labels.*.name, 'show-venv-size')
     needs: measure-venv
     runs-on: ubuntu-latest
     steps:
