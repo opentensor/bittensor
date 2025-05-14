@@ -3633,3 +3633,32 @@ def test_get_subnet_validator_permits_is_none(subtensor, mocker):
     )
 
     assert result is None
+
+
+@pytest.mark.parametrize(
+    "query_return, expected",
+    [
+        [111, True],
+        [0, False],
+    ],
+)
+def test_is_subnet_active(subtensor, mocker, query_return, expected):
+    # preps
+    netuid = mocker.Mock()
+    block = mocker.Mock()
+    mocked_query_subtensor = mocker.MagicMock(
+        return_value=mocker.Mock(value=query_return)
+    )
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # call
+    result = subtensor.is_subnet_active(netuid=netuid, block=block)
+
+    # Asserts
+    mocked_query_subtensor.assert_called_once_with(
+        name="FirstEmissionBlockNumber",
+        block=block,
+        params=[netuid],
+    )
+
+    assert result == expected
