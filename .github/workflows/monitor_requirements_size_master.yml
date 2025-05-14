@@ -6,8 +6,8 @@ name: Monitor SDK Requirements Size
 
 on:
   pull_request:
-    types: [opened, labeled]
-    branches: [master, staging]
+    types: [opened]
+    branches: [master]
 
 permissions:
   pull-requests: write
@@ -54,7 +54,7 @@ jobs:
           esac
 
   comment-on-pr:
-    if: github.event_name == 'pull_request' && github.base_ref == 'master' || contains( github.event.pull_request.labels.*.name, 'show-venv-size')
+    if: github.event_name == 'pull_request' && github.base_ref == 'master'
     needs: measure-venv
     runs-on: ubuntu-latest
     steps:
