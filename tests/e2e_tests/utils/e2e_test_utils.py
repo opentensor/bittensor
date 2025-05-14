@@ -229,7 +229,7 @@ class Templates:
 
 
 def wait_to_start_call(
-    subtensor: "bittensor.Subtensor",
+    subtensor: "bittensor.SubtensorApi",
     subnet_owner_wallet: "bittensor.Wallet",
     netuid: int,
     in_blocks: int = 10,
@@ -242,6 +242,11 @@ def wait_to_start_call(
         f"Current block: [blue]{subtensor.block}[/blue]."
     )
 
+    # make sure subnet isn't active
+    assert subtensor.subnets.is_subnet_active(netuid) is False, (
+        "Subnet is already active."
+    )
+
     # make sure we passed start_call limit
     subtensor.wait_for_block(subtensor.block + in_blocks + 1)
     status, message = subtensor.start_call(
@@ -251,6 +256,11 @@ def wait_to_start_call(
         wait_for_finalization=True,
     )
     assert status, message
+    # make sure subnet is active
+    assert subtensor.subnets.is_subnet_active(netuid), (
+        "Subnet did not activated after start call."
+    )
+
     return True
 
 
