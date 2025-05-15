@@ -1,5 +1,15 @@
 # Changelog
 
+## 9.5.0 /2025-05-15
+
+* Add manual way to show the size of virtual environments in the PR by @basfroman in https://github.com/opentensor/bittensor/pull/2875
+* Improve `Monitor SDK Requirements Size` workflow by @basfroman in https://github.com/opentensor/bittensor/pull/2878
+* Add subtensor.is_subnet_active method by @basfroman in https://github.com/opentensor/bittensor/pull/2877
+* Using `hotkey` instead of `coldkey` to sign extrinsic in `serve_axon` by @basfroman in https://github.com/opentensor/bittensor/pull/2879
+* Rename argument `fallback_chains` to `fallback_endpoints` by @basfroman in https://github.com/opentensor/bittensor/pull/2880
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.5.0...v9.6.0
+
 ## 9.5.0 /2025-05-12
 
 ## What's Changed
