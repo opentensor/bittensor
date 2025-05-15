@@ -61,6 +61,7 @@ async def do_serve_axon(
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        sign_with="hotkey",
         period=period,
     )
     return success, message
@@ -140,7 +141,7 @@ async def serve_extrinsic(
         f"Serving axon with: [blue]AxonInfo({wallet.hotkey.ss58_address}, {ip}:{port})[/blue] -> "
         f"[green]{subtensor.network}:{netuid}[/green]"
     )
-    success, message = do_serve_axon(
+    success, message = await do_serve_axon(
         subtensor=subtensor,
         wallet=wallet,
         call_params=params,
