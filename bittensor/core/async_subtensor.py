@@ -115,7 +115,7 @@ class AsyncSubtensor(SubtensorMixin):
         network: Optional[str] = None,
         config: Optional["Config"] = None,
         log_verbose: bool = False,
-        fallback_chains: Optional[list[str]] = None,
+        fallback_endpoints: Optional[list[str]] = None,
         retry_forever: bool = False,
         _mock: bool = False,
     ):
@@ -123,11 +123,11 @@ class AsyncSubtensor(SubtensorMixin):
         Initializes an instance of the AsyncSubtensor class.
 
         Arguments:
-            network (str): The network name or type to connect to.
-            config (Optional[Config]): Configuration object for the AsyncSubtensor instance.
-            log_verbose (bool): Enables or disables verbose logging.
-            fallback_chains (list): List of fallback chains endpoints to use if no network is specified. Defaults to `None`.
-            retry_forever (bool): Whether to retry forever on connection errors. Defaults to `False`.
+            network: The network name or type to connect to.
+            config: Configuration object for the AsyncSubtensor instance.
+            log_verbose: Enables or disables verbose logging.
+            fallback_endpoints: List of fallback endpoints to use if default or provided network is not available. Defaults to `None`.
+            retry_forever: Whether to retry forever on connection errors. Defaults to `False`.
             _mock: Whether this is a mock instance. Mainly just for use in testing.
 
         Raises:
@@ -148,7 +148,9 @@ class AsyncSubtensor(SubtensorMixin):
             f"chain_endpoint: [blue]{self.chain_endpoint}[/blue]..."
         )
         self.substrate = self._get_substrate(
-            fallback_chains=fallback_chains, retry_forever=retry_forever, _mock=_mock
+            fallback_endpoints=fallback_endpoints,
+            retry_forever=retry_forever,
+            _mock=_mock,
         )
         if self.log_verbose:
             logging.info(
@@ -284,24 +286,24 @@ class AsyncSubtensor(SubtensorMixin):
 
     def _get_substrate(
         self,
-        fallback_chains: Optional[list[str]] = None,
+        fallback_endpoints: Optional[list[str]] = None,
         retry_forever: bool = False,
         _mock: bool = False,
     ) -> Union[AsyncSubstrateInterface, RetryAsyncSubstrate]:
         """Creates the Substrate instance based on provided arguments.
 
         Arguments:
-            fallback_chains (list): List of fallback chains endpoints to use if no network is specified. Defaults to `None`.
-            retry_forever (bool): Whether to retry forever on connection errors. Defaults to `False`.
+            fallback_endpoints: List of fallback endpoints to use if default or provided network is not available. Defaults to `None`.
+            retry_forever: Whether to retry forever on connection errors. Defaults to `False`.
             _mock: Whether this is a mock instance. Mainly just for use in testing.
 
         Returns:
             the instance of the SubstrateInterface or RetrySyncSubstrate class.
         """
-        if fallback_chains or retry_forever:
+        if fallback_endpoints or retry_forever:
             return RetryAsyncSubstrate(
                 url=self.chain_endpoint,
-                fallback_chains=fallback_chains,
+                fallback_chains=fallback_endpoints,
                 ss58_format=SS58_FORMAT,
                 type_registry=TYPE_REGISTRY,
                 retry_forever=retry_forever,
@@ -2581,6 +2583,35 @@ class AsyncSubtensor(SubtensorMixin):
             )
             is not None
         )
+
+    async def is_subnet_active(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> bool:
+        """Verify if subnet with provided netuid is active.
+
+        Args:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query.
+            block_hash (Optional[str]): The blockchain block_hash representation of block id.
+            reuse_block (bool): Whether to reuse the last-used block hash.
+
+        Returns:
+            True if subnet is active, False otherwise.
+
+        This means whether the `start_call` was initiated or not.
+        """
+        query = await self.query_subtensor(
+            name="FirstEmissionBlockNumber",
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+            params=[netuid],
+        )
+        return True if query and query.value > 0 else False
 
     async def last_drand_round(self) -> Optional[int]:
         """
