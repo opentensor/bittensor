@@ -60,6 +60,7 @@ def do_serve_axon(
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        sign_with="hotkey",
         period=period,
     )
     return success, message
