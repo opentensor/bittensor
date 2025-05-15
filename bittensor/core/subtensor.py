@@ -190,7 +190,7 @@ class Subtensor(SubtensorMixin):
                 type_registry=TYPE_REGISTRY,
                 use_remote_preset=True,
                 chain_name="Bittensor",
-                fallback_endpoints=fallback_endpoints,
+                fallback_chains=fallback_endpoints,
                 retry_forever=retry_forever,
                 _mock=_mock,
             )
