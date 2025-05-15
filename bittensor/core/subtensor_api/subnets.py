@@ -32,6 +32,7 @@ class Subnets:
         self.get_uid_for_hotkey_on_subnet = subtensor.get_uid_for_hotkey_on_subnet
         self.immunity_period = subtensor.immunity_period
         self.is_hotkey_registered_on_subnet = subtensor.is_hotkey_registered_on_subnet
+        self.is_subnet_active = subtensor.is_subnet_active
         self.max_weight_limit = subtensor.max_weight_limit
         self.min_allowed_weights = subtensor.min_allowed_weights
         self.recycle = subtensor.recycle

@@ -25,9 +25,9 @@ class SubtensorApi:
         network: The network to connect to. Defaults to `None` -> "finney".
         config: Bittensor configuration object. Defaults to `None`.
         legacy_methods: If `True`, all methods from the Subtensor class will be added to the root level of this class.
-        fallback_chains (list): List of fallback chains to use if no network is specified. Defaults to `None`.
-        retry_forever (bool): Whether to retry forever on connection errors. Defaults to `False`.
-        log_verbose (bool): Enables or disables verbose logging.
+        fallback_endpoints: List of fallback endpoints to use if default or provided network is not available. Defaults to `None`.
+        retry_forever: Whether to retry forever on connection errors. Defaults to `False`.
+        log_verbose: Enables or disables verbose logging.
         mock: Whether this is a mock instance. Mainly just for use in testing.
 
     Example:
@@ -54,10 +54,15 @@ class SubtensorApi:
         subtensor = bt.SubtensorApi(legacy_methods=True)
         print(subtensor.bonds(0))
 
-        # using `fallback_chains` or `retry_forever`
+        # using `fallback_endpoints` or `retry_forever`
         import bittensor as bt
 
-
+        subtensor = bt.SubtensorApi(
+            network="finney",
+            fallback_endpoints=["wss://localhost:9945", "wss://some-other-endpoint:9945"],
+            retry_forever=True,
+        )
+        print(subtensor.block)
     """
 
     def __init__(
@@ -66,13 +71,13 @@ class SubtensorApi:
         config: Optional["Config"] = None,
         async_subtensor: bool = False,
         legacy_methods: bool = False,
-        fallback_chains: Optional[list[str]] = None,
+        fallback_endpoints: Optional[list[str]] = None,
         retry_forever: bool = False,
         log_verbose: bool = False,
         mock: bool = False,
     ):
         self.network = network
-        self._fallback_chains = fallback_chains
+        self._fallback_endpoints = fallback_endpoints
         self._retry_forever = retry_forever
         self._mock = mock
         self.log_verbose = log_verbose
@@ -111,7 +116,7 @@ class SubtensorApi:
                 network=self.network,
                 config=self._config,
                 log_verbose=self.log_verbose,
-                fallback_chains=self._fallback_chains,
+                fallback_endpoints=self._fallback_endpoints,
                 retry_forever=self._retry_forever,
                 _mock=self._mock,
             )
@@ -122,7 +127,7 @@ class SubtensorApi:
                 network=self.network,
                 config=self._config,
                 log_verbose=self.log_verbose,
-                fallback_chains=self._fallback_chains,
+                fallback_endpoints=self._fallback_endpoints,
                 retry_forever=self._retry_forever,
                 _mock=self._mock,
             )
