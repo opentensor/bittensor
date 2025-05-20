@@ -610,14 +610,14 @@ class Subtensor(SubtensorMixin):
 
     def get_balance(self, address: str, block: Optional[int] = None) -> Balance:
         """
-        Retrieves the balance for given coldkey.
+        Retrieves the balance for given coldkey. Always in TAO.
 
         Arguments:
-            address (str): coldkey address.
+            address: coldkey address.
             block (Optional[int]): The blockchain block number for the query.
 
         Returns:
-            Balance object.
+            Balance object in TAO.
         """
         balance = self.substrate.query(
             module="System",
@@ -1122,7 +1122,7 @@ class Subtensor(SubtensorMixin):
 
     def get_existential_deposit(self, block: Optional[int] = None) -> Optional[Balance]:
         """
-        Retrieves the existential deposit amount for the Bittensor blockchain.
+        Retrieves the existential deposit amount for the Bittensor blockchain. Always in TAO.
         The existential deposit is the minimum amount of TAO required for an account to exist on the blockchain.
         Accounts with balances below this threshold can be reaped to conserve network resources.
 
@@ -1130,7 +1130,7 @@ class Subtensor(SubtensorMixin):
             block (Optional[int]): The blockchain block number for the query.
 
         Returns:
-            The existential deposit amount.
+            The existential deposit amount. Always in TAO.
 
         The existential deposit is a fundamental economic parameter in the Bittensor network, ensuring efficient use of
             storage and preventing the proliferation of dust accounts.
@@ -1424,16 +1424,19 @@ class Subtensor(SubtensorMixin):
         block: Optional[int] = None,
     ) -> Balance:
         """
-        Returns the stake under a coldkey - hotkey pairing.
+        Returns the amount of Alpha staked by a specific coldkey to a specific hotkey within a given subnet.
+        This function retrieves the delegated stake balance, referred to as the 'Alpha' value.
 
         Args:
-            hotkey_ss58 (str): The SS58 address of the hotkey.
-            coldkey_ss58 (str): The SS58 address of the coldkey.
-            netuid (int): The subnet ID
-            block (Optional[int]): The block number at which to query the stake information.
+            coldkey_ss58: The SS58 address of the coldkey that delegated the stake. This address owns the stake.
+            hotkey_ss58: The ss58 address of the hotkey which the stake is on.
+            netuid: The unique identifier of the subnet to query.
+            block: The specific block number at which to retrieve the stake information. If None, the current stake at
+                the latest block is returned. Defaults to ``None``.
 
         Returns:
-            Balance: The stake under the coldkey - hotkey pairing.
+            An object representing the amount of Alpha (TAO ONLY if the subnet's netuid is 0) currently staked from the
+                specified coldkey to the specified hotkey within the given subnet.
         """
         alpha_shares_query = self.query_module(
             module="SubtensorModule",
@@ -2632,27 +2635,27 @@ class Subtensor(SubtensorMixin):
         period: Optional[int] = None,
     ) -> bool:
         """
-        Adds the specified amount of stake to a neuron identified by the hotkey ``SS58`` address.
-        Staking is a fundamental process in the Bittensor network that enables neurons to participate actively and earn
-            incentives.
+        Adds a stake from the specified wallet to the neuron identified by the SS58 address of its hotkey in specified subnet.
+        Staking is a fundamental process in the Bittensor network that enables neurons to participate actively and earn incentives.
 
         Args:
-            wallet (bittensor_wallet.Wallet): The wallet to be used for staking.
-            hotkey_ss58 (Optional[str]): The ``SS58`` address of the hotkey associated with the neuron.
-            netuid (Optional[int]): The unique identifier of the subnet to which the neuron belongs.
-            amount (Balance): The amount of TAO to stake.
-            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
-            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
-            safe_staking (bool): If true, enables price safety checks to protect against fluctuating prices. The stake
-                will only execute if the price change doesn't exceed the rate tolerance. Default is False.
-            allow_partial_stake (bool): If true and safe_staking is enabled, allows partial staking when
-                the full amount would exceed the price tolerance. If false, the entire stake fails if it would
-                exceed the tolerance. Default is False.
-            rate_tolerance (float): The maximum allowed price change ratio when staking. For example,
-                0.005 = 0.5% maximum price increase. Only used when safe_staking is True. Default is 0.005.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
-                submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction.
+            wallet: The wallet to be used for staking.
+            hotkey_ss58: The SS58 address of the hotkey associated with the neuron to which you intend to delegate your
+                stake. If not specified, the wallet's hotkey will be used. Defaults to ``None``.
+            netuid: The unique identifier of the subnet to which the neuron belongs.
+            amount: The amount of TAO to stake.
+            wait_for_inclusion: Waits for the transaction to be included in a block. Defaults to ``True``.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Defaults to ``False``.
+            safe_staking: If true, enables price safety checks to protect against fluctuating prices. The stake will
+                only execute if the price change doesn't exceed the rate tolerance. Default is ``False``.
+            allow_partial_stake: If true and safe_staking is enabled, allows partial staking when the full amount would
+                exceed the price tolerance. If false, the entire stake fails if it would exceed the tolerance.
+                Default is ``False``.
+            rate_tolerance: The maximum allowed price change ratio when staking. For example,
+                0.005 = 0.5% maximum price increase. Only used when safe_staking is True. Default is ``0.005``.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction. Defaults to ``None``.
 
         Returns:
             bool: True if the staking is successful, False otherwise.
@@ -3668,6 +3671,7 @@ class Subtensor(SubtensorMixin):
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
         period: Optional[int] = None,
+        unstake_all: bool = False,
     ) -> bool:
         """
         Removes a specified amount of stake from a single hotkey account. This function is critical for adjusting
@@ -3678,7 +3682,7 @@ class Subtensor(SubtensorMixin):
                 removed.
             hotkey_ss58 (Optional[str]): The ``SS58`` address of the hotkey account to unstake from.
             netuid (Optional[int]): The unique identifier of the subnet.
-            amount (Balance): The amount of alpha to unstake. If not specified, unstakes all.
+            amount (Balance): The amount of alpha to unstake. If not specified, unstakes all. Alpha amount.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
             safe_staking (bool): If true, enables price safety checks to protect against fluctuating prices. The unstake
@@ -3691,6 +3695,7 @@ class Subtensor(SubtensorMixin):
             period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
+            unstake_all: If true, unstakes all tokens. Default is ``False``.
 
         Returns:
             bool: ``True`` if the unstaking process is successful, False otherwise.
@@ -3712,6 +3717,7 @@ class Subtensor(SubtensorMixin):
             allow_partial_stake=allow_partial_stake,
             rate_tolerance=rate_tolerance,
             period=period,
+            unstake_all=unstake_all,
         )
 
     def unstake_multiple(
@@ -3723,6 +3729,7 @@ class Subtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         period: Optional[int] = None,
+        unstake_all: bool = False,
     ) -> bool:
         """
         Performs batch unstaking from multiple hotkey accounts, allowing a neuron to reduce its staked amounts
@@ -3740,6 +3747,7 @@ class Subtensor(SubtensorMixin):
             period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
+            unstake_all: If true, unstakes all tokens. Default is ``False``.
 
         Returns:
             bool: ``True`` if the batch unstaking is successful, False otherwise.
@@ -3756,4 +3764,5 @@ class Subtensor(SubtensorMixin):
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             period=period,
+            unstake_all=unstake_all,
         )
