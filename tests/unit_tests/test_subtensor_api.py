@@ -6,8 +6,12 @@ import pytest
 def test_properties_methods_comparable(other_class: "Subtensor" = None):
     """Verifies that methods in SubtensorApi and its properties contains all Subtensors methods."""
     # Preps
-    subtensor = other_class(_mock=True) if other_class else Subtensor(_mock=True)
-    subtensor_api = SubtensorApi(mock=True)
+    subtensor = (
+        other_class(network="latent-lite", _mock=True)
+        if other_class
+        else Subtensor(network="latent-lite", _mock=True)
+    )
+    subtensor_api = SubtensorApi(network="latent-lite", mock=True)
 
     subtensor_methods = [m for m in dir(subtensor) if not m.startswith("_")]
 
@@ -62,8 +66,12 @@ def test__methods_comparable_with_passed_legacy_methods(
 ):
     """Verifies that methods in SubtensorApi contains all Subtensors methods if `legacy_methods=True` is passed."""
     # Preps
-    subtensor = other_class(mock=True) if other_class else Subtensor(_mock=True)
-    subtensor_api = SubtensorApi(mock=True, legacy_methods=True)
+    subtensor = (
+        other_class(network="latent-lite", mock=True)
+        if other_class
+        else Subtensor(network="latent-lite", _mock=True)
+    )
+    subtensor_api = SubtensorApi(network="latent-lite", mock=True, legacy_methods=True)
 
     subtensor_methods = [m for m in dir(subtensor) if not m.startswith("_")]
     subtensor_api_methods = [m for m in dir(subtensor_api) if not m.startswith("_")]
