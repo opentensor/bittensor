@@ -2412,8 +2412,11 @@ class Subtensor(SubtensorMixin):
             bool: True if the target block was reached, False if timeout occurred.
 
         Example:
-            >>> subtensor.wait_for_block() # Waits for the next block
-            >>> subtensor.wait_for_block(block=1234) # Waits for a specific block
+            import bittensor as bt
+            subtensor = bt.Subtensor()
+
+            subtensor.wait_for_block() # Waits for the next block
+            subtensor.wait_for_block(block=1234) # Waits for a specific block
         """
 
         def handler(block_data: dict):
@@ -2431,7 +2434,7 @@ class Subtensor(SubtensorMixin):
         else:
             target_block = current_block["header"]["number"] + 1
 
-        self.substrate._get_block_handler(
+        self.substrate.get_block_handler(
             current_block_hash, header_only=True, subscription_handler=handler
         )
         return True
@@ -3695,7 +3698,7 @@ class Subtensor(SubtensorMixin):
             period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
-            unstake_all: If true, unstakes all tokens. Default is ``False``.
+            unstake_all: If true, unstakes all tokens. Default is ``False``. If `True` amount is ignored.
 
         Returns:
             bool: ``True`` if the unstaking process is successful, False otherwise.
@@ -3747,7 +3750,7 @@ class Subtensor(SubtensorMixin):
             period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
-            unstake_all: If true, unstakes all tokens. Default is ``False``.
+            unstake_all: If true, unstakes all tokens. Default is ``False``. If `True` amounts are ignored.
 
         Returns:
             bool: ``True`` if the batch unstaking is successful, False otherwise.
