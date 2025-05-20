@@ -82,7 +82,9 @@ async def test_root_reg_hyperparams(
     # Create netuid = 2
     assert subtensor.register_subnet(alice_wallet)
 
-    assert wait_to_start_call(subtensor=subtensor, subnet_owner_wallet=alice_wallet, netuid=netuid)
+    assert wait_to_start_call(
+        subtensor=subtensor, subnet_owner_wallet=alice_wallet, netuid=netuid
+    )
 
     # Ensure correct immunity period and tempo is being fetched
     assert subtensor.immunity_period(netuid=netuid) == default_immunity_period
