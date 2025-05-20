@@ -1564,7 +1564,7 @@ def test_wait_for_block(mock_substrate, subtensor, mocker):
             },
         },
     ]
-    mock_substrate._get_block_handler.side_effect = get_block_handler
+    mock_substrate.get_block_handler.side_effect = get_block_handler
 
     subtensor.wait_for_block(block=9)
 
