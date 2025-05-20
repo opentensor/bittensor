@@ -13,7 +13,7 @@ from bittensor.utils import u64_normalized_float as u64tf, u16_normalized_float 
 from bittensor.utils.balance import Balance, fixed_to_float
 
 
-# to balance with unit (just shortcut)
+# to balance with unit (shortcut)
 def _tbwu(val: Optional[int], netuid: Optional[int] = 0) -> Optional[Balance]:
     """Returns a Balance object from a value and unit."""
     if val is None:
@@ -26,7 +26,9 @@ def _chr_str(codes: tuple[int]) -> str:
     return "".join(map(chr, codes))
 
 
-def process_nested(data: Union[tuple, dict], chr_transform):
+def process_nested(
+    data: Union[tuple, dict], chr_transform
+) -> Optional[Union[list, dict]]:
     """Processes nested data structures by applying a transformation function to their elements."""
     if isinstance(data, (list, tuple)):
         if len(data) > 0:
@@ -39,6 +41,7 @@ def process_nested(data: Union[tuple, dict], chr_transform):
         return {}
     elif isinstance(data, dict):
         return {k: chr_transform(v) for k, v in data.items()}
+    return None
 
 
 @dataclass
@@ -142,6 +145,9 @@ class MetagraphInfo(InfoBase):
     alpha_dividends_per_hotkey: list[
         tuple[str, Balance]
     ]  # List of dividend payout in alpha via subnet.
+
+    # List of validators
+    validators: list[str]
 
     @classmethod
     def _from_dict(cls, decoded: dict) -> "MetagraphInfo":
@@ -366,6 +372,7 @@ class MetagraphInfo(InfoBase):
                 if decoded.get("alpha_dividends_per_hotkey") is not None
                 else None
             ),
+            validators=decoded.get("validators", []),
         )
 
 
@@ -498,6 +505,7 @@ class SelectiveMetagraphIndex(Enum):
     TotalStake = 69
     TaoDividendsPerHotkey = 70
     AlphaDividendsPerHotkey = 71
+    Validators = 72
 
     @staticmethod
     def all_indices() -> list[int]:
