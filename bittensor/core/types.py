@@ -124,8 +124,8 @@ class SubtensorMixin(ABC):
         """
         prefix_str = "" if prefix is None else f"{prefix}."
         try:
-            default_network = settings.DEFAULT_NETWORK
-            default_chain_endpoint = settings.FINNEY_ENTRYPOINT
+            default_network = settings.DEFAULTS.subtensor.network
+            default_chain_endpoint = settings.DEFAULTS.subtensor.chain_endpoint
 
             parser.add_argument(
                 f"--{prefix_str}subtensor.network",
