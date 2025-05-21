@@ -26,24 +26,26 @@ def add_stake_extrinsic(
     period: Optional[int] = None,
 ) -> bool:
     """
-    Adds the specified amount of stake to passed hotkey `uid`.
+    Adds a stake from the specified wallet to the neuron identified by the SS58 address of its hotkey in specified subnet.
+    Staking is a fundamental process in the Bittensor network that enables neurons to participate actively and earn incentives.
 
     Arguments:
-        subtensor: the Subtensor object to use
+        subtensor: Subtensor instance with the connection to the chain.
         wallet: Bittensor wallet object.
-        hotkey_ss58: The `ss58` address of the hotkey account to stake to default to the wallet's hotkey.
-        netuid (Optional[int]): Subnet unique ID.
-        amount: Amount to stake as Bittensor balance, `None` if staking all.
+        hotkey_ss58: The `ss58` address of the hotkey account to stake to default to the wallet's hotkey. If not
+            specified, the wallet's hotkey will be used. Defaults to ``None``.
+        netuid: The unique identifier of the subnet to which the neuron belongs.
+        amount: Amount to stake as Bittensor balance in TAO always, `None` if staking all. Defaults is ``None``.
         wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning `True`, or returns
-            `False` if the extrinsic fails to enter the block within the timeout.
+            `False` if the extrinsic fails to enter the block within the timeout.  Defaults to ``True``.
         wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning `True`,
-            or returns `False` if the extrinsic fails to be finalized within the timeout.
-        safe_staking (bool): If true, enables price safety checks
-        allow_partial_stake (bool): If true, allows partial unstaking if price tolerance exceeded
-        rate_tolerance (float): Maximum allowed price increase percentage (0.005 = 0.5%)
+            or returns `False` if the extrinsic fails to be finalized within the timeout. Defaults to ``False``.
+        safe_staking: If True, enables price safety checks. Default is ``False``.
+        allow_partial_stake: If True, allows partial unstaking if price tolerance exceeded. Default is ``False``.
+        rate_tolerance: Maximum allowed price increase percentage (0.005 = 0.5%). Default is ``0.005``.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
+            You can think of it as an expiration date for the transaction. Defaults to ``None``.
 
     Returns:
         success: Flag is `True` if extrinsic was finalized or included in the block. If we did not wait for
@@ -87,14 +89,11 @@ def add_stake_extrinsic(
         )
     else:
         staking_balance = amount
-    staking_balance.set_unit(netuid)
 
     # Leave existential balance to keep key alive.
     if staking_balance > old_balance - existential_deposit:
         # If we are staking all, we need to leave at least the existential deposit.
         staking_balance = old_balance - existential_deposit
-    else:
-        staking_balance = staking_balance
 
     # Check enough to stake.
     if staking_balance > old_balance:
@@ -200,7 +199,7 @@ def add_stake_extrinsic(
 
     except SubstrateRequestException as error:
         logging.error(
-            f":cross_mark: [red]Add Stake Error: {format_error_message((error))}[/red]"
+            f":cross_mark: [red]Add Stake Error: {format_error_message(error)}[/red]"
         )
         return False
 
