@@ -355,7 +355,7 @@ def test_publish_metadata(
         patch.object(mock_subtensor.substrate, "compose_call"),
         patch.object(
             mock_subtensor, "sign_and_send_extrinsic", return_value=response_success
-        ),
+        ) as mocked_sign_and_send_extrinsic,
     ):
         # Act
         result = serving.publish_metadata(
@@ -369,3 +369,11 @@ def test_publish_metadata(
         )
         # Assert
         assert result == expected_result, f"Test ID: {test_id}"
+        mocked_sign_and_send_extrinsic.assert_called_once_with(
+            call=mock_subtensor.substrate.compose_call.return_value,
+            wallet=mock_wallet,
+            sign_with="hotkey",
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            period=None,
+        )
