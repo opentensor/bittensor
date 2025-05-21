@@ -22,6 +22,8 @@ from .version import version_checking, check_version, VersionCheckError
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
 
+BT_DOCS_LINK = "https://docs.bittensor.com"
+
 
 # redundant aliases
 logging = logging
@@ -219,6 +221,7 @@ def format_error_message(error_message: Union[dict, Exception]) -> str:
                 pass
         if new_error_message is None:
             return_val = " ".join(error_message.args)
+
             return f"Subtensor returned: {return_val}"
         else:
             error_message = new_error_message
@@ -236,7 +239,9 @@ def format_error_message(error_message: Union[dict, Exception]) -> str:
 
             # subtensor custom error marker
             if err_data.startswith("Custom error:"):
-                err_description = f"{err_data} | Please consult https://docs.bittensor.com/subtensor-nodes/subtensor-error-messages"
+                err_description = (
+                    f"{err_data} | Please consult {BT_DOCS_LINK}/errors/custom"
+                )
             else:
                 err_description = err_data
 
@@ -249,6 +254,9 @@ def format_error_message(error_message: Union[dict, Exception]) -> str:
             err_name = error_message.get("name", err_name)
             err_docs = error_message.get("docs", [err_description])
             err_description = " ".join(err_docs)
+            err_description += (
+                f" | Please consult {BT_DOCS_LINK}/errors/subtensor#{err_name.lower()}"
+            )
 
         elif error_message.get("code") and error_message.get("message"):
             err_type = error_message.get("code", err_name)

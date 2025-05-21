@@ -3119,6 +3119,9 @@ class AsyncSubtensor(SubtensorMixin):
             bool: True if the target block was reached, False if timeout occurred.
 
         Example:
+            import bittensor as bt
+            subtensor = bt.Subtensor()
+
             await subtensor.wait_for_block() # Waits for next block
             await subtensor.wait_for_block(block=1234) # Waits for a specific block
         """
@@ -3380,27 +3383,27 @@ class AsyncSubtensor(SubtensorMixin):
         period: Optional[int] = None,
     ) -> bool:
         """
-        Adds the specified amount of stake to a neuron identified by the hotkey ``SS58`` address.
-        Staking is a fundamental process in the Bittensor network that enables neurons to participate actively and earn
-            incentives.
+        Adds a stake from the specified wallet to the neuron identified by the SS58 address of its hotkey in specified subnet.
+        Staking is a fundamental process in the Bittensor network that enables neurons to participate actively and earn incentives.
 
         Args:
-            wallet (bittensor_wallet.Wallet): The wallet to be used for staking.
-            hotkey_ss58 (Optional[str]): The ``SS58`` address of the hotkey associated with the neuron.
-            netuid: subnet UID
-            amount (Balance): The amount of TAO to stake.
-            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
-            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
-            safe_staking (bool): If true, enables price safety checks to protect against fluctuating prices. The stake
-                will only execute if the price change doesn't exceed the rate tolerance. Default is False.
-            allow_partial_stake (bool): If true and safe_staking is enabled, allows partial staking when
-                the full amount would exceed the price threshold. If false, the entire stake fails if it would
-                exceed the threshold. Default is False.
-            rate_tolerance (float): The maximum allowed price change ratio when staking. For example,
-                0.005 = 0.5% maximum price increase. Only used when safe_staking is True. Default is 0.005.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
-                submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction.
+            wallet: The wallet to be used for staking.
+            hotkey_ss58: The SS58 address of the hotkey associated with the neuron to which you intend to delegate your
+                stake. If not specified, the wallet's hotkey will be used. Defaults to ``None``.
+            netuid: The unique identifier of the subnet to which the neuron belongs.
+            amount: The amount of TAO to stake.
+            wait_for_inclusion: Waits for the transaction to be included in a block. Defaults to ``True``.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Defaults to ``False``.
+            safe_staking: If true, enables price safety checks to protect against fluctuating prices. The stake will
+                only execute if the price change doesn't exceed the rate tolerance. Default is ``False``.
+            allow_partial_stake: If true and safe_staking is enabled, allows partial staking when the full amount would
+                exceed the price tolerance. If false, the entire stake fails if it would exceed the tolerance.
+                Default is ``False``.
+            rate_tolerance: The maximum allowed price change ratio when staking. For example,
+                0.005 = 0.5% maximum price increase. Only used when safe_staking is True. Default is ``0.005``.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction. Defaults to ``None``.
 
         Returns:
             bool: ``True`` if the staking is successful, False otherwise.
@@ -4428,6 +4431,7 @@ class AsyncSubtensor(SubtensorMixin):
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
         period: Optional[int] = None,
+        unstake_all: bool = False,
     ) -> bool:
         """
         Removes a specified amount of stake from a single hotkey account. This function is critical for adjusting
@@ -4451,6 +4455,7 @@ class AsyncSubtensor(SubtensorMixin):
             period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
+            unstake_all: If true, unstakes all tokens. Default is ``False``. If `True` amount is ignored.
 
         Returns:
             bool: ``True`` if the unstaking process is successful, False otherwise.
@@ -4471,6 +4476,7 @@ class AsyncSubtensor(SubtensorMixin):
             allow_partial_stake=allow_partial_stake,
             rate_tolerance=rate_tolerance,
             period=period,
+            unstake_all=unstake_all,
         )
 
     async def unstake_multiple(
@@ -4482,6 +4488,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         period: Optional[int] = None,
+        unstake_all: bool = False,
     ) -> bool:
         """
         Performs batch unstaking from multiple hotkey accounts, allowing a neuron to reduce its staked amounts
@@ -4499,6 +4506,7 @@ class AsyncSubtensor(SubtensorMixin):
             period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
+            unstake_all: If true, unstakes all tokens. Default is ``False``. If `True` amounts are ignored.
 
         Returns:
             bool: ``True`` if the batch unstaking is successful, False otherwise.
@@ -4515,6 +4523,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             period=period,
+            unstake_all=unstake_all,
         )
 
 
