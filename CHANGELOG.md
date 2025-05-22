@@ -1,6 +1,18 @@
 # Changelog
 
-## 9.5.0 /2025-05-15
+## 9.6.1 /2025-05-22
+
+## What's Changed
+* Release/9.6.0 by @ibraheem-abe in https://github.com/opentensor/bittensor/pull/2882
+* Add stake before check `validator_permit` by @basfroman in https://github.com/opentensor/bittensor/pull/2884
+* Add defaults for endpoint and network from local env by @basfroman in https://github.com/opentensor/bittensor/pull/2886
+* Improve error message by @basfroman in https://github.com/opentensor/bittensor/pull/2888
+* Make `unstake` and `unstake_multiple` for all Alphas more clear by @basfroman in https://github.com/opentensor/bittensor/pull/2885
+* fix publish metadata by @basfroman in https://github.com/opentensor/bittensor/pull/2890
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.6.0...v9.6.1
+
+## 9.6.0 /2025-05-15
 
 * Add manual way to show the size of virtual environments in the PR by @basfroman in https://github.com/opentensor/bittensor/pull/2875
 * Improve `Monitor SDK Requirements Size` workflow by @basfroman in https://github.com/opentensor/bittensor/pull/2878

@@ -282,6 +282,7 @@ async def publish_metadata(
         success, message = await subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
+            sign_with="hotkey",
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             period=period,
