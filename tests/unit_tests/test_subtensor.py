@@ -2945,6 +2945,7 @@ def test_unstake_success(mocker, subtensor, fake_wallet):
         allow_partial_stake=False,
         rate_tolerance=0.005,
         period=None,
+        unstake_all=False,
     )
     assert result == mock_unstake_extrinsic.return_value
 
@@ -2982,6 +2983,7 @@ def test_unstake_with_safe_staking(mocker, subtensor, fake_wallet):
         allow_partial_stake=True,
         rate_tolerance=fake_rate_tolerance,
         period=None,
+        unstake_all=False,
     )
     assert result == mock_unstake_extrinsic.return_value
 
@@ -3105,6 +3107,7 @@ def test_unstake_multiple_success(mocker, subtensor, fake_wallet):
         wait_for_inclusion=True,
         wait_for_finalization=False,
         period=None,
+        unstake_all=False,
     )
     assert result == mock_unstake_multiple_extrinsic.return_value
 
