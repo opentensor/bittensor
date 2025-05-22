@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from bittensor.core.chain_data.utils import decode_account_id
 
 
 @dataclass
@@ -34,4 +33,4 @@ class WeightCommitInfo:
         commit_data = commit_data[0] if isinstance(commit_data, tuple) else commit_data
         commit_hex = "0x" + "".join(format(x, "02x") for x in commit_data)
 
-        return decode_account_id(account_id_), commit_hex, round_number
+        return account_id_, commit_hex, round_number
