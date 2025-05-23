@@ -3314,3 +3314,60 @@ async def test_get_subnet_validator_permits_is_none(subtensor, mocker):
     )
 
     assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_subnet_info_success(mocker, subtensor):
+    """Test get_subnet_info returns correct data when subnet information is found."""
+    # Prep
+    netuid = mocker.Mock()
+    block = mocker.Mock()
+
+    mocker.patch.object(subtensor, "query_runtime_api")
+    mocker.patch.object(
+        async_subtensor.SubnetInfo,
+        "from_dict",
+    )
+
+    # Call
+    result = await subtensor.get_subnet_info(netuid=netuid, block=block)
+
+    # Asserts
+    subtensor.query_runtime_api.assert_awaited_once_with(
+        runtime_api="SubnetInfoRuntimeApi",
+        method="get_subnet_info_v2",
+        params=[netuid],
+        block=block,
+        block_hash=None,
+        reuse_block=False,
+    )
+    async_subtensor.SubnetInfo.from_dict.assert_called_once_with(
+        subtensor.query_runtime_api.return_value,
+    )
+    assert result == async_subtensor.SubnetInfo.from_dict.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_subnet_info_no_data(mocker, subtensor):
+    """Test get_subnet_info returns None."""
+    # Prep
+    netuid = mocker.Mock()
+    block = mocker.Mock()
+    mocker.patch.object(async_subtensor.SubnetInfo, "from_dict")
+    mocker.patch.object(subtensor, "query_runtime_api", return_value=None)
+
+    # Call
+    result = await subtensor.get_subnet_info(netuid=netuid, block=block)
+
+    # Asserts
+    subtensor.query_runtime_api.assert_awaited_once_with(
+        runtime_api="SubnetInfoRuntimeApi",
+        method="get_subnet_info_v2",
+        params=[netuid],
+        block=block,
+        block_hash=None,
+        reuse_block=False,
+    )
+    async_subtensor.SubnetInfo.from_dict.assert_not_called()
+    assert result is None
+
