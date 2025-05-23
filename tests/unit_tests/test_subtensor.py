@@ -3719,4 +3719,3 @@ def test_get_subnet_info_no_data(mocker, subtensor):
     )
     subtensor_module.SubnetInfo.from_dict.assert_not_called()
     assert result is None
-
