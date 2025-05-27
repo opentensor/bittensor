@@ -1545,7 +1545,9 @@ class AsyncSubtensor(SubtensorMixin):
     async def get_metagraph_info(
         self,
         netuid: int,
-        field_indices: Optional[list["SelectiveMetagraphIndex"]] = None,
+        field_indices: Optional[
+            Union[list["SelectiveMetagraphIndex"], list[int]]
+        ] = None,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
@@ -1555,8 +1557,8 @@ class AsyncSubtensor(SubtensorMixin):
 
         Arguments:
             netuid: The NetUID of the subnet to query.
-            field_indices: An optional list of SelectiveMetagraphIndex values specifying which fields to retrieve. If
-                not provided, all available fields will be returned.
+            field_indices: An optional list of SelectiveMetagraphIndex or int values specifying which fields to retrieve.
+                If not provided, all available fields will be returned.
             block: the block number at which to retrieve the hyperparameter. Do not specify if using block_hash or
                 reuse_block
             block_hash: The hash of blockchain block number for the query. Do not specify if using

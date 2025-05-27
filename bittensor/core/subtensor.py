@@ -1194,7 +1194,9 @@ class Subtensor(SubtensorMixin):
     def get_metagraph_info(
         self,
         netuid: int,
-        field_indices: Optional[list[Union["SelectiveMetagraphIndex", int]]] = None,
+        field_indices: Optional[
+            Union[list["SelectiveMetagraphIndex"], list[int]]
+        ] = None,
         block: Optional[int] = None,
     ) -> Optional[MetagraphInfo]:
         """
@@ -1202,8 +1204,8 @@ class Subtensor(SubtensorMixin):
 
         Arguments:
             netuid: The NetUID of the subnet to query.
-            field_indices: An optional list of SelectiveMetagraphIndex values specifying which fields to retrieve. If
-                not provided, all available fields will be returned.
+            field_indices: An optional list of SelectiveMetagraphIndex or int values specifying which fields to retrieve.
+                If not provided, all available fields will be returned.
             block: The block number at which to query the data. If not specified, the current block or one determined
                 via reuse_block or block_hash will be used.
 
