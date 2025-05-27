@@ -372,7 +372,9 @@ class MetagraphInfo(InfoBase):
                 if decoded.get("alpha_dividends_per_hotkey") is not None
                 else None
             ),
-            validators=decoded.get("validators", []),
+            validators=[v for v in decoded["validators"]]
+            if decoded.get("validators") is not None
+            else None,
         )
 
 
