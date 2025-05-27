@@ -25,6 +25,7 @@ async def unstake_extrinsic(
     allow_partial_stake: bool = False,
     rate_tolerance: float = 0.005,
     period: Optional[int] = None,
+    unstake_all: bool = False,
 ) -> bool:
     """Removes stake into the wallet coldkey from the specified hotkey ``uid``.
 
@@ -45,11 +46,15 @@ async def unstake_extrinsic(
         period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted.
             If the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
+        unstake_all: If true, unstakes all tokens. Default is ``False``.
 
     Returns:
         success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
             finalization / inclusion, the response is ``True``.
     """
+    if amount and unstake_all:
+        raise ValueError("Cannot specify both `amount` and `unstake_all`.")
+
     # Decrypt keys,
     if not (unlock := unlock_key(wallet)).success:
         logging.error(unlock.message)
@@ -204,6 +209,7 @@ async def unstake_multiple_extrinsic(
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
     period: Optional[int] = None,
+    unstake_all: bool = False,
 ) -> bool:
     """Removes stake from each ``hotkey_ss58`` in the list, using each amount, to a common coldkey.
 
@@ -220,11 +226,15 @@ async def unstake_multiple_extrinsic(
         period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted.
             If the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
+        unstake_all: If true, unstakes all tokens. Default is ``False``.
 
     Returns:
         success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. Flag is ``True`` if any
             wallet was unstaked. If we did not wait for finalization / inclusion, the response is ``True``.
     """
+    if amounts and unstake_all:
+        raise ValueError("Cannot specify both `amounts` and `unstake_all`.")
+
     if not isinstance(hotkey_ss58s, list) or not all(
         isinstance(hotkey_ss58, str) for hotkey_ss58 in hotkey_ss58s
     ):
