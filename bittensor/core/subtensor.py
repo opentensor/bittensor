@@ -1219,7 +1219,7 @@ class Subtensor(SubtensorMixin):
                 field_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
             )
         """
-        indexes = SelectiveMetagraphIndex.all_indices()
+        block_hash = self.determine_block_hash(block)
 
         if field_indices:
             if isinstance(field_indices, list) and all(
@@ -1234,16 +1234,24 @@ class Subtensor(SubtensorMixin):
                     "`field_indices` must be a list of SelectiveMetagraphIndex items."
                 )
 
-        block_hash = self.determine_block_hash(block)
-        query = self.substrate.runtime_call(
-            "SubnetInfoRuntimeApi",
-            "get_selective_metagraph",
-            params=[netuid, indexes if 0 in indexes else [0] + indexes],
-            block_hash=block_hash,
-        )
+            query = self.substrate.runtime_call(
+                "SubnetInfoRuntimeApi",
+                "get_selective_metagraph",
+                params=[netuid, indexes if 0 in indexes else [0] + indexes],
+                block_hash=block_hash,
+            )
+        else:
+            query = self.substrate.runtime_call(
+                "SubnetInfoRuntimeApi",
+                "get_metagraph",
+                params=[netuid],
+                block_hash=block_hash,
+            )
+
         if query.value is None:
             logging.error(f"Subnet {netuid} does not exist.")
             return None
+
         return MetagraphInfo.from_dict(query.value)
 
     def get_all_metagraphs_info(
