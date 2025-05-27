@@ -103,28 +103,25 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
                 continue
             raise
 
-    # wait one tempo (fast block
-    subtensor.wait_for_block(subtensor.block + subtensor.tempo(alice_subnet_netuid))
+    # wait one tempo (fast block)
+    next_epoch_start_block = subtensor.subnets.get_next_epoch_start_block(
+        alice_subnet_netuid
+    )
+    subtensor.wait_for_block(next_epoch_start_block + tempo + 1)
+
+    validators = subtensor.metagraphs.get_metagraph_info(
+        alice_subnet_netuid, field_indices=[72]
+    ).validators
 
     alice_uid = subtensor.subnets.get_uid_for_hotkey_on_subnet(
         hotkey_ss58=alice_wallet.hotkey.ss58_address, netuid=alice_subnet_netuid
     )
-    assert (
-        subtensor.metagraphs.get_metagraph_info(
-            alice_subnet_netuid, field_indices=[72]
-        ).validators[alice_uid]
-        == 1
-    )
+    assert validators[alice_uid] == 1
 
     bob_uid = subtensor.subnets.get_uid_for_hotkey_on_subnet(
         hotkey_ss58=bob_wallet.hotkey.ss58_address, netuid=alice_subnet_netuid
     )
-    assert (
-        subtensor.metagraphs.get_metagraph_info(
-            alice_subnet_netuid, field_indices=[72]
-        ).validators[bob_uid]
-        == 0
-    )
+    assert validators[bob_uid] == 0
 
     while True:
         try:
