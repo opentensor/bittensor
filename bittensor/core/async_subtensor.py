@@ -1830,7 +1830,7 @@ class AsyncSubtensor(SubtensorMixin):
             netuid=netuid, block=block, block_hash=block_hash, reuse_block=reuse_block
         )
 
-        if block and blocks_since_last_step and tempo:
+        if block and blocks_since_last_step is not None and tempo:
             return block - blocks_since_last_step + tempo + 1
         return None
 
