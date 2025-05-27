@@ -2945,6 +2945,7 @@ def test_unstake_success(mocker, subtensor, fake_wallet):
         allow_partial_stake=False,
         rate_tolerance=0.005,
         period=None,
+        unstake_all=False,
     )
     assert result == mock_unstake_extrinsic.return_value
 
@@ -2982,6 +2983,7 @@ def test_unstake_with_safe_staking(mocker, subtensor, fake_wallet):
         allow_partial_stake=True,
         rate_tolerance=fake_rate_tolerance,
         period=None,
+        unstake_all=False,
     )
     assert result == mock_unstake_extrinsic.return_value
 
@@ -3105,6 +3107,7 @@ def test_unstake_multiple_success(mocker, subtensor, fake_wallet):
         wait_for_inclusion=True,
         wait_for_finalization=False,
         period=None,
+        unstake_all=False,
     )
     assert result == mock_unstake_multiple_extrinsic.return_value
 
@@ -3664,3 +3667,54 @@ def test_is_subnet_active(subtensor, mocker, query_return, expected):
     )
 
     assert result == expected
+
+
+# `geg_l_subnet_info` tests
+def test_get_subnet_info_success(mocker, subtensor):
+    """Test get_subnet_info returns correct data when subnet information is found."""
+    # Prep
+    netuid = mocker.Mock()
+    block = mocker.Mock()
+
+    mocker.patch.object(subtensor, "query_runtime_api")
+    mocker.patch.object(
+        subtensor_module.SubnetInfo,
+        "from_dict",
+    )
+
+    # Call
+    result = subtensor.get_subnet_info(netuid=netuid, block=block)
+
+    # Asserts
+    subtensor.query_runtime_api.assert_called_once_with(
+        runtime_api="SubnetInfoRuntimeApi",
+        method="get_subnet_info_v2",
+        params=[netuid],
+        block=block,
+    )
+    subtensor_module.SubnetInfo.from_dict.assert_called_once_with(
+        subtensor.query_runtime_api.return_value,
+    )
+    assert result == subtensor_module.SubnetInfo.from_dict.return_value
+
+
+def test_get_subnet_info_no_data(mocker, subtensor):
+    """Test get_subnet_info returns None."""
+    # Prep
+    netuid = mocker.Mock()
+    block = mocker.Mock()
+    mocker.patch.object(subtensor_module.SubnetInfo, "from_dict")
+    mocker.patch.object(subtensor, "query_runtime_api", return_value=None)
+
+    # Call
+    result = subtensor.get_subnet_info(netuid=netuid, block=block)
+
+    # Asserts
+    subtensor.query_runtime_api.assert_called_once_with(
+        runtime_api="SubnetInfoRuntimeApi",
+        method="get_subnet_info_v2",
+        params=[netuid],
+        block=block,
+    )
+    subtensor_module.SubnetInfo.from_dict.assert_not_called()
+    assert result is None
