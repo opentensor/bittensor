@@ -1423,7 +1423,7 @@ class Subtensor(SubtensorMixin):
         blocks_since_last_step = self.blocks_since_last_step(netuid=netuid, block=block)
         tempo = self.tempo(netuid=netuid, block=block)
 
-        if block and blocks_since_last_step and tempo:
+        if block and blocks_since_last_step is not None and tempo:
             return block - blocks_since_last_step + tempo + 1
         return None
 
