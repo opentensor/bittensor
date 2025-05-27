@@ -24,6 +24,7 @@ class Subnets:
         self.get_next_epoch_start_block = subtensor.get_next_epoch_start_block
         self.get_subnet_burn_cost = subtensor.get_subnet_burn_cost
         self.get_subnet_hyperparameters = subtensor.get_subnet_hyperparameters
+        self.get_subnet_info = subtensor.get_subnet_info
         self.get_subnet_owner_hotkey = subtensor.get_subnet_owner_hotkey
         self.get_subnet_reveal_period_epochs = subtensor.get_subnet_reveal_period_epochs
         self.get_subnet_validator_permits = subtensor.get_subnet_validator_permits
