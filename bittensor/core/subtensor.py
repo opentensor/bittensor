@@ -3756,7 +3756,6 @@ class Subtensor(SubtensorMixin):
         hotkey_ss58: str,
         netuid: int,
         safe_unstaking: bool = False,
-        allow_partial_unstaking: bool = False,
         rate_tolerance: float = 0.005,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -3770,9 +3769,6 @@ class Subtensor(SubtensorMixin):
             netuid: The unique identifier of the subnet.
             safe_unstaking: If true, enables price safety checks to protect against fluctuating prices. The unstake
                 will only execute if the price change doesn't exceed the rate tolerance. Default is False.
-            allow_partial_unstaking: If true and safe_staking is enabled, allows partial unstaking when the full amount
-                would exceed the price tolerance. If false, the entire unstake fails if it would exceed the tolerance.
-                Default is False.
             rate_tolerance: The maximum allowed price change ratio when unstaking. For example, 0.005 = 0.5% maximum
                 price decrease. Only used when safe_staking is True. Default is 0.005.
             wait_for_inclusion: Waits for the transaction to be included in a block. Default is `True`.
