@@ -3719,3 +3719,30 @@ def test_get_subnet_info_no_data(mocker, subtensor):
     )
     subtensor_module.SubnetInfo.from_dict.assert_not_called()
     assert result is None
+
+
+@pytest.mark.parametrize(
+    "call_return, expected",
+    [[10, 111], [None, None], [0, 121]],
+)
+def test_get_next_epoch_start_block(mocker, subtensor, call_return, expected):
+    """Check that get_next_epoch_start_block returns the correct value."""
+    # Prep
+    netuid = mocker.Mock()
+    block = 20
+
+    mocked_blocks_since_last_step = mocker.Mock(return_value=call_return)
+    subtensor.blocks_since_last_step = mocked_blocks_since_last_step
+
+    mocker.patch.object(subtensor, "tempo", return_value=100)
+
+    # Call
+    result = subtensor.get_next_epoch_start_block(netuid=netuid, block=block)
+
+    # Asserts
+    mocked_blocks_since_last_step.assert_called_once_with(
+        netuid=netuid,
+        block=block,
+    )
+    subtensor.tempo.assert_called_once_with(netuid=netuid, block=block)
+    assert result == expected
