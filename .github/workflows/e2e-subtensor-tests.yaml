@@ -128,11 +128,31 @@ jobs:
             fi
           done
 
+  # run non-fast-blocks only on Saturday and by cron schedule
+  check-if-saturday:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    outputs:
+      is-saturday: ${{ steps.check.outputs.is-saturday }}
+    steps:
+      - id: check
+        run: |
+          day=$(date -u +%u)
+          echo "Today is weekday $day"
+          if [ "$day" -ne 6 ]; then
+            echo "⏭️ Skipping: not Saturday"
+            echo "is-saturday=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "is-saturday=true"
+          echo "is-saturday=true" >> "$GITHUB_OUTPUT"
+
 
   cron-run-non-fast-blocks-e2e-test:
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' && needs.check-if-saturday.outputs.is-saturday == 'true'
     name: "NFB: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}"
     needs:
+      - check-if-saturday
       - find-tests
       - pull-docker-image
     runs-on: ubuntu-latest
@@ -148,14 +168,6 @@ jobs:
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
 
     steps:
-      - name: Check if today is Saturday
-        run: |
-          day=$(date -u +%u)
-          echo "Today is weekday $day"
-          if [ "$day" -ne 6 ]; then
-            echo "⏭️ Skipping: not Saturday"
-            exit 78
-          fi
       - name: Check-out repository
         uses: actions/checkout@v4
 
