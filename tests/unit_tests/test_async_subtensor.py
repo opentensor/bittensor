@@ -3314,3 +3314,94 @@ async def test_get_subnet_validator_permits_is_none(subtensor, mocker):
     )
 
     assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_subnet_info_success(mocker, subtensor):
+    """Test get_subnet_info returns correct data when subnet information is found."""
+    # Prep
+    netuid = mocker.Mock()
+    block = mocker.Mock()
+
+    mocker.patch.object(subtensor, "query_runtime_api")
+    mocker.patch.object(
+        async_subtensor.SubnetInfo,
+        "from_dict",
+    )
+
+    # Call
+    result = await subtensor.get_subnet_info(netuid=netuid, block=block)
+
+    # Asserts
+    subtensor.query_runtime_api.assert_awaited_once_with(
+        runtime_api="SubnetInfoRuntimeApi",
+        method="get_subnet_info_v2",
+        params=[netuid],
+        block=block,
+        block_hash=None,
+        reuse_block=False,
+    )
+    async_subtensor.SubnetInfo.from_dict.assert_called_once_with(
+        subtensor.query_runtime_api.return_value,
+    )
+    assert result == async_subtensor.SubnetInfo.from_dict.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_subnet_info_no_data(mocker, subtensor):
+    """Test get_subnet_info returns None."""
+    # Prep
+    netuid = mocker.Mock()
+    block = mocker.Mock()
+    mocker.patch.object(async_subtensor.SubnetInfo, "from_dict")
+    mocker.patch.object(subtensor, "query_runtime_api", return_value=None)
+
+    # Call
+    result = await subtensor.get_subnet_info(netuid=netuid, block=block)
+
+    # Asserts
+    subtensor.query_runtime_api.assert_awaited_once_with(
+        runtime_api="SubnetInfoRuntimeApi",
+        method="get_subnet_info_v2",
+        params=[netuid],
+        block=block,
+        block_hash=None,
+        reuse_block=False,
+    )
+    async_subtensor.SubnetInfo.from_dict.assert_not_called()
+    assert result is None
+
+
+@pytest.mark.parametrize(
+    "call_return, expected",
+    [[10, 111], [None, None], [0, 121]],
+)
+@pytest.mark.asyncio
+async def test_get_next_epoch_start_block(mocker, subtensor, call_return, expected):
+    """Check that get_next_epoch_start_block returns the correct value."""
+    # Prep
+    netuid = mocker.Mock()
+    block = 20
+
+    fake_block_hash = mocker.Mock()
+    mocker.patch.object(subtensor, "get_block_hash", return_value=fake_block_hash)
+
+    mocked_blocks_since_last_step = mocker.AsyncMock(return_value=call_return)
+    subtensor.blocks_since_last_step = mocked_blocks_since_last_step
+
+    mocker.patch.object(subtensor, "tempo", return_value=100)
+
+    # Call
+    result = await subtensor.get_next_epoch_start_block(netuid=netuid, block=block)
+
+    # Asserts
+    mocked_blocks_since_last_step.assert_called_once_with(
+        netuid=netuid,
+        block=block,
+        block_hash=fake_block_hash,
+        reuse_block=False,
+    )
+    subtensor.tempo.assert_awaited_once_with(
+        netuid=netuid, block=block, block_hash=fake_block_hash, reuse_block=False
+    )
+    assert result == expected
