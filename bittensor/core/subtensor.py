@@ -1831,7 +1831,7 @@ class Subtensor(SubtensorMixin):
         value = check_and_convert_to_balance(value)
         call = self.substrate.compose_call(
             call_module="Balances",
-            call_function="transfer_allow_death",
+            call_function="transfer_keep_alive",
             call_params={"dest": dest, "value": value.rao},
         )
 
