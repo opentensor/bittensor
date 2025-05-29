@@ -7,7 +7,6 @@
 * Fix bug in `get_next_epoch_start_block` by @basfroman in https://github.com/opentensor/bittensor/pull/2899
 * e2e workflow: improve skipping logic (no error when skip the job) by @basfroman in https://github.com/opentensor/bittensor/pull/2898
 * Replace `transfer_allow_death` with `transfer_keep_alive` by @basfroman in https://github.com/opentensor/bittensor/pull/2900
-* 9.6.2: Bumps version and changelog by @ibraheem-abe in https://github.com/opentensor/bittensor/pull/2901
 * Fix broken pull request template links (#2867) by @AgSpades in https://github.com/opentensor/bittensor/pull/2883
 * update pr templates with branch ack by @thewhaleking in https://github.com/opentensor/bittensor/pull/2903
 
