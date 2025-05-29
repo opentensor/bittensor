@@ -84,6 +84,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.get_subnet_hyperparameters = (
         subtensor._subtensor.get_subnet_hyperparameters
     )
+    subtensor.get_subnet_info = subtensor._subtensor.get_subnet_info
     subtensor.get_subnet_owner_hotkey = subtensor._subtensor.get_subnet_owner_hotkey
     subtensor.get_subnet_reveal_period_epochs = (
         subtensor._subtensor.get_subnet_reveal_period_epochs

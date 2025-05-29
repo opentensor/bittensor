@@ -1877,7 +1877,7 @@ def test_get_transfer_fee(subtensor, fake_wallet, mocker):
     # Asserts
     subtensor.substrate.compose_call.assert_called_once_with(
         call_module="Balances",
-        call_function="transfer_allow_death",
+        call_function="transfer_keep_alive",
         call_params={"dest": fake_dest, "value": value.rao},
     )
 
@@ -3667,4 +3667,82 @@ def test_is_subnet_active(subtensor, mocker, query_return, expected):
         params=[netuid],
     )
 
+    assert result == expected
+
+
+# `geg_l_subnet_info` tests
+def test_get_subnet_info_success(mocker, subtensor):
+    """Test get_subnet_info returns correct data when subnet information is found."""
+    # Prep
+    netuid = mocker.Mock()
+    block = mocker.Mock()
+
+    mocker.patch.object(subtensor, "query_runtime_api")
+    mocker.patch.object(
+        subtensor_module.SubnetInfo,
+        "from_dict",
+    )
+
+    # Call
+    result = subtensor.get_subnet_info(netuid=netuid, block=block)
+
+    # Asserts
+    subtensor.query_runtime_api.assert_called_once_with(
+        runtime_api="SubnetInfoRuntimeApi",
+        method="get_subnet_info_v2",
+        params=[netuid],
+        block=block,
+    )
+    subtensor_module.SubnetInfo.from_dict.assert_called_once_with(
+        subtensor.query_runtime_api.return_value,
+    )
+    assert result == subtensor_module.SubnetInfo.from_dict.return_value
+
+
+def test_get_subnet_info_no_data(mocker, subtensor):
+    """Test get_subnet_info returns None."""
+    # Prep
+    netuid = mocker.Mock()
+    block = mocker.Mock()
+    mocker.patch.object(subtensor_module.SubnetInfo, "from_dict")
+    mocker.patch.object(subtensor, "query_runtime_api", return_value=None)
+
+    # Call
+    result = subtensor.get_subnet_info(netuid=netuid, block=block)
+
+    # Asserts
+    subtensor.query_runtime_api.assert_called_once_with(
+        runtime_api="SubnetInfoRuntimeApi",
+        method="get_subnet_info_v2",
+        params=[netuid],
+        block=block,
+    )
+    subtensor_module.SubnetInfo.from_dict.assert_not_called()
+    assert result is None
+
+
+@pytest.mark.parametrize(
+    "call_return, expected",
+    [[10, 111], [None, None], [0, 121]],
+)
+def test_get_next_epoch_start_block(mocker, subtensor, call_return, expected):
+    """Check that get_next_epoch_start_block returns the correct value."""
+    # Prep
+    netuid = mocker.Mock()
+    block = 20
+
+    mocked_blocks_since_last_step = mocker.Mock(return_value=call_return)
+    subtensor.blocks_since_last_step = mocked_blocks_since_last_step
+
+    mocker.patch.object(subtensor, "tempo", return_value=100)
+
+    # Call
+    result = subtensor.get_next_epoch_start_block(netuid=netuid, block=block)
+
+    # Asserts
+    mocked_blocks_since_last_step.assert_called_once_with(
+        netuid=netuid,
+        block=block,
+    )
+    subtensor.tempo.assert_called_once_with(netuid=netuid, block=block)
     assert result == expected

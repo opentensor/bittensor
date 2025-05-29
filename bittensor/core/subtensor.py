@@ -1385,7 +1385,7 @@ class Subtensor(SubtensorMixin):
         blocks_since_last_step = self.blocks_since_last_step(netuid=netuid, block=block)
         tempo = self.tempo(netuid=netuid, block=block)
 
-        if block and blocks_since_last_step and tempo:
+        if block and blocks_since_last_step is not None and tempo:
             return block - blocks_since_last_step + tempo + 1
         return None
 
@@ -1506,6 +1506,33 @@ class Subtensor(SubtensorMixin):
             block=block,
         )
         return Balance.from_rao(result)
+
+    def get_subnet_info(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional["SubnetInfo"]:
+        """
+        Retrieves detailed information about subnet within the Bittensor network.
+        This function provides comprehensive data on subnet, including its characteristics and operational parameters.
+
+        Arguments:
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query.
+
+        Returns:
+            SubnetInfo: A SubnetInfo objects, each containing detailed information about a subnet.
+
+        Gaining insights into the subnet's details assists in understanding the network's composition, the roles of
+            different subnets, and their unique features.
+        """
+        result = self.query_runtime_api(
+            runtime_api="SubnetInfoRuntimeApi",
+            method="get_subnet_info_v2",
+            params=[netuid],
+            block=block,
+        )
+        if not result:
+            return None
+        return SubnetInfo.from_dict(result)
 
     def get_unstake_fee(
         self,
@@ -1804,7 +1831,7 @@ class Subtensor(SubtensorMixin):
         value = check_and_convert_to_balance(value)
         call = self.substrate.compose_call(
             call_module="Balances",
-            call_function="transfer_allow_death",
+            call_function="transfer_keep_alive",
             call_params={"dest": dest, "value": value.rao},
         )
 
