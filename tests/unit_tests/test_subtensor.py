@@ -1877,7 +1877,7 @@ def test_get_transfer_fee(subtensor, fake_wallet, mocker):
     # Asserts
     subtensor.substrate.compose_call.assert_called_once_with(
         call_module="Balances",
-        call_function="transfer_allow_death",
+        call_function="transfer_keep_alive",
         call_params={"dest": fake_dest, "value": value.rao},
     )
 
