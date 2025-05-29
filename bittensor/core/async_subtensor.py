@@ -1796,7 +1796,7 @@ class AsyncSubtensor(SubtensorMixin):
             netuid=netuid, block=block, block_hash=block_hash, reuse_block=reuse_block
         )
 
-        if block and blocks_since_last_step and tempo:
+        if block and blocks_since_last_step is not None and tempo:
             return block - blocks_since_last_step + tempo + 1
         return None
 
@@ -1920,6 +1920,42 @@ class AsyncSubtensor(SubtensorMixin):
             block=block,
         )
         return Balance.from_rao(result)
+
+    async def get_subnet_info(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional["SubnetInfo"]:
+        """
+        Retrieves detailed information about subnet within the Bittensor network.
+        This function provides comprehensive data on subnet, including its characteristics and operational parameters.
+
+        Arguments:
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query.
+            block_hash (Optional[str]): The hash of the block to retrieve the stake from. Do not specify if using block
+                or reuse_block
+            reuse_block (bool): Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            SubnetInfo: A SubnetInfo objects, each containing detailed information about a subnet.
+
+        Gaining insights into the subnet's details assists in understanding the network's composition, the roles of
+            different subnets, and their unique features.
+        """
+        result = await self.query_runtime_api(
+            runtime_api="SubnetInfoRuntimeApi",
+            method="get_subnet_info_v2",
+            params=[netuid],
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        if not result:
+            return None
+        return SubnetInfo.from_dict(result)
 
     async def get_unstake_fee(
         self,
