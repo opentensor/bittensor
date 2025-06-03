@@ -986,11 +986,11 @@ class AsyncSubtensor(SubtensorMixin):
             storage function to get the children and formats them before returning as a tuple.
 
         Arguments:
-            hotkey (str): The child hotkey SS58.
-            netuid (int): The netuid value.
-            block (Optional[int]): The block number for which the children are to be retrieved.
-            block_hash (Optional[str]): The hash of the block to retrieve the subnet unique identifiers from.
-            reuse_block (bool): Whether to reuse the last-used block hash.
+            hotkey: The child hotkey SS58.
+            netuid: The netuid value.
+            block: The block number for which the children are to be retrieved.
+            block_hash: The hash of the block to retrieve the subnet unique identifiers from.
+            reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
             A list of formatted parents [(proportion, parent)]
@@ -1011,8 +1011,8 @@ class AsyncSubtensor(SubtensorMixin):
                 normalized_proportion = u64_normalized_float(proportion)
                 formatted_parents.append((normalized_proportion, formatted_child))
             return formatted_parents
-        else:
-            return []
+
+        return []
 
     async def get_children(
         self,
