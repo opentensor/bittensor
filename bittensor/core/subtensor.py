@@ -779,9 +779,9 @@ class Subtensor(SubtensorMixin):
                 formatted_child = decode_account_id(parent[0])
                 normalized_proportion = u64_normalized_float(proportion)
                 formatted_parents.append((normalized_proportion, formatted_child))
-            return True, formatted_parents, ""
+            return formatted_parents
         else:
-            return True, [], ""
+            return []
 
     def get_children(
         self, hotkey: str, netuid: int, block: Optional[int] = None
