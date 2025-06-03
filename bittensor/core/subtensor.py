@@ -30,6 +30,7 @@ from bittensor.core.chain_data import (
 )
 from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.utils import (
+    decode_block,
     decode_metadata,
     decode_revealed_commitment,
     decode_revealed_commitment_with_hotkey,
@@ -913,7 +914,9 @@ class Subtensor(SubtensorMixin):
             )
             return None
         block = get_last_bonds_reset(self, netuid, hotkey)
-        return block.value
+        if block is None:
+            return None
+        return decode_block(block)
 
     def get_all_commitments(
         self, netuid: int, block: Optional[int] = None
