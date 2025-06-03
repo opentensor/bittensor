@@ -973,6 +973,47 @@ class AsyncSubtensor(SubtensorMixin):
         else:
             return await self.substrate.get_chain_head()
 
+    async def get_parents(
+        self,
+        hotkey: str,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> list[tuple[float, str]]:
+        """
+        This method retrieves the parent of a given hotkey and netuid. It queries the SubtensorModule's ParentKeys
+            storage function to get the children and formats them before returning as a tuple.
+
+        Arguments:
+            hotkey: The child hotkey SS58.
+            netuid: The netuid value.
+            block: The block number for which the children are to be retrieved.
+            block_hash: The hash of the block to retrieve the subnet unique identifiers from.
+            reuse_block: Whether to reuse the last-used block hash.
+
+        Returns:
+            A list of formatted parents [(proportion, parent)]
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        parents = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="ParentKeys",
+            params=[hotkey, netuid],
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+        if parents:
+            formatted_parents = []
+            for proportion, parent in parents.value:
+                # Convert U64 to int
+                formatted_child = decode_account_id(parent[0])
+                normalized_proportion = u64_normalized_float(proportion)
+                formatted_parents.append((normalized_proportion, formatted_child))
+            return formatted_parents
+
+        return []
+
     async def get_children(
         self,
         hotkey: str,
