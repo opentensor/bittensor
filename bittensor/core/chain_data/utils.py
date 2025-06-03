@@ -140,6 +140,18 @@ def decode_metadata(metadata: dict) -> str:
     return bytes(bytes_tuple).decode()
 
 
+def decode_block(data: bytes) -> int:
+    """
+    Decode the block data from the given input if it is not None.
+    Arguments:
+        data (bytes): The block data to decode.
+    Returns:
+        int: The decoded block.
+    """
+
+    return int.from_bytes(block)
+
+
 def decode_revealed_commitment(encoded_data) -> tuple[int, str]:
     """
     Decode the revealed commitment data from the given input if it is not None.
