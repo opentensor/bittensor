@@ -997,26 +997,23 @@ class AsyncSubtensor(SubtensorMixin):
                 parents [(proportion, parent)], and an error message (if applicable)
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        try:
-            parents = await self.substrate.query(
-                module="SubtensorModule",
-                storage_function="ParentKeys",
-                params=[hotkey, netuid],
-                block_hash=block_hash,
-                reuse_block_hash=reuse_block,
-            )
-            if parents:
-                formatted_parents = []
-                for proportion, parent in parents.value:
-                    # Convert U64 to int
-                    formatted_child = decode_account_id(parent[0])
-                    normalized_proportion = u64_normalized_float(proportion)
-                    formatted_parents.append((normalized_proportion, formatted_child))
-                return True, formatted_parents, ""
-            else:
-                return True, [], ""
-        except SubstrateRequestException as e:
-            return False, [], format_error_message(e)
+        parents = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="ParentKeys",
+            params=[hotkey, netuid],
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+        if parents:
+            formatted_parents = []
+            for proportion, parent in parents.value:
+                # Convert U64 to int
+                formatted_child = decode_account_id(parent[0])
+                normalized_proportion = u64_normalized_float(proportion)
+                formatted_parents.append((normalized_proportion, formatted_child))
+            return True, formatted_parents, ""
+        else:
+            return True, [], ""
 
     async def get_children(
         self,

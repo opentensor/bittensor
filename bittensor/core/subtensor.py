@@ -767,25 +767,22 @@ class Subtensor(SubtensorMixin):
             A tuple containing a boolean indicating success or failure, a list of formatted
                 parents [(proportion, parent)], and an error message (if applicable)
         """
-        try:
-            parents = self.substrate.query(
-                module="SubtensorModule",
-                storage_function="ParentKeys",
-                params=[hotkey, netuid],
-                block_hash=self.determine_block_hash(block),
-            )
-            if parents:
-                formatted_parents = []
-                for proportion, parent in parents.value:
-                    # Convert U64 to int
-                    formatted_child = decode_account_id(parent[0])
-                    normalized_proportion = u64_normalized_float(proportion)
-                    formatted_parents.append((normalized_proportion, formatted_child))
-                return True, formatted_parents, ""
-            else:
-                return True, [], ""
-        except SubstrateRequestException as e:
-            return False, [], format_error_message(e)
+        parents = self.substrate.query(
+            module="SubtensorModule",
+            storage_function="ParentKeys",
+            params=[hotkey, netuid],
+            block_hash=self.determine_block_hash(block),
+        )
+        if parents:
+            formatted_parents = []
+            for proportion, parent in parents.value:
+                # Convert U64 to int
+                formatted_child = decode_account_id(parent[0])
+                normalized_proportion = u64_normalized_float(proportion)
+                formatted_parents.append((normalized_proportion, formatted_child))
+            return True, formatted_parents, ""
+        else:
+            return True, [], ""
 
     def get_children(
         self, hotkey: str, netuid: int, block: Optional[int] = None
