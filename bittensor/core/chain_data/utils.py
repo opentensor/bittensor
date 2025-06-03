@@ -148,8 +148,7 @@ def decode_block(data: bytes) -> int:
     Returns:
         int: The decoded block.
     """
-
-    return int.from_bytes(block)
+    return int(data.value) if isinstance(data, ScaleBytes) else data
 
 
 def decode_revealed_commitment(encoded_data) -> tuple[int, str]:
