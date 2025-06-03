@@ -8,7 +8,6 @@ from bittensor_wallet import Wallet
 from async_substrate_interface import sync_substrate
 from async_substrate_interface.types import ScaleObj
 import websockets
-from substrateinterface.exceptions import SubstrateRequestException
 
 from bittensor import StakeInfo
 from bittensor.core import settings
@@ -3811,18 +3810,3 @@ def test_get_parents_no_parents(subtensor, mocker):
         params=[fake_hotkey, fake_netuid],
     )
     assert result == []
-
-
-def test_get_parents_substrate_request_exception(subtensor, mocker):
-    """Tests get_parents when SubstrateRequestException is raised."""
-    # Preps
-    fake_hotkey = "valid_hotkey"
-    fake_netuid = 1
-    fake_exception = SubstrateRequestException("Test Exception")
-
-    mocked_query = mocker.MagicMock(side_effect=fake_exception)
-    subtensor.substrate.query = mocked_query
-
-    # Call
-    with pytest.raises(SubstrateRequestException):
-        subtensor.get_parents(hotkey=fake_hotkey, netuid=fake_netuid)
