@@ -14,6 +14,7 @@ class Subnets:
         self.bonds = subtensor.bonds
         self.difficulty = subtensor.difficulty
         self.get_all_subnets_info = subtensor.get_all_subnets_info
+        self.get_parents = subtensor.get_parents
         self.get_children = subtensor.get_children
         self.get_children_pending = subtensor.get_children_pending
         self.get_current_weight_commit_info = subtensor.get_current_weight_commit_info
