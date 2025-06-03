@@ -980,7 +980,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> tuple[bool, list[tuple[float, str]], str]:
+    ) -> list[tuple[float, str]]:
         """
         This method retrieves the parent of a given hotkey and netuid. It queries the SubtensorModule's ParentKeys
             storage function to get the children and formats them before returning as a tuple.
@@ -993,8 +993,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block (bool): Whether to reuse the last-used block hash.
 
         Returns:
-            A tuple containing a boolean indicating success or failure, a list of formatted
-                parents [(proportion, parent)], and an error message (if applicable)
+            A list of formatted parents [(proportion, parent)]
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         parents = await self.substrate.query(
@@ -1011,9 +1010,9 @@ class AsyncSubtensor(SubtensorMixin):
                 formatted_child = decode_account_id(parent[0])
                 normalized_proportion = u64_normalized_float(proportion)
                 formatted_parents.append((normalized_proportion, formatted_child))
-            return True, formatted_parents, ""
+            return formatted_parents
         else:
-            return True, [], ""
+            return []
 
     async def get_children(
         self,

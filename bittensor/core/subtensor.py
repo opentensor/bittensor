@@ -753,7 +753,7 @@ class Subtensor(SubtensorMixin):
 
     def get_parents(
         self, hotkey: str, netuid: int, block: Optional[int] = None
-    ) -> tuple[bool, list[tuple[float, str]], str]:
+    ) -> list[tuple[float, str]]:
         """
         This method retrieves the parent of a given hotkey and netuid. It queries the SubtensorModule's ParentKeys
             storage function to get the children and formats them before returning as a tuple.
@@ -764,8 +764,7 @@ class Subtensor(SubtensorMixin):
             block (Optional[int]): The block number for which the children are to be retrieved.
 
         Returns:
-            A tuple containing a boolean indicating success or failure, a list of formatted
-                parents [(proportion, parent)], and an error message (if applicable)
+            A list of formatted parents [(proportion, parent)]
         """
         parents = self.substrate.query(
             module="SubtensorModule",

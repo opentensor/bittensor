@@ -2021,7 +2021,7 @@ async def test_get_parents_success(subtensor, mocker):
     mocked_decode_account_id.assert_has_calls(
         [mocker.call("parent_key_1"), mocker.call("parent_key_2")]
     )
-    assert result == (True, expected_formatted_parents, "")
+    assert result == expected_formatted_parents
 
 
 @pytest.mark.asyncio
@@ -2046,7 +2046,7 @@ async def test_get_parents_no_parents(subtensor, mocker):
         params=[fake_hotkey, fake_netuid],
         reuse_block_hash=False,
     )
-    assert result == (True, [], "")
+    assert result == []
 
 
 @pytest.mark.asyncio
@@ -2060,24 +2060,9 @@ async def test_get_parents_substrate_request_exception(subtensor, mocker):
     mocked_query = mocker.AsyncMock(side_effect=fake_exception)
     subtensor.substrate.query = mocked_query
 
-    mocked_format_error_message = mocker.Mock(return_value="Formatted error message")
-    mocker.patch.object(
-        async_subtensor, "format_error_message", mocked_format_error_message
-    )
-
     # Call
-    result = await subtensor.get_parents(hotkey=fake_hotkey, netuid=fake_netuid)
-
-    # Asserts
-    mocked_query.assert_called_once_with(
-        block_hash=None,
-        module="SubtensorModule",
-        storage_function="ParentKeys",
-        params=[fake_hotkey, fake_netuid],
-        reuse_block_hash=False,
-    )
-    mocked_format_error_message.assert_called_once_with(fake_exception)
-    assert result == (False, [], "Formatted error message")
+    with pytest.raises(async_subtensor.SubstrateRequestException):
+        await subtensor.get_parents(hotkey=fake_hotkey, netuid=fake_netuid)
 
 
 @pytest.mark.asyncio

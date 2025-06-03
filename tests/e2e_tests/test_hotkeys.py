@@ -276,12 +276,8 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
     assert success is True
     assert children == [(1.0, bob_wallet.hotkey.ss58_address)]
 
-    success_, parent_, error_ = subtensor.get_parents(
-        bob_wallet.hotkey.ss58_address, dave_subnet_netuid
-    )
+    parent_ = subtensor.get_parents(bob_wallet.hotkey.ss58_address, dave_subnet_netuid)
 
-    assert error_ == ""
-    assert success_ is True
     assert parent_ == [(1.0, alice_wallet.hotkey.ss58_address)]
 
     # pending queue is empty

@@ -8,6 +8,7 @@ from bittensor_wallet import Wallet
 from async_substrate_interface import sync_substrate
 from async_substrate_interface.types import ScaleObj
 import websockets
+from substrateinterface.exceptions import SubstrateRequestException
 
 from bittensor import StakeInfo
 from bittensor.core import settings
@@ -3786,7 +3787,7 @@ def test_get_parents_success(subtensor, mocker):
     mocked_decode_account_id.assert_has_calls(
         [mocker.call("parent_key_1"), mocker.call("parent_key_2")]
     )
-    assert result == (True, expected_formatted_parents, "")
+    assert result == expected_formatted_parents
 
 
 def test_get_parents_no_parents(subtensor, mocker):
@@ -3809,7 +3810,7 @@ def test_get_parents_no_parents(subtensor, mocker):
         storage_function="ParentKeys",
         params=[fake_hotkey, fake_netuid],
     )
-    assert result == (True, [], "")
+    assert result == []
 
 
 def test_get_parents_substrate_request_exception(subtensor, mocker):
@@ -3817,25 +3818,11 @@ def test_get_parents_substrate_request_exception(subtensor, mocker):
     # Preps
     fake_hotkey = "valid_hotkey"
     fake_netuid = 1
-    fake_exception = subtensor_module.SubstrateRequestException("Test Exception")
+    fake_exception = SubstrateRequestException("Test Exception")
 
     mocked_query = mocker.MagicMock(side_effect=fake_exception)
     subtensor.substrate.query = mocked_query
 
-    mocked_format_error_message = mocker.Mock(return_value="Formatted error message")
-    mocker.patch.object(
-        subtensor_module, "format_error_message", mocked_format_error_message
-    )
-
     # Call
-    result = subtensor.get_parents(hotkey=fake_hotkey, netuid=fake_netuid)
-
-    # Asserts
-    mocked_query.assert_called_once_with(
-        block_hash=None,
-        module="SubtensorModule",
-        storage_function="ParentKeys",
-        params=[fake_hotkey, fake_netuid],
-    )
-    mocked_format_error_message.assert_called_once_with(fake_exception)
-    assert result == (False, [], "Formatted error message")
+    with pytest.raises(SubstrateRequestException):
+        subtensor.get_parents(hotkey=fake_hotkey, netuid=fake_netuid)
