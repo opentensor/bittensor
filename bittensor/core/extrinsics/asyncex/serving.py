@@ -320,3 +320,21 @@ async def get_metadata(
             reuse_block_hash=reuse_block,
         )
     return commit_data
+
+
+async def get_last_bonds_reset(
+    subtensor: "AsyncSubtensor",
+    netuid: int,
+    hotkey: str,
+    block: Optional[int] = None,
+) -> bytes:
+    """Fetches the last bonds reset triggered at commitment from the blockchain for a given hotkey and netuid."""
+    async with subtensor.substrate:
+        block_hash = await subtensor.determine_block_hash(block)
+        block = subtensor.substrate.query(
+            module="Commitments",
+            storage_function="LastBondsReset",
+            params=[netuid, hotkey],
+            block_hash=block_hash,
+        )
+    return block
