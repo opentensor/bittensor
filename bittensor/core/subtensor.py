@@ -1226,9 +1226,7 @@ class Subtensor(SubtensorMixin):
     def get_metagraph_info(
         self,
         netuid: int,
-        field_indices: Optional[
-            Union[list[SelectiveMetagraphIndex], list[int]]
-        ] = None,
+        field_indices: Optional[Union[list[SelectiveMetagraphIndex], list[int]]] = None,
         block: Optional[int] = None,
     ) -> Optional[MetagraphInfo]:
         """
