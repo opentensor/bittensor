@@ -1265,7 +1265,7 @@ class Subtensor(SubtensorMixin):
                 ]
             else:
                 raise ValueError(
-                    "`field_indices` must be a list of SelectiveMetagraphIndex items."
+                    "`field_indices` must be a list of SelectiveMetagraphIndex enums or ints."
                 )
 
             query = self.substrate.runtime_call(
