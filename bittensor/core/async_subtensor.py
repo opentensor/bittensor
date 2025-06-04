@@ -1587,7 +1587,7 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         netuid: int,
         field_indices: Optional[
-            Union[list["SelectiveMetagraphIndex"], list[int]]
+            Union[list[SelectiveMetagraphIndex], list[int]]
         ] = None,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
