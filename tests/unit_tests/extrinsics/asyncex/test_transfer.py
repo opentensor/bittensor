@@ -32,7 +32,7 @@ async def test_do_transfer_success(subtensor, fake_wallet, mocker):
     # Asserts
     subtensor.substrate.compose_call.assert_awaited_once_with(
         call_module="Balances",
-        call_function="transfer_allow_death",
+        call_function="transfer_keep_alive",
         call_params={"dest": fake_destination, "value": fake_amount.rao},
     )
 
@@ -77,7 +77,7 @@ async def test_do_transfer_failure(subtensor, fake_wallet, mocker):
     # Asserts
     subtensor.substrate.compose_call.assert_awaited_once_with(
         call_module="Balances",
-        call_function="transfer_allow_death",
+        call_function="transfer_keep_alive",
         call_params={"dest": fake_destination, "value": fake_amount.rao},
     )
 
@@ -124,7 +124,7 @@ async def test_do_transfer_no_waiting(subtensor, fake_wallet, mocker):
     # Asserts
     subtensor.substrate.compose_call.assert_awaited_once_with(
         call_module="Balances",
-        call_function="transfer_allow_death",
+        call_function="transfer_keep_alive",
         call_params={"dest": fake_destination, "value": fake_amount.rao},
     )
 

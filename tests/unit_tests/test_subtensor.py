@@ -1877,7 +1877,7 @@ def test_get_transfer_fee(subtensor, fake_wallet, mocker):
     # Asserts
     subtensor.substrate.compose_call.assert_called_once_with(
         call_module="Balances",
-        call_function="transfer_allow_death",
+        call_function="transfer_keep_alive",
         call_params={"dest": fake_dest, "value": value.rao},
     )
 
@@ -3720,3 +3720,94 @@ def test_get_subnet_info_no_data(mocker, subtensor):
     )
     subtensor_module.SubnetInfo.from_dict.assert_not_called()
     assert result is None
+
+
+@pytest.mark.parametrize(
+    "call_return, expected",
+    [[10, 111], [None, None], [0, 121]],
+)
+def test_get_next_epoch_start_block(mocker, subtensor, call_return, expected):
+    """Check that get_next_epoch_start_block returns the correct value."""
+    # Prep
+    netuid = mocker.Mock()
+    block = 20
+
+    mocked_blocks_since_last_step = mocker.Mock(return_value=call_return)
+    subtensor.blocks_since_last_step = mocked_blocks_since_last_step
+
+    mocker.patch.object(subtensor, "tempo", return_value=100)
+
+    # Call
+    result = subtensor.get_next_epoch_start_block(netuid=netuid, block=block)
+
+    # Asserts
+    mocked_blocks_since_last_step.assert_called_once_with(
+        netuid=netuid,
+        block=block,
+    )
+    subtensor.tempo.assert_called_once_with(netuid=netuid, block=block)
+    assert result == expected
+
+
+def test_get_parents_success(subtensor, mocker):
+    """Tests get_parents when parents are successfully retrieved and formatted."""
+    # Preps
+    fake_hotkey = "valid_hotkey"
+    fake_netuid = 1
+    fake_parents = mocker.Mock(
+        value=[
+            (1000, ["parent_key_1"]),
+            (2000, ["parent_key_2"]),
+        ]
+    )
+
+    mocked_query = mocker.MagicMock(return_value=fake_parents)
+    subtensor.substrate.query = mocked_query
+
+    mocked_decode_account_id = mocker.Mock(
+        side_effect=["decoded_parent_key_1", "decoded_parent_key_2"]
+    )
+    mocker.patch.object(subtensor_module, "decode_account_id", mocked_decode_account_id)
+
+    expected_formatted_parents = [
+        (u64_normalized_float(1000), "decoded_parent_key_1"),
+        (u64_normalized_float(2000), "decoded_parent_key_2"),
+    ]
+
+    # Call
+    result = subtensor.get_parents(hotkey=fake_hotkey, netuid=fake_netuid)
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        block_hash=None,
+        module="SubtensorModule",
+        storage_function="ParentKeys",
+        params=[fake_hotkey, fake_netuid],
+    )
+    mocked_decode_account_id.assert_has_calls(
+        [mocker.call("parent_key_1"), mocker.call("parent_key_2")]
+    )
+    assert result == expected_formatted_parents
+
+
+def test_get_parents_no_parents(subtensor, mocker):
+    """Tests get_parents when there are no parents to retrieve."""
+    # Preps
+    fake_hotkey = "valid_hotkey"
+    fake_netuid = 1
+    fake_parents = []
+
+    mocked_query = mocker.MagicMock(return_value=fake_parents)
+    subtensor.substrate.query = mocked_query
+
+    # Call
+    result = subtensor.get_parents(hotkey=fake_hotkey, netuid=fake_netuid)
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        block_hash=None,
+        module="SubtensorModule",
+        storage_function="ParentKeys",
+        params=[fake_hotkey, fake_netuid],
+    )
+    assert result == []
