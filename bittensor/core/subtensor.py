@@ -752,6 +752,38 @@ class Subtensor(SubtensorMixin):
 
         return getattr(result, "value", result)
 
+    def get_parents(
+        self, hotkey: str, netuid: int, block: Optional[int] = None
+    ) -> list[tuple[float, str]]:
+        """
+        This method retrieves the parent of a given hotkey and netuid. It queries the SubtensorModule's ParentKeys
+            storage function to get the children and formats them before returning as a tuple.
+
+        Arguments:
+            hotkey: The child hotkey SS58.
+            netuid: The netuid.
+            block: The block number for which the children are to be retrieved.
+
+        Returns:
+            A list of formatted parents [(proportion, parent)]
+        """
+        parents = self.substrate.query(
+            module="SubtensorModule",
+            storage_function="ParentKeys",
+            params=[hotkey, netuid],
+            block_hash=self.determine_block_hash(block),
+        )
+        if parents:
+            formatted_parents = []
+            for proportion, parent in parents.value:
+                # Convert U64 to int
+                formatted_child = decode_account_id(parent[0])
+                normalized_proportion = u64_normalized_float(proportion)
+                formatted_parents.append((normalized_proportion, formatted_child))
+            return formatted_parents
+
+        return []
+
     def get_children(
         self, hotkey: str, netuid: int, block: Optional[int] = None
     ) -> tuple[bool, list[tuple[float, str]], str]:
@@ -1871,7 +1903,7 @@ class Subtensor(SubtensorMixin):
         value = check_and_convert_to_balance(value)
         call = self.substrate.compose_call(
             call_module="Balances",
-            call_function="transfer_allow_death",
+            call_function="transfer_keep_alive",
             call_params={"dest": dest, "value": value.rao},
         )
 

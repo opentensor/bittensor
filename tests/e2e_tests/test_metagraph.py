@@ -201,7 +201,7 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
 
     metagraph_info = subtensor.get_metagraph_info(netuid=1, block=1)
 
-    assert metagraph_info == MetagraphInfo(
+    expected_metagraph_info = MetagraphInfo(
         netuid=1,
         name="apex",
         symbol="α",
@@ -214,15 +214,15 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
         last_step=0,
         blocks_since_last_step=1,
         subnet_emission=Balance(0),
-        alpha_in=Balance.from_tao(10).set_unit(netuid=alice_subnet_netuid),
-        alpha_out=Balance.from_tao(1).set_unit(netuid=alice_subnet_netuid),
+        alpha_in=Balance.from_tao(10).set_unit(1),
+        alpha_out=Balance.from_tao(1).set_unit(1),
         tao_in=Balance.from_tao(10),
-        alpha_out_emission=Balance(0).set_unit(netuid=alice_subnet_netuid),
-        alpha_in_emission=Balance(0).set_unit(netuid=alice_subnet_netuid),
+        alpha_out_emission=Balance(0).set_unit(1),
+        alpha_in_emission=Balance(0).set_unit(1),
         tao_in_emission=Balance(0),
-        pending_alpha_emission=Balance(0).set_unit(netuid=alice_subnet_netuid),
+        pending_alpha_emission=Balance(0).set_unit(1),
         pending_root_emission=Balance(0),
-        subnet_volume=Balance(0).set_unit(netuid=alice_subnet_netuid),
+        subnet_volume=Balance(0).set_unit(1),
         moving_price=Balance(0),
         rho=10,
         kappa=32767,
@@ -234,7 +234,7 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
         max_validators=64,
         num_uids=1,
         max_uids=256,
-        burn=Balance.from_tao(1),
+        burn=Balance.from_tao(0.1),
         difficulty=5.421010862427522e-13,
         registration_allowed=True,
         pow_registration_allowed=False,
@@ -273,28 +273,30 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
         validator_permit=(False,),
         pruning_score=[0.0],
         last_update=(0,),
-        emission=[Balance(0).set_unit(alice_subnet_netuid)],
+        emission=[Balance(0).set_unit(1)],
         dividends=[0.0],
         incentives=[0.0],
         consensus=[0.0],
         trust=[0.0],
         rank=[0.0],
         block_at_registration=(0,),
-        alpha_stake=[Balance.from_tao(1.0).set_unit(alice_subnet_netuid)],
+        alpha_stake=[Balance.from_tao(1.0).set_unit(1)],
         tao_stake=[Balance(0)],
-        total_stake=[Balance.from_tao(1.0).set_unit(alice_subnet_netuid)],
+        total_stake=[Balance.from_tao(1.0).set_unit(1)],
         tao_dividends_per_hotkey=[
             ("5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM", Balance(0))
         ],
         alpha_dividends_per_hotkey=[
-            ("5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM", Balance(0))
+            ("5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM", Balance(0).set_unit(1))
         ],
         validators=None,
     )
 
+    assert metagraph_info == expected_metagraph_info
+
     metagraph_infos = subtensor.get_all_metagraphs_info(block=1)
 
-    assert metagraph_infos == [
+    expected_metagraph_infos = [
         MetagraphInfo(
             netuid=0,
             name="root",
@@ -308,11 +310,11 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
             last_step=0,
             blocks_since_last_step=1,
             subnet_emission=Balance(0),
-            alpha_in=Balance(0).set_unit(netuid=alice_subnet_netuid),
-            alpha_out=Balance(0).set_unit(netuid=alice_subnet_netuid),
+            alpha_in=Balance(0),
+            alpha_out=Balance(0),
             tao_in=Balance(0),
-            alpha_out_emission=Balance(0).set_unit(netuid=alice_subnet_netuid),
-            alpha_in_emission=Balance(0).set_unit(netuid=alice_subnet_netuid),
+            alpha_out_emission=Balance(0),
+            alpha_in_emission=Balance(0),
             tao_in_emission=Balance(0),
             pending_alpha_emission=Balance(0),
             pending_root_emission=Balance(0),
@@ -328,7 +330,7 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
             max_validators=64,
             num_uids=0,
             max_uids=64,
-            burn=Balance.from_tao(1),
+            burn=Balance.from_tao(0.1),
             difficulty=5.421010862427522e-13,
             registration_allowed=True,
             pow_registration_allowed=False,
@@ -372,6 +374,8 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
         ),
         metagraph_info,
     ]
+
+    assert metagraph_infos == expected_metagraph_infos
 
     assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
 
@@ -435,6 +439,8 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
     metagraph_info = subtensor.get_metagraph_info(netuid=alice_subnet_netuid + 1)
 
     assert metagraph_info is None
+
+    logging.console.info("✅ Passed test_metagraph_info")
 
 
 def test_metagraph_info_with_indexes(subtensor, alice_wallet, bob_wallet):
