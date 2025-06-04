@@ -1586,9 +1586,7 @@ class AsyncSubtensor(SubtensorMixin):
     async def get_metagraph_info(
         self,
         netuid: int,
-        field_indices: Optional[
-            Union[list[SelectiveMetagraphIndex], list[int]]
-        ] = None,
+        field_indices: Optional[Union[list[SelectiveMetagraphIndex], list[int]]] = None,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
