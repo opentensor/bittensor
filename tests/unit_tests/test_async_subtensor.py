@@ -3238,7 +3238,7 @@ async def test_get_metagraph_info_invalid_field_indices(subtensor, wrong_fields)
     """Test get_metagraph_info raises ValueError on invalid field_indices."""
     with pytest.raises(
         ValueError,
-        match="`field_indices` must be a list of SelectiveMetagraphIndex items.",
+        match="`field_indices` must be a list of SelectiveMetagraphIndex enums or ints.",
     ):
         await subtensor.get_metagraph_info(netuid=1, field_indices=wrong_fields)
 
