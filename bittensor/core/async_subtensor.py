@@ -4192,7 +4192,7 @@ class AsyncSubtensor(SubtensorMixin):
             block_time (float): The number of seconds for block duration. Default is 12.0 seconds.
             period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction. Default is 16.
+                and be rejected. You can think of it as an expiration date for the transaction. Default is 8.
 
         Returns:
             tuple[bool, str]: ``True`` if the setting of weights is successful, False otherwise. And `msg`, a string
