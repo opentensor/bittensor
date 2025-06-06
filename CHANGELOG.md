@@ -1,6 +1,6 @@
 # Changelog
 
-## 9.7.0 /2025-06-06
+## 9.7.1 /2025-06-06
 
 ## What's Changed
 * Update e2e-tests (metagraph_info, staking) by @basfroman in https://github.com/opentensor/bittensor/pull/2907
