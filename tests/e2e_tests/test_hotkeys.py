@@ -69,7 +69,7 @@ def test_hotkeys(subtensor, alice_wallet, dave_wallet):
         )
         is True
     )
-    logging.console.success(f"✅ Test [green]test_hotkeys[/green] passed")
+    logging.console.success("✅ Test [green]test_hotkeys[/green] passed")
 
 
 @pytest.mark.asyncio
@@ -275,6 +275,10 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
     assert error == ""
     assert success is True
     assert children == [(1.0, bob_wallet.hotkey.ss58_address)]
+
+    parent_ = subtensor.get_parents(bob_wallet.hotkey.ss58_address, dave_subnet_netuid)
+
+    assert parent_ == [(1.0, alice_wallet.hotkey.ss58_address)]
 
     # pending queue is empty
     pending, cooldown = subtensor.get_children_pending(

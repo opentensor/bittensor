@@ -1,5 +1,20 @@
 # Changelog
 
+## 9.7.0 /2025-05-29
+
+## What's Changed
+* Add `get_subnet_info` by @basfroman in https://github.com/opentensor/bittensor/pull/2894
+* Fix bug in `get_next_epoch_start_block` by @basfroman in https://github.com/opentensor/bittensor/pull/2899
+* e2e workflow: improve skipping logic (no error when skip the job) by @basfroman in https://github.com/opentensor/bittensor/pull/2898
+* Replace `transfer_allow_death` with `transfer_keep_alive` by @basfroman in https://github.com/opentensor/bittensor/pull/2900
+* Fix broken pull request template links (#2867) by @AgSpades in https://github.com/opentensor/bittensor/pull/2883
+* update pr templates with branch ack by @thewhaleking in https://github.com/opentensor/bittensor/pull/2903
+
+## New Contributors
+* @AgSpades made their first contribution in https://github.com/opentensor/bittensor/pull/2883
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.6.1...v9.7.0
+
 ## 9.6.1 /2025-05-22
 
 ## What's Changed
