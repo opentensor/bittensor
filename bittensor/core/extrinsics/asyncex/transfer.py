@@ -45,7 +45,7 @@ async def _do_transfer(
     """
     call = await subtensor.substrate.compose_call(
         call_module="Balances",
-        call_function="transfer_allow_death",
+        call_function="transfer_keep_alive",
         call_params={"dest": destination, "value": amount.rao},
     )
 
