@@ -715,9 +715,8 @@ class AsyncSubtensor(SubtensorMixin):
             netuid (int): The unique identifier of the subnetwork.
             data (str): The data to be committed to the network.
             period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
-                submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
 
         Return:
             bool: `True` if the commit was successful, `False` otherwise.
