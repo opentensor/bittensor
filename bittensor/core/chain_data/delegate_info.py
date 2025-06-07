@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from typing import Optional
 
 from bittensor.core.chain_data.info_base import InfoBase
-from bittensor.core.chain_data.utils import decode_account_id
 from bittensor.utils import u16_normalized_float
 from bittensor.utils.balance import Balance
 
@@ -49,14 +48,14 @@ class DelegateInfo(DelegateInfoBase):
 
     @classmethod
     def _from_dict(cls, decoded: dict) -> Optional["DelegateInfo"]:
-        hotkey = decode_account_id(decoded.get("delegate_ss58"))
-        owner = decode_account_id(decoded.get("owner_ss58"))
+        hotkey = decoded.get("delegate_ss58")
+        owner = decoded.get("owner_ss58")
 
         nominators = {}
         total_stake_by_netuid = {}
 
         for raw_nominator, raw_stakes in decoded.get("nominators", []):
-            nominator_ss58 = decode_account_id(raw_nominator)
+            nominator_ss58 = raw_nominator
             stakes = {
                 int(netuid): Balance.from_rao(stake_amt).set_unit(int(netuid))
                 for (netuid, stake_amt) in raw_stakes
@@ -100,8 +99,8 @@ class DelegatedInfo(DelegateInfoBase):
         cls, decoded: tuple[dict, tuple[int, int]]
     ) -> Optional["DelegatedInfo"]:
         delegate_info, (netuid, stake) = decoded
-        hotkey = decode_account_id(delegate_info.get("delegate_ss58"))
-        owner = decode_account_id(delegate_info.get("owner_ss58"))
+        hotkey = delegate_info.get("delegate_ss58")
+        owner = delegate_info.get("owner_ss58")
         return cls(
             hotkey_ss58=hotkey,
             owner_ss58=owner,

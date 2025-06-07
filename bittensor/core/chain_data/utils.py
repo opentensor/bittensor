@@ -117,7 +117,7 @@ def decode_account_id(account_id_bytes: Union[bytes, str]) -> str:
     return ss58_encode(bytes(account_id_bytes).hex(), SS58_FORMAT)
 
 
-def process_stake_data(stake_data: list) -> dict:
+def process_stake_data(stake_data: list) -> dict[str, Balance]:
     """
     Processes stake data to decode account IDs and convert stakes from rao to Balance objects.
 
@@ -127,11 +127,7 @@ def process_stake_data(stake_data: list) -> dict:
     Returns:
         dict: A dictionary with account IDs as keys and their corresponding Balance objects as values.
     """
-    decoded_stake_data = {}
-    for account_id_bytes, stake_ in stake_data:
-        account_id = decode_account_id(account_id_bytes)
-        decoded_stake_data.update({account_id: Balance.from_rao(stake_)})
-    return decoded_stake_data
+    return {account_id: Balance.from_rao(stake_) for account_id, stake_ in stake_data}
 
 
 def decode_metadata(metadata: dict) -> str:
@@ -181,6 +177,6 @@ def decode_revealed_commitment_with_hotkey(
     """
     key, data = encoded_data
 
-    ss58_address = decode_account_id(next(iter(key)))
+    ss58_address = next(iter(key))
     block_data = tuple(decode_revealed_commitment(p) for p in data.value)
     return ss58_address, block_data
