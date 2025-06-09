@@ -102,7 +102,7 @@ Patchsets and enhancements should always be focused. A pull request could add a 
 Specifically, pull requests must adhere to the following criteria:
 - **Must** branch off from `staging`. Make sure that all your PRs are using `staging` branch as a base or will be closed.
 - Contain fewer than 50 files. PRs with more than 50 files will be closed.
-- Use the specific [template](./.github/pull_request_template.md) appropriate to your contribution.
+- Use the specific [template](../.github/pull_request_template.md) appropriate to your contribution.
 - If a PR introduces a new feature, it *must* include corresponding tests.
 - Other PRs (bug fixes, refactoring, etc.) should ideally also have tests, as they provide proof of concept and prevent regression.
 - Categorize your PR properly by using GitHub labels. This aids in the review process by informing reviewers about the type of change at a glance.
@@ -127,7 +127,7 @@ Please follow these steps to have your contribution considered by the maintainer
 1. Read the [development workflow](./DEVELOPMENT_WORKFLOW.md) defined for this repository to understand our workflow.
 2. Ensure your PR meets the criteria stated in the 'Pull Request Philosophy' section.
 3. Include relevant tests for any fixed bugs or new features as stated in the [testing guide](./TESTING.md).
-4. Follow all instructions in [the template](https://github.com/opentensor/bittensor/blob/master/.github/PULL_REQUEST_TEMPLATE/pull_request_template.md) to create the PR.
+4. Follow all instructions in [the template](../.github/pull_request_template.md) to create the PR.
 5. Ensure your commit messages are clear and concise. Include the issue number if applicable.
 6. If you have multiple commits, rebase them into a single commit using `git rebase -i`.
 7. Explain what your changes do and why you think they should be merged in the PR description consistent with the [style guide](./STYLE.md).

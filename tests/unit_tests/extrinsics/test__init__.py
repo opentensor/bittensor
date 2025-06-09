@@ -1,15 +1,19 @@
 """Tests for bittensor/extrinsics/__ini__ module."""
 
-from bittensor.utils import format_error_message
+from bittensor.utils import format_error_message, BT_DOCS_LINK
 
 
 def test_format_error_message_with_right_error_message():
-    """Verify that error message from extrinsic response parses correctly."""
+    """Verify that an error message from extrinsic response parses correctly."""
     # Prep
     fake_error_message = {
         "type": "SomeType",
         "name": "SomeErrorName",
-        "docs": ["Some error description."],
+        "docs": [
+            "Some error description.",
+            "I'm second part.",
+            "Hah, I'm the last one.",
+        ],
     }
 
     # Call
@@ -17,13 +21,15 @@ def test_format_error_message_with_right_error_message():
 
     # Assertions
 
-    assert "SomeType" in result
-    assert "SomeErrorName" in result
-    assert "Some error description." in result
+    assert (
+        result == "Subtensor returned `SomeErrorName(SomeType)` error. "
+        "This means: `Some error description. I'm second part. Hah, I'm the last one."
+        f" | Please consult {BT_DOCS_LINK}/errors/subtensor#someerrorname`."
+    )
 
 
 def test_format_error_message_with_empty_error_message():
-    """Verify that empty error message from extrinsic response parses correctly."""
+    """Verify that an empty error message from extrinsic response parses correctly."""
     # Prep
     fake_error_message = {}
 
@@ -74,8 +80,7 @@ def test_format_error_message_with_custom_error_message_with_index():
     assert (
         result
         == f"Subtensor returned `SubstrateRequestException({fake_subtensor_error['name']})` error. This means: "
-        f"`{fake_custom_error['data']} | Please consult "
-        f"https://docs.bittensor.com/subtensor-nodes/subtensor-error-messages`."
+        f"`{fake_custom_error['data']} | Please consult {BT_DOCS_LINK}/errors/custom`."
     )
 
 
