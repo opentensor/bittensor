@@ -1,10 +1,13 @@
 import asyncio
+
 import pytest
 
+from bittensor.utils.balance import Balance
 from tests.e2e_tests.utils.chain_interactions import (
     wait_epoch,
     sudo_set_hyperparameter_values,
 )
+from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 
 FAST_BLOCKS_SPEEDUP_FACTOR = 5
 
@@ -58,11 +61,11 @@ async def test_root_reg_hyperparams(
     """
 
     print("Testing root register, weights, and hyperparams")
-    netuid = 2
+    netuid = subtensor.get_total_subnets()  # 2
 
-    # Default immunity period & tempo set through the subtensor side
+    # Default immunity period and tempo set through the subtensor side
     default_immunity_period = 5000
-    default_tempo = 10
+    default_tempo = 10 if subtensor.is_fast_blocks() else 360
 
     # 0.2 for root network, 0.8 for sn 1
     # Corresponding to [0.2, 0.8]
@@ -79,9 +82,23 @@ async def test_root_reg_hyperparams(
     # Create netuid = 2
     assert subtensor.register_subnet(alice_wallet)
 
-    # Ensure correct immunity period & tempo is being fetched
+    assert wait_to_start_call(
+        subtensor=subtensor, subnet_owner_wallet=alice_wallet, netuid=netuid
+    )
+
+    # Ensure correct immunity period and tempo is being fetched
     assert subtensor.immunity_period(netuid=netuid) == default_immunity_period
     assert subtensor.tempo(netuid=netuid) == default_tempo
+
+    assert subtensor.add_stake(
+        wallet=bob_wallet,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        netuid=netuid,
+        amount=Balance.from_tao(1),
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        period=16,
+    ), "Unable to stake from Bob to Alice"
 
     async with templates.validator(alice_wallet, netuid):
         await asyncio.sleep(5)  # Wait a bit for chain to process data

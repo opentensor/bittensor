@@ -1,0 +1,88 @@
+# This workflow measures the disk size of a virtual environment
+# after installing the Bittensor SDK across multiple Python versions.
+# It runs only when a new pull request targets the master branch,
+# and posts a comment with the results.
+name: Monitor SDK Requirements Size
+
+on:
+  pull_request:
+    types: [opened, labeled]
+    branches: [master, staging]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  measure-venv:
+    if: github.event_name == 'pull_request' && github.base_ref == 'master' || contains( github.event.pull_request.labels.*.name, 'show-venv-size')
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    outputs:
+      py39: ${{ steps.set-output.outputs.py39 }}
+      py310: ${{ steps.set-output.outputs.py310 }}
+      py311: ${{ steps.set-output.outputs.py311 }}
+      py312: ${{ steps.set-output.outputs.py312 }}
+      py313: ${{ steps.set-output.outputs.py313 }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Create virtualenv and install
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install .
+
+      - name: Measure venv size
+        id: set-output
+        run: |
+          SIZE=$(du -sm venv | cut -f1)
+          VERSION=${{ matrix.python-version }}
+          echo "Detected size: $SIZE MB for Python $VERSION"
+          case "$VERSION" in
+            3.9)  echo "py39=$SIZE" >> $GITHUB_OUTPUT ;;
+            3.10) echo "py310=$SIZE" >> $GITHUB_OUTPUT ;;
+            3.11) echo "py311=$SIZE" >> $GITHUB_OUTPUT ;;
+            3.12) echo "py312=$SIZE" >> $GITHUB_OUTPUT ;;
+            3.13) echo "py313=$SIZE" >> $GITHUB_OUTPUT ;;
+          esac
+
+  comment-on-pr:
+    needs: measure-venv
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post venv size summary to PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const sizes = {
+              "3.9": "${{ needs.measure-venv.outputs.py39 || 'N/A' }}",
+              "3.10": "${{ needs.measure-venv.outputs.py310 || 'N/A' }}",
+              "3.11": "${{ needs.measure-venv.outputs.py311 || 'N/A' }}",
+              "3.12": "${{ needs.measure-venv.outputs.py312 || 'N/A' }}",
+              "3.13": "${{ needs.measure-venv.outputs.py313 || 'N/A' }}",
+            };
+
+            const body = [
+              '**Bittensor SDK virtual environment sizes by Python version:**',
+              '',
+              '```'
+            ]
+              .concat(Object.entries(sizes).map(([v, s]) => `Python ${v}: ${s} MB`))
+              .concat(['```'])
+              .join('\n');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
