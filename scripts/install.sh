@@ -87,11 +87,9 @@ linux_install_python() {
 }
 
 linux_update_pip() {
-    PYTHONPATH=$(which $python)
-    ohai "You are using python@ $PYTHONPATH$"
-    ohai "Installing python tools"
-    $python -m pip install --upgrade pip
+    ohai "Skipping pip upgrade in system Python (PEP 668). Will upgrade inside virtual environment."
 }
+
 
 linux_install_bittensor() {
     ohai "Cloning bittensor@master into ~/.bittensor/bittensor"
