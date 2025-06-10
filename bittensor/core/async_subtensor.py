@@ -321,7 +321,7 @@ class AsyncSubtensor(SubtensorMixin):
                 use_remote_preset=True,
                 chain_name="Bittensor",
                 _mock=_mock,
-                archive_endpoints=archive_endpoints,
+                archive_nodes=archive_endpoints,
             )
         return AsyncSubstrateInterface(
             url=self.chain_endpoint,

@@ -204,7 +204,7 @@ class Subtensor(SubtensorMixin):
                 fallback_chains=fallback_endpoints,
                 retry_forever=retry_forever,
                 _mock=_mock,
-                archive_endpoints=archive_endpoints,
+                archive_nodes=archive_endpoints,
             )
         return SubstrateInterface(
             url=self.chain_endpoint,

@@ -1,4 +1,5 @@
 import asyncio
+import itertools
 import json
 import time
 from collections import deque
@@ -204,6 +205,9 @@ class FakeWebsocket(ClientConnection):
                 response = WEBSOCKET_RESPONSES[self.seed][item["method"]][
                     json.dumps(item["params"])
                 ]
+                if isinstance(response, itertools.cycle):
+                    # Allows us to cycle through different responses for the same method/params combo
+                    response = next(response)
                 response["id"] = _id
             return json.dumps(response)
         except (KeyError, TypeError):
