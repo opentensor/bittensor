@@ -1,8 +1,7 @@
-
 #!/bin/bash
 set -u
 
-# enable  command completion
+# enable command completion
 set -o history -o histexpand
 
 python="python3"
@@ -34,7 +33,6 @@ wait_for_user() {
   echo
   echo "Press RETURN to continue or any other key to abort"
   getc c
-  # we test for \r and \n because some stuff does \r instead
   if ! [[ "$c" == $'\r' || "$c" == $'\n' ]]; then
     exit 1
   fi
@@ -67,13 +65,9 @@ ohai() {
   printf "${tty_blue}==>${tty_bold} %s${tty_reset}\n" "$(shell_join "$@")"
 }
 
-# Things can fail later if `pwd` doesn't exist.
-# Also sudo prints a warning message for no good reason
-cd "/usr" || exit 1
-
 linux_install_pre() {
-    sudo apt-get update 
-    sudo apt-get install --no-install-recommends --no-install-suggests -y apt-utils curl git cmake build-essential python3-dev python3-venv
+    sudo apt-get update
+    sudo apt-get install --no-install-recommends --no-install-suggests -y apt-utils curl git cmake build-essential
     exit_on_error $?
 }
 
@@ -86,10 +80,10 @@ linux_install_python() {
         ohai "Updating python"
         sudo apt-get install --only-upgrade $python
     fi
-    exit_on_error $? 
+    exit_on_error $?
     ohai "Installing python tools"
-    sudo apt-get install --no-install-recommends --no-install-suggests -y $python-pip $python-dev 
-    exit_on_error $? 
+    sudo apt-get install --no-install-recommends --no-install-suggests -y python3-pip python3-dev python3-venv
+    exit_on_error $?
 }
 
 linux_update_pip() {
@@ -102,16 +96,21 @@ linux_update_pip() {
 linux_install_bittensor() {
     ohai "Cloning bittensor@master into ~/.bittensor/bittensor"
     mkdir -p ~/.bittensor/bittensor
-    git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git fetch origin master ; git checkout master ; git pull --ff-only ; git reset --hard ; git clean -xdf)
+    git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || \
+    (cd ~/.bittensor/bittensor/ ; git fetch origin master ; git checkout master ; git pull --ff-only ; git reset --hard ; git clean -xdf)
 
     ohai "Creating Python virtual environment"
     python3 -m venv ~/.bittensor/venv
+    $HOME/.bittensor/venv/bin/python -m ensurepip --upgrade
     source ~/.bittensor/venv/bin/activate
+    python="$HOME/.bittensor/venv/bin/python"
 
     ohai "Installing bittensor"
+    $python -m pip install --upgrade pip
     $python -m pip install -e ~/.bittensor/bittensor/
     $python -m pip install -U bittensor-cli
-    exit_on_error $? 
+    exit_on_error $?
+    deactivate
 }
 
 linux_increase_ulimit(){
@@ -119,13 +118,12 @@ linux_increase_ulimit(){
     prlimit --pid=$PPID --nofile=1000000
 }
 
-
 mac_install_xcode() {
     which -s xcode-select
     if [[ $? != 0 ]] ; then
         ohai "Installing xcode:"
         xcode-select --install
-        exit_on_error $? 
+        exit_on_error $?
     fi
 }
 
@@ -138,7 +136,7 @@ mac_install_brew() {
         ohai "Updating brew:"
         brew update --verbose
     fi
-    exit_on_error $? 
+    exit_on_error $?
 }
 
 mac_install_cmake() {
@@ -158,7 +156,7 @@ mac_install_python() {
     brew list python@3 &>/dev/null || brew install python@3;
     ohai "Updating python3"
     brew upgrade python@3
-    exit_on_error $? 
+    exit_on_error $?
 }
 
 mac_update_pip() {
@@ -170,16 +168,20 @@ mac_update_pip() {
 
 mac_install_bittensor() {
     ohai "Cloning bittensor into ~/.bittensor/bittensor"
-    git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git fetch origin master ; git checkout master ; git pull --ff-only ; git reset --hard; git clean -xdf)
+    git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || \
+    (cd ~/.bittensor/bittensor/ ; git fetch origin master ; git checkout master ; git pull --ff-only ; git reset --hard; git clean -xdf)
 
     ohai "Creating Python virtual environment"
     python3 -m venv ~/.bittensor/venv
+    $HOME/.bittensor/venv/bin/python -m ensurepip --upgrade
     source ~/.bittensor/venv/bin/activate
+    python="$HOME/.bittensor/venv/bin/python"
 
     ohai "Installing bittensor"
+    $python -m pip install --upgrade pip
     $python -m pip install -e ~/.bittensor/bittensor/
     $python -m pip install -U bittensor-cli
-    exit_on_error $? 
+    exit_on_error $?
     deactivate
 }
 
@@ -191,8 +193,9 @@ if [[ "$OS" == "Linux" ]]; then
     if [[ $? != 0 ]] ; then
         abort "This linux based install requires apt-get. To run with other distros (centos, arch, etc), you will need to manually install the requirements"
     fi
+
     echo """
-    
+
 ██████╗░██╗████████╗████████╗███████╗███╗░░██╗░██████╗░█████╗░██████╗░
 ██╔══██╗██║╚══██╔══╝╚══██╔══╝██╔════╝████╗░██║██╔════╝██╔══██╗██╔══██╗
 ██████╦╝██║░░░██║░░░░░░██║░░░█████╗░░██╔██╗██║╚█████╗░██║░░██║██████╔╝
@@ -270,7 +273,7 @@ fi
 
 # Use the shell's audible bell.
 if [[ -t 1 ]]; then
-printf "\a"
+    printf "\a"
 fi
 
 echo ""
@@ -299,12 +302,12 @@ echo "    $ btcli w new_hotkey"
 echo "    $ btcli w list"
 echo "    $ btcli s register"
 echo ""
+echo "- Check Bittensor SDK version"
+echo "    $ python -m bittensor"
+echo ""
 echo "- Use the Python API"
 echo "    $ python3"echo "    >> import bittensor"
 echo ""
-echo "- Join the discussion: "
+echo "- Join the discussion:"
 echo "    ${tty_underline}https://discord.gg/3rUr6EcvbB${tty_reset}"
 echo ""
-
-
-    
