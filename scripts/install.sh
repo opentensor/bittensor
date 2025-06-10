@@ -73,7 +73,7 @@ cd "/usr" || exit 1
 
 linux_install_pre() {
     sudo apt-get update 
-    sudo apt-get install --no-install-recommends --no-install-suggests -y apt-utils curl git cmake build-essential
+    sudo apt-get install --no-install-recommends --no-install-suggests -y apt-utils curl git cmake build-essential python3-dev python3-venv
     exit_on_error $?
 }
 
@@ -103,6 +103,11 @@ linux_install_bittensor() {
     ohai "Cloning bittensor@master into ~/.bittensor/bittensor"
     mkdir -p ~/.bittensor/bittensor
     git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git fetch origin master ; git checkout master ; git pull --ff-only ; git reset --hard ; git clean -xdf)
+
+    ohai "Creating Python virtual environment"
+    python3 -m venv ~/.bittensor/venv
+    source ~/.bittensor/venv/bin/activate
+
     ohai "Installing bittensor"
     $python -m pip install -e ~/.bittensor/bittensor/
     $python -m pip install -U bittensor-cli
@@ -166,6 +171,11 @@ mac_update_pip() {
 mac_install_bittensor() {
     ohai "Cloning bittensor into ~/.bittensor/bittensor"
     git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git fetch origin master ; git checkout master ; git pull --ff-only ; git reset --hard; git clean -xdf)
+
+    ohai "Creating Python virtual environment"
+    python3 -m venv ~/.bittensor/venv
+    source ~/.bittensor/venv/bin/activate
+
     ohai "Installing bittensor"
     $python -m pip install -e ~/.bittensor/bittensor/
     $python -m pip install -U bittensor-cli
@@ -178,7 +188,7 @@ OS="$(uname)"
 if [[ "$OS" == "Linux" ]]; then
 
     which -s apt-get
-    if [[ $? == 0 ]] ; then
+    if [[ $? != 0 ]] ; then
         abort "This linux based install requires apt-get. To run with other distros (centos, arch, etc), you will need to manually install the requirements"
     fi
     echo """
