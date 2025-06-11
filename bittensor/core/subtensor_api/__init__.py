@@ -29,6 +29,9 @@ class SubtensorApi:
         retry_forever: Whether to retry forever on connection errors. Defaults to `False`.
         log_verbose: Enables or disables verbose logging.
         mock: Whether this is a mock instance. Mainly just for use in testing.
+        archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in cases
+                where you are requesting a block that is too old for your current (presumably lite) node. Defaults to
+                `None`
 
     Example:
         # sync version
