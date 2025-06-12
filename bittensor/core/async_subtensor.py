@@ -3352,9 +3352,9 @@ class AsyncSubtensor(SubtensorMixin):
         hotkey = await self.query_subtensor(
             name="SubnetOwnerHotkey", params=[netuid], block=block
         )
-        assert hotkey is None or isinstance(
-            hotkey, str
-        ), f"Expected str or None, got {type(hotkey).__name__}"
+        assert hotkey is None or isinstance(hotkey, str), (
+            f"Expected str or None, got {type(hotkey).__name__}"
+        )
         return hotkey
 
     async def get_subnet_validator_permits(
