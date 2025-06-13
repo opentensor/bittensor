@@ -30,8 +30,7 @@ class SubtensorApi:
         log_verbose: Enables or disables verbose logging.
         mock: Whether this is a mock instance. Mainly just for use in testing.
         archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in cases
-                where you are requesting a block that is too old for your current (presumably lite) node. Defaults to
-                `None`
+            where you are requesting a block that is too old for your current (presumably lite) node. Defaults to `None`
         websocket_shutdown_timer: Amount of time, in seconds, to wait after the last response from the chain to close
             the connection. Only applicable to AsyncSubtensor.
 
