@@ -80,7 +80,7 @@ class SubtensorApi:
         log_verbose: bool = False,
         mock: bool = False,
         archive_endpoints: Optional[list[str]] = None,
-        websocket_shutdown_timer: float = 5.0
+        websocket_shutdown_timer: float = 5.0,
     ):
         self.network = network
         self._fallback_endpoints = fallback_endpoints
@@ -128,7 +128,7 @@ class SubtensorApi:
                 retry_forever=self._retry_forever,
                 _mock=self._mock,
                 archive_endpoints=self._archive_endpoints,
-                websocket_shutdown_timer=self._ws_shutdown_timer
+                websocket_shutdown_timer=self._ws_shutdown_timer,
             )
             self.initialize = _subtensor.initialize
             return _subtensor
