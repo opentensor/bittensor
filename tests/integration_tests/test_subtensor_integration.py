@@ -17,7 +17,7 @@ def netuid():
     yield 23
 
 
-async def prepare_test(mocker, seed):
+async def prepare_test(mocker, seed, **subtensor_args):
     """
     Helper function: sets up the test environment.
     """
@@ -25,7 +25,7 @@ async def prepare_test(mocker, seed):
         "async_substrate_interface.sync_substrate.connect",
         mocker.Mock(return_value=FakeWebsocket(seed=seed)),
     )
-    subtensor = Subtensor("unknown", _mock=True)
+    subtensor = Subtensor("unknown", _mock=True, **subtensor_args)
     return subtensor
 
 
@@ -151,3 +151,13 @@ def test_mock_subtensor_force_register_neuron():
     assert neuron1.coldkey == "cc1"
     assert neuron2.hotkey == "hk2"
     assert neuron2.coldkey == "cc2"
+
+
+@pytest.mark.asyncio
+async def test_archive_node_retry(mocker):
+    subtensor = await prepare_test(
+        mocker, "retry_archive", archive_endpoints=["ws://fake-endpoi.nt"]
+    )
+    current_block = subtensor.substrate.get_block_number()
+    old_block = current_block - 1000
+    assert isinstance((subtensor.substrate.get_block(block_number=old_block)), dict)
