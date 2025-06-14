@@ -3,6 +3,7 @@ from typing import Any, TypeVar
 
 from bittensor.core.errors import SubstrateRequestException
 
+# NOTE: once pyhton 3.10+ is required, we can use `typing.Self` instead of this
 T = TypeVar("T", bound="InfoBase")
 
 
