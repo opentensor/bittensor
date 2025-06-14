@@ -1813,6 +1813,33 @@ def test_get_commitment(subtensor, mocker):
     assert result == expected_result
 
 
+def test_get_last_commitment_bonds_reset_block(subtensor, mocker):
+    """Successful get_last_commitment_bonds_reset_block call."""
+    # Preps
+    fake_netuid = 1
+    fake_uid = 2
+    fake_hotkey = "hotkey"
+    expected_result = 3
+
+    mocked_get_last_bonds_reset = mocker.patch.object(
+        subtensor_module, "get_last_bonds_reset"
+    )
+    mocked_get_last_bonds_reset.return_value = expected_result
+
+    mocked_metagraph = mocker.MagicMock()
+    subtensor.metagraph = mocked_metagraph
+    mocked_metagraph.return_value.hotkeys = {fake_uid: fake_hotkey}
+
+    # Call
+    result = subtensor.get_last_commitment_bonds_reset_block(
+        netuid=fake_netuid, uid=fake_uid
+    )
+
+    # Assertions
+    mocked_get_last_bonds_reset.assert_called_once()
+    assert result == expected_result
+
+
 def test_min_allowed_weights(subtensor, mocker):
     """Successful min_allowed_weights call."""
     fake_netuid = 1
