@@ -8,7 +8,6 @@ from bittensor.core.chain_data.axon_info import AxonInfo
 from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.info_base import InfoBase
 from bittensor.core.chain_data.subnet_identity import SubnetIdentity
-from bittensor.core.chain_data.utils import decode_account_id
 from bittensor.utils import u64_normalized_float as u64tf, u16_normalized_float as u16tf
 from bittensor.utils.balance import Balance, fixed_to_float
 
@@ -177,16 +176,8 @@ class MetagraphInfo(InfoBase):
             identity=decoded["identity"],
             network_registered_at=decoded["network_registered_at"],
             # Keys for owner.
-            owner_hotkey=(
-                decode_account_id(decoded["owner_hotkey"][0])
-                if decoded.get("owner_hotkey") is not None
-                else None
-            ),
-            owner_coldkey=(
-                decode_account_id(decoded["owner_coldkey"][0])
-                if decoded.get("owner_coldkey") is not None
-                else None
-            ),
+            owner_hotkey=decoded.get("owner_hotkey") or None,
+            owner_coldkey=decoded.get("owner_coldkey") or None,
             # Tempo terms.
             block=decoded["block"],
             tempo=decoded["tempo"],
@@ -280,16 +271,8 @@ class MetagraphInfo(InfoBase):
                 else None
             ),
             # Metagraph info.
-            hotkeys=(
-                [decode_account_id(ck) for ck in decoded.get("hotkeys", [])]
-                if decoded.get("hotkeys") is not None
-                else None
-            ),
-            coldkeys=(
-                [decode_account_id(hk) for hk in decoded.get("coldkeys", [])]
-                if decoded.get("coldkeys") is not None
-                else None
-            ),
+            hotkeys=decoded.get("hotkeys") or None,
+            coldkeys=decoded.get("coldkeys") or None,
             identities=decoded["identities"],
             axons=decoded.get("axons", []),
             active=decoded["active"],
@@ -352,7 +335,7 @@ class MetagraphInfo(InfoBase):
             # Dividend break down
             tao_dividends_per_hotkey=(
                 [
-                    (decode_account_id(alpha[0]), _tbwu(alpha[1]))
+                    (alpha[0], _tbwu(alpha[1]))
                     for alpha in decoded["tao_dividends_per_hotkey"]
                 ]
                 if decoded.get("tao_dividends_per_hotkey") is not None
@@ -360,7 +343,7 @@ class MetagraphInfo(InfoBase):
             ),
             alpha_dividends_per_hotkey=(
                 [
-                    (decode_account_id(adphk[0]), _tbwu(adphk[1], _netuid))
+                    (adphk[0], _tbwu(adphk[1], _netuid))
                     for adphk in decoded["alpha_dividends_per_hotkey"]
                 ]
                 if decoded.get("alpha_dividends_per_hotkey") is not None
