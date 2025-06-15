@@ -226,7 +226,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     # wait while weights_rate_limit changes applied.
     subtensor.wait_for_block(subnet_tempo + 1)
 
-    # Create different commited data to avoid coming into the pool's blacklist with the error
+    # Create different committed data to avoid coming into the pool's blacklist with the error
     #   Failed to commit weights: Subtensor returned `Custom type(1012)` error. This means: `Transaction is temporarily
     #   banned`.Failed to commit weights: Subtensor returned `Custom type(1012)` error. This means: `Transaction is
     #   temporarily banned`.`
