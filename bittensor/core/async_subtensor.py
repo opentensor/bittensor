@@ -1175,9 +1175,10 @@ class AsyncSubtensor(SubtensorMixin):
             )
             return None
         block = await get_last_bonds_reset(self, netuid, hotkey)
-        if block is None:
-            return None
-        return await decode_block(block)
+        try:
+            return decode_block(block)
+        except TypeError:
+            return ""
 
     async def get_all_commitments(
         self,

@@ -327,14 +327,15 @@ async def get_last_bonds_reset(
     netuid: int,
     hotkey: str,
     block: Optional[int] = None,
+    block_hash: Optional[str] = None,
+    reuse_block: bool = False,
 ) -> bytes:
     """Fetches the last bonds reset triggered at commitment from the blockchain for a given hotkey and netuid."""
-    async with subtensor.substrate:
-        block_hash = await subtensor.determine_block_hash(block)
-        block = subtensor.substrate.query(
-            module="Commitments",
-            storage_function="LastBondsReset",
-            params=[netuid, hotkey],
-            block_hash=block_hash,
-        )
+    block_hash = await subtensor.determine_block_hash(block, block_hash, reuse_block)
+    block = await subtensor.substrate.query(
+        module="Commitments",
+        storage_function="LastBondsReset",
+        params=[netuid, hotkey],
+        block_hash=block_hash,
+    )
     return block
