@@ -3038,6 +3038,7 @@ async def test_set_subnet_identity(mocker, subtensor, fake_wallet):
         github_repo=fake_subnet_identity.github_repo,
         subnet_contact=fake_subnet_identity.subnet_contact,
         subnet_url=fake_subnet_identity.subnet_url,
+        logo_url=fake_subnet_identity.logo_url,
         discord=fake_subnet_identity.discord,
         description=fake_subnet_identity.description,
         additional=fake_subnet_identity.additional,
