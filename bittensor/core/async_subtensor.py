@@ -4161,6 +4161,7 @@ class AsyncSubtensor(SubtensorMixin):
             github_repo=subnet_identity.github_repo,
             subnet_contact=subnet_identity.subnet_contact,
             subnet_url=subnet_identity.subnet_url,
+            logo_url=subnet_identity.logo_url,
             discord=subnet_identity.discord,
             description=subnet_identity.description,
             additional=subnet_identity.additional,
