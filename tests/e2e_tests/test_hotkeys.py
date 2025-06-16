@@ -265,7 +265,8 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
 
     assert pending == [(1.0, bob_wallet.hotkey.ss58_address)]
 
-    subtensor.wait_for_block(cooldown + 15)
+    # we use `*2` to ensure that the chain has time to process
+    subtensor.wait_for_block(cooldown + SET_CHILDREN_RATE_LIMIT * 2)
 
     success, children, error = subtensor.get_children(
         alice_wallet.hotkey.ss58_address,
