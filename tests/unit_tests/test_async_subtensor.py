@@ -1982,6 +1982,90 @@ async def test_get_children_substrate_request_exception(subtensor, mocker):
 
 
 @pytest.mark.asyncio
+async def test_get_parents_success(subtensor, mocker):
+    """Tests get_parents when parents are successfully retrieved and formatted."""
+    # Preps
+    fake_hotkey = "valid_hotkey"
+    fake_netuid = 1
+    fake_parents = mocker.Mock(
+        value=[
+            (1000, ["parent_key_1"]),
+            (2000, ["parent_key_2"]),
+        ]
+    )
+
+    mocked_query = mocker.AsyncMock(return_value=fake_parents)
+    subtensor.substrate.query = mocked_query
+
+    mocked_decode_account_id = mocker.Mock(
+        side_effect=["decoded_parent_key_1", "decoded_parent_key_2"]
+    )
+    mocker.patch.object(async_subtensor, "decode_account_id", mocked_decode_account_id)
+
+    expected_formatted_parents = [
+        (u64_normalized_float(1000), "decoded_parent_key_1"),
+        (u64_normalized_float(2000), "decoded_parent_key_2"),
+    ]
+
+    # Call
+    result = await subtensor.get_parents(hotkey=fake_hotkey, netuid=fake_netuid)
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        block_hash=None,
+        module="SubtensorModule",
+        storage_function="ParentKeys",
+        params=[fake_hotkey, fake_netuid],
+        reuse_block_hash=False,
+    )
+    mocked_decode_account_id.assert_has_calls(
+        [mocker.call("parent_key_1"), mocker.call("parent_key_2")]
+    )
+    assert result == expected_formatted_parents
+
+
+@pytest.mark.asyncio
+async def test_get_parents_no_parents(subtensor, mocker):
+    """Tests get_parents when there are no parents to retrieve."""
+    # Preps
+    fake_hotkey = "valid_hotkey"
+    fake_netuid = 1
+    fake_parents = []
+
+    mocked_query = mocker.AsyncMock(return_value=fake_parents)
+    subtensor.substrate.query = mocked_query
+
+    # Call
+    result = await subtensor.get_parents(hotkey=fake_hotkey, netuid=fake_netuid)
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        block_hash=None,
+        module="SubtensorModule",
+        storage_function="ParentKeys",
+        params=[fake_hotkey, fake_netuid],
+        reuse_block_hash=False,
+    )
+    assert result == []
+
+
+@pytest.mark.asyncio
+async def test_get_parents_substrate_request_exception(subtensor, mocker):
+    """Tests get_parents when SubstrateRequestException is raised."""
+    # Preps
+    fake_hotkey = "valid_hotkey"
+    fake_netuid = 1
+    fake_exception = async_subtensor.SubstrateRequestException("Test Exception")
+
+    mocked_query = mocker.AsyncMock(side_effect=fake_exception)
+    subtensor.substrate.query = mocked_query
+
+    # Call
+    with pytest.raises(async_subtensor.SubstrateRequestException):
+        await subtensor.get_parents(hotkey=fake_hotkey, netuid=fake_netuid)
+
+
+@pytest.mark.asyncio
 async def test_get_children_pending(mock_substrate, subtensor):
     mock_substrate.query.return_value.value = [
         [

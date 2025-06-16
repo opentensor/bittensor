@@ -126,9 +126,9 @@ DEFAULTS = munchify(
             "_mock": False,
         },
         "wallet": {
-            "name": "default",
-            "hotkey": "default",
-            "path": str(WALLETS_DIR),
+            "name": os.getenv("BT_WALLET_NAME") or "default",
+            "hotkey": os.getenv("BT_WALLET_HOTKEY") or "default",
+            "path": os.getenv("BT_WALLET_PATH") or str(WALLETS_DIR),
         },
     }
 )
