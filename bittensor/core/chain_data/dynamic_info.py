@@ -90,6 +90,7 @@ class DynamicInfo(InfoBase):
                     decoded["subnet_identity"]["subnet_contact"]
                 ).decode(),
                 subnet_url=bytes(decoded["subnet_identity"]["subnet_url"]).decode(),
+                logo_url=bytes(decoded["subnet_identity"]["logo_url"]).decode(),
                 discord=bytes(decoded["subnet_identity"]["discord"]).decode(),
                 description=bytes(decoded["subnet_identity"]["description"]).decode(),
                 additional=bytes(decoded["subnet_identity"]["additional"]).decode(),
