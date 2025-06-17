@@ -36,6 +36,10 @@ from bittensor.core.chain_data.utils import (
 )
 from bittensor.core.config import Config
 from bittensor.core.errors import ChainError
+from bittensor.core.extrinsics.children import (
+    set_children_extrinsic,
+    root_set_pending_childkey_cooldown_extrinsic,
+)
 from bittensor.core.extrinsics.commit_reveal import commit_reveal_v3_extrinsic
 from bittensor.core.extrinsics.commit_weights import (
     commit_weights_extrinsic,
@@ -87,13 +91,11 @@ from bittensor.core.types import ParamWithTypes, SubtensorMixin
 from bittensor.utils import (
     Certificate,
     decode_hex_identity_dict,
-    float_to_u64,
     format_error_message,
     is_valid_ss58_address,
     torch,
     u16_normalized_float,
     u64_normalized_float,
-    unlock_key,
 )
 from bittensor.utils.balance import (
     Balance,
@@ -129,7 +131,8 @@ class Subtensor(SubtensorMixin):
             network: The network name or type to connect to.
             config: Configuration object for the AsyncSubtensor instance.
             log_verbose: Enables or disables verbose logging.
-            fallback_endpoints: List of fallback endpoints to use if default or provided network is not available. Defaults to `None`.
+            fallback_endpoints: List of fallback endpoints to use if default or provided network is not available.
+                Defaults to `None`.
             retry_forever: Whether to retry forever on connection errors. Defaults to `False`.
             _mock: Whether this is a mock instance. Mainly just for use in testing.
 
@@ -177,7 +180,8 @@ class Subtensor(SubtensorMixin):
         """Creates the Substrate instance based on provided arguments.
 
         Arguments:
-            fallback_endpoints: List of fallback chains endpoints to use if main network isn't available. Defaults to `None`.
+            fallback_endpoints: List of fallback chains endpoints to use if main network isn't available.
+                Defaults to `None`.
             retry_forever: Whether to retry forever on connection errors. Defaults to `False`.
             _mock: Whether this is a mock instance. Mainly just for use in testing.
 
@@ -976,7 +980,8 @@ class Subtensor(SubtensorMixin):
             block (Optional[int]): The block number to retrieve the commitment from. Default is ``None``.
 
         Returns:
-            result (dict): A dictionary of all revealed commitments in view {ss58_address: (reveal block, commitment message)}.
+            result (dict): A dictionary of all revealed commitments in view
+                {ss58_address: (reveal block, commitment message)}.
 
         Example of result:
         {
@@ -2360,7 +2365,7 @@ class Subtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             netuid=netuid,
-            data_type=f"TimelockEncrypted",
+            data_type="TimelockEncrypted",
             data=data_,
             period=period,
         ), reveal_round
@@ -2623,9 +2628,9 @@ class Subtensor(SubtensorMixin):
             wait_for_finalization (bool): whether to wait until the extrinsic call is finalized on the chain
             sign_with (str): the wallet's keypair to use for the signing. Options are "coldkey", "hotkey", "coldkeypub"
             use_nonce (bool): unique identifier for the transaction related with hot/coldkey.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
             nonce_key: the type on nonce to use. Options are "hotkey" or "coldkey".
             raise_error: raises the relevant exception rather than returning `False` if unsuccessful.
 
@@ -2664,7 +2669,7 @@ class Subtensor(SubtensorMixin):
             )
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
-                message = f"Not waiting for finalization or inclusion."
+                message = "Not waiting for finalization or inclusion."
                 logging.debug(f"{message}. Extrinsic: {extrinsic}")
                 return True, message
 
@@ -2698,8 +2703,9 @@ class Subtensor(SubtensorMixin):
         period: Optional[int] = None,
     ) -> bool:
         """
-        Adds a stake from the specified wallet to the neuron identified by the SS58 address of its hotkey in specified subnet.
-        Staking is a fundamental process in the Bittensor network that enables neurons to participate actively and earn incentives.
+        Adds a stake from the specified wallet to the neuron identified by the SS58 address of its hotkey in specified
+            subnet. Staking is a fundamental process in the Bittensor network that enables neurons to participate
+            actively and earn incentives.
 
         Args:
             wallet: The wallet to be used for staking.
@@ -2764,9 +2770,9 @@ class Subtensor(SubtensorMixin):
             amounts (list[Balance]): Corresponding amounts of TAO to stake for each hotkey.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
 
         Returns:
             bool: ``True`` if the staking is successful for all specified neurons, False otherwise.
@@ -2804,9 +2810,9 @@ class Subtensor(SubtensorMixin):
                 `False`.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
                 Defaults to `True`.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
 
         Returns:
             bool: ``True`` if the registration is successful, False otherwise.
@@ -2859,9 +2865,9 @@ class Subtensor(SubtensorMixin):
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
                 ``False``.
             max_retries (int): The number of maximum attempts to commit weights. Default is ``5``.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
 
         Returns:
             tuple[bool, str]:
@@ -2934,9 +2940,9 @@ class Subtensor(SubtensorMixin):
             amount (Balance): Amount of stake to move.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
 
         Returns:
             success (bool): True if the stake movement was successful.
@@ -2992,9 +2998,9 @@ class Subtensor(SubtensorMixin):
             num_processes (Optional[int]): The number of processes to use to register. Default to `None`.
             update_interval (Optional[int]): The number of nonces to solve between updates.  Default to `None`.
             log_verbose (bool): If ``true``, the registration process will log more information.  Default to `False`.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
 
         Returns:
             bool: ``True`` if the registration is successful, False otherwise.
@@ -3031,13 +3037,13 @@ class Subtensor(SubtensorMixin):
 
         Args:
             wallet (bittensor_wallet.Wallet): The wallet to be used for subnet registration.
-            wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning true, or returns
-                false if the extrinsic fails to enter the block within the timeout. Default is False.
+            wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or
+                returns `False` if the extrinsic fails to enter the block within the timeout. Default is `False`.
             wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
-                true, or returns false if the extrinsic fails to be finalized within the timeout. Default is True.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
+                `True`, or returns `False` if the extrinsic fails to be finalized within the timeout. Default is `True`.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
 
         Returns:
             bool: True if the subnet registration was successful, False otherwise.
@@ -3079,9 +3085,9 @@ class Subtensor(SubtensorMixin):
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
                 ``False``.
             max_retries (int): The number of maximum attempts to reveal weights. Default is ``5``.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
 
         Returns:
             tuple[bool, str]: ``True`` if the weight revelation is successful, False otherwise. And `msg`, a string
@@ -3131,9 +3137,9 @@ class Subtensor(SubtensorMixin):
             wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
                 ``False``.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
 
         Returns:
             `True` if registration was successful, otherwise `False`.
@@ -3142,6 +3148,41 @@ class Subtensor(SubtensorMixin):
         return root_register_extrinsic(
             subtensor=self,
             wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            period=period,
+        )
+
+    def root_set_pending_childkey_cooldown(
+        self,
+        wallet: "Wallet",
+        cooldown: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        period: Optional[int] = None,
+    ) -> tuple[bool, str]:
+        """Sets the pending childkey cooldown.
+
+        Arguments:
+            wallet: bittensor wallet instance.
+            cooldown: the number of blocks to setting pending childkey cooldown.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
+                ``False``.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
+
+        Returns:
+            tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
+                operation, and the second element is a message providing additional information.
+
+        Note: This operation can only be successfully performed if your wallet has root privileges.
+        """
+        return root_set_pending_childkey_cooldown_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            cooldown=cooldown,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             period=period,
@@ -3169,9 +3210,9 @@ class Subtensor(SubtensorMixin):
                 ``False``.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
                 Defaults to ``False``.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
 
         Returns:
             `True` if the setting of weights is successful, `False` otherwise.
@@ -3204,61 +3245,30 @@ class Subtensor(SubtensorMixin):
         Allows a coldkey to set children-keys.
 
         Arguments:
-            wallet (bittensor_wallet.Wallet): bittensor wallet instance.
-            hotkey (str): The ``SS58`` address of the neuron's hotkey.
-            netuid (int): The netuid value.
-            children (list[tuple[float, str]]): A list of children with their proportions.
-            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
-            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            wallet: bittensor wallet instance.
+            hotkey: The ``SS58`` address of the neuron's hotkey.
+            netuid: The netuid value.
+            children: A list of children with their proportions.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
+            period: The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
 
         Returns:
             tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
-             operation, and the second element is a message providing additional information.
+                operation, and the second element is a message providing additional information.
 
-        Raises:
-            DuplicateChild: There are duplicates in the list of children.
-            InvalidChild: Child is the hotkey.
-            NonAssociatedColdKey: The coldkey does not own the hotkey or the child is the same as the hotkey.
-            NotEnoughStakeToSetChildkeys: Parent key doesn't have minimum own stake.
-            ProportionOverflow: The sum of the proportions does exceed uint64.
-            RegistrationNotPermittedOnRootSubnet: Attempting to register a child on the root network.
-            SubNetworkDoesNotExist: Attempting to register to a non-existent network.
-            TooManyChildren: Too many children in request.
-            TxRateLimitExceeded: Hotkey hit the rate limit.
-            bittensor_wallet.errors.KeyFileError: Failed to decode keyfile data.
-            bittensor_wallet.errors.PasswordError: Decryption failed or wrong password for decryption provided.
         """
-
-        unlock = unlock_key(wallet, raise_error=raise_error)
-
-        if not unlock.success:
-            return False, unlock.message
-
-        call = self.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="set_children",
-            call_params={
-                "children": [
-                    (
-                        float_to_u64(proportion),
-                        child_hotkey,
-                    )
-                    for proportion, child_hotkey in children
-                ],
-                "hotkey": hotkey,
-                "netuid": netuid,
-            },
-        )
-
-        return self.sign_and_send_extrinsic(
-            call,
-            wallet,
-            wait_for_inclusion,
-            wait_for_finalization,
+        return set_children_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            hotkey=hotkey,
+            netuid=netuid,
+            children=children,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
             raise_error=raise_error,
             period=period,
         )
@@ -3284,9 +3294,9 @@ class Subtensor(SubtensorMixin):
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
 
         Returns:
             tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
@@ -3297,7 +3307,8 @@ class Subtensor(SubtensorMixin):
             DelegateTakeTooLow: Delegate take is too low.
             DelegateTxRateLimitExceeded: A transactor exceeded the rate limit for delegate transaction.
             HotKeyAccountNotExists: The hotkey does not exist.
-            NonAssociatedColdKey: Request to stake, unstake, or subscribe is made by a coldkey that is not associated with the hotkey account.
+            NonAssociatedColdKey: Request to stake, unstake, or subscribe is made by a coldkey that is not associated
+                with the hotkey account.
             bittensor_wallet.errors.PasswordError: Decryption failed or wrong password for decryption provided.
             bittensor_wallet.errors.KeyFileError: Failed to decode keyfile data.
 
@@ -3362,11 +3373,13 @@ class Subtensor(SubtensorMixin):
             netuid (int): The unique ID of the network on which the operation takes place.
             subnet_identity (SubnetIdentity): The identity data of the subnet including attributes like name, GitHub
                 repository, contact, URL, discord, description, and any additional metadata.
-            wait_for_inclusion (bool): Indicates if the function should wait for the transaction to be included in the block.
-            wait_for_finalization (bool): Indicates if the function should wait for the transaction to reach finalization.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
+            wait_for_inclusion (bool): Indicates if the function should wait for the transaction to be included in the
+                block.
+            wait_for_finalization (bool): Indicates if the function should wait for the transaction to reach
+                finalization.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
 
         Returns:
             tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
@@ -3380,6 +3393,7 @@ class Subtensor(SubtensorMixin):
             github_repo=subnet_identity.github_repo,
             subnet_contact=subnet_identity.subnet_contact,
             subnet_url=subnet_identity.subnet_url,
+            logo_url=subnet_identity.logo_url,
             discord=subnet_identity.discord,
             description=subnet_identity.description,
             additional=subnet_identity.additional,
@@ -3402,7 +3416,7 @@ class Subtensor(SubtensorMixin):
         period: Optional[int] = 8,
     ) -> tuple[bool, str]:
         """
-        Sets the inter-neuronal weights for the specified neuron. This process involves specifying the influence or
+        Sets the interneuronal weights for the specified neuron. This process involves specifying the influence or
             trust a neuron places on other neurons in the network, which is a fundamental aspect of Bittensor's
             decentralized learning architecture.
 
@@ -3411,18 +3425,19 @@ class Subtensor(SubtensorMixin):
             netuid: The unique identifier of the subnet.
             uids: The list of neuron UIDs that the weights are being set for.
             weights: The corresponding weights to be set for each UID.
-            version_key: Version key for compatibility with the network.  Default is int representation of a Bittensor version.
+            version_key: Version key for compatibility with the network.  Default is int representation of a Bittensor
+                version.
             wait_for_inclusion: Waits for the transaction to be included in a block. Default is ``False``.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Default is ``False``.
             max_retries: The number of maximum attempts to set weights. Default is ``5``.
             block_time: The number of seconds for block duration. Default is 12.0 seconds.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction. Default is 16.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction. Default is 8.
 
         Returns:
             tuple:
-                ``True`` if the setting of weights is successful, False otherwise.
+                `True` if the setting of weights is successful, `False` otherwise.
                 `msg` is a string value describing the success or potential error.
 
         This function is crucial in shaping the network's collective intelligence, where each neuron's learning and
@@ -3514,9 +3529,9 @@ class Subtensor(SubtensorMixin):
                 ``True``.
             certificate (bittensor.utils.Certificate): Certificate to use for TLS. If ``None``, no TLS will be used.
                 Defaults to ``None``.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
 
         Returns:
             bool: ``True`` if the Axon serve registration is successful, False otherwise.
@@ -3543,17 +3558,19 @@ class Subtensor(SubtensorMixin):
         period: Optional[int] = None,
     ) -> tuple[bool, str]:
         """
-        Submits a start_call extrinsic to the blockchain, to trigger the start call process for a subnet (used to start a
-        new subnet's emission mechanism).
+        Submits a start_call extrinsic to the blockchain, to trigger the start call process for a subnet (used to start
+            a new subnet's emission mechanism).
 
         Args:
             wallet (Wallet): The wallet used to sign the extrinsic (must be unlocked).
             netuid (int): The UID of the target subnet for which the call is being initiated.
-            wait_for_inclusion (bool, optional): Whether to wait for the extrinsic to be included in a block. Defaults to True.
-            wait_for_finalization (bool, optional): Whether to wait for finalization of the extrinsic. Defaults to False.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
+            wait_for_inclusion (bool, optional): Whether to wait for the extrinsic to be included in a block.
+                Defaults to `True`.
+            wait_for_finalization (bool, optional): Whether to wait for finalization of the extrinsic.
+                Defaults to `False`.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
 
         Returns:
             Tuple[bool, str]:
@@ -3604,9 +3621,9 @@ class Subtensor(SubtensorMixin):
             rate_tolerance (float): The maximum allowed increase in the price ratio between subnets
                 (origin_price/destination_price). For example, 0.005 = 0.5% maximum increase. Only used
                 when safe_staking is True. Default is 0.005.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
 
         Returns:
             success (bool): True if the extrinsic was successful.
@@ -3657,9 +3674,9 @@ class Subtensor(SubtensorMixin):
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.  Default is
                 ``False``.
             keep_alive (bool): Flag to keep the connection alive. Default is ``True``.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
 
         Returns:
             `True` if the transferring was successful, otherwise `False`.
@@ -3701,9 +3718,9 @@ class Subtensor(SubtensorMixin):
             amount (Union[Balance, float, int]): Amount to transfer.
             wait_for_inclusion (bool): If true, waits for inclusion before returning.
             wait_for_finalization (bool): If true, waits for finalization before returning.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
 
         Returns:
             success (bool): True if the transfer was successful.
@@ -3749,15 +3766,15 @@ class Subtensor(SubtensorMixin):
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
             safe_staking: If true, enables price safety checks to protect against fluctuating prices. The unstake
                 will only execute if the price change doesn't exceed the rate tolerance. Default is False.
-            allow_partial_stake: If true and safe_staking is enabled, allows partial unstaking when the full amount
-                would exceed the price tolerance. If false, the entire unstake fails if it would exceed the tolerance.
-                Default is False.
-            rate_tolerance: The maximum allowed price change ratio when unstaking. For example, 0.005 = 0.5% maximum
-                price decrease. Only used when safe_staking is True. Default is 0.005.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-                transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-            unstake_all: If true, unstakes all tokens. Default is ``False``. If `True` amount is ignored.
+            allow_partial_stake (bool): If true and safe_staking is enabled, allows partial unstaking when
+                the full amount would exceed the price tolerance. If false, the entire unstake fails if it would
+                exceed the tolerance. Default is False.
+            rate_tolerance (float): The maximum allowed price change ratio when unstaking. For example,
+                0.005 = 0.5% maximum price decrease. Only used when safe_staking is True. Default is 0.005.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
+            unstake_all: If `True`, unstakes all tokens, and `amount` is ignored. Default is `False`.
 
         Returns:
             bool: ``True`` if the unstaking process is successful, False otherwise.
@@ -3867,15 +3884,16 @@ class Subtensor(SubtensorMixin):
         Args:
             wallet: The wallet linked to the coldkey from which the stakes are being
                 withdrawn.
-            hotkey_ss58s: A list of hotkey ``SS58`` addresses to unstake from.
-            netuids: The list of subnet uids.
-            amounts: The amounts of TAO to unstake from each hotkey. If not provided, unstakes all available stakes.
-            wait_for_inclusion: Waits for the transaction to be included in a block.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-                transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-            unstake_all: If true, unstakes all tokens. Default is ``False``. If `True` amounts are ignored.
+            hotkey_ss58s (List[str]): A list of hotkey ``SS58`` addresses to unstake from.
+            netuids (List[int]): The list of subnet uids.
+            amounts (List[Balance]): The amounts of TAO to unstake from each hotkey. If not provided,
+                unstakes all available stakes.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
+            unstake_all: If `True`, unstakes all tokens, and `amounts` is ignored. Default is `False`.
 
         Returns:
             bool: ``True`` if the batch unstaking is successful, False otherwise.

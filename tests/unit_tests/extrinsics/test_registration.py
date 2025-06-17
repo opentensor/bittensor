@@ -235,6 +235,7 @@ def test_set_subnet_identity_extrinsic_is_success(mock_subtensor, mock_wallet, m
     github_repo = "mock_github_repo"
     subnet_contact = "mock_subnet_contact"
     subnet_url = "mock_subnet_url"
+    logo_url = "mock_logo_url"
     discord = "mock_discord"
     description = "mock_description"
     additional = "mock_additional"
@@ -253,6 +254,7 @@ def test_set_subnet_identity_extrinsic_is_success(mock_subtensor, mock_wallet, m
         github_repo=github_repo,
         subnet_contact=subnet_contact,
         subnet_url=subnet_url,
+        logo_url=logo_url,
         discord=discord,
         description=description,
         additional=additional,
@@ -265,13 +267,14 @@ def test_set_subnet_identity_extrinsic_is_success(mock_subtensor, mock_wallet, m
         call_params={
             "hotkey": mock_wallet.hotkey.ss58_address,
             "netuid": netuid,
-            "subnet_name": "mock_subnet_name",
-            "github_repo": "mock_github_repo",
-            "subnet_contact": "mock_subnet_contact",
-            "subnet_url": "mock_subnet_url",
-            "discord": "mock_discord",
-            "description": "mock_description",
-            "additional": "mock_additional",
+            "subnet_name": subnet_name,
+            "github_repo": github_repo,
+            "subnet_contact": subnet_contact,
+            "subnet_url": subnet_url,
+            "logo_url": logo_url,
+            "discord": discord,
+            "description": description,
+            "additional": additional,
         },
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
@@ -293,6 +296,7 @@ def test_set_subnet_identity_extrinsic_is_failed(mock_subtensor, mock_wallet, mo
     github_repo = "mock_github_repo"
     subnet_contact = "mock_subnet_contact"
     subnet_url = "mock_subnet_url"
+    logo_url = "mock_logo_url"
     discord = "mock_discord"
     description = "mock_description"
     additional = "mock_additional"
@@ -315,6 +319,7 @@ def test_set_subnet_identity_extrinsic_is_failed(mock_subtensor, mock_wallet, mo
         github_repo=github_repo,
         subnet_contact=subnet_contact,
         subnet_url=subnet_url,
+        logo_url=logo_url,
         discord=discord,
         description=description,
         additional=additional,
@@ -327,13 +332,14 @@ def test_set_subnet_identity_extrinsic_is_failed(mock_subtensor, mock_wallet, mo
         call_params={
             "hotkey": mock_wallet.hotkey.ss58_address,
             "netuid": netuid,
-            "subnet_name": "mock_subnet_name",
-            "github_repo": "mock_github_repo",
-            "subnet_contact": "mock_subnet_contact",
-            "subnet_url": "mock_subnet_url",
-            "discord": "mock_discord",
-            "description": "mock_description",
-            "additional": "mock_additional",
+            "subnet_name": subnet_name,
+            "github_repo": github_repo,
+            "subnet_contact": subnet_contact,
+            "subnet_url": subnet_url,
+            "logo_url": logo_url,
+            "discord": discord,
+            "description": description,
+            "additional": additional,
         },
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
