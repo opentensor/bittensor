@@ -36,6 +36,10 @@ from bittensor.core.chain_data.utils import (
 )
 from bittensor.core.config import Config
 from bittensor.core.errors import ChainError
+from bittensor.core.extrinsics.children import (
+    set_children_extrinsic,
+    root_set_pending_childkey_cooldown_extrinsic,
+)
 from bittensor.core.extrinsics.commit_reveal import commit_reveal_v3_extrinsic
 from bittensor.core.extrinsics.commit_weights import (
     commit_weights_extrinsic,
@@ -86,13 +90,11 @@ from bittensor.core.types import ParamWithTypes, SubtensorMixin
 from bittensor.utils import (
     Certificate,
     decode_hex_identity_dict,
-    float_to_u64,
     format_error_message,
     is_valid_ss58_address,
     torch,
     u16_normalized_float,
     u64_normalized_float,
-    unlock_key,
 )
 from bittensor.utils.balance import (
     Balance,
@@ -3207,61 +3209,30 @@ class Subtensor(SubtensorMixin):
         Allows a coldkey to set children-keys.
 
         Arguments:
-            wallet (bittensor_wallet.Wallet): bittensor wallet instance.
-            hotkey (str): The ``SS58`` address of the neuron's hotkey.
-            netuid (int): The netuid value.
-            children (list[tuple[float, str]]): A list of children with their proportions.
-            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
-            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            wallet: bittensor wallet instance.
+            hotkey: The ``SS58`` address of the neuron's hotkey.
+            netuid: The netuid value.
+            children: A list of children with their proportions.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+            period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
 
         Returns:
             tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
-             operation, and the second element is a message providing additional information.
+                operation, and the second element is a message providing additional information.
 
-        Raises:
-            DuplicateChild: There are duplicates in the list of children.
-            InvalidChild: Child is the hotkey.
-            NonAssociatedColdKey: The coldkey does not own the hotkey or the child is the same as the hotkey.
-            NotEnoughStakeToSetChildkeys: Parent key doesn't have minimum own stake.
-            ProportionOverflow: The sum of the proportions does exceed uint64.
-            RegistrationNotPermittedOnRootSubnet: Attempting to register a child on the root network.
-            SubNetworkDoesNotExist: Attempting to register to a non-existent network.
-            TooManyChildren: Too many children in request.
-            TxRateLimitExceeded: Hotkey hit the rate limit.
-            bittensor_wallet.errors.KeyFileError: Failed to decode keyfile data.
-            bittensor_wallet.errors.PasswordError: Decryption failed or wrong password for decryption provided.
         """
-
-        unlock = unlock_key(wallet, raise_error=raise_error)
-
-        if not unlock.success:
-            return False, unlock.message
-
-        call = self.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="set_children",
-            call_params={
-                "children": [
-                    (
-                        float_to_u64(proportion),
-                        child_hotkey,
-                    )
-                    for proportion, child_hotkey in children
-                ],
-                "hotkey": hotkey,
-                "netuid": netuid,
-            },
-        )
-
-        return self.sign_and_send_extrinsic(
-            call,
-            wallet,
-            wait_for_inclusion,
-            wait_for_finalization,
+        return set_children_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            hotkey=hotkey,
+            netuid=netuid,
+            children=children,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
             raise_error=raise_error,
             period=period,
         )
