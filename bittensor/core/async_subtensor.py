@@ -82,7 +82,6 @@ from bittensor.core.extrinsics.asyncex.weights import (
     set_weights_extrinsic,
     reveal_weights_extrinsic,
 )
-from bittensor.core.extrinsics.children import set_children_extrinsic
 from bittensor.core.metagraph import AsyncMetagraph
 from bittensor.core.settings import version_as_int, TYPE_REGISTRY
 from bittensor.core.types import ParamWithTypes, SubtensorMixin
