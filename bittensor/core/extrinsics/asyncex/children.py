@@ -13,7 +13,7 @@ async def set_children_extrinsic(
     netuid: int,
     children: list[tuple[float, str]],
     wait_for_inclusion: bool = True,
-    wait_for_finalization: bool = True,
+    wait_for_finalization: bool = False,
     raise_error: bool = False,
     period: Optional[int] = None,
 ):
@@ -55,37 +55,46 @@ async def set_children_extrinsic(
     if not unlock.success:
         return False, unlock.message
 
-    call = await subtensor.substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="set_children",
-        call_params={
-            "children": [
-                (
-                    float_to_u64(proportion),
-                    child_hotkey,
-                )
-                for proportion, child_hotkey in children
-            ],
-            "hotkey": hotkey,
-            "netuid": netuid,
-        },
-    )
+    async with subtensor.substrate as substrate:
+        call = await substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="set_children",
+            call_params={
+                "children": [
+                    (
+                        float_to_u64(proportion),
+                        child_hotkey,
+                    )
+                    for proportion, child_hotkey in children
+                ],
+                "hotkey": hotkey,
+                "netuid": netuid,
+            },
+        )
 
-    return await subtensor.sign_and_send_extrinsic(
-        call=call,
-        wallet=wallet,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-        raise_error=raise_error,
-        period=period,
-    )
+        success, message = await subtensor.sign_and_send_extrinsic(
+            call=call,
+            wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            raise_error=raise_error,
+            period=period,
+        )
+
+        if not wait_for_finalization and not wait_for_inclusion:
+            return True, message
+
+        if success:
+            return True, "Success with `set_children_extrinsic` response."
+
+        return True, message
 
 
 async def root_set_pending_childkey_cooldown_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
     cooldown: int,
-    wait_for_inclusion: bool = False,
+    wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
     period: Optional[int] = None,
 ) -> tuple[bool, str]:
@@ -97,22 +106,34 @@ async def root_set_pending_childkey_cooldown_extrinsic(
     if not unlock.success:
         return False, unlock.message
 
-    call = await subtensor.substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="set_pending_childkey_cooldown",
-        call_params={"cooldown": cooldown},
-    )
+    async with subtensor.substrate as substrate:
+        call = await substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="set_pending_childkey_cooldown",
+            call_params={"cooldown": cooldown},
+        )
 
-    sudo_call = await subtensor.substrate.compose_call(
-        call_module="Sudo",
-        call_function="sudo",
-        call_params={"call": call},
-    )
+        sudo_call = await substrate.compose_call(
+            call_module="Sudo",
+            call_function="sudo",
+            call_params={"call": call},
+        )
 
-    return await subtensor.sign_and_send_extrinsic(
-        call=sudo_call,
-        wallet=wallet,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-        period=period,
-    )
+        success, message = await subtensor.sign_and_send_extrinsic(
+            call=sudo_call,
+            wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            period=period,
+        )
+
+        if not wait_for_finalization and not wait_for_inclusion:
+            return True, message
+
+        if success:
+            return (
+                True,
+                "Success with `root_set_pending_childkey_cooldown_extrinsic` response.",
+            )
+
+        return True, message

@@ -13,7 +13,7 @@ def set_children_extrinsic(
     netuid: int,
     children: list[tuple[float, str]],
     wait_for_inclusion: bool = True,
-    wait_for_finalization: bool = True,
+    wait_for_finalization: bool = False,
     raise_error: bool = False,
     period: Optional[int] = None,
 ):
@@ -71,7 +71,7 @@ def set_children_extrinsic(
         },
     )
 
-    return subtensor.sign_and_send_extrinsic(
+    success, message = subtensor.sign_and_send_extrinsic(
         call=call,
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
@@ -80,12 +80,20 @@ def set_children_extrinsic(
         period=period,
     )
 
+    if not wait_for_finalization and not wait_for_inclusion:
+        return True, message
+
+    if success:
+        return True, "Success with `set_children_extrinsic` response."
+
+    return True, message
+
 
 def root_set_pending_childkey_cooldown_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     cooldown: int,
-    wait_for_inclusion: bool = False,
+    wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
     period: Optional[int] = None,
 ) -> tuple[bool, str]:
@@ -109,10 +117,21 @@ def root_set_pending_childkey_cooldown_extrinsic(
         call_params={"call": call},
     )
 
-    return subtensor.sign_and_send_extrinsic(
+    success, message = subtensor.sign_and_send_extrinsic(
         call=sudo_call,
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
         period=period,
     )
+
+    if not wait_for_finalization and not wait_for_inclusion:
+        return True, message
+
+    if success:
+        return (
+            True,
+            "Success with `root_set_pending_childkey_cooldown_extrinsic` response.",
+        )
+
+    return True, message
