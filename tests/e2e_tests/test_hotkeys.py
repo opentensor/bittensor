@@ -17,6 +17,7 @@ from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 
 
 SET_CHILDREN_RATE_LIMIT = 15
+ROOT_COOLDOWN = 15  # blocks
 
 
 def test_hotkeys(subtensor, alice_wallet, dave_wallet):
@@ -86,6 +87,13 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
 
     dave_subnet_netuid = subtensor.get_total_subnets()  # 2
     set_tempo = 10  # affect to non-fast-blocks mode
+
+    # Set cooldown
+    success, message = subtensor.extrinsics.root_set_pending_childkey_cooldown(
+        wallet=alice_wallet, cooldown=ROOT_COOLDOWN
+    )
+    assert success, f"Call `root_set_pending_childkey_cooldown` failed: {message}"
+    assert message == ""
 
     assert subtensor.register_subnet(dave_wallet, True, True)
     assert subtensor.subnet_exists(dave_subnet_netuid), (
