@@ -81,4 +81,38 @@ async def set_children_extrinsic(
     )
 
 
-async def root_set_pending_childkey_cooldown_extrinsic(): ...
+async def root_set_pending_childkey_cooldown_extrinsic(
+    subtensor: "AsyncSubtensor",
+    wallet: "Wallet",
+    cooldown: int,
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = False,
+    period: Optional[int] = None,
+) -> tuple[bool, str]:
+    """
+    Allows a coldkey to set children-keys.
+    """
+    unlock = unlock_key(wallet)
+
+    if not unlock.success:
+        return False, unlock.message
+
+    call = await subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="set_pending_childkey_cooldown",
+        call_params={"cooldown": cooldown},
+    )
+
+    sudo_call = await subtensor.substrate.compose_call(
+        call_module="Sudo",
+        call_function="sudo",
+        call_params={"call": call},
+    )
+
+    return await subtensor.sign_and_send_extrinsic(
+        call=sudo_call,
+        wallet=wallet,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+        period=period,
+    )
