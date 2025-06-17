@@ -78,6 +78,7 @@ from bittensor.core.extrinsics.take import (
 from bittensor.core.extrinsics.transfer import transfer_extrinsic
 from bittensor.core.extrinsics.unstaking import (
     unstake_all_extrinsic,
+    unstaking_all_limit_extrinsic,
     unstake_extrinsic,
     unstake_multiple_extrinsic,
 )
@@ -2677,7 +2678,7 @@ class Subtensor(SubtensorMixin):
                 return True, ""
 
             if raise_error:
-                raise ChainError(format_error_message(response.error_message))
+                raise ChainError.from_error(response.error_message)
 
             return False, format_error_message(response.error_message)
 
@@ -3804,7 +3805,7 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         hotkey_ss58: str,
         netuid: int,
-        safe_unstaking: bool = False,
+        safe_unstaking: bool = True,
         rate_tolerance: float = 0.005,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -3817,7 +3818,7 @@ class Subtensor(SubtensorMixin):
             hotkey_ss58: The SS58 address of the hotkey to unstake from.
             netuid: The unique identifier of the subnet.
             safe_unstaking: If true, enables price safety checks to protect against fluctuating prices. The unstake
-                will only execute if the price change doesn't exceed the rate tolerance. Default is False.
+                will only execute if the price change doesn't exceed the rate tolerance. Default is `True`.
             rate_tolerance: The maximum allowed price change ratio when unstaking. For example, 0.005 = 0.5% maximum
                 price decrease. Only used when safe_staking is True. Default is 0.005.
             wait_for_inclusion: Waits for the transaction to be included in a block. Default is `True`.
@@ -3833,7 +3834,7 @@ class Subtensor(SubtensorMixin):
                 - `False` and an error message otherwise.
 
         Example:
-            # If you would like to unstake all stakes in all subnets:
+            # If you would like to unstake all stakes in all subnets safely:
             import bittensor as bt
 
             subtensor = bt.Subtensor()
@@ -3852,10 +3853,21 @@ class Subtensor(SubtensorMixin):
                 print(result)
         """
         if safe_unstaking:
-            raise NotImplementedError(
-                "Safe unstaking is not yet implemented for `unstale_all`."
+            return unstaking_all_limit_extrinsic(
+                subtensor=self,
+                wallet=wallet,
+                hotkey_ss58=hotkey_ss58,
+                netuid=netuid,
+                rate_tolerance=rate_tolerance,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                period=period,
             )
 
+        if netuid != 0:
+            logging.debug(
+                f"Unstaking without Alpha price control from subnet [blue]#{netuid}[/blue]."
+            )
         return unstake_all_extrinsic(
             subtensor=self,
             wallet=wallet,

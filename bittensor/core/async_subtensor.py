@@ -75,6 +75,7 @@ from bittensor.core.extrinsics.asyncex.take import (
 from bittensor.core.extrinsics.asyncex.transfer import transfer_extrinsic
 from bittensor.core.extrinsics.asyncex.unstaking import (
     unstake_all_extrinsic,
+    unstaking_all_limit_extrinsic,
     unstake_extrinsic,
     unstake_multiple_extrinsic,
 )
@@ -4620,18 +4621,18 @@ class AsyncSubtensor(SubtensorMixin):
                 - `False` and an error message otherwise.
 
         Example:
-            # If you would like to unstake all stakes in all subnets:
+            # If you would like to unstake all stakes in all subnets safely:
             import bittensor as bt
 
-            subtensor = bt.Subtensor()
+            subtensor = bt.AsyncSubtensor()
             wallet = bt.Wallet("my_wallet")
             netuid = 14
-            hotkey = "5%SOME_HOTKEY%"
+            hotkey = "5%SOME_HOTKEY_WHERE_IS_YOUR_STAKE_NOW%"
 
-            wallet_stakes = subtensor.get_stake_info_for_coldkey(coldkey_ss58=wallet.coldkey.ss58_address)
+            wallet_stakes = await subtensor.get_stake_info_for_coldkey(coldkey_ss58=wallet.coldkey.ss58_address)
 
             for stake in wallet_stakes:
-                result = subtensor.unstake_all(
+                result = await subtensor.unstake_all(
                     wallet=wallet,
                     hotkey_ss58=stake.hotkey_ss58,
                     netuid=stake.netuid,
@@ -4639,10 +4640,20 @@ class AsyncSubtensor(SubtensorMixin):
                 print(result)
         """
         if safe_unstaking:
-            raise NotImplementedError(
-                "Safe unstaking is not yet implemented for `unstale_all`."
+            return await unstaking_all_limit_extrinsic(
+                subtensor=self,
+                wallet=wallet,
+                hotkey_ss58=hotkey_ss58,
+                netuid=netuid,
+                rate_tolerance=rate_tolerance,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                period=period,
             )
-
+        if netuid != 0:
+            logging.debug(
+                f"Unstaking without Alpha price control from subnet [blue]#{netuid}[/blue]."
+            )
         return await unstake_all_extrinsic(
             subtensor=self,
             wallet=wallet,
