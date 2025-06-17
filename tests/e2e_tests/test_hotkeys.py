@@ -94,7 +94,10 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
         wallet=alice_wallet, cooldown=ROOT_COOLDOWN
     )
     assert success, f"Call `root_set_pending_childkey_cooldown` failed: {message}"
-    assert message == "Success with `root_set_pending_childkey_cooldown_extrinsic` response."
+    assert (
+        message
+        == "Success with `root_set_pending_childkey_cooldown_extrinsic` response."
+    )
 
     assert subtensor.register_subnet(dave_wallet, True, True)
     assert subtensor.subnet_exists(dave_subnet_netuid), (
