@@ -72,10 +72,10 @@ async def set_children_extrinsic(
     )
 
     return await subtensor.sign_and_send_extrinsic(
-        call,
-        wallet,
-        wait_for_inclusion,
-        wait_for_finalization,
+        call=call,
+        wallet=wallet,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
         raise_error=raise_error,
         period=period,
     )
