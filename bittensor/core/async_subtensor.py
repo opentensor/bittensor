@@ -3881,6 +3881,41 @@ class AsyncSubtensor(SubtensorMixin):
 
         return success, message
 
+    async def root_set_pending_childkey_cooldown(
+        self,
+        wallet: "Wallet",
+        cooldown: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        period: Optional[int] = None,
+    ) -> tuple[bool, str]:
+        """Sets the pending childkey cooldown.
+
+        Arguments:
+            wallet: bittensor wallet instance.
+            cooldown: the number of blocks to setting pending childkey cooldown.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
+                ``False``.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
+
+        Returns:
+            tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
+                operation, and the second element is a message providing additional information.
+
+        Note: This operation can only be successfully performed if your wallet has root privileges.
+        """
+        return await root_set_pending_childkey_cooldown_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            cooldown=cooldown,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            period=period,
+        )
+
     # TODO: remove `block_hash` argument
     async def root_register(
         self,
