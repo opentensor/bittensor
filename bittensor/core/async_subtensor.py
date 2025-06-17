@@ -44,6 +44,10 @@ from bittensor.core.extrinsics.asyncex.move_stake import (
     swap_stake_extrinsic,
     move_stake_extrinsic,
 )
+from bittensor.core.extrinsics.asyncex.children import (
+    root_set_pending_childkey_cooldown_extrinsic,
+    set_children_extrinsic,
+)
 from bittensor.core.extrinsics.asyncex.registration import (
     burned_register_extrinsic,
     register_extrinsic,
@@ -78,19 +82,18 @@ from bittensor.core.extrinsics.asyncex.weights import (
     set_weights_extrinsic,
     reveal_weights_extrinsic,
 )
+from bittensor.core.extrinsics.children import set_children_extrinsic
 from bittensor.core.metagraph import AsyncMetagraph
 from bittensor.core.settings import version_as_int, TYPE_REGISTRY
 from bittensor.core.types import ParamWithTypes, SubtensorMixin
 from bittensor.utils import (
     Certificate,
     decode_hex_identity_dict,
-    float_to_u64,
     format_error_message,
     is_valid_ss58_address,
     torch,
     u16_normalized_float,
     u64_normalized_float,
-    unlock_key,
 )
 from bittensor.utils.balance import (
     Balance,
@@ -3998,33 +4001,14 @@ class AsyncSubtensor(SubtensorMixin):
             bittensor_wallet.errors.KeyFileError: Failed to decode keyfile data.
             bittensor_wallet.errors.PasswordError: Decryption failed or wrong password for decryption provided.
         """
-
-        unlock = unlock_key(wallet, raise_error=raise_error)
-
-        if not unlock.success:
-            return False, unlock.message
-
-        call = await self.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="set_children",
-            call_params={
-                "children": [
-                    (
-                        float_to_u64(proportion),
-                        child_hotkey,
-                    )
-                    for proportion, child_hotkey in children
-                ],
-                "hotkey": hotkey,
-                "netuid": netuid,
-            },
-        )
-
-        return await self.sign_and_send_extrinsic(
-            call,
-            wallet,
-            wait_for_inclusion,
-            wait_for_finalization,
+        return await set_children_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            hotkey=hotkey,
+            netuid=netuid,
+            children=children,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
             raise_error=raise_error,
             period=period,
         )
