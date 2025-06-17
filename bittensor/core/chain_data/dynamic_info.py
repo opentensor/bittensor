@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from typing import Optional, Union
 
 from bittensor.core.chain_data.info_base import InfoBase
-from bittensor.core.chain_data.utils import decode_account_id
 
 from bittensor.core.chain_data.subnet_identity import SubnetIdentity
 from bittensor.utils.balance import Balance, fixed_to_float
@@ -52,8 +51,8 @@ class DynamicInfo(InfoBase):
             True if int(decoded["netuid"]) > 0 else False
         )  # Root is not dynamic
 
-        owner_hotkey = decode_account_id(decoded["owner_hotkey"])
-        owner_coldkey = decode_account_id(decoded["owner_coldkey"])
+        owner_hotkey = decoded["owner_hotkey"]
+        owner_coldkey = decoded["owner_coldkey"]
 
         emission = Balance.from_rao(decoded["emission"]).set_unit(0)
         alpha_in = Balance.from_rao(decoded["alpha_in"]).set_unit(netuid)
