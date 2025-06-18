@@ -9,6 +9,7 @@ class SubnetIdentity:
     github_repo: str
     subnet_contact: str
     subnet_url: str
+    logo_url: str
     discord: str
     description: str
     additional: str
@@ -21,6 +22,7 @@ class SubnetIdentity:
             github_repo=decoded["github_repo"],
             subnet_contact=decoded["subnet_contact"],
             subnet_url=decoded["subnet_url"],
+            logo_url=decoded["logo_url"],
             discord=decoded["discord"],
             description=decoded["description"],
             additional=decoded["additional"],

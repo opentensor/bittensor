@@ -470,6 +470,7 @@ async def set_subnet_identity_extrinsic(
     github_repo: str,
     subnet_contact: str,
     subnet_url: str,
+    logo_url: str,
     discord: str,
     description: str,
     additional: str,
@@ -488,6 +489,7 @@ async def set_subnet_identity_extrinsic(
         github_repo (str): URL of the GitHub repository related to the subnet.
         subnet_contact (str): Subnet's contact information, e.g., email or contact link.
         subnet_url (str): The URL of the subnet's primary web portal.
+        logo_url (str): The URL of the logo's primary web portal.
         discord (str): Discord server or contact for the subnet.
         description (str): A textual description of the subnet.
         additional (str): Any additional metadata or information related to the subnet.
@@ -516,6 +518,7 @@ async def set_subnet_identity_extrinsic(
             "github_repo": github_repo,
             "subnet_contact": subnet_contact,
             "subnet_url": subnet_url,
+            "logo_url": logo_url,
             "discord": discord,
             "description": description,
             "additional": additional,

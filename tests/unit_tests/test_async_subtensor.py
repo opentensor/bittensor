@@ -2642,41 +2642,41 @@ async def test_register_success(subtensor, fake_wallet, mocker):
 
 
 @pytest.mark.asyncio
-async def test_set_children(mock_substrate, subtensor, fake_wallet, mocker):
-    mock_substrate.submit_extrinsic.return_value = mocker.Mock(
-        is_success=mocker.AsyncMock(return_value=True)(),
+async def test_set_children(subtensor, fake_wallet, mocker):
+    """Tests set_children extrinsic calls properly."""
+    # Preps
+    mocked_set_children_extrinsic = mocker.AsyncMock()
+    mocker.patch.object(
+        async_subtensor, "set_children_extrinsic", mocked_set_children_extrinsic
     )
+    fake_children = [
+        (
+            1.0,
+            "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
+        ),
+    ]
 
-    await subtensor.set_children(
+    # Call
+    result = await subtensor.set_children(
         fake_wallet,
         fake_wallet.hotkey.ss58_address,
         netuid=1,
-        children=[
-            (
-                1.0,
-                "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
-            ),
-        ],
+        children=fake_children,
     )
 
-    assert_submit_signed_extrinsic(
-        mock_substrate,
-        fake_wallet.coldkey,
-        call_module="SubtensorModule",
-        call_function="set_children",
-        call_params={
-            "children": [
-                (
-                    U64_MAX,
-                    "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
-                )
-            ],
-            "hotkey": fake_wallet.hotkey.ss58_address,
-            "netuid": 1,
-        },
-        wait_for_inclusion=True,
+    # Asserts
+    mocked_set_children_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        hotkey=fake_wallet.hotkey.ss58_address,
+        netuid=1,
+        children=fake_children,
         wait_for_finalization=True,
+        wait_for_inclusion=True,
+        raise_error=False,
+        period=None,
     )
+    assert result == mocked_set_children_extrinsic.return_value
 
 
 @pytest.mark.asyncio
@@ -3038,6 +3038,7 @@ async def test_set_subnet_identity(mocker, subtensor, fake_wallet):
         github_repo=fake_subnet_identity.github_repo,
         subnet_contact=fake_subnet_identity.subnet_contact,
         subnet_url=fake_subnet_identity.subnet_url,
+        logo_url=fake_subnet_identity.logo_url,
         discord=fake_subnet_identity.discord,
         description=fake_subnet_identity.description,
         additional=fake_subnet_identity.additional,
