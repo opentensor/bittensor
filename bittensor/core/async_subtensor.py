@@ -119,6 +119,7 @@ class AsyncSubtensor(SubtensorMixin):
         retry_forever: bool = False,
         _mock: bool = False,
         archive_endpoints: Optional[list[str]] = None,
+        websocket_shutdown_timer: float = 5.0,
     ):
         """
         Initializes an instance of the AsyncSubtensor class.
@@ -157,6 +158,7 @@ class AsyncSubtensor(SubtensorMixin):
             retry_forever=retry_forever,
             _mock=_mock,
             archive_endpoints=archive_endpoints,
+            ws_shutdown_timer=websocket_shutdown_timer,
         )
         if self.log_verbose:
             logging.info(
@@ -296,6 +298,7 @@ class AsyncSubtensor(SubtensorMixin):
         retry_forever: bool = False,
         _mock: bool = False,
         archive_endpoints: Optional[list[str]] = None,
+        ws_shutdown_timer: float = 5.0,
     ) -> Union[AsyncSubstrateInterface, RetryAsyncSubstrate]:
         """Creates the Substrate instance based on provided arguments.
 
@@ -307,6 +310,8 @@ class AsyncSubtensor(SubtensorMixin):
             archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in cases
                 where you are requesting a block that is too old for your current (presumably lite) node. Defaults to
                 `None`
+            ws_shutdown_timer: Amount of time, in seconds, to wait after the last response from the chain to close the
+                connection.
 
         Returns:
             the instance of the SubstrateInterface or RetrySyncSubstrate class.
@@ -322,6 +327,7 @@ class AsyncSubtensor(SubtensorMixin):
                 chain_name="Bittensor",
                 _mock=_mock,
                 archive_nodes=archive_endpoints,
+                ws_shutdown_timer=ws_shutdown_timer,
             )
         return AsyncSubstrateInterface(
             url=self.chain_endpoint,
@@ -330,6 +336,7 @@ class AsyncSubtensor(SubtensorMixin):
             use_remote_preset=True,
             chain_name="Bittensor",
             _mock=_mock,
+            ws_shutdown_timer=ws_shutdown_timer,
         )
 
     # Subtensor queries ===========================================================================================
