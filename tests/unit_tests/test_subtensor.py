@@ -3811,3 +3811,40 @@ def test_get_parents_no_parents(subtensor, mocker):
         params=[fake_hotkey, fake_netuid],
     )
     assert result == []
+
+
+def test_set_children(subtensor, fake_wallet, mocker):
+    """Tests set_children extrinsic calls properly."""
+    # Preps
+    mocked_set_children_extrinsic = mocker.Mock()
+    mocker.patch.object(
+        subtensor_module, "set_children_extrinsic", mocked_set_children_extrinsic
+    )
+    fake_children = [
+        (
+            1.0,
+            "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
+        ),
+    ]
+
+    # Call
+    result = subtensor.set_children(
+        fake_wallet,
+        fake_wallet.hotkey.ss58_address,
+        netuid=1,
+        children=fake_children,
+    )
+
+    # Asserts
+    mocked_set_children_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        hotkey=fake_wallet.hotkey.ss58_address,
+        netuid=1,
+        children=fake_children,
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
+        raise_error=False,
+        period=None,
+    )
+    assert result == mocked_set_children_extrinsic.return_value
