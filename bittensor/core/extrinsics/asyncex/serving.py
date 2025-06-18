@@ -257,7 +257,7 @@ async def publish_metadata(
         period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
-        reset_bonds (bool): If ``True``, the function will reset the bonds for the neuron. Defaults to ``False``.
+        reset_bonds (bool): If `True`, the function will reset the bonds for the neuron. Defaults to `False`.
 
     Returns:
         bool: ``True`` if the metadata was successfully published (and finalized if specified). ``False`` otherwise.
