@@ -909,7 +909,7 @@ class Subtensor(SubtensorMixin):
 
         metagraph = self.metagraph(netuid)
         try:
-            hotkey = metagraph.hotkeys[uid]  # type: ignore
+            hotkey = metagraph.hotkeys[uid]
         except IndexError:
             logging.error(
                 "Your uid is not in the hotkeys. Please double-check your UID."
