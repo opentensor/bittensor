@@ -117,11 +117,12 @@ class Subtensor(SubtensorMixin):
     def __init__(
         self,
         network: Optional[str] = None,
-        config: Optional["Config"] = None,
+        config: Optional[Config] = None,
         log_verbose: bool = False,
         fallback_endpoints: Optional[list[str]] = None,
         retry_forever: bool = False,
         _mock: bool = False,
+        archive_endpoints: Optional[list[str]] = None,
     ):
         """
         Initializes an instance of the Subtensor class.
@@ -134,6 +135,9 @@ class Subtensor(SubtensorMixin):
                 Defaults to `None`.
             retry_forever: Whether to retry forever on connection errors. Defaults to `False`.
             _mock: Whether this is a mock instance. Mainly just for use in testing.
+            archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in cases
+                where you are requesting a block that is too old for your current (presumably lite) node. Defaults to
+                `None`
 
         Raises:
             Any exceptions raised during the setup, configuration, or connection process.
@@ -154,6 +158,7 @@ class Subtensor(SubtensorMixin):
             fallback_endpoints=fallback_endpoints,
             retry_forever=retry_forever,
             _mock=_mock,
+            archive_endpoints=archive_endpoints,
         )
         if self.log_verbose:
             logging.info(
@@ -175,19 +180,23 @@ class Subtensor(SubtensorMixin):
         fallback_endpoints: Optional[list[str]] = None,
         retry_forever: bool = False,
         _mock: bool = False,
+        archive_endpoints: Optional[list[str]] = None,
     ) -> Union[SubstrateInterface, RetrySyncSubstrate]:
         """Creates the Substrate instance based on provided arguments.
 
         Arguments:
-            fallback_endpoints: List of fallback chains endpoints to use if main network isn't available.
-                Defaults to `None`.
+            fallback_endpoints: List of fallback chains endpoints to use if main network isn't available. Defaults to
+                `None`.
             retry_forever: Whether to retry forever on connection errors. Defaults to `False`.
             _mock: Whether this is a mock instance. Mainly just for use in testing.
+            archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in cases
+                where you are requesting a block that is too old for your current (presumably lite) node. Defaults to
+                `None`
 
         Returns:
             the instance of the SubstrateInterface or RetrySyncSubstrate class.
         """
-        if fallback_endpoints or retry_forever:
+        if fallback_endpoints or retry_forever or archive_endpoints:
             return RetrySyncSubstrate(
                 url=self.chain_endpoint,
                 ss58_format=SS58_FORMAT,
@@ -197,6 +206,7 @@ class Subtensor(SubtensorMixin):
                 fallback_chains=fallback_endpoints,
                 retry_forever=retry_forever,
                 _mock=_mock,
+                archive_nodes=archive_endpoints,
             )
         return SubstrateInterface(
             url=self.chain_endpoint,
