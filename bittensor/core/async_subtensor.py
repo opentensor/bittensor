@@ -122,6 +122,8 @@ class AsyncSubtensor(SubtensorMixin):
         fallback_endpoints: Optional[list[str]] = None,
         retry_forever: bool = False,
         _mock: bool = False,
+        archive_endpoints: Optional[list[str]] = None,
+        websocket_shutdown_timer: float = 5.0,
     ):
         """
         Initializes an instance of the AsyncSubtensor class.
@@ -134,6 +136,9 @@ class AsyncSubtensor(SubtensorMixin):
                 Defaults to `None`.
             retry_forever: Whether to retry forever on connection errors. Defaults to `False`.
             _mock: Whether this is a mock instance. Mainly just for use in testing.
+            archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in cases
+                where you are requesting a block that is too old for your current (presumably lite) node. Defaults to
+                `None`
 
         Raises:
             Any exceptions raised during the setup, configuration, or connection process.
@@ -156,6 +161,8 @@ class AsyncSubtensor(SubtensorMixin):
             fallback_endpoints=fallback_endpoints,
             retry_forever=retry_forever,
             _mock=_mock,
+            archive_endpoints=archive_endpoints,
+            ws_shutdown_timer=websocket_shutdown_timer,
         )
         if self.log_verbose:
             logging.info(
@@ -294,6 +301,8 @@ class AsyncSubtensor(SubtensorMixin):
         fallback_endpoints: Optional[list[str]] = None,
         retry_forever: bool = False,
         _mock: bool = False,
+        archive_endpoints: Optional[list[str]] = None,
+        ws_shutdown_timer: float = 5.0,
     ) -> Union[AsyncSubstrateInterface, RetryAsyncSubstrate]:
         """Creates the Substrate instance based on provided arguments.
 
@@ -302,11 +311,16 @@ class AsyncSubtensor(SubtensorMixin):
                 Defaults to `None`.
             retry_forever: Whether to retry forever on connection errors. Defaults to `False`.
             _mock: Whether this is a mock instance. Mainly just for use in testing.
+            archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in cases
+                where you are requesting a block that is too old for your current (presumably lite) node. Defaults to
+                `None`
+            ws_shutdown_timer: Amount of time, in seconds, to wait after the last response from the chain to close the
+                connection.
 
         Returns:
             the instance of the SubstrateInterface or RetrySyncSubstrate class.
         """
-        if fallback_endpoints or retry_forever:
+        if fallback_endpoints or retry_forever or archive_endpoints:
             return RetryAsyncSubstrate(
                 url=self.chain_endpoint,
                 fallback_chains=fallback_endpoints,
@@ -316,6 +330,8 @@ class AsyncSubtensor(SubtensorMixin):
                 use_remote_preset=True,
                 chain_name="Bittensor",
                 _mock=_mock,
+                archive_nodes=archive_endpoints,
+                ws_shutdown_timer=ws_shutdown_timer,
             )
         return AsyncSubstrateInterface(
             url=self.chain_endpoint,
@@ -324,6 +340,7 @@ class AsyncSubtensor(SubtensorMixin):
             use_remote_preset=True,
             chain_name="Bittensor",
             _mock=_mock,
+            ws_shutdown_timer=ws_shutdown_timer,
         )
 
     # Subtensor queries ===========================================================================================
