@@ -17,6 +17,7 @@ from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 
 
 SET_CHILDREN_RATE_LIMIT = 15
+ROOT_COOLDOWN = 15  # blocks
 
 
 def test_hotkeys(subtensor, alice_wallet, dave_wallet):
@@ -77,6 +78,7 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
     """
     Tests:
     - Get default children (empty list)
+    - Call `root_set_pending_childkey_cooldown` extrinsic.
     - Update children list
     - Checking pending children
     - Checking cooldown period
@@ -86,6 +88,16 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
 
     dave_subnet_netuid = subtensor.get_total_subnets()  # 2
     set_tempo = 10  # affect to non-fast-blocks mode
+
+    # Set cooldown
+    success, message = subtensor.extrinsics.root_set_pending_childkey_cooldown(
+        wallet=alice_wallet, cooldown=ROOT_COOLDOWN
+    )
+    assert success, f"Call `root_set_pending_childkey_cooldown` failed: {message}"
+    assert (
+        message
+        == "Success with `root_set_pending_childkey_cooldown_extrinsic` response."
+    )
 
     assert subtensor.register_subnet(dave_wallet, True, True)
     assert subtensor.subnet_exists(dave_subnet_netuid), (
@@ -241,7 +253,7 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
         raise_error=True,
     )
 
-    assert error == ""
+    assert error == "Success with `set_children_extrinsic` response."
     assert success is True
 
     set_children_block = subtensor.get_current_block()
@@ -265,7 +277,8 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
 
     assert pending == [(1.0, bob_wallet.hotkey.ss58_address)]
 
-    subtensor.wait_for_block(cooldown + 15)
+    # we use `*2` to ensure that the chain has time to process
+    subtensor.wait_for_block(cooldown + SET_CHILDREN_RATE_LIMIT * 2)
 
     success, children, error = subtensor.get_children(
         alice_wallet.hotkey.ss58_address,

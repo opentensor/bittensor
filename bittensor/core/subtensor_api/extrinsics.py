@@ -17,6 +17,9 @@ class Extrinsics:
         self.reveal_weights = subtensor.reveal_weights
         self.root_register = subtensor.root_register
         self.root_set_weights = subtensor.root_set_weights
+        self.root_set_pending_childkey_cooldown = (
+            subtensor.root_set_pending_childkey_cooldown
+        )
         self.set_children = subtensor.set_children
         self.set_subnet_identity = subtensor.set_subnet_identity
         self.set_weights = subtensor.set_weights

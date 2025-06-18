@@ -44,6 +44,10 @@ from bittensor.core.extrinsics.asyncex.move_stake import (
     swap_stake_extrinsic,
     move_stake_extrinsic,
 )
+from bittensor.core.extrinsics.asyncex.children import (
+    root_set_pending_childkey_cooldown_extrinsic,
+    set_children_extrinsic,
+)
 from bittensor.core.extrinsics.asyncex.registration import (
     burned_register_extrinsic,
     register_extrinsic,
@@ -84,13 +88,11 @@ from bittensor.core.types import ParamWithTypes, SubtensorMixin
 from bittensor.utils import (
     Certificate,
     decode_hex_identity_dict,
-    float_to_u64,
     format_error_message,
     is_valid_ss58_address,
     torch,
     u16_normalized_float,
     u64_normalized_float,
-    unlock_key,
 )
 from bittensor.utils.balance import (
     Balance,
@@ -3895,6 +3897,41 @@ class AsyncSubtensor(SubtensorMixin):
 
         return success, message
 
+    async def root_set_pending_childkey_cooldown(
+        self,
+        wallet: "Wallet",
+        cooldown: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        period: Optional[int] = None,
+    ) -> tuple[bool, str]:
+        """Sets the pending childkey cooldown.
+
+        Arguments:
+            wallet: bittensor wallet instance.
+            cooldown: the number of blocks to setting pending childkey cooldown.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
+                ``False``.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
+
+        Returns:
+            tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
+                operation, and the second element is a message providing additional information.
+
+        Note: This operation can only be successfully performed if your wallet has root privileges.
+        """
+        return await root_set_pending_childkey_cooldown_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            cooldown=cooldown,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            period=period,
+        )
+
     # TODO: remove `block_hash` argument
     async def root_register(
         self,
@@ -4015,33 +4052,14 @@ class AsyncSubtensor(SubtensorMixin):
             bittensor_wallet.errors.KeyFileError: Failed to decode keyfile data.
             bittensor_wallet.errors.PasswordError: Decryption failed or wrong password for decryption provided.
         """
-
-        unlock = unlock_key(wallet, raise_error=raise_error)
-
-        if not unlock.success:
-            return False, unlock.message
-
-        call = await self.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="set_children",
-            call_params={
-                "children": [
-                    (
-                        float_to_u64(proportion),
-                        child_hotkey,
-                    )
-                    for proportion, child_hotkey in children
-                ],
-                "hotkey": hotkey,
-                "netuid": netuid,
-            },
-        )
-
-        return await self.sign_and_send_extrinsic(
-            call,
-            wallet,
-            wait_for_inclusion,
-            wait_for_finalization,
+        return await set_children_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            hotkey=hotkey,
+            netuid=netuid,
+            children=children,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
             raise_error=raise_error,
             period=period,
         )
@@ -4166,6 +4184,7 @@ class AsyncSubtensor(SubtensorMixin):
             github_repo=subnet_identity.github_repo,
             subnet_contact=subnet_identity.subnet_contact,
             subnet_url=subnet_identity.subnet_url,
+            logo_url=subnet_identity.logo_url,
             discord=subnet_identity.discord,
             description=subnet_identity.description,
             additional=subnet_identity.additional,
