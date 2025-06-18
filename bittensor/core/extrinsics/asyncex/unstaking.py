@@ -48,8 +48,10 @@ async def unstake_extrinsic(
         unstake_all: If true, unstakes all tokens. Default is ``False``.
 
     Returns:
-        success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
-            finalization / inclusion, the response is ``True``.
+        tuple[bool, str]:
+            A tuple containing:
+            - `True` and a success message if the unstake operation succeeded;
+            - `False` and an error message otherwise.
     """
     if amount and unstake_all:
         raise ValueError("Cannot specify both `amount` and `unstake_all`.")
@@ -349,8 +351,10 @@ async def unstake_multiple_extrinsic(
         unstake_all: If true, unstakes all tokens. Default is ``False``.
 
     Returns:
-        success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. Flag is ``True`` if any
-            wallet was unstaked. If we did not wait for finalization / inclusion, the response is ``True``.
+        tuple[bool, str]:
+            A tuple containing:
+            - `True` and a success message if the unstake operation succeeded;
+            - `False` and an error message otherwise.
     """
     if amounts and unstake_all:
         raise ValueError("Cannot specify both `amounts` and `unstake_all`.")

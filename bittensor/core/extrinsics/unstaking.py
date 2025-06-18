@@ -47,8 +47,10 @@ def unstake_extrinsic(
         unstake_all: If true, unstakes all tokens. Default is ``False``.
 
     Returns:
-        success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
-            finalization / inclusion, the response is ``True``.
+        tuple[bool, str]:
+            A tuple containing:
+            - `True` and a success message if the unstake operation succeeded;
+            - `False` and an error message otherwise.
     """
     if amount and unstake_all:
         raise ValueError("Cannot specify both `amount` and `unstake_all`.")
@@ -214,9 +216,9 @@ def unstake_all_extrinsic(
         netuid: The unique identifier of the subnet.
         wait_for_inclusion: Waits for the transaction to be included in a block. Default is `True`.
         wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Default is `False`.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
-            submitted. If the transaction is not included in a block within that number of blocks, it will expire
-            and be rejected. You can think of it as an expiration date for the transaction. Default is `None`.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction. Default is `None`.
 
     Returns:
         tuple[bool, str]:
@@ -350,8 +352,10 @@ def unstake_multiple_extrinsic(
         unstake_all: If true, unstakes all tokens. Default is ``False``.
 
     Returns:
-        success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. Flag is ``True`` if any
-            wallet was unstaked. If we did not wait for finalization / inclusion, the response is ``True``.
+        tuple[bool, str]:
+            A tuple containing:
+            - `True` and a success message if the unstake operation succeeded;
+            - `False` and an error message otherwise.
     """
     if amounts and unstake_all:
         raise ValueError("Cannot specify both `amounts` and `unstake_all`.")
