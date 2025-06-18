@@ -144,10 +144,10 @@ def decode_metadata(metadata: dict) -> str:
 def decode_block(data: bytes) -> int:
     """
     Decode the block data from the given input if it is not None.
-    
+
     Arguments:
         data (bytes): The block data to decode.
-        
+
     Returns:
         int: The decoded block.
     """
