@@ -29,6 +29,10 @@ class SubtensorApi:
         retry_forever: Whether to retry forever on connection errors. Defaults to `False`.
         log_verbose: Enables or disables verbose logging.
         mock: Whether this is a mock instance. Mainly just for use in testing.
+        archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in cases
+            where you are requesting a block that is too old for your current (presumably lite) node. Defaults to `None`
+        websocket_shutdown_timer: Amount of time, in seconds, to wait after the last response from the chain to close
+            the connection. Only applicable to AsyncSubtensor.
 
     Example:
         # sync version
@@ -75,10 +79,14 @@ class SubtensorApi:
         retry_forever: bool = False,
         log_verbose: bool = False,
         mock: bool = False,
+        archive_endpoints: Optional[list[str]] = None,
+        websocket_shutdown_timer: float = 5.0,
     ):
         self.network = network
         self._fallback_endpoints = fallback_endpoints
+        self._archive_endpoints = archive_endpoints
         self._retry_forever = retry_forever
+        self._ws_shutdown_timer = websocket_shutdown_timer
         self._mock = mock
         self.log_verbose = log_verbose
         self.is_async = async_subtensor
@@ -119,6 +127,8 @@ class SubtensorApi:
                 fallback_endpoints=self._fallback_endpoints,
                 retry_forever=self._retry_forever,
                 _mock=self._mock,
+                archive_endpoints=self._archive_endpoints,
+                websocket_shutdown_timer=self._ws_shutdown_timer,
             )
             self.initialize = _subtensor.initialize
             return _subtensor
@@ -130,6 +140,7 @@ class SubtensorApi:
                 fallback_endpoints=self._fallback_endpoints,
                 retry_forever=self._retry_forever,
                 _mock=self._mock,
+                archive_endpoints=self._archive_endpoints,
             )
 
     def _determine_chain_endpoint(self) -> str:
