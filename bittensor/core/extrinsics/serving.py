@@ -311,7 +311,18 @@ def get_metadata(
 def get_last_bonds_reset(
     subtensor: "Subtensor", netuid: int, hotkey: str, block: Optional[int] = None
 ) -> bytes:
-    """Fetches the last bonds reset triggered at commitment from the blockchain for a given hotkey and netuid."""
+    """
+    Fetches the last bonds reset triggered at commitment from the blockchain for a given hotkey and netuid.
+
+    Args:
+        subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance object.
+        netuid (int): The network uid to fetch from.
+        hotkey (str): The hotkey of the neuron for which to fetch the last bonds reset.
+        block (Optional[int]): The block number to query. If ``None``, the latest block is used.
+
+    Returns:
+        bytes: The last bonds reset data for the specified hotkey and netuid.
+    """
     return subtensor.substrate.query(
         module="Commitments",
         storage_function="LastBondsReset",
