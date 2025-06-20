@@ -74,6 +74,8 @@ from bittensor.core.extrinsics.asyncex.take import (
 )
 from bittensor.core.extrinsics.asyncex.transfer import transfer_extrinsic
 from bittensor.core.extrinsics.asyncex.unstaking import (
+    unstake_all_extrinsic,
+    unstaking_all_limit_extrinsic,
     unstake_extrinsic,
     unstake_multiple_extrinsic,
 )
@@ -4600,6 +4602,85 @@ class AsyncSubtensor(SubtensorMixin):
             rate_tolerance=rate_tolerance,
             period=period,
             unstake_all=unstake_all,
+        )
+
+    async def unstake_all(
+        self,
+        wallet: "Wallet",
+        hotkey_ss58: str,
+        netuid: int,
+        safe_unstaking: bool = False,
+        rate_tolerance: float = 0.005,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        period: Optional[int] = None,
+    ) -> tuple[bool, str]:
+        """Unstakes all TAO/Alpha associated with a hotkey from the specified subnets on the Bittensor network.
+
+        Arguments:
+            wallet: The wallet of the stake owner.
+            hotkey_ss58: The SS58 address of the hotkey to unstake from.
+            netuid: The unique identifier of the subnet.
+            safe_unstaking: If true, enables price safety checks to protect against fluctuating prices. The unstake
+                will only execute if the price change doesn't exceed the rate tolerance. Default is False.
+            rate_tolerance: The maximum allowed price change ratio when unstaking. For example, 0.005 = 0.5% maximum
+                price decrease. Only used when safe_staking is True. Default is 0.005.
+            wait_for_inclusion: Waits for the transaction to be included in a block. Default is `True`.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Default is `False`.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction. Default is `None`.
+
+        Returns:
+            tuple[bool, str]:
+                A tuple containing:
+                - `True` and a success message if the unstake operation succeeded;
+                - `False` and an error message otherwise.
+
+        Example:
+            # If you would like to unstake all stakes in all subnets safely:
+            import bittensor as bt
+
+            subtensor = bt.AsyncSubtensor()
+            wallet = bt.Wallet("my_wallet")
+            netuid = 14
+            hotkey = "5%SOME_HOTKEY_WHERE_IS_YOUR_STAKE_NOW%"
+
+            wallet_stakes = await subtensor.get_stake_info_for_coldkey(coldkey_ss58=wallet.coldkey.ss58_address)
+
+            for stake in wallet_stakes:
+                result = await subtensor.unstake_all(
+                    wallet=wallet,
+                    hotkey_ss58=stake.hotkey_ss58,
+                    netuid=stake.netuid,
+                )
+                print(result)
+
+            # TODO: add additional example with explanation
+        """
+        if safe_unstaking:
+            return await unstaking_all_limit_extrinsic(
+                subtensor=self,
+                wallet=wallet,
+                hotkey_ss58=hotkey_ss58,
+                netuid=netuid,
+                rate_tolerance=rate_tolerance,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                period=period,
+            )
+        if netuid != 0:
+            logging.debug(
+                f"Unstaking without Alpha price control from subnet [blue]#{netuid}[/blue]."
+            )
+        return await unstake_all_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            hotkey_ss58=hotkey_ss58,
+            netuid=netuid,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            period=period,
         )
 
     async def unstake_multiple(

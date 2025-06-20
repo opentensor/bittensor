@@ -158,6 +158,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.transfer_stake = subtensor._subtensor.transfer_stake
     subtensor.tx_rate_limit = subtensor._subtensor.tx_rate_limit
     subtensor.unstake = subtensor._subtensor.unstake
+    subtensor.unstake_all = subtensor._subtensor.unstake_all
     subtensor.unstake_multiple = subtensor._subtensor.unstake_multiple
     subtensor.wait_for_block = subtensor._subtensor.wait_for_block
     subtensor.weights = subtensor._subtensor.weights

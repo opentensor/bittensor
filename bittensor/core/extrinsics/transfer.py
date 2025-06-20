@@ -143,7 +143,7 @@ def transfer_extrinsic(
         logging.error(f"\t\tFor fee:\t[blue]{fee}[/blue]")
         return False
 
-    logging.info(":satellite: [magenta]Transferring...</magenta")
+    logging.info(":satellite: [magenta]Transferring...[/magenta]")
     success, block_hash, err_msg = _do_transfer(
         subtensor=subtensor,
         wallet=wallet,
