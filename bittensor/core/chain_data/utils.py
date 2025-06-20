@@ -4,6 +4,7 @@ from enum import Enum
 from typing import Optional, Union, TYPE_CHECKING
 
 from scalecodec.base import RuntimeConfiguration, ScaleBytes
+from async_substrate_interface.types import ScaleObj
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.utils.ss58 import ss58_encode
 
@@ -138,6 +139,19 @@ def decode_metadata(metadata: dict) -> str:
     commitment = metadata["info"]["fields"][0][0]
     bytes_tuple = commitment[next(iter(commitment.keys()))][0]
     return bytes(bytes_tuple).decode()
+
+
+def decode_block(data: bytes) -> int:
+    """
+    Decode the block data from the given input if it is not None.
+
+    Arguments:
+        data (bytes): The block data to decode.
+
+    Returns:
+        int: The decoded block.
+    """
+    return int(data.value) if isinstance(data, ScaleObj) else data
 
 
 def decode_revealed_commitment(encoded_data) -> tuple[int, str]:
