@@ -3039,7 +3039,7 @@ class AsyncSubtensor(SubtensorMixin):
             data_type="TimelockEncrypted",
             data=data_,
             period=period,
-        ), reveal_round,
+        ), reveal_round
 
     async def subnet(
         self,
