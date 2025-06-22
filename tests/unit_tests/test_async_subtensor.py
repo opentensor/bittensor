@@ -1982,6 +1982,90 @@ async def test_get_children_substrate_request_exception(subtensor, mocker):
 
 
 @pytest.mark.asyncio
+async def test_get_parents_success(subtensor, mocker):
+    """Tests get_parents when parents are successfully retrieved and formatted."""
+    # Preps
+    fake_hotkey = "valid_hotkey"
+    fake_netuid = 1
+    fake_parents = mocker.Mock(
+        value=[
+            (1000, ["parent_key_1"]),
+            (2000, ["parent_key_2"]),
+        ]
+    )
+
+    mocked_query = mocker.AsyncMock(return_value=fake_parents)
+    subtensor.substrate.query = mocked_query
+
+    mocked_decode_account_id = mocker.Mock(
+        side_effect=["decoded_parent_key_1", "decoded_parent_key_2"]
+    )
+    mocker.patch.object(async_subtensor, "decode_account_id", mocked_decode_account_id)
+
+    expected_formatted_parents = [
+        (u64_normalized_float(1000), "decoded_parent_key_1"),
+        (u64_normalized_float(2000), "decoded_parent_key_2"),
+    ]
+
+    # Call
+    result = await subtensor.get_parents(hotkey=fake_hotkey, netuid=fake_netuid)
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        block_hash=None,
+        module="SubtensorModule",
+        storage_function="ParentKeys",
+        params=[fake_hotkey, fake_netuid],
+        reuse_block_hash=False,
+    )
+    mocked_decode_account_id.assert_has_calls(
+        [mocker.call("parent_key_1"), mocker.call("parent_key_2")]
+    )
+    assert result == expected_formatted_parents
+
+
+@pytest.mark.asyncio
+async def test_get_parents_no_parents(subtensor, mocker):
+    """Tests get_parents when there are no parents to retrieve."""
+    # Preps
+    fake_hotkey = "valid_hotkey"
+    fake_netuid = 1
+    fake_parents = []
+
+    mocked_query = mocker.AsyncMock(return_value=fake_parents)
+    subtensor.substrate.query = mocked_query
+
+    # Call
+    result = await subtensor.get_parents(hotkey=fake_hotkey, netuid=fake_netuid)
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        block_hash=None,
+        module="SubtensorModule",
+        storage_function="ParentKeys",
+        params=[fake_hotkey, fake_netuid],
+        reuse_block_hash=False,
+    )
+    assert result == []
+
+
+@pytest.mark.asyncio
+async def test_get_parents_substrate_request_exception(subtensor, mocker):
+    """Tests get_parents when SubstrateRequestException is raised."""
+    # Preps
+    fake_hotkey = "valid_hotkey"
+    fake_netuid = 1
+    fake_exception = async_subtensor.SubstrateRequestException("Test Exception")
+
+    mocked_query = mocker.AsyncMock(side_effect=fake_exception)
+    subtensor.substrate.query = mocked_query
+
+    # Call
+    with pytest.raises(async_subtensor.SubstrateRequestException):
+        await subtensor.get_parents(hotkey=fake_hotkey, netuid=fake_netuid)
+
+
+@pytest.mark.asyncio
 async def test_get_children_pending(mock_substrate, subtensor):
     mock_substrate.query.return_value.value = [
         [
@@ -2558,41 +2642,41 @@ async def test_register_success(subtensor, fake_wallet, mocker):
 
 
 @pytest.mark.asyncio
-async def test_set_children(mock_substrate, subtensor, fake_wallet, mocker):
-    mock_substrate.submit_extrinsic.return_value = mocker.Mock(
-        is_success=mocker.AsyncMock(return_value=True)(),
+async def test_set_children(subtensor, fake_wallet, mocker):
+    """Tests set_children extrinsic calls properly."""
+    # Preps
+    mocked_set_children_extrinsic = mocker.AsyncMock()
+    mocker.patch.object(
+        async_subtensor, "set_children_extrinsic", mocked_set_children_extrinsic
     )
+    fake_children = [
+        (
+            1.0,
+            "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
+        ),
+    ]
 
-    await subtensor.set_children(
+    # Call
+    result = await subtensor.set_children(
         fake_wallet,
         fake_wallet.hotkey.ss58_address,
         netuid=1,
-        children=[
-            (
-                1.0,
-                "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
-            ),
-        ],
+        children=fake_children,
     )
 
-    assert_submit_signed_extrinsic(
-        mock_substrate,
-        fake_wallet.coldkey,
-        call_module="SubtensorModule",
-        call_function="set_children",
-        call_params={
-            "children": [
-                (
-                    U64_MAX,
-                    "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
-                )
-            ],
-            "hotkey": fake_wallet.hotkey.ss58_address,
-            "netuid": 1,
-        },
-        wait_for_inclusion=True,
+    # Asserts
+    mocked_set_children_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        hotkey=fake_wallet.hotkey.ss58_address,
+        netuid=1,
+        children=fake_children,
         wait_for_finalization=True,
+        wait_for_inclusion=True,
+        raise_error=False,
+        period=None,
     )
+    assert result == mocked_set_children_extrinsic.return_value
 
 
 @pytest.mark.asyncio
@@ -2954,6 +3038,7 @@ async def test_set_subnet_identity(mocker, subtensor, fake_wallet):
         github_repo=fake_subnet_identity.github_repo,
         subnet_contact=fake_subnet_identity.subnet_contact,
         subnet_url=fake_subnet_identity.subnet_url,
+        logo_url=fake_subnet_identity.logo_url,
         discord=fake_subnet_identity.discord,
         description=fake_subnet_identity.description,
         additional=fake_subnet_identity.additional,

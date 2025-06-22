@@ -1,8 +1,10 @@
 import asyncio
+import itertools
 import json
 import time
 from collections import deque
 from typing import Optional, Union
+from pathlib import Path
 
 from bittensor_wallet.mock.wallet_mock import MockWallet as _MockWallet
 from bittensor_wallet.mock.wallet_mock import get_mock_coldkey
@@ -13,7 +15,15 @@ from websockets.uri import parse_uri
 
 from bittensor.core.chain_data import AxonInfo, NeuronInfo, PrometheusInfo
 from bittensor.utils.balance import Balance
-from tests.helpers.integration_websocket_data import WEBSOCKET_RESPONSES, METADATA
+from tests.helpers.integration_websocket_data import WEBSOCKET_RESPONSES
+
+HELPERS_PATH = Path(__file__).parent
+
+with open(HELPERS_PATH / "integration_websocket_at_version.txt", "r") as f:
+    METADATA_AT_VERSION = f.read()
+
+with open(HELPERS_PATH / "integration_websocket_metadata.txt", "r") as f:
+    METADATA = f.read()
 
 
 def __mock_wallet_factory__(*_, **__) -> _MockWallet:
@@ -185,10 +195,19 @@ class FakeWebsocket(ClientConnection):
         try:
             if item["method"] == "state_getMetadata":
                 response = {"jsonrpc": "2.0", "id": _id, "result": METADATA}
+            elif item[
+                "method"
+            ] == "state_call" and "Metadata_metadata_at_version" in json.dumps(
+                item["params"]
+            ):
+                response = {"jsonrpc": "2.0", "id": _id, "result": METADATA_AT_VERSION}
             else:
                 response = WEBSOCKET_RESPONSES[self.seed][item["method"]][
                     json.dumps(item["params"])
                 ]
+                if isinstance(response, itertools.cycle):
+                    # Allows us to cycle through different responses for the same method/params combo
+                    response = next(response)
                 response["id"] = _id
             return json.dumps(response)
         except (KeyError, TypeError):
