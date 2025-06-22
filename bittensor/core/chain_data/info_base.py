@@ -3,7 +3,8 @@ from typing import Any, TypeVar
 
 from bittensor.core.errors import SubstrateRequestException
 
-# NOTE: once pyhton 3.10+ is required, we can use `typing.Self` instead of this
+# NOTE: once Python 3.10+ is required, we can use `typing.Self` instead of this for better ide integration and type hinting.
+# This current generic does not play so nice with the inherited type hinting.
 T = TypeVar("T", bound="InfoBase")
 
 

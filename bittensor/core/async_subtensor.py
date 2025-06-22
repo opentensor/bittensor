@@ -3032,17 +3032,14 @@ class AsyncSubtensor(SubtensorMixin):
         # increase reveal_round in return + 1 because we want to fetch data from the chain after that round was revealed
         # and stored.
         data_ = {"encrypted": encrypted, "reveal_round": reveal_round}
-        return (
-            await publish_metadata(
-                subtensor=self,
-                wallet=wallet,
-                netuid=netuid,
-                data_type="TimelockEncrypted",
-                data=data_,
-                period=period,
-            ),
-            reveal_round,
-        )
+        return await publish_metadata(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            data_type="TimelockEncrypted",
+            data=data_,
+            period=period,
+        ), reveal_round,
 
     async def subnet(
         self,
@@ -3224,7 +3221,6 @@ class AsyncSubtensor(SubtensorMixin):
             return None
 
         current_block = await self.substrate.get_block()
-        assert current_block is not None, "Failed to retrieve current block"
         current_block_hash = current_block.get("header", {}).get("hash")
 
         if block is not None:
@@ -3331,8 +3327,6 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
             reuse_block=reuse_block,
         )
-        assert unix is not None, "Failed to retrieve timestamp"
-        assert isinstance(unix.value, int), "Timestamp value is not an integer"
         return datetime.fromtimestamp(unix.value / 1000, tz=timezone.utc)
 
     async def get_subnet_owner_hotkey(
@@ -3353,9 +3347,6 @@ class AsyncSubtensor(SubtensorMixin):
         """
         hotkey = await self.query_subtensor(
             name="SubnetOwnerHotkey", params=[netuid], block=block
-        )
-        assert hotkey is None or isinstance(hotkey, str), (
-            f"Expected str or None, got {type(hotkey).__name__}"
         )
         return hotkey
 
