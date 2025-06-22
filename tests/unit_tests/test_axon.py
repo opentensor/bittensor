@@ -501,7 +501,7 @@ class TestAxonMiddleware(IsolatedAsyncioTestCase):
         assert synapse.axon.signature == "0xaabbccdd"
 
         # Check if the preprocess function fills the dendrite information into the synapse
-        assert synapse.dendrite.port == "5000"
+        assert synapse.dendrite.port == 5000
         assert synapse.dendrite.ip == "192.168.0.1"
 
         # Check if the preprocess function sets the request name correctly
