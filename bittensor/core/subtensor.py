@@ -3858,7 +3858,24 @@ class Subtensor(SubtensorMixin):
                 )
                 print(result)
 
-            # TODO: add additional example with explanation
+            # If you would like to unstake all stakes in all subnets unsafely, use `rate_tolerance=None`:
+                        import bittensor as bt
+
+            subtensor = bt.AsyncSubtensor()
+            wallet = bt.Wallet("my_wallet")
+            netuid = 14
+            hotkey = "5%SOME_HOTKEY_WHERE_IS_YOUR_STAKE_NOW%"
+
+            wallet_stakes = await subtensor.get_stake_info_for_coldkey(coldkey_ss58=wallet.coldkey.ss58_address)
+
+            for stake in wallet_stakes:
+                result = await subtensor.unstake_all(
+                    wallet=wallet,
+                    hotkey_ss58=stake.hotkey_ss58,
+                    netuid=stake.netuid,
+                    rate_tolerance=None,
+                )
+                print(result)
         """
         if netuid != 0:
             logging.debug(
