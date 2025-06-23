@@ -259,7 +259,6 @@ def unstake_all_extrinsic(
         sign_with="coldkey",
         use_nonce=True,
         period=period,
-        raise_error=True,
     )
 
     return success, message
