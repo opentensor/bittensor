@@ -3326,8 +3326,8 @@ class AsyncSubtensor(SubtensorMixin):
             block=block,
             block_hash=block_hash,
             reuse_block=reuse_block,
-        )
-        return datetime.fromtimestamp(unix.value / 1000, tz=timezone.utc)
+        ).value
+        return datetime.fromtimestamp(unix / 1000, tz=timezone.utc)
 
     async def get_subnet_owner_hotkey(
         self, netuid: int, block: Optional[int] = None
