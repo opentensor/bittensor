@@ -3362,10 +3362,9 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             The hotkey of the subnet owner if available; None otherwise.
         """
-        hotkey = await self.query_subtensor(
+        return await self.query_subtensor(
             name="SubnetOwnerHotkey", params=[netuid], block=block
         )
-        return hotkey
 
     async def get_subnet_validator_permits(
         self, netuid: int, block: Optional[int] = None
