@@ -3848,3 +3848,30 @@ def test_set_children(subtensor, fake_wallet, mocker):
         period=None,
     )
     assert result == mocked_set_children_extrinsic.return_value
+
+
+def test_unstake_all(subtensor, fake_wallet, mocker):
+    """Verifies unstake_all calls properly."""
+    # Preps
+    fake_unstake_all_extrinsic = mocker.Mock()
+    mocker.patch.object(
+        subtensor_module, "unstake_all_extrinsic", fake_unstake_all_extrinsic
+    )
+    # Call
+    result = subtensor.unstake_all(
+        wallet=fake_wallet,
+        hotkey=fake_wallet.hotkey.ss58_address,
+        netuid=1,
+    )
+    # Asserts
+    fake_unstake_all_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        hotkey=fake_wallet.hotkey.ss58_address,
+        netuid=1,
+        rate_tolerance=0.005,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        period=None,
+    )
+    assert result == fake_unstake_all_extrinsic.return_value
