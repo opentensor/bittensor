@@ -78,7 +78,6 @@ from bittensor.core.extrinsics.take import (
 from bittensor.core.extrinsics.transfer import transfer_extrinsic
 from bittensor.core.extrinsics.unstaking import (
     unstake_all_extrinsic,
-    unstaking_all_limit_extrinsic,
     unstake_extrinsic,
     unstake_multiple_extrinsic,
 )
@@ -3813,10 +3812,9 @@ class Subtensor(SubtensorMixin):
     def unstake_all(
         self,
         wallet: "Wallet",
-        hotkey_ss58: str,
+        hotkey: str,
         netuid: int,
-        safe_unstaking: bool = True,
-        rate_tolerance: float = 0.005,
+        rate_tolerance: Optional[float] = 0.005,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         period: Optional[int] = None,
@@ -3825,10 +3823,8 @@ class Subtensor(SubtensorMixin):
 
         Arguments:
             wallet: The wallet of the stake owner.
-            hotkey_ss58: The SS58 address of the hotkey to unstake from.
+            hotkey: The SS58 address of the hotkey to unstake from.
             netuid: The unique identifier of the subnet.
-            safe_unstaking: If true, enables price safety checks to protect against fluctuating prices. The unstake
-                will only execute if the price change doesn't exceed the rate tolerance. Default is `True`.
             rate_tolerance: The maximum allowed price change ratio when unstaking. For example, 0.005 = 0.5% maximum
                 price decrease. Only used when safe_staking is True. Default is 0.005.
             wait_for_inclusion: Waits for the transaction to be included in a block. Default is `True`.
@@ -3864,18 +3860,6 @@ class Subtensor(SubtensorMixin):
 
             # TODO: add additional example with explanation
         """
-        if safe_unstaking:
-            return unstaking_all_limit_extrinsic(
-                subtensor=self,
-                wallet=wallet,
-                hotkey_ss58=hotkey_ss58,
-                netuid=netuid,
-                rate_tolerance=rate_tolerance,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-                period=period,
-            )
-
         if netuid != 0:
             logging.debug(
                 f"Unstaking without Alpha price control from subnet [blue]#{netuid}[/blue]."
@@ -3883,8 +3867,9 @@ class Subtensor(SubtensorMixin):
         return unstake_all_extrinsic(
             subtensor=self,
             wallet=wallet,
-            hotkey_ss58=hotkey_ss58,
+            hotkey=hotkey,
             netuid=netuid,
+            rate_tolerance=rate_tolerance,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             period=period,
