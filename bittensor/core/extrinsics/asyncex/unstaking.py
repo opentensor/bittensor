@@ -206,7 +206,7 @@ async def unstake_all_extrinsic(
     wallet: "Wallet",
     hotkey: str,
     netuid: int,
-    rate_tolerance: float = 0.005,
+    rate_tolerance: Optional[float] = 0.005,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
     period: Optional[int] = None,
