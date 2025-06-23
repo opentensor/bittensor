@@ -4620,7 +4620,7 @@ class AsyncSubtensor(SubtensorMixin):
             hotkey: The SS58 address of the hotkey to unstake from.
             netuid: The unique identifier of the subnet.
             rate_tolerance: The maximum allowed price change ratio when unstaking. For example, 0.005 = 0.5% maximum
-                price decrease. Only used when safe_staking is True. Default is 0.005.
+                price decrease. If not passed (None), then unstaking goes without price limit. Default is 0.005.
             wait_for_inclusion: Waits for the transaction to be included in a block. Default is `True`.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Default is `False`.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
