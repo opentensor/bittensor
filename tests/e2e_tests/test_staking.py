@@ -837,8 +837,8 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
     ids=[
         "Without price limit",
         "With price limit",
-        "Rise `Slippage is too high for the transaction`"
-    ]
+        "Rise `Slippage is too high for the transaction`",
+    ],
 )
 def test_unstaking_with_limit(
     subtensor, alice_wallet, bob_wallet, dave_wallet, rate_tolerance
@@ -937,7 +937,9 @@ def test_unstaking_with_limit(
 
     if rate_tolerance == 0.001:
         # Raise the error
-        with pytest.raises(ChainError, match="Slippage is too high for the transaction"):
+        with pytest.raises(
+            ChainError, match="Slippage is too high for the transaction"
+        ):
             subtensor.unstake_all(
                 wallet=bob_wallet,
                 hotkey=bob_stakes[0].hotkey_ss58,
@@ -959,5 +961,7 @@ def test_unstaking_with_limit(
             )[0]
 
         # Make sure both unstake were successful.
-        bob_stakes = subtensor.get_stake_info_for_coldkey(bob_wallet.coldkey.ss58_address)
+        bob_stakes = subtensor.get_stake_info_for_coldkey(
+            bob_wallet.coldkey.ss58_address
+        )
         assert len(bob_stakes) == 0
