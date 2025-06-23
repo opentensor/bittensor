@@ -831,6 +831,7 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
 
 # For test we set rate_tolerance=0.7 (70%) because of price is highly dynamic for fast-blocks and 2 SN to avoid `
 # Slippage is too high for the transaction`. This logic controls by the chain.
+# Also this test implementation works with non-fast-blocks run.
 @pytest.mark.parametrize(
     "rate_tolerance",
     [None, 1.0],
