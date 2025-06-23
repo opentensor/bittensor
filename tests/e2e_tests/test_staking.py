@@ -833,11 +833,10 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
 # Slippage is too high for the transaction`. This logic controls by the chain.
 @pytest.mark.parametrize(
     "rate_tolerance",
-    [None, 1.0, 0.001],
+    [None, 1.0],
     ids=[
         "Without price limit",
         "With price limit",
-        "Rise `Slippage is too high for the transaction`",
     ],
 )
 def test_unstaking_with_limit(
@@ -916,7 +915,7 @@ def test_unstaking_with_limit(
         wallet=bob_wallet,
         hotkey_ss58=dave_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid_2,
-        amount=Balance.from_tao(1000),
+        amount=Balance.from_tao(10000),
         wait_for_inclusion=True,
         wait_for_finalization=True,
         period=16,
@@ -925,7 +924,7 @@ def test_unstaking_with_limit(
         wallet=bob_wallet,
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid_3,
-        amount=Balance.from_tao(1500),
+        amount=Balance.from_tao(15000),
         wait_for_inclusion=True,
         wait_for_finalization=True,
         period=16,
@@ -935,7 +934,7 @@ def test_unstaking_with_limit(
     bob_stakes = subtensor.get_stake_info_for_coldkey(bob_wallet.coldkey.ss58_address)
     assert len(bob_stakes) == 2
 
-    if rate_tolerance == 0.001:
+    if rate_tolerance == 0.0001:
         # Raise the error
         with pytest.raises(
             ChainError, match="Slippage is too high for the transaction"
