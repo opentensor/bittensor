@@ -204,64 +204,7 @@ async def unstake_extrinsic(
 async def unstake_all_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
-    hotkey_ss58: str,
-    netuid: int,
-    wait_for_inclusion: bool = True,
-    wait_for_finalization: bool = False,
-    period: Optional[int] = None,
-) -> tuple[bool, str]:
-    """Unstakes all TAO/Alpha associated with a hotkey from the specified subnets on the Bittensor network.
-
-    Arguments:
-        subtensor: Subtensor instance.
-        wallet: The wallet of the stake owner.
-        hotkey_ss58: The SS58 address of the hotkey to unstake from.
-        netuid: The unique identifier of the subnet.
-        wait_for_inclusion: Waits for the transaction to be included in a block. Default is `True`.
-        wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Default is `False`.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
-            submitted. If the transaction is not included in a block within that number of blocks, it will expire
-            and be rejected. You can think of it as an expiration date for the transaction. Default is `None`.
-
-    Returns:
-        tuple[bool, str]:
-            A tuple containing:
-            - `True` and a success message if the unstake operation succeeded;
-            - `False` and an error message otherwise.
-    """
-    if not (unlock := unlock_key(wallet)).success:
-        logging.error(unlock.message)
-        return False, unlock.message
-
-    call_params = {
-        "hotkey": hotkey_ss58,
-        "netuids": [netuid],
-    }
-
-    async with subtensor.substrate as substrate:
-        call = await substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="unstake_all",
-            call_params=call_params,
-        )
-
-        return await subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            nonce_key="coldkeypub",
-            sign_with="coldkey",
-            use_nonce=True,
-            period=period,
-            raise_error=True,
-        )
-
-
-async def unstaking_all_limit_extrinsic(
-    subtensor: "AsyncSubtensor",
-    wallet: "Wallet",
-    hotkey_ss58: str,
+    hotkey: str,
     netuid: int,
     rate_tolerance: float = 0.005,
     wait_for_inclusion: bool = True,
@@ -273,7 +216,7 @@ async def unstaking_all_limit_extrinsic(
     Arguments:
         subtensor: Subtensor instance.
         wallet: The wallet of the stake owner.
-        hotkey_ss58: The SS58 address of the hotkey to unstake from.
+        hotkey: The SS58 address of the hotkey to unstake from.
         netuid: The unique identifier of the subnet.
         rate_tolerance: The maximum allowed price change ratio when unstaking. For example, 0.005 = 0.5% maximum
                 price decrease. Only used when safe_staking is True. Default is 0.005.
@@ -293,14 +236,16 @@ async def unstaking_all_limit_extrinsic(
         logging.error(unlock.message)
         return False, unlock.message
 
-    current_price = (await subtensor.subnet(netuid=netuid)).price
-    limit_price = current_price * (1 - rate_tolerance)
-
     call_params = {
-        "hotkey": hotkey_ss58,
+        "hotkey": hotkey,
         "netuid": netuid,
-        "limit_price": limit_price,
+        "limit_price": None,
     }
+
+    if rate_tolerance:
+        current_price = (await subtensor.subnet(netuid=netuid)).price
+        limit_price = current_price * (1 - rate_tolerance)
+        call_params.update({"limit_price": limit_price})
 
     async with subtensor.substrate as substrate:
         call = await substrate.compose_call(
