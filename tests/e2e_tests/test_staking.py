@@ -1,8 +1,10 @@
+import pytest
+
+from bittensor.core.errors import ChainError
 from bittensor import logging
 from bittensor.core.chain_data.stake_info import StakeInfo
 from bittensor.utils.balance import Balance
 from tests.e2e_tests.utils.chain_interactions import get_dynamic_balance
-from tests.helpers.helpers import ApproxBalance
 from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 
 
@@ -825,3 +827,137 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
     ]
     assert bob_stakes == expected_bob_stake
     logging.console.success(f"✅ Test [green]test_transfer_stake[/green] passed")
+
+
+# For test we set rate_tolerance=0.7 (70%) because of price is highly dynamic for fast-blocks and 2 SN to avoid `
+# Slippage is too high for the transaction`. This logic controls by the chain.
+@pytest.mark.parametrize(
+    "rate_tolerance",
+    [None, 1.0, 0.001],
+    ids=[
+        "Without price limit",
+        "With price limit",
+        "Rise `Slippage is too high for the transaction`"
+    ]
+)
+def test_unstaking_with_limit(
+    subtensor, alice_wallet, bob_wallet, dave_wallet, rate_tolerance
+):
+    """Test unstaking with limits goes well for all subnets with and without price limit."""
+
+    # Register first SN
+    alice_subnet_netuid_2 = subtensor.get_total_subnets()  # 2
+    assert subtensor.register_subnet(alice_wallet, True, True)
+    assert subtensor.subnet_exists(alice_subnet_netuid_2), (
+        "Subnet wasn't created successfully"
+    )
+
+    wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid_2)
+
+    assert subtensor.start_call(
+        alice_wallet,
+        netuid=alice_subnet_netuid_2,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    # Register Bob and Dave in SN2
+    assert subtensor.burned_register(
+        wallet=bob_wallet,
+        netuid=alice_subnet_netuid_2,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    assert subtensor.burned_register(
+        wallet=dave_wallet,
+        netuid=alice_subnet_netuid_2,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    # Register second SN
+    alice_subnet_netuid_3 = subtensor.get_total_subnets()  # 3
+    assert subtensor.register_subnet(alice_wallet, True, True)
+    assert subtensor.subnet_exists(alice_subnet_netuid_3), (
+        "Subnet wasn't created successfully"
+    )
+
+    wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid_3)
+
+    assert subtensor.start_call(
+        alice_wallet,
+        netuid=alice_subnet_netuid_3,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    # Register Bob and Dave in SN3
+    assert subtensor.burned_register(
+        wallet=bob_wallet,
+        netuid=alice_subnet_netuid_3,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    assert subtensor.burned_register(
+        wallet=dave_wallet,
+        netuid=alice_subnet_netuid_3,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    # Check Bob's stakes are empty.
+    assert subtensor.get_stake_info_for_coldkey(bob_wallet.coldkey.ss58_address) == []
+
+    # Bob stakes to Dave in both SNs
+
+    assert subtensor.add_stake(
+        wallet=bob_wallet,
+        hotkey_ss58=dave_wallet.hotkey.ss58_address,
+        netuid=alice_subnet_netuid_2,
+        amount=Balance.from_tao(1000),
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        period=16,
+    ), f"Cant add stake to dave in SN {alice_subnet_netuid_2}"
+    assert subtensor.add_stake(
+        wallet=bob_wallet,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        netuid=alice_subnet_netuid_3,
+        amount=Balance.from_tao(1500),
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        period=16,
+    ), f"Cant add stake to dave in SN {alice_subnet_netuid_3}"
+
+    # Check that both stakes are presented in result
+    bob_stakes = subtensor.get_stake_info_for_coldkey(bob_wallet.coldkey.ss58_address)
+    assert len(bob_stakes) == 2
+
+    if rate_tolerance == 0.001:
+        # Raise the error
+        with pytest.raises(ChainError, match="Slippage is too high for the transaction"):
+            subtensor.unstake_all(
+                wallet=bob_wallet,
+                hotkey=bob_stakes[0].hotkey_ss58,
+                netuid=bob_stakes[0].netuid,
+                rate_tolerance=rate_tolerance,
+                wait_for_inclusion=True,
+                wait_for_finalization=True,
+            )
+    else:
+        # Successful cases
+        for si in bob_stakes:
+            assert subtensor.unstake_all(
+                wallet=bob_wallet,
+                hotkey=si.hotkey_ss58,
+                netuid=si.netuid,
+                rate_tolerance=rate_tolerance,
+                wait_for_inclusion=True,
+                wait_for_finalization=True,
+            )[0]
+
+        # Make sure both unstake were successful.
+        bob_stakes = subtensor.get_stake_info_for_coldkey(bob_wallet.coldkey.ss58_address)
+        assert len(bob_stakes) == 0
