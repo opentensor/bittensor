@@ -3337,13 +3337,14 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             datetime object for the timestamp of the block
         """
-        unix = await self.query_module(
-            "Timestamp",
-            "Now",
+        res = await self.query_module(
+            "timestamp",
+            "now",
             block=block,
             block_hash=block_hash,
             reuse_block=reuse_block,
-        ).value
+        )
+        unix = res.value
         return datetime.fromtimestamp(unix / 1000, tz=timezone.utc)
 
     async def get_subnet_owner_hotkey(
