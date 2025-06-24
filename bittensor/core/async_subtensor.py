@@ -3061,7 +3061,7 @@ class AsyncSubtensor(SubtensorMixin):
     async def subnet(
         self,
         netuid: int,
-        block: int = None,
+        block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[DynamicInfo]:
@@ -3071,23 +3071,26 @@ class AsyncSubtensor(SubtensorMixin):
         Args:
             netuid (int): The unique identifier of the subnet.
             block (Optional[int]): The block number to get the subnets at.
-            block_hash (str): The hash of the blockchain block number for the query.
+            block_hash (Optional[str]): The hash of the blockchain block number for the query.
             reuse_block (bool): Whether to reuse the last-used blockchain block hash.
 
         Returns:
             Optional[DynamicInfo]: A DynamicInfo object, containing detailed information about a subnet.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+
         if not block_hash and reuse_block:
             block_hash = self.substrate.last_block_hash
+
         query = await self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
             "get_dynamic_info",
             params=[netuid],
             block_hash=block_hash,
         )
-        subnet = DynamicInfo.from_dict(query.decode())
-        return subnet
+
+        if isinstance(decoded := query.decode(), dict):
+            return DynamicInfo.from_dict(decoded)
 
     async def subnet_exists(
         self,
@@ -3236,6 +3239,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         current_block = await self.substrate.get_block()
         current_block_hash = current_block.get("header", {}).get("hash")
+
         if block is not None:
             target_block = block
         else:
@@ -3333,15 +3337,14 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             datetime object for the timestamp of the block
         """
-        unix = (
-            await self.query_module(
-                "Timestamp",
-                "Now",
-                block=block,
-                block_hash=block_hash,
-                reuse_block=reuse_block,
-            )
-        ).value
+        res = await self.query_module(
+            "Timestamp",
+            "Now",
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        unix = res.value
         return datetime.fromtimestamp(unix / 1000, tz=timezone.utc)
 
     async def get_subnet_owner_hotkey(
