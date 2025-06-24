@@ -1425,11 +1425,11 @@ class AsyncSubtensor(SubtensorMixin):
         for weight distribution.
 
         Args:
-            hotkey (str): The hotkey value.
-            netuid (int): The netuid value.
-            block (Optional[int]): The block number for which the children are to be retrieved.
-            block_hash (Optional[str]): The hash of the block to retrieve the subnet unique identifiers from.
-            reuse_block (bool): Whether to reuse the last-used block hash.
+            hotkey: The hotkey value.
+            netuid: The netuid value.
+            block: The block number for which the children are to be retrieved.
+            block_hash: The hash of the block to retrieve the subnet unique identifiers from.
+            reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
             tuple[bool, list[tuple[float, str]], str]: A tuple containing a boolean indicating success or failure,
@@ -1486,11 +1486,11 @@ class AsyncSubtensor(SubtensorMixin):
         finalized.
 
         Args:
-            hotkey (str): The hotkey value.
-            netuid (int): The netuid value.
-            block (Optional[int]): The block number for which the children are to be retrieved.
-            block_hash (Optional[str]): The hash of the block to retrieve the subnet unique identifiers from.
-            reuse_block (bool): Whether to reuse the last-used block hash.
+            hotkey: The hotkey value.
+            netuid: The netuid value.
+            block: The block number for which the children are to be retrieved.
+            block_hash: The hash of the block to retrieve the subnet unique identifiers from.
+            reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
             tuple[list[tuple[float, str]], int]: A tuple containing a list of children with their proportions,
