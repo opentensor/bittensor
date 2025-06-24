@@ -2,7 +2,6 @@ from bittensor import logging
 from bittensor.core.chain_data.stake_info import StakeInfo
 from bittensor.utils.balance import Balance
 from tests.e2e_tests.utils.chain_interactions import get_dynamic_balance
-from tests.helpers.helpers import ApproxBalance
 from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 
 
@@ -173,7 +172,7 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
 
     # all balances have been unstaked
     assert stake == Balance(0).set_unit(alice_subnet_netuid)
-    logging.console.success(f"✅ Test [green]test_single_operation[/green] passed")
+    logging.console.success("✅ Test [green]test_single_operation[/green] passed")
 
 
 def test_batch_operations(subtensor, alice_wallet, bob_wallet):
@@ -216,7 +215,7 @@ def test_batch_operations(subtensor, alice_wallet, bob_wallet):
             netuid=netuid,
         )
 
-        assert stake == Balance(0), f"netuid={netuid} stake={stake}"
+        assert stake == Balance(0).set_unit(netuid), f"netuid={netuid} stake={stake}"
 
     balances = subtensor.get_balances(
         alice_wallet.coldkey.ss58_address,
@@ -255,7 +254,7 @@ def test_batch_operations(subtensor, alice_wallet, bob_wallet):
     ]
 
     for netuid, stake in zip(netuids, stakes):
-        assert stake > Balance(0), f"netuid={netuid} stake={stake}"
+        assert stake > Balance(0).set_unit(netuid), f"netuid={netuid} stake={stake}"
 
     alice_balance -= len(netuids) * Balance.from_tao(10_000)
 
@@ -308,7 +307,7 @@ def test_batch_operations(subtensor, alice_wallet, bob_wallet):
     assert balances == expected_balances
 
     assert balances[alice_wallet.coldkey.ss58_address] > alice_balance
-    logging.console.success(f"✅ Test [green]test_batch_operations[/green] passed")
+    logging.console.success("✅ Test [green]test_batch_operations[/green] passed")
 
 
 def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
@@ -349,7 +348,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
         bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
     )
-    assert initial_stake == Balance(0)
+    assert initial_stake == Balance(0).set_unit(alice_subnet_netuid)
 
     # Test Staking Scenarios
     stake_amount = Balance.from_tao(100)
@@ -373,7 +372,9 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
         bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
     )
-    assert current_stake == Balance(0), "Stake should not change after failed attempt"
+    assert current_stake == Balance(0).set_unit(alice_subnet_netuid), (
+        "Stake should not change after failed attempt"
+    )
 
     # 2. Partial allowed - should succeed partially
     success = subtensor.add_stake(
@@ -394,7 +395,9 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
         bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
     )
-    assert partial_stake > Balance(0), "Partial stake should be added"
+    assert partial_stake > Balance(0).set_unit(alice_subnet_netuid), (
+        "Partial stake should be added"
+    )
     assert partial_stake < stake_amount, (
         "Partial stake should be less than requested amount"
     )
@@ -468,7 +471,9 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
         netuid=alice_subnet_netuid,
     )
     logging.console.info(f"[orange]Partial unstake: {partial_unstake}[orange]")
-    assert partial_unstake > Balance(0), "Some stake should remain"
+    assert partial_unstake > Balance(0).set_unit(alice_subnet_netuid), (
+        "Some stake should remain"
+    )
 
     # 3. Higher threshold - should succeed fully
     success = subtensor.unstake(
@@ -483,9 +488,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
         allow_partial_stake=False,
     )
     assert success is True, "Unstake should succeed"
-    logging.console.success(
-        f"✅ Test [green]test_safe_staking_scenarios[/green] passed"
-    )
+    logging.console.success("✅ Test [green]test_safe_staking_scenarios[/green] passed")
 
 
 def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
@@ -539,7 +542,9 @@ def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
         alice_wallet.hotkey.ss58_address,
         netuid=origin_netuid,
     )
-    assert origin_stake > Balance(0), "Origin stake should be non-zero"
+    assert origin_stake > Balance(0).set_unit(origin_netuid), (
+        "Origin stake should be non-zero"
+    )
 
     stake_swap_amount = Balance.from_tao(10_000)
     # 1. Try swap with strict threshold and big amount- should fail
@@ -563,7 +568,7 @@ def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
         alice_wallet.hotkey.ss58_address,
         netuid=dest_netuid,
     )
-    assert dest_stake == Balance(0), (
+    assert dest_stake == Balance(0).set_unit(dest_netuid), (
         "Destination stake should remain 0 after failed swap"
     )
 
@@ -584,7 +589,7 @@ def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
     assert success is True
 
     # Verify stake was moved
-    origin_stake = subtensor.get_stake(
+    origin_stake = subtensor.get_stake(  # TODO this seems unused
         alice_wallet.coldkey.ss58_address,
         alice_wallet.hotkey.ss58_address,
         netuid=origin_netuid,
@@ -594,11 +599,11 @@ def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
         alice_wallet.hotkey.ss58_address,
         netuid=dest_netuid,
     )
-    assert dest_stake > Balance(0), (
+    assert dest_stake > Balance(0).set_unit(dest_netuid), (
         "Destination stake should be non-zero after successful swap"
     )
     logging.console.success(
-        f"✅ Test [green]test_safe_swap_stake_scenarios[/green] passed"
+        "✅ Test [green]test_safe_swap_stake_scenarios[/green] passed"
     )
 
 
@@ -641,7 +646,7 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet):
             coldkey_ss58=alice_wallet.coldkey.ss58_address,
             netuid=alice_subnet_netuid,
             stake=get_dynamic_balance(stakes[0].stake.rao, alice_subnet_netuid),
-            locked=Balance(0),
+            locked=Balance(0).set_unit(alice_subnet_netuid),
             emission=get_dynamic_balance(stakes[0].emission.rao, alice_subnet_netuid),
             drain=0,
             is_registered=True,
@@ -704,7 +709,7 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet):
     expected_stakes += fast_block_stake
 
     assert stakes == expected_stakes
-    logging.console.success(f"✅ Test [green]test_move_stake[/green] passed")
+    logging.console.success("✅ Test [green]test_move_stake[/green] passed")
 
 
 def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
@@ -746,7 +751,7 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
             coldkey_ss58=alice_wallet.coldkey.ss58_address,
             netuid=alice_subnet_netuid,
             stake=get_dynamic_balance(alice_stakes[0].stake.rao, alice_subnet_netuid),
-            locked=Balance(0),
+            locked=Balance(0).set_unit(alice_subnet_netuid),
             emission=get_dynamic_balance(
                 alice_stakes[0].emission.rao, alice_subnet_netuid
             ),
@@ -815,7 +820,7 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
             coldkey_ss58=bob_wallet.coldkey.ss58_address,
             netuid=dave_subnet_netuid,
             stake=get_dynamic_balance(bob_stakes[0].stake.rao, dave_subnet_netuid),
-            locked=Balance(0),
+            locked=Balance(0).set_unit(dave_subnet_netuid),
             emission=get_dynamic_balance(
                 bob_stakes[0].emission.rao, dave_subnet_netuid
             ),
@@ -824,4 +829,4 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
         ),
     ]
     assert bob_stakes == expected_bob_stake
-    logging.console.success(f"✅ Test [green]test_transfer_stake[/green] passed")
+    logging.console.success("✅ Test [green]test_transfer_stake[/green] passed")
