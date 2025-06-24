@@ -493,7 +493,7 @@ class TestAxonMiddleware(IsolatedAsyncioTestCase):
         synapse = await self.axon_middleware.preprocess(request)
 
         # Check if the preprocess function fills the axon information into the synapse
-        assert synapse.axon.version == str(version_as_int)
+        assert synapse.axon.version == version_as_int
         assert synapse.axon.uuid == "1234"
         assert synapse.axon.nonce is not None
         assert synapse.axon.status_message is None
@@ -501,7 +501,7 @@ class TestAxonMiddleware(IsolatedAsyncioTestCase):
         assert synapse.axon.signature == "0xaabbccdd"
 
         # Check if the preprocess function fills the dendrite information into the synapse
-        assert synapse.dendrite.port == "5000"
+        assert synapse.dendrite.port == 5000
         assert synapse.dendrite.ip == "192.168.0.1"
 
         # Check if the preprocess function sets the request name correctly
