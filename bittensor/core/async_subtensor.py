@@ -996,19 +996,38 @@ class AsyncSubtensor(SubtensorMixin):
     async def commit(
         self, wallet: "Wallet", netuid: int, data: str, period: Optional[int] = None
     ) -> bool:
-        """
-        Commits arbitrary data to the Bittensor network by publishing metadata.
+        """Commits arbitrary data to the Bittensor network by publishing metadata.
 
-        Arguments:
-            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the data.
-            netuid (int): The unique identifier of the subnetwork.
-            data (str): The data to be committed to the network.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
-                submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction.
 
-        Return:
-            bool: `True` if the commit was successful, `False` otherwise.
+        This method allows neurons to publish arbitrary data to the blockchain, which can be used for various purposes
+        such as sharing model updates, configuration data, or other network-relevant information.
+
+        Args:
+            wallet: The wallet associated with the neuron committing the data.
+            netuid: The unique identifier of the subnetwork.
+            data: The data to be committed to the network.
+            period: The number of blocks during which the transaction will remain valid after it's submitted.
+                If the transaction is not included in a block within that number of blocks, it will expire and be
+                rejected. You can think of it as an expiration date for the transaction.
+
+        Returns:
+            bool: True if the commit was successful, False otherwise.
+
+        Example:
+            # Commit some data to subnet 1
+            success = await subtensor.commit(
+                wallet=my_wallet,
+                netuid=1,
+                data="Hello Bittensor!"
+            )
+            
+            # Commit with custom period
+            success = await subtensor.commit(
+                wallet=my_wallet,
+                netuid=1,
+                data="Model update v2.0",
+                period=100
+            )
         """
         return await publish_metadata(
             subtensor=self,
@@ -1028,19 +1047,29 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> bool:
-        """
-        Check if commit-reveal mechanism is enabled for a given network at a specific block.
+        """Check if commit-reveal mechanism is enabled for a given network at a specific block.
 
-        Arguments:
-            netuid (int): The network identifier for which to check the commit-reveal mechanism.
-            block (Optional[int]): The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash (Optional[str]): The block hash of block at which to check the parameter. Do not set if using block or
+       
+        Args:
+            netuid: The network identifier for which to check the commit-reveal mechanism.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The block hash of block at which to check the parameter. Do not set if using block or
                 reuse_block.
             reuse_block: Whether to reuse the last-used blockchain block hash. Do not set if using block_hash or
                 block.
 
         Returns:
-            Returns the integer value of the hyperparameter if available; otherwise, returns None.
+            bool: True if commit-reveal mechanism is enabled, False otherwise.
+
+        Example:
+            # Check if commit-reveal is enabled for subnet 1
+            enabled = await subtensor.commit_reveal_enabled(netuid=1)
+            
+            # Check at specific block
+            enabled = await subtensor.commit_reveal_enabled(
+                netuid=1, 
+                block=1000000
+            )
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
@@ -1058,24 +1087,32 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[int]:
-        """
-        Retrieves the 'Difficulty' hyperparameter for a specified subnet in the Bittensor network.
+        """Retrieves the 'Difficulty' hyperparameter for a specified subnet in the Bittensor network.
 
-        This parameter is instrumental in determining the computational challenge required for neurons to participate in
-            consensus and validation processes.
+        This parameter determines the computational challenge required for neurons to participate in
+        consensus and validation processes. The difficulty directly impacts the network's security and integrity by
+        setting the computational effort required for validating transactions and participating in the network's
+        consensus mechanism.
 
-        Arguments:
-            netuid (int): The unique identifier of the subnet.
-            block (Optional[int]): The blockchain block number for the query. Do not specify if using block_hash or reuse_block
-            block_hash (Optional[str]): The hash of the block to retrieve the parameter from. Do not specify if using block or
-                reuse_block
+        Args:
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query. Do not specify if using block_hash or reuse_block.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
+                reuse_block.
             reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
 
         Returns:
-            Optional[int]: The value of the 'Difficulty' hyperparameter if the subnet exists, ``None`` otherwise.
+            Optional[int]: The value of the 'Difficulty' hyperparameter if the subnet exists, None otherwise.
 
-        The 'Difficulty' parameter directly impacts the network's security and integrity by setting the computational
-            effort required for validating transactions and participating in the network's consensus mechanism.
+        Example:
+            # Get difficulty for subnet 1
+            difficulty = await subtensor.difficulty(netuid=1)
+            
+            # Get difficulty at specific block
+            difficulty = await subtensor.difficulty(
+                netuid=1, 
+                block=1000000
+            )
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
@@ -1095,18 +1132,29 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> bool:
-        """
-        Returns true if the hotkey is known by the chain and there are accounts.
+        """Returns true if the hotkey is known by the chain and there are accounts.
+
+        This method queries the SubtensorModule's Owner storage function to determine if the hotkey is registered.
 
         Args:
-            hotkey_ss58 (str): The SS58 address of the hotkey.
-            block (Optional[int]): the block number for this query. Do not specify if using block_hash or reuse_block
-            block_hash (Optional[str]): The hash of the block number to check the hotkey against. Do not specify if using reuse_block
+            hotkey_ss58: The SS58 address of the hotkey.
+            block: The block number for this query. Do not specify if using block_hash or reuse_block.
+            block_hash: The hash of the block number to check the hotkey against. Do not specify if using reuse_block
                 or block.
             reuse_block: Whether to reuse the last-used blockchain hash. Do not set if using block_hash or block.
 
         Returns:
-            `True` if the hotkey is known by the chain and there are accounts, `False` otherwise.
+            bool: True if the hotkey is known by the chain and there are accounts, False otherwise.
+
+        Example:
+            # Check if hotkey exists
+            exists = await subtensor.does_hotkey_exist("5F...")
+            
+            # Check at specific block
+            exists = await subtensor.does_hotkey_exist(
+                "5F...", 
+                block=1000000
+            )
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query(
@@ -1130,20 +1178,34 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> list["SubnetInfo"]:
-        """
-        Retrieves detailed information about all subnets within the Bittensor network. This function provides
-            comprehensive data on each subnet, including its characteristics and operational parameters.
+        """Retrieves detailed information about all subnets within the Bittensor network.
 
-        Arguments:
-            block (Optional[int]): The blockchain block number for the query.
-            block_hash (Optional[str]): The blockchain block_hash for the query.
-            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
+        This function provides comprehensive data on each subnet, including its characteristics and operational
+        parameters. 
+
+        Args:
+            block: The blockchain block number for the query.
+            block_hash: The blockchain block_hash for the query.
+            reuse_block: Whether to reuse the last-used blockchain block hash.
 
         Returns:
             list[SubnetInfo]: A list of SubnetInfo objects, each containing detailed information about a subnet.
 
-        Gaining insights into the subnets' details assists in understanding the network's composition, the roles of
-            different subnets, and their unique features.
+        Example:
+            # Get all subnet information
+            subnets = await subtensor.get_all_subnets_info()
+            
+            # Get at specific block
+            subnets = await subtensor.get_all_subnets_info(block=1000000)
+            
+            # Iterate over subnet information
+            for subnet in subnets:
+                print(f"Subnet {subnet.netuid}: {subnet.name}")
+
+        Note:
+            Gaining insights into the subnets' details assists in understanding the network's composition,
+        the roles of different subnets, and their unique features.
+            See `Bittensor subnets documentation <https://docs.learnbittensor.org/subnets/understanding-subnets>`_. 
         """
         result = await self.query_runtime_api(
             runtime_api="SubnetInfoRuntimeApi",
@@ -1165,17 +1227,30 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Balance:
-        """
-        Retrieves the balance for given coldkey.
+        """Retrieves the balance for given coldkey.
 
-        Arguments:
-            address (str): coldkey address.
-            block (Optional[int]): The blockchain block number for the query.
-            block_hash (Optional[str]): The blockchain block_hash for the query.
-            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
+        This method queries the System module's Account storage to get the current balance of a coldkey address.
+        The balance represents the amount of TAO tokens held by the specified address.
+
+        Args:
+            address: The coldkey address in SS58 format.
+            block: The blockchain block number for the query.
+            block_hash: The blockchain block_hash for the query.
+            reuse_block: Whether to reuse the last-used blockchain block hash.
 
         Returns:
-            Balance object.
+            Balance: The balance object containing the account's TAO balance.
+
+        Example:
+            # Get balance for an address
+            balance = await subtensor.get_balance("5F...")
+            print(f"Balance: {balance.tao} TAO")
+            
+            # Get balance at specific block
+            balance = await subtensor.get_balance(
+                "5F...", 
+                block=1000000
+            )
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         balance = await self.substrate.query(
@@ -1194,17 +1269,29 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> dict[str, Balance]:
-        """
-        Retrieves the balance for given coldkey(s)
+        """Retrieves the balance for given coldkey(s).
 
-        Arguments:
-            addresses (str): coldkey addresses(s) in ss58 format.
-            block (Optional[int]): The blockchain block number for the query.
-            block_hash (Optional[str]): the block hash, optional.
-            reuse_block (Optional[bool]): whether to reuse the last-used block hash.
+        This method efficiently queries multiple coldkey addresses in a single batch operation, returning a
+        dictionary mapping each address to its corresponding balance. This is more efficient than calling
+        get_balance multiple times.
+
+        Args:
+            *addresses: Variable number of coldkey addresses in SS58 format.
+            block: The blockchain block number for the query.
+            block_hash: The block hash for the query.
+            reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            Dict of {address: Balance objects}.
+            dict[str, Balance]: A dictionary mapping each address to its Balance object.
+
+        Example:
+            # Get balances for multiple addresses
+            balances = await subtensor.get_balances(
+                "5F...", 
+                "5G...", 
+                "5H..."
+            )
+            
         """
         if reuse_block:
             block_hash = self.substrate.last_block_hash
@@ -1228,16 +1315,25 @@ class AsyncSubtensor(SubtensorMixin):
         return results
 
     async def get_current_block(self) -> int:
-        """
-        Returns the current block number on the Bittensor blockchain. This function provides the latest block number,
-            indicating the most recent state of the blockchain.
+        """Returns the current block number on the Bittensor blockchain.
+
+        This function provides the latest block number, indicating the most recent state of the blockchain.
+        Knowing the current block number is essential for querying real-time data and performing time-sensitive
+        operations on the blockchain. It serves as a reference point for network activities and data
+        synchronization.
 
         Returns:
             int: The current chain block number.
 
-        Knowing the current block number is essential for querying real-time data and performing time-sensitive
-            operations on the blockchain. It serves as a reference point for network activities and data
-            synchronization.
+        Example:
+            # Get current block number
+            current_block = await subtensor.get_current_block()
+            print(f"Current block: {current_block}")
+            
+
+            block = await subtensor.get_current_block()
+            if block > 1000000:
+                print("Network has progressed past block 1M")
         """
         return await self.substrate.get_block_number(None)
 
@@ -1246,19 +1342,27 @@ class AsyncSubtensor(SubtensorMixin):
         return await self.substrate.get_block_hash(block_id)
 
     async def get_block_hash(self, block: Optional[int] = None) -> str:
-        """
-        Retrieves the hash of a specific block on the Bittensor blockchain. The block hash is a unique identifier
-            representing the cryptographic hash of the block's content, ensuring its integrity and immutability.
+        """Retrieves the hash of a specific block on the Bittensor blockchain.
 
-        Arguments:
-            block (int): The block number for which the hash is to be retrieved.
+        The block hash is a unique identifier representing the cryptographic hash of the block's content,
+        ensuring its integrity and immutability. It is a fundamental aspect of blockchain technology,
+        providing a secure reference to each block's data. It is crucial for verifying transactions,
+        ensuring data consistency, and maintaining the trustworthiness of the blockchain.
+
+        Args:
+            block: The block number for which the hash is to be retrieved. If None, returns the latest block hash.
 
         Returns:
             str: The cryptographic hash of the specified block.
 
-        The block hash is a fundamental aspect of blockchain technology, providing a secure reference to each block's
-            data. It is crucial for verifying transactions, ensuring data consistency, and maintaining the
-            trustworthiness of the blockchain.
+        Example:
+            # Get hash for specific block
+            block_hash = await subtensor.get_block_hash(1000000)
+            print(f"Block 1000000 hash: {block_hash}")
+            
+            # Get latest block hash
+            latest_hash = await subtensor.get_block_hash()
+            print(f"Latest block hash: {latest_hash}")
         """
         if block:
             return await self._get_block_hash(block)
@@ -1314,11 +1418,13 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> tuple[bool, list[tuple[float, str]], str]:
-        """
-        This method retrieves the children of a given hotkey and netuid. It queries the SubtensorModule's ChildKeys
-            storage function to get the children and formats them before returning as a tuple.
+        """Retrieves the children of a given hotkey and netuid.
 
-        Arguments:
+        This method queries the SubtensorModule's ChildKeys storage function to get the children and formats them
+        before returning as a tuple. It provides information about the child neurons that a validator has set
+        for weight distribution.
+
+        Args:
             hotkey (str): The hotkey value.
             netuid (int): The netuid value.
             block (Optional[int]): The block number for which the children are to be retrieved.
@@ -1326,8 +1432,19 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block (bool): Whether to reuse the last-used block hash.
 
         Returns:
-            A tuple containing a boolean indicating success or failure, a list of formatted children, and an error
-                message (if applicable)
+            tuple[bool, list[tuple[float, str]], str]: A tuple containing a boolean indicating success or failure,
+                a list of formatted children with their proportions, and an error message (if applicable).
+
+        Example:
+            # Get children for a hotkey in subnet 1
+            success, children, error = await subtensor.get_children(
+                hotkey="5F...",
+                netuid=1
+            )
+            
+            if success:
+                for proportion, child_hotkey in children:
+                    print(f"Child {child_hotkey}: {proportion}")
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         try:
@@ -1362,11 +1479,13 @@ class AsyncSubtensor(SubtensorMixin):
         list[tuple[float, str]],
         int,
     ]:
-        """
-        This method retrieves the pending children of a given hotkey and netuid.
-        It queries the SubtensorModule's PendingChildKeys storage function.
+        """Retrieves the pending children of a given hotkey and netuid.
 
-        Arguments:
+        This method queries the SubtensorModule's PendingChildKeys storage function to get children that are
+        pending approval or in a cooldown period. These are children that have been proposed but not yet
+        finalized.
+
+        Args:
             hotkey (str): The hotkey value.
             netuid (int): The netuid value.
             block (Optional[int]): The block number for which the children are to be retrieved.
@@ -1374,23 +1493,29 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block (bool): Whether to reuse the last-used block hash.
 
         Returns:
-            list[tuple[float, str]]: A list of children with their proportions.
-            int: The cool-down block number.
-        """
+            tuple[list[tuple[float, str]], int]: A tuple containing a list of children with their proportions,
+                and the cool-down block number.
 
-        response = await self.substrate.query(
+        Example:
+            # Get pending children for a hotkey in subnet 1
+            children, cooldown = await subtensor.get_children_pending(
+                hotkey="5F...",
+                netuid=1
+            )
+            
+            print(f"Cooldown until block: {cooldown}")
+            for proportion, child_hotkey in children:
+                print(f"Pending child {child_hotkey}: {proportion}")
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        result = await self.substrate.query(
             module="SubtensorModule",
             storage_function="PendingChildKeys",
             params=[netuid, hotkey],
-            block_hash=await self.determine_block_hash(
-                block,
-                block_hash,
-                reuse_block,
-            ),
+            block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        children, cooldown = response.value
-
+        children, cooldown = result.value
         return (
             [
                 (
@@ -1410,19 +1535,33 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> str:
-        """
-        Retrieves the on-chain commitment for a specific neuron in the Bittensor network.
+        """Retrieves the on-chain commitment for a specific neuron in the Bittensor network.
 
-        Arguments:
+        This method retrieves the commitment data that a neuron has published to the blockchain. Commitments
+        are used in the commit-reveal mechanism for secure weight setting and other network operations.
+
+        Args:
             netuid (int): The unique identifier of the subnetwork.
             uid (int): The unique identifier of the neuron.
             block (Optional[int]): The block number to retrieve the commitment from. If None, the latest block is used.
-                Default is ``None``.
+                Default is None.
             block_hash (Optional[str]): The hash of the block to retrieve the subnet unique identifiers from.
             reuse_block (bool): Whether to reuse the last-used block hash.
 
         Returns:
             str: The commitment data as a string.
+
+        Example:
+            # Get commitment for UID 5 in subnet 1
+            commitment = await subtensor.get_commitment(netuid=1, uid=5)
+            print(f"Commitment: {commitment}")
+            
+            # Get commitment at specific block
+            commitment = await subtensor.get_commitment(
+                netuid=1, 
+                uid=5, 
+                block=1000000
+            )
         """
         metagraph = await self.metagraph(netuid)
         try:
@@ -1476,18 +1615,28 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> dict[str, str]:
-        """
-        Retrieves the on-chain commitments for a specific subnet in the Bittensor network.
+        """Retrieves the on-chain commitments for a specific subnet in the Bittensor network.
 
-        Arguments:
+        This method retrieves all commitment data for all neurons in a specific subnet. This is useful for
+        analyzing the commit-reveal patterns across an entire subnet.
+
+        Args:
             netuid (int): The unique identifier of the subnetwork.
             block (Optional[int]): The block number to retrieve the commitment from. If None, the latest block is used.
-                Default is ``None``.
+                Default is None.
             block_hash (Optional[str]): The hash of the block to retrieve the subnet unique identifiers from.
             reuse_block (bool): Whether to reuse the last-used block hash.
 
         Returns:
-            dict[str, str]: A mapping of the ss58:commitment with the commitment as a string
+            dict[str, str]: A mapping of the ss58:commitment with the commitment as a string.
+
+        Example:
+            # Get all commitments for subnet 1
+            commitments = await subtensor.get_all_commitments(netuid=1)
+            
+            # Iterate over all commitments
+            for hotkey, commitment in commitments.items():
+                print(f"Hotkey {hotkey}: {commitment}")
         """
         query = await self.query_map(
             module="Commitments",
@@ -3458,7 +3607,7 @@ class AsyncSubtensor(SubtensorMixin):
             network-specific details, providing insights into the neuron's role and status within the Bittensor network.
 
         Note:
-            See the `Bittensor CLI documentation <https://docs.bittensor.com/reference/btcli>`_ for supported identity
+            See the `Bittensor CLI documentation <https://docs.learnbittensor.org/reference/btcli>`_ for supported identity
                 parameters.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
