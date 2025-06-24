@@ -3338,8 +3338,8 @@ class AsyncSubtensor(SubtensorMixin):
             datetime object for the timestamp of the block
         """
         res = await self.query_module(
-            "timestamp",
-            "now",
+            "Timestamp",
+            "Now",
             block=block,
             block_hash=block_hash,
             reuse_block=reuse_block,
