@@ -178,7 +178,7 @@ OS="$(uname)"
 if [[ "$OS" == "Linux" ]]; then
 
     which -s apt-get
-    if [[ $? == 0 ]] ; then
+    if [[ $? -ne 0 ]] ; then
         abort "This linux based install requires apt-get. To run with other distros (centos, arch, etc), you will need to manually install the requirements"
     fi
     echo """
