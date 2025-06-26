@@ -267,7 +267,7 @@ workflows:
       - build-and-test:
           matrix:
             parameters:
-              python-version: [ "3.9.13", "3.10.6", "3.11.4", "3.12.7"]
+              python-version: [ "3.9.13", "3.10.6", "3.11.4", "3.12.7", "3.13.1" ]
           requires:
             - check-if-pr-is-draft
       - unit-tests-all-python-versions:
@@ -276,7 +276,7 @@ workflows:
       - lint-and-type-check:
           matrix:
             parameters:
-              python-version: [ "3.9.13", "3.10.6", "3.11.4", "3.12.7"]
+              python-version: [ "3.9.13", "3.10.6", "3.11.4", "3.12.7", "3.13.1" ]
           requires:
             - check-if-pr-is-draft
       #- coveralls:
