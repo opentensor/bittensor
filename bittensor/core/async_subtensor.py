@@ -3091,6 +3091,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         if isinstance(decoded := query.decode(), dict):
             return DynamicInfo.from_dict(decoded)
+        return None
 
     async def subnet_exists(
         self,
