@@ -2399,8 +2399,10 @@ class Subtensor(SubtensorMixin):
             params=[netuid],
             block_hash=block_hash,
         )
-        subnet = DynamicInfo.from_dict(query.decode())  # type: ignore
-        return subnet
+
+        if isinstance(decoded := query.decode(), dict):
+            return DynamicInfo.from_dict(decoded)
+        return None
 
     def subnet_exists(self, netuid: int, block: Optional[int] = None) -> bool:
         """
