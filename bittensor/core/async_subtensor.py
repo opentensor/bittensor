@@ -2275,7 +2275,7 @@ class AsyncSubtensor(SubtensorMixin):
         """
         result = await self.query_runtime_api(
             runtime_api="SubnetInfoRuntimeApi",
-            method="get_subnet_hyperparams",
+            method="get_subnet_hyperparams_v2",
             params=[netuid],
             block=block,
             block_hash=block_hash,

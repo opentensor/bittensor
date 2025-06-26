@@ -846,7 +846,7 @@ def test_get_subnet_hyperparameters_success(mocker, subtensor):
     # Asserts
     subtensor.query_runtime_api.assert_called_once_with(
         runtime_api="SubnetInfoRuntimeApi",
-        method="get_subnet_hyperparams",
+        method="get_subnet_hyperparams_v2",
         params=[netuid],
         block=block,
     )
@@ -870,7 +870,7 @@ def test_get_subnet_hyperparameters_no_data(mocker, subtensor):
     assert result is None
     subtensor.query_runtime_api.assert_called_once_with(
         runtime_api="SubnetInfoRuntimeApi",
-        method="get_subnet_hyperparams",
+        method="get_subnet_hyperparams_v2",
         params=[netuid],
         block=block,
     )
