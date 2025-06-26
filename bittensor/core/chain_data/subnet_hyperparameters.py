@@ -87,7 +87,9 @@ class SubnetHyperparameters(InfoBase):
             adjustment_interval=decoded["adjustment_interval"],
             alpha_high=decoded["alpha_high"],
             alpha_low=decoded["alpha_low"],
-            alpha_sigmoid_steepness=fixed_to_float(decoded["alpha_sigmoid_steepness"]),
+            alpha_sigmoid_steepness=fixed_to_float(
+                decoded["alpha_sigmoid_steepness"], frac_bits=32
+            ),
             bonds_moving_avg=decoded["bonds_moving_avg"],
             bonds_reset_enabled=decoded["bonds_reset_enabled"],
             commit_reveal_weights_enabled=decoded["commit_reveal_weights_enabled"],
