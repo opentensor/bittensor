@@ -2123,7 +2123,7 @@ async def test_get_subnet_hyperparameters_success(subtensor, mocker):
     # Asserts
     mocked_query_runtime_api.assert_called_once_with(
         runtime_api="SubnetInfoRuntimeApi",
-        method="get_subnet_hyperparams",
+        method="get_subnet_hyperparams_v2",
         params=[fake_netuid],
         block=None,
         block_hash=fake_block_hash,
@@ -2147,7 +2147,7 @@ async def test_get_subnet_hyperparameters_no_data(subtensor, mocker):
     # Asserts
     mocked_query_runtime_api.assert_called_once_with(
         runtime_api="SubnetInfoRuntimeApi",
-        method="get_subnet_hyperparams",
+        method="get_subnet_hyperparams_v2",
         params=[fake_netuid],
         block=None,
         block_hash=None,
@@ -2177,7 +2177,7 @@ async def test_get_subnet_hyperparameters_without_0x_prefix(subtensor, mocker):
     # Asserts
     mocked_query_runtime_api.assert_called_once_with(
         runtime_api="SubnetInfoRuntimeApi",
-        method="get_subnet_hyperparams",
+        method="get_subnet_hyperparams_v2",
         params=[fake_netuid],
         block=None,
         block_hash=None,
