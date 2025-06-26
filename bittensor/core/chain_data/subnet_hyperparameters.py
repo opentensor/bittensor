@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-
+from bittensor.utils.balance import fixed_to_float
 from bittensor.core.chain_data.info_base import InfoBase
 
 
@@ -36,6 +36,12 @@ class SubnetHyperparameters(InfoBase):
         alpha_high (int): High value of alpha.
         alpha_low (int): Low value of alpha.
         liquid_alpha_enabled (bool): Flag indicating if liquid alpha is enabled.
+        alpha_sigmoid_steepness (float):
+        yuma_version (int): Version of yuma.
+        subnet_is_active (bool): Indicates if subnet is active after START CALL.
+        transfers_enabled (bool): Flag indicating if transfers are enabled.
+        bonds_reset_enabled (bool): Flag indicating if bonds are reset enabled.
+        user_liquidity_enabled (bool): Flag indicating if user liquidity is enabled.
     """
 
     rho: int
@@ -65,6 +71,12 @@ class SubnetHyperparameters(InfoBase):
     alpha_high: int
     alpha_low: int
     liquid_alpha_enabled: bool
+    alpha_sigmoid_steepness: float
+    yuma_version: int
+    subnet_is_active: bool
+    transfers_enabled: bool
+    bonds_reset_enabled: bool
+    user_liquidity_enabled: bool
 
     @classmethod
     def _from_dict(cls, decoded: dict) -> "SubnetHyperparameters":
@@ -75,7 +87,9 @@ class SubnetHyperparameters(InfoBase):
             adjustment_interval=decoded["adjustment_interval"],
             alpha_high=decoded["alpha_high"],
             alpha_low=decoded["alpha_low"],
+            alpha_sigmoid_steepness=fixed_to_float(decoded["alpha_sigmoid_steepness"]),
             bonds_moving_avg=decoded["bonds_moving_avg"],
+            bonds_reset_enabled=decoded["bonds_reset_enabled"],
             commit_reveal_weights_enabled=decoded["commit_reveal_weights_enabled"],
             commit_reveal_period=decoded["commit_reveal_period"],
             difficulty=decoded["difficulty"],
@@ -93,8 +107,12 @@ class SubnetHyperparameters(InfoBase):
             registration_allowed=decoded["registration_allowed"],
             rho=decoded["rho"],
             serving_rate_limit=decoded["serving_rate_limit"],
+            subnet_is_active=decoded["subnet_is_active"],
             target_regs_per_interval=decoded["target_regs_per_interval"],
             tempo=decoded["tempo"],
+            transfers_enabled=decoded["transfers_enabled"],
+            user_liquidity_enabled=decoded["user_liquidity_enabled"],
             weights_rate_limit=decoded["weights_rate_limit"],
             weights_version=decoded["weights_version"],
+            yuma_version=decoded["yuma_version"],
         )
