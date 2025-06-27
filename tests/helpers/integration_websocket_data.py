@@ -1,6 +1,10 @@
 # This is dictionary of raw websocket send vs recv data for given methods used for integration testing, essentially
 # stubbing the network I/O only
 # This is basically a JSON file, but is not a JSON file because of the discrepancies between JSON and Python types
+
+from itertools import cycle
+
+
 WEBSOCKET_RESPONSES = {
     "blocks_since_last_update": {
         "chain_getHead": {
@@ -9048,5 +9052,204 @@ WEBSOCKET_RESPONSES = {
             }
         },
         "system_chain": {"[]": {"jsonrpc": "2.0", "result": "Bittensor"}},
+    },
+    "retry_archive": {
+        "system_chain": {"[]": {"jsonrpc": "2.0", "result": "Bittensor"}},
+        "chain_getHead": {
+            "[]": {
+                "jsonrpc": "2.0",
+                "result": "0xae6bd3bf8cc2a7660a315510f72a7e8c8dc31ad58c8d847e86682ee07c6e8938",
+            }
+        },
+        "chain_getHeader": {
+            '["0x0f28c25f01cc4b11bb1454c323bd3d04658e4e64b69fcd21ffa01bac0ae47b19"]': {
+                "jsonrpc": "2.0",
+                "result": {
+                    "parentHash": "0x3c1304811d6b0f5741c0ce9fcd46416c3fe151561463134b0fa9b68f1bd0188d",
+                    "number": "0x57c8bb",
+                    "stateRoot": "0x48b804f020e871af4eae34fb9d1fae077ff988016e65fafc9e3acbcdc8cfc8d9",
+                    "extrinsicsRoot": "0x9b28450ef2ca7730b29e104d85e65e23cf021d405fb0fb29226dd04b89d36182",
+                    "digest": {
+                        "logs": [
+                            "0x06617572612023b8b00800000000",
+                            "0x0466726f6e8801446b1f0502f0e66079329d4718fb2f5cd5660a74a1bc0c7556c9ecbd92b54b3700",
+                            "0x05617572610101a8461545e8f4947dd540f2f2131fdf29117e471a9c46970a408ef9684dbf495cdaebeaf8a42efcf0a57fdf75ddf807fb1f4c21fb1fb74b6715cf59a23f24d98e",
+                        ]
+                    },
+                },
+            },
+            "[null]": {
+                "jsonrpc": "2.0",
+                "result": {
+                    "parentHash": "0x3c1304811d6b0f5741c0ce9fcd46416c3fe151561463134b0fa9b68f1bd0188d",
+                    "number": "0x57c8bb",
+                    "stateRoot": "0x48b804f020e871af4eae34fb9d1fae077ff988016e65fafc9e3acbcdc8cfc8d9",
+                    "extrinsicsRoot": "0x9b28450ef2ca7730b29e104d85e65e23cf021d405fb0fb29226dd04b89d36182",
+                    "digest": {
+                        "logs": [
+                            "0x06617572612023b8b00800000000",
+                            "0x0466726f6e8801446b1f0502f0e66079329d4718fb2f5cd5660a74a1bc0c7556c9ecbd92b54b3700",
+                            "0x05617572610101a8461545e8f4947dd540f2f2131fdf29117e471a9c46970a408ef9684dbf495cdaebeaf8a42efcf0a57fdf75ddf807fb1f4c21fb1fb74b6715cf59a23f24d98e",
+                        ]
+                    },
+                },
+            },
+            '["0x0ba73c8d5a0b78f7336a3e394a2a1fa7b7dec0924937b1dfb05a50ac3dd5cfc1"]': {
+                "jsonrpc": "2.0",
+                "result": {
+                    "parentHash": "0x6c0da8a9dd5994d374d43210dc401f000b2fe02541bc2e7cd54719655d751a18",
+                    "number": "0x57c4d3",
+                    "stateRoot": "0xc80611aa0e605bc2d0446479dcbce6bee0e1524d07b0a9c6293a190d6a500fef",
+                    "extrinsicsRoot": "0x9ff58560a13b06d4a61af01ca9f0dd2a96cf5bfa6bbc2208fc7e6f763bad5590",
+                    "digest": {
+                        "logs": [
+                            "0x0661757261203bb4b00800000000",
+                            "0x0466726f6e880102e3f23c7b0347be401daa27b4bd35d09948dc1450bec025807957f499347c5800",
+                            "0x05617572610101bcc856c718c722f327d3fbc3f94c34d97e0bfc794531e94f5590b44b3516c7598ca0ec488b81f9fbf5a9bbb5d18663bd69ca032d1c7134681d9c112387612a87",
+                        ]
+                    },
+                },
+            },
+            '["0xae6bd3bf8cc2a7660a315510f72a7e8c8dc31ad58c8d847e86682ee07c6e8938"]': {
+                "jsonrpc": "2.0",
+                "result": {
+                    "parentHash": "0x0f28c25f01cc4b11bb1454c323bd3d04658e4e64b69fcd21ffa01bac0ae47b19",
+                    "number": "0x57c8bc",
+                    "stateRoot": "0x87f0259d14e63525a311f4afabd7273519ac2e98e2dc70cf17292b615889b714",
+                    "extrinsicsRoot": "0x24c53c5248e9e822fb29c381cee462e5f830bba62097d58607dead8da7f3b64b",
+                    "digest": {
+                        "logs": [
+                            "0x06617572612024b8b00800000000",
+                            "0x0466726f6e88016e91817304fa73ea8595ba3bd2e26fb838c7495ae83501bb266013b2307170f200",
+                            "0x0561757261010152b29d8299665fd87748987347b6b91d206c04a5939ddb543e4776adcfb0ff47196fdaec1a0e2a2225e0485f1fa91b5c4421ff54944df488dcf35ecbc7a57087",
+                        ]
+                    },
+                },
+            },
+        },
+        "state_getRuntimeVersion": {
+            '["0x3c1304811d6b0f5741c0ce9fcd46416c3fe151561463134b0fa9b68f1bd0188d"]': {
+                "jsonrpc": "2.0",
+                "result": {
+                    "specName": "node-subtensor",
+                    "implName": "node-subtensor",
+                    "authoringVersion": 1,
+                    "specVersion": 274,
+                    "implVersion": 1,
+                    "apis": [
+                        ["0xdf6acb689907609b", 5],
+                        ["0x37e397fc7c91f5e4", 2],
+                        ["0x40fe3ad401f8959a", 6],
+                        ["0xfbc577b9d747efd6", 1],
+                        ["0xd2bc9897eed08f15", 3],
+                        ["0xf78b278be53f454c", 2],
+                        ["0xdd718d5cc53262d4", 1],
+                        ["0xab3c0572291feb8b", 1],
+                        ["0xed99c5acb25eedf5", 3],
+                        ["0xbc9d89904f5b923f", 1],
+                        ["0x37c8bb1350a9a2a8", 4],
+                        ["0xf3ff14d5ab527059", 3],
+                        ["0x582211f65bb14b89", 5],
+                        ["0xe65b00e46cedd0aa", 2],
+                        ["0x42e62be4a39e5b60", 1],
+                        ["0x806df4ccaa9ed485", 1],
+                        ["0x8375104b299b74c5", 1],
+                        ["0x5d1fbfbe852f2807", 1],
+                        ["0xc6886e2f8e598b0a", 1],
+                    ],
+                    "transactionVersion": 1,
+                    "stateVersion": 1,
+                },
+            },
+            '["0x6c0da8a9dd5994d374d43210dc401f000b2fe02541bc2e7cd54719655d751a18"]': cycle(
+                (
+                    {
+                        "jsonrpc": "2.0",
+                        "id": "oj19",
+                        "error": {
+                            "code": 4003,
+                            "message": "Client error: Api called for an unknown Block: State already discarded for 0x6c0da8a9dd5994d374d43210dc401f000b2fe02541bc2e7cd54719655d751a18",
+                        },
+                    },
+                    {
+                        "jsonrpc": "2.0",
+                        "result": {
+                            "specName": "node-subtensor",
+                            "implName": "node-subtensor",
+                            "authoringVersion": 1,
+                            "specVersion": 273,
+                            "implVersion": 1,
+                            "apis": [
+                                ["0xdf6acb689907609b", 5],
+                                ["0x37e397fc7c91f5e4", 2],
+                                ["0x40fe3ad401f8959a", 6],
+                                ["0xfbc577b9d747efd6", 1],
+                                ["0xd2bc9897eed08f15", 3],
+                                ["0xf78b278be53f454c", 2],
+                                ["0xdd718d5cc53262d4", 1],
+                                ["0xab3c0572291feb8b", 1],
+                                ["0xed99c5acb25eedf5", 3],
+                                ["0xbc9d89904f5b923f", 1],
+                                ["0x37c8bb1350a9a2a8", 4],
+                                ["0xf3ff14d5ab527059", 3],
+                                ["0x582211f65bb14b89", 5],
+                                ["0xe65b00e46cedd0aa", 2],
+                                ["0x42e62be4a39e5b60", 1],
+                                ["0x806df4ccaa9ed485", 1],
+                                ["0x8375104b299b74c5", 1],
+                                ["0x5d1fbfbe852f2807", 1],
+                                ["0xc6886e2f8e598b0a", 1],
+                            ],
+                            "transactionVersion": 1,
+                            "stateVersion": 1,
+                        },
+                    },
+                )
+            ),
+            '["0x0f28c25f01cc4b11bb1454c323bd3d04658e4e64b69fcd21ffa01bac0ae47b19"]': {
+                "jsonrpc": "2.0",
+                "result": {
+                    "specName": "node-subtensor",
+                    "implName": "node-subtensor",
+                    "authoringVersion": 1,
+                    "specVersion": 274,
+                    "implVersion": 1,
+                    "apis": [
+                        ["0xdf6acb689907609b", 5],
+                        ["0x37e397fc7c91f5e4", 2],
+                        ["0x40fe3ad401f8959a", 6],
+                        ["0xfbc577b9d747efd6", 1],
+                        ["0xd2bc9897eed08f15", 3],
+                        ["0xf78b278be53f454c", 2],
+                        ["0xdd718d5cc53262d4", 1],
+                        ["0xab3c0572291feb8b", 1],
+                        ["0xed99c5acb25eedf5", 3],
+                        ["0xbc9d89904f5b923f", 1],
+                        ["0x37c8bb1350a9a2a8", 4],
+                        ["0xf3ff14d5ab527059", 3],
+                        ["0x582211f65bb14b89", 5],
+                        ["0xe65b00e46cedd0aa", 2],
+                        ["0x42e62be4a39e5b60", 1],
+                        ["0x806df4ccaa9ed485", 1],
+                        ["0x8375104b299b74c5", 1],
+                        ["0x5d1fbfbe852f2807", 1],
+                        ["0xc6886e2f8e598b0a", 1],
+                    ],
+                    "transactionVersion": 1,
+                    "stateVersion": 1,
+                },
+            },
+        },
+        "chain_getBlockHash": {
+            "[5752019]": {
+                "jsonrpc": "2.0",
+                "result": "0x0ba73c8d5a0b78f7336a3e394a2a1fa7b7dec0924937b1dfb05a50ac3dd5cfc1",
+            }
+        },
+        "chain_getBlock": {
+            '["0x0ba73c8d5a0b78f7336a3e394a2a1fa7b7dec0924937b1dfb05a50ac3dd5cfc1"]': {
+                "result": {"block": {}}
+            }
+        },
     },
 }

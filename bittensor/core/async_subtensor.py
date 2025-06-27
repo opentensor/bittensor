@@ -45,6 +45,10 @@ from bittensor.core.extrinsics.asyncex.move_stake import (
     swap_stake_extrinsic,
     move_stake_extrinsic,
 )
+from bittensor.core.extrinsics.asyncex.children import (
+    root_set_pending_childkey_cooldown_extrinsic,
+    set_children_extrinsic,
+)
 from bittensor.core.extrinsics.asyncex.registration import (
     burned_register_extrinsic,
     register_extrinsic,
@@ -86,13 +90,11 @@ from bittensor.core.types import ParamWithTypes, SubtensorMixin
 from bittensor.utils import (
     Certificate,
     decode_hex_identity_dict,
-    float_to_u64,
     format_error_message,
     is_valid_ss58_address,
     torch,
     u16_normalized_float,
     u64_normalized_float,
-    unlock_key,
 )
 from bittensor.utils.balance import (
     Balance,
@@ -120,6 +122,8 @@ class AsyncSubtensor(SubtensorMixin):
         fallback_endpoints: Optional[list[str]] = None,
         retry_forever: bool = False,
         _mock: bool = False,
+        archive_endpoints: Optional[list[str]] = None,
+        websocket_shutdown_timer: float = 5.0,
     ):
         """
         Initializes an instance of the AsyncSubtensor class.
@@ -132,6 +136,9 @@ class AsyncSubtensor(SubtensorMixin):
                 Defaults to `None`.
             retry_forever: Whether to retry forever on connection errors. Defaults to `False`.
             _mock: Whether this is a mock instance. Mainly just for use in testing.
+            archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in cases
+                where you are requesting a block that is too old for your current (presumably lite) node. Defaults to
+                `None`
 
         Raises:
             Any exceptions raised during the setup, configuration, or connection process.
@@ -154,6 +161,8 @@ class AsyncSubtensor(SubtensorMixin):
             fallback_endpoints=fallback_endpoints,
             retry_forever=retry_forever,
             _mock=_mock,
+            archive_endpoints=archive_endpoints,
+            ws_shutdown_timer=websocket_shutdown_timer,
         )
         if self.log_verbose:
             logging.info(
@@ -292,6 +301,8 @@ class AsyncSubtensor(SubtensorMixin):
         fallback_endpoints: Optional[list[str]] = None,
         retry_forever: bool = False,
         _mock: bool = False,
+        archive_endpoints: Optional[list[str]] = None,
+        ws_shutdown_timer: float = 5.0,
     ) -> Union[AsyncSubstrateInterface, RetryAsyncSubstrate]:
         """Creates the Substrate instance based on provided arguments.
 
@@ -300,11 +311,16 @@ class AsyncSubtensor(SubtensorMixin):
                 Defaults to `None`.
             retry_forever: Whether to retry forever on connection errors. Defaults to `False`.
             _mock: Whether this is a mock instance. Mainly just for use in testing.
+            archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in cases
+                where you are requesting a block that is too old for your current (presumably lite) node. Defaults to
+                `None`
+            ws_shutdown_timer: Amount of time, in seconds, to wait after the last response from the chain to close the
+                connection.
 
         Returns:
             the instance of the SubstrateInterface or RetrySyncSubstrate class.
         """
-        if fallback_endpoints or retry_forever:
+        if fallback_endpoints or retry_forever or archive_endpoints:
             return RetryAsyncSubstrate(
                 url=self.chain_endpoint,
                 fallback_chains=fallback_endpoints,
@@ -314,6 +330,8 @@ class AsyncSubtensor(SubtensorMixin):
                 use_remote_preset=True,
                 chain_name="Bittensor",
                 _mock=_mock,
+                archive_nodes=archive_endpoints,
+                ws_shutdown_timer=ws_shutdown_timer,
             )
         return AsyncSubstrateInterface(
             url=self.chain_endpoint,
@@ -322,6 +340,7 @@ class AsyncSubtensor(SubtensorMixin):
             use_remote_preset=True,
             chain_name="Bittensor",
             _mock=_mock,
+            ws_shutdown_timer=ws_shutdown_timer,
         )
 
     # Subtensor queries ===========================================================================================
@@ -2286,7 +2305,7 @@ class AsyncSubtensor(SubtensorMixin):
         """
         result = await self.query_runtime_api(
             runtime_api="SubnetInfoRuntimeApi",
-            method="get_subnet_hyperparams",
+            method="get_subnet_hyperparams_v2",
             params=[netuid],
             block=block,
             block_hash=block_hash,
@@ -3072,7 +3091,7 @@ class AsyncSubtensor(SubtensorMixin):
     async def subnet(
         self,
         netuid: int,
-        block: int = None,
+        block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[DynamicInfo]:
@@ -3082,23 +3101,27 @@ class AsyncSubtensor(SubtensorMixin):
         Args:
             netuid (int): The unique identifier of the subnet.
             block (Optional[int]): The block number to get the subnets at.
-            block_hash (str): The hash of the blockchain block number for the query.
+            block_hash (Optional[str]): The hash of the blockchain block number for the query.
             reuse_block (bool): Whether to reuse the last-used blockchain block hash.
 
         Returns:
             Optional[DynamicInfo]: A DynamicInfo object, containing detailed information about a subnet.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+
         if not block_hash and reuse_block:
             block_hash = self.substrate.last_block_hash
+
         query = await self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
             "get_dynamic_info",
             params=[netuid],
             block_hash=block_hash,
         )
-        subnet = DynamicInfo.from_dict(query.decode())
-        return subnet
+
+        if isinstance(decoded := query.decode(), dict):
+            return DynamicInfo.from_dict(decoded)
+        return None
 
     async def subnet_exists(
         self,
@@ -3247,6 +3270,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         current_block = await self.substrate.get_block()
         current_block_hash = current_block.get("header", {}).get("hash")
+
         if block is not None:
             target_block = block
         else:
@@ -3344,15 +3368,14 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             datetime object for the timestamp of the block
         """
-        unix = (
-            await self.query_module(
-                "Timestamp",
-                "Now",
-                block=block,
-                block_hash=block_hash,
-                reuse_block=reuse_block,
-            )
-        ).value
+        res = await self.query_module(
+            "Timestamp",
+            "Now",
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        unix = res.value
         return datetime.fromtimestamp(unix / 1000, tz=timezone.utc)
 
     async def get_subnet_owner_hotkey(
@@ -3908,6 +3931,41 @@ class AsyncSubtensor(SubtensorMixin):
 
         return success, message
 
+    async def root_set_pending_childkey_cooldown(
+        self,
+        wallet: "Wallet",
+        cooldown: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        period: Optional[int] = None,
+    ) -> tuple[bool, str]:
+        """Sets the pending childkey cooldown.
+
+        Arguments:
+            wallet: bittensor wallet instance.
+            cooldown: the number of blocks to setting pending childkey cooldown.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
+                ``False``.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
+
+        Returns:
+            tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
+                operation, and the second element is a message providing additional information.
+
+        Note: This operation can only be successfully performed if your wallet has root privileges.
+        """
+        return await root_set_pending_childkey_cooldown_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            cooldown=cooldown,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            period=period,
+        )
+
     # TODO: remove `block_hash` argument
     async def root_register(
         self,
@@ -4028,33 +4086,14 @@ class AsyncSubtensor(SubtensorMixin):
             bittensor_wallet.errors.KeyFileError: Failed to decode keyfile data.
             bittensor_wallet.errors.PasswordError: Decryption failed or wrong password for decryption provided.
         """
-
-        unlock = unlock_key(wallet, raise_error=raise_error)
-
-        if not unlock.success:
-            return False, unlock.message
-
-        call = await self.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="set_children",
-            call_params={
-                "children": [
-                    (
-                        float_to_u64(proportion),
-                        child_hotkey,
-                    )
-                    for proportion, child_hotkey in children
-                ],
-                "hotkey": hotkey,
-                "netuid": netuid,
-            },
-        )
-
-        return await self.sign_and_send_extrinsic(
-            call,
-            wallet,
-            wait_for_inclusion,
-            wait_for_finalization,
+        return await set_children_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            hotkey=hotkey,
+            netuid=netuid,
+            children=children,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
             raise_error=raise_error,
             period=period,
         )
@@ -4179,6 +4218,7 @@ class AsyncSubtensor(SubtensorMixin):
             github_repo=subnet_identity.github_repo,
             subnet_contact=subnet_identity.subnet_contact,
             subnet_url=subnet_identity.subnet_url,
+            logo_url=subnet_identity.logo_url,
             discord=subnet_identity.discord,
             description=subnet_identity.description,
             additional=subnet_identity.additional,
