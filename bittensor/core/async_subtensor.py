@@ -1781,6 +1781,14 @@ class AsyncSubtensor(SubtensorMixin):
             output[decode_account_id(key)] = Certificate(item.value)
         return output
 
+    async def get_liquidity_list(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        block: Optional[int] = None,
+    ) -> Optional[list[dict[str, Any]]]:
+        return None
+
     async def get_neuron_for_pubkey_and_subnet(
         self,
         hotkey_ss58: str,
@@ -3532,6 +3540,19 @@ class AsyncSubtensor(SubtensorMixin):
             period=period,
         )
 
+    async def add_liquidity(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        liquidity: Balance,
+        price_low: float,
+        price_high: float,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        period: Optional[int] = None,
+    ) -> tuple[bool, str]:
+        return True, ""
+
     async def add_stake_multiple(
         self,
         wallet: "Wallet",
@@ -3834,6 +3855,17 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization=wait_for_finalization,
             period=period,
         )
+
+    async def remove_liquidity(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        position_id: int,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+        period: Optional[int] = None,
+    ) -> tuple[bool, str]:
+        return True, ""
 
     async def reveal_weights(
         self,
@@ -4458,6 +4490,17 @@ class AsyncSubtensor(SubtensorMixin):
             rate_tolerance=rate_tolerance,
             period=period,
         )
+
+    async def toggle_user_liquidity(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        enable: bool,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        period: Optional[int] = None,
+    ) -> tuple[bool, str]:
+        return True, ""
 
     async def transfer(
         self,
