@@ -6,6 +6,7 @@ if TYPE_CHECKING:
 
 def add_legacy_methods(subtensor: "SubtensorApi"):
     """If SubtensorApi get `subtensor_fields=True` arguments, then all classic Subtensor fields added to root level."""
+    subtensor.add_liquidity = subtensor._subtensor.add_liquidity
     subtensor.add_stake = subtensor._subtensor.add_stake
     subtensor.add_stake_multiple = subtensor._subtensor.add_stake_multiple
     subtensor.all_subnets = subtensor._subtensor.all_subnets
@@ -53,6 +54,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.get_hotkey_owner = subtensor._subtensor.get_hotkey_owner
     subtensor.get_hotkey_stake = subtensor._subtensor.get_hotkey_stake
     subtensor.get_hyperparameter = subtensor._subtensor.get_hyperparameter
+    subtensor.get_liquidity_list = subtensor._subtensor.get_liquidity_list
     subtensor.get_metagraph_info = subtensor._subtensor.get_metagraph_info
     subtensor.get_minimum_required_stake = (
         subtensor._subtensor.get_minimum_required_stake
@@ -129,6 +131,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.query_runtime_api = subtensor._subtensor.query_runtime_api
     subtensor.query_subtensor = subtensor._subtensor.query_subtensor
     subtensor.recycle = subtensor._subtensor.recycle
+    subtensor.remove_liquidity = subtensor._subtensor.remove_liquidity
     subtensor.register = subtensor._subtensor.register
     subtensor.register_subnet = subtensor._subtensor.register_subnet
     subtensor.reveal_weights = subtensor._subtensor.reveal_weights
@@ -154,6 +157,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.substrate = subtensor._subtensor.substrate
     subtensor.swap_stake = subtensor._subtensor.swap_stake
     subtensor.tempo = subtensor._subtensor.tempo
+    subtensor.toggle_user_liquidity = subtensor._subtensor.toggle_user_liquidity
     subtensor.transfer = subtensor._subtensor.transfer
     subtensor.transfer_stake = subtensor._subtensor.transfer_stake
     subtensor.tx_rate_limit = subtensor._subtensor.tx_rate_limit
