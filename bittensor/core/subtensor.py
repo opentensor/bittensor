@@ -1390,12 +1390,12 @@ class Subtensor(SubtensorMixin):
         Calculates associated fee rewards based on current global and tick-level fee data.
 
         Args:
-            wallet (Wallet): Wallet instance to fetch positions for.
-            netuid (int): Subnet identifier.
+            wallet: Wallet instance to fetch positions for.
+            netuid: Subnet unique id.
             block: The blockchain block number for the query.
 
         Returns:
-            Optional[list[LiquidityPosition]]: List of liquidity positions, or None if subnet does not exist.
+            List of liquidity positions, or None if subnet does not exist.
         """
         if not self.subnet_exists(netuid):
             return None
