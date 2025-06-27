@@ -1178,11 +1178,11 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> Optional[int]:
         """
         Retrieves the last block number when the bonds reset were triggered by publish_metadata for a specific neuron.
-        
+
         Arguments:
             netuid (int): The unique identifier of the subnetwork.
             uid (int): The unique identifier of the neuron.
-            
+
         Returns:
             Optional[int]: The block number when the bonds were last reset, or None if not found.
         """
