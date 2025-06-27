@@ -136,7 +136,8 @@ def process_stake_data(stake_data: list) -> dict:
 
 def decode_metadata(metadata: dict) -> str:
     commitment = metadata["info"]["fields"][0][0]
-    bytes_tuple = commitment[next(iter(commitment.keys()))][0]
+    bytes_tuple_ = commitment[next(iter(commitment.keys()))]
+    bytes_tuple = bytes_tuple_[0] if len(bytes_tuple_) > 0 else bytes_tuple_
     return bytes(bytes_tuple).decode()
 
 
