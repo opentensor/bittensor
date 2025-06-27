@@ -846,7 +846,7 @@ def test_get_subnet_hyperparameters_success(mocker, subtensor):
     # Asserts
     subtensor.query_runtime_api.assert_called_once_with(
         runtime_api="SubnetInfoRuntimeApi",
-        method="get_subnet_hyperparams",
+        method="get_subnet_hyperparams_v2",
         params=[netuid],
         block=block,
     )
@@ -870,7 +870,7 @@ def test_get_subnet_hyperparameters_no_data(mocker, subtensor):
     assert result is None
     subtensor.query_runtime_api.assert_called_once_with(
         runtime_api="SubnetInfoRuntimeApi",
-        method="get_subnet_hyperparams",
+        method="get_subnet_hyperparams_v2",
         params=[netuid],
         block=block,
     )
@@ -3236,6 +3236,7 @@ def test_set_subnet_identity(mocker, subtensor, fake_wallet):
         github_repo=fake_subnet_identity.github_repo,
         subnet_contact=fake_subnet_identity.subnet_contact,
         subnet_url=fake_subnet_identity.subnet_url,
+        logo_url=fake_subnet_identity.logo_url,
         discord=fake_subnet_identity.discord,
         description=fake_subnet_identity.description,
         additional=fake_subnet_identity.additional,
@@ -3837,3 +3838,40 @@ def test_get_parents_no_parents(subtensor, mocker):
         params=[fake_hotkey, fake_netuid],
     )
     assert result == []
+
+
+def test_set_children(subtensor, fake_wallet, mocker):
+    """Tests set_children extrinsic calls properly."""
+    # Preps
+    mocked_set_children_extrinsic = mocker.Mock()
+    mocker.patch.object(
+        subtensor_module, "set_children_extrinsic", mocked_set_children_extrinsic
+    )
+    fake_children = [
+        (
+            1.0,
+            "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
+        ),
+    ]
+
+    # Call
+    result = subtensor.set_children(
+        fake_wallet,
+        fake_wallet.hotkey.ss58_address,
+        netuid=1,
+        children=fake_children,
+    )
+
+    # Asserts
+    mocked_set_children_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        hotkey=fake_wallet.hotkey.ss58_address,
+        netuid=1,
+        children=fake_children,
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
+        raise_error=False,
+        period=None,
+    )
+    assert result == mocked_set_children_extrinsic.return_value
