@@ -1201,7 +1201,7 @@ class AsyncSubtensor(SubtensorMixin):
         )
         result = {}
         async for id_, value in query:
-            result[decode_account_id(id_[0])] = decode_metadata(value)
+            result[decode_account_id(id_[0])] = decode_metadata(value.value)
         return result
 
     async def get_revealed_commitment_by_hotkey(
