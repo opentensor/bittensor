@@ -31,44 +31,24 @@ def tick_to_price(tick: int) -> float:
     return PRICE_STEP**tick
 
 
-def get_fees_above(
+def get_fees(
     current_tick: int,
     tick: dict,
     tick_index: int,
     quote: bool,
     global_fees_tao: float,
     global_fees_alpha: float,
+    above: bool,
 ) -> float:
-    """Returns the upper value of the liquidity fee."""
-    if tick_index <= current_tick:
-        if quote:
-            return global_fees_tao - fixed_to_float(tick.get("fees_out_tao"))
-        else:
-            return global_fees_alpha - fixed_to_float(tick.get("fees_out_alpha"))
-    elif quote:
-        return fixed_to_float(tick.get("fees_out_tao"))
-    else:
-        return fixed_to_float(tick.get("fees_out_alpha"))
+    """Returns the liquidity fee."""
+    tick_fee_key = 'fees_out_tao' if quote else 'fees_out_alpha'
+    tick_fee_value = fixed_to_float(tick.get(tick_fee_key))
+    global_fee_value = global_fees_tao if quote else global_fees_alpha
 
-
-def get_fees_below(
-    current_tick: int,
-    tick: dict,
-    tick_index: int,
-    quote: bool,
-    global_fees_tao: float,
-    global_fees_alpha: float,
-) -> float:
-    """Returns the upper value of the liquidity fee."""
-    if tick_index <= current_tick:
-        if quote:
-            return fixed_to_float(tick.get("fees_out_tao"))
-        else:
-            return fixed_to_float(tick.get("fees_out_alpha"))
-    elif quote:
-        return global_fees_tao - fixed_to_float(tick.get("fees_out_tao"))
+    if above:
+        return global_fee_value - tick_fee_value if tick_index <= current_tick else tick_fee_value
     else:
-        return global_fees_alpha - fixed_to_float(tick.get("fees_out_alpha"))
+        return tick_fee_value if tick_index <= current_tick else global_fee_value - tick_fee_value
 
 
 def get_fees_in_range(
