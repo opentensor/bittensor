@@ -41,14 +41,22 @@ def get_fees(
     above: bool,
 ) -> float:
     """Returns the liquidity fee."""
-    tick_fee_key = 'fees_out_tao' if quote else 'fees_out_alpha'
+    tick_fee_key = "fees_out_tao" if quote else "fees_out_alpha"
     tick_fee_value = fixed_to_float(tick.get(tick_fee_key))
     global_fee_value = global_fees_tao if quote else global_fees_alpha
 
     if above:
-        return global_fee_value - tick_fee_value if tick_index <= current_tick else tick_fee_value
+        return (
+            global_fee_value - tick_fee_value
+            if tick_index <= current_tick
+            else tick_fee_value
+        )
     else:
-        return tick_fee_value if tick_index <= current_tick else global_fee_value - tick_fee_value
+        return (
+            tick_fee_value
+            if tick_index <= current_tick
+            else global_fee_value - tick_fee_value
+        )
 
 
 def get_fees_in_range(
