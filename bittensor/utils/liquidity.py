@@ -1,11 +1,58 @@
+"""
+This module provides utilities for managing liquidity positions and price conversions in the Bittensor network. The
+module handles conversions between TAO and Alpha tokens while maintaining precise calculations for liquidity
+provisioning and fee distribution.
+"""
+
 import math
 from typing import Any
+from dataclasses import dataclass
 
 from bittensor.utils.balance import Balance, fixed_to_float
 
+# These three constants are unchangeable at the level of Uniswap math
 MIN_TICK = -887272
 MAX_TICK = 887272
 PRICE_STEP = 1.0001
+
+
+@dataclass
+class LiquidityPosition:
+    id: int
+    price_low: Balance  # RAO
+    price_high: Balance  # RAO
+    liquidity: Balance  # TAO + ALPHA (sqrt by TAO balance * Alpha Balance -> math under the hood)
+    fees_tao: Balance  # RAO
+    fees_alpha: Balance  # RAO
+
+    def to_token_amounts(self, current_subnet_price: Balance, netuid: int) -> tuple[Balance, Balance]:
+        """Convert a position to token amounts.
+
+        Arguments:
+            current_subnet_price: current subnet price in Alpha.
+            netuid: Subnet uid.
+
+        Returns:
+            tuple[int, int]:
+                Amount of Alpha in liquidity
+                Amount of TAO in liquidity
+
+        Liquidity is a combination of TAO and Alpha depending on the price of the subnet at the moment.
+        """
+        sqrt_price_low = math.sqrt(self.price_low)
+        sqrt_price_high = math.sqrt(self.price_high)
+        sqrt_current_subnet_price = math.sqrt(current_subnet_price)
+
+        if sqrt_current_subnet_price < sqrt_price_low:
+            amount_alpha = self.liquidity * (1 / sqrt_price_low - 1 / sqrt_price_high)
+            amount_tao = 0
+        elif sqrt_current_subnet_price > sqrt_price_high:
+            amount_alpha = 0
+            amount_tao = self.liquidity * (sqrt_price_high - sqrt_price_low)
+        else:
+            amount_alpha = self.liquidity * (1 / sqrt_current_subnet_price - 1 / sqrt_price_high)
+            amount_tao = self.liquidity * (sqrt_current_subnet_price - sqrt_price_low)
+        return Balance.from_rao(int(amount_alpha), netuid), Balance.from_rao(int(amount_tao))
 
 
 def price_to_tick(price: float) -> int:
@@ -51,12 +98,11 @@ def get_fees(
             if tick_index <= current_tick
             else tick_fee_value
         )
-    else:
-        return (
-            tick_fee_value
-            if tick_index <= current_tick
-            else global_fee_value - tick_fee_value
-        )
+    return (
+        tick_fee_value
+        if tick_index <= current_tick
+        else global_fee_value - tick_fee_value
+    )
 
 
 def get_fees_in_range(
@@ -100,7 +146,6 @@ def calculate_fees(
 
     fee_tao = fee_tao_agg - fixed_to_float(position["fees_tao"])
     fee_alpha = fee_alpha_agg - fixed_to_float(position["fees_alpha"])
-
     liquidity_frac = position["liquidity"]
 
     fee_tao = liquidity_frac * fee_tao
