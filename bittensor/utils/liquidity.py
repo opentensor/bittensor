@@ -25,7 +25,9 @@ class LiquidityPosition:
     fees_tao: Balance  # RAO
     fees_alpha: Balance  # RAO
 
-    def to_token_amounts(self, current_subnet_price: Balance, netuid: int) -> tuple[Balance, Balance]:
+    def to_token_amounts(
+        self, current_subnet_price: Balance, netuid: int
+    ) -> tuple[Balance, Balance]:
         """Convert a position to token amounts.
 
         Arguments:
@@ -50,9 +52,13 @@ class LiquidityPosition:
             amount_alpha = 0
             amount_tao = self.liquidity * (sqrt_price_high - sqrt_price_low)
         else:
-            amount_alpha = self.liquidity * (1 / sqrt_current_subnet_price - 1 / sqrt_price_high)
+            amount_alpha = self.liquidity * (
+                1 / sqrt_current_subnet_price - 1 / sqrt_price_high
+            )
             amount_tao = self.liquidity * (sqrt_current_subnet_price - sqrt_price_low)
-        return Balance.from_rao(int(amount_alpha), netuid), Balance.from_rao(int(amount_tao))
+        return Balance.from_rao(int(amount_alpha), netuid), Balance.from_rao(
+            int(amount_tao)
+        )
 
 
 def price_to_tick(price: float) -> int:
