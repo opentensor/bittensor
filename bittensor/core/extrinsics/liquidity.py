@@ -104,6 +104,10 @@ def remove_liquidity_extrinsic(
     Note: Adding is allowed even when user liquidity is enabled in specified subnet.
         Call `toggle_user_liquidity_extrinsic` to enable/disable user liquidity.
     """
+    if not (unlock := unlock_key(wallet)).success:
+        logging.error(unlock.message)
+        return False, unlock.message
+
     call = subtensor.substrate.compose_call(
         call_module="Swap",
         call_function="remove_liquidity",
