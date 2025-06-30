@@ -112,6 +112,7 @@ from bittensor.utils.liquidity import (
     get_fees,
     tick_to_price,
     price_to_tick,
+    LiquidityPosition,
 )
 from bittensor.utils.weight_utils import generate_weight_hash, convert_uids_and_weights
 
@@ -1829,7 +1830,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> Optional[list[dict[str, Any]]]:
+    ) -> Optional[list[LiquidityPosition]]:
         """
         Retrieves all liquidity positions for the given wallet on a specified subnet (netuid).
         Calculates associated fee rewards based on current global and tick-level fee data.
@@ -1959,14 +1960,20 @@ class AsyncSubtensor(SubtensorMixin):
             )
 
             positions.append(
-                {
-                    "id": p.value.get("id")[0],
-                    "price_low": tick_to_price(p.value.get("tick_low")[0]),
-                    "price_high": tick_to_price(p.value.get("tick_high")[0]),
-                    "liquidity": Balance.from_rao(p.value.get("liquidity")),
-                    "fees_tao": fees_tao,
-                    "fees_alpha": fees_alpha,
-                }
+                LiquidityPosition(
+                    **{
+                        "id": p.value.get("id")[0],
+                        "price_low": Balance.from_rao(
+                            int(tick_to_price(p.value.get("tick_low")[0]))
+                        ),
+                        "price_high": Balance.from_rao(
+                            int(tick_to_price(p.value.get("tick_high")[0]))
+                        ),
+                        "liquidity": Balance.from_rao(p.value.get("liquidity")),
+                        "fees_tao": fees_tao,
+                        "fees_alpha": fees_alpha,
+                    }
+                )
             )
 
         return positions
