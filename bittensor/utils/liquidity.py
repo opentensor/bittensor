@@ -24,15 +24,15 @@ class LiquidityPosition:
     liquidity: Balance  # TAO + ALPHA (sqrt by TAO balance * Alpha Balance -> math under the hood)
     fees_tao: Balance  # RAO
     fees_alpha: Balance  # RAO
+    netuid: int
 
     def to_token_amounts(
-        self, current_subnet_price: Balance, netuid: int
+        self, current_subnet_price: Balance
     ) -> tuple[Balance, Balance]:
         """Convert a position to token amounts.
 
         Arguments:
             current_subnet_price: current subnet price in Alpha.
-            netuid: Subnet uid.
 
         Returns:
             tuple[int, int]:
@@ -56,7 +56,7 @@ class LiquidityPosition:
                 1 / sqrt_current_subnet_price - 1 / sqrt_price_high
             )
             amount_tao = self.liquidity * (sqrt_current_subnet_price - sqrt_price_low)
-        return Balance.from_rao(int(amount_alpha), netuid), Balance.from_rao(
+        return Balance.from_rao(int(amount_alpha), self.netuid), Balance.from_rao(
             int(amount_tao)
         )
 
