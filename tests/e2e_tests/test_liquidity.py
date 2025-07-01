@@ -65,6 +65,15 @@ async def test_liquidity(local_chain, subtensor, alice_wallet, bob_wallet):
     assert success, message
     assert message == "", "❌ Cannot enable user liquidity."
 
+    # Add stake to herself to have Alpha (affect non-fast-blocks chain)
+    assert subtensor.extrinsics.add_stake(
+        wallet=alice_wallet,
+        netuid=alice_subnet_netuid,
+        amount=Balance.from_tao(100),
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    ), "❌ Cannot add stake."
+
     # Add liquidity
     success, message = subtensor.extrinsics.add_liquidity(
         wallet=alice_wallet,
