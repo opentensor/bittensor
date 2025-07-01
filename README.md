@@ -113,7 +113,7 @@ If you are using Ubuntu-Linux, the script will prompt for `sudo` access to insta
 ### Install using `pip3 install`
 
 ```bash
-python3 -m venv bt_venv
+python3.11 -m venv bt_venv 
 source bt_venv/bin/activate
 pip install bittensor
 ```
@@ -122,7 +122,7 @@ pip install bittensor
 
 1. Create and activate a virtual environment
 
-    - Create Python virtual environment. Follow [this guide on python.org](https://docs.python.org/3/library/venv.html#creating-virtual-environments).
+    - Create Python 3.11 virtual environment **(Only Python 3.9-3.11 is supported)**. Follow [this guide on python.org](https://docs.python.org/3/library/venv.html#creating-virtual-environments).
 
     - Activate the new environment. Follow [this guide on python.org](https://docs.python.org/3/library/venv.html#how-venvs-work)
 
