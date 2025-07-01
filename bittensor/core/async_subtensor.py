@@ -1891,6 +1891,11 @@ class AsyncSubtensor(SubtensorMixin):
                 params=[netuid, wallet.coldkeypub.ss58_address],
             ),
         )
+        # convert to floats
+        fee_global_tao = fixed_to_float(fee_global_tao)
+        fee_global_alpha = fixed_to_float(fee_global_alpha)
+        sqrt_price = fixed_to_float(sqrt_price)
+
         # Fetch global fees and current price
         current_tick = price_to_tick(sqrt_price**2)
 
@@ -1980,6 +1985,7 @@ class AsyncSubtensor(SubtensorMixin):
                         "liquidity": Balance.from_rao(position.get("liquidity")),
                         "fees_tao": fees_tao,
                         "fees_alpha": fees_alpha,
+                        "netuid": position.get("netuid"),
                     }
                 )
             )
