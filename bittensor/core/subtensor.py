@@ -3385,8 +3385,8 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         netuid: int,
         position_id: int,
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = True,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
         period: Optional[int] = None,
     ) -> tuple[bool, str]:
         """Remove liquidity and credit balances back to wallet's hotkey stake.
