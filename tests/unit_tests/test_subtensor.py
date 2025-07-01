@@ -846,7 +846,7 @@ def test_get_subnet_hyperparameters_success(mocker, subtensor):
     # Asserts
     subtensor.query_runtime_api.assert_called_once_with(
         runtime_api="SubnetInfoRuntimeApi",
-        method="get_subnet_hyperparams",
+        method="get_subnet_hyperparams_v2",
         params=[netuid],
         block=block,
     )
@@ -870,7 +870,7 @@ def test_get_subnet_hyperparameters_no_data(mocker, subtensor):
     assert result is None
     subtensor.query_runtime_api.assert_called_once_with(
         runtime_api="SubnetInfoRuntimeApi",
-        method="get_subnet_hyperparams",
+        method="get_subnet_hyperparams_v2",
         params=[netuid],
         block=block,
     )
@@ -1810,6 +1810,33 @@ def test_get_commitment(subtensor, mocker):
 
     # Assertions
     mocked_metagraph.assert_called_once_with(fake_netuid)
+    assert result == expected_result
+
+
+def test_get_last_commitment_bonds_reset_block(subtensor, mocker):
+    """Successful get_last_commitment_bonds_reset_block call."""
+    # Preps
+    fake_netuid = 1
+    fake_uid = 2
+    fake_hotkey = "hotkey"
+    expected_result = 3
+
+    mocked_get_last_bonds_reset = mocker.patch.object(
+        subtensor_module, "get_last_bonds_reset"
+    )
+    mocked_get_last_bonds_reset.return_value = expected_result
+
+    mocked_metagraph = mocker.MagicMock()
+    subtensor.metagraph = mocked_metagraph
+    mocked_metagraph.return_value.hotkeys = {fake_uid: fake_hotkey}
+
+    # Call
+    result = subtensor.get_last_commitment_bonds_reset_block(
+        netuid=fake_netuid, uid=fake_uid
+    )
+
+    # Assertions
+    mocked_get_last_bonds_reset.assert_called_once()
     assert result == expected_result
 
 

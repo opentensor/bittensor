@@ -32,6 +32,7 @@ from bittensor.core.chain_data import (
 from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.delegate_info import DelegatedInfo
 from bittensor.core.chain_data.utils import (
+    decode_block,
     decode_metadata,
     decode_revealed_commitment,
     decode_revealed_commitment_with_hotkey,
@@ -59,6 +60,7 @@ from bittensor.core.extrinsics.asyncex.root import (
     root_register_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.serving import (
+    get_last_bonds_reset,
     publish_metadata,
     get_metadata,
 )
@@ -1172,6 +1174,34 @@ class AsyncSubtensor(SubtensorMixin):
         except TypeError:
             return ""
 
+    async def get_last_commitment_bonds_reset_block(
+        self, netuid: int, uid: int
+    ) -> Optional[int]:
+        """
+        Retrieves the last block number when the bonds reset were triggered by publish_metadata for a specific neuron.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnetwork.
+            uid (int): The unique identifier of the neuron.
+
+        Returns:
+            Optional[int]: The block number when the bonds were last reset, or None if not found.
+        """
+
+        metagraph = await self.metagraph(netuid)
+        try:
+            hotkey = metagraph.hotkeys[uid]
+        except IndexError:
+            logging.error(
+                "Your uid is not in the hotkeys. Please double-check your UID."
+            )
+            return None
+        block = await get_last_bonds_reset(self, netuid, hotkey)
+        try:
+            return decode_block(block)
+        except TypeError:
+            return ""
+
     async def get_all_commitments(
         self,
         netuid: int,
@@ -1202,7 +1232,7 @@ class AsyncSubtensor(SubtensorMixin):
         )
         result = {}
         async for id_, value in query:
-            result[decode_account_id(id_[0])] = decode_metadata(value)
+            result[decode_account_id(id_[0])] = decode_metadata(value.value)
         return result
 
     async def get_revealed_commitment_by_hotkey(
@@ -2276,7 +2306,7 @@ class AsyncSubtensor(SubtensorMixin):
         """
         result = await self.query_runtime_api(
             runtime_api="SubnetInfoRuntimeApi",
-            method="get_subnet_hyperparams",
+            method="get_subnet_hyperparams_v2",
             params=[netuid],
             block=block,
             block_hash=block_hash,
@@ -3092,6 +3122,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         if isinstance(decoded := query.decode(), dict):
             return DynamicInfo.from_dict(decoded)
+        return None
 
     async def subnet_exists(
         self,
