@@ -1428,7 +1428,12 @@ class Subtensor(SubtensorMixin):
         Returns:
             List of liquidity positions, or None if subnet does not exist.
         """
-        if not self.subnet_exists(netuid):
+        if not self.subnet_exists(netuid=netuid):
+            logging.debug(f"Subnet {netuid} does not exist.")
+            return None
+
+        if not self.is_subnet_active(netuid=netuid):
+            logging.debug(f"Subnet {netuid} is not active.")
             return None
 
         query = self.substrate.query
