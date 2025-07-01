@@ -22,6 +22,7 @@ from bittensor.core.chain_data import (
     NeuronInfoLite,
     NeuronInfo,
     ProposalVoteData,
+    SelectiveMetagraphIndex,
     StakeInfo,
     SubnetHyperparameters,
     SubnetIdentity,
@@ -1639,15 +1640,18 @@ class AsyncSubtensor(SubtensorMixin):
     async def get_metagraph_info(
         self,
         netuid: int,
+        field_indices: Optional[Union[list[SelectiveMetagraphIndex], list[int]]] = None,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[MetagraphInfo]:
         """
-        Retrieves the MetagraphInfo dataclass from the node for a single subnet (netuid)
+        Retrieves full or partial metagraph information for the specified subnet (netuid).
 
         Arguments:
-            netuid: The NetUID of the subnet.
+            netuid: The NetUID of the subnet to query.
+            field_indices: An optional list of SelectiveMetagraphIndex or int values specifying which fields to retrieve.
+                If not provided, all available fields will be returned.
             block: the block number at which to retrieve the hyperparameter. Do not specify if using block_hash or
                 reuse_block
             block_hash: The hash of blockchain block number for the query. Do not specify if using
@@ -1655,21 +1659,51 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
 
         Returns:
-            MetagraphInfo dataclass
+            Optional[MetagraphInfo]: A MetagraphInfo object containing the requested subnet data, or None if the subnet
+                with the given netuid does not exist.
+
+        Example:
+            meta_info = await subtensor.get_metagraph_info(netuid=2)
+
+            partial_meta_info = await subtensor.get_metagraph_info(
+                netuid=2,
+                field_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
+            )
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not block_hash and reuse_block:
             block_hash = self.substrate.last_block_hash
 
-        query = await self.substrate.runtime_call(
-            "SubnetInfoRuntimeApi",
-            "get_metagraph",
-            params=[netuid],
-            block_hash=block_hash,
-        )
+        if field_indices:
+            if isinstance(field_indices, list) and all(
+                isinstance(f, (SelectiveMetagraphIndex, int)) for f in field_indices
+            ):
+                indexes = [
+                    f.value if isinstance(f, SelectiveMetagraphIndex) else f
+                    for f in field_indices
+                ]
+            else:
+                raise ValueError(
+                    "`field_indices` must be a list of SelectiveMetagraphIndex enums or ints."
+                )
+
+            query = await self.substrate.runtime_call(
+                "SubnetInfoRuntimeApi",
+                "get_selective_metagraph",
+                params=[netuid, indexes if 0 in indexes else [0] + indexes],
+                block_hash=block_hash,
+            )
+        else:
+            query = await self.substrate.runtime_call(
+                "SubnetInfoRuntimeApi",
+                "get_metagraph",
+                params=[netuid],
+            )
+
         if query.value is None:
             logging.error(f"Subnet {netuid} does not exist.")
             return None
+
         return MetagraphInfo.from_dict(query.value)
 
     async def get_all_metagraphs_info(
