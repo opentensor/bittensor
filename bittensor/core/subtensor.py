@@ -48,6 +48,7 @@ from bittensor.core.extrinsics.commit_weights import (
 )
 from bittensor.core.extrinsics.liquidity import (
     add_liquidity_extrinsic,
+    modify_liquidity_extrinsic,
     remove_liquidity_extrinsic,
     toggle_user_liquidity_extrinsic,
 )
@@ -3163,6 +3164,74 @@ class Subtensor(SubtensorMixin):
                 retries += 1
 
         return success, message
+
+    def modify_liquidity(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        position_id: int,
+        liquidity_delta: Balance,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        period: Optional[int] = None,
+    ) -> tuple[bool, str]:
+        """Modifies liquidity in liquidity position by adding or removing liquidity from it.
+
+        Arguments:
+            wallet: The wallet used to sign the extrinsic (must be unlocked).
+            netuid: The UID of the target subnet for which the call is being initiated.
+            position_id: The id of the position record in the pool.
+            liquidity_delta: The amount of liquidity to be added or removed (add if positive or remove if negative).
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block. Defaults to True.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic. Defaults to False.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+
+        Returns:
+            Tuple[bool, str]:
+                - True and a success message if the extrinsic is successfully submitted or processed.
+                - False and an error message if the submission fails or the wallet cannot be unlocked.
+
+        Example:
+            import bittensor as bt
+
+            subtensor = bt.subtensor(network="local")
+            my_wallet = bt.Wallet()
+
+            # if `liquidity_delta` is negative
+            my_liquidity_delta = Balance.from_tao(100) * -1
+
+            subtensor.modify_liquidity(
+                wallet=my_wallet,
+                netuid=123,
+                position_id=2,
+                liquidity_delta=my_liquidity_delta
+            )
+
+            # if `liquidity_delta` is positive
+            my_liquidity_delta = Balance.from_tao(120)
+
+            subtensor.modify_liquidity(
+                wallet=my_wallet,
+                netuid=123,
+                position_id=2,
+                liquidity_delta=my_liquidity_delta
+            )
+
+        Note: Modifying is allowed even when user liquidity is enabled in specified subnet. Call `toggle_user_liquidity`
+            to enable/disable user liquidity.
+        """
+        return modify_liquidity_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            position_id=position_id,
+            liquidity_delta=liquidity_delta,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            period=period,
+        )
 
     def move_stake(
         self,
