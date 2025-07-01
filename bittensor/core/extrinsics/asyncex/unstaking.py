@@ -30,27 +30,28 @@ async def unstake_extrinsic(
     """Removes stake into the wallet coldkey from the specified hotkey ``uid``.
 
     Args:
-        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): AsyncSubtensor instance.
-        wallet (bittensor_wallet.Wallet): Bittensor wallet object.
-        hotkey_ss58 (Optional[str]): The ``ss58`` address of the hotkey to unstake from. By default, the wallet hotkey
-            is used.
-        netuid (Optional[int]): The subnet uid to unstake from.
-        amount (Union[Balance, float]): Amount to stake as Bittensor balance, or ``float`` interpreted as Tao.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``True``, or
-            returns ``False`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
-            ``True``, or returns ``False`` if the extrinsic fails to be finalized within the timeout.
+        subtensor: AsyncSubtensor instance.
+        wallet: Bittensor wallet object.
+        hotkey_ss58: The ``ss58`` address of the hotkey to unstake from. By default, the wallet hotkey is used.
+        netuid: The subnet uid to unstake from.
+        amount: Amount to stake as Bittensor balance, or ``float`` interpreted as Tao.
+        wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning ``True``, or returns
+            ``False`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning ``True``,
+            or returns ``False`` if the extrinsic fails to be finalized within the timeout.
         safe_staking: If true, enables price safety checks
         allow_partial_stake: If true, allows partial unstaking if price tolerance exceeded
         rate_tolerance: Maximum allowed price decrease percentage (0.005 = 0.5%)
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted.
-            If the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
         unstake_all: If true, unstakes all tokens. Default is ``False``.
 
     Returns:
-        success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
-            finalization / inclusion, the response is ``True``.
+        tuple[bool, str]:
+            A tuple containing:
+            - `True` and a success message if the unstake operation succeeded;
+            - `False` and an error message otherwise.
     """
     if amount and unstake_all:
         raise ValueError("Cannot specify both `amount` and `unstake_all`.")
@@ -200,6 +201,71 @@ async def unstake_extrinsic(
         return False
 
 
+async def unstake_all_extrinsic(
+    subtensor: "AsyncSubtensor",
+    wallet: "Wallet",
+    hotkey: str,
+    netuid: int,
+    rate_tolerance: Optional[float] = 0.005,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = False,
+    period: Optional[int] = None,
+) -> tuple[bool, str]:
+    """Unstakes all TAO/Alpha associated with a hotkey from the specified subnets on the Bittensor network.
+
+    Arguments:
+        subtensor: Subtensor instance.
+        wallet: The wallet of the stake owner.
+        hotkey: The SS58 address of the hotkey to unstake from.
+        netuid: The unique identifier of the subnet.
+        rate_tolerance: The maximum allowed price change ratio when unstaking. For example, 0.005 = 0.5% maximum
+            price decrease. If not passed (None), then unstaking goes without price limit. Default is `0.005`.
+        wait_for_inclusion: Waits for the transaction to be included in a block. Default is `True`.
+        wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Default is `False`.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction. Default is `None`.
+
+    Returns:
+        tuple[bool, str]:
+            A tuple containing:
+            - `True` and a success message if the unstake operation succeeded;
+            - `False` and an error message otherwise.
+    """
+    if not (unlock := unlock_key(wallet)).success:
+        logging.error(unlock.message)
+        return False, unlock.message
+
+    call_params = {
+        "hotkey": hotkey,
+        "netuid": netuid,
+        "limit_price": None,
+    }
+
+    if rate_tolerance:
+        current_price = (await subtensor.subnet(netuid=netuid)).price
+        limit_price = current_price * (1 - rate_tolerance)
+        call_params.update({"limit_price": limit_price})
+
+    async with subtensor.substrate as substrate:
+        call = await substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="remove_stake_full_limit",
+            call_params=call_params,
+        )
+
+        return await subtensor.sign_and_send_extrinsic(
+            call=call,
+            wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            nonce_key="coldkeypub",
+            sign_with="coldkey",
+            use_nonce=True,
+            period=period,
+        )
+
+
 async def unstake_multiple_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
@@ -214,23 +280,25 @@ async def unstake_multiple_extrinsic(
     """Removes stake from each ``hotkey_ss58`` in the list, using each amount, to a common coldkey.
 
     Args:
-        subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance.
-        wallet (bittensor_wallet.Wallet): The wallet with the coldkey to unstake to.
-        hotkey_ss58s (List[str]): List of hotkeys to unstake from.
-        netuids (List[int]): List of netuids to unstake from.
-        amounts (List[Union[Balance, float]]): List of amounts to unstake. If ``None``, unstake all.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``True``, or
+        subtensor: Subtensor instance.
+        wallet: The wallet with the coldkey to unstake to.
+        hotkey_ss58s: List of hotkeys to unstake from.
+        netuids: List of netuids to unstake from.
+        amounts: List of amounts to unstake. If ``None``, unstake all.
+        wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning ``True``, or
             returns ``False`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
+        wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning
             ``True``, or returns ``False`` if the extrinsic fails to be finalized within the timeout.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted.
-            If the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
         unstake_all: If true, unstakes all tokens. Default is ``False``.
 
     Returns:
-        success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. Flag is ``True`` if any
-            wallet was unstaked. If we did not wait for finalization / inclusion, the response is ``True``.
+        tuple[bool, str]:
+            A tuple containing:
+            - `True` and a success message if the unstake operation succeeded;
+            - `False` and an error message otherwise.
     """
     if amounts and unstake_all:
         raise ValueError("Cannot specify both `amounts` and `unstake_all`.")
