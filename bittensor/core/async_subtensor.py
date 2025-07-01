@@ -1847,8 +1847,14 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             List of liquidity positions, or None if subnet does not exist.
         """
-        if not await self.subnet_exists(netuid):
+        if not await self.subnet_exists(netuid=netuid):
+            logging.debug(f"Subnet {netuid} does not exist.")
             return None
+
+        if not await self.is_subnet_active(netuid=netuid):
+            logging.debug(f"Subnet {netuid} is not active.")
+            return None
+
         block_hash = await self.determine_block_hash(
             block=block, block_hash=block_hash, reuse_block=reuse_block
         )
