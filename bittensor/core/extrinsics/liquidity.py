@@ -103,8 +103,8 @@ def modify_liquidity_extrinsic(
             - True and a success message if the extrinsic is successfully submitted or processed.
             - False and an error message if the submission fails or the wallet cannot be unlocked.
 
-    Note: Modifying is allowed even when user liquidity is enabled in specified subnet.
-        Call `toggle_user_liquidity_extrinsic` to enable/disable user liquidity.
+    Note: Modifying is allowed even when user liquidity is enabled in specified subnet. Call
+        `toggle_user_liquidity_extrinsic` to enable/disable user liquidity.
     """
     if not (unlock := unlock_key(wallet)).success:
         logging.error(unlock.message)
