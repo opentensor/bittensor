@@ -12,6 +12,7 @@ class Extrinsics:
         self.add_stake_multiple = subtensor.add_stake_multiple
         self.burned_register = subtensor.burned_register
         self.commit_weights = subtensor.commit_weights
+        self.modify_liquidity = subtensor.modify_liquidity
         self.move_stake = subtensor.move_stake
         self.register = subtensor.register
         self.register_subnet = subtensor.register_subnet
