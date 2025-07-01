@@ -1477,7 +1477,6 @@ class Subtensor(SubtensorMixin):
         positions = []
         for _, p in positions_response:
             position = p.value
-            print(">>>", _, position)
 
             tick_low_idx = position["tick_low"][0]
             tick_high_idx = position["tick_high"][0]
