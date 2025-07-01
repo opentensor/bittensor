@@ -846,7 +846,7 @@ def test_get_subnet_hyperparameters_success(mocker, subtensor):
     # Asserts
     subtensor.query_runtime_api.assert_called_once_with(
         runtime_api="SubnetInfoRuntimeApi",
-        method="get_subnet_hyperparams",
+        method="get_subnet_hyperparams_v2",
         params=[netuid],
         block=block,
     )
@@ -870,7 +870,7 @@ def test_get_subnet_hyperparameters_no_data(mocker, subtensor):
     assert result is None
     subtensor.query_runtime_api.assert_called_once_with(
         runtime_api="SubnetInfoRuntimeApi",
-        method="get_subnet_hyperparams",
+        method="get_subnet_hyperparams_v2",
         params=[netuid],
         block=block,
     )
@@ -1810,6 +1810,33 @@ def test_get_commitment(subtensor, mocker):
 
     # Assertions
     mocked_metagraph.assert_called_once_with(fake_netuid)
+    assert result == expected_result
+
+
+def test_get_last_commitment_bonds_reset_block(subtensor, mocker):
+    """Successful get_last_commitment_bonds_reset_block call."""
+    # Preps
+    fake_netuid = 1
+    fake_uid = 2
+    fake_hotkey = "hotkey"
+    expected_result = 3
+
+    mocked_get_last_bonds_reset = mocker.patch.object(
+        subtensor_module, "get_last_bonds_reset"
+    )
+    mocked_get_last_bonds_reset.return_value = expected_result
+
+    mocked_metagraph = mocker.MagicMock()
+    subtensor.metagraph = mocked_metagraph
+    mocked_metagraph.return_value.hotkeys = {fake_uid: fake_hotkey}
+
+    # Call
+    result = subtensor.get_last_commitment_bonds_reset_block(
+        netuid=fake_netuid, uid=fake_uid
+    )
+
+    # Assertions
+    mocked_get_last_bonds_reset.assert_called_once()
     assert result == expected_result
 
 
@@ -3849,3 +3876,30 @@ def test_set_children(subtensor, fake_wallet, mocker):
         period=None,
     )
     assert result == mocked_set_children_extrinsic.return_value
+
+
+def test_unstake_all(subtensor, fake_wallet, mocker):
+    """Verifies unstake_all calls properly."""
+    # Preps
+    fake_unstake_all_extrinsic = mocker.Mock()
+    mocker.patch.object(
+        subtensor_module, "unstake_all_extrinsic", fake_unstake_all_extrinsic
+    )
+    # Call
+    result = subtensor.unstake_all(
+        wallet=fake_wallet,
+        hotkey=fake_wallet.hotkey.ss58_address,
+        netuid=1,
+    )
+    # Asserts
+    fake_unstake_all_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        hotkey=fake_wallet.hotkey.ss58_address,
+        netuid=1,
+        rate_tolerance=0.005,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        period=None,
+    )
+    assert result == fake_unstake_all_extrinsic.return_value

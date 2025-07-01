@@ -2123,7 +2123,7 @@ async def test_get_subnet_hyperparameters_success(subtensor, mocker):
     # Asserts
     mocked_query_runtime_api.assert_called_once_with(
         runtime_api="SubnetInfoRuntimeApi",
-        method="get_subnet_hyperparams",
+        method="get_subnet_hyperparams_v2",
         params=[fake_netuid],
         block=None,
         block_hash=fake_block_hash,
@@ -2147,7 +2147,7 @@ async def test_get_subnet_hyperparameters_no_data(subtensor, mocker):
     # Asserts
     mocked_query_runtime_api.assert_called_once_with(
         runtime_api="SubnetInfoRuntimeApi",
-        method="get_subnet_hyperparams",
+        method="get_subnet_hyperparams_v2",
         params=[fake_netuid],
         block=None,
         block_hash=None,
@@ -2177,7 +2177,7 @@ async def test_get_subnet_hyperparameters_without_0x_prefix(subtensor, mocker):
     # Asserts
     mocked_query_runtime_api.assert_called_once_with(
         runtime_api="SubnetInfoRuntimeApi",
-        method="get_subnet_hyperparams",
+        method="get_subnet_hyperparams_v2",
         params=[fake_netuid],
         block=None,
         block_hash=None,
@@ -3491,3 +3491,31 @@ async def test_get_next_epoch_start_block(mocker, subtensor, call_return, expect
         netuid=netuid, block=block, block_hash=fake_block_hash, reuse_block=False
     )
     assert result == expected
+
+
+@pytest.mark.asyncio
+async def test_unstake_all(subtensor, fake_wallet, mocker):
+    """Verifies unstake_all calls properly."""
+    # Preps
+    fake_unstake_all_extrinsic = mocker.AsyncMock()
+    mocker.patch.object(
+        async_subtensor, "unstake_all_extrinsic", fake_unstake_all_extrinsic
+    )
+    # Call
+    result = await subtensor.unstake_all(
+        wallet=fake_wallet,
+        hotkey=fake_wallet.hotkey.ss58_address,
+        netuid=1,
+    )
+    # Asserts
+    fake_unstake_all_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        hotkey=fake_wallet.hotkey.ss58_address,
+        netuid=1,
+        rate_tolerance=0.005,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        period=None,
+    )
+    assert result == fake_unstake_all_extrinsic.return_value
