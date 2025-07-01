@@ -121,6 +121,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.max_weight_limit = subtensor._subtensor.max_weight_limit
     subtensor.metagraph = subtensor._subtensor.metagraph
     subtensor.min_allowed_weights = subtensor._subtensor.min_allowed_weights
+    subtensor.modify_liquidity = subtensor._subtensor.modify_liquidity
     subtensor.move_stake = subtensor._subtensor.move_stake
     subtensor.network = subtensor._subtensor.network
     subtensor.neurons = subtensor._subtensor.neurons
