@@ -3155,92 +3155,93 @@ async def test_start_call(subtensor, mocker):
     assert result == mocked_extrinsic.return_value
 
 
-# TODO: get back after SelectiveMetagraph come to the mainnet
-# @pytest.mark.asyncio
-# async def test_get_metagraph_info_all_fields(subtensor, mocker):
-#     """Test get_metagraph_info with all fields (default behavior)."""
-#     # Preps
-#     netuid = 1
-#     mock_value = {"mock": "data"}
-#
-#     mock_runtime_call = mocker.patch.object(
-#         subtensor.substrate,
-#         "runtime_call",
-#         return_value=mocker.AsyncMock(value=mock_value),
-#     )
-#     mock_from_dict = mocker.patch.object(
-#         async_subtensor.MetagraphInfo, "from_dict", return_value="parsed_metagraph"
-#     )
-#
-#     # Call
-#     result = await subtensor.get_metagraph_info(netuid=netuid)
-#
-#     # Asserts
-#     assert result == "parsed_metagraph"
-#     mock_runtime_call.assert_awaited_once_with(
-#         "SubnetInfoRuntimeApi",
-#         "get_selective_metagraph",
-#         params=[netuid, SelectiveMetagraphIndex.all_indices()],
-#         block_hash=await subtensor.determine_block_hash(None),
-#     )
-#     mock_from_dict.assert_called_once_with(mock_value)
-#
-#
-# @pytest.mark.asyncio
-# async def test_get_metagraph_info_specific_fields(subtensor, mocker):
-#     """Test get_metagraph_info with specific fields."""
-#     # Preps
-#     netuid = 1
-#     mock_value = {"mock": "data"}
-#     fields = [SelectiveMetagraphIndex.Name, 5]
-#
-#     mock_runtime_call = mocker.patch.object(
-#         subtensor.substrate,
-#         "runtime_call",
-#         return_value=mocker.AsyncMock(value=mock_value),
-#     )
-#     mock_from_dict = mocker.patch.object(
-#         async_subtensor.MetagraphInfo, "from_dict", return_value="parsed_metagraph"
-#     )
-#
-#     # Call
-#     result = await subtensor.get_metagraph_info(netuid=netuid, field_indices=fields)
-#
-#     # Asserts
-#     assert result == "parsed_metagraph"
-#     mock_runtime_call.assert_awaited_once_with(
-#         "SubnetInfoRuntimeApi",
-#         "get_selective_metagraph",
-#         params=[
-#             netuid,
-#             [0]
-#             + [
-#                 f.value if isinstance(f, SelectiveMetagraphIndex) else f for f in fields
-#             ],
-#         ],
-#         block_hash=await subtensor.determine_block_hash(None),
-#     )
-#     mock_from_dict.assert_called_once_with(mock_value)
-#
-#
-# @pytest.mark.parametrize(
-#     "wrong_fields",
-#     [
-#         [
-#             "invalid",
-#         ],
-#         [SelectiveMetagraphIndex.Active, 1, "f"],
-#         [1, 2, 3, "f"],
-#     ],
-# )
-# @pytest.mark.asyncio
-# async def test_get_metagraph_info_invalid_field_indices(subtensor, wrong_fields):
-#     """Test get_metagraph_info raises ValueError on invalid field_indices."""
-#     with pytest.raises(
-#         ValueError,
-#         match="`field_indices` must be a list of SelectiveMetagraphIndex items.",
-#     ):
-#         await subtensor.get_metagraph_info(netuid=1, field_indices=wrong_fields)
+@pytest.mark.asyncio
+async def test_get_metagraph_info_all_fields(subtensor, mocker):
+    """Test get_metagraph_info with all fields (default behavior)."""
+    # Preps
+    netuid = 1
+    mock_value = {"mock": "data"}
+
+    mock_runtime_call = mocker.patch.object(
+        subtensor.substrate,
+        "runtime_call",
+        return_value=mocker.AsyncMock(value=mock_value),
+    )
+    mock_from_dict = mocker.patch.object(
+        async_subtensor.MetagraphInfo, "from_dict", return_value="parsed_metagraph"
+    )
+
+    # Call
+    result = await subtensor.get_metagraph_info(
+        netuid=netuid, field_indices=[f for f in range(73)]
+    )
+
+    # Asserts
+    assert result == "parsed_metagraph"
+    mock_runtime_call.assert_awaited_once_with(
+        "SubnetInfoRuntimeApi",
+        "get_selective_metagraph",
+        params=[netuid, SelectiveMetagraphIndex.all_indices()],
+        block_hash=await subtensor.determine_block_hash(None),
+    )
+    mock_from_dict.assert_called_once_with(mock_value)
+
+
+@pytest.mark.asyncio
+async def test_get_metagraph_info_specific_fields(subtensor, mocker):
+    """Test get_metagraph_info with specific fields."""
+    # Preps
+    netuid = 1
+    mock_value = {"mock": "data"}
+    fields = [SelectiveMetagraphIndex.Name, 5]
+
+    mock_runtime_call = mocker.patch.object(
+        subtensor.substrate,
+        "runtime_call",
+        return_value=mocker.AsyncMock(value=mock_value),
+    )
+    mock_from_dict = mocker.patch.object(
+        async_subtensor.MetagraphInfo, "from_dict", return_value="parsed_metagraph"
+    )
+
+    # Call
+    result = await subtensor.get_metagraph_info(netuid=netuid, field_indices=fields)
+
+    # Asserts
+    assert result == "parsed_metagraph"
+    mock_runtime_call.assert_awaited_once_with(
+        "SubnetInfoRuntimeApi",
+        "get_selective_metagraph",
+        params=[
+            netuid,
+            [0]
+            + [
+                f.value if isinstance(f, SelectiveMetagraphIndex) else f for f in fields
+            ],
+        ],
+        block_hash=await subtensor.determine_block_hash(None),
+    )
+    mock_from_dict.assert_called_once_with(mock_value)
+
+
+@pytest.mark.parametrize(
+    "wrong_fields",
+    [
+        [
+            "invalid",
+        ],
+        [SelectiveMetagraphIndex.Active, 1, "f"],
+        [1, 2, 3, "f"],
+    ],
+)
+@pytest.mark.asyncio
+async def test_get_metagraph_info_invalid_field_indices(subtensor, wrong_fields):
+    """Test get_metagraph_info raises ValueError on invalid field_indices."""
+    with pytest.raises(
+        ValueError,
+        match="`field_indices` must be a list of SelectiveMetagraphIndex enums or ints.",
+    ):
+        await subtensor.get_metagraph_info(netuid=1, field_indices=wrong_fields)
 
 
 @pytest.mark.asyncio
@@ -3490,6 +3491,34 @@ async def test_get_next_epoch_start_block(mocker, subtensor, call_return, expect
         netuid=netuid, block=block, block_hash=fake_block_hash, reuse_block=False
     )
     assert result == expected
+
+
+@pytest.mark.asyncio
+async def test_unstake_all(subtensor, fake_wallet, mocker):
+    """Verifies unstake_all calls properly."""
+    # Preps
+    fake_unstake_all_extrinsic = mocker.AsyncMock()
+    mocker.patch.object(
+        async_subtensor, "unstake_all_extrinsic", fake_unstake_all_extrinsic
+    )
+    # Call
+    result = await subtensor.unstake_all(
+        wallet=fake_wallet,
+        hotkey=fake_wallet.hotkey.ss58_address,
+        netuid=1,
+    )
+    # Asserts
+    fake_unstake_all_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        hotkey=fake_wallet.hotkey.ss58_address,
+        netuid=1,
+        rate_tolerance=0.005,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        period=None,
+    )
+    assert result == fake_unstake_all_extrinsic.return_value
 
 
 @pytest.mark.asyncio
