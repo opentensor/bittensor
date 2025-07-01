@@ -1476,9 +1476,11 @@ class Subtensor(SubtensorMixin):
 
         positions = []
         for _, p in positions_response:
-            value = p.value
-            tick_low_idx = value["tick_low"][0]
-            tick_high_idx = value["tick_high"][0]
+            position = p.value
+            print(">>>", _, position)
+
+            tick_low_idx = position["tick_low"][0]
+            tick_high_idx = position["tick_high"][0]
 
             tick_low = query(
                 module="Swap",
@@ -1533,7 +1535,7 @@ class Subtensor(SubtensorMixin):
 
             # Calculate fees earned by position
             fees_tao, fees_alpha = calculate_fees(
-                position=value,
+                position=position,
                 global_fees_tao=fee_global_tao,
                 global_fees_alpha=fee_global_alpha,
                 tao_fees_below_low=tao_below,
@@ -1546,16 +1548,17 @@ class Subtensor(SubtensorMixin):
             positions.append(
                 LiquidityPosition(
                     **{
-                        "id": p.value.get("id")[0],
+                        "id": position.get("id")[0],
                         "price_low": Balance.from_rao(
-                            int(tick_to_price(p.value.get("tick_low")[0]))
+                            int(tick_to_price(position.get("tick_low")[0]))
                         ),
                         "price_high": Balance.from_rao(
-                            int(tick_to_price(p.value.get("tick_high")[0]))
+                            int(tick_to_price(position.get("tick_high")[0]))
                         ),
-                        "liquidity": Balance.from_rao(p.value.get("liquidity")),
+                        "liquidity": Balance.from_rao(position.get("liquidity")),
                         "fees_tao": fees_tao,
                         "fees_alpha": fees_alpha,
+                        "netuid": position.get("netuid"),
                     }
                 )
             )
