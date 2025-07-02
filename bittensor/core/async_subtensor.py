@@ -1936,7 +1936,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         # Fetch positions
         positions = []
-        for _, p in positions_response:
+        async for _, p in positions_response:
             position = p.value
 
             tick_low_idx = position.get("tick_low")[0]
