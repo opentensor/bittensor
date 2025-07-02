@@ -29,4 +29,5 @@ class Extrinsics:
         self.transfer = subtensor.transfer
         self.transfer_stake = subtensor.transfer_stake
         self.unstake = subtensor.unstake
+        self.unstake_all = subtensor.unstake_all
         self.unstake_multiple = subtensor.unstake_multiple
