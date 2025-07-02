@@ -34,7 +34,7 @@ def test_add_liquidity_extrinsic(subtensor, fake_wallet, mocker):
             "netuid": fake_netuid,
             "tick_low": mocked_price_to_tick.return_value,
             "tick_high": mocked_price_to_tick.return_value,
-            "liquidity": fake_liquidity,
+            "liquidity": fake_liquidity.rao,
         },
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
@@ -77,7 +77,7 @@ def test_modify_liquidity_extrinsic(subtensor, fake_wallet, mocker):
             "hotkey": fake_wallet.hotkey.ss58_address,
             "netuid": fake_netuid,
             "position_id": fake_position_id,
-            "liquidity_delta": fake_liquidity_delta,
+            "liquidity_delta": fake_liquidity_delta.rao,
         },
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
