@@ -4018,6 +4018,8 @@ class AsyncSubtensor(SubtensorMixin):
             import bittensor as bt
 
             subtensor = bt.AsyncSubtensor(network="local")
+            await subtensor.initialize()
+
             my_wallet = bt.Wallet()
 
             # if `liquidity_delta` is negative
