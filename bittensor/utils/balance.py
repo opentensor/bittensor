@@ -69,7 +69,7 @@ class Balance:
             self.rao = int(balance * pow(10, 9))
         else:
             raise TypeError(
-                f"Balance must be an int (rao) or a float (tao). You passed: `{type(balance)}`."
+                f"Balance must be an int (rao) or a float (tao), not  `{type(balance)}`."
             )
 
     @property
