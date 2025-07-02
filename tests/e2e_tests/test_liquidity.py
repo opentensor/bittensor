@@ -79,8 +79,8 @@ async def test_liquidity(local_chain, subtensor, alice_wallet, bob_wallet):
         wallet=alice_wallet,
         netuid=alice_subnet_netuid,
         liquidity=Balance.from_tao(1000),
-        price_low=900_000_000,
-        price_high=1100_000_000,
+        price_low=Balance.from_tao(0.9),
+        price_high=Balance.from_tao(1.1),
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -175,8 +175,8 @@ async def test_liquidity(local_chain, subtensor, alice_wallet, bob_wallet):
         wallet=alice_wallet,
         netuid=alice_subnet_netuid,
         liquidity=Balance.from_tao(150),
-        price_low=800_000_000,
-        price_high=1200_000_000,
+        price_low=Balance.from_tao(0.8),
+        price_high=Balance.from_tao(1.2),
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
