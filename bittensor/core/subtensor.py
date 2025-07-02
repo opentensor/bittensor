@@ -1479,30 +1479,27 @@ class Subtensor(SubtensorMixin):
         block_hash = self.determine_block_hash(block)
 
         # Fetch global fees and current price
-        fee_global_tao = fixed_to_float(
-            query(
-                module="Swap",
-                storage_function="FeeGlobalTao",
-                params=[netuid],
-                block_hash=block_hash,
-            )
+        fee_global_tao_query = query(
+            module="Swap",
+            storage_function="FeeGlobalTao",
+            params=[netuid],
+            block_hash=block_hash,
         )
-        fee_global_alpha = fixed_to_float(
-            query(
-                module="Swap",
-                storage_function="FeeGlobalAlpha",
-                params=[netuid],
-                block_hash=block_hash,
-            )
+        fee_global_alpha_query = query(
+            module="Swap",
+            storage_function="FeeGlobalAlpha",
+            params=[netuid],
+            block_hash=block_hash,
         )
-        sqrt_price = fixed_to_float(
-            query(
-                module="Swap",
-                storage_function="AlphaSqrtPrice",
-                params=[netuid],
-                block_hash=block_hash,
-            )
+        sqrt_price_query = query(
+            module="Swap",
+            storage_function="AlphaSqrtPrice",
+            params=[netuid],
+            block_hash=block_hash,
         )
+        fee_global_tao = fixed_to_float(fee_global_tao_query)
+        fee_global_alpha = fixed_to_float(fee_global_alpha_query)
+        sqrt_price = fixed_to_float(sqrt_price_query)
         current_tick = price_to_tick(sqrt_price**2)
 
         # Fetch positions
@@ -1587,11 +1584,11 @@ class Subtensor(SubtensorMixin):
                 LiquidityPosition(
                     **{
                         "id": position.get("id")[0],
-                        "price_low": Balance.from_rao(
-                            int(tick_to_price(position.get("tick_low")[0]))
+                        "price_low": Balance.from_tao(
+                            tick_to_price(position.get("tick_low")[0])
                         ),
-                        "price_high": Balance.from_rao(
-                            int(tick_to_price(position.get("tick_high")[0]))
+                        "price_high": Balance.from_tao(
+                            tick_to_price(position.get("tick_high")[0])
                         ),
                         "liquidity": Balance.from_rao(position.get("liquidity")),
                         "fees_tao": fees_tao,
@@ -3003,8 +3000,8 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         netuid: int,
         liquidity: Balance,
-        price_low: float,
-        price_high: float,
+        price_low: Balance,
+        price_high: Balance,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         period: Optional[int] = None,
@@ -3016,8 +3013,8 @@ class Subtensor(SubtensorMixin):
             wallet: The wallet used to sign the extrinsic (must be unlocked).
             netuid: The UID of the target subnet for which the call is being initiated.
             liquidity: The amount of liquidity to be added.
-            price_low: The lower bound of the price tick range.
-            price_high: The upper bound of the price tick range.
+            price_low: The lower bound of the price tick range. In TAO.
+            price_high: The upper bound of the price tick range. In TAO.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block. Defaults to True.
             wait_for_finalization: Whether to wait for finalization of the extrinsic. Defaults to False.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
