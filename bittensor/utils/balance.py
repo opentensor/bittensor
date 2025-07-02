@@ -68,7 +68,7 @@ class Balance:
             # Assume tao value for the float
             self.rao = int(balance * pow(10, 9))
         else:
-            raise TypeError("balance must be an int (rao) or a float (tao)")
+            raise TypeError(f"Balance must be an int (rao) or a float (tao). You passed: `{type(balance)}`.")
 
     @property
     def tao(self):
