@@ -64,16 +64,14 @@ class LiquidityPosition:
 def price_to_tick(price: float) -> int:
     """Converts a float price to the nearest Uniswap V3 tick index."""
     if price <= 0:
-        raise ValueError(f"Price must be positive, got {price}")
+        raise ValueError(f"Price must be positive, got `{price}`.")
 
-    log_base = math.log1p(PRICE_STEP - 1)  # safer for small deltas
-    tick = round(math.log(price) / log_base)
+    tick = int(math.log(price) / math.log(PRICE_STEP))
 
-    if tick < MIN_TICK or tick > MAX_TICK:
+    if not (MIN_TICK <= tick <= MAX_TICK):
         raise ValueError(
             f"Resulting tick {tick} is out of allowed range ({MIN_TICK} to {MAX_TICK})"
         )
-
     return tick
 
 
@@ -133,8 +131,7 @@ def calculate_fees(
     alpha_fees_below_low: float,
     alpha_fees_above_high: float,
     netuid: int,
-) -> list[Balance]:
-    """Calculate fees from position and fees values."""
+) -> tuple[Balance, Balance]:
     fee_tao_agg = get_fees_in_range(
         quote=True,
         global_fees_tao=global_fees_tao,
@@ -142,6 +139,7 @@ def calculate_fees(
         fees_below_low=tao_fees_below_low,
         fees_above_high=tao_fees_above_high,
     )
+
     fee_alpha_agg = get_fees_in_range(
         quote=False,
         global_fees_tao=global_fees_tao,
@@ -157,4 +155,4 @@ def calculate_fees(
     fee_tao = liquidity_frac * fee_tao
     fee_alpha = liquidity_frac * fee_alpha
 
-    return [Balance.from_rao(fee_tao), Balance.from_rao(fee_alpha, netuid)]
+    return Balance.from_rao(int(fee_tao)), Balance.from_rao(int(fee_alpha), netuid)
