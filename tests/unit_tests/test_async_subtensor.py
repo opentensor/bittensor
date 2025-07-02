@@ -3661,7 +3661,11 @@ async def test_get_liquidity_list_happy_path(subtensor, fake_wallet, mocker):
             ),
         ],
     ]
-    mocked_query_map = mocker.AsyncMock(return_value=fake_positions)
+
+    fake_result = mocker.AsyncMock(autospec=list)
+    fake_result.__aiter__.return_value = iter(fake_positions)
+
+    mocked_query_map = mocker.AsyncMock(return_value=fake_result)
     mocker.patch.object(subtensor, "query_map", new=mocked_query_map)
 
     # Call
