@@ -15,8 +15,8 @@ def add_liquidity_extrinsic(
     wallet: "Wallet",
     netuid: int,
     liquidity: Balance,
-    price_low: float,
-    price_high: float,
+    price_low: Balance,
+    price_high: Balance,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
     period: Optional[int] = None,
@@ -49,8 +49,8 @@ def add_liquidity_extrinsic(
         logging.error(unlock.message)
         return False, unlock.message
 
-    tick_low = price_to_tick(price_low)
-    tick_high = price_to_tick(price_high)
+    tick_low = price_to_tick(price_low.tao)
+    tick_high = price_to_tick(price_high.tao)
 
     call = subtensor.substrate.compose_call(
         call_module="Swap",
@@ -60,7 +60,7 @@ def add_liquidity_extrinsic(
             "netuid": netuid,
             "tick_low": tick_low,
             "tick_high": tick_high,
-            "liquidity": liquidity,
+            "liquidity": liquidity.rao,
         },
     )
 
@@ -117,7 +117,7 @@ def modify_liquidity_extrinsic(
             "hotkey": wallet.hotkey.ss58_address,
             "netuid": netuid,
             "position_id": position_id,
-            "liquidity_delta": liquidity_delta,
+            "liquidity_delta": liquidity_delta.rao,
         },
     )
 
