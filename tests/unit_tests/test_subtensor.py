@@ -3903,3 +3903,237 @@ def test_unstake_all(subtensor, fake_wallet, mocker):
         period=None,
     )
     assert result == fake_unstake_all_extrinsic.return_value
+
+
+def test_get_liquidity_list_subnet_does_not_exits(subtensor, mocker):
+    """Test get_liquidity_list returns None when subnet doesn't exist."""
+    # Preps
+    mocker.patch.object(subtensor, "subnet_exists", return_value=False)
+
+    # Call
+    result = subtensor.get_liquidity_list(wallet=mocker.Mock(), netuid=1)
+
+    # Asserts
+    subtensor.subnet_exists.assert_called_once_with(netuid=1)
+    assert result is None
+
+
+def test_get_liquidity_list_subnet_is_not_active(subtensor, mocker):
+    """Test get_liquidity_list returns None when subnet is not active."""
+    # Preps
+    mocker.patch.object(subtensor, "subnet_exists", return_value=True)
+    mocker.patch.object(subtensor, "is_subnet_active", return_value=False)
+
+    # Call
+    result = subtensor.get_liquidity_list(wallet=mocker.Mock(), netuid=1)
+
+    # Asserts
+    subtensor.subnet_exists.assert_called_once_with(netuid=1)
+    subtensor.is_subnet_active.assert_called_once_with(netuid=1)
+    assert result is None
+
+
+def test_get_liquidity_list_happy_path(subtensor, fake_wallet, mocker):
+    """Tests `get_liquidity_list` returns the correct value."""
+    # Preps
+    netuid = 2
+
+    mocker.patch.object(subtensor, "subnet_exists", return_value=True)
+    mocker.patch.object(subtensor, "is_subnet_active", return_value=True)
+    mocker.patch.object(subtensor, "determine_block_hash")
+
+    mocker.patch.object(
+        subtensor_module, "price_to_tick", return_value=Balance.from_tao(1.0, netuid)
+    )
+    mocker.patch.object(
+        subtensor_module,
+        "calculate_fees",
+        return_value=(Balance.from_tao(0.0), Balance.from_tao(0.0, netuid)),
+    )
+
+    mocked_substrate_query = mocker.MagicMock()
+    mocker.patch.object(subtensor.substrate, "query", mocked_substrate_query)
+
+    fake_positions = [
+        [
+            (2,),
+            mocker.Mock(
+                value={
+                    "id": (2,),
+                    "netuid": 2,
+                    "tick_low": (206189,),
+                    "tick_high": (208196,),
+                    "liquidity": 1000000000000,
+                    "fees_tao": {"bits": 0},
+                    "fees_alpha": {"bits": 0},
+                }
+            ),
+        ],
+        [
+            (2,),
+            mocker.Mock(
+                value={
+                    "id": (2,),
+                    "netuid": 2,
+                    "tick_low": (216189,),
+                    "tick_high": (198196,),
+                    "liquidity": 2000000000000,
+                    "fees_tao": {"bits": 0},
+                    "fees_alpha": {"bits": 0},
+                }
+            ),
+        ],
+        [
+            (2,),
+            mocker.Mock(
+                value={
+                    "id": (2,),
+                    "netuid": 2,
+                    "tick_low": (226189,),
+                    "tick_high": (188196,),
+                    "liquidity": 3000000000000,
+                    "fees_tao": {"bits": 0},
+                    "fees_alpha": {"bits": 0},
+                }
+            ),
+        ],
+    ]
+    mocked_query_map = mocker.MagicMock(return_value=fake_positions)
+    mocker.patch.object(subtensor, "query_map", new=mocked_query_map)
+
+    # Call
+
+    result = subtensor.get_liquidity_list(wallet=fake_wallet, netuid=netuid)
+
+    # Asserts
+    subtensor.determine_block_hash.assert_called_once_with(None)
+    assert subtensor_module.price_to_tick.call_count == 1
+    assert subtensor_module.calculate_fees.call_count == len(fake_positions)
+
+    mocked_query_map.assert_called_once_with(
+        module="Swap",
+        name="Positions",
+        block=None,
+        params=[netuid, fake_wallet.coldkeypub.ss58_address],
+    )
+    assert len(result) == len(fake_positions)
+    assert all([isinstance(p, subtensor_module.LiquidityPosition) for p in result])
+
+
+def test_add_liquidity(subtensor, fake_wallet, mocker):
+    """Test add_liquidity extrinsic calls properly."""
+    # preps
+    netuid = 123
+    mocked_extrinsic = mocker.patch.object(subtensor_module, "add_liquidity_extrinsic")
+
+    # Call
+    result = subtensor.add_liquidity(
+        wallet=fake_wallet,
+        netuid=netuid,
+        liquidity=Balance.from_tao(150),
+        price_low=Balance.from_tao(180).rao,
+        price_high=Balance.from_tao(130).rao,
+    )
+
+    # Asserts
+    mocked_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=netuid,
+        liquidity=Balance.from_tao(150),
+        price_low=Balance.from_tao(180).rao,
+        price_high=Balance.from_tao(130).rao,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        period=None,
+    )
+    assert result == mocked_extrinsic.return_value
+
+
+def test_modify_liquidity(subtensor, fake_wallet, mocker):
+    """Test modify_liquidity extrinsic calls properly."""
+    # preps
+    netuid = 123
+    mocked_extrinsic = mocker.patch.object(
+        subtensor_module, "modify_liquidity_extrinsic"
+    )
+    position_id = 2
+
+    # Call
+    result = subtensor.modify_liquidity(
+        wallet=fake_wallet,
+        netuid=netuid,
+        position_id=position_id,
+        liquidity_delta=Balance.from_tao(150),
+    )
+
+    # Asserts
+    mocked_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=netuid,
+        position_id=position_id,
+        liquidity_delta=Balance.from_tao(150),
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        period=None,
+    )
+    assert result == mocked_extrinsic.return_value
+
+
+def test_remove_liquidity(subtensor, fake_wallet, mocker):
+    """Test remove_liquidity extrinsic calls properly."""
+    # preps
+    netuid = 123
+    mocked_extrinsic = mocker.patch.object(
+        subtensor_module, "remove_liquidity_extrinsic"
+    )
+    position_id = 2
+
+    # Call
+    result = subtensor.remove_liquidity(
+        wallet=fake_wallet,
+        netuid=netuid,
+        position_id=position_id,
+    )
+
+    # Asserts
+    mocked_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=netuid,
+        position_id=position_id,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        period=None,
+    )
+    assert result == mocked_extrinsic.return_value
+
+
+def test_toggle_user_liquidity(subtensor, fake_wallet, mocker):
+    """Test toggle_user_liquidity extrinsic calls properly."""
+    # preps
+    netuid = 123
+    mocked_extrinsic = mocker.patch.object(
+        subtensor_module, "toggle_user_liquidity_extrinsic"
+    )
+    enable = mocker.Mock()
+
+    # Call
+    result = subtensor.toggle_user_liquidity(
+        wallet=fake_wallet,
+        netuid=netuid,
+        enable=enable,
+    )
+
+    # Asserts
+    mocked_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=netuid,
+        enable=enable,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        period=None,
+    )
+    assert result == mocked_extrinsic.return_value
