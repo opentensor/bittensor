@@ -40,15 +40,15 @@ from bittensor.core.chain_data.utils import (
 )
 from bittensor.core.config import Config
 from bittensor.core.errors import ChainError, SubstrateRequestException
+from bittensor.core.extrinsics.asyncex.children import (
+    root_set_pending_childkey_cooldown_extrinsic,
+    set_children_extrinsic,
+)
 from bittensor.core.extrinsics.asyncex.commit_reveal import commit_reveal_v3_extrinsic
 from bittensor.core.extrinsics.asyncex.move_stake import (
     transfer_stake_extrinsic,
     swap_stake_extrinsic,
     move_stake_extrinsic,
-)
-from bittensor.core.extrinsics.asyncex.children import (
-    root_set_pending_childkey_cooldown_extrinsic,
-    set_children_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.registration import (
     burned_register_extrinsic,
@@ -98,12 +98,25 @@ from bittensor.utils import (
     u16_normalized_float,
     u64_normalized_float,
 )
+from bittensor.core.extrinsics.asyncex.liquidity import (
+    add_liquidity_extrinsic,
+    modify_liquidity_extrinsic,
+    remove_liquidity_extrinsic,
+    toggle_user_liquidity_extrinsic,
+)
 from bittensor.utils.balance import (
     Balance,
     fixed_to_float,
     check_and_convert_to_balance,
 )
 from bittensor.utils.btlogging import logging
+from bittensor.utils.liquidity import (
+    calculate_fees,
+    get_fees,
+    tick_to_price,
+    price_to_tick,
+    LiquidityPosition,
+)
 from bittensor.utils.weight_utils import generate_weight_hash, convert_uids_and_weights
 
 if TYPE_CHECKING:
@@ -1845,6 +1858,174 @@ class AsyncSubtensor(SubtensorMixin):
         async for key, item in query_certificates:
             output[decode_account_id(key)] = Certificate(item.value)
         return output
+
+    async def get_liquidity_list(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional[list[LiquidityPosition]]:
+        """
+        Retrieves all liquidity positions for the given wallet on a specified subnet (netuid).
+        Calculates associated fee rewards based on current global and tick-level fee data.
+
+        Args:
+            wallet: Wallet instance to fetch positions for.
+            netuid: Subnet unique id.
+            block: The blockchain block number for the query.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
+                reuse_block.
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            List of liquidity positions, or None if subnet does not exist.
+        """
+        if not await self.subnet_exists(netuid=netuid):
+            logging.debug(f"Subnet {netuid} does not exist.")
+            return None
+
+        if not await self.is_subnet_active(netuid=netuid):
+            logging.debug(f"Subnet {netuid} is not active.")
+            return None
+
+        block_hash = await self.determine_block_hash(
+            block=block, block_hash=block_hash, reuse_block=reuse_block
+        )
+
+        query = self.substrate.query
+        (
+            fee_global_tao,
+            fee_global_alpha,
+            sqrt_price,
+            positions_response,
+        ) = await asyncio.gather(
+            query(
+                module="Swap",
+                storage_function="FeeGlobalTao",
+                params=[netuid],
+                block_hash=block_hash,
+            ),
+            query(
+                module="Swap",
+                storage_function="FeeGlobalAlpha",
+                params=[netuid],
+                block_hash=block_hash,
+            ),
+            query(
+                module="Swap",
+                storage_function="AlphaSqrtPrice",
+                params=[netuid],
+                block_hash=block_hash,
+            ),
+            self.query_map(
+                module="Swap",
+                name="Positions",
+                block=block,
+                params=[netuid, wallet.coldkeypub.ss58_address],
+            ),
+        )
+        # convert to floats
+        fee_global_tao = fixed_to_float(fee_global_tao)
+        fee_global_alpha = fixed_to_float(fee_global_alpha)
+        sqrt_price = fixed_to_float(sqrt_price)
+
+        # Fetch global fees and current price
+        current_tick = price_to_tick(sqrt_price**2)
+
+        # Fetch positions
+        positions = []
+        async for _, p in positions_response:
+            position = p.value
+
+            tick_low_idx = position.get("tick_low")[0]
+            tick_high_idx = position.get("tick_high")[0]
+
+            tick_low, tick_high = await asyncio.gather(
+                query(
+                    module="Swap",
+                    storage_function="Ticks",
+                    params=[netuid, tick_low_idx],
+                    block_hash=block_hash,
+                ),
+                query(
+                    module="Swap",
+                    storage_function="Ticks",
+                    params=[netuid, tick_high_idx],
+                    block_hash=block_hash,
+                ),
+            )
+
+            # Calculate fees above/below range for both tokens
+            tao_below = get_fees(
+                current_tick=current_tick,
+                tick=tick_low,
+                tick_index=tick_low_idx,
+                quote=True,
+                global_fees_tao=fee_global_tao,
+                global_fees_alpha=fee_global_alpha,
+                above=False,
+            )
+            tao_above = get_fees(
+                current_tick=current_tick,
+                tick=tick_high,
+                tick_index=tick_high_idx,
+                quote=True,
+                global_fees_tao=fee_global_tao,
+                global_fees_alpha=fee_global_alpha,
+                above=True,
+            )
+            alpha_below = get_fees(
+                current_tick=current_tick,
+                tick=tick_low,
+                tick_index=tick_low_idx,
+                quote=False,
+                global_fees_tao=fee_global_tao,
+                global_fees_alpha=fee_global_alpha,
+                above=False,
+            )
+            alpha_above = get_fees(
+                current_tick=current_tick,
+                tick=tick_high,
+                tick_index=tick_high_idx,
+                quote=False,
+                global_fees_tao=fee_global_tao,
+                global_fees_alpha=fee_global_alpha,
+                above=True,
+            )
+
+            # Calculate fees earned by position
+            fees_tao, fees_alpha = calculate_fees(
+                position=position,
+                global_fees_tao=fee_global_tao,
+                global_fees_alpha=fee_global_alpha,
+                tao_fees_below_low=tao_below,
+                tao_fees_above_high=tao_above,
+                alpha_fees_below_low=alpha_below,
+                alpha_fees_above_high=alpha_above,
+                netuid=netuid,
+            )
+
+            positions.append(
+                LiquidityPosition(
+                    **{
+                        "id": position.get("id")[0],
+                        "price_low": Balance.from_tao(
+                            tick_to_price(position.get("tick_low")[0])
+                        ),
+                        "price_high": Balance.from_tao(
+                            tick_to_price(position.get("tick_high")[0])
+                        ),
+                        "liquidity": Balance.from_rao(position.get("liquidity")),
+                        "fees_tao": fees_tao,
+                        "fees_alpha": fees_alpha,
+                        "netuid": position.get("netuid"),
+                    }
+                )
+            )
+
+        return positions
 
     async def get_neuron_for_pubkey_and_subnet(
         self,
@@ -3597,6 +3778,52 @@ class AsyncSubtensor(SubtensorMixin):
             period=period,
         )
 
+    async def add_liquidity(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        liquidity: Balance,
+        price_low: Balance,
+        price_high: Balance,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        period: Optional[int] = None,
+    ) -> tuple[bool, str]:
+        """
+        Adds liquidity to the specified price range.
+
+        Arguments:
+            wallet: The wallet used to sign the extrinsic (must be unlocked).
+            netuid: The UID of the target subnet for which the call is being initiated.
+            liquidity: The amount of liquidity to be added.
+            price_low: The lower bound of the price tick range. In TAO.
+            price_high: The upper bound of the price tick range. In TAO.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block. Defaults to True.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic. Defaults to False.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+
+        Returns:
+            Tuple[bool, str]:
+                - True and a success message if the extrinsic is successfully submitted or processed.
+                - False and an error message if the submission fails or the wallet cannot be unlocked.
+
+        Note: Adding is allowed even when user liquidity is enabled in specified subnet. Call `toggle_user_liquidity`
+            method to enable/disable user liquidity.
+        """
+        return await add_liquidity_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            liquidity=liquidity,
+            price_low=price_low,
+            price_high=price_high,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            period=period,
+        )
+
     async def add_stake_multiple(
         self,
         wallet: "Wallet",
@@ -3759,6 +3986,74 @@ class AsyncSubtensor(SubtensorMixin):
 
         return success, message
 
+    async def modify_liquidity(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        position_id: int,
+        liquidity_delta: Balance,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        period: Optional[int] = None,
+    ) -> tuple[bool, str]:
+        """Modifies liquidity in liquidity position by adding or removing liquidity from it.
+
+        Arguments:
+            wallet: The wallet used to sign the extrinsic (must be unlocked).
+            netuid: The UID of the target subnet for which the call is being initiated.
+            position_id: The id of the position record in the pool.
+            liquidity_delta: The amount of liquidity to be added or removed (add if positive or remove if negative).
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block. Defaults to True.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic. Defaults to False.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+
+        Returns:
+            Tuple[bool, str]:
+                - True and a success message if the extrinsic is successfully submitted or processed.
+                - False and an error message if the submission fails or the wallet cannot be unlocked.
+
+        Example:
+            import bittensor as bt
+
+            subtensor = bt.AsyncSubtensor(network="local")
+            await subtensor.initialize()
+
+            my_wallet = bt.Wallet()
+
+            # if `liquidity_delta` is negative
+            my_liquidity_delta = Balance.from_tao(100) * -1
+            await subtensor.modify_liquidity(
+                wallet=my_wallet,
+                netuid=123,
+                position_id=2,
+                liquidity_delta=my_liquidity_delta
+            )
+
+            # if `liquidity_delta` is positive
+            my_liquidity_delta = Balance.from_tao(120)
+            await subtensor.modify_liquidity(
+                wallet=my_wallet,
+                netuid=123,
+                position_id=2,
+                liquidity_delta=my_liquidity_delta
+            )
+
+        Note: Modifying is allowed even when user liquidity is enabled in specified subnet. Call `toggle_user_liquidity`
+            to enable/disable user liquidity.
+        """
+        return await modify_liquidity_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            position_id=position_id,
+            liquidity_delta=liquidity_delta,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            period=period,
+        )
+
     async def move_stake(
         self,
         wallet: "Wallet",
@@ -3895,6 +4190,47 @@ class AsyncSubtensor(SubtensorMixin):
         return await register_subnet_extrinsic(
             subtensor=self,
             wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            period=period,
+        )
+
+    async def remove_liquidity(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        position_id: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        period: Optional[int] = None,
+    ) -> tuple[bool, str]:
+        """Remove liquidity and credit balances back to wallet's hotkey stake.
+
+        Arguments:
+            wallet: The wallet used to sign the extrinsic (must be unlocked).
+            netuid: The UID of the target subnet for which the call is being initiated.
+            position_id: The id of the position record in the pool.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block. Defaults to True.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic. Defaults to False.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+
+        Returns:
+            Tuple[bool, str]:
+                - True and a success message if the extrinsic is successfully submitted or processed.
+                - False and an error message if the submission fails or the wallet cannot be unlocked.
+
+        Note:
+            - Adding is allowed even when user liquidity is enabled in specified subnet. Call `toggle_user_liquidity`
+                extrinsic to enable/disable user liquidity.
+            - To get the `position_id` use `get_liquidity_list` method.
+        """
+        return await remove_liquidity_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            position_id=position_id,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             period=period,
@@ -4521,6 +4857,44 @@ class AsyncSubtensor(SubtensorMixin):
             safe_staking=safe_staking,
             allow_partial_stake=allow_partial_stake,
             rate_tolerance=rate_tolerance,
+            period=period,
+        )
+
+    async def toggle_user_liquidity(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        enable: bool,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        period: Optional[int] = None,
+    ) -> tuple[bool, str]:
+        """Allow to toggle user liquidity for specified subnet.
+
+        Arguments:
+            wallet: The wallet used to sign the extrinsic (must be unlocked).
+            netuid: The UID of the target subnet for which the call is being initiated.
+            enable: Boolean indicating whether to enable user liquidity.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block. Defaults to True.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic. Defaults to False.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+
+        Returns:
+            Tuple[bool, str]:
+                - True and a success message if the extrinsic is successfully submitted or processed.
+                - False and an error message if the submission fails or the wallet cannot be unlocked.
+
+        Note: The call can be executed successfully by the subnet owner only.
+        """
+        return await toggle_user_liquidity_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            enable=enable,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
             period=period,
         )
 
