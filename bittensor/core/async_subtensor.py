@@ -132,32 +132,7 @@ class AsyncSubtensor(SubtensorMixin):
     This class provides a thin layer over the Substrate Interface, offering a collection of frequently-used calls for
     querying blockchain data, managing stakes, registering neurons, and interacting with the Bittensor network.
 
-    Typical usage example:
 
-        import bittensor as bt
-        
-        # Create and initialize an async subtensor instance
-        subtensor = bt.AsyncSubtensor(network="finney")
-        await subtensor.initialize()
-        
-        # Query current block
-        current_block = await subtensor.block
-        
-        # Get balance for an address
-        balance = await subtensor.get_balance("5F...")
-        
-        # Query subnet information
-        subnet_info = await subtensor.get_subnet_info(netuid=1)
-        
-        # Get all neurons in a subnet
-        neurons = await subtensor.neurons(netuid=1)
-        
-        # Close the connection
-        await subtensor.close()
-        
-        # Or use as context manager
-        async with bt.AsyncSubtensor(network="finney") as subtensor:
-            balance = await subtensor.get_balance("5F...")
     """
 
     def __init__(
@@ -196,23 +171,16 @@ class AsyncSubtensor(SubtensorMixin):
             ValueError: If invalid network or configuration parameters are provided.
             Exception: Any other exceptions raised during setup or configuration.
 
-        Example:
-            # Basic initialization
-            subtensor = AsyncSubtensor(network="finney")
-            
-            # With custom config and verbose logging
-            config = bt.Config()
-            subtensor = AsyncSubtensor(
-                network="test",
-                config=config,
-                log_verbose=True
-            )
-            
-            # With fallback endpoints
-            subtensor = AsyncSubtensor(
-                network="finney",
-                fallback_endpoints=["wss://backup1:9944", "wss://backup2:9944"]
-            )
+        Typical usage example:
+
+            import bittensor as bt
+            import asyncio
+
+            async def main():
+                async with bt.AsyncSubtensor("finney") as subtensor:
+                    block_hash = await subtensor.get_block_hash()
+                    
+            asyncio.run(main())
         """
         if config is None:
             config = AsyncSubtensor.config()
