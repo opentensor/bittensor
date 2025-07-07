@@ -2053,7 +2053,7 @@ class AsyncSubtensor(SubtensorMixin):
         Retrieves full or partial metagraph information for the specified subnet (netuid).
 
         A metagraph is a data structure that contains comprehensive information about the current state of a subnet, 
-        including detailed information on all the nodes (neurons) such as subnet validator stakes and subnet weights 
+        including detailed information on all its neurons.
         in the subnet.
 
         Arguments:
