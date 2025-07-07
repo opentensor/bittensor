@@ -106,7 +106,7 @@ def unstake_extrinsic(
         if safe_staking:
             pool = subtensor.subnet(netuid=netuid)
             recieved_amount, _ = pool.alpha_to_tao_with_slippage(unstaking_balance)
-            base_price =  unstaking_balance.rao / recieved_amount.rao
+            base_price = unstaking_balance.rao / recieved_amount.rao
             price_with_tolerance = base_price * (1 - rate_tolerance)
 
             # For logging
