@@ -112,8 +112,8 @@ def add_stake_extrinsic(
 
         if safe_staking:
             pool = subtensor.subnet(netuid=netuid)
-            recieved_amount, _ = pool.tao_to_alpha_with_slippage(staking_balance)
-            base_price = recieved_amount.rao / staking_balance.rao
+            received_amount, _ = pool.tao_to_alpha_with_slippage(staking_balance)
+            base_price = received_amount.rao / staking_balance.rao
             price_with_tolerance = base_price * (1 + rate_tolerance)
 
             # For logging
