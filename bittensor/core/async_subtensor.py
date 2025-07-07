@@ -4203,6 +4203,7 @@ class AsyncSubtensor(SubtensorMixin):
         liquidity: Balance,
         price_low: Balance,
         price_high: Balance,
+        hotkey: Optional[str] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         period: Optional[int] = None,
@@ -4216,6 +4217,8 @@ class AsyncSubtensor(SubtensorMixin):
             liquidity: The amount of liquidity to be added.
             price_low: The lower bound of the price tick range. In TAO.
             price_high: The upper bound of the price tick range. In TAO.
+            hotkey: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used. Defaults to
+                `None`.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block. Defaults to True.
             wait_for_finalization: Whether to wait for finalization of the extrinsic. Defaults to False.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
@@ -4237,6 +4240,7 @@ class AsyncSubtensor(SubtensorMixin):
             liquidity=liquidity,
             price_low=price_low,
             price_high=price_high,
+            hotkey=hotkey,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             period=period,
@@ -4413,6 +4417,7 @@ class AsyncSubtensor(SubtensorMixin):
         netuid: int,
         position_id: int,
         liquidity_delta: Balance,
+        hotkey: Optional[str] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         period: Optional[int] = None,
@@ -4424,6 +4429,8 @@ class AsyncSubtensor(SubtensorMixin):
             netuid: The UID of the target subnet for which the call is being initiated.
             position_id: The id of the position record in the pool.
             liquidity_delta: The amount of liquidity to be added or removed (add if positive or remove if negative).
+            hotkey: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used. Defaults to
+                `None`.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block. Defaults to True.
             wait_for_finalization: Whether to wait for finalization of the extrinsic. Defaults to False.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
@@ -4470,6 +4477,7 @@ class AsyncSubtensor(SubtensorMixin):
             netuid=netuid,
             position_id=position_id,
             liquidity_delta=liquidity_delta,
+            hotkey=hotkey,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             period=period,
@@ -4621,6 +4629,7 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         netuid: int,
         position_id: int,
+        hotkey: Optional[str] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         period: Optional[int] = None,
@@ -4631,6 +4640,8 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: The wallet used to sign the extrinsic (must be unlocked).
             netuid: The UID of the target subnet for which the call is being initiated.
             position_id: The id of the position record in the pool.
+            hotkey: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used. Defaults to
+                `None`.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block. Defaults to True.
             wait_for_finalization: Whether to wait for finalization of the extrinsic. Defaults to False.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
@@ -4652,6 +4663,7 @@ class AsyncSubtensor(SubtensorMixin):
             wallet=wallet,
             netuid=netuid,
             position_id=position_id,
+            hotkey=hotkey,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             period=period,
