@@ -120,8 +120,23 @@ async def add_stake_extrinsic(
 
         if safe_staking:
             pool = await subtensor.subnet(netuid=netuid)
-            base_price = pool.price.rao
+            received_amount, _ = pool.tao_to_alpha_with_slippage(staking_balance)
+            base_price = received_amount.rao / staking_balance.rao
             price_with_tolerance = base_price * (1 + rate_tolerance)
+
+            # For logging
+            base_rate = pool.price.tao
+
+            logging.info(
+                f":satellite: [magenta]Safe Staking to:[/magenta] "
+                f"[blue]netuid: [green]{netuid}[/green], amount: [green]{staking_balance}[/green], "
+                f"tolerance percentage: [green]{rate_tolerance * 100}%[/green], "
+                f"price limit: [green]{price_with_tolerance}[/green], "
+                f"original price: [green]{base_rate}[/green], "
+                f"with partial stake: [green]{allow_partial_stake}[/green] "
+                f"on [blue]{subtensor.network}[/blue][/magenta]...[/magenta]"
+            )
+
             call_params.update(
                 {
                     "limit_price": price_with_tolerance,
@@ -129,19 +144,6 @@ async def add_stake_extrinsic(
                 }
             )
             call_function = "add_stake_limit"
-
-            # For logging
-            base_rate = pool.price.tao
-            rate_with_tolerance = base_rate * (1 + rate_tolerance)
-            logging.info(
-                f":satellite: [magenta]Safe Staking to:[/magenta] "
-                f"[blue]netuid: [green]{netuid}[/green], amount: [green]{staking_balance}[/green], "
-                f"tolerance percentage: [green]{rate_tolerance * 100}%[/green], "
-                f"price limit: [green]{rate_with_tolerance}[/green], "
-                f"original price: [green]{base_rate}[/green], "
-                f"with partial stake: [green]{allow_partial_stake}[/green] "
-                f"on [blue]{subtensor.network}[/blue][/magenta]...[/magenta]"
-            )
         else:
             logging.info(
                 f":satellite: [magenta]Staking to:[/magenta] "
