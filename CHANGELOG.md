@@ -1,5 +1,46 @@
 # Changelog
 
+## 9.8.0 /2025-07-07
+
+## What's Changed
+* Update e2e-tests (metagraph_info, staking) by @basfroman in https://github.com/opentensor/bittensor/pull/2907
+* Add method to fetch parents for child hotkeys by @thewhaleking in https://github.com/opentensor/bittensor/pull/2906
+* Add local env variable for `config.wallet.*` by @basfroman in https://github.com/opentensor/bittensor/pull/2908
+* Subtensor docstring cleanup by @thewhaleking in https://github.com/opentensor/bittensor/pull/2910
+* chore(ci): upgrade Docker GitHub Actions to latest stable versions by @MamunC0der in https://github.com/opentensor/bittensor/pull/2912
+* improve `scripts/install.sh` by @basfroman in https://github.com/opentensor/bittensor/pull/2914
+* Cleanup websocket integration data by @thewhaleking in https://github.com/opentensor/bittensor/pull/2915
+* chore: fix some typos in comment by @eveneast in https://github.com/opentensor/bittensor/pull/2868
+* Add `SKIP_PULL` variable for conftest.py by @basfroman in https://github.com/opentensor/bittensor/pull/2920
+* Update `SubnetIdentity` with subtensor related v3 changes by @basfroman in https://github.com/opentensor/bittensor/pull/2923
+* add time for flaky test by @basfroman in https://github.com/opentensor/bittensor/pull/2924
+* Add `root_set_pending_childkey_cooldown_extrinsic` by @basfroman in https://github.com/opentensor/bittensor/pull/2925
+* New logic for alpha low and high (0.025 <= alpha_low <= alpha_high <= 1) by @basfroman in https://github.com/opentensor/bittensor/pull/2927
+* Fix Typo in test_commit_weights.py by @zeevick10 in https://github.com/opentensor/bittensor/pull/2922
+* New websockets option by @thewhaleking in https://github.com/opentensor/bittensor/pull/2917
+* Retry archive node support by @thewhaleking in https://github.com/opentensor/bittensor/pull/2909
+* Fix: Safe staking e2e test by @ibraheem-abe in https://github.com/opentensor/bittensor/pull/2929
+* fix type conversion in axon preprocess by @Windfarer in https://github.com/opentensor/bittensor/pull/2930
+* [LINT] Improved type hints by @Arthurdw in https://github.com/opentensor/bittensor/pull/2918
+* Set balance netuids in staking tests by @thewhaleking in https://github.com/opentensor/bittensor/pull/2934
+* Improve subnet method logic by @basfroman in https://github.com/opentensor/bittensor/pull/2937
+* Update `SubnetHyperparameters` with v2 by @basfroman in https://github.com/opentensor/bittensor/pull/2938
+* upgrade numpy by @thewhaleking in https://github.com/opentensor/bittensor/pull/2936
+* decode metadata with empty value by @thewhaleking in https://github.com/opentensor/bittensor/pull/2940
+* Reset bonds by @andreea-popescu-reef in https://github.com/opentensor/bittensor/pull/2876
+* Add new logic for `unstake_all` extrinsics by @basfroman in https://github.com/opentensor/bittensor/pull/2897
+* SelectiveMetagraph back by @basfroman in https://github.com/opentensor/bittensor/pull/2887
+* add unstake_all to SubtensorApi.extrinsics by @basfroman in https://github.com/opentensor/bittensor/pull/2943
+* Integrate Liquidity Provider feature by @basfroman in https://github.com/opentensor/bittensor/pull/2939
+* Fix e2e test metagraph after chain change by @basfroman in https://github.com/opentensor/bittensor/pull/2945
+
+## New Contributors
+* @MamunC0der made their first contribution in https://github.com/opentensor/bittensor/pull/2912
+* @eveneast made their first contribution in https://github.com/opentensor/bittensor/pull/2868
+* @Windfarer made their first contribution in https://github.com/opentensor/bittensor/pull/2930
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.7.0...v9.8.0
+
 ## 9.7.1 /2025-06-06
 
 ## What's Changed
