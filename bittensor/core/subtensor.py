@@ -451,7 +451,12 @@ class Subtensor(SubtensorMixin):
             "get_all_dynamic_info",
             block_hash=block_hash,
         )
-        return DynamicInfo.list_from_dicts(query.decode())
+        subnet_prices = self.get_subnet_prices()
+        decoded = query.decode()
+
+        for sn in decoded:
+            sn.update({"price": subnet_prices.get(sn["netuid"], Balance.from_tao(0))})
+        return DynamicInfo.list_from_dicts(decoded)
 
     def blocks_since_last_step(
         self, netuid: int, block: Optional[int] = None
@@ -636,8 +641,13 @@ class Subtensor(SubtensorMixin):
         )
         if not result:
             return []
-        else:
-            return SubnetInfo.list_from_dicts(result)
+
+        subnets_prices = self.get_subnet_prices()
+
+        for subnet in result:
+            subnet.update({"price": subnets_prices.get(subnet["netuid"], 0)})
+
+        return SubnetInfo.list_from_dicts(result)
 
     def get_balance(self, address: str, block: Optional[int] = None) -> Balance:
         """
@@ -1813,6 +1823,69 @@ class Subtensor(SubtensorMixin):
             return None
         return SubnetInfo.from_dict(result)
 
+    def get_subnet_price(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+    ) -> Balance:
+        """Gets the current Alpha price in TAO for all subnets.
+
+        Arguments:
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query.
+
+        Returns:
+            The current Alpha price in TAO units for the specified subnet.
+        """
+        # SN0 price is always 1 TAO
+        if netuid == 0:
+            return Balance.from_tao(1)
+
+        block_hash = self.determine_block_hash(block=block)
+        current_sqrt_price = self.substrate.query(
+            module="Swap",
+            storage_function="AlphaSqrtPrice",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+
+        current_sqrt_price = fixed_to_float(current_sqrt_price)
+        current_price = current_sqrt_price * current_sqrt_price
+        return Balance.from_rao(int(current_price * 1e9))
+
+    def get_subnet_prices(
+        self,
+        block: Optional[int] = None,
+    ) -> dict[int, Balance]:
+        """Gets the current Alpha price in TAO for a specified subnet.
+
+        Args:
+            block: The blockchain block number for the query. Default to `None`.
+
+        Returns:
+            dict:
+                - subnet unique ID
+                - The current Alpha price in TAO units for the specified subnet.
+        """
+        block_hash = self.determine_block_hash(block=block)
+
+        current_sqrt_prices = self.substrate.query_map(
+            module="Swap",
+            storage_function="AlphaSqrtPrice",
+            block_hash=block_hash,
+            page_size=129,  # total number of subnets
+        )
+
+        prices = {}
+        for id_, current_sqrt_price in current_sqrt_prices:
+            current_sqrt_price = fixed_to_float(current_sqrt_price)
+            current_price = current_sqrt_price * current_sqrt_price
+            current_price_in_tao = Balance.from_rao(int(current_price * 1e9))
+            prices.update({id_: current_price_in_tao})
+        # SN0 price is always 1 TAO
+        prices[0] = Balance.from_tao(1)
+        return prices
+
     def get_unstake_fee(
         self,
         amount: Balance,
@@ -2636,7 +2709,8 @@ class Subtensor(SubtensorMixin):
         )
 
         if isinstance(decoded := query.decode(), dict):
-            return DynamicInfo.from_dict(decoded)
+            price = self.get_subnet_price(netuid=netuid, block=block)
+            return DynamicInfo.from_dict({**decoded, "price": price})
         return None
 
     def subnet_exists(self, netuid: int, block: Optional[int] = None) -> bool:
