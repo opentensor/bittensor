@@ -4344,8 +4344,8 @@ class AsyncSubtensor(SubtensorMixin):
         This function allows subnet validators to create a tamper-proof record of their weight vector at a specific point
             in time, creating a foundation of transparency and accountability for the Bittensor network.
 
-        See also: See <https://docs.learnbittensor.org/glossary#commit-reveal>, 
-        
+        See also: <https://docs.learnbittensor.org/glossary#commit-reveal>,
+
         """
         retries = 0
         success = False
