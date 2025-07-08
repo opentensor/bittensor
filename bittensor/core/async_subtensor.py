@@ -980,7 +980,8 @@ class AsyncSubtensor(SubtensorMixin):
             # Check at specific block
             enabled = await subtensor.commit_reveal_enabled(netuid=1, block=1000000)
 
-        See also: <https://docs.learnbittensor.org/glossary#commit-reveal>
+        Notes:
+            See also: <https://docs.learnbittensor.org/glossary#commit-reveal>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
@@ -1022,7 +1023,8 @@ class AsyncSubtensor(SubtensorMixin):
             # Get difficulty at specific block
             difficulty = await subtensor.difficulty(netuid=1, block=1000000)
 
-        See also: <https://docs.learnbittensor.org/glossary#difficulty>
+        Notes:
+            See also: <https://docs.learnbittensor.org/glossary#difficulty>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
@@ -1113,7 +1115,8 @@ class AsyncSubtensor(SubtensorMixin):
             Gaining insights into the subnets' details assists in understanding the network's composition, the roles
             of different subnets, and their unique features.
 
-        See also: <https://docs.learnbittensor.org/glossary#subnet>
+        Notes:
+            See also: <https://docs.learnbittensor.org/glossary#subnet>
         """
         result = await self.query_runtime_api(
             runtime_api="SubnetInfoRuntimeApi",
@@ -1233,7 +1236,8 @@ class AsyncSubtensor(SubtensorMixin):
             if block > 1000000:
                 print("Network has progressed past block 1M")
 
-        See also: <https://docs.learnbittensor.org/glossary#block>
+        Notes:
+            See also: <https://docs.learnbittensor.org/glossary#block>
         """
         return await self.substrate.get_block_number(None)
 
@@ -1264,7 +1268,8 @@ class AsyncSubtensor(SubtensorMixin):
             latest_hash = await subtensor.get_block_hash()
             print(f"Latest block hash: {latest_hash}")
 
-        See also: <https://docs.learnbittensor.org/glossary#block>
+        Notes:
+            See also: <https://docs.learnbittensor.org/glossary#block>
         """
         if block:
             return await self._get_block_hash(block)
@@ -1913,7 +1918,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             Optional[str]: The SS58 address of the owner if the hotkey exists, or None if it doesn't.
 
-        See also:
+        Notes:
+            See also:
         - <https://docs.learnbittensor.org/glossary#hotkey>
         - <https://docs.learnbittensor.org/glossary#subnet>
         - <https://docs.learnbittensor.org/glossary#neuron>
@@ -1987,9 +1993,10 @@ class AsyncSubtensor(SubtensorMixin):
                 field_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
             )
 
-        See also:
-        - <https://docs.learnbittensor.org/glossary#metagraph>
-        - <https://docs.learnbittensor.org/glossary#emission>
+        Notes:
+            See also:
+            - <https://docs.learnbittensor.org/glossary#metagraph>
+            - <https://docs.learnbittensor.org/glossary#emission>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not block_hash and reuse_block:
@@ -2046,7 +2053,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             MetagraphInfo dataclass
 
-        See also: See <https://docs.learnbittensor.org/glossary#metagraph>
+        Notes:
+            See also: See <https://docs.learnbittensor.org/glossary#metagraph>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not block_hash and reuse_block:
@@ -2407,7 +2415,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             int: The block number at which the next epoch will start.
 
-        See also: <https://docs.learnbittensor.org/glossary#tempo>
+        Notes:
+            See also: <https://docs.learnbittensor.org/glossary#tempo>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         blocks_since_last_step = await self.blocks_since_last_step(
@@ -4262,7 +4271,8 @@ class AsyncSubtensor(SubtensorMixin):
         This function allows subnet validators to create a tamper-proof record of their weight vector at a specific
         point in time, creating a foundation of transparency and accountability for the Bittensor network.
 
-        See also: <https://docs.learnbittensor.org/glossary#commit-reveal>,
+        Notes:
+            See also: <https://docs.learnbittensor.org/glossary#commit-reveal>,
 
         """
         retries = 0
@@ -4602,7 +4612,8 @@ class AsyncSubtensor(SubtensorMixin):
 
         This function allows subnet validators to reveal their previously committed weight vector.
 
-        See also: <https://docs.learnbittensor.org/glossary#commit-reveal>,
+        Notes:
+            See also: <https://docs.learnbittensor.org/glossary#commit-reveal>,
         """
         retries = 0
         success = False
@@ -4973,7 +4984,8 @@ class AsyncSubtensor(SubtensorMixin):
         This function is crucial in the Yuma Consensus mechanism, where each validator's weight vector contributes
         to the overall weight matrix used to calculate emissions and maintain network consensus.
 
-        See <https://docs.learnbittensor.org/glossary#yuma-consensus>
+        Notes:
+            See <https://docs.learnbittensor.org/glossary#yuma-consensus>
         """
 
         async def _blocks_weight_limit() -> bool:
