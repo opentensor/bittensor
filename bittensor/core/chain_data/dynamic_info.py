@@ -27,7 +27,7 @@ class DynamicInfo(InfoBase):
     alpha_in: Balance
     alpha_out: Balance
     tao_in: Balance
-    price: Balance
+    price: Optional[Balance]
     k: float
     is_dynamic: bool
     alpha_out_emission: Balance
@@ -90,6 +90,10 @@ class DynamicInfo(InfoBase):
             )
         else:
             subnet_identity = None
+        price = decoded.get("price", None)
+
+        if price and not isinstance(price, Balance):
+            raise ValueError(f"price must be a Balance object, got {type(price)}.")
 
         return cls(
             netuid=netuid,
@@ -106,7 +110,7 @@ class DynamicInfo(InfoBase):
             tao_in=tao_in,
             k=tao_in.rao * alpha_in.rao,
             is_dynamic=is_dynamic,
-            price=decoded.get("price", None),
+            price=price,
             alpha_out_emission=alpha_out_emission,
             alpha_in_emission=alpha_in_emission,
             tao_in_emission=tao_in_emission,
