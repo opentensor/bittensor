@@ -148,21 +148,15 @@ class AsyncSubtensor(SubtensorMixin):
     ):
         """Initializes an AsyncSubtensor instance for blockchain interaction.
 
-
         Arguments:
-            network: The network name or type to connect to (e.g., "finney", "test"). If None, uses the default network
-                from config.
-            config: Configuration object for the AsyncSubtensor instance. If None, uses the default configuration.
+            network: The network name or type to connect to (e.g., "finney", "test"). If `None`, uses the default network from config.
+            config: Configuration object for the AsyncSubtensor instance. If `None`, uses the default configuration.
             log_verbose: Enables or disables verbose logging. Defaults to `False`.
-            fallback_endpoints: List of fallback endpoints to use if default or provided network is not available.
-                Defaults to `None`.
+            fallback_endpoints: List of fallback endpoints to use if default or provided network is not available. Defaults to `None`.
             retry_forever: Whether to retry forever on connection errors. Defaults to `False`.
             _mock: Whether this is a mock instance. Mainly for testing purposes. Defaults to `False`.
-            archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in cases
-                where you are requesting a block that is too old for your current (presumably lite) node. Defaults to
-                `None`.
-            websocket_shutdown_timer: Amount of time, in seconds, to wait after the last response from the chain to close
-                the connection. Defaults to `5.0`.
+            archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in cases where you are requesting a block that is too old for your current (presumably lite) node. Defaults to `None`.
+            websocket_shutdown_timer: Amount of time, in seconds, to wait after the last response from the chain to close the connection. Defaults to `5.0`.
         Returns:
             None
 
@@ -177,7 +171,7 @@ class AsyncSubtensor(SubtensorMixin):
             import asyncio
 
             async def main():
-                async with bt.AsyncSubtensor("finney") as subtensor:
+                async with bt.AsyncSubtensor(network="finney") as subtensor:
                     block_hash = await subtensor.get_block_hash()
 
             asyncio.run(main())
@@ -211,8 +205,7 @@ class AsyncSubtensor(SubtensorMixin):
     async def close(self):
         """Closes the connection to the blockchain.
 
-        Use this to explicitly clean up resources and close the network connection instead of waiting for garbage
-        collection.
+        Use this to explicitly clean up resources and close the network connection instead of waiting for garbage collection.
 
         Returns:
             None
@@ -222,7 +215,7 @@ class AsyncSubtensor(SubtensorMixin):
             await subtensor.initialize()
 
             # Use the subtensor...
-            balance = await subtensor.get_balance("5F...")
+            balance = await subtensor.get_balance(address="5F...")
 
             # Close when done
             await subtensor.close()
@@ -233,8 +226,7 @@ class AsyncSubtensor(SubtensorMixin):
     async def initialize(self):
         """Initializes the connection to the blockchain.
 
-        This method establishes the connection to the Bittensor blockchain and should be called after creating an
-        AsyncSubtensor instance before making any queries.
+        This method establishes the connection to the Bittensor blockchain and should be called after creating an AsyncSubtensor instance before making any queries.
 
         Returns:
             AsyncSubtensor: The initialized instance (self) for method chaining.
@@ -249,7 +241,7 @@ class AsyncSubtensor(SubtensorMixin):
             await subtensor.initialize()
 
             # Now you can make queries
-            balance = await subtensor.get_balance("5F...")
+            balance = await subtensor.get_balance(address="5F...")
 
             # Or chain the initialization
             subtensor = await AsyncSubtensor(network="finney").initialize()
@@ -304,8 +296,7 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> Optional[str]:
         """Determine the appropriate block hash based on the provided parameters.
 
-        Ensures that only one of the block specification parameters is used and returns the appropriate block hash for
-        blockchain queries.
+        Ensures that only one of the block specification parameters is used and returns the appropriate block hash for blockchain queries.
 
         Arguments:
             block: The block number to get the hash for. Do not specify if using block_hash or reuse_block.
@@ -348,14 +339,11 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> str:
         """Encodes parameters into a hex string using their type definitions.
 
-        This method takes a call definition (which specifies parameter types) and actual parameter values, then encodes
-        them into a hex string that can be used for blockchain transactions.
+        This method takes a call definition (which specifies parameter types) and actual parameter values, then encodes them into a hex string that can be used for blockchain transactions.
 
         Arguments:
-            call_definition: A dictionary containing parameter type definitions. Should have a "params" key with a list of
-                parameter definitions.
-            params: The actual parameter values to encode. Can be either a list (for positional parameters) or a
-                dictionary (for named parameters).
+            call_definition: A dictionary containing parameter type definitions. Should have a "params" key with a list of parameter definitions.
+            params: The actual parameter values to encode. Can be either a list (for positional parameters) or a dictionary (for named parameters).
 
         Returns:
             str: A hex-encoded string representation of the parameters.
@@ -407,17 +395,13 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> Optional[Any]:
         """Retrieves a specified hyperparameter for a specific subnet.
 
-        This method queries the blockchain for subnet-specific hyperparameters such as difficulty, tempo, immunity
-        period, and other network configuration values.
+        This method queries the blockchain for subnet-specific hyperparameters such as difficulty, tempo, immunity period, and other network configuration values.
 
         Arguments:
-            param_name: The name of the hyperparameter to retrieve (e.g., "Difficulty", "Tempo",
-                "ImmunityPeriod").
+            param_name: The name of the hyperparameter to retrieve (e.g., "Difficulty", "Tempo", "ImmunityPeriod").
             netuid: The unique identifier of the subnet.
-            block: The block number at which to retrieve the hyperparameter. Do not specify if using
-                block_hash or reuse_block.
-            block_hash: The hash of the blockchain block for the query. Do not specify if using block or
-                reuse_block.
+            block: The block number at which to retrieve the hyperparameter. Do not specify if using block_hash or reuse_block.
+            block_hash: The hash of the blockchain block for the query. Do not specify if using block or reuse_block.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
 
         Returns:
@@ -428,18 +412,10 @@ class AsyncSubtensor(SubtensorMixin):
             difficulty = await subtensor.get_hyperparameter(param_name="Difficulty", netuid=1)
 
             # Get tempo at a specific block
-            tempo = await subtensor.get_hyperparameter(
-                param_name="Tempo",
-                netuid=1,
-                block=1000000
-            )
+            tempo = await subtensor.get_hyperparameter(param_name="Tempo", netuid=1, block=1000000)
 
             # Get immunity period using block hash
-            immunity = await subtensor.get_hyperparameter(
-                param_name="ImmunityPeriod",
-                netuid=1,
-                block_hash="0x1234..."
-            )
+            immunity = await subtensor.get_hyperparameter(param_name="ImmunityPeriod", netuid=1, block_hash="0x1234...")
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not await self.subnet_exists(
