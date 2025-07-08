@@ -1085,7 +1085,7 @@ class AsyncSubtensor(SubtensorMixin):
                 block=1000000
             )
 
-        See also: See <https://docs.learnbittensor.org/glossary#difficulty>
+        See also: <https://docs.learnbittensor.org/glossary#difficulty>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
@@ -1998,8 +1998,10 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             Optional[str]: The SS58 address of the owner if the hotkey exists, or None if it doesn't.
 
-        See also: See <https://docs.learnbittensor.org/glossary#hotkey>, 
-        See <https://docs.learnbittensor.org/glossary#coldkey>
+        See also:
+        - <https://docs.learnbittensor.org/glossary#hotkey>
+        - <https://docs.learnbittensor.org/glossary#subnet>
+        - <https://docs.learnbittensor.org/glossary#neuron>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         hk_owner_query = await self.substrate.query(
@@ -2069,8 +2071,9 @@ class AsyncSubtensor(SubtensorMixin):
                 field_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
             )
 
-        See also: See <https://docs.learnbittensor.org/glossary#metagraph>, 
-        See <https://docs.learnbittensor.org/glossary#emission>
+        See also:
+        - <https://docs.learnbittensor.org/glossary#metagraph>
+        - <https://docs.learnbittensor.org/glossary#emission>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not block_hash and reuse_block:
