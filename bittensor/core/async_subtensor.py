@@ -646,13 +646,16 @@ class AsyncSubtensor(SubtensorMixin):
         )
         if not block_hash and reuse_block:
             block_hash = self.substrate.last_block_hash
-        query = await self.substrate.runtime_call(
-            "SubnetInfoRuntimeApi",
-            "get_all_dynamic_info",
-            block_hash=block_hash,
+
+        query, subnet_prices = await asyncio.gather(
+            self.substrate.runtime_call(
+                "SubnetInfoRuntimeApi",
+                "get_all_dynamic_info",
+                block_hash=block_hash,
+            ),
+            self.get_subnet_prices(),
         )
 
-        subnet_prices = await self.get_subnet_prices()
         decoded = query.decode()
 
         for sn in decoded:
