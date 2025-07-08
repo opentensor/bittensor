@@ -1920,9 +1920,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Notes:
             See also:
-        - <https://docs.learnbittensor.org/glossary#hotkey>
-        - <https://docs.learnbittensor.org/glossary#subnet>
-        - <https://docs.learnbittensor.org/glossary#neuron>
+            - <https://docs.learnbittensor.org/glossary#hotkey>
+            - <https://docs.learnbittensor.org/glossary#subnet>
+            - <https://docs.learnbittensor.org/glossary#neuron>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         hk_owner_query = await self.substrate.query(
