@@ -17,7 +17,7 @@ def liquid_alpha_call_params(netuid: int, alpha_values: str):
 
 def test_liquid_alpha(local_chain, subtensor, alice_wallet):
     """
-    Test the liquid alpha mechanism
+    Test the liquid alpha mechanism. By June 17 2025 the limits are `0.025 <= alpha_low <= alpha_high <= 1`
 
     Steps:
         1. Register a subnet through Alice
@@ -79,7 +79,7 @@ def test_liquid_alpha(local_chain, subtensor, alice_wallet):
     ).liquid_alpha_enabled, "Failed to enable liquid alpha"
 
     # Attempt to set alpha high & low after enabling the hyperparameter
-    alpha_values = "87, 54099"
+    alpha_values = "26001, 54099"
     call_params = liquid_alpha_call_params(netuid, alpha_values)
     assert sudo_set_hyperparameter_values(
         local_chain,
@@ -90,16 +90,15 @@ def test_liquid_alpha(local_chain, subtensor, alice_wallet):
     assert subtensor.get_subnet_hyperparameters(netuid).alpha_high == 54099, (
         "Failed to set alpha high"
     )
-    assert subtensor.get_subnet_hyperparameters(netuid).alpha_low == 87, (
+    assert subtensor.get_subnet_hyperparameters(netuid).alpha_low == 26001, (
         "Failed to set alpha low"
     )
 
     # Testing alpha high upper and lower bounds
 
     # 1. Test setting Alpha_high too low
-    alpha_high_too_low = (
-        u16_max * 4 // 5
-    ) - 1  # One less than the minimum acceptable value
+    alpha_high_too_low = 87
+
     call_params = liquid_alpha_call_params(netuid, f"6553, {alpha_high_too_low}")
     result, error_message = sudo_set_hyperparameter_values(
         local_chain,
@@ -142,9 +141,7 @@ def test_liquid_alpha(local_chain, subtensor, alice_wallet):
     assert error_message["name"] == "AlphaLowOutOfRange"
 
     # 2. Test setting Alpha_low too high
-    alpha_low_too_high = (
-        u16_max * 4 // 5
-    ) + 1  # One more than the maximum acceptable value
+    alpha_low_too_high = 53084
     call_params = liquid_alpha_call_params(netuid, f"{alpha_low_too_high}, 53083")
     result, error_message = sudo_set_hyperparameter_values(
         local_chain,
