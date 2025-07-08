@@ -1179,7 +1179,7 @@ class AsyncSubtensor(SubtensorMixin):
             Gaining insights into the subnets' details assists in understanding the network's composition,
         the roles of different subnets, and their unique features.
 
-        See also: See <https://docs.learnbittensor.org/glossary#subnet>
+        See also: <https://docs.learnbittensor.org/glossary#subnet>
         """
         result = await self.query_runtime_api(
             runtime_api="SubnetInfoRuntimeApi",
@@ -1226,8 +1226,6 @@ class AsyncSubtensor(SubtensorMixin):
                 block=1000000
             )
 
-        See also: See <https://docs.learnbittensor.org/glossary#tao>,
-        See <https://docs.learnbittensor.org/glossary#coldkey>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         balance = await self.substrate.query(
@@ -1269,8 +1267,6 @@ class AsyncSubtensor(SubtensorMixin):
                 "5H..."
             )
 
-        See also: See <https://docs.learnbittensor.org/glossary#tao>,
-        See <https://docs.learnbittensor.org/glossary#coldkey>
         """
         if reuse_block:
             block_hash = self.substrate.last_block_hash
@@ -1314,7 +1310,7 @@ class AsyncSubtensor(SubtensorMixin):
             if block > 1000000:
                 print("Network has progressed past block 1M")
 
-        See also: See <https://docs.learnbittensor.org/glossary#block>
+        See also: <https://docs.learnbittensor.org/glossary#block>
         """
         return await self.substrate.get_block_number(None)
 
@@ -1345,7 +1341,7 @@ class AsyncSubtensor(SubtensorMixin):
             latest_hash = await subtensor.get_block_hash()
             print(f"Latest block hash: {latest_hash}")
 
-        See also: See <https://docs.learnbittensor.org/glossary#block>
+        See also: <https://docs.learnbittensor.org/glossary#block>
         """
         if block:
             return await self._get_block_hash(block)
@@ -1964,8 +1960,6 @@ class AsyncSubtensor(SubtensorMixin):
         The existential deposit is a fundamental economic parameter in the Bittensor network, ensuring efficient use of
             storage and preventing the proliferation of dust accounts.
 
-        See also: See <https://docs.learnbittensor.org/glossary#tao>
-        See also: <https://docs.learnbittensor.org/glossary#coldkey>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.get_constant(
@@ -4350,8 +4344,8 @@ class AsyncSubtensor(SubtensorMixin):
         This function allows subnet validators to create a tamper-proof record of their weight vector at a specific point
             in time, creating a foundation of transparency and accountability for the Bittensor network.
 
-        See also: See <https://docs.learnbittensor.org/glossary#commit-reveal>,
-        See <https://docs.learnbittensor.org/glossary#weight-vector>
+        See also: See <https://docs.learnbittensor.org/glossary#commit-reveal>, 
+        
         """
         retries = 0
         success = False
