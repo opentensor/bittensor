@@ -179,7 +179,7 @@ class AsyncSubtensor(SubtensorMixin):
             async def main():
                 async with bt.AsyncSubtensor("finney") as subtensor:
                     block_hash = await subtensor.get_block_hash()
-                    
+
             asyncio.run(main())
         """
         if config is None:
@@ -220,10 +220,10 @@ class AsyncSubtensor(SubtensorMixin):
         Example:
             subtensor = AsyncSubtensor(network="finney")
             await subtensor.initialize()
-            
+
             # Use the subtensor...
             balance = await subtensor.get_balance("5F...")
-            
+
             # Close when done
             await subtensor.close()
         """
@@ -244,13 +244,13 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example:
             subtensor = AsyncSubtensor(network="finney")
-            
+
             # Initialize the connection
             await subtensor.initialize()
-            
+
             # Now you can make queries
             balance = await subtensor.get_balance("5F...")
-            
+
             # Or chain the initialization
             subtensor = await AsyncSubtensor(network="finney").initialize()
         """
@@ -321,10 +321,10 @@ class AsyncSubtensor(SubtensorMixin):
         Example:
             # Get hash for specific block
             block_hash = await subtensor.determine_block_hash(block=1000000)
-            
+
             # Use provided block hash
             hash = await subtensor.determine_block_hash(block_hash="0x1234...")
-            
+
             # Reuse last block hash
             hash = await subtensor.determine_block_hash(reuse_block=True)
         """
@@ -371,14 +371,14 @@ class AsyncSubtensor(SubtensorMixin):
                     {"name": "coldkey_ss58", "type": "str"}
                 ]
             }
-            
+
             # Encode parameters as a dictionary
             params_dict = {
                 "amount": 1000000,
                 "coldkey_ss58": "5F..."
             }
             encoded = await subtensor.encode_params(call_def, params_dict)
-            
+
             # Or encode as a list (positional)
             params_list = [1000000, "5F..."]
             encoded = await subtensor.encode_params(call_def, params_list)
@@ -426,14 +426,14 @@ class AsyncSubtensor(SubtensorMixin):
         Example:
             # Get difficulty for subnet 1
             difficulty = await subtensor.get_hyperparameter("Difficulty", netuid=1)
-            
+
             # Get tempo at a specific block
             tempo = await subtensor.get_hyperparameter(
-                "Tempo", 
-                netuid=1, 
+                "Tempo",
+                netuid=1,
                 block=1000000
             )
-            
+
             # Get immunity period using block hash
             immunity = await subtensor.get_hyperparameter(
                 "ImmunityPeriod",
@@ -472,7 +472,7 @@ class AsyncSubtensor(SubtensorMixin):
         RetryAsyncSubstrate depending on the configuration parameters.
 
         Args:
-            fallback_endpoints: List of fallback endpoints to use if default or provided network is not available. 
+            fallback_endpoints: List of fallback endpoints to use if default or provided network is not available.
                 Defaults to None.
             retry_forever: Whether to retry forever on connection errors. Defaults to `False`.
             _mock: Whether this is a mock instance. Mainly for testing purposes. Defaults to False.
@@ -543,10 +543,10 @@ class AsyncSubtensor(SubtensorMixin):
         Example:
             # Get existential deposit constant
             existential_deposit = await subtensor.query_constant(
-                "Balances", 
+                "Balances",
                 "ExistentialDeposit"
             )
-            
+
             # Get constant at specific block
             constant = await subtensor.query_constant(
                 "SubtensorModule",
@@ -601,7 +601,7 @@ class AsyncSubtensor(SubtensorMixin):
                 "Bonds",
                 params=[1]
             )
-            
+
             # Query weights at specific block
             weights = await subtensor.query_map(
                 "SubtensorModule",
@@ -609,7 +609,7 @@ class AsyncSubtensor(SubtensorMixin):
                 params=[1],
                 block=1000000
             )
-  
+
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query_map(
@@ -871,10 +871,10 @@ class AsyncSubtensor(SubtensorMixin):
         Example:
             # Get blocks since last step for subnet 1
             blocks = await subtensor.blocks_since_last_step(netuid=1)
-            
+
             # Get blocks since last step at specific block
             blocks = await subtensor.blocks_since_last_step(
-                netuid=1, 
+                netuid=1,
                 block=1000000
             )
         """
@@ -902,7 +902,7 @@ class AsyncSubtensor(SubtensorMixin):
         Example:
             # Get blocks since last update for UID 5 in subnet 1
             blocks = await subtensor.blocks_since_last_update(netuid=1, uid=5)
-            
+
             # Check if neuron needs updating
             blocks_since_update = await subtensor.blocks_since_last_update(netuid=1, uid=10)
 
@@ -985,7 +985,7 @@ class AsyncSubtensor(SubtensorMixin):
                 netuid=1,
                 data="Hello Bittensor!"
             )
-            
+
             # Commit with custom period
             success = await subtensor.commit(
                 wallet=my_wallet,
@@ -1016,9 +1016,9 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> bool:
         """Check if commit-reveal mechanism is enabled for a given subnet at a specific block.
 
-        The commit reveal feature is designed to solve the weight-copying problem by giving would-be weight-copiers 
+        The commit reveal feature is designed to solve the weight-copying problem by giving would-be weight-copiers
         access only to stale weights. Copying stale weights should result in subnet validators departing from consensus.
-       
+
         Args:
             netuid: The unique identifier of the subnet for which to check the commit-reveal mechanism.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
@@ -1033,10 +1033,10 @@ class AsyncSubtensor(SubtensorMixin):
         Example:
             # Check if commit-reveal is enabled for subnet 1
             enabled = await subtensor.commit_reveal_enabled(netuid=1)
-            
+
             # Check at specific block
             enabled = await subtensor.commit_reveal_enabled(
-                netuid=1, 
+                netuid=1,
                 block=1000000
             )
 
@@ -1078,10 +1078,10 @@ class AsyncSubtensor(SubtensorMixin):
         Example:
             # Get difficulty for subnet 1
             difficulty = await subtensor.difficulty(netuid=1)
-            
+
             # Get difficulty at specific block
             difficulty = await subtensor.difficulty(
-                netuid=1, 
+                netuid=1,
                 block=1000000
             )
 
@@ -1122,10 +1122,10 @@ class AsyncSubtensor(SubtensorMixin):
         Example:
             # Check if hotkey exists
             exists = await subtensor.does_hotkey_exist("5F...")
-            
+
             # Check at specific block
             exists = await subtensor.does_hotkey_exist(
-                "5F...", 
+                "5F...",
                 block=1000000
             )
         """
@@ -1154,7 +1154,7 @@ class AsyncSubtensor(SubtensorMixin):
         """Retrieves detailed information about all subnets within the Bittensor network.
 
         This function provides comprehensive data on each subnet, including its characteristics and operational
-        parameters. 
+        parameters.
 
         Args:
             block: The block number for the query.
@@ -1167,10 +1167,10 @@ class AsyncSubtensor(SubtensorMixin):
         Example:
             # Get all subnet information
             subnets = await subtensor.get_all_subnets_info()
-            
+
             # Get at specific block
             subnets = await subtensor.get_all_subnets_info(block=1000000)
-            
+
             # Iterate over subnet information
             for subnet in subnets:
                 print(f"Subnet {subnet.netuid}: {subnet.name}")
@@ -1219,14 +1219,14 @@ class AsyncSubtensor(SubtensorMixin):
             # Get balance for an address
             balance = await subtensor.get_balance("5F...")
             print(f"Balance: {balance.tao} TAO")
-            
+
             # Get balance at specific block
             balance = await subtensor.get_balance(
-                "5F...", 
+                "5F...",
                 block=1000000
             )
 
-        See also: See <https://docs.learnbittensor.org/glossary#tao>, 
+        See also: See <https://docs.learnbittensor.org/glossary#tao>,
         See <https://docs.learnbittensor.org/glossary#coldkey>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
@@ -1264,12 +1264,12 @@ class AsyncSubtensor(SubtensorMixin):
         Example:
             # Get balances for multiple addresses
             balances = await subtensor.get_balances(
-                "5F...", 
-                "5G...", 
+                "5F...",
+                "5G...",
                 "5H..."
             )
 
-        See also: See <https://docs.learnbittensor.org/glossary#tao>, 
+        See also: See <https://docs.learnbittensor.org/glossary#tao>,
         See <https://docs.learnbittensor.org/glossary#coldkey>
         """
         if reuse_block:
@@ -1308,7 +1308,7 @@ class AsyncSubtensor(SubtensorMixin):
             # Get current block number
             current_block = await subtensor.get_current_block()
             print(f"Current block: {current_block}")
-            
+
 
             block = await subtensor.get_current_block()
             if block > 1000000:
@@ -1340,7 +1340,7 @@ class AsyncSubtensor(SubtensorMixin):
             # Get hash for specific block
             block_hash = await subtensor.get_block_hash(1000000)
             print(f"Block 1000000 hash: {block_hash}")
-            
+
             # Get latest block hash
             latest_hash = await subtensor.get_block_hash()
             print(f"Latest block hash: {latest_hash}")
@@ -1424,7 +1424,7 @@ class AsyncSubtensor(SubtensorMixin):
                 hotkey="5F...",
                 netuid=1
             )
-            
+
             if success:
                 for proportion, child_hotkey in children:
                     print(f"Child {child_hotkey}: {proportion}")
@@ -1532,11 +1532,11 @@ class AsyncSubtensor(SubtensorMixin):
             # Get commitment for UID 5 in subnet 1
             commitment = await subtensor.get_commitment(netuid=1, uid=5)
             print(f"Commitment: {commitment}")
-            
+
             # Get commitment at specific block
             commitment = await subtensor.get_commitment(
-                netuid=1, 
-                uid=5, 
+                netuid=1,
+                uid=5,
                 block=1000000
             )
         """
@@ -1610,7 +1610,7 @@ class AsyncSubtensor(SubtensorMixin):
         Example:
             # Get all commitments for subnet 1
             commitments = await subtensor.get_all_commitments(netuid=1)
-            
+
             # Iterate over all commitments
             for hotkey, commitment in commitments.items():
                 print(f"Hotkey {hotkey}: {commitment}")
@@ -2048,8 +2048,8 @@ class AsyncSubtensor(SubtensorMixin):
         """
         Retrieves full or partial metagraph information for the specified subnet (netuid).
 
-        A metagraph is a data structure that contains comprehensive information about the current state of a subnet, 
-        including detailed information on all the nodes (neurons) such as subnet validator stakes and subnet weights 
+        A metagraph is a data structure that contains comprehensive information about the current state of a subnet,
+        including detailed information on all the nodes (neurons) such as subnet validator stakes and subnet weights
         in the subnet. Metagraph aids in calculating emissions.
 
         Arguments:
@@ -4350,7 +4350,7 @@ class AsyncSubtensor(SubtensorMixin):
         This function allows subnet validators to create a tamper-proof record of their weight vector at a specific point
             in time, creating a foundation of transparency and accountability for the Bittensor network.
 
-        See also: See <https://docs.learnbittensor.org/glossary#commit-reveal>, 
+        See also: See <https://docs.learnbittensor.org/glossary#commit-reveal>,
         See <https://docs.learnbittensor.org/glossary#weight-vector>
         """
         retries = 0
@@ -4689,7 +4689,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         This function allows subnet validators to reveal their previously committed weight vector.
 
-        See also: <https://docs.learnbittensor.org/glossary#commit-reveal>, 
+        See also: <https://docs.learnbittensor.org/glossary#commit-reveal>,
         """
         retries = 0
         success = False
