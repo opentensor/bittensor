@@ -74,13 +74,6 @@ class DynamicInfo(InfoBase):
         ).set_unit(0)
 
         subnet_volume = Balance.from_rao(decoded["subnet_volume"]).set_unit(netuid)
-        price = (
-            Balance.from_tao(1.0)
-            if netuid == 0
-            else Balance.from_tao(tao_in.tao / alpha_in.tao).set_unit(netuid)
-            if alpha_in.tao > 0
-            else Balance.from_tao(1).set_unit(netuid)
-        )  # Root always has 1-1 price
 
         if decoded.get("subnet_identity"):
             subnet_identity = SubnetIdentity(
@@ -113,7 +106,7 @@ class DynamicInfo(InfoBase):
             tao_in=tao_in,
             k=tao_in.rao * alpha_in.rao,
             is_dynamic=is_dynamic,
-            price=price,
+            price=decoded.get("price", None),
             alpha_out_emission=alpha_out_emission,
             alpha_in_emission=alpha_in_emission,
             tao_in_emission=tao_in_emission,
