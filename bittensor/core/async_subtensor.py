@@ -1040,7 +1040,7 @@ class AsyncSubtensor(SubtensorMixin):
                 block=1000000
             )
 
-        See also: See <https://docs.learnbittensor.org/glossary#commit-reveal>
+        See also: <https://docs.learnbittensor.org/glossary#commit-reveal>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
@@ -1462,16 +1462,18 @@ class AsyncSubtensor(SubtensorMixin):
         list[tuple[float, str]],
         int,
     ]:
-        """
-        This method retrieves the pending children of a given hotkey and netuid.
-        It queries the SubtensorModule's PendingChildKeys storage function.
+        """Retrieves the pending children of a given hotkey and netuid.
 
-        Arguments:
-            hotkey (str): The hotkey value.
-            netuid (int): The netuid value.
-            block (Optional[int]): The block number for which the children are to be retrieved.
-            block_hash (Optional[str]): The hash of the block to retrieve the subnet unique identifiers from.
-            reuse_block (bool): Whether to reuse the last-used block hash.
+        This method queries the SubtensorModule's PendingChildKeys storage function to get children that are
+        pending approval or in a cooldown period. These are children that have been proposed but not yet
+        finalized.
+
+        Args:
+            hotkey: The hotkey value.
+            netuid: The netuid value.
+            block: The block number for which the children are to be retrieved.
+            block_hash: The hash of the block to retrieve the subnet unique identifiers from.
+            reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
             list[tuple[float, str]]: A list of children with their proportions.
@@ -1963,6 +1965,7 @@ class AsyncSubtensor(SubtensorMixin):
             storage and preventing the proliferation of dust accounts.
 
         See also: See <https://docs.learnbittensor.org/glossary#tao>
+        See also: <https://docs.learnbittensor.org/glossary#coldkey>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.get_constant(
@@ -2491,6 +2494,8 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             int: The block number at which the next epoch will start.
+
+        See also: <https://docs.learnbittensor.org/glossary#tempo>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         blocks_since_last_step = await self.blocks_since_last_step(
@@ -4682,8 +4687,9 @@ class AsyncSubtensor(SubtensorMixin):
             tuple[bool, str]: ``True`` if the weight revelation is successful, False otherwise. And `msg`, a string
                 value describing the success or potential error.
 
-        This function allows neurons to reveal their previously committed weight distribution, ensuring transparency
-            and accountability within the Bittensor network.
+        This function allows subnet validators to reveal their previously committed weight vector.
+
+        See also: <https://docs.learnbittensor.org/glossary#commit-reveal>, 
         """
         retries = 0
         success = False
@@ -5047,8 +5053,9 @@ class AsyncSubtensor(SubtensorMixin):
             tuple[bool, str]: ``True`` if the setting of weights is successful, False otherwise. And `msg`, a string
                 value describing the success or potential error.
 
-        This function is crucial in shaping the network's collective intelligence, where each neuron's learning and
-            contribution are influenced by the weights it sets towards others【81†source】.
+        This function is crucial in the Yuma Consensus mechanism, where each validator's weight vector contributes to the overall weight matrix used to calculate emissions and maintain network consensus.
+
+        See <https://docs.learnbittensor.org/glossary#yuma-consensus>
         """
 
         async def _blocks_weight_limit() -> bool:
