@@ -146,23 +146,41 @@ class AsyncSubtensor(SubtensorMixin):
         archive_endpoints: Optional[list[str]] = None,
         websocket_shutdown_timer: float = 5.0,
     ):
-        """
-        Initializes an instance of the AsyncSubtensor class.
+        """Initializes an AsyncSubtensor instance for blockchain interaction.
 
-        Arguments:
-            network: The network name or type to connect to.
-            config: Configuration object for the AsyncSubtensor instance.
-            log_verbose: Enables or disables verbose logging.
+
+        Args:
+            network: The network name or type to connect to (e.g., "finney", "test"). If None, uses the default network
+                from config.
+            config: Configuration object for the AsyncSubtensor instance. If None, uses the default configuration.
+            log_verbose: Enables or disables verbose logging. Defaults to False.
             fallback_endpoints: List of fallback endpoints to use if default or provided network is not available.
-                Defaults to `None`.
-            retry_forever: Whether to retry forever on connection errors. Defaults to `False`.
-            _mock: Whether this is a mock instance. Mainly just for use in testing.
+                Defaults to None.
+            retry_forever: Whether to retry forever on connection errors. Defaults to False.
+            _mock: Whether this is a mock instance. Mainly for testing purposes. Defaults to False.
             archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in cases
                 where you are requesting a block that is too old for your current (presumably lite) node. Defaults to
                 `None`
+            websocket_shutdown_timer: Amount of time, in seconds, to wait after the last response from the chain to close
+                the connection. Defaults to 5.0.
+        Returns:
+            None
 
         Raises:
-            Any exceptions raised during the setup, configuration, or connection process.
+            ConnectionError: If unable to connect to the specified network.
+            ValueError: If invalid network or configuration parameters are provided.
+            Exception: Any other exceptions raised during setup or configuration.
+
+        Typical usage example:
+
+            import bittensor as bt
+            import asyncio
+
+            async def main():
+                async with bt.AsyncSubtensor("finney") as subtensor:
+                    block_hash = await subtensor.get_block_hash()
+                    
+            asyncio.run(main())
         """
         if config is None:
             config = AsyncSubtensor.config()
