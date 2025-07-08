@@ -1882,8 +1882,9 @@ class Subtensor(SubtensorMixin):
             current_price = current_sqrt_price * current_sqrt_price
             current_price_in_tao = Balance.from_rao(int(current_price * 1e9))
             prices.update({id_: current_price_in_tao})
+
         # SN0 price is always 1 TAO
-        prices[0] = Balance.from_tao(1)
+        prices.update({0: Balance.from_tao(1)})
         return prices
 
     def get_unstake_fee(
