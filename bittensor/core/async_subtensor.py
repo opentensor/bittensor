@@ -651,8 +651,13 @@ class AsyncSubtensor(SubtensorMixin):
             "get_all_dynamic_info",
             block_hash=block_hash,
         )
-        subnets = DynamicInfo.list_from_dicts(query.decode())
-        return subnets
+
+        subnet_prices = await self.get_subnet_prices()
+        decoded = query.decode()
+
+        for sn in decoded:
+            sn.update({"price": subnet_prices.get(sn["netuid"], Balance.from_tao(0))})
+        return DynamicInfo.list_from_dicts(decoded)
 
     async def blocks_since_last_step(
         self,
@@ -902,8 +907,13 @@ class AsyncSubtensor(SubtensorMixin):
         )
         if not result:
             return []
-        else:
-            return SubnetInfo.list_from_dicts(result)
+
+        subnets_prices = await self.get_subnet_prices()
+
+        for subnet in result:
+            subnet.update({"price": subnets_prices.get(subnet["netuid"], 0)})
+
+        return SubnetInfo.list_from_dicts(result)
 
     async def get_balance(
         self,
@@ -2266,6 +2276,83 @@ class AsyncSubtensor(SubtensorMixin):
         if not result:
             return None
         return SubnetInfo.from_dict(result)
+
+    async def get_subnet_price(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Balance:
+        """Gets the current Alpha price in TAO for all subnets.
+
+        Arguments:
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query.
+            block_hash (Optional[str]): The hash of the block to retrieve the stake from. Do not specify if using block
+                or reuse_block
+            reuse_block (bool): Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            The current Alpha price in TAO units for the specified subnet.
+        """
+        # SN0 price is always 1 TAO
+        if netuid == 0:
+            return Balance.from_tao(1)
+
+        block_hash = await self.determine_block_hash(
+            block=block, block_hash=block_hash, reuse_block=reuse_block
+        )
+        current_sqrt_price = await self.substrate.query(
+            module="Swap",
+            storage_function="AlphaSqrtPrice",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+
+        current_sqrt_price = fixed_to_float(current_sqrt_price)
+        current_price = current_sqrt_price * current_sqrt_price
+        return Balance.from_rao(int(current_price * 1e9))
+
+    async def get_subnet_prices(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> dict[int, Balance]:
+        """Gets the current Alpha price in TAO for a specified subnet.
+
+        Args:
+            block: The blockchain block number for the query.
+            block_hash (Optional[str]): The hash of the block to retrieve the stake from. Do not specify if using block
+                or reuse_block
+            reuse_block (bool): Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            dict:
+                - subnet unique ID
+                - The current Alpha price in TAO units for the specified subnet.
+        """
+        block_hash = await self.determine_block_hash(
+            block=block, block_hash=block_hash, reuse_block=reuse_block
+        )
+
+        current_sqrt_prices = await self.substrate.query_map(
+            module="Swap",
+            storage_function="AlphaSqrtPrice",
+            block_hash=block_hash,
+            page_size=129,  # total number of subnets
+        )
+
+        prices = {}
+        async for id_, current_sqrt_price in current_sqrt_prices:
+            current_sqrt_price = fixed_to_float(current_sqrt_price)
+            current_price = current_sqrt_price * current_sqrt_price
+            current_price_in_tao = Balance.from_rao(int(current_price * 1e9))
+            prices.update({id_: current_price_in_tao})
+        # SN0 price is always 1 TAO
+        prices[0] = Balance.from_tao(1)
+        return prices
 
     async def get_unstake_fee(
         self,
