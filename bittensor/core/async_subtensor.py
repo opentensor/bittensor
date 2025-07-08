@@ -149,14 +149,19 @@ class AsyncSubtensor(SubtensorMixin):
         """Initializes an AsyncSubtensor instance for blockchain interaction.
 
         Arguments:
-            network: The network name or type to connect to (e.g., "finney", "test"). If `None`, uses the default network from config.
+            network: The network name or type to connect to (e.g., "finney", "test"). If `None`, uses the default
+                network from config.
             config: Configuration object for the AsyncSubtensor instance. If `None`, uses the default configuration.
             log_verbose: Enables or disables verbose logging. Defaults to `False`.
-            fallback_endpoints: List of fallback endpoints to use if default or provided network is not available. Defaults to `None`.
+            fallback_endpoints: List of fallback endpoints to use if default or provided network is not available.
+                Defaults to `None`.
             retry_forever: Whether to retry forever on connection errors. Defaults to `False`.
             _mock: Whether this is a mock instance. Mainly for testing purposes. Defaults to `False`.
-            archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in cases where you are requesting a block that is too old for your current (presumably lite) node. Defaults to `None`.
-            websocket_shutdown_timer: Amount of time, in seconds, to wait after the last response from the chain to close the connection. Defaults to `5.0`.
+            archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in
+                cases where you are requesting a block that is too old for your current (presumably lite) node.
+                Defaults to `None`.
+            websocket_shutdown_timer: Amount of time, in seconds, to wait after the last response from the chain to
+                close the connection. Defaults to `5.0`.
         Returns:
             None
 
@@ -205,7 +210,8 @@ class AsyncSubtensor(SubtensorMixin):
     async def close(self):
         """Closes the connection to the blockchain.
 
-        Use this to explicitly clean up resources and close the network connection instead of waiting for garbage collection.
+        Use this to explicitly clean up resources and close the network connection instead of waiting for garbage
+        collection.
 
         Returns:
             None
@@ -226,7 +232,8 @@ class AsyncSubtensor(SubtensorMixin):
     async def initialize(self):
         """Initializes the connection to the blockchain.
 
-        This method establishes the connection to the Bittensor blockchain and should be called after creating an AsyncSubtensor instance before making any queries.
+        This method establishes the connection to the Bittensor blockchain and should be called after creating an
+        AsyncSubtensor instance before making any queries.
 
         Returns:
             AsyncSubtensor: The initialized instance (self) for method chaining.
@@ -296,12 +303,13 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> Optional[str]:
         """Determine the appropriate block hash based on the provided parameters.
 
-        Ensures that only one of the block specification parameters is used and returns the appropriate block hash for blockchain queries.
+        Ensures that only one of the block specification parameters is used and returns the appropriate block hash for
+        blockchain queries.
 
         Arguments:
             block: The block number to get the hash for. Do not specify if using block_hash or reuse_block.
             block_hash: The hash of the blockchain block. Do not specify if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block or block_hash.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block or reuse_block.
 
         Returns:
             Optional[str]: The block hash if one can be determined, None otherwise.
@@ -339,11 +347,14 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> str:
         """Encodes parameters into a hex string using their type definitions.
 
-        This method takes a call definition (which specifies parameter types) and actual parameter values, then encodes them into a hex string that can be used for blockchain transactions.
+        This method takes a call definition (which specifies parameter types) and actual parameter values, then encodes
+        them into a hex string that can be used for blockchain transactions.
 
         Arguments:
-            call_definition: A dictionary containing parameter type definitions. Should have a "params" key with a list of parameter definitions.
-            params: The actual parameter values to encode. Can be either a list (for positional parameters) or a dictionary (for named parameters).
+            call_definition: A dictionary containing parameter type definitions. Should have a "params" key with a list
+                of parameter definitions.
+            params: The actual parameter values to encode. Can be either a list (for positional parameters) or a
+                dictionary (for named parameters).
 
         Returns:
             str: A hex-encoded string representation of the parameters.
@@ -395,12 +406,14 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> Optional[Any]:
         """Retrieves a specified hyperparameter for a specific subnet.
 
-        This method queries the blockchain for subnet-specific hyperparameters such as difficulty, tempo, immunity period, and other network configuration values.
+        This method queries the blockchain for subnet-specific hyperparameters such as difficulty, tempo, immunity
+        period, and other network configuration values.
 
         Arguments:
             param_name: The name of the hyperparameter to retrieve (e.g., "Difficulty", "Tempo", "ImmunityPeriod").
             netuid: The unique identifier of the subnet.
-            block: The block number at which to retrieve the hyperparameter. Do not specify if using block_hash or reuse_block.
+            block: The block number at which to retrieve the hyperparameter. Do not specify if using block_hash or
+                reuse_block.
             block_hash: The hash of the blockchain block for the query. Do not specify if using block or reuse_block.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
 
@@ -444,19 +457,19 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> Union[AsyncSubstrateInterface, RetryAsyncSubstrate]:
         """Creates the Substrate instance based on provided arguments.
 
-        This internal method creates either a standard AsyncSubstrateInterface or a
-        RetryAsyncSubstrate depending on the configuration parameters.
+        This internal method creates either a standard AsyncSubstrateInterface or a RetryAsyncSubstrate depending on
+         the configuration parameters.
 
         Arguments:
-            fallback_endpoints: List of fallback endpoints to use if default or provided network is not available.
-                Defaults to `None`.
+            fallback_endpoints: List of fallback endpoints to use if default or provided network is not available. 
+            Defaults to `None`.
             retry_forever: Whether to retry forever on connection errors. Defaults to `False`.
             _mock: Whether this is a mock instance. Mainly for testing purposes. Defaults to `False`.
-            archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in cases
-                where you are requesting a block that is too old for your current (presumably lite) node. Defaults to
-                `None`.
-            ws_shutdown_timer: Amount of time, in seconds, to wait after the last response from the chain to close the
-                connection.
+            archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in 
+            cases where you are requesting a block that is too old for your current (presumably lite) node. Defaults 
+            to `None`.
+            ws_shutdown_timer: Amount of time, in seconds, to wait after the last response from the chain to close 
+            the connection.
 
         Returns:
             Either AsyncSubstrateInterface or RetryAsyncSubstrate.
@@ -496,22 +509,19 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> Optional["ScaleObj"]:
         """Retrieves a constant from the specified module on the Bittensor blockchain.
 
-        This function is used to access fixed values defined within the
-        blockchain's modules, which are essential for understanding the network's
-        configuration and rules. These include include critical network parameters such as inflation rates,
-            consensus rules, or validation thresholds, providing a deeper understanding of the Bittensor network's
-            operational parameters.
+        This function is used to access fixed values defined within the blockchain's modules, which are essential for 
+        understanding the network's configuration and rules. These include include critical network parameters such as
+        inflation rates, consensus rules, or validation thresholds, providing a deeper understanding of the Bittensor
+        network's operational parameters.
 
         Arguments:
-            module_name: The name of the module containing the constant (e.g., "Balances",
-                "SubtensorModule").
+            module_name: The name of the module containing the constant (e.g., "Balances", "SubtensorModule").
             constant_name: The name of the constant to retrieve (e.g., "ExistentialDeposit").
-            block: The blockchain block number at which to query the constant. Do not
-                specify if using block_hash or reuse_block.
-            block_hash: The hash of the blockchain block at which to query the constant.
-                Do not specify if using block or reuse_block.
-            reuse_block: Whether to reuse the blockchain block at which to query the
-                constant. Defaults to `False`.
+            block: The blockchain block number at which to query the constant. Do not specify if using block_hash or 
+            reuse_block.
+            block_hash: The hash of the blockchain block at which to query the constant. Do not specify if using 
+            block or reuse_block.
+            reuse_block: Whether to reuse the blockchain block at which to query the constant. Defaults to `False`.
 
         Returns:
             Optional[async_substrate_interface.types.ScaleObj]: The value of the constant if found, `None` otherwise.
@@ -519,8 +529,8 @@ class AsyncSubtensor(SubtensorMixin):
         Example:
             # Get existential deposit constant
             existential_deposit = await subtensor.query_constant(
-                "Balances",
-                "ExistentialDeposit"
+                module_name="Balances",
+                constant_name="ExistentialDeposit"
             )
 
             # Get constant at specific block
@@ -549,43 +559,28 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> "AsyncQueryMapResult":
         """Queries map storage from any module on the Bittensor blockchain.
 
-        This function retrieves data structures that represent key-value mappings,
-        essential for accessing complex and structured data within the blockchain
-        modules.
+        This function retrieves data structures that represent key-value mappings, essential for accessing complex and
+          structured data within the blockchain modules.
 
         Arguments:
-            module: The name of the module from which to query the map storage
-                (e.g., "SubtensorModule", "System").
-            name: The specific storage function within the module to query
-                (e.g., "Bonds", "Weights").
-            block: The blockchain block number at which to perform the query.
-                Defaults to `None` (latest block).
-            block_hash: The hash of the block to retrieve the parameter from. Do not
-                specify if using block or reuse_block.
-            reuse_block: Whether to use the last-used block. Do not set if using
-                block_hash or block. Defaults to `False`.
+            module: The name of the module from which to query the map storage (e.g., "SubtensorModule", "System").
+            name: The specific storage function within the module to query (e.g., "Bonds", "Weights").
+            block: The blockchain block number at which to perform the query. Defaults to `None` (latest block).
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or 
+            reuse_block.
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block. Defaults to 
+            `False`.
             params: Parameters to be passed to the query. Defaults to `None`.
 
         Returns:
-            AsyncQueryMapResult: A data structure representing the map storage if found,
-                None otherwise.
+            AsyncQueryMapResult: A data structure representing the map storage if found, None otherwise.
 
         Example:
             # Query bonds for subnet 1
-            bonds = await subtensor.query_map(
-                module="SubtensorModule",
-                name="Bonds",
-                params=[1]
-            )
+            bonds = await subtensor.query_map(module="SubtensorModule", name="Bonds", params=[1])
 
             # Query weights at specific block
-            weights = await subtensor.query_map(
-                module="SubtensorModule",
-                name="Weights",
-                params=[1],
-                block=1000000
-            )
-
+            weights = await subtensor.query_map(module="SubtensorModule", name="Weights", params=[1], block=1000000)
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query_map(
@@ -605,23 +600,23 @@ class AsyncSubtensor(SubtensorMixin):
         reuse_block: bool = False,
         params: Optional[list] = None,
     ) -> "AsyncQueryMapResult":
-        """
-        Queries map storage from the Subtensor module on the Bittensor blockchain. This function is designed to retrieve
-            a map-like data structure, which can include various neuron-specific details or network-wide attributes.
+        """Queries map storage from the Subtensor module on the Bittensor blockchain. This function is designed to 
+        retrieve a map-like data structure, which can include various neuron-specific details or network-wide
+        attributes.
 
         Arguments:
             name: The name of the map storage function to query.
             block: The blockchain block number at which to perform the query.
-            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
-                reuse_block.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or 
+            reuse_block.
             reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
             params: A list of parameters to pass to the query function.
 
         Returns:
             An object containing the map-like data structure, or `None` if not found.
 
-        This function is particularly useful for analyzing and understanding complex network structures and
-            relationships within the Bittensor ecosystem, such as interneuronal connections and stake distributions.
+        This function is particularly useful for analyzing and understanding complex network structures and 
+        relationships within the Bittensor ecosystem, such as interneuronal connections and stake distributions.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         return await self.substrate.query_map(
@@ -641,10 +636,9 @@ class AsyncSubtensor(SubtensorMixin):
         reuse_block: bool = False,
         params: Optional[list] = None,
     ) -> Optional[Union["ScaleObj", Any]]:
-        """
-        Queries any module storage on the Bittensor blockchain with the specified parameters and block number. This
-            function is a generic query interface that allows for flexible and diverse data retrieval from various
-            blockchain modules.
+        """Queries any module storage on the Bittensor blockchain with the specified parameters and block number.
+        This function is a generic query interface that allows for flexible and diverse data retrieval from various
+        blockchain modules.
 
         Arguments:
             module: The name of the module from which to query data.
@@ -659,7 +653,7 @@ class AsyncSubtensor(SubtensorMixin):
             An object containing the requested data if found, `None` otherwise.
 
         This versatile query function is key to accessing a wide range of data and insights from different parts of the
-            Bittensor blockchain, enhancing the understanding and analysis of the network's state and dynamics.
+        Bittensor blockchain, enhancing the understanding and analysis of the network's state and dynamics.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         return await self.substrate.query(
@@ -679,25 +673,24 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[Any]:
-        """
-        Queries the runtime API of the Bittensor blockchain, providing a way to interact with the underlying runtime and
-            retrieve data encoded in Scale Bytes format. This function is essential for advanced users who need to
-            interact with specific runtime methods and decode complex data types.
+        """Queries the runtime API of the Bittensor blockchain, providing a way to interact with the underlying runtime
+        and retrieve data encoded in Scale Bytes format. This function is essential for advanced users who need to
+        interact with specific runtime methods and decode complex data types.
 
         Arguments:
             runtime_api: The name of the runtime API to query.
             method: The specific method within the runtime API to call.
             params: The parameters to pass to the method call.
             block: the block number for this query. Do not specify if using block_hash or reuse_block.
-            block_hash: The hash of the blockchain block number at which to perform the query. Do not specify if
-                using block or reuse_block.
+            block_hash: The hash of the blockchain block number at which to perform the query. Do not specify if using
+                block or reuse_block.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
 
         Returns:
             The decoded result from the runtime API call, or `None` if the call fails.
 
         This function enables access to the deeper layers of the Bittensor blockchain, allowing for detailed and
-            specific interactions with the network's runtime environment.
+        specific interactions with the network's runtime environment.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not block_hash and reuse_block:
@@ -715,9 +708,9 @@ class AsyncSubtensor(SubtensorMixin):
         reuse_block: bool = False,
         params: Optional[list] = None,
     ) -> Optional[Union["ScaleObj", Any]]:
-        """
-        Queries named storage from the Subtensor module on the Bittensor blockchain. This function is used to retrieve
-            specific data or parameters from the blockchain, such as stake, rank, or other neuron-specific attributes.
+        """Queries named storage from the Subtensor module on the Bittensor blockchain. This function is used to
+        retrieve specific data or parameters from the blockchain, such as stake, rank, or other neuron-specific
+        attributes.
 
         Arguments:
             name: The name of the storage function to query.
@@ -730,8 +723,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             query_response: An object containing the requested data.
 
-        This query function is essential for accessing detailed information about the network and its neurons, providing
-            valuable insights into the state and dynamics of the Bittensor ecosystem.
+        This query function is essential for accessing detailed information about the network and its neurons,
+        providing valuable insights into the state and dynamics of the Bittensor ecosystem.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         return await self.substrate.query(
@@ -750,9 +743,8 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> dict[Any, Any]:
-        """
-        Makes a state call to the Bittensor blockchain, allowing for direct queries of the blockchain's state. This
-            function is typically used for advanced queries that require specific method calls and data inputs.
+        """Makes a state call to the Bittensor blockchain, allowing for direct queries of the blockchain's state.
+        This function is typically used for advanced queries that require specific method calls and data inputs.
 
         Arguments:
             method: The method name for the state call.
@@ -765,8 +757,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             result (dict[Any, Any]): The result of the rpc call.
 
-        The state call function provides a more direct and flexible way of querying blockchain data, useful for specific
-            use cases where standard queries are insufficient.
+        The state call function provides a more direct and flexible way of querying blockchain data, useful for
+        specific use cases where standard queries are insufficient.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         return await self.substrate.rpc_request(
@@ -788,25 +780,23 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[list[DynamicInfo]]:
-        """Queries the blockchain for comprehensive information about all
-        subnets, including their dynamic parameters and operational status.
+        """Queries the blockchain for comprehensive information about all subnets, including their dynamic parameters
+        and operational status.
 
         Arguments:
-            block_number: The block number to query the subnet information from. Do not
-                specify if using block_hash or reuse_block.
-            block_hash: The hash of the blockchain block number for the query. Do not
-                specify if using reuse_block or block.
-            reuse_block: Whether to reuse the last-used blockchain block hash. Do not
-                set if using block_hash or block.
+            block_number: The block number to query the subnet information from. Do not specify if using block_hash or
+                reuse_block.
+            block_hash: The hash of the blockchain block number for the query. Do not specify if using reuse_block or
+                block.
+            reuse_block: Whether to reuse the last-used blockchain block hash. Do not set if using block_hash or block.
 
         Returns:
-            Optional[list[DynamicInfo]]: A list of DynamicInfo objects, each containing
-                detailed information about a subnet, or None if the query fails.
+            Optional[list[DynamicInfo]]: A list of DynamicInfo objects, each containing detailed information about a
+            subnet, or None if the query fails.
 
         Example:
             # Get all subnets at current block
             subnets = await subtensor.all_subnets()
-
         """
         block_hash = await self.determine_block_hash(
             block_number, block_hash, reuse_block
@@ -828,31 +818,25 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[int]:
-        """Queries the blockchain to determine how many blocks have passed
-        since the last epoch step for a specific subnet.
+        """Queries the blockchain to determine how many blocks have passed since the last epoch step for a specific
+        subnet.
 
         Arguments:
             netuid: The unique identifier of the subnetwork.
-            block: The block number for this query. Do not specify if using
-                block_hash or reuse_block.
-            block_hash: The hash of the blockchain block number for the query. Do not
-                specify if using reuse_block or block.
-            reuse_block: Whether to reuse the last-used blockchain block hash. Do not
-                set if using block_hash or block.
+            block: The block number for this query. Do not specify if using block_hash or reuse_block.
+            block_hash: The hash of the blockchain block number for the query. Do not specify if using reuse_block or
+                block.
+            reuse_block: Whether to reuse the last-used blockchain block hash. Do not set if using block_hash or block.
 
         Returns:
-            The number of blocks since the last step in the subnet,
-                or None if the query fails.
+            The number of blocks since the last step in the subnet, or None if the query fails.
 
         Example:
             # Get blocks since last step for subnet 1
             blocks = await subtensor.blocks_since_last_step(netuid=1)
 
             # Get blocks since last step at specific block
-            blocks = await subtensor.blocks_since_last_step(
-                netuid=1,
-                block=1000000
-            )
+            blocks = await subtensor.blocks_since_last_step(netuid=1, block=1000000)
         """
         query = await self.query_subtensor(
             name="BlocksSinceLastStep",
@@ -864,16 +848,14 @@ class AsyncSubtensor(SubtensorMixin):
         return query.value if query is not None and hasattr(query, "value") else query
 
     async def blocks_since_last_update(self, netuid: int, uid: int) -> Optional[int]:
-        """Returns the number of blocks since the last update, or ``None`` if the subnetwork or UID does not
-                exist.
+        """Returns the number of blocks since the last update, or ``None`` if the subnetwork or UID does not exist.
 
         Arguments:
             netuid: The unique identifier of the subnetwork.
             uid: The unique identifier of the neuron.
 
         Returns:
-            Optional[int]: The number of blocks since the last update, or None if the
-                subnetwork or UID does not exist.
+            Optional[int]: The number of blocks since the last update, or None if the subnetwork or UID does not exist.
 
         Example:
             # Get blocks since last update for UID 5 in subnet 1
@@ -881,7 +863,6 @@ class AsyncSubtensor(SubtensorMixin):
 
             # Check if neuron needs updating
             blocks_since_update = await subtensor.blocks_since_last_update(netuid=1, uid=10)
-
         """
         call = await self.get_hyperparameter(param_name="LastUpdate", netuid=netuid)
         return None if call is None else await self.get_current_block() - int(call[uid])
@@ -895,19 +876,15 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> list[tuple[int, list[tuple[int, int]]]]:
         """Retrieves the bond distribution set by subnet validators within a specific subnet.
 
-        Bonds represent the "investment" a subnet validator has made in evaluating a specific
-        subnet miner. This bonding mechanism is integral to the Yuma Consensus' design intent
-        of incentivizing high-quality performance by subnet miners, and honest evaluation by
-        subnet validators.
+        Bonds represent the "investment" a subnet validator has made in evaluating a specific subnet miner. This 
+        bonding mechanism is integral to the Yuma Consensus' design intent of incentivizing high-quality performance
+         by subnet miners, and honest evaluation by subnet validators.
 
         Arguments:
-            netuid (int): The unique identifier of the subnet.
-            block (Optional[int]): The block number for this query. Do not specify if using
-                block_hash or reuse_block.
-            block_hash (Optional[str]): The hash of the block for the query. Do not specify
-                if using reuse_block or block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using
-                block_hash or block.
+            netuid: The unique identifier of the subnet.
+            block: The block number for this query. Do not specify if using block_hash or reuse_block.
+            block_hash: The hash of the block for the query. Do not specify if using reuse_block or block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
 
         Returns:
             List of tuples mapping each neuron's UID to its bonds with other neurons.
@@ -941,34 +918,25 @@ class AsyncSubtensor(SubtensorMixin):
         """Commits arbitrary data to the Bittensor network by publishing metadata.
 
         This method allows neurons to publish arbitrary data to the blockchain, which can be used for various purposes
-        such as sharing model updates, configuration data, or other network-relevant information.
+          such as sharing model updates, configuration data, or other network-relevant information.
 
         Arguments:
             wallet: The wallet associated with the neuron committing the data.
             netuid: The unique identifier of the subnet.
             data: The data to be committed to the network.
-            period: The number of blocks during which the transaction will remain valid after it's submitted.
-                If the transaction is not included in a block within that number of blocks, it will expire and be
-                rejected. You can think of it as an expiration date for the transaction.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the 
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+              can think of it as an expiration date for the transaction.
 
         Returns:
             bool: True if the commit was successful, False otherwise.
 
         Example:
             # Commit some data to subnet 1
-            success = await subtensor.commit(
-                wallet=my_wallet,
-                netuid=1,
-                data="Hello Bittensor!"
-            )
+            success = await subtensor.commit(wallet=my_wallet, netuid=1, data="Hello Bittensor!")
 
             # Commit with custom period
-            success = await subtensor.commit(
-                wallet=my_wallet,
-                netuid=1,
-                data="Model update v2.0",
-                period=100
-            )
+            success = await subtensor.commit(wallet=my_wallet, netuid=1, data="Model update v2.0", period=100)
 
         Note: See <https://docs.learnbittensor.org/glossary#commit-reveal>
         """
@@ -993,15 +961,14 @@ class AsyncSubtensor(SubtensorMixin):
         """Check if commit-reveal mechanism is enabled for a given subnet at a specific block.
 
         The commit reveal feature is designed to solve the weight-copying problem by giving would-be weight-copiers
-        access only to stale weights. Copying stale weights should result in subnet validators departing from consensus.
+          access only to stale weights. Copying stale weights should result in subnet validators departing from 
+          consensus.
 
         Arguments:
             netuid: The unique identifier of the subnet for which to check the commit-reveal mechanism.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or
-                reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or
-                block.
+            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
 
         Returns:
             bool: True if commit-reveal mechanism is enabled, False otherwise.
@@ -1011,10 +978,7 @@ class AsyncSubtensor(SubtensorMixin):
             enabled = await subtensor.commit_reveal_enabled(netuid=1)
 
             # Check at specific block
-            enabled = await subtensor.commit_reveal_enabled(
-                netuid=1,
-                block=1000000
-            )
+            enabled = await subtensor.commit_reveal_enabled(netuid=1, block=1000000)
 
         See also: <https://docs.learnbittensor.org/glossary#commit-reveal>
         """
@@ -1036,16 +1000,16 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> Optional[int]:
         """Retrieves the 'Difficulty' hyperparameter for a specified subnet in the Bittensor network.
 
-        This parameter determines the computational challenge required for neurons to participate in
-        consensus and validation processes. The difficulty directly impacts the network's security and integrity by
-        setting the computational effort required for validating transactions and participating in the network's
-        consensus mechanism.
+        This parameter determines the computational challenge required for neurons to participate in consensus and
+         validation processes. The difficulty directly impacts the network's security and integrity by setting the
+         computational effort required for validating transactions and participating in the network's consensus 
+         mechanism.
 
         Arguments:
             netuid: The unique identifier of the subnet.
             block: The block number for the query. Do not specify if using block_hash or reuse_block.
-            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
-                reuse_block.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or 
+            reuse_block.
             reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
 
         Returns:
@@ -1056,10 +1020,7 @@ class AsyncSubtensor(SubtensorMixin):
             difficulty = await subtensor.difficulty(netuid=1)
 
             # Get difficulty at specific block
-            difficulty = await subtensor.difficulty(
-                netuid=1,
-                block=1000000
-            )
+            difficulty = await subtensor.difficulty(netuid=1, block=1000000)
 
         See also: <https://docs.learnbittensor.org/glossary#difficulty>
         """
@@ -1097,13 +1058,10 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example:
             # Check if hotkey exists
-            exists = await subtensor.does_hotkey_exist("5F...")
+            exists = await subtensor.does_hotkey_exist(hotkey_ss58="5F...")
 
             # Check at specific block
-            exists = await subtensor.does_hotkey_exist(
-                "5F...",
-                block=1000000
-            )
+            exists = await subtensor.does_hotkey_exist(hotkey_ss58="5F...", block=1000000)
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query(
@@ -1152,8 +1110,8 @@ class AsyncSubtensor(SubtensorMixin):
                 print(f"Subnet {subnet.netuid}: {subnet.name}")
 
         Note:
-            Gaining insights into the subnets' details assists in understanding the network's composition,
-        the roles of different subnets, and their unique features.
+            Gaining insights into the subnets' details assists in understanding the network's composition, the roles
+            of different subnets, and their unique features.
 
         See also: <https://docs.learnbittensor.org/glossary#subnet>
         """
@@ -1179,8 +1137,8 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> Balance:
         """Retrieves the balance for given coldkey.
 
-        This method queries the System module's Account storage to get the current balance of a coldkey address.
-        The balance represents the amount of TAO tokens held by the specified address.
+        This method queries the System module's Account storage to get the current balance of a coldkey address. The
+        balance represents the amount of TAO tokens held by the specified address.
 
         Arguments:
             address: The coldkey address in SS58 format.
@@ -1193,15 +1151,11 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example:
             # Get balance for an address
-            balance = await subtensor.get_balance("5F...")
+            balance = await subtensor.get_balance(address="5F...")
             print(f"Balance: {balance.tao} TAO")
 
             # Get balance at specific block
-            balance = await subtensor.get_balance(
-                "5F...",
-                block=1000000
-            )
-
+            balance = await subtensor.get_balance(address="5F...", block=1000000)
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         balance = await self.substrate.query(
@@ -1223,8 +1177,8 @@ class AsyncSubtensor(SubtensorMixin):
         """Retrieves the balance for given coldkey(s).
 
         This method efficiently queries multiple coldkey addresses in a single batch operation, returning a
-        dictionary mapping each address to its corresponding balance. This is more efficient than calling
-        get_balance multiple times.
+        dictionary mapping each address to its corresponding balance. This is more efficient than calling get_balance
+        multiple times.
 
         Arguments:
             *addresses: Variable number of coldkey addresses in SS58 format.
@@ -1237,12 +1191,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example:
             # Get balances for multiple addresses
-            balances = await subtensor.get_balances(
-                "5F...",
-                "5G...",
-                "5H..."
-            )
-
+            balances = await subtensor.get_balances("5F...", "5G...", "5H...")
         """
         if reuse_block:
             block_hash = self.substrate.last_block_hash
@@ -1268,10 +1217,9 @@ class AsyncSubtensor(SubtensorMixin):
     async def get_current_block(self) -> int:
         """Returns the current block number on the Bittensor blockchain.
 
-        This function provides the latest block number, indicating the most recent state of the blockchain.
-        Knowing the current block number is essential for querying real-time data and performing time-sensitive
-        operations on the blockchain. It serves as a reference point for network activities and data
-        synchronization.
+        This function provides the latest block number, indicating the most recent state of the blockchain. Knowing 
+        the current block number is essential for querying real-time data and performing time-sensitive operations on
+          the blockchain. It serves as a reference point for network activities and data synchronization.
 
         Returns:
             int: The current chain block number.
@@ -1280,7 +1228,6 @@ class AsyncSubtensor(SubtensorMixin):
             # Get current block number
             current_block = await subtensor.get_current_block()
             print(f"Current block: {current_block}")
-
 
             block = await subtensor.get_current_block()
             if block > 1000000:
@@ -1297,20 +1244,20 @@ class AsyncSubtensor(SubtensorMixin):
     async def get_block_hash(self, block: Optional[int] = None) -> str:
         """Retrieves the hash of a specific block on the Bittensor blockchain.
 
-        The block hash is a unique identifier representing the cryptographic hash of the block's content,
-        ensuring its integrity and immutability. It is a fundamental aspect of blockchain technology,
-        providing a secure reference to each block's data. It is crucial for verifying transactions,
-        ensuring data consistency, and maintaining the trustworthiness of the blockchain.
+        The block hash is a unique identifier representing the cryptographic hash of the block's content, ensuring its
+        integrity and immutability. It is a fundamental aspect of blockchain technology, providing a secure reference
+        to each block's data. It is crucial for verifying transactions, ensuring data consistency, and maintaining
+        the trustworthiness of the blockchain.
 
         Arguments:
-            block: The block number for which the hash is to be retrieved. If None, returns the latest block hash.
+            block: The block number for which the hash is to be retrieved. If `None`, returns the latest block hash.
 
         Returns:
             str: The cryptographic hash of the specified block.
 
         Example:
             # Get hash for specific block
-            block_hash = await subtensor.get_block_hash(1000000)
+            block_hash = await subtensor.get_block_hash(block=1000000)
             print(f"Block 1000000 hash: {block_hash}")
 
             # Get latest block hash
@@ -1332,9 +1279,8 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> list[tuple[float, str]]:
-        """
-        This method retrieves the parent of a given hotkey and netuid. It queries the SubtensorModule's ParentKeys
-            storage function to get the children and formats them before returning as a tuple.
+        """This method retrieves the parent of a given hotkey and netuid. It queries the SubtensorModule's ParentKeys
+        storage function to get the children and formats them before returning as a tuple.
 
         Arguments:
             hotkey: The child hotkey SS58.
@@ -1376,8 +1322,8 @@ class AsyncSubtensor(SubtensorMixin):
         """Retrieves the children of a given hotkey and netuid.
 
         This method queries the SubtensorModule's ChildKeys storage function to get the children and formats them
-        before returning as a tuple. It provides information about the child neurons that a validator has set
-        for weight distribution.
+        before returning as a tuple. It provides information about the child neurons that a validator has set for
+        weight distribution.
 
         Arguments:
             hotkey: The hotkey value.
@@ -1387,15 +1333,12 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            tuple[bool, list[tuple[float, str]], str]: A tuple containing a boolean indicating success or failure,
-                a list of formatted children with their proportions, and an error message (if applicable).
+            tuple[bool, list[tuple[float, str]], str]: A tuple containing a boolean indicating success or failure, a
+            list of formatted children with their proportions, and an error message (if applicable).
 
         Example:
             # Get children for a hotkey in subnet 1
-            success, children, error = await subtensor.get_children(
-                hotkey="5F...",
-                netuid=1
-            )
+            success, children, error = await subtensor.get_children(hotkey="5F...", netuid=1)
 
             if success:
                 for proportion, child_hotkey in children:
@@ -1436,9 +1379,8 @@ class AsyncSubtensor(SubtensorMixin):
     ]:
         """Retrieves the pending children of a given hotkey and netuid.
 
-        This method queries the SubtensorModule's PendingChildKeys storage function to get children that are
-        pending approval or in a cooldown period. These are children that have been proposed but not yet
-        finalized.
+        This method queries the SubtensorModule's PendingChildKeys storage function to get children that are pending
+        approval or in a cooldown period. These are children that have been proposed but not yet finalized.
 
         Arguments:
             hotkey: The hotkey value.
@@ -1486,8 +1428,8 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> str:
         """Retrieves the on-chain commitment for a specific neuron in the Bittensor network.
 
-        This method retrieves the commitment data that a neuron has published to the blockchain. Commitments
-        are used in the commit-reveal mechanism for secure weight setting and other network operations.
+        This method retrieves the commitment data that a neuron has published to the blockchain. Commitments are used
+        in the commit-reveal mechanism for secure weight setting and other network operations.
 
         Arguments:
             netuid (int): The unique identifier of the subnetwork.
@@ -2024,7 +1966,8 @@ class AsyncSubtensor(SubtensorMixin):
 
         Arguments:
             netuid: The unique identifier of the subnet to query.
-            field_indices: An optional list of SelectiveMetagraphIndex or int values specifying which fields to retrieve.
+            field_indices: An optional list of SelectiveMetagraphIndex or int values specifying which fields to
+                retrieve.
                 If not provided, all available fields will be returned.
             block: the block number at which to retrieve the hyperparameter. Do not specify if using block_hash or
                 reuse_block
@@ -4316,8 +4259,8 @@ class AsyncSubtensor(SubtensorMixin):
                 `True` if the weight commitment is successful, False otherwise.
                 `msg` is a string value describing the success or potential error.
 
-        This function allows subnet validators to create a tamper-proof record of their weight vector at a specific point
-            in time, creating a foundation of transparency and accountability for the Bittensor network.
+        This function allows subnet validators to create a tamper-proof record of their weight vector at a specific
+        point in time, creating a foundation of transparency and accountability for the Bittensor network.
 
         See also: <https://docs.learnbittensor.org/glossary#commit-reveal>,
 
@@ -4634,7 +4577,8 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> tuple[bool, str]:
         """
         Reveals the weight vector for a specific subnet on the Bittensor blockchain using the provided wallet.
-        This action serves as a revelation of the subnet validator's previously committed weight distribution as part of the commit-reveal mechanism.
+        This action serves as a revelation of the subnet validator's previously committed weight distribution as part
+        of the commit-reveal mechanism.
 
         Arguments:
             wallet (bittensor_wallet.Wallet): The wallet associated with the subnet validator revealing the weights.
@@ -4996,14 +4940,18 @@ class AsyncSubtensor(SubtensorMixin):
         period: Optional[int] = 8,
     ):
         """
-        Sets the weight vector for a neuron acting as a validator, specifying the weights assigned to subnet miners based on their performance evaluation.
+        Sets the weight vector for a neuron acting as a validator, specifying the weights assigned to subnet miners
+        based on their performance evaluation.
 
-        This method allows subnet validators to submit their weight vectors, which rank the value of each subnet miner's work. These weight vectors are used by the Yuma Consensus algorithm to compute emissions for both validators and miners.
+        This method allows subnet validators to submit their weight vectors, which rank the value of each subnet
+        miner's work. These weight vectors are used by the Yuma Consensus algorithm to compute emissions for both 
+        validators and miners.
 
         Arguments:
             wallet (bittensor_wallet.Wallet): The wallet associated with the subnet validator setting the weights.
             netuid (int): The unique identifier of the subnet.
-            uids (Union[NDArray[np.int64], torch.LongTensor, list]): The list of subnet miner neuron UIDs that the weights are being
+            uids (Union[NDArray[np.int64], torch.LongTensor, list]): The list of subnet miner neuron UIDs that the
+                weights are being
                 set for.
             weights (Union[NDArray[np.float32], torch.FloatTensor, list]): The corresponding weights to be set for each
                 UID, representing the validator's evaluation of each miner's performance.
@@ -5022,7 +4970,8 @@ class AsyncSubtensor(SubtensorMixin):
             tuple[bool, str]: ``True`` if the setting of weights is successful, False otherwise. And `msg`, a string
                 value describing the success or potential error.
 
-        This function is crucial in the Yuma Consensus mechanism, where each validator's weight vector contributes to the overall weight matrix used to calculate emissions and maintain network consensus.
+        This function is crucial in the Yuma Consensus mechanism, where each validator's weight vector contributes
+        to the overall weight matrix used to calculate emissions and maintain network consensus.
 
         See <https://docs.learnbittensor.org/glossary#yuma-consensus>
         """
