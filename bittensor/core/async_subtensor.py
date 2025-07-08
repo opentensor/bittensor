@@ -461,14 +461,14 @@ class AsyncSubtensor(SubtensorMixin):
          the configuration parameters.
 
         Arguments:
-            fallback_endpoints: List of fallback endpoints to use if default or provided network is not available. 
+            fallback_endpoints: List of fallback endpoints to use if default or provided network is not available.
             Defaults to `None`.
             retry_forever: Whether to retry forever on connection errors. Defaults to `False`.
             _mock: Whether this is a mock instance. Mainly for testing purposes. Defaults to `False`.
-            archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in 
-            cases where you are requesting a block that is too old for your current (presumably lite) node. Defaults 
+            archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in
+            cases where you are requesting a block that is too old for your current (presumably lite) node. Defaults
             to `None`.
-            ws_shutdown_timer: Amount of time, in seconds, to wait after the last response from the chain to close 
+            ws_shutdown_timer: Amount of time, in seconds, to wait after the last response from the chain to close
             the connection.
 
         Returns:
@@ -509,7 +509,7 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> Optional["ScaleObj"]:
         """Retrieves a constant from the specified module on the Bittensor blockchain.
 
-        This function is used to access fixed values defined within the blockchain's modules, which are essential for 
+        This function is used to access fixed values defined within the blockchain's modules, which are essential for
         understanding the network's configuration and rules. These include include critical network parameters such as
         inflation rates, consensus rules, or validation thresholds, providing a deeper understanding of the Bittensor
         network's operational parameters.
@@ -517,9 +517,9 @@ class AsyncSubtensor(SubtensorMixin):
         Arguments:
             module_name: The name of the module containing the constant (e.g., "Balances", "SubtensorModule").
             constant_name: The name of the constant to retrieve (e.g., "ExistentialDeposit").
-            block: The blockchain block number at which to query the constant. Do not specify if using block_hash or 
+            block: The blockchain block number at which to query the constant. Do not specify if using block_hash or
             reuse_block.
-            block_hash: The hash of the blockchain block at which to query the constant. Do not specify if using 
+            block_hash: The hash of the blockchain block at which to query the constant. Do not specify if using
             block or reuse_block.
             reuse_block: Whether to reuse the blockchain block at which to query the constant. Defaults to `False`.
 
@@ -566,9 +566,9 @@ class AsyncSubtensor(SubtensorMixin):
             module: The name of the module from which to query the map storage (e.g., "SubtensorModule", "System").
             name: The specific storage function within the module to query (e.g., "Bonds", "Weights").
             block: The blockchain block number at which to perform the query. Defaults to `None` (latest block).
-            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or 
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
             reuse_block.
-            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block. Defaults to 
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block. Defaults to
             `False`.
             params: Parameters to be passed to the query. Defaults to `None`.
 
@@ -600,14 +600,14 @@ class AsyncSubtensor(SubtensorMixin):
         reuse_block: bool = False,
         params: Optional[list] = None,
     ) -> "AsyncQueryMapResult":
-        """Queries map storage from the Subtensor module on the Bittensor blockchain. This function is designed to 
+        """Queries map storage from the Subtensor module on the Bittensor blockchain. This function is designed to
         retrieve a map-like data structure, which can include various neuron-specific details or network-wide
         attributes.
 
         Arguments:
             name: The name of the map storage function to query.
             block: The blockchain block number at which to perform the query.
-            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or 
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
             reuse_block.
             reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
             params: A list of parameters to pass to the query function.
@@ -615,7 +615,7 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             An object containing the map-like data structure, or `None` if not found.
 
-        This function is particularly useful for analyzing and understanding complex network structures and 
+        This function is particularly useful for analyzing and understanding complex network structures and
         relationships within the Bittensor ecosystem, such as interneuronal connections and stake distributions.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
@@ -876,7 +876,7 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> list[tuple[int, list[tuple[int, int]]]]:
         """Retrieves the bond distribution set by subnet validators within a specific subnet.
 
-        Bonds represent the "investment" a subnet validator has made in evaluating a specific subnet miner. This 
+        Bonds represent the "investment" a subnet validator has made in evaluating a specific subnet miner. This
         bonding mechanism is integral to the Yuma Consensus' design intent of incentivizing high-quality performance
          by subnet miners, and honest evaluation by subnet validators.
 
@@ -924,7 +924,7 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: The wallet associated with the neuron committing the data.
             netuid: The unique identifier of the subnet.
             data: The data to be committed to the network.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If the 
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You
               can think of it as an expiration date for the transaction.
 
@@ -961,7 +961,7 @@ class AsyncSubtensor(SubtensorMixin):
         """Check if commit-reveal mechanism is enabled for a given subnet at a specific block.
 
         The commit reveal feature is designed to solve the weight-copying problem by giving would-be weight-copiers
-          access only to stale weights. Copying stale weights should result in subnet validators departing from 
+          access only to stale weights. Copying stale weights should result in subnet validators departing from
           consensus.
 
         Arguments:
@@ -1002,13 +1002,13 @@ class AsyncSubtensor(SubtensorMixin):
 
         This parameter determines the computational challenge required for neurons to participate in consensus and
          validation processes. The difficulty directly impacts the network's security and integrity by setting the
-         computational effort required for validating transactions and participating in the network's consensus 
+         computational effort required for validating transactions and participating in the network's consensus
          mechanism.
 
         Arguments:
             netuid: The unique identifier of the subnet.
             block: The block number for the query. Do not specify if using block_hash or reuse_block.
-            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or 
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
             reuse_block.
             reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
 
@@ -1217,7 +1217,7 @@ class AsyncSubtensor(SubtensorMixin):
     async def get_current_block(self) -> int:
         """Returns the current block number on the Bittensor blockchain.
 
-        This function provides the latest block number, indicating the most recent state of the blockchain. Knowing 
+        This function provides the latest block number, indicating the most recent state of the blockchain. Knowing
         the current block number is essential for querying real-time data and performing time-sensitive operations on
           the blockchain. It serves as a reference point for network activities and data synchronization.
 
@@ -4944,7 +4944,7 @@ class AsyncSubtensor(SubtensorMixin):
         based on their performance evaluation.
 
         This method allows subnet validators to submit their weight vectors, which rank the value of each subnet
-        miner's work. These weight vectors are used by the Yuma Consensus algorithm to compute emissions for both 
+        miner's work. These weight vectors are used by the Yuma Consensus algorithm to compute emissions for both
         validators and miners.
 
         Arguments:
