@@ -6,6 +6,7 @@ if TYPE_CHECKING:
 
 def add_legacy_methods(subtensor: "SubtensorApi"):
     """If SubtensorApi get `subtensor_fields=True` arguments, then all classic Subtensor fields added to root level."""
+    subtensor.add_liquidity = subtensor._subtensor.add_liquidity
     subtensor.add_stake = subtensor._subtensor.add_stake
     subtensor.add_stake_multiple = subtensor._subtensor.add_stake_multiple
     subtensor.all_subnets = subtensor._subtensor.all_subnets
@@ -36,10 +37,14 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.get_balance = subtensor._subtensor.get_balance
     subtensor.get_balances = subtensor._subtensor.get_balances
     subtensor.get_block_hash = subtensor._subtensor.get_block_hash
+    subtensor.get_parents = subtensor._subtensor.get_parents
     subtensor.get_children = subtensor._subtensor.get_children
     subtensor.get_children_pending = subtensor._subtensor.get_children_pending
     subtensor.get_commitment = subtensor._subtensor.get_commitment
     subtensor.get_current_block = subtensor._subtensor.get_current_block
+    subtensor.get_last_commitment_bonds_reset_block = (
+        subtensor._subtensor.get_last_commitment_bonds_reset_block
+    )
     subtensor.get_current_weight_commit_info = (
         subtensor._subtensor.get_current_weight_commit_info
     )
@@ -52,6 +57,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.get_hotkey_owner = subtensor._subtensor.get_hotkey_owner
     subtensor.get_hotkey_stake = subtensor._subtensor.get_hotkey_stake
     subtensor.get_hyperparameter = subtensor._subtensor.get_hyperparameter
+    subtensor.get_liquidity_list = subtensor._subtensor.get_liquidity_list
     subtensor.get_metagraph_info = subtensor._subtensor.get_metagraph_info
     subtensor.get_minimum_required_stake = (
         subtensor._subtensor.get_minimum_required_stake
@@ -115,6 +121,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.max_weight_limit = subtensor._subtensor.max_weight_limit
     subtensor.metagraph = subtensor._subtensor.metagraph
     subtensor.min_allowed_weights = subtensor._subtensor.min_allowed_weights
+    subtensor.modify_liquidity = subtensor._subtensor.modify_liquidity
     subtensor.move_stake = subtensor._subtensor.move_stake
     subtensor.network = subtensor._subtensor.network
     subtensor.neurons = subtensor._subtensor.neurons
@@ -128,10 +135,14 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.query_runtime_api = subtensor._subtensor.query_runtime_api
     subtensor.query_subtensor = subtensor._subtensor.query_subtensor
     subtensor.recycle = subtensor._subtensor.recycle
+    subtensor.remove_liquidity = subtensor._subtensor.remove_liquidity
     subtensor.register = subtensor._subtensor.register
     subtensor.register_subnet = subtensor._subtensor.register_subnet
     subtensor.reveal_weights = subtensor._subtensor.reveal_weights
     subtensor.root_register = subtensor._subtensor.root_register
+    subtensor.root_set_pending_childkey_cooldown = (
+        subtensor._subtensor.root_set_pending_childkey_cooldown
+    )
     subtensor.root_set_weights = subtensor._subtensor.root_set_weights
     subtensor.serve_axon = subtensor._subtensor.serve_axon
     subtensor.set_children = subtensor._subtensor.set_children
@@ -150,10 +161,12 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.substrate = subtensor._subtensor.substrate
     subtensor.swap_stake = subtensor._subtensor.swap_stake
     subtensor.tempo = subtensor._subtensor.tempo
+    subtensor.toggle_user_liquidity = subtensor._subtensor.toggle_user_liquidity
     subtensor.transfer = subtensor._subtensor.transfer
     subtensor.transfer_stake = subtensor._subtensor.transfer_stake
     subtensor.tx_rate_limit = subtensor._subtensor.tx_rate_limit
     subtensor.unstake = subtensor._subtensor.unstake
+    subtensor.unstake_all = subtensor._subtensor.unstake_all
     subtensor.unstake_multiple = subtensor._subtensor.unstake_multiple
     subtensor.wait_for_block = subtensor._subtensor.wait_for_block
     subtensor.weights = subtensor._subtensor.weights

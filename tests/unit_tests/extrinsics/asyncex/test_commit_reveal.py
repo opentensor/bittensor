@@ -36,6 +36,12 @@ def hyperparams():
         alpha_high=0,
         alpha_low=0,
         liquid_alpha_enabled=False,
+        alpha_sigmoid_steepness=0,
+        yuma_version=3,
+        subnet_is_active=False,
+        transfers_enabled=False,
+        bonds_reset_enabled=False,
+        user_liquidity_enabled=False,
     )
 
 

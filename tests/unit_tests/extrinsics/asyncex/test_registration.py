@@ -431,6 +431,7 @@ async def test_set_subnet_identity_extrinsic_is_success(subtensor, fake_wallet, 
     github_repo = "mock_github_repo"
     subnet_contact = "mock_subnet_contact"
     subnet_url = "mock_subnet_url"
+    logo_url = "mock_logo_url"
     discord = "mock_discord"
     description = "mock_description"
     additional = "mock_additional"
@@ -452,6 +453,7 @@ async def test_set_subnet_identity_extrinsic_is_success(subtensor, fake_wallet, 
         github_repo=github_repo,
         subnet_contact=subnet_contact,
         subnet_url=subnet_url,
+        logo_url=logo_url,
         discord=discord,
         description=description,
         additional=additional,
@@ -468,6 +470,7 @@ async def test_set_subnet_identity_extrinsic_is_success(subtensor, fake_wallet, 
             "github_repo": github_repo,
             "subnet_contact": subnet_contact,
             "subnet_url": subnet_url,
+            "logo_url": logo_url,
             "discord": discord,
             "description": description,
             "additional": additional,
@@ -493,6 +496,7 @@ async def test_set_subnet_identity_extrinsic_is_failed(subtensor, fake_wallet, m
     github_repo = "mock_github_repo"
     subnet_contact = "mock_subnet_contact"
     subnet_url = "mock_subnet_url"
+    logo_url = "mock_logo_url"
     discord = "mock_discord"
     description = "mock_description"
     additional = "mock_additional"
@@ -515,6 +519,7 @@ async def test_set_subnet_identity_extrinsic_is_failed(subtensor, fake_wallet, m
         github_repo=github_repo,
         subnet_contact=subnet_contact,
         subnet_url=subnet_url,
+        logo_url=logo_url,
         discord=discord,
         description=description,
         additional=additional,
@@ -533,6 +538,7 @@ async def test_set_subnet_identity_extrinsic_is_failed(subtensor, fake_wallet, m
             "github_repo": github_repo,
             "subnet_contact": subnet_contact,
             "subnet_url": subnet_url,
+            "logo_url": logo_url,
             "discord": discord,
             "description": description,
             "additional": additional,

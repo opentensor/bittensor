@@ -846,7 +846,7 @@ def test_get_subnet_hyperparameters_success(mocker, subtensor):
     # Asserts
     subtensor.query_runtime_api.assert_called_once_with(
         runtime_api="SubnetInfoRuntimeApi",
-        method="get_subnet_hyperparams",
+        method="get_subnet_hyperparams_v2",
         params=[netuid],
         block=block,
     )
@@ -870,7 +870,7 @@ def test_get_subnet_hyperparameters_no_data(mocker, subtensor):
     assert result is None
     subtensor.query_runtime_api.assert_called_once_with(
         runtime_api="SubnetInfoRuntimeApi",
-        method="get_subnet_hyperparams",
+        method="get_subnet_hyperparams_v2",
         params=[netuid],
         block=block,
     )
@@ -1810,6 +1810,33 @@ def test_get_commitment(subtensor, mocker):
 
     # Assertions
     mocked_metagraph.assert_called_once_with(fake_netuid)
+    assert result == expected_result
+
+
+def test_get_last_commitment_bonds_reset_block(subtensor, mocker):
+    """Successful get_last_commitment_bonds_reset_block call."""
+    # Preps
+    fake_netuid = 1
+    fake_uid = 2
+    fake_hotkey = "hotkey"
+    expected_result = 3
+
+    mocked_get_last_bonds_reset = mocker.patch.object(
+        subtensor_module, "get_last_bonds_reset"
+    )
+    mocked_get_last_bonds_reset.return_value = expected_result
+
+    mocked_metagraph = mocker.MagicMock()
+    subtensor.metagraph = mocked_metagraph
+    mocked_metagraph.return_value.hotkeys = {fake_uid: fake_hotkey}
+
+    # Call
+    result = subtensor.get_last_commitment_bonds_reset_block(
+        netuid=fake_netuid, uid=fake_uid
+    )
+
+    # Assertions
+    mocked_get_last_bonds_reset.assert_called_once()
     assert result == expected_result
 
 
@@ -3209,6 +3236,7 @@ def test_set_subnet_identity(mocker, subtensor, fake_wallet):
         github_repo=fake_subnet_identity.github_repo,
         subnet_contact=fake_subnet_identity.subnet_contact,
         subnet_url=fake_subnet_identity.subnet_url,
+        logo_url=fake_subnet_identity.logo_url,
         discord=fake_subnet_identity.discord,
         description=fake_subnet_identity.description,
         additional=fake_subnet_identity.additional,
@@ -3409,89 +3437,90 @@ def test_start_call(subtensor, mocker):
     assert result == mocked_extrinsic.return_value
 
 
-# TODO: get back after SelectiveMetagraph come to the mainnet
-# def test_get_metagraph_info_all_fields(subtensor, mocker):
-#     """Test get_metagraph_info with all fields (default behavior)."""
-#     # Preps
-#     netuid = 1
-#     mock_value = {"mock": "data"}
-#
-#     mock_runtime_call = mocker.patch.object(
-#         subtensor.substrate,
-#         "runtime_call",
-#         return_value=mocker.Mock(value=mock_value),
-#     )
-#     mock_from_dict = mocker.patch.object(
-#         subtensor_module.MetagraphInfo, "from_dict", return_value="parsed_metagraph"
-#     )
-#
-#     # Call
-#     result = subtensor.get_metagraph_info(netuid=netuid)
-#
-#     # Asserts
-#     assert result == "parsed_metagraph"
-#     mock_runtime_call.assert_called_once_with(
-#         "SubnetInfoRuntimeApi",
-#         "get_selective_metagraph",
-#         params=[netuid, SelectiveMetagraphIndex.all_indices()],
-#         block_hash=subtensor.determine_block_hash(None),
-#     )
-#     mock_from_dict.assert_called_once_with(mock_value)
-#
-#
-# def test_get_metagraph_info_specific_fields(subtensor, mocker):
-#     """Test get_metagraph_info with specific fields."""
-#     # Preps
-#     netuid = 1
-#     mock_value = {"mock": "data"}
-#     fields = [SelectiveMetagraphIndex.Name, 5]
-#
-#     mock_runtime_call = mocker.patch.object(
-#         subtensor.substrate,
-#         "runtime_call",
-#         return_value=mocker.Mock(value=mock_value),
-#     )
-#     mock_from_dict = mocker.patch.object(
-#         subtensor_module.MetagraphInfo, "from_dict", return_value="parsed_metagraph"
-#     )
-#
-#     # Call
-#     result = subtensor.get_metagraph_info(netuid=netuid, field_indices=fields)
-#
-#     # Asserts
-#     assert result == "parsed_metagraph"
-#     mock_runtime_call.assert_called_once_with(
-#         "SubnetInfoRuntimeApi",
-#         "get_selective_metagraph",
-#         params=[
-#             netuid,
-#             [0]
-#             + [
-#                 f.value if isinstance(f, SelectiveMetagraphIndex) else f for f in fields
-#             ],
-#         ],
-#         block_hash=subtensor.determine_block_hash(None),
-#     )
-#     mock_from_dict.assert_called_once_with(mock_value)
-#
-#
-# @pytest.mark.parametrize(
-#     "wrong_fields",
-#     [
-#         [
-#             "invalid",
-#         ],
-#         [SelectiveMetagraphIndex.Active, 1, "f"],
-#         [1, 2, 3, "f"],
-#     ],
-# )
-# def test_get_metagraph_info_invalid_field_indices(subtensor, wrong_fields):
-#     """Test get_metagraph_info raises ValueError on invalid field_indices."""
-#     with pytest.raises(
-#         ValueError,
-#         match="`field_indices` must be a list of SelectiveMetagraphIndex items.",
-#     ):
-#         subtensor.get_metagraph_info(netuid=1, field_indices=wrong_fields)
+def test_get_metagraph_info_all_fields(subtensor, mocker):
+    """Test get_metagraph_info with all fields (default behavior)."""
+    # Preps
+    netuid = 1
+    mock_value = {"mock": "data"}
+
+    mock_runtime_call = mocker.patch.object(
+        subtensor.substrate,
+        "runtime_call",
+        return_value=mocker.Mock(value=mock_value),
+    )
+    mock_from_dict = mocker.patch.object(
+        subtensor_module.MetagraphInfo, "from_dict", return_value="parsed_metagraph"
+    )
+
+    # Call
+    result = subtensor.get_metagraph_info(
+        netuid=netuid, field_indices=[f for f in range(73)]
+    )
+
+    # Asserts
+    assert result == "parsed_metagraph"
+    mock_runtime_call.assert_called_once_with(
+        "SubnetInfoRuntimeApi",
+        "get_selective_metagraph",
+        params=[netuid, SelectiveMetagraphIndex.all_indices()],
+        block_hash=subtensor.determine_block_hash(None),
+    )
+    mock_from_dict.assert_called_once_with(mock_value)
+
+
+def test_get_metagraph_info_specific_fields(subtensor, mocker):
+    """Test get_metagraph_info with specific fields."""
+    # Preps
+    netuid = 1
+    mock_value = {"mock": "data"}
+    fields = [SelectiveMetagraphIndex.Name, 5]
+
+    mock_runtime_call = mocker.patch.object(
+        subtensor.substrate,
+        "runtime_call",
+        return_value=mocker.Mock(value=mock_value),
+    )
+    mock_from_dict = mocker.patch.object(
+        subtensor_module.MetagraphInfo, "from_dict", return_value="parsed_metagraph"
+    )
+
+    # Call
+    result = subtensor.get_metagraph_info(netuid=netuid, field_indices=fields)
+
+    # Asserts
+    assert result == "parsed_metagraph"
+    mock_runtime_call.assert_called_once_with(
+        "SubnetInfoRuntimeApi",
+        "get_selective_metagraph",
+        params=[
+            netuid,
+            [0]
+            + [
+                f.value if isinstance(f, SelectiveMetagraphIndex) else f for f in fields
+            ],
+        ],
+        block_hash=subtensor.determine_block_hash(None),
+    )
+    mock_from_dict.assert_called_once_with(mock_value)
+
+
+@pytest.mark.parametrize(
+    "wrong_fields",
+    [
+        [
+            "invalid",
+        ],
+        [SelectiveMetagraphIndex.Active, 1, "f"],
+        [1, 2, 3, "f"],
+    ],
+)
+def test_get_metagraph_info_invalid_field_indices(subtensor, wrong_fields):
+    """Test get_metagraph_info raises ValueError on invalid field_indices."""
+    with pytest.raises(
+        ValueError,
+        match="`field_indices` must be a list of SelectiveMetagraphIndex enums or ints.",
+    ):
+        subtensor.get_metagraph_info(netuid=1, field_indices=wrong_fields)
 
 
 def test_get_metagraph_info_subnet_not_exist(subtensor, mocker):
@@ -3746,3 +3775,368 @@ def test_get_next_epoch_start_block(mocker, subtensor, call_return, expected):
     )
     subtensor.tempo.assert_called_once_with(netuid=netuid, block=block)
     assert result == expected
+
+
+def test_get_parents_success(subtensor, mocker):
+    """Tests get_parents when parents are successfully retrieved and formatted."""
+    # Preps
+    fake_hotkey = "valid_hotkey"
+    fake_netuid = 1
+    fake_parents = mocker.Mock(
+        value=[
+            (1000, ["parent_key_1"]),
+            (2000, ["parent_key_2"]),
+        ]
+    )
+
+    mocked_query = mocker.MagicMock(return_value=fake_parents)
+    subtensor.substrate.query = mocked_query
+
+    mocked_decode_account_id = mocker.Mock(
+        side_effect=["decoded_parent_key_1", "decoded_parent_key_2"]
+    )
+    mocker.patch.object(subtensor_module, "decode_account_id", mocked_decode_account_id)
+
+    expected_formatted_parents = [
+        (u64_normalized_float(1000), "decoded_parent_key_1"),
+        (u64_normalized_float(2000), "decoded_parent_key_2"),
+    ]
+
+    # Call
+    result = subtensor.get_parents(hotkey=fake_hotkey, netuid=fake_netuid)
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        block_hash=None,
+        module="SubtensorModule",
+        storage_function="ParentKeys",
+        params=[fake_hotkey, fake_netuid],
+    )
+    mocked_decode_account_id.assert_has_calls(
+        [mocker.call("parent_key_1"), mocker.call("parent_key_2")]
+    )
+    assert result == expected_formatted_parents
+
+
+def test_get_parents_no_parents(subtensor, mocker):
+    """Tests get_parents when there are no parents to retrieve."""
+    # Preps
+    fake_hotkey = "valid_hotkey"
+    fake_netuid = 1
+    fake_parents = []
+
+    mocked_query = mocker.MagicMock(return_value=fake_parents)
+    subtensor.substrate.query = mocked_query
+
+    # Call
+    result = subtensor.get_parents(hotkey=fake_hotkey, netuid=fake_netuid)
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        block_hash=None,
+        module="SubtensorModule",
+        storage_function="ParentKeys",
+        params=[fake_hotkey, fake_netuid],
+    )
+    assert result == []
+
+
+def test_set_children(subtensor, fake_wallet, mocker):
+    """Tests set_children extrinsic calls properly."""
+    # Preps
+    mocked_set_children_extrinsic = mocker.Mock()
+    mocker.patch.object(
+        subtensor_module, "set_children_extrinsic", mocked_set_children_extrinsic
+    )
+    fake_children = [
+        (
+            1.0,
+            "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
+        ),
+    ]
+
+    # Call
+    result = subtensor.set_children(
+        fake_wallet,
+        fake_wallet.hotkey.ss58_address,
+        netuid=1,
+        children=fake_children,
+    )
+
+    # Asserts
+    mocked_set_children_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        hotkey=fake_wallet.hotkey.ss58_address,
+        netuid=1,
+        children=fake_children,
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
+        raise_error=False,
+        period=None,
+    )
+    assert result == mocked_set_children_extrinsic.return_value
+
+
+def test_unstake_all(subtensor, fake_wallet, mocker):
+    """Verifies unstake_all calls properly."""
+    # Preps
+    fake_unstake_all_extrinsic = mocker.Mock()
+    mocker.patch.object(
+        subtensor_module, "unstake_all_extrinsic", fake_unstake_all_extrinsic
+    )
+    # Call
+    result = subtensor.unstake_all(
+        wallet=fake_wallet,
+        hotkey=fake_wallet.hotkey.ss58_address,
+        netuid=1,
+    )
+    # Asserts
+    fake_unstake_all_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        hotkey=fake_wallet.hotkey.ss58_address,
+        netuid=1,
+        rate_tolerance=0.005,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        period=None,
+    )
+    assert result == fake_unstake_all_extrinsic.return_value
+
+
+def test_get_liquidity_list_subnet_does_not_exits(subtensor, mocker):
+    """Test get_liquidity_list returns None when subnet doesn't exist."""
+    # Preps
+    mocker.patch.object(subtensor, "subnet_exists", return_value=False)
+
+    # Call
+    result = subtensor.get_liquidity_list(wallet=mocker.Mock(), netuid=1)
+
+    # Asserts
+    subtensor.subnet_exists.assert_called_once_with(netuid=1)
+    assert result is None
+
+
+def test_get_liquidity_list_subnet_is_not_active(subtensor, mocker):
+    """Test get_liquidity_list returns None when subnet is not active."""
+    # Preps
+    mocker.patch.object(subtensor, "subnet_exists", return_value=True)
+    mocker.patch.object(subtensor, "is_subnet_active", return_value=False)
+
+    # Call
+    result = subtensor.get_liquidity_list(wallet=mocker.Mock(), netuid=1)
+
+    # Asserts
+    subtensor.subnet_exists.assert_called_once_with(netuid=1)
+    subtensor.is_subnet_active.assert_called_once_with(netuid=1)
+    assert result is None
+
+
+def test_get_liquidity_list_happy_path(subtensor, fake_wallet, mocker):
+    """Tests `get_liquidity_list` returns the correct value."""
+    # Preps
+    netuid = 2
+
+    mocker.patch.object(subtensor, "subnet_exists", return_value=True)
+    mocker.patch.object(subtensor, "is_subnet_active", return_value=True)
+    mocker.patch.object(subtensor, "determine_block_hash")
+
+    mocker.patch.object(
+        subtensor_module, "price_to_tick", return_value=Balance.from_tao(1.0, netuid)
+    )
+    mocker.patch.object(
+        subtensor_module,
+        "calculate_fees",
+        return_value=(Balance.from_tao(0.0), Balance.from_tao(0.0, netuid)),
+    )
+
+    mocked_substrate_query = mocker.MagicMock()
+    mocker.patch.object(subtensor.substrate, "query", mocked_substrate_query)
+
+    fake_positions = [
+        [
+            (2,),
+            mocker.Mock(
+                value={
+                    "id": (2,),
+                    "netuid": 2,
+                    "tick_low": (206189,),
+                    "tick_high": (208196,),
+                    "liquidity": 1000000000000,
+                    "fees_tao": {"bits": 0},
+                    "fees_alpha": {"bits": 0},
+                }
+            ),
+        ],
+        [
+            (2,),
+            mocker.Mock(
+                value={
+                    "id": (2,),
+                    "netuid": 2,
+                    "tick_low": (216189,),
+                    "tick_high": (198196,),
+                    "liquidity": 2000000000000,
+                    "fees_tao": {"bits": 0},
+                    "fees_alpha": {"bits": 0},
+                }
+            ),
+        ],
+        [
+            (2,),
+            mocker.Mock(
+                value={
+                    "id": (2,),
+                    "netuid": 2,
+                    "tick_low": (226189,),
+                    "tick_high": (188196,),
+                    "liquidity": 3000000000000,
+                    "fees_tao": {"bits": 0},
+                    "fees_alpha": {"bits": 0},
+                }
+            ),
+        ],
+    ]
+    mocked_query_map = mocker.MagicMock(return_value=fake_positions)
+    mocker.patch.object(subtensor, "query_map", new=mocked_query_map)
+
+    # Call
+
+    result = subtensor.get_liquidity_list(wallet=fake_wallet, netuid=netuid)
+
+    # Asserts
+    subtensor.determine_block_hash.assert_called_once_with(None)
+    assert subtensor_module.price_to_tick.call_count == 1
+    assert subtensor_module.calculate_fees.call_count == len(fake_positions)
+
+    mocked_query_map.assert_called_once_with(
+        module="Swap",
+        name="Positions",
+        block=None,
+        params=[netuid, fake_wallet.coldkeypub.ss58_address],
+    )
+    assert len(result) == len(fake_positions)
+    assert all([isinstance(p, subtensor_module.LiquidityPosition) for p in result])
+
+
+def test_add_liquidity(subtensor, fake_wallet, mocker):
+    """Test add_liquidity extrinsic calls properly."""
+    # preps
+    netuid = 123
+    mocked_extrinsic = mocker.patch.object(subtensor_module, "add_liquidity_extrinsic")
+
+    # Call
+    result = subtensor.add_liquidity(
+        wallet=fake_wallet,
+        netuid=netuid,
+        liquidity=Balance.from_tao(150),
+        price_low=Balance.from_tao(180).rao,
+        price_high=Balance.from_tao(130).rao,
+    )
+
+    # Asserts
+    mocked_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=netuid,
+        liquidity=Balance.from_tao(150),
+        price_low=Balance.from_tao(180).rao,
+        price_high=Balance.from_tao(130).rao,
+        hotkey=None,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        period=None,
+    )
+    assert result == mocked_extrinsic.return_value
+
+
+def test_modify_liquidity(subtensor, fake_wallet, mocker):
+    """Test modify_liquidity extrinsic calls properly."""
+    # preps
+    netuid = 123
+    mocked_extrinsic = mocker.patch.object(
+        subtensor_module, "modify_liquidity_extrinsic"
+    )
+    position_id = 2
+
+    # Call
+    result = subtensor.modify_liquidity(
+        wallet=fake_wallet,
+        netuid=netuid,
+        position_id=position_id,
+        liquidity_delta=Balance.from_tao(150),
+    )
+
+    # Asserts
+    mocked_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=netuid,
+        position_id=position_id,
+        liquidity_delta=Balance.from_tao(150),
+        hotkey=None,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        period=None,
+    )
+    assert result == mocked_extrinsic.return_value
+
+
+def test_remove_liquidity(subtensor, fake_wallet, mocker):
+    """Test remove_liquidity extrinsic calls properly."""
+    # preps
+    netuid = 123
+    mocked_extrinsic = mocker.patch.object(
+        subtensor_module, "remove_liquidity_extrinsic"
+    )
+    position_id = 2
+
+    # Call
+    result = subtensor.remove_liquidity(
+        wallet=fake_wallet,
+        netuid=netuid,
+        position_id=position_id,
+    )
+
+    # Asserts
+    mocked_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=netuid,
+        position_id=position_id,
+        hotkey=None,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        period=None,
+    )
+    assert result == mocked_extrinsic.return_value
+
+
+def test_toggle_user_liquidity(subtensor, fake_wallet, mocker):
+    """Test toggle_user_liquidity extrinsic calls properly."""
+    # preps
+    netuid = 123
+    mocked_extrinsic = mocker.patch.object(
+        subtensor_module, "toggle_user_liquidity_extrinsic"
+    )
+    enable = mocker.Mock()
+
+    # Call
+    result = subtensor.toggle_user_liquidity(
+        wallet=fake_wallet,
+        netuid=netuid,
+        enable=enable,
+    )
+
+    # Asserts
+    mocked_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=netuid,
+        enable=enable,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        period=None,
+    )
+    assert result == mocked_extrinsic.return_value

@@ -237,7 +237,7 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
         burn=Balance.from_tao(0.1),
         difficulty=5.421010862427522e-13,
         registration_allowed=True,
-        pow_registration_allowed=False,
+        pow_registration_allowed=True,
         immunity_period=4096,
         min_difficulty=5.421010862427522e-13,
         max_difficulty=0.25,
@@ -289,6 +289,7 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
         alpha_dividends_per_hotkey=[
             ("5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM", Balance(0).set_unit(1))
         ],
+        validators=None,
     )
 
     assert metagraph_info == expected_metagraph_info
@@ -332,7 +333,7 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
             burn=Balance.from_tao(0.1),
             difficulty=5.421010862427522e-13,
             registration_allowed=True,
-            pow_registration_allowed=False,
+            pow_registration_allowed=True,
             immunity_period=4096,
             min_difficulty=5.421010862427522e-13,
             max_difficulty=0.25,
@@ -369,6 +370,7 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
             total_stake=[],
             tao_dividends_per_hotkey=[],
             alpha_dividends_per_hotkey=[],
+            validators=None,
         ),
         metagraph_info,
     ]
@@ -441,233 +443,234 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
     logging.console.info("✅ Passed test_metagraph_info")
 
 
-# TODO: get back after SelectiveMetagraph come to the mainnet
-# def test_metagraph_info_with_indexes(subtensor, alice_wallet, bob_wallet):
-#     """
-#     Tests:
-#     - Check MetagraphInfo
-#     - Register Neuron
-#     - Register Subnet
-#     - Check MetagraphInfo is updated
-#     """
-#
-#     alice_subnet_netuid = subtensor.get_total_subnets()  # 2
-#     subtensor.register_subnet(alice_wallet, True, True)
-#
-#     field_indices = [
-#         SelectiveMetagraphIndex.Name,
-#         SelectiveMetagraphIndex.Active,
-#         SelectiveMetagraphIndex.OwnerHotkey,
-#         SelectiveMetagraphIndex.OwnerColdkey,
-#         SelectiveMetagraphIndex.Axons,
-#     ]
-#
-#     metagraph_info = subtensor.get_metagraph_info(
-#         netuid=alice_subnet_netuid, field_indices=field_indices
-#     )
-#
-#     assert metagraph_info == MetagraphInfo(
-#         netuid=alice_subnet_netuid,
-#         name="omron",
-#         owner_hotkey=alice_wallet.hotkey.ss58_address,
-#         owner_coldkey=alice_wallet.coldkey.ss58_address,
-#         active=(True,),
-#         axons=(
-#             {
-#                 "block": 0,
-#                 "ip": 0,
-#                 "ip_type": 0,
-#                 "placeholder1": 0,
-#                 "placeholder2": 0,
-#                 "port": 0,
-#                 "protocol": 0,
-#                 "version": 0,
-#             },
-#         ),
-#         symbol=None,
-#         identity=None,
-#         network_registered_at=None,
-#         block=None,
-#         tempo=None,
-#         last_step=None,
-#         blocks_since_last_step=None,
-#         subnet_emission=None,
-#         alpha_in=None,
-#         alpha_out=None,
-#         tao_in=None,
-#         alpha_out_emission=None,
-#         alpha_in_emission=None,
-#         tao_in_emission=None,
-#         pending_alpha_emission=None,
-#         pending_root_emission=None,
-#         subnet_volume=None,
-#         moving_price=None,
-#         rho=None,
-#         kappa=None,
-#         min_allowed_weights=None,
-#         max_weights_limit=None,
-#         weights_version=None,
-#         weights_rate_limit=None,
-#         activity_cutoff=None,
-#         max_validators=None,
-#         num_uids=None,
-#         max_uids=None,
-#         burn=None,
-#         difficulty=None,
-#         registration_allowed=None,
-#         pow_registration_allowed=None,
-#         immunity_period=None,
-#         min_difficulty=None,
-#         max_difficulty=None,
-#         min_burn=None,
-#         max_burn=None,
-#         adjustment_alpha=None,
-#         adjustment_interval=None,
-#         target_regs_per_interval=None,
-#         max_regs_per_block=None,
-#         serving_rate_limit=None,
-#         commit_reveal_weights_enabled=None,
-#         commit_reveal_period=None,
-#         liquid_alpha_enabled=None,
-#         alpha_high=None,
-#         alpha_low=None,
-#         bonds_moving_avg=None,
-#         hotkeys=None,
-#         coldkeys=None,
-#         identities=None,
-#         validator_permit=None,
-#         pruning_score=None,
-#         last_update=None,
-#         emission=None,
-#         dividends=None,
-#         incentives=None,
-#         consensus=None,
-#         trust=None,
-#         rank=None,
-#         block_at_registration=None,
-#         alpha_stake=None,
-#         tao_stake=None,
-#         total_stake=None,
-#         tao_dividends_per_hotkey=None,
-#         alpha_dividends_per_hotkey=None,
-#     )
-#
-#     assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
-#
-#     assert subtensor.burned_register(
-#         bob_wallet,
-#         netuid=alice_subnet_netuid,
-#         wait_for_inclusion=True,
-#         wait_for_finalization=True,
-#     )
-#
-#     fields = [
-#         SelectiveMetagraphIndex.Name,
-#         SelectiveMetagraphIndex.Active,
-#         SelectiveMetagraphIndex.OwnerHotkey,
-#         SelectiveMetagraphIndex.OwnerColdkey,
-#         SelectiveMetagraphIndex.Axons,
-#     ]
-#
-#     metagraph_info = subtensor.get_metagraph_info(
-#         netuid=alice_subnet_netuid, field_indices=fields
-#     )
-#
-#     assert metagraph_info == MetagraphInfo(
-#         netuid=alice_subnet_netuid,
-#         name="omron",
-#         owner_hotkey=alice_wallet.hotkey.ss58_address,
-#         owner_coldkey=alice_wallet.coldkey.ss58_address,
-#         active=(True, True),
-#         axons=(
-#             {
-#                 "block": 0,
-#                 "ip": 0,
-#                 "ip_type": 0,
-#                 "placeholder1": 0,
-#                 "placeholder2": 0,
-#                 "port": 0,
-#                 "protocol": 0,
-#                 "version": 0,
-#             },
-#             {
-#                 "block": 0,
-#                 "ip": 0,
-#                 "ip_type": 0,
-#                 "placeholder1": 0,
-#                 "placeholder2": 0,
-#                 "port": 0,
-#                 "protocol": 0,
-#                 "version": 0,
-#             },
-#         ),
-#         symbol=None,
-#         identity=None,
-#         network_registered_at=None,
-#         block=None,
-#         tempo=None,
-#         last_step=None,
-#         blocks_since_last_step=None,
-#         subnet_emission=None,
-#         alpha_in=None,
-#         alpha_out=None,
-#         tao_in=None,
-#         alpha_out_emission=None,
-#         alpha_in_emission=None,
-#         tao_in_emission=None,
-#         pending_alpha_emission=None,
-#         pending_root_emission=None,
-#         subnet_volume=None,
-#         moving_price=None,
-#         rho=None,
-#         kappa=None,
-#         min_allowed_weights=None,
-#         max_weights_limit=None,
-#         weights_version=None,
-#         weights_rate_limit=None,
-#         activity_cutoff=None,
-#         max_validators=None,
-#         num_uids=None,
-#         max_uids=None,
-#         burn=None,
-#         difficulty=None,
-#         registration_allowed=None,
-#         pow_registration_allowed=None,
-#         immunity_period=None,
-#         min_difficulty=None,
-#         max_difficulty=None,
-#         min_burn=None,
-#         max_burn=None,
-#         adjustment_alpha=None,
-#         adjustment_interval=None,
-#         target_regs_per_interval=None,
-#         max_regs_per_block=None,
-#         serving_rate_limit=None,
-#         commit_reveal_weights_enabled=None,
-#         commit_reveal_period=None,
-#         liquid_alpha_enabled=None,
-#         alpha_high=None,
-#         alpha_low=None,
-#         bonds_moving_avg=None,
-#         hotkeys=None,
-#         coldkeys=None,
-#         identities=None,
-#         validator_permit=None,
-#         pruning_score=None,
-#         last_update=None,
-#         emission=None,
-#         dividends=None,
-#         incentives=None,
-#         consensus=None,
-#         trust=None,
-#         rank=None,
-#         block_at_registration=None,
-#         alpha_stake=None,
-#         tao_stake=None,
-#         total_stake=None,
-#         tao_dividends_per_hotkey=None,
-#         alpha_dividends_per_hotkey=None,
-#     )
+def test_metagraph_info_with_indexes(subtensor, alice_wallet, bob_wallet):
+    """
+    Tests:
+    - Check MetagraphInfo
+    - Register Neuron
+    - Register Subnet
+    - Check MetagraphInfo is updated
+    """
+
+    alice_subnet_netuid = subtensor.get_total_subnets()  # 2
+    subtensor.register_subnet(alice_wallet, True, True)
+
+    field_indices = [
+        SelectiveMetagraphIndex.Name,
+        SelectiveMetagraphIndex.Active,
+        SelectiveMetagraphIndex.OwnerHotkey,
+        SelectiveMetagraphIndex.OwnerColdkey,
+        SelectiveMetagraphIndex.Axons,
+    ]
+
+    metagraph_info = subtensor.get_metagraph_info(
+        netuid=alice_subnet_netuid, field_indices=field_indices
+    )
+
+    assert metagraph_info == MetagraphInfo(
+        netuid=alice_subnet_netuid,
+        name="omron",
+        owner_hotkey=alice_wallet.hotkey.ss58_address,
+        owner_coldkey=alice_wallet.coldkey.ss58_address,
+        active=(True,),
+        axons=(
+            {
+                "block": 0,
+                "ip": 0,
+                "ip_type": 0,
+                "placeholder1": 0,
+                "placeholder2": 0,
+                "port": 0,
+                "protocol": 0,
+                "version": 0,
+            },
+        ),
+        symbol=None,
+        identity=None,
+        network_registered_at=None,
+        block=None,
+        tempo=None,
+        last_step=None,
+        blocks_since_last_step=None,
+        subnet_emission=None,
+        alpha_in=None,
+        alpha_out=None,
+        tao_in=None,
+        alpha_out_emission=None,
+        alpha_in_emission=None,
+        tao_in_emission=None,
+        pending_alpha_emission=None,
+        pending_root_emission=None,
+        subnet_volume=None,
+        moving_price=None,
+        rho=None,
+        kappa=None,
+        min_allowed_weights=None,
+        max_weights_limit=None,
+        weights_version=None,
+        weights_rate_limit=None,
+        activity_cutoff=None,
+        max_validators=None,
+        num_uids=None,
+        max_uids=None,
+        burn=None,
+        difficulty=None,
+        registration_allowed=None,
+        pow_registration_allowed=None,
+        immunity_period=None,
+        min_difficulty=None,
+        max_difficulty=None,
+        min_burn=None,
+        max_burn=None,
+        adjustment_alpha=None,
+        adjustment_interval=None,
+        target_regs_per_interval=None,
+        max_regs_per_block=None,
+        serving_rate_limit=None,
+        commit_reveal_weights_enabled=None,
+        commit_reveal_period=None,
+        liquid_alpha_enabled=None,
+        alpha_high=None,
+        alpha_low=None,
+        bonds_moving_avg=None,
+        hotkeys=None,
+        coldkeys=None,
+        identities=None,
+        validator_permit=None,
+        pruning_score=None,
+        last_update=None,
+        emission=None,
+        dividends=None,
+        incentives=None,
+        consensus=None,
+        trust=None,
+        rank=None,
+        block_at_registration=None,
+        alpha_stake=None,
+        tao_stake=None,
+        total_stake=None,
+        tao_dividends_per_hotkey=None,
+        alpha_dividends_per_hotkey=None,
+        validators=None,
+    )
+
+    assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
+
+    assert subtensor.burned_register(
+        bob_wallet,
+        netuid=alice_subnet_netuid,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    fields = [
+        SelectiveMetagraphIndex.Name,
+        SelectiveMetagraphIndex.Active,
+        SelectiveMetagraphIndex.OwnerHotkey,
+        SelectiveMetagraphIndex.OwnerColdkey,
+        SelectiveMetagraphIndex.Axons,
+    ]
+
+    metagraph_info = subtensor.get_metagraph_info(
+        netuid=alice_subnet_netuid, field_indices=fields
+    )
+
+    assert metagraph_info == MetagraphInfo(
+        netuid=alice_subnet_netuid,
+        name="omron",
+        owner_hotkey=alice_wallet.hotkey.ss58_address,
+        owner_coldkey=alice_wallet.coldkey.ss58_address,
+        active=(True, True),
+        axons=(
+            {
+                "block": 0,
+                "ip": 0,
+                "ip_type": 0,
+                "placeholder1": 0,
+                "placeholder2": 0,
+                "port": 0,
+                "protocol": 0,
+                "version": 0,
+            },
+            {
+                "block": 0,
+                "ip": 0,
+                "ip_type": 0,
+                "placeholder1": 0,
+                "placeholder2": 0,
+                "port": 0,
+                "protocol": 0,
+                "version": 0,
+            },
+        ),
+        symbol=None,
+        identity=None,
+        network_registered_at=None,
+        block=None,
+        tempo=None,
+        last_step=None,
+        blocks_since_last_step=None,
+        subnet_emission=None,
+        alpha_in=None,
+        alpha_out=None,
+        tao_in=None,
+        alpha_out_emission=None,
+        alpha_in_emission=None,
+        tao_in_emission=None,
+        pending_alpha_emission=None,
+        pending_root_emission=None,
+        subnet_volume=None,
+        moving_price=None,
+        rho=None,
+        kappa=None,
+        min_allowed_weights=None,
+        max_weights_limit=None,
+        weights_version=None,
+        weights_rate_limit=None,
+        activity_cutoff=None,
+        max_validators=None,
+        num_uids=None,
+        max_uids=None,
+        burn=None,
+        difficulty=None,
+        registration_allowed=None,
+        pow_registration_allowed=None,
+        immunity_period=None,
+        min_difficulty=None,
+        max_difficulty=None,
+        min_burn=None,
+        max_burn=None,
+        adjustment_alpha=None,
+        adjustment_interval=None,
+        target_regs_per_interval=None,
+        max_regs_per_block=None,
+        serving_rate_limit=None,
+        commit_reveal_weights_enabled=None,
+        commit_reveal_period=None,
+        liquid_alpha_enabled=None,
+        alpha_high=None,
+        alpha_low=None,
+        bonds_moving_avg=None,
+        hotkeys=None,
+        coldkeys=None,
+        identities=None,
+        validator_permit=None,
+        pruning_score=None,
+        last_update=None,
+        emission=None,
+        dividends=None,
+        incentives=None,
+        consensus=None,
+        trust=None,
+        rank=None,
+        block_at_registration=None,
+        alpha_stake=None,
+        tao_stake=None,
+        total_stake=None,
+        tao_dividends_per_hotkey=None,
+        alpha_dividends_per_hotkey=None,
+        validators=None,
+    )
 
 
 def test_blocks(subtensor):
