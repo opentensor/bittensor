@@ -232,7 +232,8 @@ class AsyncSubtensor(SubtensorMixin):
     async def initialize(self):
         """Initializes the connection to the blockchain.
 
-        This method establishes the connection to the Bittensor blockchain and should be called after creating an AsyncSubtensor instance before making any queries.
+        This method establishes the connection to the Bittensor blockchain and should be called after creating an
+        AsyncSubtensor instance before making any queries.
 
         Returns:
             AsyncSubtensor: The initialized instance (self) for method chaining.
@@ -302,7 +303,8 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> Optional[str]:
         """Determine the appropriate block hash based on the provided parameters.
 
-        Ensures that only one of the block specification parameters is used and returns the appropriate block hash for blockchain queries.
+        Ensures that only one of the block specification parameters is used and returns the appropriate block hash
+        for blockchain queries.
 
         Arguments:
             block: The block number to get the hash for. Do not specify if using block_hash or reuse_block.
@@ -345,11 +347,14 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> str:
         """Encodes parameters into a hex string using their type definitions.
 
-        This method takes a call definition (which specifies parameter types) and actual parameter values, then encodes them into a hex string that can be used for blockchain transactions.
+        This method takes a call definition (which specifies parameter types) and actual parameter values, then
+        encodes them into a hex string that can be used for blockchain transactions.
 
         Arguments:
-            call_definition: A dictionary containing parameter type definitions. Should have a "params" key with a list of parameter definitions.
-            params: The actual parameter values to encode. Can be either a list (for positional parameters) or a dictionary (for named parameters).
+            call_definition: A dictionary containing parameter type definitions. Should have a "params" key with a
+                list of parameter definitions.
+            params: The actual parameter values to encode. Can be either a list (for positional parameters) or a
+                dictionary (for named parameters).
 
         Returns:
             str: A hex-encoded string representation of the parameters.
@@ -401,13 +406,14 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> Optional[Any]:
         """Retrieves a specified hyperparameter for a specific subnet.
 
-        This method queries the blockchain for subnet-specific hyperparameters such as difficulty, tempo, immunity period, and other network configuration values.
+        This method queries the blockchain for subnet-specific hyperparameters such as difficulty, tempo, immunity
+        period, and other network configuration values.
 
         Arguments:
             param_name: The name of the hyperparameter to retrieve (e.g., "Difficulty", "Tempo", "ImmunityPeriod").
             netuid: The unique identifier of the subnet.
             block: The block number at which to retrieve the hyperparameter. Do not specify if using block_hash or
-            reuse_block.
+                reuse_block.
             block_hash: The hash of the blockchain block for the query. Do not specify if using block or reuse_block.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
 
@@ -3017,19 +3023,22 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> Balance:
         """
         Calculates the transaction fee for transferring tokens from a wallet to a specified destination address. This
-            function simulates the transfer to estimate the associated cost, taking into account the current network
-            conditions and transaction complexity.
+        function simulates the transfer to estimate the associated cost, taking into account the current network
+        conditions and transaction complexity.
 
         Arguments:
             wallet: The wallet from which the transfer is initiated.
-            des: The `SS58` address of the destination account.
-            valuer.utils.balance.Balance, float, int]): The amount of tokens to be transferred,
-                specified as a Balance object, or in Tao (float) or Rao (int) unit            bittensor.utils.balance.Balance: The estimated transaction fee for the transfer, represented as a Balance
+            dest: The `SS58` address of the destination account.
+            value: The amount of tokens to be transferred, specified as a Balance object, or in Tao (float) or Rao
+                (int) units.
+
+        Returns:
+            bittensor.utils.balance.Balance: The estimated transaction fee for the transfer, represented as a Balance
                 object.
 
-        Estimating the transfer fee is essential for planning and executing token transactions, ensuring that the wallet
-            has sufficient funds to cover both the transfer amount and the associated costs. This function provides a
-            crucial tool for managing financial operations within the Bittensor network.
+        Estimating the transfer fee is essential for planning and executing token transactions, ensuring that the
+        wallet has sufficient funds to cover both the transfer amount and the associated costs. This function provides
+        a crucial tool for managing financial operations within the Bittensor network.
         """
         value = check_and_convert_to_balance(value)
 
@@ -4250,7 +4259,8 @@ class AsyncSubtensor(SubtensorMixin):
             hotkey_ss58s: List of `SS58` addresses of hotkeys to stake to.
             netui: list of subnet UIDs
             amounts: Corresponding amounts of TAO to stake for each hotkey.
-            wait_for_inclusion: Waits for the transaction to be included inor_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            wait_for_inclusion: Waits for the transaction to be included in a block. Defaults to `True`.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Defaults to `False`.
 
         Returns:
             bool: `True` if the staking is successful for all specified neurons, False otherwise.
@@ -5039,8 +5049,8 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: The wallet associated with the subnet validator setting the weights.
             netuid: The unique identifier of the subnet.
             uids: The list of subnet miner neuron UIDs that the weights are being set for.
-            weights: The corresponding weights to be set for each UID, representing the validator's evaluation of each miner's performance.
-                UID, representing the validator's evaluation of each miner's performance.
+            weights: The corresponding weights to be set for each UID, representing the validator's evaluation of each
+                miner's performance.
             version_key: Version key for compatibility with the network.  Default is int representation of
                 the Bittensor version.
             wait_for_inclusion: Waits for the transaction to be included in a block. Default is `False`.
@@ -5335,8 +5345,8 @@ class AsyncSubtensor(SubtensorMixin):
             des: Destination address for the transfer.
             amount: Number of tokens to transfer.
             transfer_all: Flag to transfer all tokens. Default is `False`.
-            wait_for_inclusion: Waits for the transaction to be included in a block.  Default isr_finalization (bool): Waits for the transaction to be finalized on the blockchain.  Default is
-                `False`.
+            wait_for_inclusion: Waits for the transaction to be included in a block. Defaults to `True`.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Defaults to `False`.
             keep_alive: Flag to keep the connection alive. Default is `True`.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
@@ -5426,7 +5436,8 @@ class AsyncSubtensor(SubtensorMixin):
             hotkey_ss58: The `SS58` address of the hotkey account to unstake from.
             netuid: The unique identifier of the subnet.
             amount: The amount of alpha to unstake. If not specified, unstakes all.
-            wait_for_inclusion: Waits for the transaction to be included inr_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            wait_for_inclusion: Waits for the transaction to be included in a block. Defaults to `True`.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Defaults to `False`.
             safe_staking: If true, enables price safety checks to protect against fluctuating prices. The unstake
                 will only execute if the price change doesn't exceed the rate tolerance. Default is False.
             allow_partial_stake: If true and safe_staking is enabled, allows partial unstaking when
