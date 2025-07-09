@@ -4140,3 +4140,58 @@ def test_toggle_user_liquidity(subtensor, fake_wallet, mocker):
         period=None,
     )
     assert result == mocked_extrinsic.return_value
+
+
+def test_get_subnet_price(subtensor, mocker):
+    """Test get_subnet_price returns the correct value."""
+    # preps
+    netuid = 123
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    fake_price = {"bits": 3155343338053956962}
+    expected_price = Balance.from_tao(0.029258617)
+    mocked_query = mocker.patch.object(
+        subtensor.substrate, "query", return_value=fake_price
+    )
+
+    # Call
+    result = subtensor.get_subnet_price(
+        netuid=netuid,
+    )
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(block=None)
+    mocked_query.assert_called_once_with(
+        module="Swap",
+        storage_function="AlphaSqrtPrice",
+        params=[netuid],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+
+    assert result == expected_price
+
+
+def test_get_subnet_prices(subtensor, mocker):
+    """Test get_subnet_prices returns the correct value."""
+    # preps
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    fake_prices = [
+        [0, {"bits": 0}],
+        [1, {"bits": 3155343338053956962}],
+    ]
+    expected_prices = {0: Balance.from_tao(1), 1: Balance.from_tao(0.029258617)}
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate, "query_map", return_value=fake_prices
+    )
+
+    # Call
+    result = subtensor.get_subnet_prices()
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(block=None)
+    mocked_query_map.assert_called_once_with(
+        module="Swap",
+        storage_function="AlphaSqrtPrice",
+        block_hash=mocked_determine_block_hash.return_value,
+        page_size=129,  # total number of subnets
+    )
+    assert result == expected_prices

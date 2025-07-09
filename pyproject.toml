@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bittensor"
-version = "9.8.0"
+version = "9.8.1"
 description = "Bittensor"
 readme = "README.md"
 authors = [
