@@ -110,9 +110,9 @@ async def unstake_extrinsic(
             base_price = pool.price.tao
 
             if pool.netuid == 0:
-                price_with_tolerance = base_price * (1 - rate_tolerance)
-            else:
                 price_with_tolerance = base_price
+            else:
+                price_with_tolerance = base_price * (1 - rate_tolerance)
 
             logging.info(
                 f":satellite: [magenta]Safe Unstaking from:[/magenta] "
