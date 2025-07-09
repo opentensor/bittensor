@@ -1785,7 +1785,7 @@ class AsyncSubtensor(SubtensorMixin):
             percentage of rewards that the delegate claims from its nominators' stakes.
 
         Arguments:
-            hotkey_ss58: The `SS58` address of the neuron's hotkey.
+            hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
             block: The blockchain block number for the query.
             block_hash: The hash of the block to retrieve the subnet unique identifiers from.
             reuse_block: Whether to reuse the last-used block hash.
@@ -2091,7 +2091,7 @@ class AsyncSubtensor(SubtensorMixin):
             specific subnets within the Bittensor network where the neuron associated with the hotkey is active.
 
         Arguments:
-            hotkey_ss58: The `SS58` address of the neuron's hotkey.
+            hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
             block: The blockchain block number for the query.
             block_hash: The hash of the blockchain block number at which to perform the query.
             reuse_block: Whether to reuse the last-used block hash when retrieving info.
@@ -3107,7 +3107,7 @@ class AsyncSubtensor(SubtensorMixin):
         Retrieves the unique identifier (UID) for a neuron's hotkey on a specific subnet.
 
         Arguments:
-            hotkey_ss58: The `SS58` address of the neuron's hotkey.
+            hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
             netuid: The unique identifier of the subnet.
             block: The blockchain block number for the query.
             block_hash: The blockchain block_hash representation of the block id.
@@ -3307,7 +3307,7 @@ class AsyncSubtensor(SubtensorMixin):
         Checks if a neuron's hotkey is registered on any subnet within the Bittensor network.
 
         Arguments:
-            hotkey_ss58: The `SS58` address of the neuron's hotkey.
+            hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
             block: The blockchain block number for the query.
             block_hash: The blockchain block_hash representation of block id.
             reuse_block: Whether to reuse the last-used block hash.
@@ -3358,9 +3358,9 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            `True` if subnet is active, `False` otherwise.
+            ``True`` if subnet is active, ``False`` otherwise.
 
-        This means whether the `start_call` was initiated or not.
+        Note: This means whether the ``start_call`` was initiated or not.
         """
         query = await self.query_subtensor(
             name="FirstEmissionBlockNumber",
@@ -3400,7 +3400,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            Optional[float]: The value of the MaxWeightsLimit hyperparameter, or `None` if the subnetwork does not
+            Optional[float]: The value of the MaxWeightsLimit hyperparameter, or ``None`` if the subnetwork does not
                 exist or the parameter is not found.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
@@ -3422,7 +3422,7 @@ class AsyncSubtensor(SubtensorMixin):
         Arguments:
             netuid: The network UID of the subnet to query.
             lite: If true, returns a metagraph using a lightweight sync (no weights, no bonds). Default is
-                `True`.
+                ``True``.
             block: Block number for synchronization, or `None` for the latest block.
 
         Returns:
@@ -3460,7 +3460,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            Optional[int]: The value of the MinAllowedWeights hyperparameter, or `None` if the subnetwork does not
+            Optional[int]: The value of the MinAllowedWeights hyperparameter, or ``None`` if the subnetwork does not
                 exist or the parameter is not found.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
@@ -3611,13 +3611,13 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used blockchain block hash.
 
         Returns:
-            An object containing the identity information of the neuron if found, `None` otherwise.
+            An object containing the identity information of the neuron if found, ``None`` otherwise.
 
         The identity information can include various attributes such as the neuron's stake, rank, and other
             network-specific details, providing insights into the neuron's role and status within the Bittensor network.
 
         Note:
-            See the `Bittensor CLI documentation <https://docs.bittensor.com/reference/btcli>`_ for supported identity
+            See the ``Bittensor CLI documentation <https://docs.bittensor.com/reference/btcli>``_ for supported identity
                 parameters.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
@@ -3657,7 +3657,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used blockchain block hash.
 
         Returns:
-            Optional[Balance]: The value of the 'Burn' hyperparameter if the subnet exists, None otherwise.
+            Optional[Balance]: The value of the 'Burn' hyperparameter if the subnet exists, ``None`` otherwise.
 
         Understanding the 'Burn' rate is essential for analyzing the network registration usage, particularly how it is
             correlated with user activity and the overall cost of participation in a given subnet.
@@ -3688,14 +3688,14 @@ class AsyncSubtensor(SubtensorMixin):
             netuid: The unique identifier of the subnetwork.
             data: The data to be committed to the network.
             blocks_until_reveal: The number of blocks from now after which the data will be revealed.
-                Defaults to `360` (the number of blocks in one epoch).
-            block_time: The number of seconds between each block. Defaults to `12`.
+                Defaults to ``360`` (the number of blocks in one epoch).
+            block_time: The number of seconds between each block. Defaults to ``12``.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
 
         Returns:
-            bool: `True` if the commitment was successful, `False` otherwise.
+            bool: ``True`` if the commitment was successful, ``False`` otherwise.
 
         Note: A commitment can be set once per subnet epoch and is reset at the next epoch in the chain automatically.
         """
@@ -3769,7 +3769,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            `True` if the subnet exists, `False` otherwise.
+            ``True`` if the subnet exists, ``False`` otherwise.
 
         This function is critical for verifying the presence of specific subnets in the network,
         enabling a deeper understanding of the network's structure and composition.
@@ -3801,7 +3801,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            Optional[int]: The value of the SubnetworkN hyperparameter, or `None` if the subnetwork does not exist or
+            Optional[int]: The value of the SubnetworkN hyperparameter, or ``None`` if the subnetwork does not exist or
                 the parameter is not found.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
@@ -3830,7 +3830,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            Optional[int]: The value of the Tempo hyperparameter, or `None` if the subnetwork does not exist or the
+            Optional[int]: The value of the Tempo hyperparameter, or ``None`` if the subnetwork does not exist or the
                 parameter is not found.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
@@ -3858,7 +3858,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            Optional[int]: The transaction rate limit of the network, None if not available.
+            Optional[int]: The transaction rate limit of the network, ``None`` if not available.
 
         The transaction rate limit is an essential parameter for ensuring the stability and scalability of the Bittensor
             network. It helps in managing network load and preventing congestion, thereby maintaining efficient and
@@ -3876,10 +3876,10 @@ class AsyncSubtensor(SubtensorMixin):
         waits for the next block.
 
         Arguments:
-            block: The block number to wait for. If None, waits for the next block.
+            block: The block number to wait for. If ``None``, waits for the next block.
 
         Returns:
-            bool: True if the target block was reached, False if timeout occurred.
+            bool: ``True`` if the target block was reached, ``False`` if timeout occurred.
 
         Example:
             import bittensor as bt
@@ -3966,7 +3966,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used blockchain block hash.
 
         Returns:
-            Optional[int]: The value of the WeightsSetRateLimit hyperparameter, or `None` if the subnetwork does not
+            Optional[int]: The value of the WeightsSetRateLimit hyperparameter, or ``None`` if the subnetwork does not
                 exist or the parameter is not found.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
@@ -4076,7 +4076,7 @@ class AsyncSubtensor(SubtensorMixin):
                 and be rejected. You can think of it as an expiration date for the transaction.
             nonce_key: the type on nonce to use. Options are "hotkey" or "coldkey".
             nonce_key: the type on nonce to use. Options are "hotkey", "coldkey", or "coldkeypub".
-            raise_error: raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: raises a relevant exception rather than returning ``False`` if unsuccessful.
 
         Returns:
             (success, error message)
@@ -4153,24 +4153,24 @@ class AsyncSubtensor(SubtensorMixin):
         Arguments:
             wallet: The wallet to be used for staking.
             hotkey_ss58: The SS58 address of the hotkey associated with the neuron to which you intend to delegate your
-                stake. If not specified, the wallet's hotkey will be used. Defaults to `None`.
+                stake. If not specified, the wallet's hotkey will be used. Defaults to ``None``.
             netuid: The unique identifier of the subnet to which the neuron belongs.
             amount: The amount of TAO to stake.
             wait_for_inclusion: Waits for the transaction to be included in a block. Defaults to `True`.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Defaults to `False`.
             safe_staking: If true, enables price safety checks to protect against fluctuating prices. The stake will
-                only execute if the price change doesn't exceed the rate tolerance. Default is `False`.
+                only execute if the price change doesn't exceed the rate tolerance. Default is ``False``.
             allow_partial_stake: If true and safe_staking is enabled, allows partial staking when the full amount would
                 exceed the price tolerance. If false, the entire stake fails if it would exceed the tolerance.
-                Default is `False`.
+                Default is ``False``.
             rate_tolerance: The maximum allowed price change ratio when staking. For example,
                 0.005 = 0.5% maximum price increase. Only used when safe_staking is True. Default is ``0.005``.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
-                can think of it as an expiration date for the transaction. Defaults to `None`.
+                can think of it as an expiration date for the transaction. Defaults to ``None``.
 
         Returns:
-            bool: `True` if the staking is successful, False otherwise.
+            bool: ``True`` if the staking is successful, ``False`` otherwise.
 
         This function enables neurons to increase their stake in the network, enhancing their influence and potential.
             When safe_staking is enabled, it provides protection against price fluctuations during the time stake is
@@ -4225,7 +4225,7 @@ class AsyncSubtensor(SubtensorMixin):
                 - True and a success message if the extrinsic is successfully submitted or processed.
                 - False and an error message if the submission fails or the wallet cannot be unlocked.
 
-        Note: Adding is allowed even when user liquidity is enabled in specified subnet. Call `toggle_user_liquidity`
+        Note: Adding is allowed even when user liquidity is enabled in specified subnet. Call ``toggle_user_liquidity``
             method to enable/disable user liquidity.
         """
         return await add_liquidity_extrinsic(
@@ -4256,14 +4256,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         Arguments:
             wallet: The wallet used for staking.
-            hotkey_ss58s: List of `SS58` addresses of hotkeys to stake to.
+            hotkey_ss58s: List of ``SS58`` addresses of hotkeys to stake to.
             netui: list of subnet UIDs
             amounts: Corresponding amounts of TAO to stake for each hotkey.
             wait_for_inclusion: Waits for the transaction to be included in a block. Defaults to `True`.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Defaults to `False`.
 
         Returns:
-            bool: `True` if the staking is successful for all specified neurons, False otherwise.
+            bool: ``True`` if the staking is successful for all specified neurons, ``False`` otherwise.
 
         This function is essential for managing stakes across multiple neurons, reflecting the dynamic and collaborative
             nature of the Bittensor network.
@@ -4294,7 +4294,7 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: The wallet associated with the neuron to be registered.
             netuid: The unique identifier of the subnet.
             wait_for_inclusion: Waits for the transaction to be included in a block. Defaults to
-                `False`.
+                ``False``.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
@@ -4911,11 +4911,11 @@ class AsyncSubtensor(SubtensorMixin):
 
         Arguments:
             wallet: bittensor wallet instance.
-            hotkey_ss58: The `SS58` address of the neuron's hotkey.
+            hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
             take: Percentage reward for the delegate.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on_error: Raises a relevant exception
-                rather than returning `False` if unsuccessful.
+                rather than returning ``False`` if unsuccessful.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
@@ -5568,27 +5568,27 @@ class AsyncSubtensor(SubtensorMixin):
         unstake_all: bool = False,
     ) -> bool:
         """
-          Performs batch unstaking from multiple hotkey accounts, allowing a neuron to reduce its staked amounts
-              efficiently. This function is useful for managing the distribution of stakes across multiple neurons.
+        Performs batch unstaking from multiple hotkey accounts, allowing a neuron to reduce its staked amounts
+            efficiently. This function is useful for managing the distribution of stakes across multiple neurons.
 
-          Arguments:
-              wallet: The wallet linked to the coldkey from which the stakes are being
-                  withdrawn.
-              hotkey_ss58s: A list of hotkey `SS58` addresses to unstake from.
-              netuids: Subnets unique IDs.
-              amounts: The amounts of TAO to unstake from each hotkey. If not provided, unstakes all.
-              wait_for_inclusion: Waits for the transaction to be included in a block.
-              wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
-              period: The number of blocks during which the transaction will remain valid after it's
-                  submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                  and be rejected. You can think of it as an expiration date for the transaction.
-              unstake_all: If true, unstakes all tokens. Default is `False`. If `True` amounts are ignored.
+        Arguments:
+            wallet: The wallet linked to the coldkey from which the stakes are being
+                withdrawn.
+            hotkey_ss58s: A list of hotkey `SS58` addresses to unstake from.
+            netuids: Subnets unique IDs.
+            amounts: The amounts of TAO to unstake from each hotkey. If not provided, unstakes all.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            period: The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
+            unstake_all: If true, unstakes all tokens. Default is `False`. If `True` amounts are ignored.
 
-          Returns:
-              bool: `True` if the batch unstaking is successful, False otherwise.
+        Returns:
+            bool: `True` if the batch unstaking is successful, False otherwise.
 
-          This function allows for strategic reallocation or withdrawal of stakes, aligning with the dynamic stake
-              management aspect of the Bittensor network.
+        This function allows for strategic reallocation or withdrawal of stakes, aligning with the dynamic stake
+            management aspect of the Bittensor network.
         """
         return await unstake_multiple_extrinsic(
             subtensor=self,
