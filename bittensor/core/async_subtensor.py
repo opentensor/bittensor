@@ -799,15 +799,15 @@ class AsyncSubtensor(SubtensorMixin):
             subnets = await subtensor.all_subnets()
         """
         block_hash = await self.determine_block_hash(
-            block_number, block_hash, reuse_block
+            block=block_number, block_hash=block_hash, reuse_block=reuse_block
         )
         if not block_hash and reuse_block:
             block_hash = self.substrate.last_block_hash
 
         query, subnet_prices = await asyncio.gather(
             self.substrate.runtime_call(
-                "SubnetInfoRuntimeApi",
-                "get_all_dynamic_info",
+                api="SubnetInfoRuntimeApi",
+                method="get_all_dynamic_info",
                 block_hash=block_hash,
             ),
             self.get_subnet_prices(),
@@ -3733,7 +3733,9 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             Optional[DynamicInfo]: A DynamicInfo object, containing detailed information about a subnet.
         """
-        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        block_hash = await self.determine_block_hash(
+            block=block, block_hash=block_hash, reuse_block=reuse_block
+        )
 
         if not block_hash and reuse_block:
             block_hash = self.substrate.last_block_hash
@@ -3746,7 +3748,15 @@ class AsyncSubtensor(SubtensorMixin):
         )
 
         if isinstance(decoded := query.decode(), dict):
-            price = self.get_subnet_price(netuid=netuid, block=block)
+            try:
+                price = await self.get_subnet_price(
+                    netuid=netuid,
+                    block=block,
+                    block_hash=block_hash,
+                    reuse_block=reuse_block,
+                )
+            except SubstrateRequestException:
+                price = None
             return DynamicInfo.from_dict({**decoded, "price": price})
         return None
 
