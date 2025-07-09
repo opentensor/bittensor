@@ -129,9 +129,10 @@ def add_stake_extrinsic(
                 f"on [blue]{subtensor.network}[/blue][/magenta]...[/magenta]"
             )
 
+            limit_price = Balance.from_tao(price_with_tolerance).rao
             call_params.update(
                 {
-                    "limit_price": price_with_tolerance,
+                    "limit_price": limit_price,
                     "allow_partial": allow_partial_stake,
                 }
             )
