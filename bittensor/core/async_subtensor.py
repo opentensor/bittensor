@@ -1856,7 +1856,7 @@ class AsyncSubtensor(SubtensorMixin):
         Arguments:
             block: The blockchain block number for the query.
             block_hash: hash of the blockchain block number for the query.
-            reuse_block (Optional[bool]): whether to reuse the last-used block hash.
+            reuse_block: whether to reuse the last-used block hash.
 
         Returns:
             List of DelegateInfo objects, or an empty list if there are no delegates.
@@ -2094,7 +2094,7 @@ class AsyncSubtensor(SubtensorMixin):
             hotkey_ss58: The `SS58` address of the neuron's hotkey.
             block: The blockchain block number for the query.
             block_hash: The hash of the blockchain block number at which to perform the query.
-            reuse_block (Optional[bool]): Whether to reuse the last-used block hash when retrieving info.
+            reuse_block: Whether to reuse the last-used block hash when retrieving info.
 
         Returns:
             A list of netuids where the neuron is a member.
@@ -2455,8 +2455,8 @@ class AsyncSubtensor(SubtensorMixin):
         Retrieves all hotkeys owned by a specific coldkey address.
 
         Arguments:
-            coldkey_ss58 (str): The SS58 address of the coldkey to query.
-            block (int): The blockchain block number for the query.
+            coldkey_ss58: The SS58 address of the coldkey to query.
+            block: The blockchain block number for the query.
             block_hash: The hash of the blockchain block number for the query.
             reuse_block: Whether to reuse the last-used blockchain block hash.
 
@@ -2488,7 +2488,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Arguments:
             hotkey_ss58: The SS58 address of the hotkey.
-            coldkey_ss58 (str): The SS58 address of the coldkey.
+            coldkey_ss58: The SS58 address of the coldkey.
             netuid: The subnet ID.
             block: The block number at which to query the stake information.
             block_hash: The hash of the block to retrieve the stake from. Do not specify if using block
@@ -2646,7 +2646,7 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> dict[int, Balance]:
         """Gets the current Alpha price in TAO for a specified subnet.
 
-        Args:
+        Argsuments:
             block: The blockchain block number for the query.
             block_hash: The hash of the block to retrieve the stake from. Do not specify if using block
                 or reuse_block
@@ -2768,9 +2768,9 @@ class AsyncSubtensor(SubtensorMixin):
         Retrieves all coldkey-hotkey pairing stake across specified (or all) subnets
 
         Arguments:
-            coldkey_ss58 (str): The SS58 address of the coldkey.
+            coldkey_ss58: The SS58 address of the coldkey.
             hotkey_ss58: The SS58 address of the hotkey.
-            netuids (Optional[list[int]]): The subnet IDs to query for. Set to `None` for all subnets.
+            netuids: The subnet IDs to query for. Set to `None` for all subnets.
             block: The block number at which to query the stake information.
             block_hash: The hash of the block to retrieve the stake from. Do not specify if using block
                 or reuse_block
@@ -2815,7 +2815,7 @@ class AsyncSubtensor(SubtensorMixin):
         Retrieves the stake information for a given coldkey.
 
         Arguments:
-            coldkey_ss58 (str): The SS58 address of the coldkey.
+            coldkey_ss58: The SS58 address of the coldkey.
             block: The block number at which to query the stake information.
             block_hash: The hash of the blockchain block number for the query.
             reuse_block: Whether to reuse the last-used block hash.
@@ -2923,7 +2923,7 @@ class AsyncSubtensor(SubtensorMixin):
             netuid: The network UID of the subnet to query.
             block: The blockchain block number for the query.
             block_hash: The hash of the blockchain block number for the query.
-            reuse_blocko reuse the last-used blockchain hash.
+            reuse_block: Whether to reuse the last-used blockchain hash.
 
         Returns:
             The subnet's hyperparameters, or `None` if not available.
@@ -3070,7 +3070,7 @@ class AsyncSubtensor(SubtensorMixin):
             about how senate members have voted on the proposal.
 
         Arguments:
-            proposal_hash (str): The hash of the proposal for which voting data is requested.
+            proposal_hash: The hash of the proposal for which voting data is requested.
             block: The blockchain block number for the query.
             block_hash: The hash of the blockchain block number to query the voting data.
             reuse_block: Whether to reuse the last-used blockchain block hash.
@@ -3142,9 +3142,9 @@ class AsyncSubtensor(SubtensorMixin):
         Filters a given list of all netuids for certain specified netuids and hotkeys
 
         Arguments:
-            all_netuids (Iterable[int]): A list of netuids to filter.
-            filter_for_netuids (Iterable[int]): A subset of all_netuids to filter from the main list.
-            all_hotkeys (Iterable[Wallet]): Hotkeys to filter from the main list.
+            all_netuids: A list of netuids to filter.
+            filter_for_netuids: A subset of all_netuids to filter from the main list.
+            all_hotkeys: Hotkeys to filter from the main list.
             block: The blockchain block number for the query.
             block_hash: hash of the blockchain block number at which to perform the query.
             reuse_block: whether to reuse the last-used blockchain hash when retrieving info.
@@ -3241,7 +3241,7 @@ class AsyncSubtensor(SubtensorMixin):
             hotkey_ss58: The SS58 address of the neuron's hotkey.
             block: The blockchain block number for the query.
             block_hash: The hash of the blockchain block number for the query.
-            reuse_block (Optional[bool]): Whether to reuse the last-used block hash.
+            reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
             `True` if the hotkey is a delegate, `False` otherwise.
@@ -3926,7 +3926,7 @@ class AsyncSubtensor(SubtensorMixin):
             netuid: The network UID of the subnet to query.
             block: Block number for synchronization, or `None` for the latest block.
             block_hash: The hash of the blockchain block for the query.
-            reuse_blocko reuse the last-used blockchain block hash.
+            reuse_block: reuse the last-used blockchain block hash.
 
         Returns:
             A list of tuples mapping each neuron's UID to its assigned weights.
@@ -4778,12 +4778,12 @@ class AsyncSubtensor(SubtensorMixin):
         Register neuron by recycling some TAO.
 
         Arguments:
-            wallet (bittensor_wallet.Wallet): Bittensor wallet instance.
+            wallet: Bittensor wallet instance.
             block_hash: This argument will be removed in Bittensor v10
-            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
-            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
-                ``False``.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+            wait_for_inclusion: Waits for the transaction to be included in a block. Default is `False`.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Default is
+                `False`.
+            period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
 
@@ -4993,7 +4993,7 @@ class AsyncSubtensor(SubtensorMixin):
         Arguments:
             wallet: The wallet instance that will authorize the transaction.
             netuid: The unique ID of the network on which the operation takes place.
-            subnet_identity (SubnetIdentity): The identity data of the subnet including attributes like name, GitHub
+            subnet_identity: The identity data of the subnet including attributes like name, GitHub
                 repository, contact, URL, discord, description, and any additional metadata.
             wait_for_inclusion: Indicates if the function should wait for the transaction to be included in the
                 block.
@@ -5163,7 +5163,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Arguments:
             netuid: The unique identifier of the subnetwork.
-            axon (bittensor.core.axon.Axon): The Axon instance to be registered for serving.
+            axon: The Axon instance to be registered for serving.
             wait_for_inclusion: Waits for the transaction to be included in a block. Default is `False`.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Default is
                 `True`.
@@ -5384,7 +5384,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Arguments:
             wallet: The wallet to transfer stake from.
-            destination_coldkey_ss58 (str): The destination coldkey SS58 address.
+            destination_coldkey_ss58: The destination coldkey SS58 address.
             hotkey_ss58: The hotkey SS58 address associated with the stake.
             origin_netuid: The source subnet UID.
             destination_netuid: The destination subnet UID.
@@ -5574,10 +5574,10 @@ class AsyncSubtensor(SubtensorMixin):
           Arguments:
               wallet: The wallet linked to the coldkey from which the stakes are being
                   withdrawn.
-        s (List[str]): A list of hotkey `SS58` addresses to unstake from.
-              netuidst]): Subnets unique IDs.
-              amounts (List[Union[Balance, float]]): The amounts of TAO to unstake from each hotkey. If not provided,
-                  unstakes all_inclusion (bool): Waits for the transaction to be included in a block.
+              hotkey_ss58s: A list of hotkey `SS58` addresses to unstake from.
+              netuids: Subnets unique IDs.
+              amounts: The amounts of TAO to unstake from each hotkey. If not provided, unstakes all.
+              wait_for_inclusion: Waits for the transaction to be included in a block.
               wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
               period: The number of blocks during which the transaction will remain valid after it's
                   submitted. If the transaction is not included in a block within that number of blocks, it will expire
