@@ -306,7 +306,7 @@ async def get_metadata(
     block: Optional[int] = None,
     block_hash: Optional[str] = None,
     reuse_block: bool = False,
-) -> str:
+) -> Union[str, dict]:
     """Fetches metadata from the blockchain for a given hotkey and netuid."""
     async with subtensor.substrate:
         block_hash = await subtensor.determine_block_hash(
