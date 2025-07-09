@@ -109,7 +109,7 @@ async def unstake_extrinsic(
             pool = await subtensor.subnet(netuid=netuid)
             base_price = pool.price.tao
 
-            if pool.is_dynamic:
+            if pool.netuid == 0:
                 price_with_tolerance = base_price * (1 - rate_tolerance)
             else:
                 price_with_tolerance = base_price
