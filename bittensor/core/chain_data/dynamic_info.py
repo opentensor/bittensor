@@ -27,7 +27,7 @@ class DynamicInfo(InfoBase):
     alpha_in: Balance
     alpha_out: Balance
     tao_in: Balance
-    price: Balance
+    price: Optional[Balance]
     k: float
     is_dynamic: bool
     alpha_out_emission: Balance
@@ -74,13 +74,6 @@ class DynamicInfo(InfoBase):
         ).set_unit(0)
 
         subnet_volume = Balance.from_rao(decoded["subnet_volume"]).set_unit(netuid)
-        price = (
-            Balance.from_tao(1.0)
-            if netuid == 0
-            else Balance.from_tao(tao_in.tao / alpha_in.tao).set_unit(netuid)
-            if alpha_in.tao > 0
-            else Balance.from_tao(1).set_unit(netuid)
-        )  # Root always has 1-1 price
 
         if decoded.get("subnet_identity"):
             subnet_identity = SubnetIdentity(
@@ -97,6 +90,10 @@ class DynamicInfo(InfoBase):
             )
         else:
             subnet_identity = None
+        price = decoded.get("price", None)
+
+        if price and not isinstance(price, Balance):
+            raise ValueError(f"price must be a Balance object, got {type(price)}.")
 
         return cls(
             netuid=netuid,
