@@ -120,19 +120,19 @@ async def add_stake_extrinsic(
 
         if safe_staking:
             pool = await subtensor.subnet(netuid=netuid)
-            received_amount, _ = pool.tao_to_alpha_with_slippage(staking_balance)
-            base_price = received_amount.rao / staking_balance.rao
-            price_with_tolerance = base_price * (1 + rate_tolerance)
+            base_price = pool.price.tao
 
-            # For logging
-            base_rate = pool.price.tao
+            if pool.is_dynamic:
+                price_with_tolerance = base_price * (1 + rate_tolerance)
+            else:
+                price_with_tolerance = base_price
 
             logging.info(
                 f":satellite: [magenta]Safe Staking to:[/magenta] "
                 f"[blue]netuid: [green]{netuid}[/green], amount: [green]{staking_balance}[/green], "
                 f"tolerance percentage: [green]{rate_tolerance * 100}%[/green], "
                 f"price limit: [green]{price_with_tolerance}[/green], "
-                f"original price: [green]{base_rate}[/green], "
+                f"original price: [green]{base_price}[/green], "
                 f"with partial stake: [green]{allow_partial_stake}[/green] "
                 f"on [blue]{subtensor.network}[/blue][/magenta]...[/magenta]"
             )
