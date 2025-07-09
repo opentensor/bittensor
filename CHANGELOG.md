@@ -1,5 +1,13 @@
 # Changelog
 
+## 9.8.1 /2025-07-08
+
+## What's Changed
+* New logic to get price for `DynamicInfo` by @basfroman in https://github.com/opentensor/bittensor/pull/2952
+* Update to safe_staking limits by @ibraheem-abe in https://github.com/opentensor/bittensor/pull/2950
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.8.0...v9.8.1
+
 ## 9.8.0 /2025-07-07
 
 ## What's Changed
