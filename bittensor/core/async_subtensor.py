@@ -3746,7 +3746,7 @@ class AsyncSubtensor(SubtensorMixin):
         )
 
         if isinstance(decoded := query.decode(), dict):
-            price = self.get_subnet_price(netuid=netuid, block=block)
+            price = await self.get_subnet_price(netuid=netuid, block=block)
             return DynamicInfo.from_dict({**decoded, "price": price})
         return None
 
