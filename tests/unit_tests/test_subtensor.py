@@ -4195,3 +4195,74 @@ def test_get_subnet_prices(subtensor, mocker):
         page_size=129,  # total number of subnets
     )
     assert result == expected_prices
+
+
+def test_all_subnets(subtensor, mocker):
+    """Verify that `all_subnets` calls proper methods and returns the correct value."""
+    # Preps
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_di_list_from_dicts = mocker.patch.object(
+        subtensor_module.DynamicInfo, "list_from_dicts"
+    )
+    mocked_get_subnet_prices = mocker.patch.object(
+        subtensor,
+        "get_subnet_prices",
+        return_value={0: Balance.from_tao(1), 1: Balance.from_tao(0.029258617)},
+    )
+    mocked_decode = mocker.Mock(return_value=[{"netuid": 0}, {"netuid": 1}])
+    mocked_runtime_call = mocker.Mock(decode=mocked_decode)
+    mocker.patch.object(
+        subtensor.substrate, "runtime_call", return_value=mocked_runtime_call
+    )
+
+    # Call
+    result = subtensor.all_subnets()
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(block=None)
+    subtensor.substrate.runtime_call.assert_called_once_with(
+        api="SubnetInfoRuntimeApi",
+        method="get_all_dynamic_info",
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    mocked_get_subnet_prices.assert_called_once()
+    mocked_di_list_from_dicts.assert_called_once_with(
+        [
+            {"netuid": 0, "price": Balance.from_tao(1)},
+            {"netuid": 1, "price": Balance.from_tao(0.029258617)},
+        ]
+    )
+    assert result == mocked_di_list_from_dicts.return_value
+
+
+def test_subnet(subtensor, mocker):
+    """Verify that `subnet` calls proper methods and returns the correct value."""
+    # Preps
+    netuid = 14
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_di_from_dict = mocker.patch.object(subtensor_module.DynamicInfo, "from_dict")
+    mocked_get_subnet_price = mocker.patch.object(
+        subtensor, "get_subnet_price", return_value=Balance.from_tao(100.0)
+    )
+    mocked_decode = mocker.Mock(return_value={"netuid": netuid})
+    mocked_runtime_call = mocker.Mock(decode=mocked_decode)
+    mocker.patch.object(
+        subtensor.substrate, "runtime_call", return_value=mocked_runtime_call
+    )
+
+    # Call
+    result = subtensor.subnet(netuid=netuid)
+
+    # Asserts
+    subtensor.substrate.runtime_call.assert_called_once_with(
+        api="SubnetInfoRuntimeApi",
+        method="get_dynamic_info",
+        params=[netuid],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    mocked_determine_block_hash.assert_called_once_with(block=None)
+    mocked_get_subnet_price.assert_called_once_with(netuid=netuid, block=None)
+    mocked_di_from_dict.assert_called_once_with(
+        {"netuid": netuid, "price": Balance.from_tao(100.0)}
+    )
+    assert result == mocked_di_from_dict.return_value
