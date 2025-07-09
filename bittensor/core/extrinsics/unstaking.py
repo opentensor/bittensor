@@ -105,26 +105,27 @@ def unstake_extrinsic(
 
         if safe_staking:
             pool = subtensor.subnet(netuid=netuid)
-            base_price = pool.price.rao
-            price_with_tolerance = base_price * (1 - rate_tolerance)
+            base_price = pool.price.tao
 
-            # For logging
-            base_rate = pool.price.tao
-            rate_with_tolerance = base_rate * (1 - rate_tolerance)
+            if pool.netuid == 0:
+                price_with_tolerance = base_price
+            else:
+                price_with_tolerance = base_price * (1 - rate_tolerance)
 
             logging.info(
                 f":satellite: [magenta]Safe Unstaking from:[/magenta] "
                 f"netuid: [green]{netuid}[/green], amount: [green]{unstaking_balance}[/green], "
                 f"tolerance percentage: [green]{rate_tolerance * 100}%[/green], "
-                f"price limit: [green]{rate_with_tolerance}[/green], "
-                f"original price: [green]{base_rate}[/green], "
+                f"price limit: [green]{price_with_tolerance}[/green], "
+                f"original price: [green]{base_price}[/green], "
                 f"with partial unstake: [green]{allow_partial_stake}[/green] "
                 f"on [blue]{subtensor.network}[/blue][magenta]...[/magenta]"
             )
 
+            limit_price = Balance.from_tao(price_with_tolerance).rao
             call_params.update(
                 {
-                    "limit_price": price_with_tolerance,
+                    "limit_price": limit_price,
                     "allow_partial": allow_partial_stake,
                 }
             )
