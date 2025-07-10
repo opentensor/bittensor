@@ -2620,9 +2620,7 @@ class AsyncSubtensor(SubtensorMixin):
         if netuid == 0:
             return Balance.from_tao(1)
 
-        block_hash = await self.determine_block_hash(
-            block=block, block_hash=block_hash, reuse_block=reuse_block
-        )
+        block_hash = await self.determine_block_hash(block=block)
         current_sqrt_price = await self.substrate.query(
             module="Swap",
             storage_function="AlphaSqrtPrice",
@@ -3740,22 +3738,24 @@ class AsyncSubtensor(SubtensorMixin):
         if not block_hash and reuse_block:
             block_hash = self.substrate.last_block_hash
 
-        query = await self.substrate.runtime_call(
-            "SubnetInfoRuntimeApi",
-            "get_dynamic_info",
-            params=[netuid],
-            block_hash=block_hash,
+        query, price = await asyncio.gather(
+            self.substrate.runtime_call(
+                "SubnetInfoRuntimeApi",
+                "get_dynamic_info",
+                params=[netuid],
+                block_hash=block_hash,
+            ),
+            self.get_subnet_price(
+                netuid=netuid,
+                block=block,
+                block_hash=block_hash,
+                reuse_block=reuse_block,
+            ),
+            return_exceptions=True,
         )
 
         if isinstance(decoded := query.decode(), dict):
-            try:
-                price = await self.get_subnet_price(
-                    netuid=netuid,
-                    block=block,
-                    block_hash=block_hash,
-                    reuse_block=reuse_block,
-                )
-            except SubstrateRequestException:
+            if isinstance(price, SubstrateRequestException):
                 price = None
             return DynamicInfo.from_dict({**decoded, "price": price})
         return None
