@@ -293,11 +293,13 @@ async def test_delegates(local_chain, subtensor, alice_wallet, bob_wallet):
     bittensor.logging.console.success("Test [green]test_delegates[/green] passed.")
 
 
-def test_nominator_min_required_stake(local_chain, subtensor, alice_wallet, bob_wallet):
+def test_nominator_min_required_stake(
+    local_chain, subtensor, alice_wallet, bob_wallet, dave_wallet
+):
     """
     Tests:
     - Check default NominatorMinRequiredStake
-    - Add Stake to Nominate
+    - Add Stake to Nominate from Dave to Bob
     - Update NominatorMinRequiredStake
     - Check Nominator is removed
     """
@@ -323,15 +325,22 @@ def test_nominator_min_required_stake(local_chain, subtensor, alice_wallet, bob_
     assert minimum_required_stake == Balance(0)
 
     subtensor.burned_register(
-        bob_wallet,
-        alice_subnet_netuid,
+        wallet=bob_wallet,
+        netuid=alice_subnet_netuid,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    subtensor.burned_register(
+        wallet=dave_wallet,
+        netuid=alice_subnet_netuid,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
 
     success = subtensor.add_stake(
-        alice_wallet,
-        bob_wallet.hotkey.ss58_address,
+        wallet=dave_wallet,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
         amount=Balance.from_tao(10_000),
         wait_for_inclusion=True,
@@ -341,8 +350,8 @@ def test_nominator_min_required_stake(local_chain, subtensor, alice_wallet, bob_
     assert success is True
 
     stake = subtensor.get_stake(
-        alice_wallet.coldkey.ss58_address,
-        bob_wallet.hotkey.ss58_address,
+        coldkey_ss58=dave_wallet.coldkey.ss58_address,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
     )
 
@@ -350,8 +359,8 @@ def test_nominator_min_required_stake(local_chain, subtensor, alice_wallet, bob_
 
     # this will trigger clear_small_nominations
     sudo_set_admin_utils(
-        local_chain,
-        alice_wallet,
+        substrate=local_chain,
+        wallet=alice_wallet,
         call_function="sudo_set_nominator_min_required_stake",
         call_params={
             "min_stake": "100000000000000",
@@ -363,8 +372,8 @@ def test_nominator_min_required_stake(local_chain, subtensor, alice_wallet, bob_
     assert minimum_required_stake == Balance.from_tao(100_000)
 
     stake = subtensor.get_stake(
-        alice_wallet.coldkey.ss58_address,
-        bob_wallet.hotkey.ss58_address,
+        coldkey_ss58=dave_wallet.coldkey.ss58_address,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
     )
 
