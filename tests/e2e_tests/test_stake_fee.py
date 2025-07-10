@@ -34,7 +34,7 @@ async def test_stake_fee_api(local_chain, subtensor, alice_wallet, bob_wallet):
     )
     assert isinstance(stake_fee_0, Balance), "Stake fee should be a Balance object"
     assert stake_fee_0 == min_stake_fee, (
-        "Stake fee should be greater than the minimum stake fee"
+        "Stake fee should be equal the minimum stake fee"
     )
 
     # Test unstake fee
