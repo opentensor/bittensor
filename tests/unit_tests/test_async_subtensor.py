@@ -3833,9 +3833,7 @@ async def test_get_subnet_price(subtensor, mocker):
     )
 
     # Asserts
-    mocked_determine_block_hash.assert_awaited_once_with(
-        block=None, block_hash=None, reuse_block=False
-    )
+    mocked_determine_block_hash.assert_awaited_once_with(block=None)
     mocked_query.assert_awaited_once_with(
         module="Swap",
         storage_function="AlphaSqrtPrice",
