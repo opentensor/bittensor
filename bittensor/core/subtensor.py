@@ -2379,7 +2379,7 @@ class Subtensor(SubtensorMixin):
             block: The blockchain block number for the query.
 
         Returns:
-            An object containing the proposal's voting data, or `None` if not found.
+            An object containing the proposal's voting data, or ``None`` if not found.
 
         This function is important for tracking and understanding the decision-making processes within the Bittensor
         network, particularly how proposals are received and acted upon by the governing body.
@@ -2502,17 +2502,17 @@ class Subtensor(SubtensorMixin):
     def is_hotkey_delegate(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         """
         Determines whether a given hotkey (public key) is a delegate on the Bittensor network. This function checks if
-            the neuron associated with the hotkey is part of the network's delegation system.
+        the neuron associated with the hotkey is part of the network's delegation system.
 
         Arguments:
-            hotkey_ss58 (str): The SS58 address of the neuron's hotkey.
-            block (Optional[int]): The blockchain block number for the query.
+            hotkey_ss58: The SS58 address of the neuron's hotkey.
+            block: The blockchain block number for the query.
 
         Returns:
-            `True` if the hotkey is a delegate, `False` otherwise.
+            ``True`` if the hotkey is a delegate, ``False`` otherwise.
 
         Being a delegate is a significant status within the Bittensor network, indicating a neuron's involvement in
-            consensus and governance processes.
+        consensus and governance processes.
         """
         delegates = self.get_delegates(block)
         return hotkey_ss58 in [info.hotkey_ss58 for info in delegates]
@@ -2525,23 +2525,22 @@ class Subtensor(SubtensorMixin):
     ) -> bool:
         """
         Determines whether a given hotkey (public key) is registered in the Bittensor network, either globally across
-            any subnet or specifically on a specified subnet. This function checks the registration status of a neuron
-            identified by its hotkey, which is crucial for validating its participation and activities within the
-            network.
+        any subnet or specifically on a specified subnet. This function checks the registration status of a neuron
+        identified by its hotkey, which is crucial for validating its participation and activities within the network.
 
         Arguments:
             hotkey_ss58: The SS58 address of the neuron's hotkey.
-            netuid: The unique identifier of the subnet to check the registration. If `None`, the
+            netuid: The unique identifier of the subnet to check the registration. If ``None``, the
                 registration is checked across all subnets.
             block: The blockchain block number at which to perform the query.
 
         Returns:
-            bool: `True` if the hotkey is registered in the specified context (either any subnet or a specific subnet),
-                `False` otherwise.
+            bool: ``True`` if the hotkey is registered in the specified context (either any subnet or a specific subnet),
+                ``False`` otherwise.
 
         This function is important for verifying the active status of neurons in the Bittensor network. It aids in
-            understanding whether a neuron is eligible to participate in network processes such as consensus,
-            validation, and incentive distribution based on its registration status.
+        understanding whether a neuron is eligible to participate in network processes such as consensus, validation,
+        and incentive distribution based on its registration status.
         """
         if netuid is None:
             return self.is_hotkey_registered_any(hotkey_ss58, block)
@@ -2557,11 +2556,11 @@ class Subtensor(SubtensorMixin):
         Checks if a neuron's hotkey is registered on any subnet within the Bittensor network.
 
         Arguments:
-            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
-            block (Optional[int]): The blockchain block number for the query.
+            hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
+            block: The blockchain block number for the query.
 
         Returns:
-            bool: ``True`` if the hotkey is registered on any subnet, False otherwise.
+            bool: ``True`` if the hotkey is registered on any subnet, ``False`` otherwise.
 
         This function is essential for determining the network-wide presence and participation of a neuron.
         """
@@ -2585,9 +2584,9 @@ class Subtensor(SubtensorMixin):
             block: The blockchain block number for the query.
 
         Returns:
-            True if subnet is active, False otherwise.
+            ``True`` if subnet is active, ``False`` otherwise.
 
-        This means whether the `start_call` was initiated or not.
+        Note: This means whether the ``start_call`` was initiated or not.
         """
         query = self.query_subtensor(
             name="FirstEmissionBlockNumber",
@@ -2665,19 +2664,19 @@ class Subtensor(SubtensorMixin):
     ) -> "NeuronInfo":
         """
         Retrieves detailed information about a specific neuron identified by its unique identifier (UID) within a
-            specified subnet (netuid) of the Bittensor network. This function provides a comprehensive view of a
-            neuron's attributes, including its stake, rank, and operational status.
+        specified subnet (netuid) of the Bittensor network. This function provides a comprehensive view of a
+        neuron's attributes, including its stake, rank, and operational status.
 
         Arguments:
-            uid (int): The unique identifier of the neuron.
-            netuid (int): The unique identifier of the subnet.
-            block (Optional[int]): The blockchain block number for the query.
+            uid: The unique identifier of the neuron.
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query.
 
         Returns:
             Detailed information about the neuron if found, a null neuron otherwise
 
         This function is crucial for analyzing individual neurons' contributions and status within a specific subnet,
-            offering insights into their roles in the network's consensus and validation mechanisms.
+        offering insights into their roles in the network's consensus and validation mechanisms.
         """
         if uid is None:
             return NeuronInfo.get_null_neuron()
@@ -2698,17 +2697,17 @@ class Subtensor(SubtensorMixin):
         """
         Retrieves a list of all neurons within a specified subnet of the Bittensor network.
         This function provides a snapshot of the subnet's neuron population, including each neuron's attributes and
-            network interactions.
+        network interactions.
 
         Arguments:
-            netuid (int): The unique identifier of the subnet.
-            block (Optional[int]): The blockchain block number for the query.
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query.
 
         Returns:
             A list of NeuronInfo objects detailing each neuron's characteristics in the subnet.
 
         Understanding the distribution and status of neurons within a subnet is key to comprehending the network's
-            decentralized structure and the dynamics of its consensus and governance processes.
+        decentralized structure and the dynamics of its consensus and governance processes.
         """
         result = self.query_runtime_api(
             runtime_api="NeuronInfoRuntimeApi",
@@ -2728,17 +2727,17 @@ class Subtensor(SubtensorMixin):
         """
         Retrieves a list of neurons in a 'lite' format from a specific subnet of the Bittensor network.
         This function provides a streamlined view of the neurons, focusing on key attributes such as stake and network
-            participation.
+        participation.
 
         Arguments:
-            netuid (int): The unique identifier of the subnet.
-            block (Optional[int]): The blockchain block number for the query.
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query.
 
         Returns:
             A list of simplified neuron information for the subnet.
 
         This function offers a quick overview of the neuron population within a subnet, facilitating efficient analysis
-            of the network's decentralized structure and neuron dynamics.
+        of the network's decentralized structure and neuron dynamics.
         """
         result = self.query_runtime_api(
             runtime_api="NeuronInfoRuntimeApi",
@@ -2757,23 +2756,23 @@ class Subtensor(SubtensorMixin):
     ) -> Optional[ChainIdentity]:
         """
         Queries the identity of a neuron on the Bittensor blockchain using the given key. This function retrieves
-            detailed identity information about a specific neuron, which is a crucial aspect of the network's
-            decentralized identity and governance system.
+        detailed identity information about a specific neuron, which is a crucial aspect of the network's
+        decentralized identity and governance system.
 
         Arguments:
-            coldkey_ss58 (str): The coldkey used to query the neuron's identity (technically the neuron's coldkey SS58
+            coldkey_ss58: The coldkey used to query the neuron's identity (technically the neuron's coldkey SS58
                 address).
-            block (Optional[int]): The blockchain block number for the query.
+            block: The blockchain block number for the query.
 
         Returns:
             An object containing the identity information of the neuron if found, ``None`` otherwise.
 
         The identity information can include various attributes such as the neuron's stake, rank, and other
-            network-specific details, providing insights into the neuron's role and status within the Bittensor network.
+        network-specific details, providing insights into the neuron's role and status within the Bittensor network.
 
         Note:
             See the `Bittensor CLI documentation <https://docs.bittensor.com/reference/btcli>`_ for supported identity
-                parameters.
+            parameters.
         """
         identity_info = cast(
             dict,
@@ -2798,7 +2797,7 @@ class Subtensor(SubtensorMixin):
     def recycle(self, netuid: int, block: Optional[int] = None) -> Optional[Balance]:
         """
         Retrieves the 'Burn' hyperparameter for a specified subnet. The 'Burn' parameter represents the amount of Tao
-            that is effectively recycled within the Bittensor network.
+        that is effectively recycled within the Bittensor network.
 
         Arguments:
             netuid: The unique identifier of the subnet.
@@ -2808,7 +2807,7 @@ class Subtensor(SubtensorMixin):
             Optional[Balance]: The value of the 'Burn' hyperparameter if the subnet exists, None otherwise.
 
         Understanding the 'Burn' rate is essential for analyzing the network registration usage, particularly how it is
-            correlated with user activity and the overall cost of participation in a given subnet.
+        correlated with user activity and the overall cost of participation in a given subnet.
         """
         call = self.get_hyperparameter(param_name="Burn", netuid=netuid, block=block)
         return None if call is None else Balance.from_rao(int(call))
@@ -2888,11 +2887,11 @@ class Subtensor(SubtensorMixin):
         Checks if a subnet with the specified unique identifier (netuid) exists within the Bittensor network.
 
         Arguments:
-            netuid (int): The unique identifier of the subnet.
-            block (Optional[int]): The blockchain block number for the query.
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query.
 
         Returns:
-            `True` if the subnet exists, `False` otherwise.
+            ``True`` if the subnet exists, ``False`` otherwise.
 
         This function is critical for verifying the presence of specific subnets in the network,
         enabling a deeper understanding of the network's structure and composition.
@@ -3029,8 +3028,8 @@ class Subtensor(SubtensorMixin):
         Returns network WeightsSetRateLimit hyperparameter.
 
         Arguments:
-            netuid (int): The unique identifier of the subnetwork.
-            block (Optional[int]): The blockchain block number for the query.
+            netuid: The unique identifier of the subnetwork.
+            block: The blockchain block number for the query.
 
         Returns:
             Optional[int]: The value of the WeightsSetRateLimit hyperparameter, or ``None`` if the subnetwork does not
@@ -3194,8 +3193,8 @@ class Subtensor(SubtensorMixin):
     ) -> bool:
         """
         Adds a stake from the specified wallet to the neuron identified by the SS58 address of its hotkey in specified
-            subnet. Staking is a fundamental process in the Bittensor network that enables neurons to participate
-            actively and earn incentives.
+        subnet. Staking is a fundamental process in the Bittensor network that enables neurons to participate
+        actively and earn incentives.
 
         Arguments:
             wallet: The wallet to be used for staking.
@@ -3217,12 +3216,12 @@ class Subtensor(SubtensorMixin):
                 can think of it as an expiration date for the transaction. Defaults to ``None``.
 
         Returns:
-            bool: True if the staking is successful, False otherwise.
+            bool: ``True`` if the staking is successful, ``False`` otherwise.
 
         This function enables neurons to increase their stake in the network, enhancing their influence and potential
-            rewards in line with Bittensor's consensus and reward mechanisms.
-            When safe_staking is enabled, it provides protection against price fluctuations during the time stake is
-            executed and the time it is actually processed by the chain.
+        rewards in line with Bittensor's consensus and reward mechanisms.
+        When safe_staking is enabled, it provides protection against price fluctuations during the time stake is
+        executed and the time it is actually processed by the chain.
         """
         amount = check_and_convert_to_balance(amount)
         return add_stake_extrinsic(
