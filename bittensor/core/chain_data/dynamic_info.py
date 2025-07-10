@@ -95,7 +95,6 @@ class DynamicInfo(InfoBase):
 
         price = decoded.get("price", None)
 
-        print(f">>> price: {type(price)}, {price}")
         if price and not isinstance(price, Balance):
             raise ValueError(f"price must be a Balance object, got {type(price)}.")
 
