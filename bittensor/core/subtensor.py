@@ -445,15 +445,14 @@ class Subtensor(SubtensorMixin):
             Optional[DynamicInfo]: A list of DynamicInfo objects, each containing detailed information about a subnet.
 
         """
-        block_hash = self.determine_block_hash(block)
+        block_hash = self.determine_block_hash(block=block)
         query = self.substrate.runtime_call(
-            "SubnetInfoRuntimeApi",
-            "get_all_dynamic_info",
+            api="SubnetInfoRuntimeApi",
+            method="get_all_dynamic_info",
             block_hash=block_hash,
         )
         subnet_prices = self.get_subnet_prices()
         decoded = query.decode()
-
         for sn in decoded:
             sn.update({"price": subnet_prices.get(sn["netuid"], Balance.from_tao(0))})
         return DynamicInfo.list_from_dicts(decoded)
@@ -2696,17 +2695,20 @@ class Subtensor(SubtensorMixin):
             Optional[DynamicInfo]: A DynamicInfo object, containing detailed information about a subnet.
 
         """
-        block_hash = self.determine_block_hash(block)
+        block_hash = self.determine_block_hash(block=block)
 
         query = self.substrate.runtime_call(
-            "SubnetInfoRuntimeApi",
-            "get_dynamic_info",
+            api="SubnetInfoRuntimeApi",
+            method="get_dynamic_info",
             params=[netuid],
             block_hash=block_hash,
         )
 
         if isinstance(decoded := query.decode(), dict):
-            price = self.get_subnet_price(netuid=netuid, block=block)
+            try:
+                price = self.get_subnet_price(netuid=netuid, block=block)
+            except SubstrateRequestException:
+                price = None
             return DynamicInfo.from_dict({**decoded, "price": price})
         return None
 
