@@ -120,7 +120,11 @@ from bittensor.utils.liquidity import (
     price_to_tick,
     LiquidityPosition,
 )
-from bittensor.utils.weight_utils import generate_weight_hash, convert_uids_and_weights
+from bittensor.utils.weight_utils import (
+    generate_weight_hash,
+    convert_uids_and_weights,
+    U16_MAX,
+)
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -445,15 +449,14 @@ class Subtensor(SubtensorMixin):
             Optional[DynamicInfo]: A list of DynamicInfo objects, each containing detailed information about a subnet.
 
         """
-        block_hash = self.determine_block_hash(block)
+        block_hash = self.determine_block_hash(block=block)
         query = self.substrate.runtime_call(
-            "SubnetInfoRuntimeApi",
-            "get_all_dynamic_info",
+            api="SubnetInfoRuntimeApi",
+            method="get_all_dynamic_info",
             block_hash=block_hash,
         )
         subnet_prices = self.get_subnet_prices()
         decoded = query.decode()
-
         for sn in decoded:
             sn.update({"price": subnet_prices.get(sn["netuid"], Balance.from_tao(0))})
         return DynamicInfo.list_from_dicts(decoded)
@@ -1277,13 +1280,9 @@ class Subtensor(SubtensorMixin):
     def get_minimum_required_stake(self) -> Balance:
         """
         Returns the minimum required stake for nominators in the Subtensor network.
-        This method retries the substrate call up to three times with exponential backoff in case of failures.
 
         Returns:
-            Balance: The minimum required stake as a Balance object.
-
-        Raises:
-            Exception: If the substrate call fails after the maximum number of retries.
+            The minimum required stake as a Balance object in TAO.
         """
         result = self.substrate.query(
             module="SubtensorModule", storage_function="NominatorMinRequiredStake"
@@ -1761,6 +1760,7 @@ class Subtensor(SubtensorMixin):
 
         return Balance.from_rao(int(stake)).set_unit(netuid=netuid)
 
+    # TODO: remove unused parameters in SDK.v10
     def get_stake_add_fee(
         self,
         amount: Balance,
@@ -1782,19 +1782,7 @@ class Subtensor(SubtensorMixin):
         Returns:
             The calculated stake fee as a Balance object
         """
-        result = self.query_runtime_api(
-            runtime_api="StakeInfoRuntimeApi",
-            method="get_stake_fee",
-            params=[
-                None,
-                coldkey_ss58,
-                (hotkey_ss58, netuid),
-                coldkey_ss58,
-                amount.rao,
-            ],
-            block=block,
-        )
-        return Balance.from_rao(result)
+        return self.get_stake_operations_fee(amount=amount, netuid=netuid, block=block)
 
     def get_subnet_info(
         self, netuid: int, block: Optional[int] = None
@@ -1887,6 +1875,7 @@ class Subtensor(SubtensorMixin):
         prices.update({0: Balance.from_tao(1)})
         return prices
 
+    # TODO: remove unused parameters in SDK.v10
     def get_unstake_fee(
         self,
         amount: Balance,
@@ -1908,20 +1897,9 @@ class Subtensor(SubtensorMixin):
         Returns:
             The calculated stake fee as a Balance object
         """
-        result = self.query_runtime_api(
-            runtime_api="StakeInfoRuntimeApi",
-            method="get_stake_fee",
-            params=[
-                (hotkey_ss58, netuid),
-                coldkey_ss58,
-                None,
-                coldkey_ss58,
-                amount.rao,
-            ],
-            block=block,
-        )
-        return Balance.from_rao(result)
+        return self.get_stake_operations_fee(amount=amount, netuid=netuid, block=block)
 
+    # TODO: remove unused parameters in SDK.v10
     def get_stake_movement_fee(
         self,
         amount: Balance,
@@ -1949,19 +1927,9 @@ class Subtensor(SubtensorMixin):
         Returns:
             The calculated stake fee as a Balance object
         """
-        result = self.query_runtime_api(
-            runtime_api="StakeInfoRuntimeApi",
-            method="get_stake_fee",
-            params=[
-                (origin_hotkey_ss58, origin_netuid),
-                origin_coldkey_ss58,
-                (destination_hotkey_ss58, destination_netuid),
-                destination_coldkey_ss58,
-                amount.rao,
-            ],
-            block=block,
+        return self.get_stake_operations_fee(
+            amount=amount, netuid=origin_netuid, block=block
         )
-        return Balance.from_rao(result)
 
     def get_stake_for_coldkey_and_hotkey(
         self,
@@ -2048,6 +2016,31 @@ class Subtensor(SubtensorMixin):
         return balance
 
     get_hotkey_stake = get_stake_for_hotkey
+
+    def get_stake_operations_fee(
+        self,
+        amount: Balance,
+        netuid: int,
+        block: Optional[int] = None,
+    ):
+        """Returns fee for any stake operation in specified subnet.
+
+        Args:
+            amount: Amount of stake to add in Alpha/TAO.
+            netuid: Netuid of subnet.
+            block: Block number at which to perform the calculation.
+
+        Returns:
+            The calculated stake fee as a Balance object.
+        """
+        block_hash = self.determine_block_hash(block=block)
+        result = self.substrate.query(
+            module="Swap",
+            storage_function="FeeRate",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+        return amount * (result.value / U16_MAX)
 
     def get_subnet_burn_cost(self, block: Optional[int] = None) -> Optional[Balance]:
         """
@@ -2700,17 +2693,20 @@ class Subtensor(SubtensorMixin):
             Optional[DynamicInfo]: A DynamicInfo object, containing detailed information about a subnet.
 
         """
-        block_hash = self.determine_block_hash(block)
+        block_hash = self.determine_block_hash(block=block)
 
         query = self.substrate.runtime_call(
-            "SubnetInfoRuntimeApi",
-            "get_dynamic_info",
+            api="SubnetInfoRuntimeApi",
+            method="get_dynamic_info",
             params=[netuid],
             block_hash=block_hash,
         )
 
         if isinstance(decoded := query.decode(), dict):
-            price = self.get_subnet_price(netuid=netuid, block=block)
+            try:
+                price = self.get_subnet_price(netuid=netuid, block=block)
+            except SubstrateRequestException:
+                price = None
             return DynamicInfo.from_dict({**decoded, "price": price})
         return None
 

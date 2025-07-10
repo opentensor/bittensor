@@ -3271,96 +3271,6 @@ def test_get_timestamp(mocker, subtensor):
     assert expected_result == actual_result
 
 
-def test_stake_fee_methods(mocker, subtensor):
-    """Test the three stake fee calculation methods."""
-    # Mock data
-    fake_hotkey = "hk1"
-    fake_coldkey = "ck1"
-    fake_amount = Balance.from_tao(100)
-    netuid = 1
-    fake_fee = 1_000_000
-
-    # Mock return fee
-    mock_query = mocker.patch.object(
-        subtensor,
-        "query_runtime_api",
-        side_effect=lambda runtime_api, method, params, block: (
-            fake_fee
-            if runtime_api == "StakeInfoRuntimeApi" and method == "get_stake_fee"
-            else None
-        ),
-    )
-
-    # get_stake_add_fee
-    result = subtensor.get_stake_add_fee(
-        amount=fake_amount,
-        netuid=netuid,
-        coldkey_ss58=fake_coldkey,
-        hotkey_ss58=fake_hotkey,
-    )
-    assert isinstance(result, Balance)
-    assert result == Balance.from_rao(fake_fee)
-    mock_query.assert_called_with(
-        runtime_api="StakeInfoRuntimeApi",
-        method="get_stake_fee",
-        params=[
-            None,
-            fake_coldkey,
-            (fake_hotkey, netuid),
-            fake_coldkey,
-            fake_amount.rao,
-        ],
-        block=None,
-    )
-
-    # get_unstake_fee
-    result = subtensor.get_unstake_fee(
-        amount=fake_amount,
-        netuid=netuid,
-        coldkey_ss58=fake_coldkey,
-        hotkey_ss58=fake_hotkey,
-    )
-    assert isinstance(result, Balance)
-    assert result == Balance.from_rao(fake_fee)
-    mock_query.assert_called_with(
-        runtime_api="StakeInfoRuntimeApi",
-        method="get_stake_fee",
-        params=[
-            (fake_hotkey, netuid),
-            fake_coldkey,
-            None,
-            fake_coldkey,
-            fake_amount.rao,
-        ],
-        block=None,
-    )
-
-    # get_stake_movement_fee
-    result = subtensor.get_stake_movement_fee(
-        amount=fake_amount,
-        origin_netuid=2,
-        origin_hotkey_ss58=fake_hotkey,
-        origin_coldkey_ss58=fake_coldkey,
-        destination_netuid=3,
-        destination_hotkey_ss58="hk2",
-        destination_coldkey_ss58=fake_coldkey,
-    )
-    assert isinstance(result, Balance)
-    assert result == Balance.from_rao(fake_fee)
-    mock_query.assert_called_with(
-        runtime_api="StakeInfoRuntimeApi",
-        method="get_stake_fee",
-        params=[
-            (fake_hotkey, 2),
-            fake_coldkey,
-            ("hk2", 3),
-            fake_coldkey,
-            fake_amount.rao,
-        ],
-        block=None,
-    )
-
-
 def test_get_owned_hotkeys_happy_path(subtensor, mocker):
     """Tests that the output of get_owned_hotkeys."""
     # Prep
@@ -4195,3 +4105,173 @@ def test_get_subnet_prices(subtensor, mocker):
         page_size=129,  # total number of subnets
     )
     assert result == expected_prices
+
+
+def test_all_subnets(subtensor, mocker):
+    """Verify that `all_subnets` calls proper methods and returns the correct value."""
+    # Preps
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_di_list_from_dicts = mocker.patch.object(
+        subtensor_module.DynamicInfo, "list_from_dicts"
+    )
+    mocked_get_subnet_prices = mocker.patch.object(
+        subtensor,
+        "get_subnet_prices",
+        return_value={0: Balance.from_tao(1), 1: Balance.from_tao(0.029258617)},
+    )
+    mocked_decode = mocker.Mock(return_value=[{"netuid": 0}, {"netuid": 1}])
+    mocked_runtime_call = mocker.Mock(decode=mocked_decode)
+    mocker.patch.object(
+        subtensor.substrate, "runtime_call", return_value=mocked_runtime_call
+    )
+
+    # Call
+    result = subtensor.all_subnets()
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(block=None)
+    subtensor.substrate.runtime_call.assert_called_once_with(
+        api="SubnetInfoRuntimeApi",
+        method="get_all_dynamic_info",
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    mocked_get_subnet_prices.assert_called_once()
+    mocked_di_list_from_dicts.assert_called_once_with(
+        [
+            {"netuid": 0, "price": Balance.from_tao(1)},
+            {"netuid": 1, "price": Balance.from_tao(0.029258617)},
+        ]
+    )
+    assert result == mocked_di_list_from_dicts.return_value
+
+
+def test_subnet(subtensor, mocker):
+    """Verify that `subnet` calls proper methods and returns the correct value."""
+    # Preps
+    netuid = 14
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_di_from_dict = mocker.patch.object(subtensor_module.DynamicInfo, "from_dict")
+    mocked_get_subnet_price = mocker.patch.object(
+        subtensor, "get_subnet_price", return_value=Balance.from_tao(100.0)
+    )
+    mocked_decode = mocker.Mock(return_value={"netuid": netuid})
+    mocked_runtime_call = mocker.Mock(decode=mocked_decode)
+    mocker.patch.object(
+        subtensor.substrate, "runtime_call", return_value=mocked_runtime_call
+    )
+
+    # Call
+    result = subtensor.subnet(netuid=netuid)
+
+    # Asserts
+    subtensor.substrate.runtime_call.assert_called_once_with(
+        api="SubnetInfoRuntimeApi",
+        method="get_dynamic_info",
+        params=[netuid],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    mocked_determine_block_hash.assert_called_once_with(block=None)
+    mocked_get_subnet_price.assert_called_once_with(netuid=netuid, block=None)
+    mocked_di_from_dict.assert_called_once_with(
+        {"netuid": netuid, "price": Balance.from_tao(100.0)}
+    )
+    assert result == mocked_di_from_dict.return_value
+
+
+def test_get_stake_operations_fee(subtensor, mocker):
+    """Verify that `get_stake_operations_fee` calls proper methods and returns the correct value."""
+    # Preps
+    netuid = 1
+    amount = Balance.from_rao(100_000_000_000)  # 100 Tao
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate, "query", return_value=mocker.Mock(value=196)
+    )
+
+    # Call
+    result = subtensor.get_stake_operations_fee(amount=amount, netuid=netuid)
+
+    # Assert
+    mocked_determine_block_hash.assert_called_once_with(block=None)
+    mocked_query_map.assert_called_once_with(
+        module="Swap",
+        storage_function="FeeRate",
+        params=[netuid],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    assert result == Balance.from_rao(299076829).set_unit(netuid)
+
+
+def test_get_stake_add_fee(subtensor, mocker):
+    """Verify that `get_stake_add_fee` calls proper methods and returns the correct value."""
+    # Preps
+    netuid = mocker.Mock()
+    amount = mocker.Mock()
+    mocked_get_stake_operations_fee = mocker.patch.object(
+        subtensor, "get_stake_operations_fee"
+    )
+
+    # Call
+    result = subtensor.get_stake_add_fee(
+        amount=amount,
+        netuid=netuid,
+        coldkey_ss58=mocker.Mock(),
+        hotkey_ss58=mocker.Mock(),
+    )
+
+    # Asserts
+    mocked_get_stake_operations_fee.assert_called_once_with(
+        amount=amount, netuid=netuid, block=None
+    )
+    assert result == mocked_get_stake_operations_fee.return_value
+
+
+def test_get_unstake_fee(subtensor, mocker):
+    """Verify that `get_unstake_fee` calls proper methods and returns the correct value."""
+    # Preps
+    netuid = mocker.Mock()
+    amount = mocker.Mock()
+    mocked_get_stake_operations_fee = mocker.patch.object(
+        subtensor, "get_stake_operations_fee"
+    )
+
+    # Call
+    result = subtensor.get_unstake_fee(
+        amount=amount,
+        netuid=netuid,
+        coldkey_ss58=mocker.Mock(),
+        hotkey_ss58=mocker.Mock(),
+    )
+
+    # Asserts
+    mocked_get_stake_operations_fee.assert_called_once_with(
+        amount=amount, netuid=netuid, block=None
+    )
+    assert result == mocked_get_stake_operations_fee.return_value
+
+
+def test_get_stake_movement_fee(subtensor, mocker):
+    """Verify that `get_stake_movement_fee` calls proper methods and returns the correct value."""
+    # Preps
+    netuid = mocker.Mock()
+    amount = mocker.Mock()
+    mocked_get_stake_operations_fee = mocker.patch.object(
+        subtensor, "get_stake_operations_fee"
+    )
+
+    # Call
+    result = subtensor.get_stake_movement_fee(
+        amount=amount,
+        origin_netuid=netuid,
+        origin_hotkey_ss58=mocker.Mock(),
+        origin_coldkey_ss58=mocker.Mock(),
+        destination_netuid=mocker.Mock(),
+        destination_hotkey_ss58=mocker.Mock(),
+        destination_coldkey_ss58=mocker.Mock(),
+    )
+
+    # Asserts
+    mocked_get_stake_operations_fee.assert_called_once_with(
+        amount=amount, netuid=netuid, block=None
+    )
+    assert result == mocked_get_stake_operations_fee.return_value

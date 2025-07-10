@@ -86,6 +86,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
         subtensor._subtensor.get_stake_info_for_coldkey
     )
     subtensor.get_stake_movement_fee = subtensor._subtensor.get_stake_movement_fee
+    subtensor.get_stake_operations_fee = subtensor._subtensor.get_stake_operations_fee
     subtensor.get_subnet_burn_cost = subtensor._subtensor.get_subnet_burn_cost
     subtensor.get_subnet_hyperparameters = (
         subtensor._subtensor.get_subnet_hyperparameters
