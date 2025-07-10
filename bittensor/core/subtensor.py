@@ -281,8 +281,7 @@ class Subtensor(SubtensorMixin):
         Arguments:
             module_name: The name of the module containing the constant (e.g., "Balances", "SubtensorModule").
             constant_name: The name of the constant to retrieve (e.g., "ExistentialDeposit").
-            block: The blockchain block number at which to query the constant. Do not specify if using block_hash or
-            reuse_block.
+            block: The blockchain block number at which to query the constant.
 
         Returns:
             Optional[async_substrate_interface.types.ScaleObj]: The value of the constant if found, ``None`` otherwise.
@@ -413,7 +412,7 @@ class Subtensor(SubtensorMixin):
             runtime_api: The name of the runtime API to query.
             method: The specific method within the runtime API to call.
             params: The parameters to pass to the method call.
-            block: the block number for this query. Do not specify if using block_hash or reuse_block.
+            block: the block number for this query.
 
         Returns:
             The decoded result from the runtime API call, or ``None`` if the call fails.
@@ -441,8 +440,8 @@ class Subtensor(SubtensorMixin):
         Returns:
             query_response: An object containing the requested data.
 
-        This query function is essential for accessing detailed information about the network and its neurons,
-        providing valuable insights into the state and dynamics of the Bittensor ecosystem.
+        This query function is essential for accessing detailed information about the network and its neurons, providing
+        valuable insights into the state and dynamics of the Bittensor ecosystem.
         """
         return self.substrate.query(
             module="SubtensorModule",
@@ -465,8 +464,8 @@ class Subtensor(SubtensorMixin):
         Returns:
             result (dict[Any, Any]): The result of the rpc call.
 
-        The state call function provides a more direct and flexible way of querying blockchain data, useful for
-        specific use cases where standard queries are insufficient.
+        The state call function provides a more direct and flexible way of querying blockchain data, useful for specific
+        use cases where standard queries are insufficient.
         """
         block_hash = self.determine_block_hash(block)
         return self.substrate.rpc_request(
@@ -485,8 +484,7 @@ class Subtensor(SubtensorMixin):
         and operational status.
 
         Arguments:
-            block: The block number to query the subnet information from. Do not specify if using block_hash or
-                reuse_block.
+            block: The block number to query the subnet information from.
 
         Returns:
             Optional[list[DynamicInfo]]: A list of DynamicInfo objects, each containing detailed information about a
@@ -517,7 +515,7 @@ class Subtensor(SubtensorMixin):
 
         Arguments:
             netuid: The unique identifier of the subnetwork.
-            block: The block number for this query. Do not specify if using block_hash or reuse_block.
+            block: The block number for this query.
 
         Returns:
             The number of blocks since the last step in the subnet, or None if the query fails.
@@ -565,7 +563,7 @@ class Subtensor(SubtensorMixin):
 
         Arguments:
             netuid: The unique identifier of the subnet.
-            block: The block number for this query. Do not specify if using block_hash or reuse_block.
+            block: The block number for this query.
 
         Returns:
             List of tuples mapping each neuron's UID to its bonds with other neurons.
@@ -642,7 +640,7 @@ class Subtensor(SubtensorMixin):
 
         Arguments:
             netuid: The unique identifier of the subnet for which to check the commit-reveal mechanism.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block: The block number to query.
 
         Returns:
             bool: True if commit-reveal mechanism is enabled, False otherwise.
@@ -672,7 +670,7 @@ class Subtensor(SubtensorMixin):
 
         Arguments:
             netuid: The unique identifier of the subnet.
-            block: The block number for the query. Do not specify if using block_hash or reuse_block.
+            block: The block number for the query.
 
         Returns:
             Optional[int]: The value of the 'Difficulty' hyperparameter if the subnet exists, None otherwise.
@@ -701,7 +699,7 @@ class Subtensor(SubtensorMixin):
 
         Arguments:
             hotkey_ss58: The SS58 address of the hotkey.
-            block: The block number for this query. Do not specify if using block_hash or reuse_block.
+            block: The block number for this query.
 
         Returns:
             bool: True if the hotkey is known by the chain and there are accounts, False otherwise.
@@ -937,8 +935,7 @@ class Subtensor(SubtensorMixin):
         Arguments:
             param_name: The name of the hyperparameter to retrieve (e.g., "Difficulty", "Tempo", "ImmunityPeriod").
             netuid: The unique identifier of the subnet.
-            block: The block number at which to retrieve the hyperparameter. Do not specify if using block_hash or
-                reuse_block.
+            block: The block number at which to retrieve the hyperparameter.
 
         Returns:
             The value of the specified hyperparameter if the subnet exists, None otherwise.
@@ -949,9 +946,6 @@ class Subtensor(SubtensorMixin):
 
             # Get tempo at a specific block
             tempo = subtensor.get_hyperparameter(param_name="Tempo", netuid=1, block=1000000)
-
-            # Get immunity period using block hash
-            immunity = subtensor.get_hyperparameter(param_name="ImmunityPeriod", netuid=1, block_hash="0x1234...")
         """
         block_hash = self.determine_block_hash(block)
         if not self.subnet_exists(netuid, block=block):
@@ -2230,7 +2224,7 @@ class Subtensor(SubtensorMixin):
             amount of Tao that needs to be locked or burned to establish a new subnet.
 
         Arguments:
-            block (Optional[int]): The blockchain block number for the query.
+            block: The blockchain block number for the query.
 
         Returns:
             int: The burn cost for subnet registration.
@@ -2255,17 +2249,17 @@ class Subtensor(SubtensorMixin):
     ) -> Optional[Union[list, "SubnetHyperparameters"]]:
         """
         Retrieves the hyperparameters for a specific subnet within the Bittensor network. These hyperparameters define
-            the operational settings and rules governing the subnet's behavior.
+        the operational settings and rules governing the subnet's behavior.
 
         Arguments:
-            netuid (int): The network UID of the subnet to query.
-            block (Optional[int]): The blockchain block number for the query.
+            netuid: The network UID of the subnet to query.
+            block: The blockchain block number for the query.
 
         Returns:
-            The subnet's hyperparameters, or `None` if not available.
+            The subnet's hyperparameters, or ``None`` if not available.
 
         Understanding the hyperparameters is crucial for comprehending how subnets are configured and managed, and how
-            they interact with the network's consensus and incentive mechanisms.
+        they interact with the network's consensus and incentive mechanisms.
         """
         result = self.query_runtime_api(
             runtime_api="SubnetInfoRuntimeApi",
@@ -2295,13 +2289,13 @@ class Subtensor(SubtensorMixin):
         Retrieves the list of all subnet unique identifiers (netuids) currently present in the Bittensor network.
 
         Arguments:
-            block (Optional[int]): The blockchain block number for the query.
+            block: The blockchain block number for the query.
 
         Returns:
             A list of subnet netuids.
 
-        This function provides a comprehensive view of the subnets within the Bittensor network,
-        offering insights into its diversity and scale.
+        This function provides a comprehensive view of the subnets within the Bittensor network, offering insights into
+        its diversity and scale.
         """
         result = self.substrate.query_map(
             module="SubtensorModule",
@@ -2320,7 +2314,7 @@ class Subtensor(SubtensorMixin):
         Retrieves the total number of subnets within the Bittensor network as of a specific blockchain block.
 
         Arguments:
-            block (Optional[int]): The blockchain block number for the query.
+            block: The blockchain block number for the query.
 
         Returns:
             Optional[str]: The total number of subnets in the network.
@@ -2339,22 +2333,22 @@ class Subtensor(SubtensorMixin):
     def get_transfer_fee(self, wallet: "Wallet", dest: str, value: Balance) -> Balance:
         """
         Calculates the transaction fee for transferring tokens from a wallet to a specified destination address. This
-            function simulates the transfer to estimate the associated cost, taking into account the current network
-            conditions and transaction complexity.
+        function simulates the transfer to estimate the associated cost, taking into account the current network
+        conditions and transaction complexity.
 
         Arguments:
-            wallet (bittensor_wallet.Wallet): The wallet from which the transfer is initiated.
-            dest (str): The ``SS58`` address of the destination account.
-            value (Union[bittensor.utils.balance.Balance, float, int]): The amount of tokens to be transferred,
-                specified as a Balance object, or in Tao (float) or Rao (int) units.
+            wallet: The wallet from which the transfer is initiated.
+            dest: The ``SS58`` address of the destination account.
+            value: The amount of tokens to be transferred, specified as a Balance object, or in Tao (float) or Rao
+                (int) units.
 
         Returns:
             bittensor.utils.balance.Balance: The estimated transaction fee for the transfer, represented as a Balance
                 object.
 
-        Estimating the transfer fee is essential for planning and executing token transactions, ensuring that the wallet
-            has sufficient funds to cover both the transfer amount and the associated costs. This function provides a
-            crucial tool for managing financial operations within the Bittensor network.
+        Estimating the transfer fee is essential for planning and executing token transactions, ensuring that the
+        wallet has sufficient funds to cover both the transfer amount and the associated costs. This function provides
+        a crucial tool for managing financial operations within the Bittensor network.
         """
         value = check_and_convert_to_balance(value)
         call = self.substrate.compose_call(
@@ -2378,17 +2372,17 @@ class Subtensor(SubtensorMixin):
     ) -> Optional["ProposalVoteData"]:
         """
         Retrieves the voting data for a specific proposal on the Bittensor blockchain. This data includes information
-            about how senate members have voted on the proposal.
+        about how senate members have voted on the proposal.
 
         Arguments:
-            proposal_hash (str): The hash of the proposal for which voting data is requested.
-            block (Optional[int]): The blockchain block number for the query.
+            proposal_hash: The hash of the proposal for which voting data is requested.
+            block: The blockchain block number for the query.
 
         Returns:
             An object containing the proposal's voting data, or `None` if not found.
 
         This function is important for tracking and understanding the decision-making processes within the Bittensor
-            network, particularly how proposals are received and acted upon by the governing body.
+        network, particularly how proposals are received and acted upon by the governing body.
         """
         vote_data: dict[str, Any] = self.substrate.query(
             module="Triumvirate",
@@ -2417,7 +2411,7 @@ class Subtensor(SubtensorMixin):
             Optional[int]: The UID of the neuron if it is registered on the subnet, ``None`` otherwise.
 
         The UID is a critical identifier within the network, linking the neuron's hotkey to its operational and
-            governance activities on a particular subnet.
+        governance activities on a particular subnet.
         """
         result = self.substrate.query(
             module="SubtensorModule",
@@ -2438,10 +2432,10 @@ class Subtensor(SubtensorMixin):
         Filters a given list of all netuids for certain specified netuids and hotkeys
 
         Arguments:
-            all_netuids (Iterable[int]): A list of netuids to filter.
-            filter_for_netuids (Iterable[int]): A subset of all_netuids to filter from the main list.
-            all_hotkeys (Iterable[Wallet]): Hotkeys to filter from the main list.
-            block (Optional[int]): The blockchain block number for the query.
+            all_netuids: A list of netuids to filter.
+            filter_for_netuids: A subset of all_netuids to filter from the main list.
+            all_hotkeys: Hotkeys to filter from the main list.
+            block: The blockchain block number for the query.
 
         Returns:
             The filtered list of netuids.
