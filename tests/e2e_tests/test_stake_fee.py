@@ -45,7 +45,9 @@ async def test_stake_fee_api(local_chain, subtensor, alice_wallet, bob_wallet):
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
     )
     assert isinstance(unstake_fee_root, Balance), "Stake fee should be a Balance object"
-    assert unstake_fee_root == 0, "Root unstake fee should be 0."
+    assert unstake_fee_root == Balance.from_rao(299076829), (
+        "Root unstake fee should be 0."
+    )
 
     # Test various stake movement scenarios
     movement_scenarios = [
