@@ -3955,3 +3955,108 @@ async def test_subnet(subtensor, mocker):
         {"netuid": netuid, "price": Balance.from_tao(100.0)}
     )
     assert result == mocked_di_from_dict.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_stake_operations_fee(subtensor, mocker):
+    """Verify that `get_stake_operations_fee` calls proper methods and returns the correct value."""
+    # Preps
+    netuid = 1
+    amount = Balance.from_rao(100_000_000_000)  # 100 Tao
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate, "query", return_value=mocker.Mock(value=196)
+    )
+
+    # Call
+    result = await subtensor.get_stake_operations_fee(netuid=netuid, amount=amount)
+
+    # Assert
+    mocked_determine_block_hash.assert_awaited_once_with(
+        block=None, block_hash=None, reuse_block=False
+    )
+    mocked_query_map.assert_awaited_once_with(
+        module="Swap",
+        storage_function="FeeRate",
+        params=[netuid],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    assert result == Balance.from_rao(299076829).set_unit(netuid)
+
+
+@pytest.mark.asyncio
+async def test_get_stake_add_fee(subtensor, mocker):
+    """Verify that `get_stake_add_fee` calls proper methods and returns the correct value."""
+    # Preps
+    netuid = mocker.Mock()
+    amount = mocker.Mock()
+    mocked_get_stake_operations_fee = mocker.patch.object(
+        subtensor, "get_stake_operations_fee"
+    )
+
+    # Call
+    result = await subtensor.get_stake_add_fee(
+        amount=amount,
+        netuid=netuid,
+        coldkey_ss58=mocker.Mock(),
+        hotkey_ss58=mocker.Mock(),
+    )
+
+    # Asserts
+    mocked_get_stake_operations_fee.assert_awaited_once_with(
+        amount=amount, netuid=netuid, block=None
+    )
+    assert result == mocked_get_stake_operations_fee.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_unstake_fee(subtensor, mocker):
+    """Verify that `get_unstake_fee` calls proper methods and returns the correct value."""
+    # Preps
+    netuid = mocker.Mock()
+    amount = mocker.Mock()
+    mocked_get_stake_operations_fee = mocker.patch.object(
+        subtensor, "get_stake_operations_fee"
+    )
+
+    # Call
+    result = await subtensor.get_unstake_fee(
+        amount=amount,
+        netuid=netuid,
+        coldkey_ss58=mocker.Mock(),
+        hotkey_ss58=mocker.Mock(),
+    )
+
+    # Asserts
+    mocked_get_stake_operations_fee.assert_awaited_once_with(
+        amount=amount, netuid=netuid, block=None
+    )
+    assert result == mocked_get_stake_operations_fee.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_stake_movement_fee(subtensor, mocker):
+    """Verify that `get_stake_movement_fee` calls proper methods and returns the correct value."""
+    # Preps
+    netuid = mocker.Mock()
+    amount = mocker.Mock()
+    mocked_get_stake_operations_fee = mocker.patch.object(
+        subtensor, "get_stake_operations_fee"
+    )
+
+    # Call
+    result = await subtensor.get_stake_movement_fee(
+        amount=amount,
+        origin_netuid=netuid,
+        origin_hotkey_ss58=mocker.Mock(),
+        origin_coldkey_ss58=mocker.Mock(),
+        destination_netuid=mocker.Mock(),
+        destination_hotkey_ss58=mocker.Mock(),
+        destination_coldkey_ss58=mocker.Mock(),
+    )
+
+    # Asserts
+    mocked_get_stake_operations_fee.assert_awaited_once_with(
+        amount=amount, netuid=netuid, block=None
+    )
+    assert result == mocked_get_stake_operations_fee.return_value
