@@ -120,7 +120,11 @@ from bittensor.utils.liquidity import (
     price_to_tick,
     LiquidityPosition,
 )
-from bittensor.utils.weight_utils import generate_weight_hash, convert_uids_and_weights
+from bittensor.utils.weight_utils import (
+    generate_weight_hash,
+    convert_uids_and_weights,
+    U16_MAX,
+)
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -1756,6 +1760,7 @@ class Subtensor(SubtensorMixin):
 
         return Balance.from_rao(int(stake)).set_unit(netuid=netuid)
 
+    # TODO: remove unused parameters in SDK.v10
     def get_stake_add_fee(
         self,
         amount: Balance,
@@ -1777,19 +1782,7 @@ class Subtensor(SubtensorMixin):
         Returns:
             The calculated stake fee as a Balance object
         """
-        result = self.query_runtime_api(
-            runtime_api="StakeInfoRuntimeApi",
-            method="get_stake_fee",
-            params=[
-                None,
-                coldkey_ss58,
-                (hotkey_ss58, netuid),
-                coldkey_ss58,
-                amount.rao,
-            ],
-            block=block,
-        )
-        return Balance.from_rao(result)
+        return self.get_stake_operations_fee(amount=amount, netuid=netuid, block=block)
 
     def get_subnet_info(
         self, netuid: int, block: Optional[int] = None
@@ -1882,6 +1875,7 @@ class Subtensor(SubtensorMixin):
         prices.update({0: Balance.from_tao(1)})
         return prices
 
+    # TODO: remove unused parameters in SDK.v10
     def get_unstake_fee(
         self,
         amount: Balance,
@@ -1903,20 +1897,9 @@ class Subtensor(SubtensorMixin):
         Returns:
             The calculated stake fee as a Balance object
         """
-        result = self.query_runtime_api(
-            runtime_api="StakeInfoRuntimeApi",
-            method="get_stake_fee",
-            params=[
-                (hotkey_ss58, netuid),
-                coldkey_ss58,
-                None,
-                coldkey_ss58,
-                amount.rao,
-            ],
-            block=block,
-        )
-        return Balance.from_rao(result)
+        return self.get_stake_operations_fee(amount=amount, netuid=netuid, block=block)
 
+    # TODO: remove unused parameters in SDK.v10
     def get_stake_movement_fee(
         self,
         amount: Balance,
@@ -1944,19 +1927,9 @@ class Subtensor(SubtensorMixin):
         Returns:
             The calculated stake fee as a Balance object
         """
-        result = self.query_runtime_api(
-            runtime_api="StakeInfoRuntimeApi",
-            method="get_stake_fee",
-            params=[
-                (origin_hotkey_ss58, origin_netuid),
-                origin_coldkey_ss58,
-                (destination_hotkey_ss58, destination_netuid),
-                destination_coldkey_ss58,
-                amount.rao,
-            ],
-            block=block,
+        return self.get_stake_operations_fee(
+            amount=amount, netuid=origin_netuid, block=block
         )
-        return Balance.from_rao(result)
 
     def get_stake_for_coldkey_and_hotkey(
         self,
@@ -2043,6 +2016,31 @@ class Subtensor(SubtensorMixin):
         return balance
 
     get_hotkey_stake = get_stake_for_hotkey
+
+    def get_stake_operations_fee(
+        self,
+        amount: Balance,
+        netuid: int,
+        block: Optional[int] = None,
+    ):
+        """Returns fee for any stake operation in specified subnet.
+
+        Args:
+            amount: Amount of stake to add in Alpha/TAO.
+            netuid: Netuid of subnet.
+            block: Block number at which to perform the calculation.
+
+        Returns:
+            The calculated stake fee as a Balance object.
+        """
+        block_hash = self.determine_block_hash(block=block)
+        result = self.substrate.query(
+            module="Swap",
+            storage_function="FeeRate",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+        return amount * (result.value / U16_MAX)
 
     def get_subnet_burn_cost(self, block: Optional[int] = None) -> Optional[Balance]:
         """
