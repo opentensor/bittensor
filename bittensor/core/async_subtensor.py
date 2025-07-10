@@ -1951,13 +1951,9 @@ class AsyncSubtensor(SubtensorMixin):
     async def get_minimum_required_stake(self):
         """
         Returns the minimum required stake for nominators in the Subtensor network.
-        This method retries the substrate call up to three times with exponential backoff in case of failures.
 
         Returns:
             Balance: The minimum required stake as a Balance object.
-
-        Raises:
-            Exception: If the substrate call fails after the maximum number of retries.
         """
         result = await self.substrate.query(
             module="SubtensorModule", storage_function="NominatorMinRequiredStake"
