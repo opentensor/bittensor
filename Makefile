@@ -1,4 +1,5 @@
-SHELL:=/bin/bash
+SHELL := /bin/bash
+.PHONY: init-venv clean-venv clean install install-dev reinstall reinstall-dev
 
 init-venv:
 	python3 -m venv venv && source ./venv/bin/activate
@@ -6,18 +7,20 @@ init-venv:
 clean-venv:
 	source ./venv/bin/activate && \
 	pip freeze > make_venv_to_uninstall.txt && \
-	pip uninstall -r make_venv_to_uninstall.txt && \
+	pip uninstall -r make_venv_to_uninstall.txt -y && \
 	rm make_venv_to_uninstall.txt
 
 clean:
-	rm -rf dist/ && \
-	rm -rf build/ && \
-	rm -rf bittensor.egg-info/ && \
-	rm -rf .pytest_cache/ && \
-	rm -rf lib/
+	rm -rf dist/ build/ bittensor.egg-info/ .pytest_cache/ lib/
 
-install:
+install: init-venv
+	source ./venv/bin/activate && \
 	python3 -m pip install .
 
-install-dev:
-	python3 -m pip install '.[dev]'
+install-dev: init-venv
+	source ./venv/bin/activate && \
+	python3 -m pip install -e '.[dev]'
+
+reinstall: clean clean-venv install
+
+reinstall-dev: clean clean-venv install-dev
