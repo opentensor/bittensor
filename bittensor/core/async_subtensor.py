@@ -714,8 +714,9 @@ class AsyncSubtensor(SubtensorMixin):
         params: Optional[list] = None,
     ) -> Optional[Union["ScaleObj", Any]]:
         """Queries any module storage on the Bittensor blockchain with the specified parameters and block number.
-        This function is a generic query interface that allows for flexible and diverse data retrieval from various
-        blockchain modules.
+
+        This function provides a generic, low-level interface for querying storage from any blockchain module. It's the
+        foundation for higher-level query methods and offers maximum flexibility for accessing blockchain data.
 
         Arguments:
             module: The name of the module from which to query data.
@@ -729,16 +730,113 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             An object containing the requested data if found, ``None`` otherwise.
 
-        This versatile query function is key to accessing a wide range of data and insights from different parts of the
-        Bittensor blockchain, enhancing the understanding and analysis of the network's state and dynamics.
+        # INVESTIGATION NOTE: Found the following modules in subtensor runtime (runtime/src/lib.rs):
+        # - System (frame_system) - Basic blockchain functionality
+        # - Balances (pallet_balances) - Account balances and transfers
+        # - SubtensorModule (pallet_subtensor) - Core Bittensor functionality
+        # - Commitments (pallet_commitments) - Commit-reveal mechanism
+        # - Swap (pallet_subtensor_swap) - Liquidity and staking operations
+        # - Registry (pallet_registry) - Identity registration
+        # - AdminUtils (pallet_admin_utils) - Administrative functions
+        # - Utility (pallet_utility) - Batch operations
+        # - Proxy (pallet_proxy) - Proxy accounts
+        # - Scheduler (pallet_scheduler) - Scheduled calls
+        # - Multisig (pallet_multisig) - Multi-signature accounts
+        # - Sudo (pallet_sudo) - Superuser operations
+        # - Ethereum/EVM - Ethereum compatibility
+        # - Drand (pallet_drand) - Distributed randomness
+        # - Crowdloan (pallet_crowdloan) - Crowdloan functionality
 
-        # DOCSTRING HELPFULNESS RATING: 4/10
-        # TODO: List common modules and their purposes (SubtensorModule, Balances, System, etc.)
-        # TODO: Explain the difference between this and query_subtensor()
-        # TODO: Add practical examples of querying different module types
-        # TODO: Explain when to use this vs higher-level specialized methods
-        # TODO: Add guidance on parameter formatting for different storage functions
-        # TODO: Mention that most users should use higher-level methods instead
+        ## Available Modules and Common Storage Functions:
+
+        ### System Module
+        - **Purpose**: Core blockchain functionality (accounts, blocks, events)
+        - **Storage**: `Account` (balance data), `BlockHash`, `Number`, `Events`
+        - **Example**: Account balance queries, block information
+
+        ### Balances Module
+        - **Purpose**: Native token (TAO) balance management
+        - **Storage**: `TotalIssuance`, `Locks`, `Reserves`
+        - **Example**: Token economics, account restrictions
+
+        ### SubtensorModule
+        - **Purpose**: Core Bittensor network functionality (neurons, subnets, consensus)
+        - **Storage**: `Bonds`, `Weights`, `Stakes`, `Uids`, `Owner`, `Keys`, `Active`, `Rank`, `Trust`,
+          `Consensus`, `Incentive`, `Dividends`, `Emission`, `Tempo`, `Difficulty`, `LastUpdate`
+        - **Example**: Neuron data, subnet parameters, consensus metrics
+
+        ### Commitments Module
+        - **Purpose**: Commit-reveal mechanism for secure weight setting
+        - **Storage**: `CommitmentOf`, `RevealedCommitments`
+        - **Example**: Weight commit/reveal data, metadata commitments
+
+        ### Swap Module
+        - **Purpose**: Liquidity provision and alpha token swapping
+        - **Storage**: `Positions`, `Ticks`, `AlphaSqrtPrice`, `FeeGlobalTao`, `FeeGlobalAlpha`
+        - **Example**: Liquidity positions, price data, fee tracking
+
+        ## Usage Guidelines:
+
+        **When to Use This Method:**
+        - Accessing storage functions not covered by higher-level methods
+        - Debugging or development requiring direct blockchain access
+        - Custom applications needing specific storage data
+        - Querying new or experimental storage items
+
+        **When to Use Higher-Level Methods Instead:**
+        - Standard operations like `get_balance()`, `bonds()`, `weights()`
+        - Common queries with built-in error handling and data formatting
+        - Production applications requiring stable APIs
+
+        ## Examples:
+
+        ```python
+        # Query account balance (prefer get_balance() for production)
+        balance_data = await subtensor.query_module(
+            module="System",
+            name="Account",
+            params=["5F..."]
+        )
+
+        # Query neuron owner (prefer get_hotkey_owner() for production)
+        owner = await subtensor.query_module(
+            module="SubtensorModule",
+            name="Owner",
+            params=["5G..."]
+        )
+
+        # Query subnet bonds (prefer bonds() for production)
+        bonds_data = await subtensor.query_module(
+            module="SubtensorModule",
+            name="Bonds",
+            params=[1]  # netuid
+        )
+
+        # Query commit-reveal data
+        commitment = await subtensor.query_module(
+            module="Commitments",
+            name="CommitmentOf",
+            params=[1, "5H..."]  # netuid, hotkey
+        )
+
+        # Query liquidity position
+        position = await subtensor.query_module(
+            module="Swap",
+            name="Positions",
+            params=[1, "5J...", 0]  # netuid, account, position_id
+        )
+        ```
+
+        **Key Differences from Other Query Methods:**
+        - `query_subtensor()`: Specialized for SubtensorModule only, simpler interface
+        - `query_map()`: For map-type storage that returns multiple key-value pairs
+        - `query_constant()`: For blockchain constants that don't change
+        - `query_runtime_api()`: For runtime API calls vs storage queries
+
+        # DOCSTRING HELPFULNESS RATING: 9/10
+        # TODO: Add links to Substrate documentation for advanced storage query patterns
+        # TODO: Include information about storage key encoding for complex queries
+        # TODO: Add guidance on interpreting ScaleObj return values
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         return await self.substrate.query(
@@ -1311,7 +1409,7 @@ class AsyncSubtensor(SubtensorMixin):
         # TODO: Explain what information is included in SubnetInfo objects
         # TODO: Add examples of filtering and analyzing subnet data
         # TODO: Show how to access subnet prices and registration information
-        # TODO: Explain the difference between this and all_subnets() 
+        # TODO: Explain the difference between this and all_subnets()
         # TODO: Add guidance on performance considerations for large queries
         # TODO: Show practical examples of subnet analysis and selection
         """
@@ -3417,15 +3515,45 @@ class AsyncSubtensor(SubtensorMixin):
     async def get_subnet_reveal_period_epochs(
         self, netuid: int, block: Optional[int] = None, block_hash: Optional[str] = None
     ) -> int:
-        """Retrieve the SubnetRevealPeriodEpochs hyperparameter.
+        """Retrieve the reveal period, in epochs, for commit-reveal weight setting.
 
-        # DOCSTRING HELPFULNESS RATING: 3/10
-        # TODO: Explain what reveal period epochs are and why they matter
-        # TODO: Add context about commit-reveal mechanism and timing
-        # TODO: Show how to use this for validator weight setting timing
-        # TODO: Explain relationship to tempo and epoch calculations
-        # TODO: Add examples of typical reveal period values
-        # TODO: Show how reveal periods affect validator behavior
+        This method returns the same value as the `CommitRevealPeriod` hyperparameter visible in btcli,
+        but queries the actual storage name `RevealPeriodEpochs` in the subtensor blockchain.
+
+        This chain parameter determines how many epochs must pass after a validator commits their weights
+        before they can reveal them. This is part of the commit-reveal mechanism designed to prevent weight
+        copying attacks by ensuring validators can only see stale weights from other validators.
+
+        Arguments:
+            netuid: The unique identifier of the subnet.
+            block: The block number for the query. Do not specify if using block_hash.
+            block_hash: The hash of the block for the query. Do not specify if using block.
+
+        Returns:
+            int: The number of epochs that must elapse between weight commit and reveal.
+
+        Example:
+            # Get reveal period for subnet 1
+            reveal_period = await subtensor.get_subnet_reveal_period_epochs(netuid=1)
+            print(f"Validators must wait {reveal_period} epochs before revealing weights")
+
+            # Calculate blocks until reveal is allowed
+            current_block = await subtensor.get_current_block()
+            tempo = await subtensor.tempo(netuid=1)
+            blocks_per_epoch = tempo + 1
+            reveal_delay_blocks = reveal_period * blocks_per_epoch
+
+        Notes:
+            - Storage name: `RevealPeriodEpochs` (btcli shows as `commit_reveal_period`)
+            - Default value is 1 epoch (meaning reveal in the next epoch after commit)
+            - Must be less than the immunity period to prevent miner deregistration
+            - Only applies when commit-reveal is enabled for the subnet
+            - See commit-reveal documentation for timing details
+
+        # DOCSTRING HELPFULNESS RATING: 8/10
+        # TODO: Add examples of how this interacts with validator weight setting schedules
+        # TODO: Show how to calculate exact reveal timing windows
+        # TODO: Explain edge cases when tempo or reveal period changes mid-commit
         """
         block_hash = await self.determine_block_hash(block, block_hash)
         return await self.get_hyperparameter(
@@ -4466,7 +4594,15 @@ class AsyncSubtensor(SubtensorMixin):
         reuse_block: bool = False,
     ) -> Optional[int]:
         """
-        Returns network SubnetworkN hyperparameter.
+        Retrieves the current number of registered neurons (UIDs) in a specific subnet.
+
+        SubnetworkN represents the actual count of neurons currently registered and active within a subnet. This value
+        starts at 0 when a subnet is created and increments by 1 each time a new neuron successfully registers. It
+        represents the "filled slots" in the subnet and determines the next available UID for new registrations.
+
+        This is different from the maximum capacity (MaxAllowedUids) - SubnetworkN shows how many neurons are actually
+        registered, while MaxAllowedUids shows the theoretical limit. When SubnetworkN reaches MaxAllowedUids, new
+        registrations require pruning (replacing) existing neurons with lower performance scores.
 
         Arguments:
             netuid: The unique identifier of the subnetwork.
@@ -4475,16 +4611,27 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            Optional[int]: The value of the SubnetworkN hyperparameter, or ``None`` if the subnetwork does not exist or
-                the parameter is not found.
+            Optional[int]: The current number of registered neurons in the subnet, or ``None`` if the subnetwork does
+                not exist.
 
-        # DOCSTRING HELPFULNESS RATING: 4/10
-        # TODO: Explain what SubnetworkN represents and its purpose
-        # TODO: Add examples of how this parameter is used in subnet operations
-        # TODO: Explain the relationship to subnet size and neuron capacity
-        # TODO: Show practical use cases for monitoring SubnetworkN
-        # TODO: Add guidance on interpreting the value and its implications
-        # TODO: Explain when and why this parameter might change
+        Example:
+            # Get current neuron count for subnet 1
+            neuron_count = await subtensor.subnetwork_n(netuid=1)
+            print(f"Subnet 1 has {neuron_count} registered neurons")
+
+            # Check if subnet is at capacity
+            max_uids = await subtensor.max_allowed_uids(netuid=1)
+            current_count = await subtensor.subnetwork_n(netuid=1)
+
+            if current_count >= max_uids:
+                print("Subnet is at capacity - new registrations will require pruning")
+            else:
+                print(f"Subnet has {max_uids - current_count} available slots")
+
+        # DOCSTRING HELPFULNESS RATING: 8/10
+        # TODO: Add examples of using this for subnet health monitoring and analytics
+        # TODO: Show how to track subnet growth over time using historical queries
+        # TODO: Explain relationship to neuron registration fees and difficulty scaling
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
