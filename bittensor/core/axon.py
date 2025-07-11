@@ -1354,7 +1354,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
         # Fills the local axon information into the synapse.
         synapse.axon.__dict__.update(
             {
-                "version": str(version_as_int),
+                "version": int(version_as_int),
                 "uuid": str(self.axon.uuid),
                 "nonce": time.time_ns(),
                 "status_code": 100,
@@ -1363,7 +1363,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
         # Fills the dendrite information into the synapse.
         synapse.dendrite.__dict__.update(
-            {"port": str(request.client.port), "ip": str(request.client.host)}  # type: ignore
+            {"port": int(request.client.port), "ip": str(request.client.host)}  # type: ignore
         )
 
         # Signs the synapse from the axon side using the wallet hotkey.

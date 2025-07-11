@@ -10,7 +10,7 @@ async def test_set_subnet_identity_extrinsic_happy_pass(subtensor, alice_wallet)
         "[magenta]Testing `set_subnet_identity_extrinsic` with success result.[/magenta]"
     )
 
-    netuid = 2
+    netuid = subtensor.get_total_subnets()  # 2
 
     # Register a subnet, netuid 2
     assert subtensor.register_subnet(alice_wallet), "Subnet wasn't created"
@@ -18,23 +18,24 @@ async def test_set_subnet_identity_extrinsic_happy_pass(subtensor, alice_wallet)
     # Verify subnet <netuid> created successfully
     assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
-    # make sure subnet_identity is empty
+    # Make sure subnet_identity is empty
     assert subtensor.subnet(netuid).subnet_identity is None, (
         "Subnet identity should be None before set"
     )
 
-    # prepare SubnetIdentity for subnet
+    # Prepare SubnetIdentity for subnet
     subnet_identity = SubnetIdentity(
         subnet_name="e2e test subnet",
         github_repo="e2e test repo",
         subnet_contact="e2e test contact",
         subnet_url="e2e test url",
+        logo_url="e2e test logo url",
         discord="e2e test discord",
         description="e2e test description",
         additional="e2e test additional",
     )
 
-    # set SubnetIdentity to subnet
+    # Set SubnetIdentity to subnet
     assert (
         subtensor.set_subnet_identity(
             wallet=alice_wallet,
@@ -44,7 +45,7 @@ async def test_set_subnet_identity_extrinsic_happy_pass(subtensor, alice_wallet)
         is True
     ), "Set subnet identity failed"
 
-    # check SubnetIdentity of the subnet
+    # Check SubnetIdentity of the subnet
     assert subtensor.subnet(netuid).subnet_identity == subnet_identity
 
 
@@ -69,7 +70,7 @@ async def test_set_subnet_identity_extrinsic_failed(
         "[magenta]Testing `set_subnet_identity_extrinsic` with failed result.[/magenta]"
     )
 
-    netuid = 2
+    netuid = subtensor.get_total_subnets()  # 2
 
     # Register a subnet, netuid 2
     assert subtensor.register_subnet(alice_wallet), "Subnet wasn't created"
@@ -77,23 +78,24 @@ async def test_set_subnet_identity_extrinsic_failed(
     # Verify subnet <netuid> created successfully
     assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
-    # make sure subnet_identity is empty
+    # Make sure subnet_identity is empty
     assert subtensor.subnet(netuid).subnet_identity is None, (
         "Subnet identity should be None before set"
     )
 
-    # prepare SubnetIdentity for subnet
+    # Prepare SubnetIdentity for subnet
     subnet_identity = SubnetIdentity(
         subnet_name="e2e test subnet",
         github_repo="e2e test repo",
         subnet_contact="e2e test contact",
         subnet_url="e2e test url",
+        logo_url="e2e test logo url",
         discord="e2e test discord",
         description="e2e test description",
         additional="e2e test additional",
     )
 
-    # set SubnetIdentity to subnet
+    # Set SubnetIdentity to subnet with wrong wallet
     assert (
         subtensor.set_subnet_identity(
             wallet=bob_wallet,

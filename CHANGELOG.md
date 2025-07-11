@@ -1,6 +1,151 @@
 # Changelog
 
-## 9.3.1a1 /2025-04-14
+## 9.8.2 /2025-07-10
+
+## What's Changed
+* edit docstrings by @MichaelTrestman in https://github.com/opentensor/bittensor/pull/2951
+* fix and improve e2e stake fee test by @basfroman in https://github.com/opentensor/bittensor/pull/2959
+* Make DynamicInfo backwards compatible by @basfroman in https://github.com/opentensor/bittensor/pull/2958
+* Update staking fee logic by @basfroman in https://github.com/opentensor/bittensor/pull/2961
+
+## New Contributors
+* @MichaelTrestman made their first contribution in https://github.com/opentensor/bittensor/pull/2951
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.8.1...v9.8.2
+
+## 9.8.1 /2025-07-08
+
+## What's Changed
+* New logic to get price for `DynamicInfo` by @basfroman in https://github.com/opentensor/bittensor/pull/2952
+* Update to safe_staking limits by @ibraheem-abe in https://github.com/opentensor/bittensor/pull/2950
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.8.0...v9.8.1
+
+## 9.8.0 /2025-07-07
+
+## What's Changed
+* Update e2e-tests (metagraph_info, staking) by @basfroman in https://github.com/opentensor/bittensor/pull/2907
+* Add method to fetch parents for child hotkeys by @thewhaleking in https://github.com/opentensor/bittensor/pull/2906
+* Add local env variable for `config.wallet.*` by @basfroman in https://github.com/opentensor/bittensor/pull/2908
+* Subtensor docstring cleanup by @thewhaleking in https://github.com/opentensor/bittensor/pull/2910
+* chore(ci): upgrade Docker GitHub Actions to latest stable versions by @MamunC0der in https://github.com/opentensor/bittensor/pull/2912
+* improve `scripts/install.sh` by @basfroman in https://github.com/opentensor/bittensor/pull/2914
+* Cleanup websocket integration data by @thewhaleking in https://github.com/opentensor/bittensor/pull/2915
+* chore: fix some typos in comment by @eveneast in https://github.com/opentensor/bittensor/pull/2868
+* Add `SKIP_PULL` variable for conftest.py by @basfroman in https://github.com/opentensor/bittensor/pull/2920
+* Update `SubnetIdentity` with subtensor related v3 changes by @basfroman in https://github.com/opentensor/bittensor/pull/2923
+* add time for flaky test by @basfroman in https://github.com/opentensor/bittensor/pull/2924
+* Add `root_set_pending_childkey_cooldown_extrinsic` by @basfroman in https://github.com/opentensor/bittensor/pull/2925
+* New logic for alpha low and high (0.025 <= alpha_low <= alpha_high <= 1) by @basfroman in https://github.com/opentensor/bittensor/pull/2927
+* Fix Typo in test_commit_weights.py by @zeevick10 in https://github.com/opentensor/bittensor/pull/2922
+* New websockets option by @thewhaleking in https://github.com/opentensor/bittensor/pull/2917
+* Retry archive node support by @thewhaleking in https://github.com/opentensor/bittensor/pull/2909
+* Fix: Safe staking e2e test by @ibraheem-abe in https://github.com/opentensor/bittensor/pull/2929
+* fix type conversion in axon preprocess by @Windfarer in https://github.com/opentensor/bittensor/pull/2930
+* [LINT] Improved type hints by @Arthurdw in https://github.com/opentensor/bittensor/pull/2918
+* Set balance netuids in staking tests by @thewhaleking in https://github.com/opentensor/bittensor/pull/2934
+* Improve subnet method logic by @basfroman in https://github.com/opentensor/bittensor/pull/2937
+* Update `SubnetHyperparameters` with v2 by @basfroman in https://github.com/opentensor/bittensor/pull/2938
+* upgrade numpy by @thewhaleking in https://github.com/opentensor/bittensor/pull/2936
+* decode metadata with empty value by @thewhaleking in https://github.com/opentensor/bittensor/pull/2940
+* Reset bonds by @andreea-popescu-reef in https://github.com/opentensor/bittensor/pull/2876
+* Add new logic for `unstake_all` extrinsics by @basfroman in https://github.com/opentensor/bittensor/pull/2897
+* SelectiveMetagraph back by @basfroman in https://github.com/opentensor/bittensor/pull/2887
+* add unstake_all to SubtensorApi.extrinsics by @basfroman in https://github.com/opentensor/bittensor/pull/2943
+* Integrate Liquidity Provider feature by @basfroman in https://github.com/opentensor/bittensor/pull/2939
+* Fix e2e test metagraph after chain change by @basfroman in https://github.com/opentensor/bittensor/pull/2945
+
+## New Contributors
+* @MamunC0der made their first contribution in https://github.com/opentensor/bittensor/pull/2912
+* @eveneast made their first contribution in https://github.com/opentensor/bittensor/pull/2868
+* @Windfarer made their first contribution in https://github.com/opentensor/bittensor/pull/2930
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.7.0...v9.8.0
+
+## 9.7.1 /2025-06-06
+
+## What's Changed
+* Update e2e-tests (metagraph_info, staking) by @basfroman in https://github.com/opentensor/bittensor/pull/2907
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.7.0...v9.7.1
+
+## 9.7.0 /2025-05-29
+
+## What's Changed
+* Add `get_subnet_info` by @basfroman in https://github.com/opentensor/bittensor/pull/2894
+* Fix bug in `get_next_epoch_start_block` by @basfroman in https://github.com/opentensor/bittensor/pull/2899
+* e2e workflow: improve skipping logic (no error when skip the job) by @basfroman in https://github.com/opentensor/bittensor/pull/2898
+* Replace `transfer_allow_death` with `transfer_keep_alive` by @basfroman in https://github.com/opentensor/bittensor/pull/2900
+* Fix broken pull request template links (#2867) by @AgSpades in https://github.com/opentensor/bittensor/pull/2883
+* update pr templates with branch ack by @thewhaleking in https://github.com/opentensor/bittensor/pull/2903
+
+## New Contributors
+* @AgSpades made their first contribution in https://github.com/opentensor/bittensor/pull/2883
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.6.1...v9.7.0
+
+## 9.6.1 /2025-05-22
+
+## What's Changed
+* Release/9.6.0 by @ibraheem-abe in https://github.com/opentensor/bittensor/pull/2882
+* Add stake before check `validator_permit` by @basfroman in https://github.com/opentensor/bittensor/pull/2884
+* Add defaults for endpoint and network from local env by @basfroman in https://github.com/opentensor/bittensor/pull/2886
+* Improve error message by @basfroman in https://github.com/opentensor/bittensor/pull/2888
+* Make `unstake` and `unstake_multiple` for all Alphas more clear by @basfroman in https://github.com/opentensor/bittensor/pull/2885
+* fix publish metadata by @basfroman in https://github.com/opentensor/bittensor/pull/2890
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.6.0...v9.6.1
+
+## 9.6.0 /2025-05-15
+
+* Add manual way to show the size of virtual environments in the PR by @basfroman in https://github.com/opentensor/bittensor/pull/2875
+* Improve `Monitor SDK Requirements Size` workflow by @basfroman in https://github.com/opentensor/bittensor/pull/2878
+* Add subtensor.is_subnet_active method by @basfroman in https://github.com/opentensor/bittensor/pull/2877
+* Using `hotkey` instead of `coldkey` to sign extrinsic in `serve_axon` by @basfroman in https://github.com/opentensor/bittensor/pull/2879
+* Rename argument `fallback_chains` to `fallback_endpoints` by @basfroman in https://github.com/opentensor/bittensor/pull/2880
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.5.0...v9.6.0
+
+## 9.5.0 /2025-05-12
+
+## What's Changed
+* Release/9.4.0 by @ibraheem-abe in https://github.com/opentensor/bittensor/pull/2837
+* Update subnet units by @thewhaleking in https://github.com/opentensor/bittensor/pull/2838
+* Add `force_register_neuron` into MockSubtensor by @basfroman in https://github.com/opentensor/bittensor/pull/2839
+* Add `Monitor-Requirements-Size` workflow by @basfroman in https://github.com/opentensor/bittensor/pull/2842
+* Add `SelectiveMetagraph` interface into SDK by @basfroman in https://github.com/opentensor/bittensor/pull/2846
+* Update docs for unstake amount by @thewhaleking in https://github.com/opentensor/bittensor/pull/2845
+* Add one more attempt to e2e tests by @basfroman in https://github.com/opentensor/bittensor/pull/2849
+* Fix typos in test documentation and docstrings by @leopardracer in https://github.com/opentensor/bittensor/pull/2848
+* Add bittensor-drand==0.5.0 by @basfroman in https://github.com/opentensor/bittensor/pull/2835
+* Extend selective metagraph logic by @basfroman in https://github.com/opentensor/bittensor/pull/2852
+* fix: $BASH_ENV loading issue by @defitricks in https://github.com/opentensor/bittensor/pull/2851
+* Update github actions versions due to deprecation by @PixelPil0t1 in https://github.com/opentensor/bittensor/pull/2850
+* Add methods to Async/Subtensor class by @basfroman in https://github.com/opentensor/bittensor/pull/2854
+* Cleanup, refactoring, small fix, improvement by @basfroman in https://github.com/opentensor/bittensor/pull/2856
+* Add `period` argument to extrinsics calls by @basfroman in https://github.com/opentensor/bittensor/pull/2857
+* Add nightly run of e2e tests by @basfroman in https://github.com/opentensor/bittensor/pull/2858
+* `period=16` for fast blocks test by @basfroman in https://github.com/opentensor/bittensor/pull/2859
+* Fix some unittests warnings by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2774
+* docs: fix typos in  `README.md` by @gap-editor in https://github.com/opentensor/bittensor/pull/2861
+* Introduce `SubtensorApi` interface for SDK by @basfroman in https://github.com/opentensor/bittensor/pull/2862
+* Adds `__all__` to easy_imports.py to get rid of all the #noqa stuff by @thewhaleking in https://github.com/opentensor/bittensor/pull/2863
+* `🥩s` to `staking` by @basfroman in https://github.com/opentensor/bittensor/pull/2864
+* Fix `get_next_epoch_start_block` by @basfroman in https://github.com/opentensor/bittensor/pull/2865
+* docs: fix dead link by @GarmashAlex in https://github.com/opentensor/bittensor/pull/2866
+* Add `non-fast-blocks` e2e tests each Saturday by @basfroman in https://github.com/opentensor/bittensor/pull/2860
+* Selective-metagraph -> MetagraphInfo by @basfroman in https://github.com/opentensor/bittensor/pull/2870
+* Improve e2e tests and fix bug in SubtensorApi by @basfroman in https://github.com/opentensor/bittensor/pull/2869
+
+## New Contributors
+* @defitricks made their first contribution in https://github.com/opentensor/bittensor/pull/2851
+* @PixelPil0t1 made their first contribution in https://github.com/opentensor/bittensor/pull/2850
+* @gap-editor made their first contribution in https://github.com/opentensor/bittensor/pull/2861
+* @GarmashAlex made their first contribution in https://github.com/opentensor/bittensor/pull/2866
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.4.0...v9.5.0
+
+## 9.4.0 /2025-04-17
 
 ## What's Changed
 * Release/9.3.0 by @ibraheem-abe in https://github.com/opentensor/bittensor/pull/2805
@@ -13,11 +158,32 @@
 * Remove requirements directory by @thewhaleking in https://github.com/opentensor/bittensor/pull/2812
 * version in one place by @thewhaleking in https://github.com/opentensor/bittensor/pull/2806
 * Update CONTRIBUTING hyperlinks by @thewhaleking in https://github.com/opentensor/bittensor/pull/2820
+* 9.3.1a1: Updates changelog by @ibraheem-abe in https://github.com/opentensor/bittensor/pull/2821
+* Remove cubit as extra by @thewhaleking in https://github.com/opentensor/bittensor/pull/2823
+* fix/roman/get-metagraph-identities by @basfroman in https://github.com/opentensor/bittensor/pull/2826
+* Replace waiting logic for `test_commit_reveal_v3.py` by @basfroman in https://github.com/opentensor/bittensor/pull/2827
+* Add `start_call` extrinsic to the sdk by @basfroman in https://github.com/opentensor/bittensor/pull/2828
+* Add `timelock` module by @basfroman in https://github.com/opentensor/bittensor/pull/2824
+* Fix: raise_error=True in AsyncSubtensor fails to get error_message by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2771
+* Fix: async set_subnet_identity_extrinsic doesn't sign the extrinsic by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2772
+* Update settings.py by @petryshkaCODE in https://github.com/opentensor/bittensor/pull/2814
+* Bumping ruff version by @basfroman in https://github.com/opentensor/bittensor/pull/2831
+* Fix and improve e2e tests after `start call` new limit in subtensor by @basfroman in https://github.com/opentensor/bittensor/pull/2830
+* Add `bittensor.timelock` module description by @basfroman in https://github.com/opentensor/bittensor/pull/2833
+* fix: Update broken link in `CONTRIBUTING.md` by @cypherpepe in https://github.com/opentensor/bittensor/pull/2818
+* docs: added a new badge by @sashaphmn in https://github.com/opentensor/bittensor/pull/2819
+* Fix AxonInfo initialization in get_mock_neuron function by @VolodymyrBg in https://github.com/opentensor/bittensor/pull/2803
+* Dendrite: log ClientOSError as Debug by @Thykof in https://github.com/opentensor/bittensor/pull/2770
+* remove `rao` endpoint from settings by @basfroman in https://github.com/opentensor/bittensor/pull/2834
 
 ## New Contributors
 * @Hack666r made their first contribution in https://github.com/opentensor/bittensor/pull/2813
+* @petryshkaCODE made their first contribution in https://github.com/opentensor/bittensor/pull/2814
+* @cypherpepe made their first contribution in https://github.com/opentensor/bittensor/pull/2818
+* @VolodymyrBg made their first contribution in https://github.com/opentensor/bittensor/pull/2803
+* @Thykof made their first contribution in https://github.com/opentensor/bittensor/pull/2770
 
-**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.3.0...v9.3.1a1
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.3.0...v9.4.0
 
 ## 9.3.0 /2025-04-09
 

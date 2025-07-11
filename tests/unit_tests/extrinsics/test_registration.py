@@ -80,40 +80,37 @@ def test_register_extrinsic_without_pow(
     mocker,
 ):
     # Arrange
-    with (
-        mocker.patch.object(
-            mock_subtensor, "subnet_exists", return_value=subnet_exists
-        ),
-        mocker.patch.object(
-            mock_subtensor,
-            "get_neuron_for_pubkey_and_subnet",
-            return_value=mocker.MagicMock(is_null=neuron_is_null),
-        ),
-        mocker.patch("torch.cuda.is_available", return_value=cuda_available),
-        mocker.patch(
-            "bittensor.utils.registration.pow._get_block_with_retry",
-            return_value=(0, 0, "00ff11ee"),
-        ),
-    ):
-        # Act
-        result = registration.register_extrinsic(
-            subtensor=mock_subtensor,
-            wallet=mock_wallet,
-            netuid=123,
-            wait_for_inclusion=True,
-            wait_for_finalization=True,
-            max_allowed_attempts=3,
-            output_in_place=True,
-            cuda=True,
-            dev_id=0,
-            tpb=256,
-            num_processes=None,
-            update_interval=None,
-            log_verbose=False,
-        )
+    mocker.patch.object(mock_subtensor, "subnet_exists", return_value=subnet_exists)
+    mocker.patch.object(
+        mock_subtensor,
+        "get_neuron_for_pubkey_and_subnet",
+        return_value=mocker.MagicMock(is_null=neuron_is_null),
+    )
+    mocker.patch("torch.cuda.is_available", return_value=cuda_available)
+    mocker.patch(
+        "bittensor.utils.registration.pow._get_block_with_retry",
+        return_value=(0, 0, "00ff11ee"),
+    )
 
-        # Assert
-        assert result == expected_result, f"Test failed for test_id: {test_id}"
+    # Act
+    result = registration.register_extrinsic(
+        subtensor=mock_subtensor,
+        wallet=mock_wallet,
+        netuid=123,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        max_allowed_attempts=3,
+        output_in_place=True,
+        cuda=True,
+        dev_id=0,
+        tpb=256,
+        num_processes=None,
+        update_interval=None,
+        log_verbose=False,
+    )
+
+    # Assert
+    assert result == expected_result, f"Test failed for test_id: {test_id}"
 
 
 @pytest.mark.parametrize(
@@ -141,48 +138,47 @@ def test_register_extrinsic_with_pow(
     mocker,
 ):
     # Arrange
-    with (
-        mocker.patch(
-            "bittensor.utils.registration.pow._solve_for_difficulty_fast",
-            return_value=mock_pow_solution if pow_success else None,
-        ),
-        mocker.patch(
-            "bittensor.utils.registration.pow._solve_for_difficulty_fast_cuda",
-            return_value=mock_pow_solution if pow_success else None,
-        ),
-        mocker.patch(
-            "bittensor.core.extrinsics.registration._do_pow_register",
-            return_value=(registration_success, "HotKeyAlreadyRegisteredInSubNet"),
-        ),
-        mocker.patch("torch.cuda.is_available", return_value=cuda),
-    ):
-        # Act
-        if pow_success:
-            mock_pow_solution.is_stale.return_value = pow_stale
+    mocker.patch(
+        "bittensor.utils.registration.pow._solve_for_difficulty_fast",
+        return_value=mock_pow_solution if pow_success else None,
+    )
+    mocker.patch(
+        "bittensor.utils.registration.pow._solve_for_difficulty_fast_cuda",
+        return_value=mock_pow_solution if pow_success else None,
+    )
+    mocker.patch(
+        "bittensor.core.extrinsics.registration._do_pow_register",
+        return_value=(registration_success, "HotKeyAlreadyRegisteredInSubNet"),
+    )
+    mocker.patch("torch.cuda.is_available", return_value=cuda)
 
-        if not pow_success and hotkey_registered:
-            mock_subtensor.is_hotkey_registered = mocker.MagicMock(
-                return_value=hotkey_registered
-            )
+    # Act
+    if pow_success:
+        mock_pow_solution.is_stale.return_value = pow_stale
 
-        result = registration.register_extrinsic(
-            subtensor=mock_subtensor,
-            wallet=mock_wallet,
-            netuid=123,
-            wait_for_inclusion=True,
-            wait_for_finalization=True,
-            max_allowed_attempts=3,
-            output_in_place=True,
-            cuda=cuda,
-            dev_id=0,
-            tpb=256,
-            num_processes=None,
-            update_interval=None,
-            log_verbose=False,
+    if not pow_success and hotkey_registered:
+        mock_subtensor.is_hotkey_registered = mocker.MagicMock(
+            return_value=hotkey_registered
         )
 
-        # Assert
-        assert result == expected_result, f"Test failed for test_id: {test_id}."
+    result = registration.register_extrinsic(
+        subtensor=mock_subtensor,
+        wallet=mock_wallet,
+        netuid=123,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        max_allowed_attempts=3,
+        output_in_place=True,
+        cuda=cuda,
+        dev_id=0,
+        tpb=256,
+        num_processes=None,
+        update_interval=None,
+        log_verbose=False,
+    )
+
+    # Assert
+    assert result == expected_result, f"Test failed for test_id: {test_id}."
 
 
 @pytest.mark.parametrize(
@@ -209,29 +205,26 @@ def test_burned_register_extrinsic(
     mocker,
 ):
     # Arrange
-    with (
-        mocker.patch.object(
-            mock_subtensor, "subnet_exists", return_value=subnet_exists
-        ),
-        mocker.patch.object(
-            mock_subtensor,
-            "get_neuron_for_pubkey_and_subnet",
-            return_value=mocker.MagicMock(is_null=neuron_is_null),
-        ),
-        mocker.patch(
-            "bittensor.core.extrinsics.registration._do_burned_register",
-            return_value=(recycle_success, "Mock error message"),
-        ),
-        mocker.patch.object(
-            mock_subtensor, "is_hotkey_registered", return_value=is_registered
-        ),
-    ):
-        # Act
-        result = registration.burned_register_extrinsic(
-            subtensor=mock_subtensor, wallet=mock_wallet, netuid=123
-        )
-        # Assert
-        assert result == expected_result, f"Test failed for test_id: {test_id}"
+    mocker.patch.object(mock_subtensor, "subnet_exists", return_value=subnet_exists)
+    mocker.patch.object(
+        mock_subtensor,
+        "get_neuron_for_pubkey_and_subnet",
+        return_value=mocker.MagicMock(is_null=neuron_is_null),
+    )
+    mocker.patch(
+        "bittensor.core.extrinsics.registration._do_burned_register",
+        return_value=(recycle_success, "Mock error message"),
+    )
+    mocker.patch.object(
+        mock_subtensor, "is_hotkey_registered", return_value=is_registered
+    )
+
+    # Act
+    result = registration.burned_register_extrinsic(
+        subtensor=mock_subtensor, wallet=mock_wallet, netuid=123
+    )
+    # Assert
+    assert result == expected_result, f"Test failed for test_id: {test_id}"
 
 
 def test_set_subnet_identity_extrinsic_is_success(mock_subtensor, mock_wallet, mocker):
@@ -242,6 +235,7 @@ def test_set_subnet_identity_extrinsic_is_success(mock_subtensor, mock_wallet, m
     github_repo = "mock_github_repo"
     subnet_contact = "mock_subnet_contact"
     subnet_url = "mock_subnet_url"
+    logo_url = "mock_logo_url"
     discord = "mock_discord"
     description = "mock_description"
     additional = "mock_additional"
@@ -260,6 +254,7 @@ def test_set_subnet_identity_extrinsic_is_success(mock_subtensor, mock_wallet, m
         github_repo=github_repo,
         subnet_contact=subnet_contact,
         subnet_url=subnet_url,
+        logo_url=logo_url,
         discord=discord,
         description=description,
         additional=additional,
@@ -272,13 +267,14 @@ def test_set_subnet_identity_extrinsic_is_success(mock_subtensor, mock_wallet, m
         call_params={
             "hotkey": mock_wallet.hotkey.ss58_address,
             "netuid": netuid,
-            "subnet_name": "mock_subnet_name",
-            "github_repo": "mock_github_repo",
-            "subnet_contact": "mock_subnet_contact",
-            "subnet_url": "mock_subnet_url",
-            "discord": "mock_discord",
-            "description": "mock_description",
-            "additional": "mock_additional",
+            "subnet_name": subnet_name,
+            "github_repo": github_repo,
+            "subnet_contact": subnet_contact,
+            "subnet_url": subnet_url,
+            "logo_url": logo_url,
+            "discord": discord,
+            "description": description,
+            "additional": additional,
         },
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
@@ -286,6 +282,7 @@ def test_set_subnet_identity_extrinsic_is_success(mock_subtensor, mock_wallet, m
         wallet=mock_wallet,
         wait_for_inclusion=False,
         wait_for_finalization=True,
+        period=None,
     )
 
     assert result == (True, "Identities for subnet 123 are set.")
@@ -299,6 +296,7 @@ def test_set_subnet_identity_extrinsic_is_failed(mock_subtensor, mock_wallet, mo
     github_repo = "mock_github_repo"
     subnet_contact = "mock_subnet_contact"
     subnet_url = "mock_subnet_url"
+    logo_url = "mock_logo_url"
     discord = "mock_discord"
     description = "mock_description"
     additional = "mock_additional"
@@ -321,6 +319,7 @@ def test_set_subnet_identity_extrinsic_is_failed(mock_subtensor, mock_wallet, mo
         github_repo=github_repo,
         subnet_contact=subnet_contact,
         subnet_url=subnet_url,
+        logo_url=logo_url,
         discord=discord,
         description=description,
         additional=additional,
@@ -333,13 +332,14 @@ def test_set_subnet_identity_extrinsic_is_failed(mock_subtensor, mock_wallet, mo
         call_params={
             "hotkey": mock_wallet.hotkey.ss58_address,
             "netuid": netuid,
-            "subnet_name": "mock_subnet_name",
-            "github_repo": "mock_github_repo",
-            "subnet_contact": "mock_subnet_contact",
-            "subnet_url": "mock_subnet_url",
-            "discord": "mock_discord",
-            "description": "mock_description",
-            "additional": "mock_additional",
+            "subnet_name": subnet_name,
+            "github_repo": github_repo,
+            "subnet_contact": subnet_contact,
+            "subnet_url": subnet_url,
+            "logo_url": logo_url,
+            "discord": discord,
+            "description": description,
+            "additional": additional,
         },
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
@@ -347,6 +347,7 @@ def test_set_subnet_identity_extrinsic_is_failed(mock_subtensor, mock_wallet, mo
         wallet=mock_wallet,
         wait_for_inclusion=False,
         wait_for_finalization=True,
+        period=None,
     )
 
     assert result == (

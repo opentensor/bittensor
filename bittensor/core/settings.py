@@ -121,14 +121,14 @@ DEFAULTS = munchify(
             "maxsize": int(_BT_PRIORITY_MAXSIZE) if _BT_PRIORITY_MAXSIZE else 10,
         },
         "subtensor": {
-            "chain_endpoint": DEFAULT_ENDPOINT,
-            "network": DEFAULT_NETWORK,
+            "chain_endpoint": os.getenv("BT_CHAIN_ENDPOINT") or DEFAULT_ENDPOINT,
+            "network": os.getenv("BT_NETWORK") or DEFAULT_NETWORK,
             "_mock": False,
         },
         "wallet": {
-            "name": "default",
-            "hotkey": "default",
-            "path": str(WALLETS_DIR),
+            "name": os.getenv("BT_WALLET_NAME") or "default",
+            "hotkey": os.getenv("BT_WALLET_HOTKEY") or "default",
+            "path": os.getenv("BT_WALLET_PATH") or str(WALLETS_DIR),
         },
     }
 )

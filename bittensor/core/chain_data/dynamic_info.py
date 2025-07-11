@@ -27,7 +27,7 @@ class DynamicInfo(InfoBase):
     alpha_in: Balance
     alpha_out: Balance
     tao_in: Balance
-    price: Balance
+    price: Optional[Balance]
     k: float
     is_dynamic: bool
     alpha_out_emission: Balance
@@ -74,28 +74,29 @@ class DynamicInfo(InfoBase):
         ).set_unit(0)
 
         subnet_volume = Balance.from_rao(decoded["subnet_volume"]).set_unit(netuid)
-        price = (
-            Balance.from_tao(1.0)
-            if netuid == 0
-            else Balance.from_tao(tao_in.tao / alpha_in.tao).set_unit(netuid)
-            if alpha_in.tao > 0
-            else Balance.from_tao(1).set_unit(netuid)
-        )  # Root always has 1-1 price
 
-        if decoded.get("subnet_identity"):
+        if subnet_identity := decoded.get("subnet_identity"):
+            # we need to check it for keep backwards compatibility
+            logo_bytes = subnet_identity.get("logo_url")
+            si_logo_url = bytes(logo_bytes).decode() if logo_bytes else None
+
             subnet_identity = SubnetIdentity(
-                subnet_name=bytes(decoded["subnet_identity"]["subnet_name"]).decode(),
-                github_repo=bytes(decoded["subnet_identity"]["github_repo"]).decode(),
-                subnet_contact=bytes(
-                    decoded["subnet_identity"]["subnet_contact"]
-                ).decode(),
-                subnet_url=bytes(decoded["subnet_identity"]["subnet_url"]).decode(),
-                discord=bytes(decoded["subnet_identity"]["discord"]).decode(),
-                description=bytes(decoded["subnet_identity"]["description"]).decode(),
-                additional=bytes(decoded["subnet_identity"]["additional"]).decode(),
+                subnet_name=bytes(subnet_identity["subnet_name"]).decode(),
+                github_repo=bytes(subnet_identity["github_repo"]).decode(),
+                subnet_contact=bytes(subnet_identity["subnet_contact"]).decode(),
+                subnet_url=bytes(subnet_identity["subnet_url"]).decode(),
+                logo_url=si_logo_url,
+                discord=bytes(subnet_identity["discord"]).decode(),
+                description=bytes(subnet_identity["description"]).decode(),
+                additional=bytes(subnet_identity["additional"]).decode(),
             )
         else:
             subnet_identity = None
+
+        price = decoded.get("price", None)
+
+        if price and not isinstance(price, Balance):
+            raise ValueError(f"price must be a Balance object, got {type(price)}.")
 
         return cls(
             netuid=netuid,
@@ -112,7 +113,11 @@ class DynamicInfo(InfoBase):
             tao_in=tao_in,
             k=tao_in.rao * alpha_in.rao,
             is_dynamic=is_dynamic,
-            price=price,
+            price=(
+                price
+                if price is not None
+                else Balance.from_tao(tao_in.tao / alpha_in.tao).set_unit(netuid)
+            ),
             alpha_out_emission=alpha_out_emission,
             alpha_in_emission=alpha_in_emission,
             tao_in_emission=tao_in_emission,

@@ -22,7 +22,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     Steps:
         1. Register a subnet through Alice
         2. Register Alice's neuron and add stake
-        3. Enable commit-reveal mechanism on the subnet
+        3. Enable a commit-reveal mechanism on subnet
         4. Lower weights rate limit
         5. Change the tempo for subnet 1
         5. Commit weights and ensure they are committed.
@@ -30,17 +30,22 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    BLOCK_TIME = 0.25  # 12 for non-fast-block, 0.25 for fast block
-    netuid = 2
+    BLOCK_TIME = (
+        0.25 if subtensor.is_fast_blocks() else 12.0
+    )  # 12 for non-fast-block, 0.25 for fast block
+    netuid = subtensor.get_total_subnets()  # 2
+
     logging.console.info("Testing test_commit_and_reveal_weights")
 
     # Register root as Alice
     assert subtensor.register_subnet(alice_wallet), "Unable to register the subnet"
 
     # Verify subnet 2 created successfully
-    assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
+    assert subtensor.subnet_exists(netuid), (
+        f"Subnet {netuid} wasn't created successfully"
+    )
 
-    logging.console.info("Subnet 2 is registered")
+    logging.console.success(f"Subnet {netuid} is registered")
 
     # Enable commit_reveal on the subnet
     assert sudo_set_hyperparameter_bool(
@@ -74,7 +79,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     logging.console.info("sudo_set_weights_set_rate_limit executed: set to 0")
 
     # Change the tempo of the subnet
-    tempo_set = 50
+    tempo_set = 50 if subtensor.is_fast_blocks() else 10
     assert (
         sudo_set_admin_utils(
             local_chain,
@@ -103,7 +108,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     )
 
     # Wait for 2 tempos to pass as CR3 only reveals weights after 2 tempos + 1
-    subtensor.wait_for_block((tempo_set * 2) + 1)
+    subtensor.wait_for_block(tempo_set * 2 + 1)
 
     # Lower than this might mean weights will get revealed before we can check them
     if upcoming_tempo - current_block < 3:
@@ -117,7 +122,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     latest_drand_round = subtensor.last_drand_round()
     upcoming_tempo = next_tempo(current_block, tempo)
     logging.console.info(
-        f"Post first wait_interval (to ensure window isnt too low): {current_block}, next tempo: {upcoming_tempo}, drand: {latest_drand_round}"
+        f"Post first wait_interval (to ensure window isn't too low): {current_block}, next tempo: {upcoming_tempo}, drand: {latest_drand_round}"
     )
 
     # Commit weights
@@ -129,6 +134,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
         wait_for_inclusion=True,
         wait_for_finalization=True,
         block_time=BLOCK_TIME,
+        period=16,
     )
 
     # Assert committing was a success
@@ -170,6 +176,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
         subtensor,
         netuid=netuid,
         reporting_interval=1,
+        sleep=BLOCK_TIME,
     )
 
     # Fetch the latest drand pulse

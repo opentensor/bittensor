@@ -10,7 +10,7 @@ Extrinsics:
 import asyncio
 from typing import Optional, Union, TYPE_CHECKING
 
-from bittensor.utils import unlock_key, format_error_message
+from bittensor.utils import unlock_key
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import log_no_torch_error, create_pow_async, torch
 
@@ -26,6 +26,7 @@ async def _do_burned_register(
     wallet: "Wallet",
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
+    period: Optional[int] = None,
 ) -> tuple[bool, str]:
     """
     Performs a burned register extrinsic call to the Subtensor chain.
@@ -38,6 +39,9 @@ async def _do_burned_register(
         wallet (bittensor_wallet.Wallet): The wallet to be registered.
         wait_for_inclusion (bool): Whether to wait for the transaction to be included in a block. Default is False.
         wait_for_finalization (bool): Whether to wait for the transaction to be finalized. Default is True.
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         Tuple[bool, Optional[str]]: A tuple containing a boolean indicating success or failure, and an optional error
@@ -58,6 +62,7 @@ async def _do_burned_register(
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        period=period,
     )
 
 
@@ -67,6 +72,7 @@ async def burned_register_extrinsic(
     netuid: int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
+    period: Optional[int] = None,
 ) -> bool:
     """Registers the wallet to chain by recycling TAO.
 
@@ -78,6 +84,9 @@ async def burned_register_extrinsic(
             returns ``False`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
             ``True``, or returns ``False`` if the extrinsic fails to be finalized within the timeout.
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
@@ -98,7 +107,7 @@ async def burned_register_extrinsic(
         f":satellite: [magenta]Checking Account on subnet[/magenta] [blue]{netuid}[/blue][magenta] ...[/magenta]"
     )
 
-    # We could do this as_completed because we don't actually need old_balance and recycle
+    # We could do this as_completed because we don't need old_balance and recycle
     # if neuron is null, but the complexity isn't worth it considering the small performance
     # gains we'd hypothetically receive in this situation
     neuron, old_balance, recycle_amount = await asyncio.gather(
@@ -126,6 +135,7 @@ async def burned_register_extrinsic(
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        period=period,
     )
 
     if not success:
@@ -162,6 +172,7 @@ async def _do_pow_register(
     pow_result: "POWSolution",
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
+    period: Optional[int] = None,
 ) -> tuple[bool, Optional[str]]:
     """Sends a (POW) register extrinsic to the chain.
 
@@ -172,6 +183,9 @@ async def _do_pow_register(
         pow_result (POWSolution): The PoW result to register.
         wait_for_inclusion (bool): If ``True``, waits for the extrinsic to be included in a block. Default to `False`.
         wait_for_finalization (bool): If ``True``, waits for the extrinsic to be finalized. Default to `True`.
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         success (bool): ``True`` if the extrinsic was included in a block.
@@ -196,6 +210,7 @@ async def _do_pow_register(
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        period=period,
     )
 
 
@@ -213,6 +228,7 @@ async def register_extrinsic(
     num_processes: Optional[int] = None,
     update_interval: Optional[int] = None,
     log_verbose: bool = False,
+    period: Optional[int] = None,
 ) -> bool:
     """Registers the wallet to the chain.
 
@@ -233,6 +249,9 @@ async def register_extrinsic(
         num_processes: The number of processes to use to register.
         update_interval: The number of nonces to solve between updates.
         log_verbose: If `True`, the registration process will log more information.
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion, the
@@ -321,7 +340,7 @@ async def register_extrinsic(
         # pow successful, proceed to submit pow to chain for registration
         else:
             logging.info(":satellite: [magenta]Submitting POW...[/magenta]")
-            # check if pow result is still valid
+            # check if a pow result is still valid
             while not await pow_result.is_stale_async(subtensor=subtensor):
                 result: tuple[bool, Optional[str]] = await _do_pow_register(
                     subtensor=subtensor,
@@ -330,6 +349,7 @@ async def register_extrinsic(
                     pow_result=pow_result,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
+                    period=period,
                 )
 
                 success, err_msg = result
@@ -386,6 +406,7 @@ async def register_subnet_extrinsic(
     wallet: "Wallet",
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
+    period: Optional[int] = None,
 ) -> bool:
     """
     Registers a new subnetwork on the Bittensor blockchain asynchronously.
@@ -395,6 +416,9 @@ async def register_subnet_extrinsic(
         wallet (Wallet): The wallet to be used for subnet registration.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning true.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning true.
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         bool: True if the subnet registration was successful, False otherwise.
@@ -417,29 +441,25 @@ async def register_subnet_extrinsic(
         },
     )
 
-    extrinsic = await subtensor.substrate.create_signed_extrinsic(
-        call=call, keypair=wallet.coldkey
-    )
-
-    response = await subtensor.substrate.submit_extrinsic(
-        extrinsic,
+    success, message = await subtensor.sign_and_send_extrinsic(
+        call=call,
+        wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        period=period,
     )
 
     if not wait_for_finalization and not wait_for_inclusion:
         return True
 
-    if not await response.is_success:
-        logging.error(
-            f"Failed to register subnet: {format_error_message(await response.error_message)}"
+    if success:
+        logging.success(
+            ":white_heavy_check_mark: [green]Successfully registered subnet[/green]"
         )
-        return False
+        return True
 
-    logging.success(
-        ":white_heavy_check_mark: [green]Successfully registered subnet[/green]"
-    )
-    return True
+    logging.error(f"Failed to register subnet: {message}")
+    return False
 
 
 async def set_subnet_identity_extrinsic(
@@ -450,11 +470,13 @@ async def set_subnet_identity_extrinsic(
     github_repo: str,
     subnet_contact: str,
     subnet_url: str,
+    logo_url: str,
     discord: str,
     description: str,
     additional: str,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
+    period: Optional[int] = None,
 ) -> tuple[bool, str]:
     """
     Set the identity information for a given subnet.
@@ -467,11 +489,15 @@ async def set_subnet_identity_extrinsic(
         github_repo (str): URL of the GitHub repository related to the subnet.
         subnet_contact (str): Subnet's contact information, e.g., email or contact link.
         subnet_url (str): The URL of the subnet's primary web portal.
+        logo_url (str): The URL of the logo's primary web portal.
         discord (str): Discord server or contact for the subnet.
         description (str): A textual description of the subnet.
         additional (str): Any additional metadata or information related to the subnet.
         wait_for_inclusion (bool): Whether to wait for the extrinsic inclusion in a block (default: False).
         wait_for_finalization (bool): Whether to wait for the extrinsic finalization in a block (default: True).
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
 
     Returns:
         tuple[bool, str]: A tuple where the first element indicates success or failure (True/False), and the second
@@ -492,21 +518,23 @@ async def set_subnet_identity_extrinsic(
             "github_repo": github_repo,
             "subnet_contact": subnet_contact,
             "subnet_url": subnet_url,
+            "logo_url": logo_url,
             "discord": discord,
             "description": description,
             "additional": additional,
         },
     )
 
-    success, error_message = await subtensor.sign_and_send_extrinsic(
+    success, message = await subtensor.sign_and_send_extrinsic(
         call=call,
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        period=period,
     )
 
     if not wait_for_finalization and not wait_for_inclusion:
-        return True, f"Identities for subnet {netuid} are sent to the chain."
+        return True, message
 
     if success:
         logging.success(
@@ -515,6 +543,6 @@ async def set_subnet_identity_extrinsic(
         return True, f"Identities for subnet {netuid} are set."
 
     logging.error(
-        f":cross_mark: Failed to set identity for subnet [blue]{netuid}[/blue]: {error_message}"
+        f":cross_mark: Failed to set identity for subnet [blue]{netuid}[/blue]: {message}"
     )
-    return False, f"Failed to set identity for subnet {netuid}: {error_message}"
+    return False, f"Failed to set identity for subnet {netuid}: {message}"

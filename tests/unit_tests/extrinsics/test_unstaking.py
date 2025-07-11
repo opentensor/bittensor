@@ -43,13 +43,59 @@ def test_unstake_extrinsic(fake_wallet, mocker):
         },
     )
     fake_subtensor.sign_and_send_extrinsic.assert_called_once_with(
-        fake_subtensor.substrate.compose_call.return_value,
-        fake_wallet,
-        True,
-        True,
+        call=fake_subtensor.substrate.compose_call.return_value,
+        wallet=fake_wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
         sign_with="coldkey",
         nonce_key="coldkeypub",
         use_nonce=True,
+        period=None,
+    )
+
+
+def test_unstake_all_extrinsic(fake_wallet, mocker):
+    # Preps
+    fake_subtensor = mocker.Mock(
+        **{
+            "subnet.return_value": mocker.Mock(price=100),
+            "sign_and_send_extrinsic.return_value": (True, ""),
+        }
+    )
+
+    hotkey = "hotkey"
+    fake_netuid = 1
+
+    # Call
+    result = unstaking.unstake_all_extrinsic(
+        subtensor=fake_subtensor,
+        wallet=fake_wallet,
+        hotkey=hotkey,
+        netuid=fake_netuid,
+    )
+
+    # Asserts
+    assert result[0] is True
+    assert result[1] == ""
+
+    fake_subtensor.substrate.compose_call.assert_called_once_with(
+        call_module="SubtensorModule",
+        call_function="remove_stake_full_limit",
+        call_params={
+            "hotkey": "hotkey",
+            "netuid": fake_netuid,
+            "limit_price": 100 * (1 - 0.005),
+        },
+    )
+    fake_subtensor.sign_and_send_extrinsic.assert_called_once_with(
+        call=fake_subtensor.substrate.compose_call.return_value,
+        wallet=fake_wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        sign_with="coldkey",
+        nonce_key="coldkeypub",
+        use_nonce=True,
+        period=None,
     )
 
 
@@ -109,11 +155,12 @@ def test_unstake_multiple_extrinsic(fake_wallet, mocker):
         },
     )
     fake_subtensor.sign_and_send_extrinsic.assert_called_with(
-        fake_subtensor.substrate.compose_call.return_value,
-        fake_wallet,
-        True,
-        True,
+        call=fake_subtensor.substrate.compose_call.return_value,
+        wallet=fake_wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
         sign_with="coldkey",
         nonce_key="coldkeypub",
         use_nonce=True,
+        period=None,
     )
