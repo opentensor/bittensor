@@ -730,63 +730,41 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             An object containing the requested data if found, ``None`` otherwise.
 
-        # INVESTIGATION NOTE: Found the following modules in subtensor runtime (runtime/src/lib.rs):
-        # - System (frame_system) - Basic blockchain functionality
-        # - Balances (pallet_balances) - Account balances and transfers
-        # - SubtensorModule (pallet_subtensor) - Core Bittensor functionality
-        # - Commitments (pallet_commitments) - Commit-reveal mechanism
-        # - Swap (pallet_subtensor_swap) - Liquidity and staking operations
-        # - Registry (pallet_registry) - Identity registration
-        # - AdminUtils (pallet_admin_utils) - Administrative functions
-        # - Utility (pallet_utility) - Batch operations
-        # - Proxy (pallet_proxy) - Proxy accounts
-        # - Scheduler (pallet_scheduler) - Scheduled calls
-        # - Multisig (pallet_multisig) - Multi-signature accounts
-        # - Sudo (pallet_sudo) - Superuser operations
-        # - Ethereum/EVM - Ethereum compatibility
-        # - Drand (pallet_drand) - Distributed randomness
-        # - Crowdloan (pallet_crowdloan) - Crowdloan functionality
-
-        ## Available Modules and Common Storage Functions:
-
-        ### System Module
-        - **Purpose**: Core blockchain functionality (accounts, blocks, events)
-        - **Storage**: `Account` (balance data), `BlockHash`, `Number`, `Events`
-        - **Example**: Account balance queries, block information
-
-        ### Balances Module
-        - **Purpose**: Native token (TAO) balance management
-        - **Storage**: `TotalIssuance`, `Locks`, `Reserves`
-        - **Example**: Token economics, account restrictions
-
-        ### SubtensorModule
-        - **Purpose**: Core Bittensor network functionality (neurons, subnets, consensus)
-        - **Storage**: `Bonds`, `Weights`, `Stakes`, `Uids`, `Owner`, `Keys`, `Active`, `Rank`, `Trust`,
-          `Consensus`, `Incentive`, `Dividends`, `Emission`, `Tempo`, `Difficulty`, `LastUpdate`
-        - **Example**: Neuron data, subnet parameters, consensus metrics
-
-        ### Commitments Module
-        - **Purpose**: Commit-reveal mechanism for secure weight setting
-        - **Storage**: `CommitmentOf`, `RevealedCommitments`
-        - **Example**: Weight commit/reveal data, metadata commitments
-
-        ### Swap Module
-        - **Purpose**: Liquidity provision and alpha token swapping
-        - **Storage**: `Positions`, `Ticks`, `AlphaSqrtPrice`, `FeeGlobalTao`, `FeeGlobalAlpha`
-        - **Example**: Liquidity positions, price data, fee tracking
-
-        ## Usage Guidelines:
+        Available modules in subtensor runtime (from construct_runtime! macro):
+            - System (frame_system) - Basic blockchain functionality and account management
+            - RandomnessCollectiveFlip (pallet_insecure_randomness_collective_flip) - Basic randomness
+            - Timestamp (pallet_timestamp) - Block timestamp functionality
+            - Aura (pallet_aura) - Block authoring consensus
+            - Grandpa (pallet_grandpa) - Block finality consensus
+            - Balances (pallet_balances) - Account balances and transfers
+            - TransactionPayment (pallet_transaction_payment) - Transaction fee handling
+            - SubtensorModule (pallet_subtensor) - Core Bittensor functionality (neurons, subnets, consensus)
+            - Triumvirate (pallet_collective) - Governance collective for network decisions
+            - TriumvirateMembers (pallet_membership) - Triumvirate membership management
+            - SenateMembers (pallet_membership) - Senate membership management
+            - Utility (pallet_utility) - Batch operations and utility functions
+            - Sudo (pallet_sudo) - Superuser operations for development/emergency
+            - Multisig (pallet_multisig) - Multi-signature account operations
+            - Preimage (pallet_preimage) - On-chain preimage storage for governance
+            - Scheduler (pallet_scheduler) - Scheduled calls and delayed execution
+            - Proxy (pallet_proxy) - Proxy accounts and delegated operations
+            - Registry (pallet_registry) - Identity registration and management
+            - Commitments (pallet_commitments) - Commit-reveal mechanism for secure operations
+            - AdminUtils (pallet_admin_utils) - Administrative functions and network management
+            - SafeMode (pallet_safe_mode) - Emergency network protection mechanisms
+            - Ethereum (pallet_ethereum) - Ethereum compatibility layer
+            - EVM (pallet_evm) - Ethereum Virtual Machine support
+            - EVMChainId (pallet_evm_chain_id) - EVM chain identifier management
+            - BaseFee (pallet_base_fee) - EIP-1559 base fee mechanism
+            - Drand (pallet_drand) - Distributed randomness beacon integration
+            - Crowdloan (pallet_crowdloan) - Crowdfunding functionality
+            - Swap (pallet_subtensor_swap) - Liquidity provision and alpha token swapping
 
         **When to Use This Method:**
         - Accessing storage functions not covered by higher-level methods
         - Debugging or development requiring direct blockchain access
         - Custom applications needing specific storage data
         - Querying new or experimental storage items
-
-        **When to Use Higher-Level Methods Instead:**
-        - Standard operations like `get_balance()`, `bonds()`, `weights()`
-        - Common queries with built-in error handling and data formatting
-        - Production applications requiring stable APIs
 
         ## Examples:
 
@@ -826,12 +804,6 @@ class AsyncSubtensor(SubtensorMixin):
             params=[1, "5J...", 0]  # netuid, account, position_id
         )
         ```
-
-        **Key Differences from Other Query Methods:**
-        - `query_subtensor()`: Specialized for SubtensorModule only, simpler interface
-        - `query_map()`: For map-type storage that returns multiple key-value pairs
-        - `query_constant()`: For blockchain constants that don't change
-        - `query_runtime_api()`: For runtime API calls vs storage queries
 
         # DOCSTRING HELPFULNESS RATING: 9/10
         # TODO: Add links to Substrate documentation for advanced storage query patterns
