@@ -141,36 +141,23 @@ class Subtensor(SubtensorMixin):
         _mock: bool = False,
         archive_endpoints: Optional[list[str]] = None,
     ):
-        """Initializes a Subtensor instance for blockchain interaction.
+        """
+        Initializes an instance of the Subtensor class.
 
         Arguments:
-            network: The network name or type to connect to (e.g., "finney", "test"). If ``None``, uses the default
-                network from config.
-            config: Configuration object for the Subtensor instance. If ``None``, uses the default configuration.
-            log_verbose: Enables or disables verbose logging. Defaults to ``False``.
+            network: The network name or type to connect to.
+            config: Configuration object for the AsyncSubtensor instance.
+            log_verbose: Enables or disables verbose logging.
             fallback_endpoints: List of fallback endpoints to use if default or provided network is not available.
-                Defaults to ``None``.
-            retry_forever: Whether to retry forever on connection errors. Defaults to ``False``.
-            _mock: Whether this is a mock instance. Mainly for testing purposes. Defaults to ``False``.
-            archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in
-                cases where you are requesting a block that is too old for your current (presumably lite) node. Defaults
-                to ``None``.
-
-        Returns:
-            None
+                Defaults to `None`.
+            retry_forever: Whether to retry forever on connection errors. Defaults to `False`.
+            _mock: Whether this is a mock instance. Mainly just for use in testing.
+            archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in cases
+                where you are requesting a block that is too old for your current (presumably lite) node. Defaults to
+                `None`
 
         Raises:
-            ConnectionError: If unable to connect to the specified network.
-            ValueError: If invalid network or configuration parameters are provided.
-            Exception: Any other exceptions raised during setup or configuration.
-
-        Typical usage example:
-
-            import bittensor as bt
-
-            # Create and use a subtensor instance
-            subtensor = bt.Subtensor(network="finney")
-            block_hash = subtensor.get_block_hash()
+            Any exceptions raised during the setup, configuration, or connection process.
         """
         if config is None:
             config = self.config()
@@ -202,23 +189,7 @@ class Subtensor(SubtensorMixin):
         self.close()
 
     def close(self):
-        """Closes the connection to the blockchain.
-
-        Use this to explicitly clean up resources and close the network connection instead of waiting for garbage
-        collection.
-
-        Returns:
-            None
-
-        Example:
-            subtensor = Subtensor(network="finney")
-
-            # Use the subtensor...
-            balance = subtensor.get_balance(address="5F...")
-
-            # Close when done
-            subtensor.close()
-        """
+        """Closes the websocket connection."""
         self.substrate.close()
 
     def _get_substrate(
@@ -230,20 +201,17 @@ class Subtensor(SubtensorMixin):
     ) -> Union[SubstrateInterface, RetrySyncSubstrate]:
         """Creates the Substrate instance based on provided arguments.
 
-        This internal method creates either a standard SubstrateInterface or a RetrySyncSubstrate depending on
-         the configuration parameters.
-
         Arguments:
-            fallback_endpoints: List of fallback endpoints to use if default or provided network is not available.
-            Defaults to ``None``.
-            retry_forever: Whether to retry forever on connection errors. Defaults to ``False``.
-            _mock: Whether this is a mock instance. Mainly for testing purposes. Defaults to ``False``.
-            archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in
-            cases where you are requesting a block that is too old for your current (presumably lite) node. Defaults
-            to ``None``.
+            fallback_endpoints: List of fallback chains endpoints to use if main network isn't available. Defaults to
+                `None`.
+            retry_forever: Whether to retry forever on connection errors. Defaults to `False`.
+            _mock: Whether this is a mock instance. Mainly just for use in testing.
+            archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in cases
+                where you are requesting a block that is too old for your current (presumably lite) node. Defaults to
+                `None`
 
         Returns:
-            Either SubstrateInterface or RetrySyncSubstrate.
+            the instance of the SubstrateInterface or RetrySyncSubstrate class.
         """
         if fallback_endpoints or retry_forever or archive_endpoints:
             return RetrySyncSubstrate(
@@ -271,34 +239,22 @@ class Subtensor(SubtensorMixin):
     def query_constant(
         self, module_name: str, constant_name: str, block: Optional[int] = None
     ) -> Optional["ScaleObj"]:
-        """Retrieves a constant from the specified module on the Bittensor blockchain.
+        """
+        Retrieves a constant from the specified module on the Bittensor blockchain. This function is used to access
+            fixed parameters or values defined within the blockchain's modules, which are essential for understanding
+            the network's configuration and rules.
 
-        This function is used to access fixed values defined within the blockchain's modules, which are essential for
-        understanding the network's configuration and rules. These include include critical network parameters such as
-        inflation rates, consensus rules, or validation thresholds, providing a deeper understanding of the Bittensor
-        network's operational parameters.
-
-        Arguments:
-            module_name: The name of the module containing the constant (e.g., "Balances", "SubtensorModule").
-            constant_name: The name of the constant to retrieve (e.g., "ExistentialDeposit").
+        Args:
+            module_name: The name of the module containing the constant.
+            constant_name: The name of the constant to retrieve.
             block: The blockchain block number at which to query the constant.
 
         Returns:
-            Optional[async_substrate_interface.types.ScaleObj]: The value of the constant if found, ``None`` otherwise.
+            Optional[async_substrate_interface.types.ScaleObj]: The value of the constant if found, `None` otherwise.
 
-        Example:
-            # Get existential deposit constant
-            existential_deposit = subtensor.query_constant(
-                module_name="Balances",
-                constant_name="ExistentialDeposit"
-            )
-
-            # Get constant at specific block
-            constant = subtensor.query_constant(
-                module_name="SubtensorModule",
-                constant_name="SomeConstant",
-                block=1000000
-            )
+        Constants queried through this function can include critical network parameters such as inflation rates,
+            consensus rules, or validation thresholds, providing a deeper understanding of the Bittensor network's
+            operational parameters.
         """
         return self.substrate.get_constant(
             module_name=module_name,
@@ -313,26 +269,22 @@ class Subtensor(SubtensorMixin):
         block: Optional[int] = None,
         params: Optional[list] = None,
     ) -> "QueryMapResult":
-        """Queries map storage from any module on the Bittensor blockchain.
+        """
+        Queries map storage from any module on the Bittensor blockchain. This function retrieves data structures that
+            represent key-value mappings, essential for accessing complex and structured data within the blockchain
+            modules.
 
-        This function retrieves data structures that represent key-value mappings, essential for accessing complex and
-          structured data within the blockchain modules.
-
-        Arguments:
-            module: The name of the module from which to query the map storage (e.g., "SubtensorModule", "System").
-            name: The specific storage function within the module to query (e.g., "Bonds", "Weights").
-            block: The blockchain block number at which to perform the query. Defaults to ``None`` (latest block).
-            params: Parameters to be passed to the query. Defaults to ``None``.
+        Args:
+            module: The name of the module from which to query the map storage.
+            name: The specific storage function within the module to query.
+            block: The blockchain block number at which to perform the query.
+            params: Parameters to be passed to the query.
 
         Returns:
-            QueryMapResult: A data structure representing the map storage if found, None otherwise.
+            result: A data structure representing the map storage if found, `None` otherwise.
 
-        Example:
-            # Query bonds for subnet 1
-            bonds = subtensor.query_map(module="SubtensorModule", name="Bonds", params=[1])
-
-            # Query weights at specific block
-            weights = subtensor.query_map(module="SubtensorModule", name="Weights", params=[1], block=1000000)
+        This function is particularly useful for retrieving detailed and structured data from various blockchain
+            modules, offering insights into the network's state and the relationships between its different components.
         """
         result = self.substrate.query_map(
             module=module,
@@ -345,20 +297,20 @@ class Subtensor(SubtensorMixin):
     def query_map_subtensor(
         self, name: str, block: Optional[int] = None, params: Optional[list] = None
     ) -> "QueryMapResult":
-        """Queries map storage from the Subtensor module on the Bittensor blockchain. This function is designed to
-        retrieve a map-like data structure, which can include various neuron-specific details or network-wide
-        attributes.
+        """
+        Queries map storage from the Subtensor module on the Bittensor blockchain. This function is designed to retrieve
+            a map-like data structure, which can include various neuron-specific details or network-wide attributes.
 
-        Arguments:
+        Args:
             name: The name of the map storage function to query.
             block: The blockchain block number at which to perform the query.
             params: A list of parameters to pass to the query function.
 
         Returns:
-            An object containing the map-like data structure, or ``None`` if not found.
+            An object containing the map-like data structure, or `None` if not found.
 
         This function is particularly useful for analyzing and understanding complex network structures and
-        relationships within the Bittensor ecosystem, such as interneuronal connections and stake distributions.
+            relationships within the Bittensor ecosystem, such as interneuronal connections and stake distributions.
         """
         return self.substrate.query_map(
             module="SubtensorModule",
@@ -374,21 +326,22 @@ class Subtensor(SubtensorMixin):
         block: Optional[int] = None,
         params: Optional[list] = None,
     ) -> Optional[Union["ScaleObj", Any, FixedPoint]]:
-        """Queries any module storage on the Bittensor blockchain with the specified parameters and block number.
-        This function is a generic query interface that allows for flexible and diverse data retrieval from various
-        blockchain modules.
+        """
+        Queries any module storage on the Bittensor blockchain with the specified parameters and block number. This
+            function is a generic query interface that allows for flexible and diverse data retrieval from various
+            blockchain modules.
 
-        Arguments:
-            module: The name of the module from which to query data.
-            name: The name of the storage function within the module.
-            block: The blockchain block number at which to perform the query.
-            params: A list of parameters to pass to the query function.
+        Args:
+            module (str): The name of the module from which to query data.
+            name (str): The name of the storage function within the module.
+            block (Optional[int]): The blockchain block number at which to perform the query.
+            params (Optional[list[object]]): A list of parameters to pass to the query function.
 
         Returns:
-            An object containing the requested data if found, ``None`` otherwise.
+            An object containing the requested data if found, `None` otherwise.
 
         This versatile query function is key to accessing a wide range of data and insights from different parts of the
-        Bittensor blockchain, enhancing the understanding and analysis of the network's state and dynamics.
+            Bittensor blockchain, enhancing the understanding and analysis of the network's state and dynamics.
         """
         return self.substrate.query(
             module=module,
@@ -404,21 +357,22 @@ class Subtensor(SubtensorMixin):
         params: Optional[Union[list[Any], dict[str, Any]]] = None,
         block: Optional[int] = None,
     ) -> Any:
-        """Queries the runtime API of the Bittensor blockchain, providing a way to interact with the underlying runtime
-        and retrieve data encoded in Scale Bytes format. This function is essential for advanced users who need to
-        interact with specific runtime methods and decode complex data types.
+        """
+        Queries the runtime API of the Bittensor blockchain, providing a way to interact with the underlying runtime and
+            retrieve data encoded in Scale Bytes format. This function is essential for advanced users who need to
+            interact with specific runtime methods and decode complex data types.
 
-        Arguments:
+        Args:
             runtime_api: The name of the runtime API to query.
             method: The specific method within the runtime API to call.
             params: The parameters to pass to the method call.
             block: the block number for this query.
 
         Returns:
-            The decoded result from the runtime API call, or ``None`` if the call fails.
+            The Scale Bytes encoded result from the runtime API call, or `None` if the call fails.
 
         This function enables access to the deeper layers of the Bittensor blockchain, allowing for detailed and
-        specific interactions with the network's runtime environment.
+            specific interactions with the network's runtime environment.
         """
         block_hash = self.determine_block_hash(block)
         result = self.substrate.runtime_call(runtime_api, method, params, block_hash)
@@ -428,11 +382,11 @@ class Subtensor(SubtensorMixin):
     def query_subtensor(
         self, name: str, block: Optional[int] = None, params: Optional[list] = None
     ) -> Optional[Union["ScaleObj", Any]]:
-        """Queries named storage from the Subtensor module on the Bittensor blockchain. This function is used to
-        retrieve specific data or parameters from the blockchain, such as stake, rank, or other neuron-specific
-        attributes.
+        """
+        Queries named storage from the Subtensor module on the Bittensor blockchain. This function is used to retrieve
+            specific data or parameters from the blockchain, such as stake, rank, or other neuron-specific attributes.
 
-        Arguments:
+        Args:
             name: The name of the storage function to query.
             block: The blockchain block number at which to perform the query.
             params: A list of parameters to pass to the query function.
@@ -441,7 +395,7 @@ class Subtensor(SubtensorMixin):
             query_response: An object containing the requested data.
 
         This query function is essential for accessing detailed information about the network and its neurons, providing
-        valuable insights into the state and dynamics of the Bittensor ecosystem.
+            valuable insights into the state and dynamics of the Bittensor ecosystem.
         """
         return self.substrate.query(
             module="SubtensorModule",
@@ -453,10 +407,11 @@ class Subtensor(SubtensorMixin):
     def state_call(
         self, method: str, data: str, block: Optional[int] = None
     ) -> dict[Any, Any]:
-        """Makes a state call to the Bittensor blockchain, allowing for direct queries of the blockchain's state.
-        This function is typically used for advanced queries that require specific method calls and data inputs.
+        """
+        Makes a state call to the Bittensor blockchain, allowing for direct queries of the blockchain's state. This
+            function is typically used for advanced queries that require specific method calls and data inputs.
 
-        Arguments:
+        Args:
             method: The method name for the state call.
             data: The data to be passed to the method.
             block: The blockchain block number at which to perform the state call.
@@ -465,7 +420,7 @@ class Subtensor(SubtensorMixin):
             result (dict[Any, Any]): The result of the rpc call.
 
         The state call function provides a more direct and flexible way of querying blockchain data, useful for specific
-        use cases where standard queries are insufficient.
+            use cases where standard queries are insufficient.
         """
         block_hash = self.determine_block_hash(block)
         return self.substrate.rpc_request(
@@ -480,19 +435,15 @@ class Subtensor(SubtensorMixin):
         return self.get_current_block()
 
     def all_subnets(self, block: Optional[int] = None) -> Optional[list["DynamicInfo"]]:
-        """Queries the blockchain for comprehensive information about all subnets, including their dynamic parameters
-        and operational status.
+        """
+        Retrieves the subnet information for all subnets in the network.
 
-        Arguments:
-            block: The block number to query the subnet information from.
+        Args:
+            block (Optional[int]): The block number to query the subnet information from.
 
         Returns:
-            Optional[list[DynamicInfo]]: A list of DynamicInfo objects, each containing detailed information about a
-            subnet, or None if the query fails.
+            Optional[DynamicInfo]: A list of DynamicInfo objects, each containing detailed information about a subnet.
 
-        Example:
-            # Get all subnets at current block
-            subnets = subtensor.all_subnets()
         """
         block_hash = self.determine_block_hash(block)
         query = self.substrate.runtime_call(
@@ -510,22 +461,14 @@ class Subtensor(SubtensorMixin):
     def blocks_since_last_step(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[int]:
-        """Queries the blockchain to determine how many blocks have passed since the last epoch step for a specific
-        subnet.
+        """Returns number of blocks since the last epoch of the subnet.
 
         Arguments:
-            netuid: The unique identifier of the subnetwork.
-            block: The block number for this query.
+            netuid (int): The unique identifier of the subnetwork.
+            block: the block number for this query.
 
         Returns:
-            The number of blocks since the last step in the subnet, or None if the query fails.
-
-        Example:
-            # Get blocks since last step for subnet 1
-            blocks = subtensor.blocks_since_last_step(netuid=1)
-
-            # Get blocks since last step at specific block
-            blocks = subtensor.blocks_since_last_step(netuid=1, block=1000000)
+            block number of the last step in the subnet.
         """
         query = self.query_subtensor(
             name="BlocksSinceLastStep", block=block, params=[netuid]
@@ -533,21 +476,16 @@ class Subtensor(SubtensorMixin):
         return query.value if query is not None and hasattr(query, "value") else query
 
     def blocks_since_last_update(self, netuid: int, uid: int) -> Optional[int]:
-        """Returns the number of blocks since the last update, or ``None`` if the subnetwork or UID does not exist.
+        """
+        Returns the number of blocks since the last update for a specific UID in the subnetwork.
 
         Arguments:
-            netuid: The unique identifier of the subnetwork.
-            uid: The unique identifier of the neuron.
+            netuid (int): The unique identifier of the subnetwork.
+            uid (int): The unique identifier of the neuron.
 
         Returns:
-            Optional[int]: The number of blocks since the last update, or None if the subnetwork or UID does not exist.
-
-        Example:
-            # Get blocks since last update for UID 5 in subnet 1
-            blocks = subtensor.blocks_since_last_update(netuid=1, uid=5)
-
-            # Check if neuron needs updating
-            blocks_since_update = subtensor.blocks_since_last_update(netuid=1, uid=10)
+            Optional[int]: The number of blocks since the last update, or ``None`` if the subnetwork or UID does not
+                exist.
         """
         call = self.get_hyperparameter(param_name="LastUpdate", netuid=netuid)
         return None if not call else (self.get_current_block() - int(call[uid]))
@@ -555,26 +493,22 @@ class Subtensor(SubtensorMixin):
     def bonds(
         self, netuid: int, block: Optional[int] = None
     ) -> list[tuple[int, list[tuple[int, int]]]]:
-        """Retrieves the bond distribution set by subnet validators within a specific subnet.
+        """
+        Retrieves the bond distribution set by neurons within a specific subnet of the Bittensor network.
+            Bonds represent the investments or commitments made by neurons in one another, indicating a level of trust
+            and perceived value. This bonding mechanism is integral to the network's market-based approach to
+            measuring and rewarding machine intelligence.
 
-        Bonds represent the "investment" a subnet validator has made in evaluating a specific subnet miner. This
-        bonding mechanism is integral to the Yuma Consensus' design intent of incentivizing high-quality performance
-         by subnet miners, and honest evaluation by subnet validators.
-
-        Arguments:
-            netuid: The unique identifier of the subnet.
-            block: The block number for this query.
+        Args:
+            netuid: The network UID of the subnet to query.
+            block: the block number for this query.
 
         Returns:
             List of tuples mapping each neuron's UID to its bonds with other neurons.
 
-        Example:
-            # Get bonds for subnet 1 at block 1000000
-            bonds = subtensor.bonds(netuid=1, block=1000000)
-
-        Notes:
-            - See <https://docs.learnbittensor.org/glossary#validator-miner-bonds>
-            - See <https://docs.learnbittensor.org/glossary#yuma-consensus>
+        Understanding bond distributions is crucial for analyzing the trust dynamics and market behavior within the
+            subnet. It reflects how neurons recognize and invest in each other's intelligence and contributions,
+            supporting diverse and niche systems within the Bittensor ecosystem.
         """
         b_map_encoded = self.substrate.query_map(
             module="SubtensorModule",
@@ -592,30 +526,19 @@ class Subtensor(SubtensorMixin):
     def commit(
         self, wallet, netuid: int, data: str, period: Optional[int] = None
     ) -> bool:
-        """Commits arbitrary data to the Bittensor network by publishing metadata.
-
-        This method allows neurons to publish arbitrary data to the blockchain, which can be used for various purposes
-          such as sharing model updates, configuration data, or other network-relevant information.
+        """
+        Commits arbitrary data to the Bittensor network by publishing metadata.
 
         Arguments:
-            wallet: The wallet associated with the neuron committing the data.
-            netuid: The unique identifier of the subnet.
-            data: The data to be committed to the network.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-            transaction is not included in a block within that number of blocks, it will expire and be rejected. You
-              can think of it as an expiration date for the transaction.
+            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the data.
+            netuid (int): The unique identifier of the subnetwork.
+            data (str): The data to be committed to the network.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
 
         Returns:
-            bool: True if the commit was successful, False otherwise.
-
-        Example:
-            # Commit some data to subnet 1
-            success = subtensor.commit(wallet=my_wallet, netuid=1, data="Hello Bittensor!")
-
-            # Commit with custom period
-            success = subtensor.commit(wallet=my_wallet, netuid=1, data="Model update v2.0", period=100)
-
-        Note: See <https://docs.learnbittensor.org/glossary#commit-reveal>
+            bool: `True` if the commitment was successful, `False` otherwise.
         """
         return publish_metadata(
             subtensor=self,
@@ -632,28 +555,15 @@ class Subtensor(SubtensorMixin):
     def commit_reveal_enabled(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[bool]:
-        """Check if commit-reveal mechanism is enabled for a given subnet at a specific block.
-
-        The commit reveal feature is designed to solve the weight-copying problem by giving would-be weight-copiers
-          access only to stale weights. Copying stale weights should result in subnet validators departing from
-          consensus.
+        """
+        Check if the commit-reveal mechanism is enabled for a given network at a specific block.
 
         Arguments:
-            netuid: The unique identifier of the subnet for which to check the commit-reveal mechanism.
+            netuid: The network identifier for which to check the commit-reveal mechanism.
             block: The block number to query.
 
         Returns:
-            bool: True if commit-reveal mechanism is enabled, False otherwise.
-
-        Example:
-            # Check if commit-reveal is enabled for subnet 1
-            enabled = subtensor.commit_reveal_enabled(netuid=1)
-
-            # Check at specific block
-            enabled = subtensor.commit_reveal_enabled(netuid=1, block=1000000)
-
-        Notes:
-            See also: <https://docs.learnbittensor.org/glossary#commit-reveal>
+            Returns the integer value of the hyperparameter if available; otherwise, returns None.
         """
         call = self.get_hyperparameter(
             param_name="CommitRevealWeightsEnabled", block=block, netuid=netuid
@@ -661,29 +571,21 @@ class Subtensor(SubtensorMixin):
         return True if call is True else False
 
     def difficulty(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
-        """Retrieves the 'Difficulty' hyperparameter for a specified subnet in the Bittensor network.
+        """
+        Retrieves the 'Difficulty' hyperparameter for a specified subnet in the Bittensor network.
 
-        This parameter determines the computational challenge required for neurons to participate in consensus and
-         validation processes. The difficulty directly impacts the network's security and integrity by setting the
-         computational effort required for validating transactions and participating in the network's consensus
-         mechanism.
+        This parameter is instrumental in determining the computational challenge required for neurons to participate in
+            consensus and validation processes.
 
         Arguments:
             netuid: The unique identifier of the subnet.
-            block: The block number for the query.
+            block: The blockchain block number for the query.
 
         Returns:
-            Optional[int]: The value of the 'Difficulty' hyperparameter if the subnet exists, None otherwise.
+            Optional[int]: The value of the 'Difficulty' hyperparameter if the subnet exists, ``None`` otherwise.
 
-        Example:
-            # Get difficulty for subnet 1
-            difficulty = subtensor.difficulty(netuid=1)
-
-            # Get difficulty at specific block
-            difficulty = subtensor.difficulty(netuid=1, block=1000000)
-
-        Notes:
-            See also: <https://docs.learnbittensor.org/glossary#difficulty>
+        The 'Difficulty' parameter directly impacts the network's security and integrity by setting the computational
+            effort required for validating transactions and participating in the network's consensus mechanism.
         """
         call = self.get_hyperparameter(
             param_name="Difficulty", netuid=netuid, block=block
@@ -693,23 +595,15 @@ class Subtensor(SubtensorMixin):
         return int(call)
 
     def does_hotkey_exist(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
-        """Returns true if the hotkey is known by the chain and there are accounts.
+        """
+        Returns true if the hotkey is known by the chain and there are accounts.
 
-        This method queries the SubtensorModule's Owner storage function to determine if the hotkey is registered.
-
-        Arguments:
+        Args:
             hotkey_ss58: The SS58 address of the hotkey.
-            block: The block number for this query.
+            block: the block number for this query.
 
         Returns:
-            bool: True if the hotkey is known by the chain and there are accounts, False otherwise.
-
-        Example:
-            # Check if hotkey exists
-            exists = subtensor.does_hotkey_exist(hotkey_ss58="5F...")
-
-            # Check at specific block
-            exists = subtensor.does_hotkey_exist(hotkey_ss58="5F...", block=1000000)
+            `True` if the hotkey is known by the chain and there are accounts, `False` otherwise.
         """
         result = self.substrate.query(
             module="SubtensorModule",
@@ -726,34 +620,18 @@ class Subtensor(SubtensorMixin):
         return return_val
 
     def get_all_subnets_info(self, block: Optional[int] = None) -> list["SubnetInfo"]:
-        """Retrieves detailed information about all subnets within the Bittensor network.
-
-        This function provides comprehensive data on each subnet, including its characteristics and operational
-        parameters.
+        """
+        Retrieves detailed information about all subnets within the Bittensor network. This function provides
+            comprehensive data on each subnet, including its characteristics and operational parameters.
 
         Arguments:
-            block: The block number for the query.
+            block: The blockchain block number for the query.
 
         Returns:
             list[SubnetInfo]: A list of SubnetInfo objects, each containing detailed information about a subnet.
 
-        Example:
-            # Get all subnet information
-            subnets = subtensor.get_all_subnets_info()
-
-            # Get at specific block
-            subnets = subtensor.get_all_subnets_info(block=1000000)
-
-            # Iterate over subnet information
-            for subnet in subnets:
-                print(f"Subnet {subnet.netuid}: {subnet.name}")
-
-        Note:
-            Gaining insights into the subnets' details assists in understanding the network's composition, the roles
-            of different subnets, and their unique features.
-
-        Notes:
-            See also: <https://docs.learnbittensor.org/glossary#subnet>
+        Gaining insights into the subnets' details assists in understanding the network's composition, the roles of
+            different subnets, and their unique features.
         """
         result = self.query_runtime_api(
             runtime_api="SubnetInfoRuntimeApi",
@@ -772,25 +650,15 @@ class Subtensor(SubtensorMixin):
         return SubnetInfo.list_from_dicts(result)
 
     def get_balance(self, address: str, block: Optional[int] = None) -> Balance:
-        """Retrieves the balance for given coldkey.
-
-        This method queries the System module's Account storage to get the current balance of a coldkey address. The
-        balance represents the amount of TAO tokens held by the specified address.
+        """
+        Retrieves the balance for given coldkey. Always in TAO.
 
         Arguments:
-            address: The coldkey address in SS58 format.
-            block: The block number for the query.
+            address: coldkey address.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
-            Balance: The balance object containing the account's TAO balance.
-
-        Example:
-            # Get balance for an address
-            balance = subtensor.get_balance(address="5F...")
-            print(f"Balance: {balance.tao} TAO")
-
-            # Get balance at specific block
-            balance = subtensor.get_balance(address="5F...", block=1000000)
+            Balance object in TAO.
         """
         balance = self.substrate.query(
             module="System",
@@ -805,22 +673,15 @@ class Subtensor(SubtensorMixin):
         *addresses: str,
         block: Optional[int] = None,
     ) -> dict[str, Balance]:
-        """Retrieves the balance for given coldkey(s).
-
-        This method efficiently queries multiple coldkey addresses in a single batch operation, returning a
-        dictionary mapping each address to its corresponding balance. This is more efficient than calling get_balance
-        multiple times.
+        """
+        Retrieves the balance for given coldkey(s)
 
         Arguments:
-            *addresses: Variable number of coldkey addresses in SS58 format.
-            block: The block number for the query.
+            addresses (str): coldkey addresses(s).
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
-            dict[str, Balance]: A dictionary mapping each address to its Balance object.
-
-        Example:
-            # Get balances for multiple addresses
-            balances = subtensor.get_balances("5F...", "5G...", "5H...")
+            Dict of {address: Balance objects}.
         """
         if not (block_hash := self.determine_block_hash(block)):
             block_hash = self.substrate.get_chain_head()
@@ -840,26 +701,16 @@ class Subtensor(SubtensorMixin):
         return results
 
     def get_current_block(self) -> int:
-        """Returns the current block number on the Bittensor blockchain.
-
-        This function provides the latest block number, indicating the most recent state of the blockchain. Knowing
-        the current block number is essential for querying real-time data and performing time-sensitive operations on
-          the blockchain. It serves as a reference point for network activities and data synchronization.
+        """
+        Returns the current block number on the Bittensor blockchain. This function provides the latest block number,
+            indicating the most recent state of the blockchain.
 
         Returns:
             int: The current chain block number.
 
-        Example:
-            # Get current block number
-            current_block = subtensor.get_current_block()
-            print(f"Current block: {current_block}")
-
-            block = subtensor.get_current_block()
-            if block > 1000000:
-                print("Network has progressed past block 1M")
-
-        Notes:
-            See also: <https://docs.learnbittensor.org/glossary#block>
+        Knowing the current block number is essential for querying real-time data and performing time-sensitive
+            operations on the blockchain. It serves as a reference point for network activities and data
+            synchronization.
         """
         return self.substrate.get_block_number(None)
 
@@ -868,30 +719,19 @@ class Subtensor(SubtensorMixin):
         return self.substrate.get_block_hash(block_id)
 
     def get_block_hash(self, block: Optional[int] = None) -> str:
-        """Retrieves the hash of a specific block on the Bittensor blockchain.
-
-        The block hash is a unique identifier representing the cryptographic hash of the block's content, ensuring its
-        integrity and immutability. It is a fundamental aspect of blockchain technology, providing a secure reference
-        to each block's data. It is crucial for verifying transactions, ensuring data consistency, and maintaining
-        the trustworthiness of the blockchain.
+        """
+        Retrieves the hash of a specific block on the Bittensor blockchain. The block hash is a unique identifier
+            representing the cryptographic hash of the block's content, ensuring its integrity and immutability.
 
         Arguments:
-            block: The block number for which the hash is to be retrieved. If ``None``, returns the latest block hash.
+            block (int): The block number for which the hash is to be retrieved.
 
         Returns:
             str: The cryptographic hash of the specified block.
 
-        Example:
-            # Get hash for specific block
-            block_hash = subtensor.get_block_hash(block=1000000)
-            print(f"Block 1000000 hash: {block_hash}")
-
-            # Get latest block hash
-            latest_hash = subtensor.get_block_hash()
-            print(f"Latest block hash: {latest_hash}")
-
-        Notes:
-            See also: <https://docs.learnbittensor.org/glossary#block>
+        The block hash is a fundamental aspect of blockchain technology, providing a secure reference to each block's
+            data. It is crucial for verifying transactions, ensuring data consistency, and maintaining the
+            trustworthiness of the blockchain.
         """
         if block:
             return self._get_block_hash(block)
@@ -927,25 +767,16 @@ class Subtensor(SubtensorMixin):
     def get_hyperparameter(
         self, param_name: str, netuid: int, block: Optional[int] = None
     ) -> Optional[Any]:
-        """Retrieves a specified hyperparameter for a specific subnet.
-
-        This method queries the blockchain for subnet-specific hyperparameters such as difficulty, tempo, immunity
-        period, and other network configuration values.
+        """
+        Retrieves a specified hyperparameter for a specific subnet.
 
         Arguments:
-            param_name: The name of the hyperparameter to retrieve (e.g., "Difficulty", "Tempo", "ImmunityPeriod").
-            netuid: The unique identifier of the subnet.
-            block: The block number at which to retrieve the hyperparameter.
+            param_name (str): The name of the hyperparameter to retrieve.
+            netuid (int): The unique identifier of the subnet.
+            block: the block number at which to retrieve the hyperparameter.
 
         Returns:
-            The value of the specified hyperparameter if the subnet exists, None otherwise.
-
-        Example:
-            # Get difficulty for subnet 1
-            difficulty = subtensor.get_hyperparameter(param_name="Difficulty", netuid=1)
-
-            # Get tempo at a specific block
-            tempo = subtensor.get_hyperparameter(param_name="Tempo", netuid=1, block=1000000)
+            The value of the specified hyperparameter if the subnet exists, or None
         """
         block_hash = self.determine_block_hash(block)
         if not self.subnet_exists(netuid, block=block):
@@ -1002,7 +833,7 @@ class Subtensor(SubtensorMixin):
 
         Arguments:
             hotkey (str): The hotkey value.
-            netuid: The netuid value.
+            netuid (int): The netuid value.
             block (Optional[int]): The block number for which the children are to be retrieved.
 
         Returns:
@@ -1044,7 +875,7 @@ class Subtensor(SubtensorMixin):
 
         Arguments:
             hotkey (str): The hotkey value.
-            netuid: The netuid value.
+            netuid (int): The netuid value.
             block (Optional[int]): The block number for which the children are to be retrieved.
 
         Returns:
@@ -1075,7 +906,7 @@ class Subtensor(SubtensorMixin):
         Retrieves the on-chain commitment for a specific neuron in the Bittensor network.
 
         Arguments:
-            netuid: The unique identifier of the subnetwork.
+            netuid (int): The unique identifier of the subnetwork.
             uid (int): The unique identifier of the neuron.
             block (Optional[int]): The block number to retrieve the commitment from. If None, the latest block is used.
                 Default is ``None``.
@@ -1106,7 +937,7 @@ class Subtensor(SubtensorMixin):
         Retrieves the last block number when the bonds reset were triggered by publish_metadata for a specific neuron.
 
         Arguments:
-            netuid: The unique identifier of the subnetwork.
+            netuid (int): The unique identifier of the subnetwork.
             uid (int): The unique identifier of the neuron.
 
         Returns:
@@ -1149,7 +980,7 @@ class Subtensor(SubtensorMixin):
         """Returns hotkey related revealed commitment for a given netuid.
 
         Arguments:
-            netuid: The unique identifier of the subnetwork.
+            netuid (int): The unique identifier of the subnetwork.
             hotkey_ss58_address (str): The ss58 address of the committee member.
             block (Optional[int]): The block number to retrieve the commitment from. Default is ``None``.
 
@@ -1178,7 +1009,7 @@ class Subtensor(SubtensorMixin):
         """Returns uid related revealed commitment for a given netuid.
 
         Arguments:
-            netuid: The unique identifier of the subnetwork.
+            netuid (int): The unique identifier of the subnetwork.
             uid (int): The neuron uid to retrieve the commitment from.
             block (Optional[int]): The block number to retrieve the commitment from. Default is ``None``.
 
@@ -1208,7 +1039,7 @@ class Subtensor(SubtensorMixin):
         """Returns all revealed commitments for a given netuid.
 
         Arguments:
-            netuid: The unique identifier of the subnetwork.
+            netuid (int): The unique identifier of the subnetwork.
             block (Optional[int]): The block number to retrieve the commitment from. Default is ``None``.
 
         Returns:
@@ -1243,7 +1074,7 @@ class Subtensor(SubtensorMixin):
         Retrieves CRV3 weight commit information for a specific subnet.
 
         Arguments:
-            netuid: The unique identifier of the subnet.
+            netuid (int): The unique identifier of the subnet.
             block (Optional[int]): The blockchain block number for the query. Default is ``None``.
 
         Returns:
@@ -1638,7 +1469,7 @@ class Subtensor(SubtensorMixin):
         Retrieves all liquidity positions for the given wallet on a specified subnet (netuid).
         Calculates associated fee rewards based on current global and tick-level fee data.
 
-        Arguments:
+        Args:
             wallet: Wallet instance to fetch positions for.
             netuid: Subnet unique id.
             block: The blockchain block number for the query.
@@ -1789,7 +1620,7 @@ class Subtensor(SubtensorMixin):
 
         Arguments:
             hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
-            netuid: The unique identifier of the subnet.
+            netuid (int): The unique identifier of the subnet.
             block (Optional[int]): The blockchain block number for the query.
 
         Returns:
@@ -1827,20 +1658,17 @@ class Subtensor(SubtensorMixin):
         """
         Calculates the first block number of the next epoch for the given subnet.
 
-        If ``block`` is not provided, the current chain block will be used. Epochs are
+        If `block` is not provided, the current chain block will be used. Epochs are
         determined based on the subnet's tempo (i.e., blocks per epoch). The result
         is the block number at which the next epoch will begin.
 
-        Arguments:
-            netuid: The unique identifier of the subnet.
-            block: The reference block to calculate from.
+        Args:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int], optional): The reference block to calculate from.
                 If None, uses the current chain block height.
 
         Returns:
             int: The block number at which the next epoch will start.
-
-        Notes:
-            See also: <https://docs.learnbittensor.org/glossary#tempo>
         """
         block = block or self.block
         blocks_since_last_step = self.blocks_since_last_step(netuid=netuid, block=block)
@@ -1859,10 +1687,10 @@ class Subtensor(SubtensorMixin):
         """
         Retrieves all hotkeys owned by a specific coldkey address.
 
-        Arguments:
-            coldkey_ss58: The SS58 address of the coldkey to query.
-            block: The blockchain block number for the query.
-            reuse_block: Whether to reuse the last-used blockchain block hash.
+        Args:
+            coldkey_ss58 (str): The SS58 address of the coldkey to query.
+            block (int): The blockchain block number for the query.
+            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
 
         Returns:
             list[str]: A list of hotkey SS58 addresses owned by the coldkey.
@@ -1885,16 +1713,19 @@ class Subtensor(SubtensorMixin):
         block: Optional[int] = None,
     ) -> Balance:
         """
-        Returns the stake under a coldkey - hotkey pairing.
+        Returns the amount of Alpha staked by a specific coldkey to a specific hotkey within a given subnet.
+        This function retrieves the delegated stake balance, referred to as the 'Alpha' value.
 
-        Arguments:
-            hotkey_ss58: The SS58 address of the hotkey.
-            coldkey_ss58: The SS58 address of the coldkey.
-            netuid: The subnet ID.
-            block: The block number at which to query the stake information.
+        Args:
+            coldkey_ss58: The SS58 address of the coldkey that delegated the stake. This address owns the stake.
+            hotkey_ss58: The ss58 address of the hotkey which the stake is on.
+            netuid: The unique identifier of the subnet to query.
+            block: The specific block number at which to retrieve the stake information. If None, the current stake at
+                the latest block is returned. Defaults to ``None``.
 
         Returns:
-            Balance: The stake under the coldkey - hotkey pairing.
+            An object representing the amount of Alpha (TAO ONLY if the subnet's netuid is 0) currently staked from the
+                specified coldkey to the specified hotkey within the given subnet.
         """
         alpha_shares_query = self.query_module(
             module="SubtensorModule",
@@ -1941,11 +1772,11 @@ class Subtensor(SubtensorMixin):
         """
         Calculates the fee for adding new stake to a hotkey.
 
-        Arguments:
+        Args:
             amount: Amount of stake to add in TAO
             netuid: Netuid of subnet
-            coldkey_ss58: SS58 address of source coldkey
-            hotkey_ss58: SS58 address of destination hotkey
+            coldkey_ss58: SS58 address of coldkey
+            hotkey_ss58: SS58 address of hotkey
             block: Block number at which to perform the calculation
 
         Returns:
@@ -2028,7 +1859,7 @@ class Subtensor(SubtensorMixin):
     ) -> dict[int, Balance]:
         """Gets the current Alpha price in TAO for a specified subnet.
 
-        Arguments:
+        Args:
             block: The blockchain block number for the query. Default to `None`.
 
         Returns:
@@ -2067,11 +1898,11 @@ class Subtensor(SubtensorMixin):
         """
         Calculates the fee for unstaking from a hotkey.
 
-        Arguments:
+        Args:
             amount: Amount of stake to unstake in TAO
             netuid: Netuid of subnet
-            coldkey_ss58: SS58 address of source coldkey
-            hotkey_ss58: SS58 address of destination hotkey
+            coldkey_ss58: SS58 address of coldkey
+            hotkey_ss58: SS58 address of hotkey
             block: Block number at which to perform the calculation
 
         Returns:
@@ -2105,11 +1936,11 @@ class Subtensor(SubtensorMixin):
         """
         Calculates the fee for moving stake between hotkeys/subnets/coldkeys.
 
-        Arguments:
+        Args:
             amount: Amount of stake to move in TAO
-            origin_netuid: Netuid of source subnet
-            origin_hotkey_ss58: SS58 address of source hotkey
-            origin_coldkey_ss58: SS58 address of source coldkey
+            origin_netuid: Netuid of origin subnet
+            origin_hotkey_ss58: SS58 address of origin hotkey
+            origin_coldkey_ss58: SS58 address of origin coldkey
             destination_netuid: Netuid of destination subnet
             destination_hotkey_ss58: SS58 address of destination hotkey
             destination_coldkey_ss58: SS58 address of destination coldkey
@@ -2143,10 +1974,10 @@ class Subtensor(SubtensorMixin):
         Retrieves all coldkey-hotkey pairing stake across specified (or all) subnets
 
         Arguments:
-            coldkey_ss58: The SS58 address of the coldkey.
-            hotkey_ss58: The SS58 address of the hotkey.
-            netuids: The subnet IDs to query for. Set to ``None`` for all subnets.
-            block: The block number at which to query the stake information.
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            netuids (Optional[list[int]]): The subnet IDs to query for. Set to `None` for all subnets.
+            block (Optional[int]): The block number at which to query the stake information.
 
         Returns:
             A {netuid: StakeInfo} pairing of all stakes across all subnets.
@@ -2175,9 +2006,9 @@ class Subtensor(SubtensorMixin):
         """
         Retrieves the stake information for a given coldkey.
 
-        Arguments:
-            coldkey_ss58: The SS58 address of the coldkey.
-            block: The block number at which to query the stake information.
+        Args:
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+            block (Optional[int]): The block number at which to query the stake information.
 
         Returns:
             Optional[list[StakeInfo]]: A list of StakeInfo objects, or ``None`` if no stake information is found.
@@ -2202,7 +2033,7 @@ class Subtensor(SubtensorMixin):
         """
         Retrieves the stake information for a given hotkey.
 
-        Arguments:
+        Args:
             hotkey_ss58: The SS58 address of the hotkey.
             netuid: The subnet ID to query for.
             block: The block number at which to query the stake information. Do not specify if also specifying
@@ -2224,7 +2055,7 @@ class Subtensor(SubtensorMixin):
             amount of Tao that needs to be locked or burned to establish a new subnet.
 
         Arguments:
-            block: The blockchain block number for the query.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
             int: The burn cost for subnet registration.
@@ -2249,17 +2080,17 @@ class Subtensor(SubtensorMixin):
     ) -> Optional[Union[list, "SubnetHyperparameters"]]:
         """
         Retrieves the hyperparameters for a specific subnet within the Bittensor network. These hyperparameters define
-        the operational settings and rules governing the subnet's behavior.
+            the operational settings and rules governing the subnet's behavior.
 
         Arguments:
-            netuid: The network UID of the subnet to query.
-            block: The blockchain block number for the query.
+            netuid (int): The network UID of the subnet to query.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
-            The subnet's hyperparameters, or ``None`` if not available.
+            The subnet's hyperparameters, or `None` if not available.
 
         Understanding the hyperparameters is crucial for comprehending how subnets are configured and managed, and how
-        they interact with the network's consensus and incentive mechanisms.
+            they interact with the network's consensus and incentive mechanisms.
         """
         result = self.query_runtime_api(
             runtime_api="SubnetInfoRuntimeApi",
@@ -2289,13 +2120,13 @@ class Subtensor(SubtensorMixin):
         Retrieves the list of all subnet unique identifiers (netuids) currently present in the Bittensor network.
 
         Arguments:
-            block: The blockchain block number for the query.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
             A list of subnet netuids.
 
-        This function provides a comprehensive view of the subnets within the Bittensor network, offering insights into
-        its diversity and scale.
+        This function provides a comprehensive view of the subnets within the Bittensor network,
+        offering insights into its diversity and scale.
         """
         result = self.substrate.query_map(
             module="SubtensorModule",
@@ -2314,7 +2145,7 @@ class Subtensor(SubtensorMixin):
         Retrieves the total number of subnets within the Bittensor network as of a specific blockchain block.
 
         Arguments:
-            block: The blockchain block number for the query.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
             Optional[str]: The total number of subnets in the network.
@@ -2333,22 +2164,22 @@ class Subtensor(SubtensorMixin):
     def get_transfer_fee(self, wallet: "Wallet", dest: str, value: Balance) -> Balance:
         """
         Calculates the transaction fee for transferring tokens from a wallet to a specified destination address. This
-        function simulates the transfer to estimate the associated cost, taking into account the current network
-        conditions and transaction complexity.
+            function simulates the transfer to estimate the associated cost, taking into account the current network
+            conditions and transaction complexity.
 
         Arguments:
-            wallet: The wallet from which the transfer is initiated.
-            dest: The ``SS58`` address of the destination account.
-            value: The amount of tokens to be transferred, specified as a Balance object, or in Tao (float) or Rao
-                (int) units.
+            wallet (bittensor_wallet.Wallet): The wallet from which the transfer is initiated.
+            dest (str): The ``SS58`` address of the destination account.
+            value (Union[bittensor.utils.balance.Balance, float, int]): The amount of tokens to be transferred,
+                specified as a Balance object, or in Tao (float) or Rao (int) units.
 
         Returns:
             bittensor.utils.balance.Balance: The estimated transaction fee for the transfer, represented as a Balance
                 object.
 
-        Estimating the transfer fee is essential for planning and executing token transactions, ensuring that the
-        wallet has sufficient funds to cover both the transfer amount and the associated costs. This function provides
-        a crucial tool for managing financial operations within the Bittensor network.
+        Estimating the transfer fee is essential for planning and executing token transactions, ensuring that the wallet
+            has sufficient funds to cover both the transfer amount and the associated costs. This function provides a
+            crucial tool for managing financial operations within the Bittensor network.
         """
         value = check_and_convert_to_balance(value)
         call = self.substrate.compose_call(
@@ -2372,17 +2203,17 @@ class Subtensor(SubtensorMixin):
     ) -> Optional["ProposalVoteData"]:
         """
         Retrieves the voting data for a specific proposal on the Bittensor blockchain. This data includes information
-        about how senate members have voted on the proposal.
+            about how senate members have voted on the proposal.
 
         Arguments:
-            proposal_hash: The hash of the proposal for which voting data is requested.
-            block: The blockchain block number for the query.
+            proposal_hash (str): The hash of the proposal for which voting data is requested.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
-            An object containing the proposal's voting data, or ``None`` if not found.
+            An object containing the proposal's voting data, or `None` if not found.
 
         This function is important for tracking and understanding the decision-making processes within the Bittensor
-        network, particularly how proposals are received and acted upon by the governing body.
+            network, particularly how proposals are received and acted upon by the governing body.
         """
         vote_data: dict[str, Any] = self.substrate.query(
             module="Triumvirate",
@@ -2403,15 +2234,15 @@ class Subtensor(SubtensorMixin):
         Retrieves the unique identifier (UID) for a neuron's hotkey on a specific subnet.
 
         Arguments:
-            hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
-            netuid: The unique identifier of the subnet.
-            block: The blockchain block number for the query.
+            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
             Optional[int]: The UID of the neuron if it is registered on the subnet, ``None`` otherwise.
 
         The UID is a critical identifier within the network, linking the neuron's hotkey to its operational and
-        governance activities on a particular subnet.
+            governance activities on a particular subnet.
         """
         result = self.substrate.query(
             module="SubtensorModule",
@@ -2432,10 +2263,10 @@ class Subtensor(SubtensorMixin):
         Filters a given list of all netuids for certain specified netuids and hotkeys
 
         Arguments:
-            all_netuids: A list of netuids to filter.
-            filter_for_netuids: A subset of all_netuids to filter from the main list.
-            all_hotkeys: Hotkeys to filter from the main list.
-            block: The blockchain block number for the query.
+            all_netuids (Iterable[int]): A list of netuids to filter.
+            filter_for_netuids (Iterable[int]): A subset of all_netuids to filter from the main list.
+            all_hotkeys (Iterable[Wallet]): Hotkeys to filter from the main list.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
             The filtered list of netuids.
@@ -2479,9 +2310,9 @@ class Subtensor(SubtensorMixin):
         Retrieves the 'ImmunityPeriod' hyperparameter for a specific subnet. This parameter defines the duration during
             which new neurons are protected from certain network penalties or restrictions.
 
-        Arguments:
-            netuid: The unique identifier of the subnet.
-            block: The blockchain block number for the query.
+        Args:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
             Optional[int]: The value of the 'ImmunityPeriod' hyperparameter if the subnet exists, ``None`` otherwise.
@@ -2502,17 +2333,17 @@ class Subtensor(SubtensorMixin):
     def is_hotkey_delegate(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         """
         Determines whether a given hotkey (public key) is a delegate on the Bittensor network. This function checks if
-        the neuron associated with the hotkey is part of the network's delegation system.
+            the neuron associated with the hotkey is part of the network's delegation system.
 
         Arguments:
-            hotkey_ss58: The SS58 address of the neuron's hotkey.
-            block: The blockchain block number for the query.
+            hotkey_ss58 (str): The SS58 address of the neuron's hotkey.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
-            ``True`` if the hotkey is a delegate, ``False`` otherwise.
+            `True` if the hotkey is a delegate, `False` otherwise.
 
         Being a delegate is a significant status within the Bittensor network, indicating a neuron's involvement in
-        consensus and governance processes.
+            consensus and governance processes.
         """
         delegates = self.get_delegates(block)
         return hotkey_ss58 in [info.hotkey_ss58 for info in delegates]
@@ -2525,22 +2356,23 @@ class Subtensor(SubtensorMixin):
     ) -> bool:
         """
         Determines whether a given hotkey (public key) is registered in the Bittensor network, either globally across
-        any subnet or specifically on a specified subnet. This function checks the registration status of a neuron
-        identified by its hotkey, which is crucial for validating its participation and activities within the network.
+            any subnet or specifically on a specified subnet. This function checks the registration status of a neuron
+            identified by its hotkey, which is crucial for validating its participation and activities within the
+            network.
 
-        Arguments:
+        Args:
             hotkey_ss58: The SS58 address of the neuron's hotkey.
-            netuid: The unique identifier of the subnet to check the registration. If ``None``, the
+            netuid: The unique identifier of the subnet to check the registration. If `None`, the
                 registration is checked across all subnets.
             block: The blockchain block number at which to perform the query.
 
         Returns:
-            bool: ``True`` if the hotkey is registered in the specified context (either any subnet or a specific subnet),
-                ``False`` otherwise.
+            bool: `True` if the hotkey is registered in the specified context (either any subnet or a specific subnet),
+                `False` otherwise.
 
         This function is important for verifying the active status of neurons in the Bittensor network. It aids in
-        understanding whether a neuron is eligible to participate in network processes such as consensus, validation,
-        and incentive distribution based on its registration status.
+            understanding whether a neuron is eligible to participate in network processes such as consensus,
+            validation, and incentive distribution based on its registration status.
         """
         if netuid is None:
             return self.is_hotkey_registered_any(hotkey_ss58, block)
@@ -2556,11 +2388,11 @@ class Subtensor(SubtensorMixin):
         Checks if a neuron's hotkey is registered on any subnet within the Bittensor network.
 
         Arguments:
-            hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
-            block: The blockchain block number for the query.
+            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
-            bool: ``True`` if the hotkey is registered on any subnet, ``False`` otherwise.
+            bool: ``True`` if the hotkey is registered on any subnet, False otherwise.
 
         This function is essential for determining the network-wide presence and participation of a neuron.
         """
@@ -2579,14 +2411,14 @@ class Subtensor(SubtensorMixin):
     def is_subnet_active(self, netuid: int, block: Optional[int] = None) -> bool:
         """Verify if subnet with provided netuid is active.
 
-        Arguments:
-            netuid: The unique identifier of the subnet.
-            block: The blockchain block number for the query.
+        Args:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
-            ``True`` if subnet is active, ``False`` otherwise.
+            True if subnet is active, False otherwise.
 
-        Note: This means whether the ``start_call`` was initiated or not.
+        This means whether the `start_call` was initiated or not.
         """
         query = self.query_subtensor(
             name="FirstEmissionBlockNumber",
@@ -2613,9 +2445,9 @@ class Subtensor(SubtensorMixin):
         """
         Returns network MaxWeightsLimit hyperparameter.
 
-        Arguments:
-            netuid: The unique identifier of the subnetwork.
-            block: The blockchain block number for the query.
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
             Optional[float]: The value of the MaxWeightsLimit hyperparameter, or ``None`` if the subnetwork does not
@@ -2646,9 +2478,9 @@ class Subtensor(SubtensorMixin):
         """
         Returns network MinAllowedWeights hyperparameter.
 
-        Arguments:
-            netuid: The unique identifier of the subnetwork.
-            block: The blockchain block number for the query.
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
             Optional[int]: The value of the MinAllowedWeights hyperparameter, or ``None`` if the subnetwork does not
@@ -2664,19 +2496,19 @@ class Subtensor(SubtensorMixin):
     ) -> "NeuronInfo":
         """
         Retrieves detailed information about a specific neuron identified by its unique identifier (UID) within a
-        specified subnet (netuid) of the Bittensor network. This function provides a comprehensive view of a
-        neuron's attributes, including its stake, rank, and operational status.
+            specified subnet (netuid) of the Bittensor network. This function provides a comprehensive view of a
+            neuron's attributes, including its stake, rank, and operational status.
 
         Arguments:
-            uid: The unique identifier of the neuron.
-            netuid: The unique identifier of the subnet.
-            block: The blockchain block number for the query.
+            uid (int): The unique identifier of the neuron.
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
             Detailed information about the neuron if found, a null neuron otherwise
 
         This function is crucial for analyzing individual neurons' contributions and status within a specific subnet,
-        offering insights into their roles in the network's consensus and validation mechanisms.
+            offering insights into their roles in the network's consensus and validation mechanisms.
         """
         if uid is None:
             return NeuronInfo.get_null_neuron()
@@ -2697,17 +2529,17 @@ class Subtensor(SubtensorMixin):
         """
         Retrieves a list of all neurons within a specified subnet of the Bittensor network.
         This function provides a snapshot of the subnet's neuron population, including each neuron's attributes and
-        network interactions.
+            network interactions.
 
         Arguments:
-            netuid: The unique identifier of the subnet.
-            block: The blockchain block number for the query.
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
             A list of NeuronInfo objects detailing each neuron's characteristics in the subnet.
 
         Understanding the distribution and status of neurons within a subnet is key to comprehending the network's
-        decentralized structure and the dynamics of its consensus and governance processes.
+            decentralized structure and the dynamics of its consensus and governance processes.
         """
         result = self.query_runtime_api(
             runtime_api="NeuronInfoRuntimeApi",
@@ -2727,17 +2559,17 @@ class Subtensor(SubtensorMixin):
         """
         Retrieves a list of neurons in a 'lite' format from a specific subnet of the Bittensor network.
         This function provides a streamlined view of the neurons, focusing on key attributes such as stake and network
-        participation.
+            participation.
 
         Arguments:
-            netuid: The unique identifier of the subnet.
-            block: The blockchain block number for the query.
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
             A list of simplified neuron information for the subnet.
 
         This function offers a quick overview of the neuron population within a subnet, facilitating efficient analysis
-        of the network's decentralized structure and neuron dynamics.
+            of the network's decentralized structure and neuron dynamics.
         """
         result = self.query_runtime_api(
             runtime_api="NeuronInfoRuntimeApi",
@@ -2756,23 +2588,23 @@ class Subtensor(SubtensorMixin):
     ) -> Optional[ChainIdentity]:
         """
         Queries the identity of a neuron on the Bittensor blockchain using the given key. This function retrieves
-        detailed identity information about a specific neuron, which is a crucial aspect of the network's
-        decentralized identity and governance system.
+            detailed identity information about a specific neuron, which is a crucial aspect of the network's
+            decentralized identity and governance system.
 
         Arguments:
-            coldkey_ss58: The coldkey used to query the neuron's identity (technically the neuron's coldkey SS58
+            coldkey_ss58 (str): The coldkey used to query the neuron's identity (technically the neuron's coldkey SS58
                 address).
-            block: The blockchain block number for the query.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
             An object containing the identity information of the neuron if found, ``None`` otherwise.
 
         The identity information can include various attributes such as the neuron's stake, rank, and other
-        network-specific details, providing insights into the neuron's role and status within the Bittensor network.
+            network-specific details, providing insights into the neuron's role and status within the Bittensor network.
 
         Note:
             See the `Bittensor CLI documentation <https://docs.bittensor.com/reference/btcli>`_ for supported identity
-            parameters.
+                parameters.
         """
         identity_info = cast(
             dict,
@@ -2797,17 +2629,17 @@ class Subtensor(SubtensorMixin):
     def recycle(self, netuid: int, block: Optional[int] = None) -> Optional[Balance]:
         """
         Retrieves the 'Burn' hyperparameter for a specified subnet. The 'Burn' parameter represents the amount of Tao
-        that is effectively recycled within the Bittensor network.
+            that is effectively recycled within the Bittensor network.
 
-        Arguments:
-            netuid: The unique identifier of the subnet.
-            block: The blockchain block number for the query.
+        Args:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
             Optional[Balance]: The value of the 'Burn' hyperparameter if the subnet exists, None otherwise.
 
         Understanding the 'Burn' rate is essential for analyzing the network registration usage, particularly how it is
-        correlated with user activity and the overall cost of participation in a given subnet.
+            correlated with user activity and the overall cost of participation in a given subnet.
         """
         call = self.get_hyperparameter(param_name="Burn", netuid=netuid, block=block)
         return None if call is None else Balance.from_rao(int(call))
@@ -2825,13 +2657,13 @@ class Subtensor(SubtensorMixin):
         Commits arbitrary data to the Bittensor network by publishing metadata.
 
         Arguments:
-            wallet: The wallet associated with the neuron committing the data.
-            netuid: The unique identifier of the subnetwork.
-            data: The data to be committed to the network.
-            blocks_until_reveal: The number of blocks from now after which the data will be revealed. Defaults to
+            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the data.
+            netuid (int): The unique identifier of the subnetwork.
+            data (str): The data to be committed to the network.
+            blocks_until_reveal (int): The number of blocks from now after which the data will be revealed. Defaults to
                 `360`. Then number of blocks in one epoch.
-            block_time: The number of seconds between each block. Defaults to `12`.
-            period: The number of blocks during which the transaction will remain valid after it's
+            block_time (Union[int, float]): The number of seconds between each block. Defaults to `12`.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
         Returns:
@@ -2860,9 +2692,9 @@ class Subtensor(SubtensorMixin):
         """
         Retrieves the subnet information for a single subnet in the network.
 
-        Arguments:
-            netuid: The unique identifier of the subnet.
-            block: The block number to query the subnet information from.
+        Args:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The block number to query the subnet information from.
 
         Returns:
             Optional[DynamicInfo]: A DynamicInfo object, containing detailed information about a subnet.
@@ -2887,11 +2719,11 @@ class Subtensor(SubtensorMixin):
         Checks if a subnet with the specified unique identifier (netuid) exists within the Bittensor network.
 
         Arguments:
-            netuid: The unique identifier of the subnet.
-            block: The blockchain block number for the query.
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
-            ``True`` if the subnet exists, ``False`` otherwise.
+            `True` if the subnet exists, `False` otherwise.
 
         This function is critical for verifying the presence of specific subnets in the network,
         enabling a deeper understanding of the network's structure and composition.
@@ -2908,9 +2740,9 @@ class Subtensor(SubtensorMixin):
         """
         Returns network SubnetworkN hyperparameter.
 
-        Arguments:
-            netuid: The unique identifier of the subnetwork.
-            block: The blockchain block number for the query.
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
             Optional[int]: The value of the SubnetworkN hyperparameter, or ``None`` if the subnetwork does not exist or
@@ -2925,9 +2757,9 @@ class Subtensor(SubtensorMixin):
         """
         Returns network Tempo hyperparameter.
 
-        Arguments:
-            netuid: The unique identifier of the subnetwork.
-            block: The blockchain block number for the query.
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
             Optional[int]: The value of the Tempo hyperparameter, or ``None`` if the subnetwork does not exist or the
@@ -2941,8 +2773,8 @@ class Subtensor(SubtensorMixin):
         Retrieves the transaction rate limit for the Bittensor network as of a specific blockchain block.
         This rate limit sets the maximum number of transactions that can be processed within a given time frame.
 
-        Arguments:
-            block: The blockchain block number for the query.
+        Args:
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
             Optional[int]: The transaction rate limit of the network, None if not available.
@@ -2959,8 +2791,8 @@ class Subtensor(SubtensorMixin):
         Waits until a specific block is reached on the chain. If no block is specified,
         waits for the next block.
 
-        Arguments:
-            block: The block number to wait for. If None, waits for the next block.
+        Args:
+            block (Optional[int]): The block number to wait for. If None, waits for the next block.
 
         Returns:
             bool: True if the target block was reached, False if timeout occurred.
@@ -3002,8 +2834,8 @@ class Subtensor(SubtensorMixin):
             and value assignment mechanisms.
 
         Arguments:
-            netuid: The network UID of the subnet to query.
-            block: Block number for synchronization, or ``None`` for the latest block.
+            netuid (int): The network UID of the subnet to query.
+            block (Optional[int]): Block number for synchronization, or ``None`` for the latest block.
 
         Returns:
             A list of tuples mapping each neuron's UID to its assigned weights.
@@ -3028,8 +2860,8 @@ class Subtensor(SubtensorMixin):
         Returns network WeightsSetRateLimit hyperparameter.
 
         Arguments:
-            netuid: The unique identifier of the subnetwork.
-            block: The blockchain block number for the query.
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
             Optional[int]: The value of the WeightsSetRateLimit hyperparameter, or ``None`` if the subnetwork does not
@@ -3111,13 +2943,13 @@ class Subtensor(SubtensorMixin):
         Helper method to sign and submit an extrinsic call to chain.
 
         Arguments:
-            call: a prepared Call object
-            wallet: the wallet whose coldkey will be used to sign the extrinsic
-            wait_for_inclusion: whether to wait until the extrinsic call is included on the chain
-            wait_for_finalization: whether to wait until the extrinsic call is finalized on the chain
-            sign_with: the wallet's keypair to use for the signing. Options are "coldkey", "hotkey", "coldkeypub"
-            use_nonce: unique identifier for the transaction related with hot/coldkey.
-            period: The number of blocks during which the transaction will remain valid after it's
+            call (scalecodec.types.GenericCall): a prepared Call object
+            wallet (bittensor_wallet.Wallet): the wallet whose coldkey will be used to sign the extrinsic
+            wait_for_inclusion (bool): whether to wait until the extrinsic call is included on the chain
+            wait_for_finalization (bool): whether to wait until the extrinsic call is finalized on the chain
+            sign_with (str): the wallet's keypair to use for the signing. Options are "coldkey", "hotkey", "coldkeypub"
+            use_nonce (bool): unique identifier for the transaction related with hot/coldkey.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
             nonce_key: the type on nonce to use. Options are "hotkey" or "coldkey".
@@ -3193,10 +3025,10 @@ class Subtensor(SubtensorMixin):
     ) -> bool:
         """
         Adds a stake from the specified wallet to the neuron identified by the SS58 address of its hotkey in specified
-        subnet. Staking is a fundamental process in the Bittensor network that enables neurons to participate
-        actively and earn incentives.
+            subnet. Staking is a fundamental process in the Bittensor network that enables neurons to participate
+            actively and earn incentives.
 
-        Arguments:
+        Args:
             wallet: The wallet to be used for staking.
             hotkey_ss58: The SS58 address of the hotkey associated with the neuron to which you intend to delegate your
                 stake. If not specified, the wallet's hotkey will be used. Defaults to ``None``.
@@ -3216,12 +3048,12 @@ class Subtensor(SubtensorMixin):
                 can think of it as an expiration date for the transaction. Defaults to ``None``.
 
         Returns:
-            bool: ``True`` if the staking is successful, ``False`` otherwise.
+            bool: True if the staking is successful, False otherwise.
 
         This function enables neurons to increase their stake in the network, enhancing their influence and potential
-        rewards in line with Bittensor's consensus and reward mechanisms.
-        When safe_staking is enabled, it provides protection against price fluctuations during the time stake is
-        executed and the time it is actually processed by the chain.
+            rewards in line with Bittensor's consensus and reward mechanisms.
+            When safe_staking is enabled, it provides protection against price fluctuations during the time stake is
+            executed and the time it is actually processed by the chain.
         """
         amount = check_and_convert_to_balance(amount)
         return add_stake_extrinsic(
@@ -3302,14 +3134,14 @@ class Subtensor(SubtensorMixin):
         Adds stakes to multiple neurons identified by their hotkey SS58 addresses.
         This bulk operation allows for efficient staking across different neurons from a single wallet.
 
-        Arguments:
-            wallet: The wallet used for staking.
-            hotkey_ss58s: List of ``SS58`` addresses of hotkeys to stake to.
-            netuids: List of network UIDs to stake to.
-            amounts: Corresponding amounts of TAO to stake for each hotkey.
-            wait_for_inclusion: Waits for the transaction to be included in a block.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
-            period: The number of blocks during which the transaction will remain valid after it's
+        Args:
+            wallet (bittensor_wallet.Wallet): The wallet used for staking.
+            hotkey_ss58s (list[str]): List of ``SS58`` addresses of hotkeys to stake to.
+            netuids (list[int]): List of network UIDs to stake to.
+            amounts (list[Balance]): Corresponding amounts of TAO to stake for each hotkey.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
 
@@ -3342,14 +3174,14 @@ class Subtensor(SubtensorMixin):
         Registers a neuron on the Bittensor network by recycling TAO. This method of registration involves recycling
             TAO tokens, allowing them to be re-mined by performing work on the network.
 
-        Arguments:
-            wallet: The wallet associated with the neuron to be registered.
-            netuid: The unique identifier of the subnet.
-            wait_for_inclusion: Waits for the transaction to be included in a block. Defaults to
+        Args:
+            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron to be registered.
+            netuid (int): The unique identifier of the subnet.
+            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block. Defaults to
                 `False`.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
                 Defaults to `True`.
-            period: The number of blocks during which the transaction will remain valid after it's
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
 
@@ -3393,18 +3225,18 @@ class Subtensor(SubtensorMixin):
         This action serves as a commitment or snapshot of the neuron's current weight distribution.
 
         Arguments:
-            wallet: The wallet associated with the neuron committing the weights.
-            netuid: The unique identifier of the subnet.
-            salt: list of randomly generated integers as salt to generated weighted hash.
-            uids: NumPy array of neuron UIDs for which weights are being committed.
-            weights: NumPy array of weight values corresponding to each UID.
-            version_key: Version key for compatibility with the network. Default is ``int representation of
+            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the weights.
+            netuid (int): The unique identifier of the subnet.
+            salt (list[int]): list of randomly generated integers as salt to generated weighted hash.
+            uids (np.ndarray): NumPy array of neuron UIDs for which weights are being committed.
+            weights (np.ndarray): NumPy array of weight values corresponding to each UID.
+            version_key (int): Version key for compatibility with the network. Default is ``int representation of
                 a Bittensor version.``.
-            wait_for_inclusion: Waits for the transaction to be included in a block. Default is ``False``.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Default is
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
                 ``False``.
-            max_retries: The number of maximum attempts to commit weights. Default is ``5``.
-            period: The number of blocks during which the transaction will remain valid after it's
+            max_retries (int): The number of maximum attempts to commit weights. Default is ``5``.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
 
@@ -3542,21 +3374,21 @@ class Subtensor(SubtensorMixin):
         """
         Moves stake to a different hotkey and/or subnet.
 
-        Arguments:
-            wallet: The wallet to move stake from.
-            origin_hotkey: The SS58 address of the source hotkey.
-            origin_netuid: The netuid of the source subnet.
-            destination_hotkey: The SS58 address of the destination hotkey.
-            destination_netuid: The netuid of the destination subnet.
-            amount: Amount of stake to move.
-            wait_for_inclusion: Waits for the transaction to be included in a block.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
-            period: The number of blocks during which the transaction will remain valid after it's
+        Args:
+            wallet (bittensor.wallet): The wallet to move stake from.
+            origin_hotkey (str): The SS58 address of the source hotkey.
+            origin_netuid (int): The netuid of the source subnet.
+            destination_hotkey (str): The SS58 address of the destination hotkey.
+            destination_netuid (int): The netuid of the destination subnet.
+            amount (Balance): Amount of stake to move.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
 
         Returns:
-            success: True if the stake movement was successful.
+            success (bool): True if the stake movement was successful.
         """
         amount = check_and_convert_to_balance(amount)
         return move_stake_extrinsic(
@@ -3595,21 +3427,21 @@ class Subtensor(SubtensorMixin):
             stake, set weights, and receive incentives.
 
         Args:
-            wallet: The wallet associated with the neuron to be registered.
-            netuid: The unique identifier of the subnet.
-            wait_for_inclusion: Waits for the transaction to be included in a block. Defaults to `False`.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Defaults to
+            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron to be registered.
+            netuid (int): The unique identifier of the subnet.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Defaults to `False`.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Defaults to
                 `True`.
-            max_allowed_attempts: Maximum number of attempts to register the wallet.
-            output_in_place: If true, prints the progress of the proof of work to the console in-place. Meaning
+            max_allowed_attempts (int): Maximum number of attempts to register the wallet.
+            output_in_place (bool): If true, prints the progress of the proof of work to the console in-place. Meaning
                 the progress is printed on the same lines. Defaults to `True`.
-            cuda: If ``true``, the wallet should be registered using CUDA device(s). Defaults to `False`.
-            dev_id: The CUDA device id to use, or a list of device ids. Defaults to `0` (zero).
+            cuda (bool): If ``true``, the wallet should be registered using CUDA device(s). Defaults to `False`.
+            dev_id (Union[List[int], int]): The CUDA device id to use, or a list of device ids. Defaults to `0` (zero).
             tpb (int): The number of threads per block (CUDA). Default to `256`.
             num_processes (Optional[int]): The number of processes to use to register. Default to `None`.
             update_interval (Optional[int]): The number of nonces to solve between updates.  Default to `None`.
             log_verbose (bool): If ``true``, the registration process will log more information.  Default to `False`.
-            period: The number of blocks during which the transaction will remain valid after it's
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
 
@@ -3647,12 +3479,12 @@ class Subtensor(SubtensorMixin):
         Registers a new subnetwork on the Bittensor network.
 
         Args:
-            wallet: The wallet to be used for subnet registration.
-            wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning `True`, or
+            wallet (bittensor_wallet.Wallet): The wallet to be used for subnet registration.
+            wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or
                 returns `False` if the extrinsic fails to enter the block within the timeout. Default is `False`.
-            wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning
+            wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
                 `True`, or returns `False` if the extrinsic fails to be finalized within the timeout. Default is `True`.
-            period: The number of blocks during which the transaction will remain valid after it's
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
 
@@ -3730,18 +3562,18 @@ class Subtensor(SubtensorMixin):
         This action serves as a revelation of the neuron's previously committed weight distribution.
 
         Args:
-            wallet: The wallet associated with the neuron revealing the weights.
-            netuid: The unique identifier of the subnet.
-            uids: NumPy array of neuron UIDs for which weights are being revealed.
-            weights: NumPy array of weight values corresponding to each UID.
+            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron revealing the weights.
+            netuid (int): The unique identifier of the subnet.
+            uids (np.ndarray): NumPy array of neuron UIDs for which weights are being revealed.
+            weights (np.ndarray): NumPy array of weight values corresponding to each UID.
             salt (np.ndarray): NumPy array of salt values corresponding to the hash function.
-            version_key: Version key for compatibility with the network. Default is ``int representation of
+            version_key (int): Version key for compatibility with the network. Default is ``int representation of
                 the Bittensor version``.
-            wait_for_inclusion: Waits for the transaction to be included in a block. Default is ``False``.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Default is
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
                 ``False``.
-            max_retries: The number of maximum attempts to reveal weights. Default is ``5``.
-            period: The number of blocks during which the transaction will remain valid after it's
+            max_retries (int): The number of maximum attempts to reveal weights. Default is ``5``.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
 
@@ -3789,11 +3621,11 @@ class Subtensor(SubtensorMixin):
         Register neuron by recycling some TAO.
 
         Arguments:
-            wallet: Bittensor wallet instance.
-            wait_for_inclusion: Waits for the transaction to be included in a block. Default is ``False``.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Default is
+            wallet (bittensor_wallet.Wallet): Bittensor wallet instance.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
                 ``False``.
-            period: The number of blocks during which the transaction will remain valid after it's
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
 
@@ -3822,10 +3654,10 @@ class Subtensor(SubtensorMixin):
         Arguments:
             wallet: bittensor wallet instance.
             cooldown: the number of blocks to setting pending childkey cooldown.
-            wait_for_inclusion: Waits for the transaction to be included in a block. Default is ``False``.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Default is
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
                 ``False``.
-            period: The number of blocks during which the transaction will remain valid after it's
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
 
@@ -3858,7 +3690,7 @@ class Subtensor(SubtensorMixin):
         Set weights for the root network.
 
         Arguments:
-            wallet: bittensor wallet instance.
+            wallet (bittensor_wallet.Wallet): bittensor wallet instance.
             netuids (list[int]): The list of subnet uids.
             weights (list[float]): The list of weights to be set.
             version_key (int, optional): Version key for compatibility with the network. Default is ``0``.
@@ -3866,7 +3698,7 @@ class Subtensor(SubtensorMixin):
                 ``False``.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
                 Defaults to ``False``.
-            period: The number of blocks during which the transaction will remain valid after it's
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
 
@@ -3944,13 +3776,13 @@ class Subtensor(SubtensorMixin):
         The 'take' represents the percentage of rewards that the delegate claims from its nominators' stakes.
 
         Arguments:
-            wallet: bittensor wallet instance.
+            wallet (bittensor_wallet.Wallet): bittensor wallet instance.
             hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
             take (float): Percentage reward for the delegate.
-            wait_for_inclusion: Waits for the transaction to be included in a block.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
-            period: The number of blocks during which the transaction will remain valid after it's
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
 
@@ -4026,14 +3858,14 @@ class Subtensor(SubtensorMixin):
 
         Arguments:
             wallet (Wallet): The wallet instance that will authorize the transaction.
-            netuid: The unique ID of the network on which the operation takes place.
+            netuid (int): The unique ID of the network on which the operation takes place.
             subnet_identity (SubnetIdentity): The identity data of the subnet including attributes like name, GitHub
                 repository, contact, URL, discord, description, and any additional metadata.
-            wait_for_inclusion: Indicates if the function should wait for the transaction to be included in the
+            wait_for_inclusion (bool): Indicates if the function should wait for the transaction to be included in the
                 block.
-            wait_for_finalization: Indicates if the function should wait for the transaction to reach
+            wait_for_finalization (bool): Indicates if the function should wait for the transaction to reach
                 finalization.
-            period: The number of blocks during which the transaction will remain valid after it's
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
 
@@ -4087,7 +3919,7 @@ class Subtensor(SubtensorMixin):
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Default is ``False``.
             max_retries: The number of maximum attempts to set weights. Default is ``5``.
             block_time: The number of seconds for block duration. Default is 12.0 seconds.
-            period: The number of blocks during which the transaction will remain valid after it's
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction. Default is 8.
 
@@ -4178,14 +4010,14 @@ class Subtensor(SubtensorMixin):
             set up the Axon, a key component of a neuron that handles incoming queries and data processing tasks.
 
         Args:
-            netuid: The unique identifier of the subnetwork.
+            netuid (int): The unique identifier of the subnetwork.
             axon (bittensor.core.axon.Axon): The Axon instance to be registered for serving.
-            wait_for_inclusion: Waits for the transaction to be included in a block. Default is ``False``.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Default is
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
                 ``True``.
             certificate (bittensor.utils.Certificate): Certificate to use for TLS. If ``None``, no TLS will be used.
                 Defaults to ``None``.
-            period: The number of blocks during which the transaction will remain valid after it's
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
 
@@ -4219,12 +4051,12 @@ class Subtensor(SubtensorMixin):
 
         Args:
             wallet (Wallet): The wallet used to sign the extrinsic (must be unlocked).
-            netuid: The UID of the target subnet for which the call is being initiated.
+            netuid (int): The UID of the target subnet for which the call is being initiated.
             wait_for_inclusion (bool, optional): Whether to wait for the extrinsic to be included in a block.
                 Defaults to `True`.
             wait_for_finalization (bool, optional): Whether to wait for finalization of the extrinsic.
                 Defaults to `False`.
-            period: The number of blocks during which the transaction will remain valid after it's
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
 
@@ -4260,29 +4092,29 @@ class Subtensor(SubtensorMixin):
         Moves stake between subnets while keeping the same coldkey-hotkey pair ownership.
         Like subnet hopping - same owner, same hotkey, just changing which subnet the stake is in.
 
-        Arguments:
-            wallet: The wallet to swap stake from.
-            hotkey_ss58: The SS58 address of the hotkey whose stake is being swapped.
-            origin_netuid: The netuid from which stake is removed.
-            destination_netuid: The netuid to which stake is added.
-            amount: The amount to swap.
-            wait_for_inclusion: Waits for the transaction to be included in a block.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
-            safe_staking: If true, enables price safety checks to protect against fluctuating prices. The swap
+        Args:
+            wallet (bittensor.wallet): The wallet to swap stake from.
+            hotkey_ss58 (str): The SS58 address of the hotkey whose stake is being swapped.
+            origin_netuid (int): The netuid from which stake is removed.
+            destination_netuid (int): The netuid to which stake is added.
+            amount (Union[Balance, float]): The amount to swap.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            safe_staking (bool): If true, enables price safety checks to protect against fluctuating prices. The swap
                 will only execute if the price ratio between subnets doesn't exceed the rate tolerance.
                 Default is False.
-            allow_partial_stake: If true and safe_staking is enabled, allows partial stake swaps when
+            allow_partial_stake (bool): If true and safe_staking is enabled, allows partial stake swaps when
                 the full amount would exceed the price tolerance. If false, the entire swap fails if it would
                 exceed the tolerance. Default is False.
-            rate_tolerance: The maximum allowed increase in the price ratio between subnets
+            rate_tolerance (float): The maximum allowed increase in the price ratio between subnets
                 (origin_price/destination_price). For example, 0.005 = 0.5% maximum increase. Only used
                 when safe_staking is True. Default is 0.005.
-            period: The number of blocks during which the transaction will remain valid after it's
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
 
         Returns:
-            success: True if the extrinsic was successful.
+            success (bool): True if the extrinsic was successful.
 
         The price ratio for swap_stake in safe mode is calculated as: origin_subnet_price / destination_subnet_price
         When safe_staking is enabled, the swap will only execute if:
@@ -4360,15 +4192,15 @@ class Subtensor(SubtensorMixin):
         Transfer token of amount to destination.
 
         Arguments:
-            wallet: Source wallet for the transfer.
+            wallet (bittensor_wallet.Wallet): Source wallet for the transfer.
             dest (str): Destination address for the transfer.
             amount (float): Amount of tao to transfer.
             transfer_all (bool): Flag to transfer all tokens. Default is ``False``.
-            wait_for_inclusion: Waits for the transaction to be included in a block.  Default is ``True``.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.  Default is
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.  Default is ``True``.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.  Default is
                 ``False``.
             keep_alive (bool): Flag to keep the connection alive. Default is ``True``.
-            period: The number of blocks during which the transaction will remain valid after it's
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
 
@@ -4407,12 +4239,12 @@ class Subtensor(SubtensorMixin):
             wallet (bittensor.wallet): The wallet to transfer stake from.
             destination_coldkey_ss58 (str): The destination coldkey SS58 address.
             hotkey_ss58 (str): The hotkey SS58 address associated with the stake.
-            origin_netuid: The source subnet UID.
-            destination_netuid: The destination subnet UID.
+            origin_netuid (int): The source subnet UID.
+            destination_netuid (int): The destination subnet UID.
             amount (Union[Balance, float, int]): Amount to transfer.
-            wait_for_inclusion: If true, waits for inclusion before returning.
-            wait_for_finalization: If true, waits for finalization before returning.
-            period: The number of blocks during which the transaction will remain valid after it's
+            wait_for_inclusion (bool): If true, waits for inclusion before returning.
+            wait_for_finalization (bool): If true, waits for finalization before returning.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
 
@@ -4465,7 +4297,7 @@ class Subtensor(SubtensorMixin):
                 exceed the tolerance. Default is False.
             rate_tolerance (float): The maximum allowed price change ratio when unstaking. For example,
                 0.005 = 0.5% maximum price decrease. Only used when safe_staking is True. Default is 0.005.
-            period: The number of blocks during which the transaction will remain valid after it's
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
             unstake_all: If `True`, unstakes all tokens, and `amount` is ignored. Default is `False`.
@@ -4598,9 +4430,9 @@ class Subtensor(SubtensorMixin):
             netuids (List[int]): The list of subnet uids.
             amounts (List[Balance]): The amounts of TAO to unstake from each hotkey. If not provided,
                 unstakes all available stakes.
-            wait_for_inclusion: Waits for the transaction to be included in a block.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
-            period: The number of blocks during which the transaction will remain valid after it's
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
             unstake_all: If `True`, unstakes all tokens, and `amounts` is ignored. Default is `False`.
