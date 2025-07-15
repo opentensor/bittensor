@@ -1,4 +1,8 @@
 name: Changelog guard (for release of hotfix)
+
+permissions:
+  contents: read
+
 on:
   pull_request:
     branches:
