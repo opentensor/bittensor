@@ -7,7 +7,7 @@ on:
     types: [opened, synchronize, reopened, edited]
 
 jobs:
-  unit-tests:
+  tests:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
 
