@@ -1,4 +1,4 @@
-name: Unit tests checker
+name: Unit and integration tests checker
 permissions:
   contents: read
 
