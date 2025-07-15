@@ -221,14 +221,14 @@ class AsyncSubtensor(SubtensorMixin):
             None
 
         Example:
-            subtensor = AsyncSubtensor(network="finney")
-            await subtensor.initialize()
+            .. code-block:: python
 
-            # Use the subtensor...
-            balance = await subtensor.get_balance(address="5F...")
+                subtensor = AsyncSubtensor(network="finney")
+                await subtensor.initialize()
 
-            # Close when done
-            await subtensor.close()
+                balance = await subtensor.get_balance(address="5F...")
+
+                await subtensor.close()
         """
         if self.substrate:
             await self.substrate.close()
@@ -246,16 +246,20 @@ class AsyncSubtensor(SubtensorMixin):
             ConnectionError: If unable to connect to the blockchain due to timeout or connection refusal.
 
         Example:
-            subtensor = AsyncSubtensor(network="finney")
+            Initialize the connection:
 
-            # Initialize the connection
-            await subtensor.initialize()
+            .. code-block:: python
 
-            # Now you can make queries
-            balance = await subtensor.get_balance(address="5F...")
+                subtensor = AsyncSubtensor(network="finney")
+                await subtensor.initialize()
 
-            # Or chain the initialization
-            subtensor = await AsyncSubtensor(network="finney").initialize()
+                balance = await subtensor.get_balance(address="5F...")
+
+            Or chain the initialization:
+
+            .. code-block:: python
+
+                subtensor = await AsyncSubtensor(network="finney").initialize()
         """
         logging.info(
             f"[magenta]Connecting to Substrate:[/magenta] [blue]{self}[/blue][magenta]...[/magenta]"
@@ -322,14 +326,23 @@ class AsyncSubtensor(SubtensorMixin):
             ValueError: If more than one of block, block_hash, or reuse_block is specified.
 
         Example:
-            # Get hash for specific block
-            block_hash = await subtensor.determine_block_hash(block=1000000)
+            Get hash for specific block:
 
-            # Use provided block hash
-            hash = await subtensor.determine_block_hash(block_hash="0x1234...")
+            .. code-block:: python
 
-            # Reuse last block hash
-            hash = await subtensor.determine_block_hash(reuse_block=True)
+                block_hash = await subtensor.determine_block_hash(block=1000000)
+
+            Use provided block hash:
+
+            .. code-block:: python
+
+                hash = await subtensor.determine_block_hash(block_hash="0x1234...")
+
+            Reuse last block hash:
+
+            .. code-block:: python
+
+                hash = await subtensor.determine_block_hash(reuse_block=True)
         """
         # Ensure that only one of the parameters is specified.
         if sum(bool(x) for x in [block, block_hash, reuse_block]) > 1:
@@ -367,24 +380,26 @@ class AsyncSubtensor(SubtensorMixin):
             ValueError: If a required parameter is missing from the params dictionary.
 
         Example:
-            # Define parameter types
-            call_def = {
-                "params": [
-                    {"name": "amount", "type": "u64"},
-                    {"name": "coldkey_ss58", "type": "str"}
-                ]
-            }
+            .. code-block:: python
 
-            # Encode parameters as a dictionary
-            params_dict = {
-                "amount": 1000000,
-                "coldkey_ss58": "5F..."
-            }
-            encoded = await subtensor.encode_params(call_definition=call_def, params=params_dict)
+                # Define parameter types
+                call_def = {
+                    "params": [
+                        {"name": "amount", "type": "u64"},
+                        {"name": "coldkey_ss58", "type": "str"}
+                    ]
+                }
 
-            # Or encode as a list (positional)
-            params_list = [1000000, "5F..."]
-            encoded = await subtensor.encode_params(call_definition=call_def, params=params_list)
+                # Encode parameters as a dictionary
+                params_dict = {
+                    "amount": 1000000,
+                    "coldkey_ss58": "5F..."
+                }
+                encoded = await subtensor.encode_params(call_definition=call_def, params=params_dict)
+
+                # Or encode as a list (positional)
+                params_list = [1000000, "5F..."]
+                encoded = await subtensor.encode_params(call_definition=call_def, params=params_list)
         """
         param_data = scalecodec.ScaleBytes(b"")
 
@@ -425,14 +440,23 @@ class AsyncSubtensor(SubtensorMixin):
             The value of the specified hyperparameter if the subnet exists, None otherwise.
 
         Example:
-            # Get difficulty for subnet 1
-            difficulty = await subtensor.get_hyperparameter(param_name="Difficulty", netuid=1)
+            Get difficulty for subnet 1:
 
-            # Get tempo at a specific block
-            tempo = await subtensor.get_hyperparameter(param_name="Tempo", netuid=1, block=1000000)
+            .. code-block:: python
 
-            # Get immunity period using block hash
-            immunity = await subtensor.get_hyperparameter(param_name="ImmunityPeriod", netuid=1, block_hash="0x1234...")
+                difficulty = await subtensor.get_hyperparameter(param_name="Difficulty", netuid=1)
+
+            Get tempo at a specific block:
+
+            .. code-block:: python
+
+                tempo = await subtensor.get_hyperparameter(param_name="Tempo", netuid=1, block=1000000)
+
+            Get immunity period using block hash:
+
+            .. code-block:: python
+
+                immunity = await subtensor.get_hyperparameter(param_name="ImmunityPeriod", netuid=1, block_hash="0x1234...")
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not await self.subnet_exists(
@@ -531,18 +555,24 @@ class AsyncSubtensor(SubtensorMixin):
             Optional[async_substrate_interface.types.ScaleObj]: The value of the constant if found, ``None`` otherwise.
 
         Example:
-            # Get existential deposit constant
-            existential_deposit = await subtensor.query_constant(
-                module_name="Balances",
-                constant_name="ExistentialDeposit"
-            )
+            Get existential deposit constant:
 
-            # Get constant at specific block
-            constant = await subtensor.query_constant(
-                module_name="SubtensorModule",
-                constant_name="SomeConstant",
-                block=1000000
-            )
+            .. code-block:: python
+
+                existential_deposit = await subtensor.query_constant(
+                    module_name="Balances",
+                    constant_name="ExistentialDeposit"
+                )
+
+            Get constant at specific block:
+
+            .. code-block:: python
+
+                constant = await subtensor.query_constant(
+                    module_name="SubtensorModule",
+                    constant_name="SomeConstant",
+                    block=1000000
+                )
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         return await self.substrate.get_constant(
@@ -580,11 +610,17 @@ class AsyncSubtensor(SubtensorMixin):
             AsyncQueryMapResult: A data structure representing the map storage if found, None otherwise.
 
         Example:
-            # Query bonds for subnet 1
-            bonds = await subtensor.query_map(module="SubtensorModule", name="Bonds", params=[1])
+            Query bonds for subnet 1:
 
-            # Query weights at specific block
-            weights = await subtensor.query_map(module="SubtensorModule", name="Weights", params=[1], block=1000000)
+            .. code-block:: python
+
+                bonds = await subtensor.query_map(module="SubtensorModule", name="Bonds", params=[1])
+
+            Query weights at specific block:
+
+            .. code-block:: python
+
+                weights = await subtensor.query_map(module="SubtensorModule", name="Weights", params=[1], block=1000000)
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query_map(
@@ -799,8 +835,11 @@ class AsyncSubtensor(SubtensorMixin):
             subnet, or None if the query fails.
 
         Example:
-            # Get all subnets at current block
-            subnets = await subtensor.all_subnets()
+            Get all subnets at current block:
+
+            .. code-block:: python
+
+                subnets = await subtensor.all_subnets()
         """
         block_hash = await self.determine_block_hash(
             block=block_number, block_hash=block_hash, reuse_block=reuse_block
@@ -844,11 +883,17 @@ class AsyncSubtensor(SubtensorMixin):
             The number of blocks since the last step in the subnet, or None if the query fails.
 
         Example:
-            # Get blocks since last step for subnet 1
-            blocks = await subtensor.blocks_since_last_step(netuid=1)
+            Get blocks since last step for subnet 1:
 
-            # Get blocks since last step at specific block
-            blocks = await subtensor.blocks_since_last_step(netuid=1, block=1000000)
+            .. code-block:: python
+
+                blocks = await subtensor.blocks_since_last_step(netuid=1)
+
+            Get blocks since last step at specific block:
+
+            .. code-block:: python
+
+                blocks = await subtensor.blocks_since_last_step(netuid=1, block=1000000)
         """
         query = await self.query_subtensor(
             name="BlocksSinceLastStep",
@@ -870,11 +915,17 @@ class AsyncSubtensor(SubtensorMixin):
             Optional[int]: The number of blocks since the last update, or None if the subnetwork or UID does not exist.
 
         Example:
-            # Get blocks since last update for UID 5 in subnet 1
-            blocks = await subtensor.blocks_since_last_update(netuid=1, uid=5)
+            Get blocks since last update for UID 5 in subnet 1:
 
-            # Check if neuron needs updating
-            blocks_since_update = await subtensor.blocks_since_last_update(netuid=1, uid=10)
+            .. code-block:: python
+
+                blocks = await subtensor.blocks_since_last_update(netuid=1, uid=5)
+
+            Check if neuron needs updating:
+
+            .. code-block:: python
+
+                blocks_since_update = await subtensor.blocks_since_last_update(netuid=1, uid=10)
         """
         call = await self.get_hyperparameter(param_name="LastUpdate", netuid=netuid)
         return None if call is None else await self.get_current_block() - int(call[uid])
@@ -902,8 +953,11 @@ class AsyncSubtensor(SubtensorMixin):
             List of tuples mapping each neuron's UID to its bonds with other neurons.
 
         Example:
-            # Get bonds for subnet 1 at block 1000000
-            bonds = await subtensor.bonds(netuid=1, block=1000000)
+            Get bonds for subnet 1 at block 1000000:
+
+            .. code-block:: python
+
+                bonds = await subtensor.bonds(netuid=1, block=1000000)
 
         Notes:
             - See <https://docs.learnbittensor.org/glossary#validator-miner-bonds>
@@ -944,11 +998,17 @@ class AsyncSubtensor(SubtensorMixin):
             bool: True if the commit was successful, False otherwise.
 
         Example:
-            # Commit some data to subnet 1
-            success = await subtensor.commit(wallet=my_wallet, netuid=1, data="Hello Bittensor!")
+            Commit some data to subnet 1:
 
-            # Commit with custom period
-            success = await subtensor.commit(wallet=my_wallet, netuid=1, data="Model update v2.0", period=100)
+            .. code-block:: python
+
+                success = await subtensor.commit(wallet=my_wallet, netuid=1, data="Hello Bittensor!")
+
+            Commit with custom period:
+
+            .. code-block:: python
+
+                success = await subtensor.commit(wallet=my_wallet, netuid=1, data="Model update v2.0", period=100)
 
         Note: See <https://docs.learnbittensor.org/glossary#commit-reveal>
         """
@@ -985,11 +1045,17 @@ class AsyncSubtensor(SubtensorMixin):
             bool: True if commit-reveal mechanism is enabled, False otherwise.
 
         Example:
-            # Check if commit-reveal is enabled for subnet 1
-            enabled = await subtensor.commit_reveal_enabled(netuid=1)
+            Check if commit-reveal is enabled for subnet 1:
 
-            # Check at specific block
-            enabled = await subtensor.commit_reveal_enabled(netuid=1, block=1000000)
+            .. code-block:: python
+
+                enabled = await subtensor.commit_reveal_enabled(netuid=1)
+
+            Check at specific block:
+
+            .. code-block:: python
+
+                enabled = await subtensor.commit_reveal_enabled(netuid=1, block=1000000)
 
         Notes:
             See also: <https://docs.learnbittensor.org/glossary#commit-reveal>
@@ -1028,11 +1094,17 @@ class AsyncSubtensor(SubtensorMixin):
             Optional[int]: The value of the 'Difficulty' hyperparameter if the subnet exists, None otherwise.
 
         Example:
-            # Get difficulty for subnet 1
-            difficulty = await subtensor.difficulty(netuid=1)
+            Get difficulty for subnet 1:
 
-            # Get difficulty at specific block
-            difficulty = await subtensor.difficulty(netuid=1, block=1000000)
+            .. code-block:: python
+
+                difficulty = await subtensor.difficulty(netuid=1)
+
+            Get difficulty at specific block:
+
+            .. code-block:: python
+
+                difficulty = await subtensor.difficulty(netuid=1, block=1000000)
 
         Notes:
             See also: <https://docs.learnbittensor.org/glossary#difficulty>
@@ -1070,11 +1142,17 @@ class AsyncSubtensor(SubtensorMixin):
             bool: True if the hotkey is known by the chain and there are accounts, False otherwise.
 
         Example:
-            # Check if hotkey exists
-            exists = await subtensor.does_hotkey_exist(hotkey_ss58="5F...")
+            Check if hotkey exists:
 
-            # Check at specific block
-            exists = await subtensor.does_hotkey_exist(hotkey_ss58="5F...", block=1000000)
+            .. code-block:: python
+
+                exists = await subtensor.does_hotkey_exist(hotkey_ss58="5F...")
+
+            Check at specific block:
+
+            .. code-block:: python
+
+                exists = await subtensor.does_hotkey_exist(hotkey_ss58="5F...", block=1000000)
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query(
@@ -1112,15 +1190,17 @@ class AsyncSubtensor(SubtensorMixin):
             list[SubnetInfo]: A list of SubnetInfo objects, each containing detailed information about a subnet.
 
         Example:
-            # Get all subnet information
-            subnets = await subtensor.get_all_subnets_info()
+            .. code-block:: python
 
-            # Get at specific block
-            subnets = await subtensor.get_all_subnets_info(block=1000000)
+                # Get all subnet information
+                subnets = await subtensor.get_all_subnets_info()
 
-            # Iterate over subnet information
-            for subnet in subnets:
-                print(f"Subnet {subnet.netuid}: {subnet.name}")
+                # Get at specific block
+                subnets = await subtensor.get_all_subnets_info(block=1000000)
+
+                # Iterate over subnet information
+                for subnet in subnets:
+                    print(f"Subnet {subnet.netuid}: {subnet.name}")
 
         Note:
             Gaining insights into the subnets' details assists in understanding the network's composition, the roles
@@ -1169,12 +1249,18 @@ class AsyncSubtensor(SubtensorMixin):
             Balance: The balance object containing the account's TAO balance.
 
         Example:
-            # Get balance for an address
-            balance = await subtensor.get_balance(address="5F...")
-            print(f"Balance: {balance.tao} TAO")
+            Get balance for an address:
 
-            # Get balance at specific block
-            balance = await subtensor.get_balance(address="5F...", block=1000000)
+            .. code-block:: python
+
+                balance = await subtensor.get_balance(address="5F...")
+                print(f"Balance: {balance.tao} TAO")
+
+            Get balance at specific block:
+
+            .. code-block:: python
+
+                balance = await subtensor.get_balance(address="5F...", block=1000000)
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         balance = await self.substrate.query(
@@ -1209,8 +1295,11 @@ class AsyncSubtensor(SubtensorMixin):
             dict[str, Balance]: A dictionary mapping each address to its Balance object.
 
         Example:
-            # Get balances for multiple addresses
-            balances = await subtensor.get_balances("5F...", "5G...", "5H...")
+            Get balances for multiple addresses:
+
+            .. code-block:: python
+
+                balances = await subtensor.get_balances("5F...", "5G...", "5H...")
         """
         if reuse_block:
             block_hash = self.substrate.last_block_hash
@@ -1244,13 +1333,20 @@ class AsyncSubtensor(SubtensorMixin):
             int: The current chain block number.
 
         Example:
-            # Get current block number
-            current_block = await subtensor.get_current_block()
-            print(f"Current block: {current_block}")
+            Get current block number:
 
-            block = await subtensor.get_current_block()
-            if block > 1000000:
-                print("Network has progressed past block 1M")
+            .. code-block:: python
+
+                current_block = await subtensor.get_current_block()
+                print(f"Current block: {current_block}")
+
+            Check if network has progressed past a milestone:
+
+            .. code-block:: python
+
+                block = await subtensor.get_current_block()
+                if block > 1000000:
+                    print("Network has progressed past block 1M")
 
         Notes:
             See also: <https://docs.learnbittensor.org/glossary#block>
@@ -1469,6 +1565,7 @@ class AsyncSubtensor(SubtensorMixin):
             print(f"Commitment: {commitment}")
 
             # Get commitment at specific block
+
             commitment = await subtensor.get_commitment(
                 netuid=1,
                 uid=5,
@@ -1543,12 +1640,14 @@ class AsyncSubtensor(SubtensorMixin):
             dict[str, str]: A mapping of the ss58:commitment with the commitment as a string.
 
         Example:
-            # Get all commitments for subnet 1
-            commitments = await subtensor.get_all_commitments(netuid=1)
+            .. code-block:: python
 
-            # Iterate over all commitments
-            for hotkey, commitment in commitments.items():
-                print(f"Hotkey {hotkey}: {commitment}")
+                # Get all commitments for subnet 1
+                commitments = await subtensor.get_all_commitments(netuid=1)
+
+                # Iterate over all commitments
+                for hotkey, commitment in commitments.items():
+                    print(f"Hotkey {hotkey}: {commitment}")
         """
         query = await self.query_map(
             module="Commitments",
@@ -1650,10 +1749,12 @@ class AsyncSubtensor(SubtensorMixin):
             result: A dictionary of all revealed commitments in view {ss58_address: (reveal block, commitment message)}.
 
         Example of result:
-        {
-            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY": ( (12, "Alice message 1"), (152, "Alice message 2") ),
-            "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty": ( (12, "Bob message 1"), (147, "Bob message 2") ),
-        }
+            .. code-block:: python
+
+                {
+                    "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY": ( (12, "Alice message 1"), (152, "Alice message 2") ),
+                    "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty": ( (12, "Bob message 1"), (147, "Bob message 2") ),
+                }
         """
         query = await self.query_map(
             module="Commitments",
@@ -3616,8 +3717,8 @@ class AsyncSubtensor(SubtensorMixin):
         network-specific details, providing insights into the neuron's role and status within the Bittensor network.
 
         Note:
-            See the ``Bittensor CLI documentation <https://docs.bittensor.com/reference/btcli>``_ for supported identity
-                parameters.
+            See the `Bittensor CLI documentation <https://docs.bittensor.com/reference/btcli>`_ for supported identity
+            parameters.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         identity_info = cast(
@@ -4449,30 +4550,32 @@ class AsyncSubtensor(SubtensorMixin):
                 - False and an error message if the submission fails or the wallet cannot be unlocked.
 
         Example:
-            import bittensor as bt
+            .. code-block:: python
 
-            subtensor = bt.AsyncSubtensor(network="local")
-            await subtensor.initialize()
+                import bittensor as bt
 
-            my_wallet = bt.Wallet()
+                subtensor = bt.AsyncSubtensor(network="local")
+                await subtensor.initialize()
 
-            # if `liquidity_delta` is negative
-            my_liquidity_delta = Balance.from_tao(100) * -1
-            await subtensor.modify_liquidity(
-                wallet=my_wallet,
-                netuid=123,
-                position_id=2,
-                liquidity_delta=my_liquidity_delta
-            )
+                my_wallet = bt.Wallet()
 
-            # if `liquidity_delta` is positive
-            my_liquidity_delta = Balance.from_tao(120)
-            await subtensor.modify_liquidity(
-                wallet=my_wallet,
-                netuid=123,
-                position_id=2,
-                liquidity_delta=my_liquidity_delta
-            )
+                # if `liquidity_delta` is negative
+                my_liquidity_delta = Balance.from_tao(100) * -1
+                await subtensor.modify_liquidity(
+                    wallet=my_wallet,
+                    netuid=123,
+                    position_id=2,
+                    liquidity_delta=my_liquidity_delta
+                )
+
+                # if `liquidity_delta` is positive
+                my_liquidity_delta = Balance.from_tao(120)
+                await subtensor.modify_liquidity(
+                    wallet=my_wallet,
+                    netuid=123,
+                    position_id=2,
+                    liquidity_delta=my_liquidity_delta
+                )
 
         Note: Modifying is allowed even when user liquidity is enabled in specified subnet. Call `toggle_user_liquidity`
             to enable/disable user liquidity.
@@ -5513,43 +5616,44 @@ class AsyncSubtensor(SubtensorMixin):
                 - `False` and an error message otherwise.
 
         Example:
-            # If you would like to unstake all stakes in all subnets safely, use default `rate_tolerance` or pass your
-                value:
-            import bittensor as bt
+            To unstake all stakes in all subnets safely, use default `rate_tolerance` or pass your value:
+            .. code-block:: python
 
-            subtensor = bt.AsyncSubtensor()
-            wallet = bt.Wallet("my_wallet")
-            netuid = 14
-            hotkey = "5%SOME_HOTKEY_WHERE_IS_YOUR_STAKE_NOW%"
+                import bittensor as bt
 
-            wallet_stakes = await subtensor.get_stake_info_for_coldkey(coldkey_ss58=wallet.coldkey.ss58_address)
+                subtensor = bt.AsyncSubtensor()
+                wallet = bt.Wallet("my_wallet")
+                netuid = 14
+                hotkey = "5%SOME_HOTKEY_WHERE_IS_YOUR_STAKE_NOW%"
 
-            for stake in wallet_stakes:
-                result = await subtensor.unstake_all(
-                    wallet=wallet,
-                    hotkey_ss58=stake.hotkey_ss58,
-                    netuid=stake.netuid,
-                )
-                print(result)
+                wallet_stakes = await subtensor.get_stake_info_for_coldkey(coldkey_ss58=wallet.coldkey.ss58_address)
 
-            # If you would like to unstake all stakes in all subnets unsafely, use `rate_tolerance=None`:
-                        import bittensor as bt
+                for stake in wallet_stakes:
+                    result = await subtensor.unstake_all(
+                        wallet=wallet,
+                        hotkey_ss58=stake.hotkey_ss58,
+                        netuid=stake.netuid,
+                    )
+                    print(result)
 
-            subtensor = bt.AsyncSubtensor()
-            wallet = bt.Wallet("my_wallet")
-            netuid = 14
-            hotkey = "5%SOME_HOTKEY_WHERE_IS_YOUR_STAKE_NOW%"
+                # If you would like to unstake all stakes in all subnets unsafely, use `rate_tolerance=None`:
+                import bittensor as bt
 
-            wallet_stakes = await subtensor.get_stake_info_for_coldkey(coldkey_ss58=wallet.coldkey.ss58_address)
+                subtensor = bt.AsyncSubtensor()
+                wallet = bt.Wallet("my_wallet")
+                netuid = 14
+                hotkey = "5%SOME_HOTKEY_WHERE_IS_YOUR_STAKE_NOW%"
 
-            for stake in wallet_stakes:
-                result = await subtensor.unstake_all(
-                    wallet=wallet,
-                    hotkey_ss58=stake.hotkey_ss58,
-                    netuid=stake.netuid,
-                    rate_tolerance=None,
-                )
-                print(result)
+                wallet_stakes = await subtensor.get_stake_info_for_coldkey(coldkey_ss58=wallet.coldkey.ss58_address)
+
+                for stake in wallet_stakes:
+                    result = await subtensor.unstake_all(
+                        wallet=wallet,
+                        hotkey_ss58=stake.hotkey_ss58,
+                        netuid=stake.netuid,
+                        rate_tolerance=None,
+                    )
+                    print(result)
         """
         if netuid != 0:
             logging.debug(
