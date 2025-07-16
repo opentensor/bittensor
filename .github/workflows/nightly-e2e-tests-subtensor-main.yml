@@ -1,5 +1,9 @@
 name: Nightly E2E Subtensor tests
 
+permissions:
+  contents: read
+  packages: write
+
 concurrency:
   group: e2e-subtensor-${{ github.ref }}
   cancel-in-progress: true
