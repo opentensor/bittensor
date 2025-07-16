@@ -1,0 +1,358 @@
+name: Nightly E2E Subtensor tests (main)
+
+concurrency:
+  group: e2e-subtensor-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  schedule:
+    - cron: '0 9 * * *'  # Run every night at 2:00 PST
+
+  workflow_dispatch:
+    inputs:
+      verbose:
+        description: "Output more information when triggered manually"
+        required: false
+        default: ""
+
+env:
+  CARGO_TERM_COLOR: always
+  VERBOSE: ${{ github.event.inputs.verbose }}
+
+# job to run tests in parallel
+jobs:
+  # Looking for e2e tests
+  find-tests:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+    outputs:
+      test-files: ${{ steps.get-tests.outputs.test-files }}
+    steps:
+      - name: Check-out repository under $GITHUB_WORKSPACE
+        uses: actions/checkout@v4
+
+      - name: Find test files
+        id: get-tests
+        run: |
+          test_files=$(find tests/e2e_tests -name "test*.py" | jq -R -s -c 'split("\n") | map(select(. != ""))')
+          # keep it here for future debug
+          # test_files=$(find tests/e2e_tests -type f -name "test*.py" | grep -E 'test_(hotkeys|staking)\.py$' | jq -R -s -c 'split("\n") | map(select(. != ""))')
+          echo "test-files=$test_files" >> "$GITHUB_OUTPUT"
+        shell: bash
+  # Pull docker images (devnet-ready and main)
+  pull-docker-images:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
+
+      - name: Pull Docker Image
+        run: |
+          docker pull ghcr.io/opentensor/subtensor-localnet:main
+          docker pull ghcr.io/opentensor/subtensor-localnet:devnet-ready
+
+      - name: List pulled images
+        run: docker images
+
+      - name: Save Docker Images to Cache
+        run: |
+          docker save -o subtensor-localnet-main.tar ghcr.io/opentensor/subtensor-localnet:main
+          docker save -o subtensor-localnet-devnet-ready.tar ghcr.io/opentensor/subtensor-localnet:devnet-ready
+
+      - name: Upload main Docker Image as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: subtensor-localnet-main
+          path: subtensor-localnet-main.tar
+
+      - name: Upload devnet-ready Docker Image as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: subtensor-localnet-devnet-ready
+          path: subtensor-localnet-devnet-ready.tar
+  # Determine the day for non-fast-blocks run
+  check-if-saturday:
+    runs-on: ubuntu-latest
+    outputs:
+      is-saturday: ${{ steps.check.outputs.is-saturday }}
+    steps:
+      - id: check
+        run: |
+          day=$(date -u +%u)
+          echo "Today is weekday $day"
+          if [ "$day" -ne 6 ]; then
+            echo "⏭️ Skipping: not Saturday"
+            echo "is-saturday=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "is-saturday=true"
+          echo "is-saturday=true" >> "$GITHUB_OUTPUT"
+
+  # Daily run of fast-blocks tests from `bittensor:master` based on `subtensor:main docker` image
+  run-fast-blocks-e2e-test-master:
+    name: "FB master: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}"
+    needs:
+      - find-tests
+      - pull-docker-images
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false  # Allow other matrix jobs to run even if this job fails
+      max-parallel: 32  # Set the maximum number of parallel jobs (same as we have cores in ubuntu-latest runner)
+      matrix:
+        os:
+          - ubuntu-latest
+        test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - name: Check-out repository
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: install dependencies
+        run: uv sync --extra dev --dev
+
+      - name: Download Cached Docker Image
+        uses: actions/download-artifact@v4
+        with:
+          name: subtensor-localnet-main
+
+      - name: Load Docker Image
+        run: docker load -i subtensor-localnet-main.tar
+
+      - name: Run tests with retry
+        env:
+          FAST_BLOCKS: "1"
+          LOCALNET_IMAGE_NAME: "ghcr.io/opentensor/subtensor-localnet:main"
+        run: |
+          set +e
+          for i in 1 2 3; do
+            echo "🔁 Attempt $i: Running tests"
+            uv run pytest ${{ matrix.test-file }} -s
+            status=$?
+            if [ $status -eq 0 ]; then
+              echo "✅ Tests passed on attempt $i"
+              break
+            else
+              echo "❌ Tests failed on attempt $i"
+              if [ $i -eq 3 ]; then
+                echo "Tests failed after 3 attempts"
+                exit 1
+              fi
+              echo "Retrying..."
+              sleep 5
+            fi
+          done
+
+  # Daily run of fast-blocks tests from `bittensor:staging` based on `subtensor:devnet-ready` docker image
+  run-fast-blocks-e2e-test-staging:
+    name: "FB staging: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}"
+    needs:
+      - find-tests
+      - pull-docker-images
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false  # Allow other matrix jobs to run even if this job fails
+      max-parallel: 32  # Set the maximum number of parallel jobs (same as we have cores in ubuntu-latest runner)
+      matrix:
+        os:
+          - ubuntu-latest
+        test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - name: Check-out repository
+        uses: actions/checkout@v4
+        with:
+          ref: staging
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: install dependencies
+        run: uv sync --extra dev --dev
+
+      - name: Download Cached Docker Image
+        uses: actions/download-artifact@v4
+        with:
+          name: subtensor-localnet-devnet-ready
+
+      - name: Load Docker Image
+        run: docker load -i subtensor-localnet-devnet-ready.tar
+
+      - name: Run tests with retry
+        env:
+          FAST_BLOCKS: "1"
+          LOCALNET_IMAGE_NAME: "ghcr.io/opentensor/subtensor-localnet:devnet-ready"
+        run: |
+          set +e
+          for i in 1 2 3; do
+            echo "🔁 Attempt $i: Running tests"
+            uv run pytest ${{ matrix.test-file }} -s
+            status=$?
+            if [ $status -eq 0 ]; then
+              echo "✅ Tests passed on attempt $i"
+              break
+            else
+              echo "❌ Tests failed on attempt $i"
+              if [ $i -eq 3 ]; then
+                echo "Tests failed after 3 attempts"
+                exit 1
+              fi
+              echo "Retrying..."
+              sleep 5
+            fi
+          done
+
+  # Saturday run of non-fast-blocks tests from `bittensor:master` based on `subtensor:main` docker image
+  run-non-fast-blocks-e2e-test-master:
+    if: needs.check-if-saturday.outputs.is-saturday == 'true'
+    name: "NFB master: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}"
+    needs:
+      - check-if-saturday
+      - find-tests
+      - pull-docker-images
+    runs-on: ubuntu-latest
+    timeout-minutes: 1440
+
+    strategy:
+      fail-fast: false  # Allow other matrix jobs to run even if this job fails
+      max-parallel: 32  # Set the maximum number of parallel jobs (same as we have cores in ubuntu-latest runner)
+      matrix:
+        os:
+          - ubuntu-latest
+        test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - name: Check-out repository
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: install dependencies
+        run: uv sync --extra dev --dev
+
+      - name: Download Cached Docker Image
+        uses: actions/download-artifact@v4
+        with:
+          name: subtensor-localnet-main
+
+      - name: Load Docker Image
+        run: docker load -i subtensor-localnet-main.tar
+
+      - name: Run patched E2E tests
+        env:
+          FAST_BLOCKS: "0"
+          LOCALNET_IMAGE_NAME: "ghcr.io/opentensor/subtensor-localnet:main"
+        run: |
+          set +e
+          for i in 1 2 3; do
+            echo "🔁 Attempt $i: Running tests"
+            uv run pytest ${{ matrix.test-file }} -s
+            status=$?
+            if [ $status -eq 0 ]; then
+              echo "✅ Tests passed on attempt $i"
+              break
+            else
+              echo "❌ Tests failed on attempt $i"
+              if [ $i -eq 3 ]; then
+                echo "Tests failed after 3 attempts"
+                exit 1
+              fi
+              echo "Retrying..."
+              sleep 5
+            fi
+          done
+
+  # Saturday run of non-fast-blocks tests from `bittensor:staging` based on `subtensor:devnet-ready` docker image
+  run-non-fast-blocks-e2e-test-staging:
+    if: needs.check-if-saturday.outputs.is-saturday == 'true'
+    name: "NFB staging: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}"
+    needs:
+      - check-if-saturday
+      - find-tests
+      - pull-docker-images
+    runs-on: ubuntu-latest
+    timeout-minutes: 1440
+
+    strategy:
+      fail-fast: false  # Allow other matrix jobs to run even if this job fails
+      max-parallel: 32  # Set the maximum number of parallel jobs (same as we have cores in ubuntu-latest runner)
+      matrix:
+        os:
+          - ubuntu-latest
+        test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - name: Check-out repository
+        uses: actions/checkout@v4
+        with:
+          ref: staging
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: install dependencies
+        run: uv sync --extra dev --dev
+
+      - name: Download Cached Docker Image
+        uses: actions/download-artifact@v4
+        with:
+          name: subtensor-localnet-devnet-ready
+
+      - name: Load Docker Image
+        run: docker load -i subtensor-localnet-devnet-ready.tar
+
+      - name: Run patched E2E tests
+        env:
+          FAST_BLOCKS: "0"
+          LOCALNET_IMAGE_NAME: "ghcr.io/opentensor/subtensor-localnet:devnet-ready"
+        run: |
+          set +e
+          for i in 1 2 3; do
+            echo "🔁 Attempt $i: Running tests"
+            uv run pytest ${{ matrix.test-file }} -s
+            status=$?
+            if [ $status -eq 0 ]; then
+              echo "✅ Tests passed on attempt $i"
+              break
+            else
+              echo "❌ Tests failed on attempt $i"
+              if [ $i -eq 3 ]; then
+                echo "Tests failed after 3 attempts"
+                exit 1
+              fi
+              echo "Retrying..."
+              sleep 5
+            fi
+          done
+
