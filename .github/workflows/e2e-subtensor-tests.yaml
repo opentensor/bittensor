@@ -6,10 +6,11 @@ concurrency:
 
 on:
   push:
-    branches: *
-
+    branches:
+      - '**'
   pull_request:
-    branches: *
+    branches:
+      - '**'
     types: [ opened, synchronize, reopened, ready_for_review ]
 
   workflow_dispatch:
