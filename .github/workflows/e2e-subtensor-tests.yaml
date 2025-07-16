@@ -6,14 +6,11 @@ concurrency:
 
 on:
   push:
-    branches: [master, development, staging]
+    branches: *
 
   pull_request:
-    branches: [master, development, staging]
+    branches: *
     types: [ opened, synchronize, reopened, ready_for_review ]
-
-  schedule:
-    - cron: '0 9 * * *'  # Run every night at 2:00 PST
 
   workflow_dispatch:
     inputs:
@@ -28,7 +25,7 @@ env:
 
 # job to run tests in parallel
 jobs:
-
+  # Looking for e2e tests
   find-tests:
     runs-on: ubuntu-latest
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
@@ -44,20 +41,36 @@ jobs:
           test_files=$(find tests/e2e_tests -name "test*.py" | jq -R -s -c 'split("\n") | map(select(. != ""))')
           # keep it here for future debug
           # test_files=$(find tests/e2e_tests -type f -name "test*.py" | grep -E 'test_(hotkeys|staking)\.py$' | jq -R -s -c 'split("\n") | map(select(. != ""))')
+          echo "Found test files: $test_files"
           echo "test-files=$test_files" >> "$GITHUB_OUTPUT"
         shell: bash
 
+  # Pull docker image
   pull-docker-image:
     runs-on: ubuntu-latest
+    outputs:
+      image-name: ${{ steps.set-output.outputs.image-name }}
     steps:
+      - name: Set Docker image tag based on branch
+        id: set-output
+        run: |
+          ref="${{ github.ref_name }}"
+          if [[ "$ref" == "master" ]]; then
+            image="ghcr.io/opentensor/subtensor-localnet:main"
+          else
+            image="ghcr.io/opentensor/subtensor-localnet:devnet-ready"
+          fi
+          echo "Using image: $image"
+          echo "image-name=$image" >> "$GITHUB_OUTPUT"
+
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
 
       - name: Pull Docker Image
-        run: docker pull ghcr.io/opentensor/subtensor-localnet:devnet-ready
+        run: docker pull ${{ steps.set-output.outputs.image-name }}
 
       - name: Save Docker Image to Cache
-        run: docker save -o subtensor-localnet.tar ghcr.io/opentensor/subtensor-localnet:devnet-ready
+        run: docker save -o subtensor-localnet.tar ${{ steps.set-output.outputs.image-name }}
 
       - name: Upload Docker Image as Artifact
         uses: actions/upload-artifact@v4
@@ -104,95 +117,9 @@ jobs:
       - name: Load Docker Image
         run: docker load -i subtensor-localnet.tar
 
-#      - name: Run tests
-#        run: uv run pytest ${{ matrix.test-file }} -s
-
       - name: Run tests with retry
-        run: |
-          set +e
-          for i in 1 2 3; do
-            echo "🔁 Attempt $i: Running tests"
-            uv run pytest ${{ matrix.test-file }} -s
-            status=$?
-            if [ $status -eq 0 ]; then
-              echo "✅ Tests passed on attempt $i"
-              break
-            else
-              echo "❌ Tests failed on attempt $i"
-              if [ $i -eq 3 ]; then
-                echo "Tests failed after 3 attempts"
-                exit 1
-              fi
-              echo "Retrying..."
-              sleep 5
-            fi
-          done
-
-  # run non-fast-blocks only on Saturday and by cron schedule
-  check-if-saturday:
-    if: github.event_name == 'schedule'
-    runs-on: ubuntu-latest
-    outputs:
-      is-saturday: ${{ steps.check.outputs.is-saturday }}
-    steps:
-      - id: check
-        run: |
-          day=$(date -u +%u)
-          echo "Today is weekday $day"
-          if [ "$day" -ne 6 ]; then
-            echo "⏭️ Skipping: not Saturday"
-            echo "is-saturday=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          echo "is-saturday=true"
-          echo "is-saturday=true" >> "$GITHUB_OUTPUT"
-
-
-  cron-run-non-fast-blocks-e2e-test:
-    if: github.event_name == 'schedule' && needs.check-if-saturday.outputs.is-saturday == 'true'
-    name: "NFB: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}"
-    needs:
-      - check-if-saturday
-      - find-tests
-      - pull-docker-image
-    runs-on: ubuntu-latest
-    timeout-minutes: 1440
-
-    strategy:
-      fail-fast: false  # Allow other matrix jobs to run even if this job fails
-      max-parallel: 32  # Set the maximum number of parallel jobs (same as we have cores in ubuntu-latest runner)
-      matrix:
-        os:
-          - ubuntu-latest
-        test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
-
-    steps:
-      - name: Check-out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-
-      - name: install dependencies
-        run: uv sync --extra dev --dev
-
-      - name: Download Cached Docker Image
-        uses: actions/download-artifact@v4
-        with:
-          name: subtensor-localnet
-
-      - name: Load Docker Image
-        run: docker load -i subtensor-localnet.tar
-
-      - name: Run patched E2E tests
         env:
-          FAST_BLOCKS: "0"
+          LOCALNET_IMAGE_NAME: ${{ needs.pull-docker-image.outputs.image-name }}
         run: |
           set +e
           for i in 1 2 3; do
@@ -212,3 +139,4 @@ jobs:
               sleep 5
             fi
           done
+
