@@ -6,13 +6,12 @@ permissions:
 on:
   pull_request:
     branches:
-      - 'release/**'
-      - 'Release/**'
-      - 'hotfix/**'
-      - 'Hotfix/**'
+      - staging
+      - master
 
 jobs:
   changelog:
+    if: startsWith(github.head_ref, 'release/') || startsWith(github.head_ref, 'hotfix/')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
