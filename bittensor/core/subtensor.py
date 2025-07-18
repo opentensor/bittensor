@@ -655,7 +655,7 @@ class Subtensor(SubtensorMixin):
 
             for subnet in result:
                 subnet.update({"price": subnets_prices.get(subnet["netuid"], 0)})
-        except SubstrateRequestException:
+        except SubstrateRequestException as e:
             logging.warning(f"Unable to fetch subnet prices for block {block}: {e}")
 
         return SubnetInfo.list_from_dicts(result)
