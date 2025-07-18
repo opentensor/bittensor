@@ -2035,6 +2035,7 @@ class AsyncSubtensor(SubtensorMixin):
                 "SubnetInfoRuntimeApi",
                 "get_metagraph",
                 params=[netuid],
+                block_hash=block_hash,
             )
 
         if query.value is None:
