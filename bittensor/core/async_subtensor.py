@@ -1055,6 +1055,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example:
             # Get blocks since last step for subnet 1
+
             blocks = await subtensor.blocks_since_last_step(netuid=1)
 
         # DOCSTRING HELPFULNESS RATING: 6/10
@@ -1088,9 +1089,7 @@ class AsyncSubtensor(SubtensorMixin):
         Example:
             # Get blocks since last update for UID 5 in subnet 1
             
-            blocks = await subtensor.blocks_since_last_update(netuid=1, uid=5)
 
-            # Check if neuron needs updating
             blocks_since_update = await subtensor.blocks_since_last_update(netuid=1, uid=10)
 
         # DOCSTRING HELPFULNESS RATING: 6/10
@@ -1181,8 +1180,6 @@ class AsyncSubtensor(SubtensorMixin):
         Example:
             success = await subtensor.commit(wallet=my_wallet, netuid=1, data="Hello Bittensor!")
 
-            # Commit with custom period
-            success = await subtensor.commit(wallet=my_wallet, netuid=1, data="Model update v2.0", period=100)
 
         Note: See <https://docs.learnbittensor.org/glossary#commit-reveal>
 
