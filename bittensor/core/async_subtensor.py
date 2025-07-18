@@ -827,7 +827,7 @@ class AsyncSubtensor(SubtensorMixin):
                 )
         else:
             logging.warning(
-                f"Unable to fetch subnet prices for block {block_number}, block hash {block_hash}"
+                f"Unable to fetch subnet prices for block {block_number}, block hash {block_hash}: {subnet_prices}"
             )
         return DynamicInfo.list_from_dicts(decoded)
 
@@ -1159,7 +1159,7 @@ class AsyncSubtensor(SubtensorMixin):
                 subnet.update({"price": prices.get(subnet["netuid"], 0)})
         else:
             logging.warning(
-                f"Unable to fetch subnet prices for block {block}, block hash {block_hash}"
+                f"Unable to fetch subnet prices for block {block}, block hash {block_hash}: {prices}"
             )
 
         return SubnetInfo.list_from_dicts(result)
