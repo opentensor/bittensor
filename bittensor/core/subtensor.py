@@ -11,7 +11,7 @@ from async_substrate_interface.sync_substrate import SubstrateInterface
 from async_substrate_interface.types import ScaleObj
 from bittensor_drand import get_encrypted_commitment
 from numpy.typing import NDArray
-
+from bittensor.utils import deprecated_message
 from bittensor.core.async_subtensor import ProposalVoteData
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import (
@@ -1089,6 +1089,10 @@ class Subtensor(SubtensorMixin):
             The list may be empty if there are no commits found.
 
         """
+        deprecated_message(
+            message="The method `get_current_weight_commit_info` is deprecated and will be removed in version 10.0.0. "
+            "Use `get_current_weight_commit_info_v2` instead."
+        )
         result = self.substrate.query_map(
             module="SubtensorModule",
             storage_function="CRV3WeightCommits",
