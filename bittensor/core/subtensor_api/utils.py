@@ -87,6 +87,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     )
     subtensor.get_stake_movement_fee = subtensor._subtensor.get_stake_movement_fee
     subtensor.get_stake_operations_fee = subtensor._subtensor.get_stake_operations_fee
+    subtensor.get_stake_weight = subtensor._subtensor.get_stake_weight
     subtensor.get_subnet_burn_cost = subtensor._subtensor.get_subnet_burn_cost
     subtensor.get_subnet_hyperparameters = (
         subtensor._subtensor.get_subnet_hyperparameters
