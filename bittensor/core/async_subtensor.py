@@ -1678,7 +1678,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> list:
+    ) -> list[tuple[str, int, str, int]]:
         """
         Retrieves CRV3 weight commit information for a specific subnet.
 
@@ -1695,7 +1695,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query_map(
             module="SubtensorModule",
-            storage_function="CRV3WeightCommits",
+            storage_function="CRV3WeightCommitsV2",
             params=[netuid],
             block_hash=block_hash,
             reuse_block_hash=reuse_block,

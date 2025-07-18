@@ -1072,7 +1072,7 @@ class Subtensor(SubtensorMixin):
 
     def get_current_weight_commit_info(
         self, netuid: int, block: Optional[int] = None
-    ) -> list:
+    ) -> list[tuple[str, int, str, int]]:
         """
         Retrieves CRV3 weight commit information for a specific subnet.
 
@@ -1086,7 +1086,7 @@ class Subtensor(SubtensorMixin):
         """
         result = self.substrate.query_map(
             module="SubtensorModule",
-            storage_function="CRV3WeightCommits",
+            storage_function="CRV3WeightCommitsV2",
             params=[netuid],
             block_hash=self.determine_block_hash(block),
         )
