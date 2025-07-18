@@ -18,7 +18,10 @@ from tests.e2e_tests.utils.e2e_test_utils import (
     setup_wallet,
 )
 
-LOCALNET_IMAGE_NAME = os.getenv("LOCALNET_IMAGE_NAME") or "ghcr.io/opentensor/subtensor-localnet:devnet-ready"
+LOCALNET_IMAGE_NAME = (
+    os.getenv("LOCALNET_IMAGE_NAME")
+    or "ghcr.io/opentensor/subtensor-localnet:devnet-ready"
+)
 CONTAINER_NAME_PREFIX = "test_local_chain_"
 
 

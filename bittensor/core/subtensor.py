@@ -11,7 +11,7 @@ from async_substrate_interface.sync_substrate import SubstrateInterface
 from async_substrate_interface.types import ScaleObj
 from bittensor_drand import get_encrypted_commitment
 from numpy.typing import NDArray
-
+from bittensor.utils import deprecated_message
 from bittensor.core.async_subtensor import ProposalVoteData
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import (
@@ -1080,7 +1080,7 @@ class Subtensor(SubtensorMixin):
 
     def get_current_weight_commit_info(
         self, netuid: int, block: Optional[int] = None
-    ) -> list:
+    ) -> list[tuple[str, str, int]]:
         """
         Retrieves CRV3 weight commit information for a specific subnet.
 
@@ -1089,9 +1089,18 @@ class Subtensor(SubtensorMixin):
             block (Optional[int]): The blockchain block number for the query. Default is ``None``.
 
         Returns:
-            list: A list of commit details, where each entry is a dictionary with keys 'who', 'serialized_commit', and
-            'reveal_round', or an empty list if no data is found.
+            A list of commit details, where each item contains:
+                - ss58_address: The address of the committer.
+                - commit_message: The commit message.
+                - reveal_round: The round when the commitment was revealed.
+
+            The list may be empty if there are no commits found.
+
         """
+        deprecated_message(
+            message="The method `get_current_weight_commit_info` is deprecated and will be removed in version 10.0.0. "
+            "Use `get_current_weight_commit_info_v2` instead."
+        )
         result = self.substrate.query_map(
             module="SubtensorModule",
             storage_function="CRV3WeightCommits",
@@ -1101,6 +1110,35 @@ class Subtensor(SubtensorMixin):
 
         commits = result.records[0][1] if result.records else []
         return [WeightCommitInfo.from_vec_u8(commit) for commit in commits]
+
+    def get_current_weight_commit_info_v2(
+        self, netuid: int, block: Optional[int] = None
+    ) -> list[tuple[str, int, str, int]]:
+        """
+        Retrieves CRV3 weight commit information for a specific subnet.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query. Default is ``None``.
+
+        Returns:
+            A list of commit details, where each item contains:
+                - ss58_address: The address of the committer.
+                - commit_block: The block number when the commitment was made.
+                - commit_message: The commit message.
+                - reveal_round: The round when the commitment was revealed.
+
+            The list may be empty if there are no commits found.
+        """
+        result = self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function="CRV3WeightCommitsV2",
+            params=[netuid],
+            block_hash=self.determine_block_hash(block),
+        )
+
+        commits = result.records[0][1] if result.records else []
+        return [WeightCommitInfo.from_vec_u8_v2(commit) for commit in commits]
 
     def get_delegate_by_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
