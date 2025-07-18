@@ -431,6 +431,7 @@ def test_get_current_weight_commit_info(mock_substrate, subtensor, fake_wallet, 
             [
                 (
                     bytearray(32),
+                    100,
                     b"data",
                     123,
                 ),
@@ -445,6 +446,7 @@ def test_get_current_weight_commit_info(mock_substrate, subtensor, fake_wallet, 
     assert result == [
         (
             "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
+            100,
             "0x64617461",
             123,
         ),
@@ -452,7 +454,7 @@ def test_get_current_weight_commit_info(mock_substrate, subtensor, fake_wallet, 
 
     mock_substrate.query_map.assert_called_once_with(
         module="SubtensorModule",
-        storage_function="CRV3WeightCommits",
+        storage_function="CRV3WeightCommitsV2",
         params=[1],
         block_hash=None,
     )
