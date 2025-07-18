@@ -424,7 +424,9 @@ def test_get_children_pending(mock_substrate, subtensor):
     )
 
 
-def test_get_current_weight_commit_info(mock_substrate, subtensor, fake_wallet, mocker):
+def test_get_current_weight_commit_info_v2(
+    mock_substrate, subtensor, fake_wallet, mocker
+):
     mock_substrate.query_map.return_value.records = [
         (
             mocker.ANY,
@@ -439,7 +441,7 @@ def test_get_current_weight_commit_info(mock_substrate, subtensor, fake_wallet, 
         ),
     ]
 
-    result = subtensor.get_current_weight_commit_info(
+    result = subtensor.get_current_weight_commit_info_v2(
         netuid=1,
     )
 

@@ -161,7 +161,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     )
 
     # Fetch current commits pending on the chain
-    commits_on_chain = subtensor.get_current_weight_commit_info(netuid=netuid)
+    commits_on_chain = subtensor.get_current_weight_commit_info_v2(netuid=netuid)
     address, commit_block, commit, reveal_round = commits_on_chain[0]
 
     # Assert correct values are committed on the chain
@@ -201,7 +201,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     assert weight_vals[0] == revealed_weights[0][1]
 
     # Now that the commit has been revealed, there shouldn't be any pending commits
-    assert subtensor.get_current_weight_commit_info(netuid=netuid) == []
+    assert subtensor.get_current_weight_commit_info_v2(netuid=netuid) == []
 
     # Ensure the drand_round is always in the positive w.r.t expected when revealed
     assert latest_drand_round - expected_reveal_round >= 0, (
