@@ -3570,52 +3570,75 @@ async def test_get_liquidity_list_happy_path(subtensor, fake_wallet, mocker):
         return_value=(Balance.from_tao(0.0), Balance.from_tao(0.0, netuid)),
     )
 
-    mocked_substrate_query = mocker.AsyncMock(
+    mocked_substrate_query_multi = mocker.AsyncMock(
         side_effect=[
-            # for gather
-            {"bits": 0},
-            {"bits": 0},
-            {"bits": 18446744073709551616},
-            # for loop
-            {
-                "liquidity_net": 1000000000000,
-                "liquidity_gross": 1000000000000,
-                "fees_out_tao": {"bits": 0},
-                "fees_out_alpha": {"bits": 0},
-            },
-            {
-                "liquidity_net": -1000000000000,
-                "liquidity_gross": 1000000000000,
-                "fees_out_tao": {"bits": 0},
-                "fees_out_alpha": {"bits": 0},
-            },
-            {
-                "liquidity_net": 1000000000000,
-                "liquidity_gross": 1000000000000,
-                "fees_out_tao": {"bits": 0},
-                "fees_out_alpha": {"bits": 0},
-            },
-            {
-                "liquidity_net": -1000000000000,
-                "liquidity_gross": 1000000000000,
-                "fees_out_tao": {"bits": 0},
-                "fees_out_alpha": {"bits": 0},
-            },
-            {
-                "liquidity_net": 1000000000000,
-                "liquidity_gross": 1000000000000,
-                "fees_out_tao": {"bits": 0},
-                "fees_out_alpha": {"bits": 0},
-            },
-            {
-                "liquidity_net": -1000000000000,
-                "liquidity_gross": 1000000000000,
-                "fees_out_tao": {"bits": 0},
-                "fees_out_alpha": {"bits": 0},
-            },
+            [
+                (None, {"bits": 0}),
+                (None, {"bits": 0}),
+                (None, {"bits": 18446744073709551616}),
+            ],
+            [
+                (
+                    None,
+                    {
+                        "liquidity_net": 1000000000000,
+                        "liquidity_gross": 1000000000000,
+                        "fees_out_tao": {"bits": 0},
+                        "fees_out_alpha": {"bits": 0},
+                    },
+                ),
+                (
+                    None,
+                    {
+                        "liquidity_net": -1000000000000,
+                        "liquidity_gross": 1000000000000,
+                        "fees_out_tao": {"bits": 0},
+                        "fees_out_alpha": {"bits": 0},
+                    },
+                ),
+                (
+                    None,
+                    {
+                        "liquidity_net": 1000000000000,
+                        "liquidity_gross": 1000000000000,
+                        "fees_out_tao": {"bits": 0},
+                        "fees_out_alpha": {"bits": 0},
+                    },
+                ),
+                (
+                    None,
+                    {
+                        "liquidity_net": -1000000000000,
+                        "liquidity_gross": 1000000000000,
+                        "fees_out_tao": {"bits": 0},
+                        "fees_out_alpha": {"bits": 0},
+                    },
+                ),
+                (
+                    None,
+                    {
+                        "liquidity_net": 1000000000000,
+                        "liquidity_gross": 1000000000000,
+                        "fees_out_tao": {"bits": 0},
+                        "fees_out_alpha": {"bits": 0},
+                    },
+                ),
+                (
+                    None,
+                    {
+                        "liquidity_net": -1000000000000,
+                        "liquidity_gross": 1000000000000,
+                        "fees_out_tao": {"bits": 0},
+                        "fees_out_alpha": {"bits": 0},
+                    },
+                ),
+            ],
         ]
     )
-    mocker.patch.object(subtensor.substrate, "query", mocked_substrate_query)
+
+    mocker.patch.object(
+        subtensor.substrate, "query_multi", mocked_substrate_query_multi
+    )
 
     fake_positions = [
         [
