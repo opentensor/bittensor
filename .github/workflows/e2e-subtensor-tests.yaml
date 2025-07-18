@@ -175,5 +175,5 @@ jobs:
         if: failure()
         run: |
           curl -X POST -H "Content-Type: application/json" \
-            -d "{\"username\": \"Nightly CI\", \"content\": \"❌ E2E Test Failed: `${{ matrix.test-file }}*` on Python `${{ matrix.python-version }}` in job: `${{ github.job }}`\n🔗 Action: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}>\"}" \
+            -d "{\"username\": \"Nightly CI\", \"content\": \"❌ E2E Test Failed: \`${{ matrix.test-file }}\` on Python \`${{ matrix.python-version }}\` in job: \`${{ github.job }}\`\n🔗 Action: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}>\"}" \
             "${{ secrets.NIGHTLY_WEBHOOK_URL }}"
