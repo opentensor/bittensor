@@ -170,3 +170,10 @@ jobs:
 
           echo "Tests failed after 3 attempts"
           exit 1
+
+      - name: Notify Discord on failure
+        if: failure()
+        run: |
+          curl -X POST -H "Content-Type: application/json" \
+            -d "{\"content\": \"❌ E2E Test Failed: *${{ matrix.test-file }}* on Python ${{ matrix.python-version }} in job: ${{ github.job }}\n🔗 <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}>\"}" \
+            "${{ secrets.NIGHTLY_WEBHOOK_URL }}"
