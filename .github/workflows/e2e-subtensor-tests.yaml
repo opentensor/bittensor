@@ -1,7 +1,7 @@
 name: E2E Subtensor Tests
 
 concurrency:
-  group: e2e-subtensor-${{ github.ref }}
+  : e2e-subtensor-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 on:
