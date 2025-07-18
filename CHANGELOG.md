@@ -4,7 +4,6 @@
 * improve make file by @basfroman in https://github.com/opentensor/bittensor/pull/2965
 * Move all workflows from `app.circleci.com` to `GH actions` by @basfroman in https://github.com/opentensor/bittensor/pull/2970
 * Improve `changelog` workflow by @basfroman in https://github.com/opentensor/bittensor/pull/2973
-* fix e2e test after devnet-ready get new fee by @basfroman in https://github.com/opentensor/bittensor/pull/2975
 * Add SECURITY.md by @basfroman in https://github.com/opentensor/bittensor/pull/2976
 * Improve test infrastructure by @basfroman in https://github.com/opentensor/bittensor/pull/2974
 * Add labels checker by @basfroman in https://github.com/opentensor/bittensor/pull/2977
