@@ -12,6 +12,9 @@ class Commitments:
         self.get_all_revealed_commitments = subtensor.get_all_revealed_commitments
         self.get_commitment = subtensor.get_commitment
         self.get_current_weight_commit_info = subtensor.get_current_weight_commit_info
+        self.get_current_weight_commit_info_v2 = (
+            subtensor.get_current_weight_commit_info_v2
+        )
         self.get_last_commitment_bonds_reset_block = (
             subtensor.get_last_commitment_bonds_reset_block
         )

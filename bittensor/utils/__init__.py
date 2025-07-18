@@ -1,6 +1,7 @@
 import ast
 import decimal
 import hashlib
+import warnings
 from collections import namedtuple
 from typing import Any, Literal, Union, Optional, TYPE_CHECKING
 from urllib.parse import urlparse
@@ -438,3 +439,9 @@ def determine_chain_endpoint_and_network(
             return result
 
     return "unknown", network
+
+
+def deprecated_message(message: str) -> None:
+    """Shows a deprecation warning message with the given message."""
+    warnings.simplefilter("default", DeprecationWarning)
+    warnings.warn(message=message, category=DeprecationWarning, stacklevel=2)
