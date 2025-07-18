@@ -814,7 +814,7 @@ class AsyncSubtensor(SubtensorMixin):
                 method="get_all_dynamic_info",
                 block_hash=block_hash,
             ),
-            self.get_subnet_prices(),
+            self.get_subnet_prices(block_hash=block_hash),
         )
 
         decoded = query.decode()
