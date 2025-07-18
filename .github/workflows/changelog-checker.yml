@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: tj-actions/changed-files@v42
+      - uses: tj-actions/changed-files@v46
         id: changed
       - name: Ensure CHANGELOG.md updated
         if: contains(steps.changed.outputs.all_changed_files, 'CHANGELOG.md') == false
