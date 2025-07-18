@@ -76,6 +76,7 @@ jobs:
         with:
           name: subtensor-localnet-devnet-ready
           path: subtensor-localnet-devnet-ready.tar
+
   # Determine the day for non-fast-blocks run
   check-if-saturday:
     runs-on: ubuntu-latest
@@ -102,6 +103,9 @@ jobs:
       - pull-docker-images
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    outputs:
+      failed: ${{ steps.set-fail.outputs.failed }}
+
     strategy:
       fail-fast: false  # Allow other matrix jobs to run even if this job fails
       max-parallel: 32  # Set the maximum number of parallel jobs (same as we have cores in ubuntu-latest runner)
@@ -159,6 +163,11 @@ jobs:
             fi
           done
 
+      - name: Set fail flag
+        if: failure()
+        id: set-fail
+        run: echo "failed=true" >> "$GITHUB_OUTPUT"
+
   # Daily run of fast-blocks tests from `bittensor:staging` based on `subtensor:devnet-ready` docker image
   run-fast-blocks-e2e-test-staging:
     name: "FB staging: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}"
@@ -167,6 +176,9 @@ jobs:
       - pull-docker-images
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    outputs:
+      failed: ${{ steps.set-fail.outputs.failed }}
+
     strategy:
       fail-fast: false  # Allow other matrix jobs to run even if this job fails
       max-parallel: 32  # Set the maximum number of parallel jobs (same as we have cores in ubuntu-latest runner)
@@ -223,6 +235,11 @@ jobs:
               sleep 5
             fi
           done
+
+      - name: Set fail flag
+        if: failure()
+        id: set-fail
+        run: echo "failed=true" >> "$GITHUB_OUTPUT"
 
   # Saturday run of non-fast-blocks tests from `bittensor:master` based on `subtensor:main` docker image
   run-non-fast-blocks-e2e-test-master:
@@ -234,6 +251,8 @@ jobs:
       - pull-docker-images
     runs-on: ubuntu-latest
     timeout-minutes: 1440
+    outputs:
+      failed: ${{ steps.set-fail.outputs.failed }}
 
     strategy:
       fail-fast: false  # Allow other matrix jobs to run even if this job fails
@@ -293,6 +312,11 @@ jobs:
             fi
           done
 
+      - name: Set fail flag
+        if: failure()
+        id: set-fail
+        run: echo "failed=true" >> "$GITHUB_OUTPUT"
+
   # Saturday run of non-fast-blocks tests from `bittensor:staging` based on `subtensor:devnet-ready` docker image
   run-non-fast-blocks-e2e-test-staging:
     if: needs.check-if-saturday.outputs.is-saturday == 'true'
@@ -303,6 +327,8 @@ jobs:
       - pull-docker-images
     runs-on: ubuntu-latest
     timeout-minutes: 1440
+    outputs:
+      failed: ${{ steps.set-fail.outputs.failed }}
 
     strategy:
       fail-fast: false  # Allow other matrix jobs to run even if this job fails
@@ -361,3 +387,27 @@ jobs:
               sleep 5
             fi
           done
+      - name: Set fail flag
+        if: failure()
+        id: set-fail
+        run: echo "failed=true" >> "$GITHUB_OUTPUT"
+
+  # Send centralized Discord failure notification
+  notify-on-failure:
+    needs:
+      - run-fast-blocks-e2e-test-master
+      - run-fast-blocks-e2e-test-staging
+      - run-non-fast-blocks-e2e-test-master
+      - run-non-fast-blocks-e2e-test-staging
+    if: |
+      needs.run-fast-blocks-e2e-test-master.outputs.failed == 'true' ||
+      needs.run-fast-blocks-e2e-test-staging.outputs.failed == 'true' ||
+      needs.run-non-fast-blocks-e2e-test-master.outputs.failed == 'true' ||
+      needs.run-non-fast-blocks-e2e-test-staging.outputs.failed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send centralized Discord failure notification
+        run: |
+          curl -X POST -H "Content-Type: application/json" \
+            -d "{\"username\": \"Nightly CI\", \"content\": \"❌ Nightly E2E tests failed. Check run: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}>\"}" \
+            "${{ secrets.NIGHTLY_WEBHOOK_URL }}"
