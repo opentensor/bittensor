@@ -496,9 +496,7 @@ class Subtensor(SubtensorMixin):
             Optional[int]: The number of blocks since the last update, or ``None`` if the subnetwork or UID does not
                 exist.
         """
-        call = self.get_hyperparameter(
-            param_name="LastUpdate", netuid=netuid, block=block
-        )
+        call = self.get_hyperparameter(param_name="LastUpdate", netuid=netuid)
         return None if call is None else self.get_current_block() - int(call[uid])
 
     def bonds(
