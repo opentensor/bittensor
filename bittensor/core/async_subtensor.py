@@ -109,6 +109,7 @@ from bittensor.utils.balance import (
     fixed_to_float,
     check_and_convert_to_balance,
 )
+from bittensor.utils import deprecated_message
 from bittensor.utils.btlogging import logging
 from bittensor.utils.liquidity import (
     calculate_fees,
@@ -1696,6 +1697,10 @@ class AsyncSubtensor(SubtensorMixin):
 
             The list may be empty if there are no commits found.
         """
+        deprecated_message(
+            message="The method `get_current_weight_commit_info` is deprecated and will be removed in version 10.0.0. "
+            "Use `get_current_weight_commit_info_v2` instead."
+        )
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query_map(
             module="SubtensorModule",
