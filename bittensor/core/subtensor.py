@@ -9,6 +9,7 @@ from async_substrate_interface.errors import SubstrateRequestException
 from async_substrate_interface.substrate_addons import RetrySyncSubstrate
 from async_substrate_interface.sync_substrate import SubstrateInterface
 from async_substrate_interface.types import ScaleObj
+from async_substrate_interface.utils.storage import StorageKey
 from bittensor_drand import get_encrypted_commitment
 from numpy.typing import NDArray
 
@@ -429,7 +430,8 @@ class Subtensor(SubtensorMixin):
         block_hash = self.determine_block_hash(block)
         return self.substrate.rpc_request(
             method="state_call",
-            params=[method, data, block_hash] if block_hash else [method, data],
+            params=[method, data],
+            block_hash=block_hash
         )
 
     # Common subtensor calls ===========================================================================================
@@ -484,20 +486,26 @@ class Subtensor(SubtensorMixin):
         )
         return query.value if query is not None and hasattr(query, "value") else query
 
-    def blocks_since_last_update(self, netuid: int, uid: int) -> Optional[int]:
+    def blocks_since_last_update(self, netuid: int, uid: int, block: Optional[int] = None) -> Optional[int]:
         """
         Returns the number of blocks since the last update for a specific UID in the subnetwork.
 
         Arguments:
             netuid (int): The unique identifier of the subnetwork.
             uid (int): The unique identifier of the neuron.
+            block (int): The block number for this query.
 
         Returns:
             Optional[int]: The number of blocks since the last update, or ``None`` if the subnetwork or UID does not
                 exist.
         """
-        call = self.get_hyperparameter(param_name="LastUpdate", netuid=netuid)
-        return None if not call else (self.get_current_block() - int(call[uid]))
+        call = self.get_hyperparameter(param_name="LastUpdate", netuid=netuid, block=block)
+        if not call:
+            return None
+        elif block is not None:
+            return block - int(call[uid])
+        else:
+            return self.get_current_block() - int(call[uid])
 
     def bonds(
         self, netuid: int, block: Optional[int] = None
@@ -1492,31 +1500,25 @@ class Subtensor(SubtensorMixin):
             logging.debug(f"Subnet {netuid} is not active.")
             return None
 
-        query = self.substrate.query
         block_hash = self.determine_block_hash(block)
 
         # Fetch global fees and current price
-        fee_global_tao_query = query(
-            module="Swap",
-            storage_function="FeeGlobalTao",
-            params=[netuid],
-            block_hash=block_hash,
+        fee_global_tao_query_sk = self.substrate.create_storage_key(
+            pallet="Swap", storage_function="FeeGlobalTao", params=[netuid], block_hash=block_hash
         )
-        fee_global_alpha_query = query(
-            module="Swap",
-            storage_function="FeeGlobalAlpha",
-            params=[netuid],
-            block_hash=block_hash,
+        fee_global_alpha_query_sk = self.substrate.create_storage_key(
+            pallet="Swap", storage_function="FeeGlobalAlpha", params=[netuid], block_hash=block_hash
         )
-        sqrt_price_query = query(
-            module="Swap",
-            storage_function="AlphaSqrtPrice",
-            params=[netuid],
-            block_hash=block_hash,
+        sqrt_price_query_sk = self.substrate.create_storage_key(
+            pallet="Swap", storage_function="AlphaSqrtPrice", params=[netuid], block_hash=block_hash
         )
-        fee_global_tao = fixed_to_float(fee_global_tao_query)
-        fee_global_alpha = fixed_to_float(fee_global_alpha_query)
-        sqrt_price = fixed_to_float(sqrt_price_query)
+        fee_global_tao_query, fee_global_alpha_query, sqrt_price_query = self.substrate.query_multi(
+            [fee_global_tao_query_sk, fee_global_alpha_query_sk, sqrt_price_query_sk],
+            block_hash=block_hash)
+
+        fee_global_tao = fixed_to_float(fee_global_tao_query[1])
+        fee_global_alpha = fixed_to_float(fee_global_alpha_query[1])
+        sqrt_price = fixed_to_float(sqrt_price_query[1])
         current_tick = price_to_tick(sqrt_price**2)
 
         # Fetch positions
@@ -1526,26 +1528,36 @@ class Subtensor(SubtensorMixin):
             block=block,
             params=[netuid, wallet.coldkeypub.ss58_address],
         )
-
-        positions = []
+        positions_values: list[tuple[dict, int, int]] = []
+        positions_storage_keys: list[StorageKey] = []
         for _, p in positions_response:
             position = p.value
 
             tick_low_idx = position["tick_low"][0]
             tick_high_idx = position["tick_high"][0]
 
-            tick_low = query(
-                module="Swap",
+            tick_low_sk = self.substrate.create_storage_key(
+                pallet="Swap",
                 storage_function="Ticks",
                 params=[netuid, tick_low_idx],
                 block_hash=block_hash,
             )
-            tick_high = query(
-                module="Swap",
+            tick_high_sk = self.substrate.create_storage_key(
+                pallet="Swap",
                 storage_function="Ticks",
                 params=[netuid, tick_high_idx],
-                block_hash=block_hash,
+                block_hash=block_hash
             )
+            positions_values.append((position, tick_low_idx, tick_high_idx))
+            positions_storage_keys.extend([tick_low_sk, tick_high_sk])
+        # query all our ticks at once
+        ticks_query = self.substrate.query_multi(positions_storage_keys, block_hash=block_hash)
+        # iterator with just the values
+        ticks = iter([x[1] for x in ticks_query])
+        positions = []
+        for position, tick_low_idx, tick_high_idx in positions_values:
+            tick_low = next(ticks)
+            tick_high = next(ticks)
 
             # Calculate fees above/below range for both tokens
             tao_below = get_fees(
