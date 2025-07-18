@@ -152,23 +152,21 @@ jobs:
         env:
           LOCALNET_IMAGE_NAME: ${{ needs.pull-docker-image.outputs.image-name }}
         run: |
-          set +e
           for i in 1 2 3; do
             echo "::group::🔁 Test attempt $i"
-            uv run pytest ${{ matrix.test-file }} -s
-            echo "::endgroup::"
-            status=$?
-            if [ $status -eq 0 ]; then
+            if uv run pytest ${{ matrix.test-file }} -s; then
               echo "✅ Tests passed on attempt $i"
-              break
+              echo "::endgroup::"
+              exit 0
             else
               echo "❌ Tests failed on attempt $i"
-              if [ $i -eq 3 ]; then
-                echo "Tests failed after 3 attempts"
-                exit 1
+              echo "::endgroup::"
+              if [ "$i" -lt 3 ]; then
+                echo "Retrying..."
+                sleep 5
               fi
-              echo "Retrying..."
-              sleep 5
             fi
           done
 
+          echo "Tests failed after 3 attempts"
+          exit 1
