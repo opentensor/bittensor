@@ -2321,8 +2321,8 @@ class AsyncSubtensor(SubtensorMixin):
         ticks = iter([x[1] for x in ticks_query])
         positions = []
         for position, tick_low_idx, tick_high_idx in positions_values:
-            tick_low = next(ticks)
-            tick_high = next(ticks)
+            tick_low = next(ticks).value
+            tick_high = next(ticks).value
             # Calculate fees above/below range for both tokens
             tao_below = get_fees(
                 current_tick=current_tick,
