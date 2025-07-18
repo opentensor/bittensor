@@ -1081,8 +1081,13 @@ class Subtensor(SubtensorMixin):
             block (Optional[int]): The blockchain block number for the query. Default is ``None``.
 
         Returns:
-            list: A list of commit details, where each entry is a dictionary with keys 'who', 'serialized_commit', and
-            'reveal_round', or an empty list if no data is found.
+            A list of commit details, where each item contains:
+                - ss58_address: The address of the committer.
+                - commit_block: The block number when the commitment was made.
+                - commit_message: The commit message.
+                - reveal_round: The round when the commitment was revealed.
+
+            The list may be empty if there are no commits found.
         """
         result = self.substrate.query_map(
             module="SubtensorModule",
@@ -1093,6 +1098,38 @@ class Subtensor(SubtensorMixin):
 
         commits = result.records[0][1] if result.records else []
         return [WeightCommitInfo.from_vec_u8(commit) for commit in commits]
+
+    def get_current_weight_commit_info_legacy(
+        self, netuid: int, block: Optional[int] = None
+    ) -> list[tuple[str, str, int]]:
+        """
+        Retrieves CRV3 weight commit information for a specific subnet.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query. Default is ``None``.
+
+        Returns:
+            A list of commit details, where each item contains:
+                - ss58_address: The address of the committer.
+                - commit_message: The commit message.
+                - reveal_round: The round when the commitment was revealed.
+
+            The list may be empty if there are no commits found.
+
+        Note:
+            This method is used when querying a block or block hash where storage functions `CRV3WeightCommitsV2` does
+            not exist in Subtensor module.
+        """
+        result = self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function="CRV3WeightCommitsV2",
+            params=[netuid],
+            block_hash=self.determine_block_hash(block),
+        )
+
+        commits = result.records[0][1] if result.records else []
+        return [WeightCommitInfo.from_vec_u8_legacy(commit) for commit in commits]
 
     def get_delegate_by_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
