@@ -455,7 +455,7 @@ class Subtensor(SubtensorMixin):
             method="get_all_dynamic_info",
             block_hash=block_hash,
         )
-        subnet_prices = self.get_subnet_prices()
+        subnet_prices = self.get_subnet_prices(block=block)
         decoded = query.decode()
         for sn in decoded:
             sn.update({"price": subnet_prices.get(sn["netuid"], Balance.from_tao(0))})
