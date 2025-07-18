@@ -81,3 +81,4 @@ async def test_axon(subtensor, templates, alice_wallet):
     )
 
     print("✅ Passed test_axon")
+    assert True is False
