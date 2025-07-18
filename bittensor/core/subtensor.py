@@ -455,10 +455,16 @@ class Subtensor(SubtensorMixin):
             method="get_all_dynamic_info",
             block_hash=block_hash,
         )
-        subnet_prices = self.get_subnet_prices(block=block)
         decoded = query.decode()
-        for sn in decoded:
-            sn.update({"price": subnet_prices.get(sn["netuid"], Balance.from_tao(0))})
+        try:
+            subnet_prices = self.get_subnet_prices(block=block)
+            for sn in decoded:
+                sn.update(
+                    {"price": subnet_prices.get(sn["netuid"], Balance.from_tao(0))}
+                )
+        except SubstrateRequestException:
+            logging.warning(f"Unable to fetch subnet prices for block {block}")
+
         return DynamicInfo.list_from_dicts(decoded)
 
     def blocks_since_last_step(
@@ -644,11 +650,13 @@ class Subtensor(SubtensorMixin):
         )
         if not result:
             return []
+        try:
+            subnets_prices = self.get_subnet_prices(block=block)
 
-        subnets_prices = self.get_subnet_prices()
-
-        for subnet in result:
-            subnet.update({"price": subnets_prices.get(subnet["netuid"], 0)})
+            for subnet in result:
+                subnet.update({"price": subnets_prices.get(subnet["netuid"], 0)})
+        except SubstrateRequestException:
+            logging.warning(f"Unable to fetch subnet prices for block {block}")
 
         return SubnetInfo.list_from_dicts(result)
 
