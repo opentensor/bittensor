@@ -52,16 +52,46 @@ jobs:
     outputs:
       image-name: ${{ steps.set-output.outputs.image-name }}
     steps:
-      - name: Set Docker image tag based on branch
+      - name: Set Docker image tag based on label or branch
         id: set-output
         run: |
-          ref="${{ github.ref_name }}"
-          if [[ "$ref" == "master" ]]; then
-            image="ghcr.io/opentensor/subtensor-localnet:main"
+          echo "Event: $GITHUB_EVENT_NAME"
+          echo "Branch: $GITHUB_REF_NAME"
+          
+          echo "Reading labels ..."
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            labels=$(jq -r '.pull_request.labels[].name' "$GITHUB_EVENT_PATH")
           else
-            image="ghcr.io/opentensor/subtensor-localnet:devnet-ready"
+            labels=""
           fi
-          echo "Using image: $image"
+    
+          image=""
+    
+          for label in $labels; do
+            echo "Found label: $label"
+            case "$label" in
+              "subtensor-localnet:main")
+                image="ghcr.io/opentensor/subtensor-localnet:main"
+                ;;
+              "subtensor-localnet:testnet")
+                image="ghcr.io/opentensor/subtensor-localnet:testnet"
+                ;;
+              "subtensor-localnet:devnet")
+                image="ghcr.io/opentensor/subtensor-localnet:devnet"
+                ;;
+            esac
+          done
+    
+          if [[ -z "$image" ]]; then
+            # fallback to default based on branch
+            if [[ "${GITHUB_REF_NAME}" == "master" ]]; then
+              image="ghcr.io/opentensor/subtensor-localnet:main"
+            else
+              image="ghcr.io/opentensor/subtensor-localnet:devnet-ready"
+            fi
+          fi
+    
+          echo "✅ Final selected image: $image"
           echo "image-name=$image" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GitHub Container Registry
