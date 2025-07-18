@@ -119,6 +119,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
             reporting_interval=1,
         )
     current_block = subtensor.get_current_block()
+    expected_block = current_block
     latest_drand_round = subtensor.last_drand_round()
     upcoming_tempo = next_tempo(current_block, tempo)
     logging.console.info(
@@ -161,11 +162,12 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
 
     # Fetch current commits pending on the chain
     commits_on_chain = subtensor.get_current_weight_commit_info(netuid=netuid)
-    address, commit, reveal_round = commits_on_chain[0]
+    address, commit_block, commit, reveal_round = commits_on_chain[0]
 
     # Assert correct values are committed on the chain
     assert expected_reveal_round == reveal_round
     assert address == alice_wallet.hotkey.ss58_address
+    assert commit_block == expected_block + 1
 
     # Ensure no weights are available as of now
     assert subtensor.weights(netuid=netuid) == []
