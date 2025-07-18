@@ -349,8 +349,7 @@ def fixed_to_float(
 ) -> float:
     # By default, this is a U64F64
     # which is 64 bits of integer and 64 bits of fractional
-
-    data: int = fixed["bits"]
+    data: int = fb.value if isinstance((fb := fixed["bits"]), ScaleType) else fb
 
     # Logical and to get the fractional part; remaining is the integer part
     fractional_part = data & (2**frac_bits - 1)
