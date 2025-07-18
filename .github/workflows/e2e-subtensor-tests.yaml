@@ -1,7 +1,7 @@
 name: E2E Subtensor Tests
 
 concurrency:
-  : e2e-subtensor-${{ github.event.pull_request.number || github.ref }}
+  group: e2e-subtensor-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 on:
@@ -50,10 +50,10 @@ jobs:
   pull-docker-image:
     runs-on: ubuntu-latest
     outputs:
-      image-name: ${{ steps.set-output.outputs.image-name }}
+      image-name: ${{ steps.set-image.outputs.image }}
     steps:
       - name: Set Docker image tag based on label or branch
-        id: set-output
+        id: set-image
         run: |
           echo "Event: $GITHUB_EVENT_NAME"
           echo "Branch: $GITHUB_REF_NAME"
@@ -72,12 +72,15 @@ jobs:
             case "$label" in
               "subtensor-localnet:main")
                 image="ghcr.io/opentensor/subtensor-localnet:main"
+                break
                 ;;
               "subtensor-localnet:testnet")
                 image="ghcr.io/opentensor/subtensor-localnet:testnet"
+                break
                 ;;
               "subtensor-localnet:devnet")
                 image="ghcr.io/opentensor/subtensor-localnet:devnet"
+                break
                 ;;
             esac
           done
@@ -98,10 +101,10 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
 
       - name: Pull Docker Image
-        run: docker pull ${{ steps.set-output.outputs.image-name }}
+        run: docker pull ${{ steps.set-image.outputs.image }}
 
       - name: Save Docker Image to Cache
-        run: docker save -o subtensor-localnet.tar ${{ steps.set-output.outputs.image-name }}
+        run: docker save -o subtensor-localnet.tar ${{ steps.set-image.outputs.image }}
 
       - name: Upload Docker Image as Artifact
         uses: actions/upload-artifact@v4
@@ -154,8 +157,9 @@ jobs:
         run: |
           set +e
           for i in 1 2 3; do
-            echo "🔁 Attempt $i: Running tests"
+            echo "::group::🔁 Test attempt $i"
             uv run pytest ${{ matrix.test-file }} -s
+            echo "::endgroup::"
             status=$?
             if [ $status -eq 0 ]; then
               echo "✅ Tests passed on attempt $i"
