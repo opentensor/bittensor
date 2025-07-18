@@ -117,7 +117,11 @@ from bittensor.utils.liquidity import (
     price_to_tick,
     LiquidityPosition,
 )
-from bittensor.utils.weight_utils import generate_weight_hash, convert_uids_and_weights
+from bittensor.utils.weight_utils import (
+    generate_weight_hash,
+    convert_uids_and_weights,
+    U16_MAX,
+)
 
 if TYPE_CHECKING:
     from async_substrate_interface.types import ScaleObj
@@ -995,15 +999,15 @@ class AsyncSubtensor(SubtensorMixin):
         # TODO: Explain performance considerations for querying all subnets
         """
         block_hash = await self.determine_block_hash(
-            block_number, block_hash, reuse_block
+            block=block_number, block_hash=block_hash, reuse_block=reuse_block
         )
         if not block_hash and reuse_block:
             block_hash = self.substrate.last_block_hash
 
         query, subnet_prices = await asyncio.gather(
             self.substrate.runtime_call(
-                "SubnetInfoRuntimeApi",
-                "get_all_dynamic_info",
+                api="SubnetInfoRuntimeApi",
+                method="get_all_dynamic_info",
                 block_hash=block_hash,
             ),
             self.get_subnet_prices(),
@@ -2347,10 +2351,10 @@ class AsyncSubtensor(SubtensorMixin):
     async def get_minimum_required_stake(self):
         """
         Returns the minimum required stake for nominators in the Subtensor network.
-        This method retries the substrate call up to three times with exponential backoff in case of failures.
 
         Returns:
             Balance: The minimum required stake as a Balance object.
+
 
         Raises:
             Exception: If the substrate call fails after the maximum number of retries.
@@ -2362,6 +2366,7 @@ class AsyncSubtensor(SubtensorMixin):
         # TODO: Explain the relationship to network security and participation
         # TODO: Add tips for handling errors and retries
         # TODO: Show how to monitor changes in minimum required stake
+
         """
         result = await self.substrate.query(
             module="SubtensorModule", storage_function="NominatorMinRequiredStake"
@@ -3002,6 +3007,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         return Balance.from_rao(int(stake)).set_unit(netuid=netuid)
 
+    # TODO: remove unused parameters in SDK.v10
     async def get_stake_add_fee(
         self,
         amount: Balance,
@@ -3023,19 +3029,9 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             The calculated stake fee as a Balance object
         """
-        result = await self.query_runtime_api(
-            runtime_api="StakeInfoRuntimeApi",
-            method="get_stake_fee",
-            params=[
-                None,
-                coldkey_ss58,
-                (hotkey_ss58, netuid),
-                coldkey_ss58,
-                amount.rao,
-            ],
-            block=block,
+        return await self.get_stake_operations_fee(
+            amount=amount, netuid=netuid, block=block
         )
-        return Balance.from_rao(result)
 
     async def get_subnet_info(
         self,
@@ -3096,9 +3092,7 @@ class AsyncSubtensor(SubtensorMixin):
         if netuid == 0:
             return Balance.from_tao(1)
 
-        block_hash = await self.determine_block_hash(
-            block=block, block_hash=block_hash, reuse_block=reuse_block
-        )
+        block_hash = await self.determine_block_hash(block=block)
         current_sqrt_price = await self.substrate.query(
             module="Swap",
             storage_function="AlphaSqrtPrice",
@@ -3159,6 +3153,7 @@ class AsyncSubtensor(SubtensorMixin):
         prices.update({0: Balance.from_tao(1)})
         return prices
 
+    # TODO: remove unused parameters in SDK.v10
     async def get_unstake_fee(
         self,
         amount: Balance,
@@ -3188,20 +3183,11 @@ class AsyncSubtensor(SubtensorMixin):
         # TODO: Add guidance on minimizing fees through batching or timing
         # TODO: Explain the economic rationale for unstaking fees
         """
-        result = await self.query_runtime_api(
-            runtime_api="StakeInfoRuntimeApi",
-            method="get_stake_fee",
-            params=[
-                None,
-                coldkey_ss58,
-                (hotkey_ss58, netuid),
-                coldkey_ss58,
-                amount.rao,
-            ],
-            block=block,
+        return await self.get_stake_operations_fee(
+            amount=amount, netuid=netuid, block=block
         )
-        return Balance.from_rao(result)
 
+    # TODO: remove unused parameters in SDK.v10
     async def get_stake_movement_fee(
         self,
         amount: Balance,
@@ -3237,19 +3223,9 @@ class AsyncSubtensor(SubtensorMixin):
         # TODO: Add guidance on when stake movement is beneficial despite fees
         # TODO: Explain the economic rationale for stake movement fees
         """
-        result = await self.query_runtime_api(
-            runtime_api="StakeInfoRuntimeApi",
-            method="get_stake_fee",
-            params=[
-                (origin_hotkey_ss58, origin_netuid),
-                origin_coldkey_ss58,
-                (destination_hotkey_ss58, destination_netuid),
-                destination_coldkey_ss58,
-                amount.rao,
-            ],
-            block=block,
+        return await self.get_stake_operations_fee(
+            amount=amount, netuid=origin_netuid, block=block
         )
-        return Balance.from_rao(result)
 
     async def get_stake_for_coldkey_and_hotkey(
         self,
@@ -3396,6 +3372,39 @@ class AsyncSubtensor(SubtensorMixin):
         return balance
 
     get_hotkey_stake = get_stake_for_hotkey
+
+    async def get_stake_operations_fee(
+        self,
+        amount: Balance,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ):
+        """Returns fee for any stake operation in specified subnet.
+
+        Args:
+            amount: Amount of stake to add in Alpha/TAO.
+            netuid: Netuid of subnet.
+            block: The block number at which to query the stake information. Do not specify if also specifying
+                block_hash or reuse_block.
+            block_hash: The hash of the blockchain block number for the query. Do not specify if also specifying block
+                or reuse_block.
+            reuse_block: Whether to reuse for this query the last-used block. Do not specify if also specifying block
+                or block_hash.
+        Returns:
+            The calculated stake fee as a Balance object.
+        """
+        block_hash = await self.determine_block_hash(
+            block=block, block_hash=block_hash, reuse_block=reuse_block
+        )
+        result = await self.substrate.query(
+            module="Swap",
+            storage_function="FeeRate",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+        return amount * (result.value / U16_MAX)
 
     async def get_subnet_burn_cost(
         self,
@@ -4501,20 +4510,32 @@ class AsyncSubtensor(SubtensorMixin):
         # TODO: Add guidance on when to use this vs other subnet query methods
         # TODO: Show examples of subnet monitoring and analysis use cases
         """
-        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        block_hash = await self.determine_block_hash(
+            block=block, block_hash=block_hash, reuse_block=reuse_block
+        )
 
         if not block_hash and reuse_block:
             block_hash = self.substrate.last_block_hash
 
-        query = await self.substrate.runtime_call(
-            "SubnetInfoRuntimeApi",
-            "get_dynamic_info",
-            params=[netuid],
-            block_hash=block_hash,
+        query, price = await asyncio.gather(
+            self.substrate.runtime_call(
+                "SubnetInfoRuntimeApi",
+                "get_dynamic_info",
+                params=[netuid],
+                block_hash=block_hash,
+            ),
+            self.get_subnet_price(
+                netuid=netuid,
+                block=block,
+                block_hash=block_hash,
+                reuse_block=reuse_block,
+            ),
+            return_exceptions=True,
         )
 
         if isinstance(decoded := query.decode(), dict):
-            price = self.get_subnet_price(netuid=netuid, block=block)
+            if isinstance(price, SubstrateRequestException):
+                price = None
             return DynamicInfo.from_dict({**decoded, "price": price})
         return None
 

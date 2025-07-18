@@ -1,5 +1,18 @@
 # Changelog
 
+## 9.8.2 /2025-07-10
+
+## What's Changed
+* edit docstrings by @MichaelTrestman in https://github.com/opentensor/bittensor/pull/2951
+* fix and improve e2e stake fee test by @basfroman in https://github.com/opentensor/bittensor/pull/2959
+* Make DynamicInfo backwards compatible by @basfroman in https://github.com/opentensor/bittensor/pull/2958
+* Update staking fee logic by @basfroman in https://github.com/opentensor/bittensor/pull/2961
+
+## New Contributors
+* @MichaelTrestman made their first contribution in https://github.com/opentensor/bittensor/pull/2951
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.8.1...v9.8.2
+
 ## 9.8.1 /2025-07-08
 
 ## What's Changed
