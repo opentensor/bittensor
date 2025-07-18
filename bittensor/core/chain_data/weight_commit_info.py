@@ -21,7 +21,7 @@ class WeightCommitInfo:
     reveal_round: int
 
     @classmethod
-    def from_vec_u8_legacy(cls, data: tuple) -> tuple[str, str, int]:
+    def from_vec_u8(cls, data: tuple) -> tuple[str, str, int]:
         """
         Creates a WeightCommitInfo instance
 
@@ -44,7 +44,7 @@ class WeightCommitInfo:
         return decode_account_id(account_id_), commit_hex, round_number
 
     @classmethod
-    def from_vec_u8(cls, data: tuple) -> tuple[str, int, str, int]:
+    def from_vec_u8_v2(cls, data: tuple) -> tuple[str, int, str, int]:
         """
         Creates a WeightCommitInfo instance
 
