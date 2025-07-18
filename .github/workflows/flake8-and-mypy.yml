@@ -1,0 +1,56 @@
+name: Flake8 and Mypy - linters check
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  linters:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache venv
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: venv
+          key: |
+            v3-${{ runner.os }}-${{ runner.arch }}-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            v3-${{ runner.os }}-${{ runner.arch }}-${{ matrix.python-version }}-
+
+      - name: Install deps (flake8 + mypy + project.dev)
+        if: ${{ steps.cache.outputs.cache-hit != 'true' }}
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install uv
+          python -m uv sync --extra dev --active
+
+      - name: Flake8
+        run: |
+          source venv/bin/activate
+          python -m flake8 bittensor/ --count
+
+      - name: mypy
+        run: |
+          source venv/bin/activate
+          python -m mypy --ignore-missing-imports bittensor/

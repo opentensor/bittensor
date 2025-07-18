@@ -814,13 +814,21 @@ class AsyncSubtensor(SubtensorMixin):
                 method="get_all_dynamic_info",
                 block_hash=block_hash,
             ),
-            self.get_subnet_prices(),
+            self.get_subnet_prices(block_hash=block_hash),
+            return_exceptions=True,
         )
 
         decoded = query.decode()
 
-        for sn in decoded:
-            sn.update({"price": subnet_prices.get(sn["netuid"], Balance.from_tao(0))})
+        if not isinstance(subnet_prices, SubstrateRequestException):
+            for sn in decoded:
+                sn.update(
+                    {"price": subnet_prices.get(sn["netuid"], Balance.from_tao(0))}
+                )
+        else:
+            logging.warning(
+                f"Unable to fetch subnet prices for block {block_number}, block hash {block_hash}: {subnet_prices}"
+            )
         return DynamicInfo.list_from_dicts(decoded)
 
     async def blocks_since_last_step(
@@ -1129,21 +1137,30 @@ class AsyncSubtensor(SubtensorMixin):
         Notes:
             See also: <https://docs.learnbittensor.org/glossary#subnet>
         """
-        result = await self.query_runtime_api(
-            runtime_api="SubnetInfoRuntimeApi",
-            method="get_subnets_info_v2",
-            params=[],
-            block=block,
-            block_hash=block_hash,
-            reuse_block=reuse_block,
+        result, prices = await asyncio.gather(
+            self.query_runtime_api(
+                runtime_api="SubnetInfoRuntimeApi",
+                method="get_subnets_info_v2",
+                params=[],
+                block=block,
+                block_hash=block_hash,
+                reuse_block=reuse_block,
+            ),
+            self.get_subnet_prices(
+                block=block, block_hash=block_hash, reuse_block=reuse_block
+            ),
+            return_exceptions=True,
         )
         if not result:
             return []
 
-        subnets_prices = await self.get_subnet_prices()
-
-        for subnet in result:
-            subnet.update({"price": subnets_prices.get(subnet["netuid"], 0)})
+        if not isinstance(prices, SubstrateRequestException):
+            for subnet in result:
+                subnet.update({"price": prices.get(subnet["netuid"], 0)})
+        else:
+            logging.warning(
+                f"Unable to fetch subnet prices for block {block}, block hash {block_hash}: {prices}"
+            )
 
         return SubnetInfo.list_from_dicts(result)
 
@@ -2035,6 +2052,7 @@ class AsyncSubtensor(SubtensorMixin):
                 "SubnetInfoRuntimeApi",
                 "get_metagraph",
                 params=[netuid],
+                block_hash=block_hash,
             )
 
         if query.value is None:

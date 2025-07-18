@@ -1,0 +1,24 @@
+name: Changelog guard (for release of hotfix)
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches:
+      - staging
+      - master
+
+jobs:
+  changelog:
+    if: startsWith(github.head_ref, 'release/') || startsWith(github.head_ref, 'hotfix/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: tj-actions/changed-files@v42
+        id: changed
+      - name: Ensure CHANGELOG.md updated
+        if: contains(steps.changed.outputs.all_changed_files, 'CHANGELOG.md') == false
+        uses: actions/github-script@v7
+        with:
+          script: core.setFailed('CHANGELOG.md must be updated.')
