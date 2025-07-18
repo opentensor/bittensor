@@ -429,9 +429,7 @@ class Subtensor(SubtensorMixin):
         """
         block_hash = self.determine_block_hash(block)
         return self.substrate.rpc_request(
-            method="state_call",
-            params=[method, data],
-            block_hash=block_hash
+            method="state_call", params=[method, data], block_hash=block_hash
         )
 
     # Common subtensor calls ===========================================================================================
@@ -486,26 +484,22 @@ class Subtensor(SubtensorMixin):
         )
         return query.value if query is not None and hasattr(query, "value") else query
 
-    def blocks_since_last_update(self, netuid: int, uid: int, block: Optional[int] = None) -> Optional[int]:
+    def blocks_since_last_update(self, netuid: int, uid: int) -> Optional[int]:
         """
         Returns the number of blocks since the last update for a specific UID in the subnetwork.
 
         Arguments:
             netuid (int): The unique identifier of the subnetwork.
             uid (int): The unique identifier of the neuron.
-            block (int): The block number for this query.
 
         Returns:
             Optional[int]: The number of blocks since the last update, or ``None`` if the subnetwork or UID does not
                 exist.
         """
-        call = self.get_hyperparameter(param_name="LastUpdate", netuid=netuid, block=block)
-        if not call:
-            return None
-        elif block is not None:
-            return block - int(call[uid])
-        else:
-            return self.get_current_block() - int(call[uid])
+        call = self.get_hyperparameter(
+            param_name="LastUpdate", netuid=netuid, block=block
+        )
+        return None if call is None else self.get_current_block() - int(call[uid])
 
     def bonds(
         self, netuid: int, block: Optional[int] = None
@@ -1504,17 +1498,33 @@ class Subtensor(SubtensorMixin):
 
         # Fetch global fees and current price
         fee_global_tao_query_sk = self.substrate.create_storage_key(
-            pallet="Swap", storage_function="FeeGlobalTao", params=[netuid], block_hash=block_hash
+            pallet="Swap",
+            storage_function="FeeGlobalTao",
+            params=[netuid],
+            block_hash=block_hash,
         )
         fee_global_alpha_query_sk = self.substrate.create_storage_key(
-            pallet="Swap", storage_function="FeeGlobalAlpha", params=[netuid], block_hash=block_hash
+            pallet="Swap",
+            storage_function="FeeGlobalAlpha",
+            params=[netuid],
+            block_hash=block_hash,
         )
         sqrt_price_query_sk = self.substrate.create_storage_key(
-            pallet="Swap", storage_function="AlphaSqrtPrice", params=[netuid], block_hash=block_hash
+            pallet="Swap",
+            storage_function="AlphaSqrtPrice",
+            params=[netuid],
+            block_hash=block_hash,
         )
-        fee_global_tao_query, fee_global_alpha_query, sqrt_price_query = self.substrate.query_multi(
-            [fee_global_tao_query_sk, fee_global_alpha_query_sk, sqrt_price_query_sk],
-            block_hash=block_hash)
+        fee_global_tao_query, fee_global_alpha_query, sqrt_price_query = (
+            self.substrate.query_multi(
+                [
+                    fee_global_tao_query_sk,
+                    fee_global_alpha_query_sk,
+                    sqrt_price_query_sk,
+                ],
+                block_hash=block_hash,
+            )
+        )
 
         fee_global_tao = fixed_to_float(fee_global_tao_query[1])
         fee_global_alpha = fixed_to_float(fee_global_alpha_query[1])
@@ -1546,12 +1556,14 @@ class Subtensor(SubtensorMixin):
                 pallet="Swap",
                 storage_function="Ticks",
                 params=[netuid, tick_high_idx],
-                block_hash=block_hash
+                block_hash=block_hash,
             )
             positions_values.append((position, tick_low_idx, tick_high_idx))
             positions_storage_keys.extend([tick_low_sk, tick_high_sk])
         # query all our ticks at once
-        ticks_query = self.substrate.query_multi(positions_storage_keys, block_hash=block_hash)
+        ticks_query = self.substrate.query_multi(
+            positions_storage_keys, block_hash=block_hash
+        )
         # iterator with just the values
         ticks = iter([x[1] for x in ticks_query])
         positions = []
