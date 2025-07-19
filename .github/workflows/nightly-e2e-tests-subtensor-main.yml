@@ -109,7 +109,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     outputs:
-      failed: ${{ steps.set-fail.outputs.failed }}
+      failed: ${{ steps.test-failed.outputs.failed }}
 
     strategy:
       fail-fast: false  # Allow other matrix jobs to run even if this job fails
@@ -145,21 +145,24 @@ jobs:
         run: docker load -i subtensor-localnet-main.tar
 
       - name: Run tests with retry
+        id: test-failed
         env:
           FAST_BLOCKS: "1"
           LOCALNET_IMAGE_NAME: "ghcr.io/opentensor/subtensor-localnet:main"
         run: |
           set +e
           for i in 1 2 3; do
-            echo "🔁 Attempt $i: Running tests"
+            echo "::group::🔁 Test attempt $i"
             uv run pytest ${{ matrix.test-file }} -s
             status=$?
             if [ $status -eq 0 ]; then
               echo "✅ Tests passed on attempt $i"
+              echo "::endgroup::"
               echo "failed=false" >> "$GITHUB_OUTPUT"
               break
             else
               echo "❌ Tests failed on attempt $i"
+              echo "::endgroup::"
               if [ $i -eq 3 ]; then
                 echo "Tests failed after 3 attempts"
                 echo "failed=true" >> "$GITHUB_OUTPUT"
@@ -179,7 +182,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     outputs:
-      failed: ${{ steps.set-fail.outputs.failed }}
+      failed: ${{ steps.test-failed.outputs.failed }}
 
     strategy:
       fail-fast: false  # Allow other matrix jobs to run even if this job fails
@@ -215,21 +218,24 @@ jobs:
         run: docker load -i subtensor-localnet-devnet-ready.tar
 
       - name: Run tests with retry
+        id: test-failed
         env:
           FAST_BLOCKS: "1"
           LOCALNET_IMAGE_NAME: "ghcr.io/opentensor/subtensor-localnet:devnet-ready"
         run: |
           set +e
           for i in 1 2 3; do
-            echo "🔁 Attempt $i: Running tests"
+            echo "::group::🔁 Test attempt $i"
             uv run pytest ${{ matrix.test-file }} -s
             status=$?
             if [ $status -eq 0 ]; then
               echo "✅ Tests passed on attempt $i"
+              echo "::endgroup::"
               echo "failed=false" >> "$GITHUB_OUTPUT"
               break
             else
               echo "❌ Tests failed on attempt $i"
+              echo "::endgroup::"
               if [ $i -eq 3 ]; then
                 echo "Tests failed after 3 attempts"
                 echo "failed=true" >> "$GITHUB_OUTPUT"
@@ -251,7 +257,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 1440
     outputs:
-      failed: ${{ steps.set-fail.outputs.failed }}
+      failed: ${{ steps.test-failed.outputs.failed }}
 
     strategy:
       fail-fast: false  # Allow other matrix jobs to run even if this job fails
@@ -288,21 +294,24 @@ jobs:
         run: docker load -i subtensor-localnet-main.tar
 
       - name: Run patched E2E tests
+        id: test-failed
         env:
           FAST_BLOCKS: "0"
           LOCALNET_IMAGE_NAME: "ghcr.io/opentensor/subtensor-localnet:main"
         run: |
           set +e
           for i in 1 2 3; do
-            echo "🔁 Attempt $i: Running tests"
+            echo "::group::🔁 Test attempt $i"
             uv run pytest ${{ matrix.test-file }} -s
             status=$?
             if [ $status -eq 0 ]; then
               echo "✅ Tests passed on attempt $i"
+              echo "::endgroup::"
               echo "failed=false" >> "$GITHUB_OUTPUT"
               break
             else
               echo "❌ Tests failed on attempt $i"
+              echo "::endgroup::"
               if [ $i -eq 3 ]; then
                 echo "Tests failed after 3 attempts"
                 echo "failed=true" >> "$GITHUB_OUTPUT"
@@ -324,7 +333,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 1440
     outputs:
-      failed: ${{ steps.set-fail.outputs.failed }}
+      failed: ${{ steps.test-failed.outputs.failed }}
 
     strategy:
       fail-fast: false  # Allow other matrix jobs to run even if this job fails
@@ -361,21 +370,24 @@ jobs:
         run: docker load -i subtensor-localnet-devnet-ready.tar
 
       - name: Run patched E2E tests
+        id: test-failed
         env:
           FAST_BLOCKS: "0"
           LOCALNET_IMAGE_NAME: "ghcr.io/opentensor/subtensor-localnet:devnet-ready"
         run: |
           set +e
           for i in 1 2 3; do
-            echo "🔁 Attempt $i: Running tests"
+            echo "::group::🔁 Test attempt $i"
             uv run pytest ${{ matrix.test-file }} -s
             status=$?
             if [ $status -eq 0 ]; then
               echo "✅ Tests passed on attempt $i"
+              echo "::endgroup::"
               echo "failed=false" >> "$GITHUB_OUTPUT"
               break
             else
               echo "❌ Tests failed on attempt $i"
+              echo "::endgroup::"
               if [ $i -eq 3 ]; then
                 echo "Tests failed after 3 attempts"
                 echo "failed=true" >> "$GITHUB_OUTPUT"
