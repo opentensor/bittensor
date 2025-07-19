@@ -75,7 +75,7 @@ def unstake_extrinsic(
         block=block,
     )
 
-    # Covert to bittensor.Balance
+    # Convert to bittensor.Balance
     if amount is None:
         # Unstake it all.
         logging.warning(
