@@ -954,8 +954,7 @@ def test_state_call(subtensor, mocker):
 
     # Asserts
     subtensor.substrate.rpc_request.assert_called_once_with(
-        method="state_call",
-        params=[fake_method, fake_data],
+        method="state_call", params=[fake_method, fake_data], block_hash=None
     )
     assert result == subtensor.substrate.rpc_request.return_value
 
