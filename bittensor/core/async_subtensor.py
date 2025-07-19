@@ -2924,6 +2924,7 @@ class AsyncSubtensor(SubtensorMixin):
                 or reuse_block.
             reuse_block: Whether to reuse for this query the last-used block. Do not specify if also specifying block
                 or block_hash.
+
         Returns:
             The calculated stake fee as a Balance object.
         """
@@ -2937,6 +2938,38 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
         )
         return amount * (result.value / U16_MAX)
+
+    async def get_stake_weight(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> list[float]:
+        """
+        Retrieves the stake weight for all hotkeys in a given subnet.
+
+        Arguments:
+            netuid: Netuid of subnet.
+            block: Block number at which to perform the calculation.
+            block_hash: The hash of the blockchain block number for the query. Do not specify if also specifying block
+                or reuse_block.
+            reuse_block: Whether to reuse for this query the last-used block. Do not specify if also specifying block
+                or block_hash.
+
+        Returns:
+            A list of stake weights for all hotkeys in the specified subnet.
+        """
+        block_hash = await self.determine_block_hash(
+            block=block, block_hash=block_hash, reuse_block=reuse_block
+        )
+        result = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="StakeWeight",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+        return [u16_normalized_float(w) for w in result]
 
     async def get_subnet_burn_cost(
         self,
