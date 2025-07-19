@@ -156,22 +156,19 @@ jobs:
             status=$?
             if [ $status -eq 0 ]; then
               echo "✅ Tests passed on attempt $i"
+              echo "failed=false" >> "$GITHUB_OUTPUT"
               break
             else
               echo "❌ Tests failed on attempt $i"
               if [ $i -eq 3 ]; then
                 echo "Tests failed after 3 attempts"
+                echo "failed=true" >> "$GITHUB_OUTPUT"
                 exit 1
               fi
               echo "Retrying..."
               sleep 5
             fi
           done
-
-      - name: Set fail flag
-        if: failure()
-        id: set-fail
-        run: echo "failed=true" >> "$GITHUB_OUTPUT"
 
   # Daily run of fast-blocks tests from `bittensor:staging` based on `subtensor:devnet-ready` docker image
   run-fast-blocks-e2e-test-staging:
@@ -229,22 +226,19 @@ jobs:
             status=$?
             if [ $status -eq 0 ]; then
               echo "✅ Tests passed on attempt $i"
+              echo "failed=false" >> "$GITHUB_OUTPUT"
               break
             else
               echo "❌ Tests failed on attempt $i"
               if [ $i -eq 3 ]; then
                 echo "Tests failed after 3 attempts"
+                echo "failed=true" >> "$GITHUB_OUTPUT"
                 exit 1
               fi
               echo "Retrying..."
               sleep 5
             fi
           done
-
-      - name: Set fail flag
-        if: failure()
-        id: set-fail
-        run: echo "failed=true" >> "$GITHUB_OUTPUT"
 
   # Saturday run of non-fast-blocks tests from `bittensor:master` based on `subtensor:main` docker image
   run-non-fast-blocks-e2e-test-master:
@@ -305,22 +299,19 @@ jobs:
             status=$?
             if [ $status -eq 0 ]; then
               echo "✅ Tests passed on attempt $i"
+              echo "failed=false" >> "$GITHUB_OUTPUT"
               break
             else
               echo "❌ Tests failed on attempt $i"
               if [ $i -eq 3 ]; then
                 echo "Tests failed after 3 attempts"
+                echo "failed=true" >> "$GITHUB_OUTPUT"
                 exit 1
               fi
               echo "Retrying..."
               sleep 5
             fi
           done
-
-      - name: Set fail flag
-        if: failure()
-        id: set-fail
-        run: echo "failed=true" >> "$GITHUB_OUTPUT"
 
   # Saturday run of non-fast-blocks tests from `bittensor:staging` based on `subtensor:devnet-ready` docker image
   run-non-fast-blocks-e2e-test-staging:
@@ -381,21 +372,19 @@ jobs:
             status=$?
             if [ $status -eq 0 ]; then
               echo "✅ Tests passed on attempt $i"
+              echo "failed=false" >> "$GITHUB_OUTPUT"
               break
             else
               echo "❌ Tests failed on attempt $i"
               if [ $i -eq 3 ]; then
                 echo "Tests failed after 3 attempts"
+                echo "failed=true" >> "$GITHUB_OUTPUT"
                 exit 1
               fi
               echo "Retrying..."
               sleep 5
             fi
           done
-      - name: Set fail flag
-        if: failure()
-        id: set-fail
-        run: echo "failed=true" >> "$GITHUB_OUTPUT"
 
   # Send centralized Discord failure notification
   notify-on-failure:
