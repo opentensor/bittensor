@@ -4060,3 +4060,39 @@ async def test_get_stake_movement_fee(subtensor, mocker):
         amount=amount, netuid=netuid, block=None
     )
     assert result == mocked_get_stake_operations_fee.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_stake_weight(subtensor, mocker):
+    """Verify that `get_stake_weight` method calls proper methods and returns the correct value."""
+    # Preps
+    netuid = mocker.Mock()
+    fake_weights = [0, 100, 15000]
+    expected_result = [0.0, 0.0015259021896696422, 0.22888532845044632]
+
+    mock_determine_block_hash = mocker.patch.object(
+        subtensor,
+        "determine_block_hash",
+    )
+    mocked_query = mocker.patch.object(
+        subtensor.substrate,
+        "query",
+        return_value=fake_weights,
+    )
+
+    # Call
+    result = await subtensor.get_stake_weight(netuid=netuid)
+
+    # Asserts
+    mock_determine_block_hash.assert_awaited_once_with(
+        block=None,
+        block_hash=None,
+        reuse_block=False,
+    )
+    mocked_query.assert_awaited_once_with(
+        module="SubtensorModule",
+        storage_function="StakeWeight",
+        params=[netuid],
+        block_hash=mock_determine_block_hash.return_value,
+    )
+    assert result == expected_result
