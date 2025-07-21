@@ -2088,6 +2088,26 @@ class Subtensor(SubtensorMixin):
         )
         return amount * (result.value / U16_MAX)
 
+    def get_stake_weight(self, netuid: int, block: Optional[int] = None) -> list[float]:
+        """
+        Retrieves the stake weight for all hotkeys in a given subnet.
+
+        Arguments:
+            netuid: Netuid of subnet.
+            block: Block number at which to perform the calculation.
+
+        Returns:
+            A list of stake weights for all hotkeys in the specified subnet.
+        """
+        block_hash = self.determine_block_hash(block=block)
+        result = self.substrate.query(
+            module="SubtensorModule",
+            storage_function="StakeWeight",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+        return [u16_normalized_float(w) for w in result]
+
     def get_subnet_burn_cost(self, block: Optional[int] = None) -> Optional[Balance]:
         """
         Retrieves the burn cost for registering a new subnet within the Bittensor network. This cost represents the
