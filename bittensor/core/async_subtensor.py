@@ -821,7 +821,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         decoded = query.decode()
 
-        if not isinstance(subnet_prices, SubstrateRequestException):
+        if not isinstance(subnet_prices, (SubstrateRequestException, ValueError)):
             for sn in decoded:
                 sn.update(
                     {"price": subnet_prices.get(sn["netuid"], Balance.from_tao(0))}
@@ -1155,7 +1155,7 @@ class AsyncSubtensor(SubtensorMixin):
         if not result:
             return []
 
-        if not isinstance(prices, SubstrateRequestException):
+        if not isinstance(prices, (SubstrateRequestException, ValueError)):
             for subnet in result:
                 subnet.update({"price": prices.get(subnet["netuid"], 0)})
         else:
@@ -3858,7 +3858,7 @@ class AsyncSubtensor(SubtensorMixin):
         )
 
         if isinstance(decoded := query.decode(), dict):
-            if isinstance(price, SubstrateRequestException):
+            if isinstance(price, (SubstrateRequestException, ValueError)):
                 price = None
             return DynamicInfo.from_dict({**decoded, "price": price})
         return None
