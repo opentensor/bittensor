@@ -1,17 +1,14 @@
 name: E2E Subtensor Tests
 
 concurrency:
-  group: e2e-subtensor-${{ github.ref }}
+  group: e2e-subtensor-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 on:
-  push:
-    branches:
-      - '**'
   pull_request:
     branches:
       - '**'
-    types: [ opened, synchronize, reopened, ready_for_review ]
+    types: [ opened, synchronize, reopened, ready_for_review, labeled, unlabeled ]
 
   workflow_dispatch:
     inputs:
@@ -29,7 +26,7 @@ jobs:
   # Looking for e2e tests
   find-tests:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+    if: ${{ github.event.pull_request.draft == false }}
     outputs:
       test-files: ${{ steps.get-tests.outputs.test-files }}
     steps:
@@ -50,28 +47,61 @@ jobs:
   pull-docker-image:
     runs-on: ubuntu-latest
     outputs:
-      image-name: ${{ steps.set-output.outputs.image-name }}
+      image-name: ${{ steps.set-image.outputs.image }}
     steps:
-      - name: Set Docker image tag based on branch
-        id: set-output
+      - name: Set Docker image tag based on label or branch
+        id: set-image
         run: |
-          ref="${{ github.ref_name }}"
-          if [[ "$ref" == "master" ]]; then
-            image="ghcr.io/opentensor/subtensor-localnet:main"
+          echo "Event: $GITHUB_EVENT_NAME"
+          echo "Branch: $GITHUB_REF_NAME"
+          
+          echo "Reading labels ..."
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            labels=$(jq -r '.pull_request.labels[].name' "$GITHUB_EVENT_PATH")
           else
-            image="ghcr.io/opentensor/subtensor-localnet:devnet-ready"
+            labels=""
           fi
-          echo "Using image: $image"
-          echo "image-name=$image" >> "$GITHUB_OUTPUT"
+    
+          image=""
+    
+          for label in $labels; do
+            echo "Found label: $label"
+            case "$label" in
+              "subtensor-localnet:main")
+                image="ghcr.io/opentensor/subtensor-localnet:main"
+                break
+                ;;
+              "subtensor-localnet:testnet")
+                image="ghcr.io/opentensor/subtensor-localnet:testnet"
+                break
+                ;;
+              "subtensor-localnet:devnet")
+                image="ghcr.io/opentensor/subtensor-localnet:devnet"
+                break
+                ;;
+            esac
+          done
+    
+          if [[ -z "$image" ]]; then
+            # fallback to default based on branch
+            if [[ "${GITHUB_REF_NAME}" == "master" ]]; then
+              image="ghcr.io/opentensor/subtensor-localnet:main"
+            else
+              image="ghcr.io/opentensor/subtensor-localnet:devnet-ready"
+            fi
+          fi
+    
+          echo "✅ Final selected image: $image"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
 
       - name: Pull Docker Image
-        run: docker pull ${{ steps.set-output.outputs.image-name }}
+        run: docker pull ${{ steps.set-image.outputs.image }}
 
       - name: Save Docker Image to Cache
-        run: docker save -o subtensor-localnet.tar ${{ steps.set-output.outputs.image-name }}
+        run: docker save -o subtensor-localnet.tar ${{ steps.set-image.outputs.image }}
 
       - name: Upload Docker Image as Artifact
         uses: actions/upload-artifact@v4
@@ -122,22 +152,21 @@ jobs:
         env:
           LOCALNET_IMAGE_NAME: ${{ needs.pull-docker-image.outputs.image-name }}
         run: |
-          set +e
           for i in 1 2 3; do
-            echo "🔁 Attempt $i: Running tests"
-            uv run pytest ${{ matrix.test-file }} -s
-            status=$?
-            if [ $status -eq 0 ]; then
+            echo "::group::🔁 Test attempt $i"
+            if uv run pytest ${{ matrix.test-file }} -s; then
               echo "✅ Tests passed on attempt $i"
-              break
+              echo "::endgroup::"
+              exit 0
             else
               echo "❌ Tests failed on attempt $i"
-              if [ $i -eq 3 ]; then
-                echo "Tests failed after 3 attempts"
-                exit 1
+              echo "::endgroup::"
+              if [ "$i" -lt 3 ]; then
+                echo "Retrying..."
+                sleep 5
               fi
-              echo "Retrying..."
-              sleep 5
             fi
           done
 
+          echo "Tests failed after 3 attempts"
+          exit 1
