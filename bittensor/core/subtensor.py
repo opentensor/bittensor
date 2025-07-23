@@ -462,7 +462,7 @@ class Subtensor(SubtensorMixin):
                 sn.update(
                     {"price": subnet_prices.get(sn["netuid"], Balance.from_tao(0))}
                 )
-        except SubstrateRequestException as e:
+        except (SubstrateRequestException, ValueError) as e:
             logging.warning(f"Unable to fetch subnet prices for block {block}: {e}")
 
         return DynamicInfo.list_from_dicts(decoded)
@@ -497,7 +497,7 @@ class Subtensor(SubtensorMixin):
                 exist.
         """
         call = self.get_hyperparameter(param_name="LastUpdate", netuid=netuid)
-        return None if call is None else self.get_current_block() - int(call[uid])
+        return None if not call else (self.get_current_block() - int(call[uid]))
 
     def bonds(
         self, netuid: int, block: Optional[int] = None
@@ -655,7 +655,7 @@ class Subtensor(SubtensorMixin):
 
             for subnet in result:
                 subnet.update({"price": subnets_prices.get(subnet["netuid"], 0)})
-        except SubstrateRequestException as e:
+        except (SubstrateRequestException, ValueError) as e:
             logging.warning(f"Unable to fetch subnet prices for block {block}: {e}")
 
         return SubnetInfo.list_from_dicts(result)
@@ -1080,7 +1080,7 @@ class Subtensor(SubtensorMixin):
 
     def get_current_weight_commit_info(
         self, netuid: int, block: Optional[int] = None
-    ) -> list:
+    ) -> list[tuple[str, str, int]]:
         """
         Retrieves CRV3 weight commit information for a specific subnet.
 
@@ -1089,9 +1089,18 @@ class Subtensor(SubtensorMixin):
             block (Optional[int]): The blockchain block number for the query. Default is ``None``.
 
         Returns:
-            list: A list of commit details, where each entry is a dictionary with keys 'who', 'serialized_commit', and
-            'reveal_round', or an empty list if no data is found.
+            A list of commit details, where each item contains:
+                - ss58_address: The address of the committer.
+                - commit_message: The commit message.
+                - reveal_round: The round when the commitment was revealed.
+
+            The list may be empty if there are no commits found.
+
         """
+        deprecated_message(
+            message="The method `get_current_weight_commit_info` is deprecated and will be removed in version 10.0.0. "
+            "Use `get_current_weight_commit_info_v2` instead."
+        )
         result = self.substrate.query_map(
             module="SubtensorModule",
             storage_function="CRV3WeightCommits",
@@ -1101,6 +1110,35 @@ class Subtensor(SubtensorMixin):
 
         commits = result.records[0][1] if result.records else []
         return [WeightCommitInfo.from_vec_u8(commit) for commit in commits]
+
+    def get_current_weight_commit_info_v2(
+        self, netuid: int, block: Optional[int] = None
+    ) -> list[tuple[str, int, str, int]]:
+        """
+        Retrieves CRV3 weight commit information for a specific subnet.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query. Default is ``None``.
+
+        Returns:
+            A list of commit details, where each item contains:
+                - ss58_address: The address of the committer.
+                - commit_block: The block number when the commitment was made.
+                - commit_message: The commit message.
+                - reveal_round: The round when the commitment was revealed.
+
+            The list may be empty if there are no commits found.
+        """
+        result = self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function="CRV3WeightCommitsV2",
+            params=[netuid],
+            block_hash=self.determine_block_hash(block),
+        )
+
+        commits = result.records[0][1] if result.records else []
+        return [WeightCommitInfo.from_vec_u8_v2(commit) for commit in commits]
 
     def get_delegate_by_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
@@ -2072,6 +2110,26 @@ class Subtensor(SubtensorMixin):
         )
         return amount * (result.value / U16_MAX)
 
+    def get_stake_weight(self, netuid: int, block: Optional[int] = None) -> list[float]:
+        """
+        Retrieves the stake weight for all hotkeys in a given subnet.
+
+        Arguments:
+            netuid: Netuid of subnet.
+            block: Block number at which to perform the calculation.
+
+        Returns:
+            A list of stake weights for all hotkeys in the specified subnet.
+        """
+        block_hash = self.determine_block_hash(block=block)
+        result = self.substrate.query(
+            module="SubtensorModule",
+            storage_function="StakeWeight",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+        return [u16_normalized_float(w) for w in result]
+
     def get_subnet_burn_cost(self, block: Optional[int] = None) -> Optional[Balance]:
         """
         Retrieves the burn cost for registering a new subnet within the Bittensor network. This cost represents the
@@ -2735,7 +2793,7 @@ class Subtensor(SubtensorMixin):
         if isinstance(decoded := query.decode(), dict):
             try:
                 price = self.get_subnet_price(netuid=netuid, block=block)
-            except SubstrateRequestException:
+            except (SubstrateRequestException, ValueError):
                 price = None
             return DynamicInfo.from_dict({**decoded, "price": price})
         return None
