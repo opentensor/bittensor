@@ -106,6 +106,7 @@ from bittensor.utils import (
     torch,
     u16_normalized_float,
     u64_normalized_float,
+    deprecated_message,
 )
 from bittensor.utils.balance import (
     Balance,
