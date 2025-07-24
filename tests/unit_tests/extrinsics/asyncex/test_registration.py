@@ -1,6 +1,5 @@
 import pytest
 
-from bittensor.core import async_subtensor
 from bittensor.core.extrinsics.asyncex import registration as async_registration
 
 
