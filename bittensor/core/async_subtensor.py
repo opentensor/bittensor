@@ -5455,7 +5455,7 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         dest: str,
-        amount: Balance,
+        amount: Optional[Balance],
         transfer_all: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -5468,7 +5468,7 @@ class AsyncSubtensor(SubtensorMixin):
         Arguments:
             wallet: Source wallet for the transfer.
             dest: Destination address for the transfer.
-            amount: Number of tokens to transfer.
+            amount: Number of tokens to transfer. `None` is transferring all.
             transfer_all: Flag to transfer all tokens. Default is `False`.
             wait_for_inclusion: Waits for the transaction to be included in a block. Defaults to `True`.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Defaults to `False`.
@@ -5479,7 +5479,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             `True` if the transferring was successful, otherwise `False`.
         """
-        amount = check_and_convert_to_balance(amount)
+        if amount is not None:
+            amount = check_and_convert_to_balance(amount)
         return await transfer_extrinsic(
             subtensor=self,
             wallet=wallet,

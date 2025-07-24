@@ -4266,7 +4266,7 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         dest: str,
-        amount: Balance,
+        amount: Optional[Balance],
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         transfer_all: bool = False,
@@ -4292,7 +4292,8 @@ class Subtensor(SubtensorMixin):
         Returns:
             `True` if the transferring was successful, otherwise `False`.
         """
-        amount = check_and_convert_to_balance(amount)
+        if amount is not None:
+            amount = check_and_convert_to_balance(amount)
         return transfer_extrinsic(
             subtensor=self,
             wallet=wallet,
