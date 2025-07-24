@@ -167,6 +167,7 @@ def transfer_extrinsic(
         wallet=wallet,
         destination=dest,
         amount=amount,
+        keep_alive=keep_alive,
         wait_for_finalization=wait_for_finalization,
         wait_for_inclusion=wait_for_inclusion,
         period=period,
