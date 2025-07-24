@@ -53,7 +53,7 @@ async def _do_transfer(
         else:
             call_params["keep_alive"] = False
     else:
-        call_params["amount"] = amount.rao
+        call_params["value"] = amount.rao
         if keep_alive:
             call_function = "transfer_keep_alive"
         else:
