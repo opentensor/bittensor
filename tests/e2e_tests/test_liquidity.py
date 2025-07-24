@@ -73,7 +73,7 @@ async def test_liquidity(local_chain, subtensor, alice_wallet, bob_wallet):
             wallet=alice_wallet,
             hotkey_ss58=alice_wallet.hotkey.ss58_address,
             netuid=alice_subnet_netuid,
-            amount=Balance.from_tao(1000),
+            amount=Balance.from_tao(1),
             wait_for_inclusion=True,
             wait_for_finalization=True,
         ), "❌ Cannot cannot add stake to Alice from Alice."

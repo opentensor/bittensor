@@ -1,12 +1,10 @@
 import logging
 import numpy as np
-from hypothesis import settings
 
 import bittensor.utils.weight_utils as weight_utils
 import pytest
 
 from bittensor.utils import torch
-from bittensor.core.settings import version_as_int
 
 
 def test_convert_weight_and_uids():

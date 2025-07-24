@@ -9,6 +9,7 @@ from async_substrate_interface.errors import SubstrateRequestException
 from async_substrate_interface.substrate_addons import RetrySyncSubstrate
 from async_substrate_interface.sync_substrate import SubstrateInterface
 from async_substrate_interface.types import ScaleObj
+from async_substrate_interface.utils.storage import StorageKey
 from bittensor_drand import get_encrypted_commitment
 from numpy.typing import NDArray
 
@@ -105,6 +106,7 @@ from bittensor.utils import (
     torch,
     u16_normalized_float,
     u64_normalized_float,
+    deprecated_message,
 )
 from bittensor.utils.balance import (
     Balance,
@@ -428,8 +430,7 @@ class Subtensor(SubtensorMixin):
         """
         block_hash = self.determine_block_hash(block)
         return self.substrate.rpc_request(
-            method="state_call",
-            params=[method, data, block_hash] if block_hash else [method, data],
+            method="state_call", params=[method, data], block_hash=block_hash
         )
 
     # Common subtensor calls ===========================================================================================
@@ -462,7 +463,7 @@ class Subtensor(SubtensorMixin):
                 sn.update(
                     {"price": subnet_prices.get(sn["netuid"], Balance.from_tao(0))}
                 )
-        except SubstrateRequestException as e:
+        except (SubstrateRequestException, ValueError) as e:
             logging.warning(f"Unable to fetch subnet prices for block {block}: {e}")
 
         return DynamicInfo.list_from_dicts(decoded)
@@ -655,7 +656,7 @@ class Subtensor(SubtensorMixin):
 
             for subnet in result:
                 subnet.update({"price": subnets_prices.get(subnet["netuid"], 0)})
-        except SubstrateRequestException as e:
+        except (SubstrateRequestException, ValueError) as e:
             logging.warning(f"Unable to fetch subnet prices for block {block}: {e}")
 
         return SubnetInfo.list_from_dicts(result)
@@ -1080,7 +1081,7 @@ class Subtensor(SubtensorMixin):
 
     def get_current_weight_commit_info(
         self, netuid: int, block: Optional[int] = None
-    ) -> list:
+    ) -> list[tuple[str, str, int]]:
         """
         Retrieves CRV3 weight commit information for a specific subnet.
 
@@ -1089,9 +1090,18 @@ class Subtensor(SubtensorMixin):
             block (Optional[int]): The blockchain block number for the query. Default is ``None``.
 
         Returns:
-            list: A list of commit details, where each entry is a dictionary with keys 'who', 'serialized_commit', and
-            'reveal_round', or an empty list if no data is found.
+            A list of commit details, where each item contains:
+                - ss58_address: The address of the committer.
+                - commit_message: The commit message.
+                - reveal_round: The round when the commitment was revealed.
+
+            The list may be empty if there are no commits found.
+
         """
+        deprecated_message(
+            message="The method `get_current_weight_commit_info` is deprecated and will be removed in version 10.0.0. "
+            "Use `get_current_weight_commit_info_v2` instead."
+        )
         result = self.substrate.query_map(
             module="SubtensorModule",
             storage_function="CRV3WeightCommits",
@@ -1101,6 +1111,35 @@ class Subtensor(SubtensorMixin):
 
         commits = result.records[0][1] if result.records else []
         return [WeightCommitInfo.from_vec_u8(commit) for commit in commits]
+
+    def get_current_weight_commit_info_v2(
+        self, netuid: int, block: Optional[int] = None
+    ) -> list[tuple[str, int, str, int]]:
+        """
+        Retrieves CRV3 weight commit information for a specific subnet.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query. Default is ``None``.
+
+        Returns:
+            A list of commit details, where each item contains:
+                - ss58_address: The address of the committer.
+                - commit_block: The block number when the commitment was made.
+                - commit_message: The commit message.
+                - reveal_round: The round when the commitment was revealed.
+
+            The list may be empty if there are no commits found.
+        """
+        result = self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function="CRV3WeightCommitsV2",
+            params=[netuid],
+            block_hash=self.determine_block_hash(block),
+        )
+
+        commits = result.records[0][1] if result.records else []
+        return [WeightCommitInfo.from_vec_u8_v2(commit) for commit in commits]
 
     def get_delegate_by_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
@@ -1492,31 +1531,41 @@ class Subtensor(SubtensorMixin):
             logging.debug(f"Subnet {netuid} is not active.")
             return None
 
-        query = self.substrate.query
         block_hash = self.determine_block_hash(block)
 
         # Fetch global fees and current price
-        fee_global_tao_query = query(
-            module="Swap",
+        fee_global_tao_query_sk = self.substrate.create_storage_key(
+            pallet="Swap",
             storage_function="FeeGlobalTao",
             params=[netuid],
             block_hash=block_hash,
         )
-        fee_global_alpha_query = query(
-            module="Swap",
+        fee_global_alpha_query_sk = self.substrate.create_storage_key(
+            pallet="Swap",
             storage_function="FeeGlobalAlpha",
             params=[netuid],
             block_hash=block_hash,
         )
-        sqrt_price_query = query(
-            module="Swap",
+        sqrt_price_query_sk = self.substrate.create_storage_key(
+            pallet="Swap",
             storage_function="AlphaSqrtPrice",
             params=[netuid],
             block_hash=block_hash,
         )
-        fee_global_tao = fixed_to_float(fee_global_tao_query)
-        fee_global_alpha = fixed_to_float(fee_global_alpha_query)
-        sqrt_price = fixed_to_float(sqrt_price_query)
+        fee_global_tao_query, fee_global_alpha_query, sqrt_price_query = (
+            self.substrate.query_multi(
+                [
+                    fee_global_tao_query_sk,
+                    fee_global_alpha_query_sk,
+                    sqrt_price_query_sk,
+                ],
+                block_hash=block_hash,
+            )
+        )
+
+        fee_global_tao = fixed_to_float(fee_global_tao_query[1])
+        fee_global_alpha = fixed_to_float(fee_global_alpha_query[1])
+        sqrt_price = fixed_to_float(sqrt_price_query[1])
         current_tick = price_to_tick(sqrt_price**2)
 
         # Fetch positions
@@ -1526,26 +1575,38 @@ class Subtensor(SubtensorMixin):
             block=block,
             params=[netuid, wallet.coldkeypub.ss58_address],
         )
-
-        positions = []
+        positions_values: list[tuple[dict, int, int]] = []
+        positions_storage_keys: list[StorageKey] = []
         for _, p in positions_response:
             position = p.value
 
             tick_low_idx = position["tick_low"][0]
             tick_high_idx = position["tick_high"][0]
 
-            tick_low = query(
-                module="Swap",
+            tick_low_sk = self.substrate.create_storage_key(
+                pallet="Swap",
                 storage_function="Ticks",
                 params=[netuid, tick_low_idx],
                 block_hash=block_hash,
             )
-            tick_high = query(
-                module="Swap",
+            tick_high_sk = self.substrate.create_storage_key(
+                pallet="Swap",
                 storage_function="Ticks",
                 params=[netuid, tick_high_idx],
                 block_hash=block_hash,
             )
+            positions_values.append((position, tick_low_idx, tick_high_idx))
+            positions_storage_keys.extend([tick_low_sk, tick_high_sk])
+        # query all our ticks at once
+        ticks_query = self.substrate.query_multi(
+            positions_storage_keys, block_hash=block_hash
+        )
+        # iterator with just the values
+        ticks = iter([x[1] for x in ticks_query])
+        positions = []
+        for position, tick_low_idx, tick_high_idx in positions_values:
+            tick_low = next(ticks)
+            tick_high = next(ticks)
 
             # Calculate fees above/below range for both tokens
             tao_below = get_fees(
@@ -2049,6 +2110,26 @@ class Subtensor(SubtensorMixin):
             block_hash=block_hash,
         )
         return amount * (result.value / U16_MAX)
+
+    def get_stake_weight(self, netuid: int, block: Optional[int] = None) -> list[float]:
+        """
+        Retrieves the stake weight for all hotkeys in a given subnet.
+
+        Arguments:
+            netuid: Netuid of subnet.
+            block: Block number at which to perform the calculation.
+
+        Returns:
+            A list of stake weights for all hotkeys in the specified subnet.
+        """
+        block_hash = self.determine_block_hash(block=block)
+        result = self.substrate.query(
+            module="SubtensorModule",
+            storage_function="StakeWeight",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+        return [u16_normalized_float(w) for w in result]
 
     def get_subnet_burn_cost(self, block: Optional[int] = None) -> Optional[Balance]:
         """
@@ -2713,7 +2794,7 @@ class Subtensor(SubtensorMixin):
         if isinstance(decoded := query.decode(), dict):
             try:
                 price = self.get_subnet_price(netuid=netuid, block=block)
-            except SubstrateRequestException:
+            except (SubstrateRequestException, ValueError):
                 price = None
             return DynamicInfo.from_dict({**decoded, "price": price})
         return None

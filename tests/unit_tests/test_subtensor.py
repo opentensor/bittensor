@@ -954,8 +954,7 @@ def test_state_call(subtensor, mocker):
 
     # Asserts
     subtensor.substrate.rpc_request.assert_called_once_with(
-        method="state_call",
-        params=[fake_method, fake_data],
+        method="state_call", params=[fake_method, fake_data], block_hash=None
     )
     assert result == subtensor.substrate.rpc_request.return_value
 
@@ -1497,7 +1496,7 @@ def test_do_serve_axon_is_success(
     )
 
     assert result[0] is True
-    assert result[1] is ""
+    assert result[1] == ""
 
 
 def test_do_serve_axon_is_not_success(subtensor, fake_wallet, mocker, fake_call_params):
@@ -3845,25 +3844,22 @@ def test_get_liquidity_list_subnet_is_not_active(subtensor, mocker):
 
 def test_get_liquidity_list_happy_path(subtensor, fake_wallet, mocker):
     """Tests `get_liquidity_list` returns the correct value."""
-    # Preps
     netuid = 2
 
+    # Mock network state
     mocker.patch.object(subtensor, "subnet_exists", return_value=True)
     mocker.patch.object(subtensor, "is_subnet_active", return_value=True)
-    mocker.patch.object(subtensor, "determine_block_hash")
+    mocker.patch.object(subtensor, "determine_block_hash", return_value="0x1234")
 
-    mocker.patch.object(
-        subtensor_module, "price_to_tick", return_value=Balance.from_tao(1.0, netuid)
-    )
+    # Mock price and fee calculation
+    mocker.patch.object(subtensor_module, "price_to_tick", return_value=100)
     mocker.patch.object(
         subtensor_module,
         "calculate_fees",
         return_value=(Balance.from_tao(0.0), Balance.from_tao(0.0, netuid)),
     )
 
-    mocked_substrate_query = mocker.MagicMock()
-    mocker.patch.object(subtensor.substrate, "query", mocked_substrate_query)
-
+    # Fake positions to return from query_map
     fake_positions = [
         [
             (2,),
@@ -3879,55 +3875,58 @@ def test_get_liquidity_list_happy_path(subtensor, fake_wallet, mocker):
                 }
             ),
         ],
-        [
-            (2,),
-            mocker.Mock(
-                value={
-                    "id": (2,),
-                    "netuid": 2,
-                    "tick_low": (216189,),
-                    "tick_high": (198196,),
-                    "liquidity": 2000000000000,
-                    "fees_tao": {"bits": 0},
-                    "fees_alpha": {"bits": 0},
-                }
-            ),
-        ],
-        [
-            (2,),
-            mocker.Mock(
-                value={
-                    "id": (2,),
-                    "netuid": 2,
-                    "tick_low": (226189,),
-                    "tick_high": (188196,),
-                    "liquidity": 3000000000000,
-                    "fees_tao": {"bits": 0},
-                    "fees_alpha": {"bits": 0},
-                }
-            ),
-        ],
     ]
     mocked_query_map = mocker.MagicMock(return_value=fake_positions)
     mocker.patch.object(subtensor, "query_map", new=mocked_query_map)
 
-    # Call
+    # Mock storage key creation
+    mocker.patch.object(
+        subtensor.substrate,
+        "create_storage_key",
+        side_effect=lambda pallet,
+        storage_function,
+        params,
+        block_hash=None: f"{pallet}:{storage_function}:{params}",
+    )
 
+    # Mock query_multi for fee + sqrt_price + tick data
+    mock_query_multi = mocker.MagicMock(
+        side_effect=[
+            [
+                ("key1", {"bits": 0}),  # fee_global_tao
+                ("key2", {"bits": 0}),  # fee_global_alpha
+                ("key3", {"bits": 1072693248}),
+            ],
+            [
+                (
+                    "tick_low",
+                    {"fees_out_tao": {"bits": 0}, "fees_out_alpha": {"bits": 0}},
+                ),
+                (
+                    "tick_high",
+                    {"fees_out_tao": {"bits": 0}, "fees_out_alpha": {"bits": 0}},
+                ),
+            ],
+        ]
+    )
+    mocker.patch.object(subtensor.substrate, "query_multi", new=mock_query_multi)
+
+    # Call
     result = subtensor.get_liquidity_list(wallet=fake_wallet, netuid=netuid)
 
     # Asserts
-    subtensor.determine_block_hash.assert_called_once_with(None)
+    assert subtensor.determine_block_hash.call_count == 1
     assert subtensor_module.price_to_tick.call_count == 1
     assert subtensor_module.calculate_fees.call_count == len(fake_positions)
-
     mocked_query_map.assert_called_once_with(
         module="Swap",
         name="Positions",
         block=None,
         params=[netuid, fake_wallet.coldkeypub.ss58_address],
     )
+    assert mock_query_multi.call_count == 2  # one for fees, one for ticks
     assert len(result) == len(fake_positions)
-    assert all([isinstance(p, subtensor_module.LiquidityPosition) for p in result])
+    assert all(isinstance(p, subtensor_module.LiquidityPosition) for p in result)
 
 
 def test_add_liquidity(subtensor, fake_wallet, mocker):
@@ -4275,3 +4274,34 @@ def test_get_stake_movement_fee(subtensor, mocker):
         amount=amount, netuid=netuid, block=None
     )
     assert result == mocked_get_stake_operations_fee.return_value
+
+
+def test_get_stake_weight(subtensor, mocker):
+    """Verify that `get_stake_weight` method calls proper methods and returns the correct value."""
+    # Preps
+    netuid = mocker.Mock()
+    fake_weights = [0, 100, 15000]
+    expected_result = [0.0, 0.0015259021896696422, 0.22888532845044632]
+
+    mock_determine_block_hash = mocker.patch.object(
+        subtensor,
+        "determine_block_hash",
+    )
+    mocked_query = mocker.patch.object(
+        subtensor.substrate,
+        "query",
+        return_value=fake_weights,
+    )
+
+    # Call
+    result = subtensor.get_stake_weight(netuid=netuid)
+
+    # Asserts
+    mock_determine_block_hash.assert_called_once_with(block=None)
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="StakeWeight",
+        params=[netuid],
+        block_hash=mock_determine_block_hash.return_value,
+    )
+    assert result == expected_result
