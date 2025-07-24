@@ -175,6 +175,7 @@ async def transfer_extrinsic(
         wallet=wallet,
         destination=destination,
         amount=amount,
+        keep_alive=keep_alive,
         wait_for_finalization=wait_for_finalization,
         wait_for_inclusion=wait_for_inclusion,
         period=period,
