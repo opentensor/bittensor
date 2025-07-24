@@ -10,6 +10,7 @@ import numpy as np
 import scalecodec
 from async_substrate_interface import AsyncSubstrateInterface
 from async_substrate_interface.substrate_addons import RetryAsyncSubstrate
+from async_substrate_interface.utils.storage import StorageKey
 from bittensor_drand import get_encrypted_commitment
 from bittensor_wallet.utils import SS58_FORMAT
 from numpy.typing import NDArray
@@ -768,7 +769,8 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         return await self.substrate.rpc_request(
             method="state_call",
-            params=[method, data, block_hash] if block_hash else [method, data],
+            params=[method, data],
+            block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
 
@@ -2288,29 +2290,35 @@ class AsyncSubtensor(SubtensorMixin):
             block=block, block_hash=block_hash, reuse_block=reuse_block
         )
 
-        query = self.substrate.query
+        # Fetch global fees and current price
+        fee_global_tao_query_sk = await self.substrate.create_storage_key(
+            pallet="Swap",
+            storage_function="FeeGlobalTao",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+        fee_global_alpha_query_sk = await self.substrate.create_storage_key(
+            pallet="Swap",
+            storage_function="FeeGlobalAlpha",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+        sqrt_price_query_sk = await self.substrate.create_storage_key(
+            pallet="Swap",
+            storage_function="AlphaSqrtPrice",
+            params=[netuid],
+            block_hash=block_hash,
+        )
         (
-            fee_global_tao,
-            fee_global_alpha,
-            sqrt_price,
+            (fee_global_tao_query, fee_global_alpha_query, sqrt_price_query),
             positions_response,
         ) = await asyncio.gather(
-            query(
-                module="Swap",
-                storage_function="FeeGlobalTao",
-                params=[netuid],
-                block_hash=block_hash,
-            ),
-            query(
-                module="Swap",
-                storage_function="FeeGlobalAlpha",
-                params=[netuid],
-                block_hash=block_hash,
-            ),
-            query(
-                module="Swap",
-                storage_function="AlphaSqrtPrice",
-                params=[netuid],
+            self.substrate.query_multi(
+                [
+                    fee_global_tao_query_sk,
+                    fee_global_alpha_query_sk,
+                    sqrt_price_query_sk,
+                ],
                 block_hash=block_hash,
             ),
             self.query_map(
@@ -2321,36 +2329,46 @@ class AsyncSubtensor(SubtensorMixin):
             ),
         )
         # convert to floats
-        fee_global_tao = fixed_to_float(fee_global_tao)
-        fee_global_alpha = fixed_to_float(fee_global_alpha)
-        sqrt_price = fixed_to_float(sqrt_price)
+        fee_global_tao = fixed_to_float(fee_global_tao_query[1])
+        fee_global_alpha = fixed_to_float(fee_global_alpha_query[1])
+        sqrt_price = fixed_to_float(sqrt_price_query[1])
 
         # Fetch global fees and current price
         current_tick = price_to_tick(sqrt_price**2)
 
         # Fetch positions
-        positions = []
+        positions_values: list[tuple[dict, int, int]] = []
+        positions_storage_keys: list[StorageKey] = []
         async for _, p in positions_response:
             position = p.value
 
             tick_low_idx = position.get("tick_low")[0]
             tick_high_idx = position.get("tick_high")[0]
-
-            tick_low, tick_high = await asyncio.gather(
-                query(
-                    module="Swap",
-                    storage_function="Ticks",
-                    params=[netuid, tick_low_idx],
-                    block_hash=block_hash,
-                ),
-                query(
-                    module="Swap",
-                    storage_function="Ticks",
-                    params=[netuid, tick_high_idx],
-                    block_hash=block_hash,
-                ),
+            positions_values.append((position, tick_low_idx, tick_high_idx))
+            tick_low_sk = await self.substrate.create_storage_key(
+                pallet="Swap",
+                storage_function="Ticks",
+                params=[netuid, tick_low_idx],
+                block_hash=block_hash,
             )
+            tick_high_sk = await self.substrate.create_storage_key(
+                pallet="Swap",
+                storage_function="Ticks",
+                params=[netuid, tick_high_idx],
+                block_hash=block_hash,
+            )
+            positions_storage_keys.extend([tick_low_sk, tick_high_sk])
 
+        # query all our ticks at once
+        ticks_query = await self.substrate.query_multi(
+            positions_storage_keys, block_hash=block_hash
+        )
+        # iterator with just the values
+        ticks = iter([x[1] for x in ticks_query])
+        positions = []
+        for position, tick_low_idx, tick_high_idx in positions_values:
+            tick_low = next(ticks)
+            tick_high = next(ticks)
             # Calculate fees above/below range for both tokens
             tao_below = get_fees(
                 current_tick=current_tick,
