@@ -136,9 +136,62 @@ if TYPE_CHECKING:
 class AsyncSubtensor(SubtensorMixin):
     """Asynchronous interface for interacting with the Bittensor blockchain.
 
-    This class provides a thin layer over the Substrate Interface, offering a collection of frequently-used calls for
-    querying blockchain data, managing stakes, registering neurons, and interacting with the Bittensor network.
+    This class provides a comprehensive async interface to the Bittensor network, enabling developers to query
+    blockchain data, manage stakes, register neurons, and interact with subnets. It serves as the primary gateway
+    for building Bittensor applications, validators, miners, and other network participants.
 
+    ## Key Features
+
+    ## Smart management of network connections and exectution threads
+    - Encapsulates network connection to Bittensor blockchain (mainnet/"finney", test, or local)
+    - Works with the Wallet class from bittensor_wallet to manage Bittensor identities and key-pairs
+    - Automatically handles failover to configured backup nodes for reliability
+    - Access historical blockchain data through archive endpoints
+    - Compatible with asyncio.io thread management (see <https://docs.learnbittensor.org/subnets/asyncio/>)
+
+    ### Blockchain Queries
+    - **Balance and Stakes**: Query account balances, stake amounts, and staking relationships
+    - **Network State**: Get current block, subnet information, and network parameters
+    - **Neuron Data**: Access neuron (miner and validator) registration on subnets
+    - **Consensus mechanics** weights, bonds, and consensus scores that determine emissions
+    - **Historical Data**: Query blockchain state at specific blocks or timestamps
+
+    ### TAO and alpha stake Management
+    - **Token Transfers**: Send TAO and other tokens between wallets accounts
+    - **Stake Management**: Add, remove, transfer, and manage stakes
+
+    ### Miner and Validator Operations
+    - **Neuron Registration**: Register as validator or miner on subnets    
+    - **Weight Setting**: Set and reveal weights for Yuma Consensus
+    - **Subnet Operations**: Create subnets, manage identities, and configure parameters
+    - **Commit-Reveal**: Participate in secure weight setting mechanisms
+    - **Certificate Management**: Handle TLS certificates for secure neuron communication
+
+    ### Liquidity Positions
+    - **Liquidity Positions (Uniswap)**: Add/remove liquidity positions for subnet tokens
+    - **Fee Calculations**: Estimate transaction fees and network costs
+    - **Delegate Operations**: Manage delegate relationships and take percentages
+
+    ### Governance
+    
+    Create and vote on proposals (must meet Senate requirements).
+
+    ## Usage Patterns
+
+    ### Basic Connection
+    ```python
+    import bittensor as bt
+    
+    # Context manager (recommended)
+    async with bt.AsyncSubtensor(network="finney") as subtensor:
+        balance = await subtensor.get_balance("5F...")
+    
+    # Manual initialization
+    subtensor = bt.AsyncSubtensor(network="finney")
+    await subtensor.initialize()
+    # ... use subtensor
+    await subtensor.close()
+    ```
 
     """
 
@@ -153,7 +206,9 @@ class AsyncSubtensor(SubtensorMixin):
         archive_endpoints: Optional[list[str]] = None,
         websocket_shutdown_timer: float = 5.0,
     ):
-        """Initializes an AsyncSubtensor instance for blockchain interaction.
+        """Initializes an AsyncSubtensor instance
+
+        Use this to create and configure a client object for blockchain interaction.
 
         Arguments:
             network: The network name or type to connect to (e.g., "finney", "test"). If ``None``, uses the default
@@ -187,6 +242,7 @@ class AsyncSubtensor(SubtensorMixin):
                     block_hash = await subtensor.get_block_hash()
 
             asyncio.run(main())
+
         """
         if config is None:
             config = AsyncSubtensor.config()
@@ -217,8 +273,7 @@ class AsyncSubtensor(SubtensorMixin):
     async def close(self):
         """Closes the connection to the blockchain.
 
-        Use this to explicitly clean up resources and close the network connection instead of waiting for garbage
-        collection.
+        Use this to explicitly terminate and clean up the resources and network connection, instead of waiting for garbage collection.
 
         Returns:
             None
@@ -232,6 +287,7 @@ class AsyncSubtensor(SubtensorMixin):
 
             # Close when done
             await subtensor.close()
+
         """
         if self.substrate:
             await self.substrate.close()
@@ -239,7 +295,7 @@ class AsyncSubtensor(SubtensorMixin):
     async def initialize(self):
         """Initializes the connection to the blockchain.
 
-        This method establishes the connection to the Bittensor blockchain and should be called after creating an
+        This method opens the connection to the Bittensor blockchain and should be called after creating an
         AsyncSubtensor instance before making any queries.
 
         Returns:
@@ -259,6 +315,7 @@ class AsyncSubtensor(SubtensorMixin):
 
             # Or chain the initialization
             subtensor = await AsyncSubtensor(network="finney").initialize()
+
         """
         logging.info(
             f"[magenta]Connecting to Substrate:[/magenta] [blue]{self}[/blue][magenta]...[/magenta]"
@@ -326,13 +383,17 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example:
             # Get hash for specific block
+            
             block_hash = await subtensor.determine_block_hash(block=1000000)
 
             # Use provided block hash
+            
             hash = await subtensor.determine_block_hash(block_hash="0x1234...")
 
             # Reuse last block hash
+            
             hash = await subtensor.determine_block_hash(reuse_block=True)
+
         """
         # Ensure that only one of the parameters is specified.
         if sum(bool(x) for x in [block, block_hash, reuse_block]) > 1:
@@ -371,6 +432,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example:
             # Define parameter types
+            
             call_def = {
                 "params": [
                     {"name": "amount", "type": "u64"},
@@ -379,6 +441,7 @@ class AsyncSubtensor(SubtensorMixin):
             }
 
             # Encode parameters as a dictionary
+            
             params_dict = {
                 "amount": 1000000,
                 "coldkey_ss58": "5F..."
@@ -386,8 +449,17 @@ class AsyncSubtensor(SubtensorMixin):
             encoded = await subtensor.encode_params(call_definition=call_def, params=params_dict)
 
             # Or encode as a list (positional)
+            
             params_list = [1000000, "5F..."]
             encoded = await subtensor.encode_params(call_definition=call_def, params=params_list)
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain when and why users would need to encode parameters manually
+        # TODO: Add context about Scale codec and Substrate parameter encoding
+        # TODO: Provide more practical examples related to staking, registration, etc.
+        # TODO: Explain relationship to extrinsic creation and signing
+        # TODO: Add guidance on common parameter types and their encoding
+        # TODO: Mention this is typically handled internally by higher-level methods
         """
         param_data = scalecodec.ScaleBytes(b"")
 
@@ -411,6 +483,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[Any]:
+
         """Retrieves a specified hyperparameter for a specific subnet.
 
         This method queries the blockchain for subnet-specific hyperparameters such as difficulty, tempo, immunity
@@ -429,13 +502,20 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example:
             # Get difficulty for subnet 1
+            
             difficulty = await subtensor.get_hyperparameter(param_name="Difficulty", netuid=1)
 
             # Get tempo at a specific block
+            
             tempo = await subtensor.get_hyperparameter(param_name="Tempo", netuid=1, block=1000000)
 
             # Get immunity period using block hash
+
             immunity = await subtensor.get_hyperparameter(param_name="ImmunityPeriod", netuid=1, block_hash="0x1234...")
+
+        Notes:
+            - See <https://docs.learnbittensor.org/glossary#validator-miner-bonds>
+
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not await self.subnet_exists(
@@ -535,6 +615,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example:
             # Get existential deposit constant
+            
             existential_deposit = await subtensor.query_constant(
                 module_name="Balances",
                 constant_name="ExistentialDeposit"
@@ -546,6 +627,15 @@ class AsyncSubtensor(SubtensorMixin):
                 constant_name="SomeConstant",
                 block=1000000
             )
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: List commonly used modules and their important constants...
+        # TODO: Explain the difference between constants and storage items
+        # TODO: Add practical examples of how constants are used in practice (fee calculation, limits, etc.)
+        # TODO: Note blockchain-level vs subnet-level constants?
+        # TODO: Add guidance on when to use this vs higher-level methods
+        # TODO: Mention that constants don't change often and can be cached?
+
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         return await self.substrate.get_constant(
@@ -584,10 +674,18 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example:
             # Query bonds for subnet 1
+            
             bonds = await subtensor.query_map(module="SubtensorModule", name="Bonds", params=[1])
 
             # Query weights at specific block
             weights = await subtensor.query_map(module="SubtensorModule", name="Weights", params=[1], block=1000000)
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain what map storage is and how it differs from single value storage
+        # TODO: List common map storage items and their purposes
+        # TODO: Add examples of filtering and processing map results        
+        # TODO: Mention when to use this vs higher-level methods like bonds() or weights()
+
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query_map(
@@ -624,6 +722,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         This function is particularly useful for analyzing and understanding complex network structures and
         relationships within the Bittensor ecosystem, such as interneuronal connections and stake distributions.
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: List common SubtensorModule map storage functions (Bonds, Weights, Stakes, etc.)
+        # TODO: Explain the difference between this and the general query_map method
+        # TODO: Add practical examples of querying specific neuron/network data
+        # TODO: Explain when to use this vs higher-level methods like get_stake()
+        # TODO: Show how to iterate through map results and extract useful information
+        # TODO: Add guidance on performance considerations for large subnet maps
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         return await self.substrate.query_map(
@@ -644,8 +750,9 @@ class AsyncSubtensor(SubtensorMixin):
         params: Optional[list] = None,
     ) -> Optional[Union["ScaleObj", Any]]:
         """Queries any module storage on the Bittensor blockchain with the specified parameters and block number.
-        This function is a generic query interface that allows for flexible and diverse data retrieval from various
-        blockchain modules.
+
+        This function provides a generic, low-level interface for querying storage from any blockchain module. It's the
+        foundation for higher-level query methods and offers maximum flexibility for accessing blockchain data.
 
         Arguments:
             module: The name of the module from which to query data.
@@ -659,8 +766,84 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             An object containing the requested data if found, ``None`` otherwise.
 
-        This versatile query function is key to accessing a wide range of data and insights from different parts of the
-        Bittensor blockchain, enhancing the understanding and analysis of the network's state and dynamics.
+        Available modules in subtensor runtime (from construct_runtime! macro):
+            - System (frame_system) - Basic blockchain functionality and account management
+            - RandomnessCollectiveFlip (pallet_insecure_randomness_collective_flip) - Basic randomness
+            - Timestamp (pallet_timestamp) - Block timestamp functionality
+            - Aura (pallet_aura) - Block authoring consensus
+            - Grandpa (pallet_grandpa) - Block finality consensus
+            - Balances (pallet_balances) - Account balances and transfers
+            - TransactionPayment (pallet_transaction_payment) - Transaction fee handling
+            - SubtensorModule (pallet_subtensor) - Core Bittensor functionality (neurons, subnets, consensus)
+            - Triumvirate (pallet_collective) - Governance collective for network decisions
+            - TriumvirateMembers (pallet_membership) - Triumvirate membership management
+            - SenateMembers (pallet_membership) - Senate membership management
+            - Utility (pallet_utility) - Batch operations and utility functions
+            - Sudo (pallet_sudo) - Superuser operations for development/emergency
+            - Multisig (pallet_multisig) - Multi-signature account operations
+            - Preimage (pallet_preimage) - On-chain preimage storage for governance
+            - Scheduler (pallet_scheduler) - Scheduled calls and delayed execution
+            - Proxy (pallet_proxy) - Proxy accounts and delegated operations
+            - Registry (pallet_registry) - Identity registration and management
+            - Commitments (pallet_commitments) - Commit-reveal mechanism for secure operations
+            - AdminUtils (pallet_admin_utils) - Administrative functions and network management
+            - SafeMode (pallet_safe_mode) - Emergency network protection mechanisms
+            - Ethereum (pallet_ethereum) - Ethereum compatibility layer
+            - EVM (pallet_evm) - Ethereum Virtual Machine support
+            - EVMChainId (pallet_evm_chain_id) - EVM chain identifier management
+            - BaseFee (pallet_base_fee) - EIP-1559 base fee mechanism
+            - Drand (pallet_drand) - Distributed randomness beacon integration
+            - Crowdloan (pallet_crowdloan) - Crowdfunding functionality
+            - Swap (pallet_subtensor_swap) - Liquidity provision and alpha token swapping
+
+        **When to Use This Method:**
+        - Accessing storage functions not covered by higher-level methods
+        - Debugging or development requiring direct blockchain access
+        - Custom applications needing specific storage data
+        - Querying new or experimental storage items
+
+        ## Examples:
+
+        ```python
+        # Query account balance (prefer get_balance() for production)
+        balance_data = await subtensor.query_module(
+            module="System",
+            name="Account",
+            params=["5F..."]
+        )
+
+        # Query neuron owner (prefer get_hotkey_owner() for production)
+        owner = await subtensor.query_module(
+            module="SubtensorModule",
+            name="Owner",
+            params=["5G..."]
+        )
+
+        # Query subnet bonds (prefer bonds() for production)
+        bonds_data = await subtensor.query_module(
+            module="SubtensorModule",
+            name="Bonds",
+            params=[1]  # netuid
+        )
+
+        # Query commit-reveal data
+        commitment = await subtensor.query_module(
+            module="Commitments",
+            name="CommitmentOf",
+            params=[1, "5H..."]  # netuid, hotkey
+        )
+
+        # Query liquidity position
+        position = await subtensor.query_module(
+            module="Swap",
+            name="Positions",
+            params=[1, "5J...", 0]  # netuid, account, position_id
+        )
+        ```
+
+        # DOCSTRING HELPFULNESS RATING: 9/10
+        # Is this too much??
+        # Needs fact checking
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         return await self.substrate.query(
@@ -698,6 +881,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         This function enables access to the deeper layers of the Bittensor blockchain, allowing for detailed and
         specific interactions with the network's runtime environment.
+
+        # DOCSTRING HELPFULNESS RATING: 4/10
+        # TODO: List available runtime APIs and their purposes (SubnetInfoRuntimeApi, DelegateInfoRuntimeApi, etc.)
+        # TODO: Explain what runtime APIs are and how they differ from storage queries
+        # TODO: Add practical examples of runtime API usage
+        # TODO: Explain when to use runtime APIs vs regular storage queries
+        # TODO: Add guidance on parameter formatting and return value handling
+        # TODO: Mention that most users should use higher-level methods instead
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not block_hash and reuse_block:
@@ -732,6 +923,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         This query function is essential for accessing detailed information about the network and its neurons, providing
         valuable insights into the state and dynamics of the Bittensor ecosystem.
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: List common SubtensorModule storage functions (Bonds, Weights, Stakes, Rank, etc.)
+        # TODO: Explain the difference between this and query_module()
+        # TODO: Add practical examples of querying neuron-specific data
+        # TODO: Explain when to use this vs higher-level methods like get_stake()
+        # TODO: Show how to interpret returned ScaleObj values
+        # TODO: Add guidance on parameter formatting for different storage functions
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         return await self.substrate.query(
@@ -766,6 +965,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         The state call function provides a more direct and flexible way of querying blockchain data, useful for specific
         use cases where standard queries are insufficient.
+
+        # DOCSTRING HELPFULNESS RATING: 4/10
+        # TODO: List common state call methods and their purposes
+        # TODO: Explain what types of data are typically passed to state calls
+        # TODO: Add practical examples of when state calls are needed
+        # TODO: Explain the difference between state calls and regular storage queries
+        # TODO: Add guidance on data formatting and encoding requirements
+        # TODO: Mention that most users should use higher-level methods instead
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         return await self.substrate.rpc_request(
@@ -779,7 +986,16 @@ class AsyncSubtensor(SubtensorMixin):
 
     @property
     async def block(self):
-        """Provides an asynchronous property to retrieve the current block."""
+        """Provides an asynchronous property to retrieve the current block.
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain what "current block" means in blockchain context
+        # TODO: Add information about block timing (12-second intervals)
+        # TODO: Show examples of how to use current block for timing operations
+        # TODO: Explain relationship to epoch timing and tempo calculations
+        # TODO: Add guidance on when to use this vs get_current_block()
+        # TODO: Mention that blocks are irreversible after finalization
+        """
         return await self.get_current_block()
 
     async def all_subnets(
@@ -788,8 +1004,8 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[list[DynamicInfo]]:
-        """Queries the blockchain for comprehensive information about all subnets, including their dynamic parameters
-        and operational status.
+        """Retrieve subnet information, including owner identity, hyperparameter configuration, and current tokenomic
+        data including token price, liquidity reserves, and emissions.
 
         Arguments:
             block_number: The block number to query the subnet information from. Do not specify if using block_hash or
@@ -804,7 +1020,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example:
             # Get all subnets at current block
+            
             subnets = await subtensor.all_subnets()
+
         """
         block_hash = await self.determine_block_hash(
             block=block_number, block_hash=block_hash, reuse_block=reuse_block
@@ -842,8 +1060,8 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[int]:
-        """Queries the blockchain to determine how many blocks have passed since the last epoch step for a specific
-        subnet.
+        """Queries the blockchain to determine how many blocks have passed since the end of the last epoch for a
+        specific subnet. The epoch 
 
         Arguments:
             netuid: The unique identifier of the subnetwork.
@@ -857,10 +1075,17 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example:
             # Get blocks since last step for subnet 1
+
             blocks = await subtensor.blocks_since_last_step(netuid=1)
 
-            # Get blocks since last step at specific block
-            blocks = await subtensor.blocks_since_last_step(netuid=1, block=1000000)
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Explain what an "epoch step" is and why it matters
+        # TODO: Add context about tempo and the 360-block epoch cycle
+        # TODO: Show how to calculate time until next epoch based on this value
+        # TODO: Explain relationship to emissions and weight updates
+        # TODO: Add example of monitoring subnet timing for validators
+        # TODO: Clarify difference between steps and regular block progression
+
         """
         query = await self.query_subtensor(
             name="BlocksSinceLastStep",
@@ -883,10 +1108,18 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example:
             # Get blocks since last update for UID 5 in subnet 1
-            blocks = await subtensor.blocks_since_last_update(netuid=1, uid=5)
+            
 
-            # Check if neuron needs updating
             blocks_since_update = await subtensor.blocks_since_last_update(netuid=1, uid=10)
+
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Explain what constitutes a "last update" for a neuron
+        # TODO: Add context about weight updates and neuron activity
+        # TODO: Show how to use this for monitoring neuron health
+        # TODO: Explain relationship to immunity periods and network participation
+        # TODO: Add examples of how validators use this information
+        # TODO: Clarify the difference between this and blocks_since_last_step
+
         """
         call = await self.get_hyperparameter(param_name="LastUpdate", netuid=netuid)
         return None if call is None else await self.get_current_block() - int(call[uid])
@@ -914,12 +1147,14 @@ class AsyncSubtensor(SubtensorMixin):
             List of tuples mapping each neuron's UID to its bonds with other neurons.
 
         Example:
-            # Get bonds for subnet 1 at block 1000000
-            bonds = await subtensor.bonds(netuid=1, block=1000000)
+            # Get bonds for subnet 1
+            
+            bonds = await subtensor.bonds(netuid=1)
 
         Notes:
             - See <https://docs.learnbittensor.org/glossary#validator-miner-bonds>
             - See <https://docs.learnbittensor.org/glossary#yuma-consensus>
+
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         b_map_encoded = await self.substrate.query_map(
@@ -956,13 +1191,15 @@ class AsyncSubtensor(SubtensorMixin):
             bool: True if the commit was successful, False otherwise.
 
         Example:
-            # Commit some data to subnet 1
             success = await subtensor.commit(wallet=my_wallet, netuid=1, data="Hello Bittensor!")
 
-            # Commit with custom period
-            success = await subtensor.commit(wallet=my_wallet, netuid=1, data="Model update v2.0", period=100)
 
         Note: See <https://docs.learnbittensor.org/glossary#commit-reveal>
+
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Explain what kinds of data are typically committed and why
+        # TODO: Add guidance/limits on data size and formatting        
+
         """
         return await publish_metadata(
             subtensor=self,
@@ -998,13 +1235,12 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example:
             # Check if commit-reveal is enabled for subnet 1
+            
             enabled = await subtensor.commit_reveal_enabled(netuid=1)
-
-            # Check at specific block
-            enabled = await subtensor.commit_reveal_enabled(netuid=1, block=1000000)
 
         Notes:
             See also: <https://docs.learnbittensor.org/glossary#commit-reveal>
+
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
@@ -1022,12 +1258,9 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[int]:
-        """Retrieves the 'Difficulty' hyperparameter for a specified subnet in the Bittensor network.
+        """Retrieves the ``Difficulty`` hyperparameter for a specified subnet in the Bittensor network.
 
-        This parameter determines the computational challenge required for neurons to participate in consensus and
-         validation processes. The difficulty directly impacts the network's security and integrity by setting the
-         computational effort required for validating transactions and participating in the network's consensus
-         mechanism.
+        This parameter determines the computational challenge required for POW neuron registration.
 
         Arguments:
             netuid: The unique identifier of the subnet.
@@ -1037,17 +1270,20 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
 
         Returns:
-            Optional[int]: The value of the 'Difficulty' hyperparameter if the subnet exists, None otherwise.
+            Optional[int]: The value of the ``Difficulty`` hyperparameter if the subnet exists, None otherwise.
 
         Example:
             # Get difficulty for subnet 1
+            
             difficulty = await subtensor.difficulty(netuid=1)
-
-            # Get difficulty at specific block
-            difficulty = await subtensor.difficulty(netuid=1, block=1000000)
 
         Notes:
             See also: <https://docs.learnbittensor.org/glossary#difficulty>
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain what difficulty values mean in practical terms
+        # Does anyone use POW registration? I heard it's not really in use.
+
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
@@ -1067,7 +1303,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> bool:
-        """Returns true if the hotkey is known by the chain and there are accounts.
+        """Returns true if the hotkey is known by the chain and there are accounts, false otherwise.
 
         This method queries the SubtensorModule's Owner storage function to determine if the hotkey is registered.
 
@@ -1083,10 +1319,11 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example:
             # Check if hotkey exists
-            exists = await subtensor.does_hotkey_exist(hotkey_ss58="5F...")
+            
+            exists = await subtensor.does_hotkey_exist(hotkey_ss58=hotkey)
+            if exists:
+                # logic that depends on existinece of hotkey            
 
-            # Check at specific block
-            exists = await subtensor.does_hotkey_exist(hotkey_ss58="5F...", block=1000000)
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query(
@@ -1112,8 +1349,25 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> list["SubnetInfo"]:
         """Retrieves detailed information about all subnets within the Bittensor network.
 
-        This function provides comprehensive data on each subnet, including its characteristics and operational
-        parameters.
+        This function provides comprehensive info (SubnetInfo object) for each subnet, including:
+        - netuid
+        - rho
+        - kappa
+        - difficulty
+        - immunity_period
+        - max_allowed_validators
+        - min_allowed_weights
+        - max_weight_limit
+        - scaling_law_power
+        - subnetwork_n
+        - max_n
+        - blocks_since_epoch
+        - tempo
+        - modality
+        - connection_requirements
+        - emission_value
+        - burn
+        - owner_ss58
 
         Arguments:
             block: The block number for the query.
@@ -1125,10 +1379,8 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example:
             # Get all subnet information
+            
             subnets = await subtensor.get_all_subnets_info()
-
-            # Get at specific block
-            subnets = await subtensor.get_all_subnets_info(block=1000000)
 
             # Iterate over subnet information
             for subnet in subnets:
@@ -1175,7 +1427,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Balance:
-        """Retrieves the balance for given coldkey.
+        """Retrieves the balance for the given coldkey.
 
         This method queries the System module's Account storage to get the current balance of a coldkey address. The
         balance represents the amount of TAO tokens held by the specified address.
@@ -1191,11 +1443,10 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example:
             # Get balance for an address
+            
             balance = await subtensor.get_balance(address="5F...")
             print(f"Balance: {balance.tao} TAO")
 
-            # Get balance at specific block
-            balance = await subtensor.get_balance(address="5F...", block=1000000)
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         balance = await self.substrate.query(
@@ -1214,11 +1465,10 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> dict[str, Balance]:
-        """Retrieves the balance for given coldkey(s).
+        """Retrieves the balances for a list of coldkeys.
 
-        This method efficiently queries multiple coldkey addresses in a single batch operation, returning a dictionary
-        mapping each address to its corresponding balance. This is more efficient than calling get_balance multiple
-        times.
+        Use to efficiently batch balance fetches for many coldkeys in a single query, returning a dictionary
+        mapping each address to its corresponding balance.
 
         Arguments:
             *addresses: Variable number of coldkey addresses in SS58 format.
@@ -1231,6 +1481,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example:
             # Get balances for multiple addresses
+            
             balances = await subtensor.get_balances("5F...", "5G...", "5H...")
         """
         if reuse_block:
@@ -1257,38 +1508,48 @@ class AsyncSubtensor(SubtensorMixin):
     async def get_current_block(self) -> int:
         """Returns the current block number on the Bittensor blockchain.
 
-        This function provides the latest block number, indicating the most recent state of the blockchain. Knowing
-        the current block number is essential for querying real-time data and performing time-sensitive operations on
-        the blockchain. It serves as a reference point for network activities and data synchronization.
+        This function provides the latest block number, indicating the most recent state of the blockchain.
 
         Returns:
             int: The current chain block number.
 
         Example:
-            # Get current block number
-            current_block = await subtensor.get_current_block()
-            print(f"Current block: {current_block}")
-
-            block = await subtensor.get_current_block()
-            if block > 1000000:
-                print("Network has progressed past block 1M")
-
+            # Get current block number for test
+            async with bt.AsyncSubtensor(network="test") as subtensor:
+                current_block = await subtensor.get_current_block()
+                print(f"Current block: {current_block}")
+    
+            # Get current block number for main net
+            async with bt.AsyncSubtensor(network="finney") as subtensor:
+                current_block = await subtensor.get_current_block()
+                print(f"Current block: {current_block}")
         Notes:
             See also: <https://docs.learnbittensor.org/glossary#block>
+
         """
         return await self.substrate.get_block_number(None)
 
     @a.lru_cache(maxsize=128)
     async def _get_block_hash(self, block_id: int):
+        """Internal method to get block hash with caching.
+
+        This method is used internally by get_block_hash() to provide caching for block hash lookups.
+
+        Arguments:
+            block_id: The block number to get the hash for.
+
+        Returns:
+            str: The block hash for the specified block.
+
+        
+        """
         return await self.substrate.get_block_hash(block_id)
 
     async def get_block_hash(self, block: Optional[int] = None) -> str:
         """Retrieves the hash of a specific block on the Bittensor blockchain.
 
         The block hash is a unique identifier representing the cryptographic hash of the block's content, ensuring its
-        integrity and immutability. It is a fundamental aspect of blockchain technology, providing a secure reference
-        to each block's data. It is crucial for verifying transactions, ensuring data consistency, and maintaining the
-        trustworthiness of the blockchain.
+        integrity and immutability. It is crucial for verifying transactions, ensuring data consistency, and maintaining the trustworthiness of the blockchain.
 
         Arguments:
             block: The block number for which the hash is to be retrieved. If ``None``, returns the latest block hash.
@@ -1298,15 +1559,15 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example:
             # Get hash for specific block
+            
             block_hash = await subtensor.get_block_hash(block=1000000)
             print(f"Block 1000000 hash: {block_hash}")
 
-            # Get latest block hash
-            latest_hash = await subtensor.get_block_hash()
-            print(f"Latest block hash: {latest_hash}")
-
         Notes:
             See also: <https://docs.learnbittensor.org/glossary#block>
+
+        # DOCSTRING HELPFULNESS RATING: 7/10
+        # TODO: Show how to verify block hash authenticity
         """
         if block:
             return await self._get_block_hash(block)
@@ -1321,8 +1582,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> list[tuple[float, str]]:
-        """This method retrieves the parent of a given hotkey and netuid. It queries the SubtensorModule's ParentKeys
-        storage function to get the children and formats them before returning as a tuple.
+        """Retrieves the parent of a given hotkey on a specific netuid.
 
         Arguments:
             hotkey: The child hotkey SS58.
@@ -1333,6 +1593,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             A list of formatted parents [(proportion, parent)]
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain what parent-child relationships mean in Bittensor context
+        # TODO: Add examples of how to interpret proportion values
+        # TODO: Show how parent relationships affect weight distribution
+        # TODO: Explain the difference between parents and children in validator networks
+        # TODO: Add guidance on when to query parent vs child relationships
+        # TODO: Show how to analyze parent-child network topology
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         parents = await self.substrate.query(
@@ -1380,11 +1648,20 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example:
             # Get children for a hotkey in subnet 1
+            
             success, children, error = await subtensor.get_children(hotkey="5F...", netuid=1)
 
             if success:
                 for proportion, child_hotkey in children:
                     print(f"Child {child_hotkey}: {proportion}")
+
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Explain what child neurons are and how they relate to validators
+        # TODO: Add examples of analyzing child distribution patterns
+        # TODO: Show how child proportions affect validator rewards
+        # TODO: Explain the error handling and when failures occur
+        # TODO: Add guidance on interpreting the success/failure return values
+        # TODO: Show how to use this for validator performance analysis
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         try:
@@ -1434,6 +1711,14 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             list[tuple[float, str]]: A list of children with their proportions.
             int: The cool-down block number.
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain what pending children are and why they exist
+        # TODO: Add examples of how cooldown periods work
+        # TODO: Show how to interpret cooldown block numbers
+        # TODO: Explain the difference between pending and active children
+        # TODO: Add guidance on when to check pending vs active children
+        # TODO: Show how to calculate time until children become active
         """
 
         response = await self.substrate.query(
@@ -1486,15 +1771,18 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example:
             # Get commitment for UID 5 in subnet 1
+            
             commitment = await subtensor.get_commitment(netuid=1, uid=5)
             print(f"Commitment: {commitment}")
 
-            # Get commitment at specific block
-            commitment = await subtensor.get_commitment(
-                netuid=1,
-                uid=5,
-                block=1000000
-            )
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Explain what commitments are and how they're used in commit-reveal
+        # TODO: Add examples of how to decode and interpret commitment data
+        # TODO: Show how commitments relate to weight setting and consensus
+        # TODO: Explain the relationship between commitments and reveals
+        # TODO: Add guidance on when to check commitments vs reveals
+        # TODO: Show how to use commitments for network analysis
+
         """
         metagraph = await self.metagraph(netuid)
         try:
@@ -1525,6 +1813,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             Optional[int]: The block number when the bonds were last reset, or None if not found.
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain what bond resets are and when they occur
+        # TODO: Add examples of how to use this for monitoring neuron activity
+        # TODO: Show how to calculate time since last bond reset
+        # TODO: Explain the relationship between bond resets and network participation
+        # TODO: Add guidance on interpreting bond reset patterns
+        # TODO: Show how to use this for validator analysis
         """
 
         metagraph = await self.metagraph(netuid)
@@ -1565,11 +1861,20 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example:
             # Get all commitments for subnet 1
+            
             commitments = await subtensor.get_all_commitments(netuid=1)
 
             # Iterate over all commitments
             for hotkey, commitment in commitments.items():
                 print(f"Hotkey {hotkey}: {commitment}")
+
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Explain how to analyze commitment patterns across a subnet
+        # TODO: Add examples of commitment analysis for network health monitoring
+        # TODO: Show how to identify neurons with missing or invalid commitments
+        # TODO: Explain the relationship between commitments and subnet consensus
+        # TODO: Add guidance on when to check all commitments vs individual ones
+        # TODO: Show how to use this for validator performance analysis
         """
         query = await self.query_map(
             module="Commitments",
@@ -1603,6 +1908,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             result (tuple[int, str): A tuple of reveal block and commitment message.
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain what revealed commitments are and how they differ from regular commitments
+        # TODO: Add examples of how to interpret reveal block numbers
+        # TODO: Show how to analyze reveal timing patterns
+        # TODO: Explain the relationship between reveals and weight setting
+        # TODO: Add guidance on when to check reveals vs commitments
+        # TODO: Show how to use this for commit-reveal analysis
         """
         if not is_valid_ss58_address(address=hotkey_ss58_address):
             raise ValueError(f"Invalid ss58 address {hotkey_ss58_address} provided.")
@@ -1638,6 +1951,14 @@ class AsyncSubtensor(SubtensorMixin):
         Example of result:
             ( (12, "Alice message 1"), (152, "Alice message 2") )
             ( (12, "Bob message 1"), (147, "Bob message 2") )
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain how to interpret the tuple structure (block, message)
+        # TODO: Add examples of analyzing multiple reveals for a single neuron
+        # TODO: Show how to track reveal history over time
+        # TODO: Explain the relationship between reveal blocks and network timing
+        # TODO: Add guidance on when reveals are expected vs unexpected
+        # TODO: Show how to use this for validator behavior analysis
         """
         try:
             meta_info = await self.get_metagraph_info(netuid, block=block)
@@ -1792,6 +2113,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         This function is essential for understanding the roles and influence of delegate neurons within the Bittensor
         network's consensus and governance structures.
+
+        # DOCSTRING HELPFULNESS RATING: 7/10
+        # TODO: Explain what delegate neurons are and their role in the network
+        # TODO: Add examples of how to analyze delegate performance and influence
+        # TODO: Show how to use DelegateInfo objects for decision making
+        # TODO: Explain the relationship between delegates and nominators
+        # TODO: Add guidance on evaluating delegate take percentages
+        # TODO: Show how to compare delegates across different metrics
         """
 
         result = await self.query_runtime_api(
@@ -1825,6 +2154,13 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             Dict {ss58: ChainIdentity, ...}
 
+        # DOCSTRING HELPFULNESS RATING: 5/10 !!!
+        # TODO: Explain what delegate identities contain and how to use them
+        # TODO: Add examples of analyzing delegate identity information
+        # TODO: Show how to use ChainIdentity objects for delegate evaluation
+        # TODO: Explain the relationship between identities and delegate selection
+        # TODO: Add guidance on interpreting identity data for decision making
+        # TODO: Show how to filter and sort delegates by identity attributes
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         identities = await self.substrate.query_map(
@@ -2024,6 +2360,19 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             Balance: The minimum required stake as a Balance object.
+
+
+        Raises:
+            Exception: If the substrate call fails after the maximum number of retries.
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain what minimum required stake means for nominators
+        # TODO: Add guidance on how this value is determined and when it changes
+        # TODO: Show how to use this value for staking decisions
+        # TODO: Explain the relationship to network security and participation
+        # TODO: Add tips for handling errors and retries
+        # TODO: Show how to monitor changes in minimum required stake
+
         """
         result = await self.substrate.query(
             module="SubtensorModule", storage_function="NominatorMinRequiredStake"
@@ -2064,7 +2413,7 @@ class AsyncSubtensor(SubtensorMixin):
             meta_info = await subtensor.get_metagraph_info(netuid=2)
 
             partial_meta_info = await subtensor.get_metagraph_info(
-                netuid=2,
+                netuid=3,
                 field_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
             )
 
@@ -2072,6 +2421,7 @@ class AsyncSubtensor(SubtensorMixin):
             See also:
             - <https://docs.learnbittensor.org/glossary#metagraph>
             - <https://docs.learnbittensor.org/glossary#emission>
+
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not block_hash and reuse_block:
@@ -2150,6 +2500,7 @@ class AsyncSubtensor(SubtensorMixin):
         reuse_block: bool = False,
     ) -> list[int]:
         """
+        !!!
         Retrieves a list of subnet UIDs (netuids) for which a given hotkey is a member. This function identifies the
         specific subnets within the Bittensor network where the neuron associated with the hotkey is active.
 
@@ -2161,6 +2512,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             A list of netuids where the neuron is a member.
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain what it means for a hotkey to be a member of a subnet
+        # TODO: Add guidance on how to use this for network analysis
+        # TODO: Show how to interpret the returned netuid list
+        # TODO: Explain the relationship to neuron registration and participation
+        # TODO: Add tips for handling empty or large results
+        # TODO: Show how to use this for monitoring neuron activity across subnets
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query_map(
@@ -2188,7 +2547,7 @@ class AsyncSubtensor(SubtensorMixin):
         """
         Retrieves the TLS certificate for a specific neuron identified by its unique identifier (UID) within a
         specified subnet (netuid) of the Bittensor network.
-
+!!!
         Arguments:
             hotkey: The hotkey to query.
             netuid: The unique identifier of the subnet.
@@ -2201,6 +2560,14 @@ class AsyncSubtensor(SubtensorMixin):
             the certificate of the neuron if found, ``None`` otherwise.
 
         This function is used for certificate discovery for setting up mutual tls communication between neurons.
+
+        # DOCSTRING HELPFULNESS RATING: 4/10
+        # TODO: Explain what neuron certificates are and why they're needed
+        # TODO: Add guidance on how certificates are used for secure communication
+        # TODO: Show how to handle missing or invalid certificates
+        # TODO: Explain the relationship to mutual TLS and network security
+        # TODO: Add tips for troubleshooting certificate issues
+        # TODO: Show how to update or rotate certificates
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         certificate = cast(
@@ -2242,6 +2609,14 @@ class AsyncSubtensor(SubtensorMixin):
             {ss58: Certificate} for the key/Certificate pairs on the subnet
 
         This function is used for certificate discovery for setting up mutual tls communication between neurons.
+
+        # DOCSTRING HELPFULNESS RATING: 4/10
+        # TODO: Explain how to use the returned certificate dictionary
+        # TODO: Add guidance on bulk certificate management
+        # TODO: Show how to verify certificate authenticity
+        # TODO: Explain the relationship to network-wide security
+        # TODO: Add tips for handling missing or invalid certificates
+        # TODO: Show how to monitor certificate expiration and renewal
         """
         query_certificates = await self.query_map(
             module="SubtensorModule",
@@ -2278,6 +2653,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             List of liquidity positions, or None if subnet does not exist.
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain what liquidity positions are in the context of Bittensor
+        # TODO: Add guidance on interpreting the returned LiquidityPosition objects
+        # TODO: Show how to use this for managing and optimizing liquidity
+        # TODO: Explain the relationship to fee rewards and subnet economics
+        # TODO: Add tips for troubleshooting missing or incomplete positions
+        # TODO: Show how to analyze liquidity across multiple subnets
         """
         if not await self.subnet_exists(netuid=netuid):
             logging.debug(f"Subnet {netuid} does not exist.")
@@ -2466,6 +2849,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         This function is crucial for accessing specific neuron data and understanding its status, stake, and other
         attributes within a particular subnet of the Bittensor ecosystem.
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain what information NeuronInfo provides and how to use it
+        # TODO: Add guidance on interpreting neuron status and attributes
+        # TODO: Show how to use this for subnet-specific analysis
+        # TODO: Explain the relationship to neuron registration and participation
+        # TODO: Add tips for handling missing or null neurons
+        # TODO: Show how to use this for monitoring neuron health and activity
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         uid_query = await self.substrate.query(
@@ -2510,6 +2901,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         Notes:
             See also: <https://docs.learnbittensor.org/glossary#tempo>
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain what an epoch is and why next epoch start matters
+        # TODO: Add guidance on using this for validator/miner scheduling
+        # TODO: Show how to calculate time until next epoch
+        # TODO: Explain the relationship to tempo and epoch length
+        # TODO: Add tips for handling edge cases (e.g., tempo changes)
+        # TODO: Show how to use this for monitoring network timing
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         blocks_since_last_step = await self.blocks_since_last_step(
@@ -2541,6 +2940,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             list[str]: A list of hotkey SS58 addresses owned by the coldkey.
+
+        # DOCSTRING HELPFULNESS RATING: 4/10
+        # TODO: Explain what it means to own a hotkey in Bittensor
+        # TODO: Add guidance on using this for wallet/account management
+        # TODO: Show how to handle empty or large hotkey lists
+        # TODO: Explain the relationship to coldkey-hotkey security
+        # TODO: Add tips for troubleshooting missing hotkeys
+        # TODO: Show how to use this for monitoring account activity
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         owned_hotkeys = await self.substrate.query(
@@ -2576,6 +2983,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             Balance: The stake under the coldkey - hotkey pairing.
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain what staking means in the context of Bittensor subnets
+        # TODO: Add examples showing how to check staking relationships
+        # TODO: Explain the difference between alpha and TAO stake
+        # TODO: Show how stake relates to validator permits and voting power
+        # TODO: Add guidance on interpreting stake amounts and their significance
+        # TODO: Explain subnet-specific staking vs cross-subnet delegation
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         sub_query = partial(
@@ -2724,6 +3139,14 @@ class AsyncSubtensor(SubtensorMixin):
             dict:
                 - subnet unique ID
                 - The current Alpha price in TAO units for the specified subnet.
+
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Explain what Alpha tokens are and how their prices are determined
+        # TODO: Add examples of using price data for economic analysis
+        # TODO: Explain why subnet 0 has a fixed price of 1 TAO
+        # TODO: Show how to use price data for staking decisions
+        # TODO: Add guidance on interpreting price fluctuations
+        # TODO: Explain relationship between price and subnet activity/demand
         """
         block_hash = await self.determine_block_hash(
             block=block, block_hash=block_hash, reuse_block=reuse_block
@@ -2768,6 +3191,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             The calculated stake fee as a Balance object
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain how unstaking fees are calculated and what factors influence them
+        # TODO: Add examples of typical fee amounts for different unstaking scenarios
+        # TODO: Show how to factor fees into unstaking decisions
+        # TODO: Explain fee differences between subnets
+        # TODO: Add guidance on minimizing fees through batching or timing
+        # TODO: Explain the economic rationale for unstaking fees
         """
         return await self.get_stake_operations_fee(
             amount=amount, netuid=netuid, block=block
@@ -2800,6 +3231,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             The calculated stake fee as a Balance object
+
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Explain different types of stake movements and their fee structures
+        # TODO: Add examples of common stake movement scenarios (rebalancing, migration)
+        # TODO: Show how to optimize stake movements to minimize fees
+        # TODO: Explain fee differences between same-subnet vs cross-subnet movements
+        # TODO: Add guidance on when stake movement is beneficial despite fees
+        # TODO: Explain the economic rationale for stake movement fees
         """
         return await self.get_stake_operations_fee(
             amount=amount, netuid=origin_netuid, block=block
@@ -2828,6 +3267,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             A {netuid: StakeInfo} pairing of all stakes across all subnets.
+
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Explain what StakeInfo objects contain and how to use them
+        # TODO: Add examples of analyzing stake distribution across subnets
+        # TODO: Show how to use this for portfolio analysis and rebalancing
+        # TODO: Explain the difference between this and get_stake_for_coldkey()
+        # TODO: Add guidance on when to specify netuids vs querying all subnets
+        # TODO: Show how to identify the most profitable staking relationships
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not block_hash and reuse_block:
@@ -2872,6 +3319,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             An optional list of StakeInfo objects, or ``None`` if no stake information is found.
+
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Explain what StakeInfo objects contain (hotkey, netuid, stake amount, etc.)
+        # TODO: Add examples of analyzing a coldkey's complete staking portfolio
+        # TODO: Show how to identify top-performing stake allocations
+        # TODO: Explain why stakes with zero values are filtered out
+        # TODO: Add guidance on using this for portfolio monitoring and rebalancing
+        # TODO: Show how to calculate total stake across all subnets
         """
         result = await self.query_runtime_api(
             runtime_api="StakeInfoRuntimeApi",
@@ -2910,6 +3365,17 @@ class AsyncSubtensor(SubtensorMixin):
                 or reuse_block.
             reuse_block: Whether to reuse for this query the last-used block. Do not specify if also specifying block
                 or block_hash.
+
+        Returns:
+            Balance: The total stake amount for the hotkey in the specified subnet.
+
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Explain what total hotkey stake represents (sum of all coldkey stakes)
+        # TODO: Add examples of using stake amounts for validator analysis
+        # TODO: Show how to compare hotkey stakes across different subnets
+        # TODO: Explain relationship between stake and validator influence/rewards
+        # TODO: Add guidance on interpreting stake amounts for network health
+        # TODO: Show how to use this for identifying top validators by stake
         """
         hotkey_alpha_query = await self.query_subtensor(
             name="TotalHotkeyAlpha",
@@ -3010,6 +3476,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         The subnet burn cost is an important economic parameter, reflecting the network's mechanisms for controlling
             the proliferation of subnets and ensuring their commitment to the network's long-term viability.
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain what subnet registration costs and why they exist
+        # TODO: Add guidance on when costs change and how to monitor them
+        # TODO: Show how to budget for subnet creation
+        # TODO: Explain the economic rationale for burn costs
+        # TODO: Add examples of typical cost ranges
+        # TODO: Show how to check if you have sufficient funds
         """
         lock_cost = await self.query_runtime_api(
             runtime_api="SubnetRegistrationRuntimeApi",
@@ -3046,6 +3520,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         Understanding the hyperparameters is crucial for comprehending how subnets are configured and managed, and how
         they interact with the network's consensus and incentive mechanisms.
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: List all available hyperparameters and their meanings
+        # TODO: Add examples of how to interpret hyperparameter values
+        # TODO: Show how hyperparameters affect subnet behavior and economics
+        # TODO: Explain when hyperparameters change and who controls them
+        # TODO: Add guidance on using hyperparameters for subnet analysis
+        # TODO: Show how to monitor hyperparameter changes over time
         """
         result = await self.query_runtime_api(
             runtime_api="SubnetInfoRuntimeApi",
@@ -3064,7 +3546,46 @@ class AsyncSubtensor(SubtensorMixin):
     async def get_subnet_reveal_period_epochs(
         self, netuid: int, block: Optional[int] = None, block_hash: Optional[str] = None
     ) -> int:
-        """Retrieve the SubnetRevealPeriodEpochs hyperparameter."""
+        """Retrieve the reveal period, in epochs, for commit-reveal weight setting.
+
+        This method returns the same value as the `CommitRevealPeriod` hyperparameter visible in btcli,
+        but queries the actual storage name `RevealPeriodEpochs` in the subtensor blockchain.
+
+        This chain parameter determines how many epochs must pass after a validator commits their weights
+        before they can reveal them. This is part of the commit-reveal mechanism designed to prevent weight
+        copying attacks by ensuring validators can only see stale weights from other validators.
+
+        Arguments:
+            netuid: The unique identifier of the subnet.
+            block: The block number for the query. Do not specify if using block_hash.
+            block_hash: The hash of the block for the query. Do not specify if using block.
+
+        Returns:
+            int: The number of epochs that must elapse between weight commit and reveal.
+
+        Example:
+            # Get reveal period for subnet 1
+            reveal_period = await subtensor.get_subnet_reveal_period_epochs(netuid=1)
+            print(f"Validators must wait {reveal_period} epochs before revealing weights")
+
+            # Calculate blocks until reveal is allowed
+            current_block = await subtensor.get_current_block()
+            tempo = await subtensor.tempo(netuid=1)
+            blocks_per_epoch = tempo + 1
+            reveal_delay_blocks = reveal_period * blocks_per_epoch
+
+        Notes:
+            - Storage name: `RevealPeriodEpochs` (btcli shows as `commit_reveal_period`)
+            - Default value is 1 epoch (meaning reveal in the next epoch after commit)
+            - Must be less than the immunity period to prevent miner deregistration
+            - Only applies when commit-reveal is enabled for the subnet
+            - See commit-reveal documentation for timing details
+
+        # DOCSTRING HELPFULNESS RATING: 8/10
+        # TODO: Add examples of how this interacts with validator weight setting schedules
+        # TODO: Show how to calculate exact reveal timing windows
+        # TODO: Explain edge cases when tempo or reveal period changes mid-commit
+        """
         block_hash = await self.determine_block_hash(block, block_hash)
         return await self.get_hyperparameter(
             param_name="RevealPeriodEpochs", block_hash=block_hash, netuid=netuid
@@ -3089,6 +3610,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         This function provides a comprehensive view of the subnets within the Bittensor network, offering insights into
         its diversity and scale.
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain what subnet netuids represent and how they're assigned
+        # TODO: Add examples of how to use the netuid list for subnet analysis
+        # TODO: Show how to filter active vs inactive subnets
+        # TODO: Explain the relationship between netuids and subnet registration
+        # TODO: Add guidance on iterating over subnets for bulk operations
+        # TODO: Show how to use this for network topology analysis
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query_map(
@@ -3123,6 +3652,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         Understanding the total number of subnets is essential for assessing the network's growth and the extent of its
         decentralized infrastructure.
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain how total subnets differs from active subnets
+        # TODO: Add examples of tracking network growth over time
+        # TODO: Show how to use this for capacity planning and analysis
+        # TODO: Explain the relationship to subnet registration limits
+        # TODO: Add guidance on monitoring network expansion
+        # TODO: Show how to calculate subnet density and distribution
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query(
@@ -3157,6 +3694,14 @@ class AsyncSubtensor(SubtensorMixin):
         Estimating the transfer fee is essential for planning and executing token transactions, ensuring that the
         wallet has sufficient funds to cover both the transfer amount and the associated costs. This function provides
         a crucial tool for managing financial operations within the Bittensor network.
+
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Explain factors that affect transfer fees (network congestion, transaction complexity)
+        # TODO: Add examples of typical fee ranges for different transfer amounts
+        # TODO: Show how to optimize transfers to minimize fees
+        # TODO: Explain the difference between transfer and transfer_keep_alive fees
+        # TODO: Add guidance on handling fee estimation failures
+        # TODO: Show how to budget for transfers including fees
         """
         if value is not None:
             value = check_and_convert_to_balance(value)
@@ -3201,6 +3746,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         This function is important for tracking and understanding the decision-making processes within the Bittensor
         network, particularly how proposals are received and acted upon by the governing body.
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain what proposals are and how they're submitted
+        # TODO: Add examples of how to interpret ProposalVoteData objects
+        # TODO: Show how to analyze voting patterns and participation
+        # TODO: Explain the relationship between senate members and governance
+        # TODO: Add guidance on tracking proposal lifecycle and outcomes
+        # TODO: Show how to use this for governance analysis and monitoring
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         vote_data: dict[str, Any] = await self.substrate.query(
@@ -3239,6 +3792,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         The UID is a critical identifier within the network, linking the neuron's hotkey to its operational and
         governance activities on a particular subnet.
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain what UIDs represent and how they're assigned
+        # TODO: Add examples of using UIDs for neuron identification and tracking
+        # TODO: Show how UIDs relate to subnet registration and participation
+        # TODO: Explain when UIDs change and how to handle registration status
+        # TODO: Add guidance on using UIDs for metagraph analysis
+        # TODO: Show how to check if a neuron is registered before operations
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query(
@@ -3272,6 +3833,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             The filtered list of netuids.
+
+        # DOCSTRING HELPFULNESS RATING: 4/10
+        # TODO: Explain the practical use cases for filtering netuids by registered hotkeys
+        # TODO: Add examples of how to use this for multi-subnet operations
+        # TODO: Show how to handle empty filter lists and edge cases
+        # TODO: Explain the relationship between hotkey registration and subnet participation
+        # TODO: Add guidance on performance considerations for large hotkey lists
+        # TODO: Show how to use this for portfolio management across subnets
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         netuids_with_registered_hotkeys = [
@@ -3316,9 +3885,11 @@ class AsyncSubtensor(SubtensorMixin):
         reuse_block: bool = False,
     ) -> Optional[int]:
         """
-        Retrieves the 'ImmunityPeriod' hyperparameter for a specific subnet. This parameter defines the duration during
-        which new neurons are protected from certain network penalties or restrictions.
+        Retrieves the 'ImmunityPeriod' hyperparameter for a specific subnet. The immunity period is the number of 
+        blocks during which newly registered neurons (miners and validators)are protected from deregistration.
 
+        ImmunityPeriod is configurable by the subnet creator.
+        
         Arguments:
             netuid: The unique identifier of the subnet.
             block: The blockchain block number for the query.
@@ -3328,9 +3899,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             Optional[int]: The value of the 'ImmunityPeriod' hyperparameter if the subnet exists, ``None`` otherwise.
 
-        The 'ImmunityPeriod' is a critical aspect of the network's governance system, ensuring that new participants
-        have a grace period to establish themselves and contribute to the network without facing immediate punitive
-        actions.
+        See: 
+        - <https://docs.learnbittensor.org/glossary#immunity-period>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
@@ -3342,7 +3912,15 @@ class AsyncSubtensor(SubtensorMixin):
         return None if call is None else int(call)
 
     async def is_fast_blocks(self):
-        """Returns True if the node is running with fast blocks. False if not."""
+        """Returns True if the node is running in fast blocks mode. False if not.
+
+        Fast blocks is a mode of operation where the chain processes blocks at a faster rate than normal.
+        This is useful for testing and development purposes.
+
+        Returns:
+            bool: True if the node is running with fast blocks, False if not.
+        
+        """
         return (
             await self.query_constant("SubtensorModule", "DurationOfStartCall")
         ).value == 10
@@ -3369,6 +3947,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         Being a delegate is a significant status within the Bittensor network, indicating a neuron's involvement in
         consensus and governance processes.
+
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Explain what being a delegate means and the responsibilities involved
+        # TODO: Add examples of how to check delegate status before operations
+        # TODO: Show how to become a delegate and the requirements
+        # TODO: Explain the relationship between delegates and nominators
+        # TODO: Add guidance on delegate take percentages and rewards
+        # TODO: Show how to analyze delegate performance and reputation
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         delegates = await self.get_delegates(
@@ -3406,6 +3992,14 @@ class AsyncSubtensor(SubtensorMixin):
         This function is important for verifying the active status of neurons in the Bittensor network. It aids in
         understanding whether a neuron is eligible to participate in network processes such as consensus, validation,
         and incentive distribution based on its registration status.
+
+        # DOCSTRING HELPFULNESS RATING: 7/10
+        # TODO: Add examples of checking registration before operations
+        # TODO: Explain what registration means (having a UID slot in a subnet)
+        # TODO: Show how to handle the case where netuid is None vs specific subnet
+        # TODO: Add guidance on registration timing and when to check status
+        # TODO: Explain relationship to registration cost and difficulty
+        # TODO: Show how to use this for monitoring multiple hotkeys
         """
         if netuid is None:
             return await self.is_hotkey_registered_any(
@@ -3436,6 +4030,14 @@ class AsyncSubtensor(SubtensorMixin):
             bool: ``True`` if the hotkey is registered on any subnet, False otherwise.
 
         This function is essential for determining the network-wide presence and participation of a neuron.
+
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Add examples of checking network-wide registration
+        # TODO: Explain the difference between this and subnet-specific registration
+        # TODO: Show how to get list of specific subnets where hotkey is registered
+        # TODO: Add guidance on when to use this vs is_hotkey_registered_on_subnet
+        # TODO: Explain performance implications vs checking individual subnets
+        # TODO: Add examples of monitoring multiple hotkeys across the network
         """
         hotkeys = await self.get_netuids_for_hotkey(
             hotkey_ss58, block, block_hash, reuse_block
@@ -3450,7 +4052,16 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> bool:
-        """Checks if the hotkey is registered on a given netuid."""
+        """Checks if the hotkey is registered on a given netuid.
+
+        # DOCSTRING HELPFULNESS RATING: 4/10
+        # TODO: Add comprehensive description of what registration means
+        # TODO: Include arguments documentation
+        # TODO: Add return value documentation
+        # TODO: Provide examples of checking specific subnet registration
+        # TODO: Explain relationship to UID assignment in subnets
+        # TODO: Add guidance on when to use this vs general registration checks
+        """
         return (
             await self.get_uid_for_hotkey_on_subnet(
                 hotkey_ss58,
@@ -3481,6 +4092,14 @@ class AsyncSubtensor(SubtensorMixin):
             ``True`` if subnet is active, ``False`` otherwise.
 
         Note: This means whether the ``start_call`` was initiated or not.
+
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Explain what "active" means beyond just start_call
+        # TODO: Add examples of checking subnet activation status
+        # TODO: Explain the difference between existing and active subnets
+        # TODO: Show how to handle inactive subnets in applications
+        # TODO: Add context about subnet lifecycle and activation process
+        # TODO: Explain relationship to subnet emissions and operations
         """
         query = await self.query_subtensor(
             name="FirstEmissionBlockNumber",
@@ -3497,6 +4116,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             int: The latest Drand round emitted in bittensor.
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain what drand is and its purpose in Bittensor
+        # TODO: Add context about commit-reveal mechanism and timing
+        # TODO: Show how to use this for weight reveal timing
+        # TODO: Explain relationship to consensus and weight-copying prevention
+        # TODO: Add examples of monitoring drand rounds for validator operations
+        # TODO: Clarify return type (says int but signature says Optional[int])
         """
         result = await self.substrate.query(
             module="Drand", storage_function="LastStoredRound"
@@ -3522,6 +4149,14 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             Optional[float]: The value of the MaxWeightsLimit hyperparameter, or ``None`` if the subnetwork does not
                 exist or the parameter is not found.
+
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Explain what MaxWeightsLimit controls in weight setting
+        # TODO: Add examples showing how this affects validator weight constraints
+        # TODO: Explain relationship to weight normalization and validation
+        # TODO: Show how to use this when setting weights programmatically
+        # TODO: Add context about why weight limits exist (spam prevention, etc.)
+        # TODO: Explain typical values and their implications
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
@@ -3551,6 +4186,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         The metagraph is an essential tool for understanding the topology and dynamics of the Bittensor network's
         decentralized architecture, particularly in relation to neuron interconnectivity and consensus processes.
+
+        # DOCSTRING HELPFULNESS RATING: 7/10
+        # TODO: Explain what data is available in AsyncMetagraph vs regular Metagraph
+        # TODO: Add examples of using metagraph for analysis and monitoring
+        # TODO: Explain the trade-offs between lite and full sync modes
+        # TODO: Show how to access specific neuron data from the metagraph
+        # TODO: Add guidance on when to sync vs reuse existing metagraph
+        # TODO: Explain performance implications of different sync modes
         """
         metagraph = AsyncMetagraph(
             network=self.chain_endpoint,
@@ -3582,6 +4225,14 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             Optional[int]: The value of the MinAllowedWeights hyperparameter, or ``None`` if the subnetwork does not
                 exist or the parameter is not found.
+
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Explain what MinAllowedWeights controls in weight setting
+        # TODO: Add examples showing minimum weight requirements for validators
+        # TODO: Explain relationship to weight sparsity and validation requirements
+        # TODO: Show how to use this when setting weights programmatically
+        # TODO: Add context about why minimum weights exist (consensus requirements)
+        # TODO: Explain typical values and their implications for subnet operation
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
@@ -3616,6 +4267,14 @@ class AsyncSubtensor(SubtensorMixin):
             Detailed information about the neuron if found, a null neuron otherwise
 
         This function is crucial for analyzing individual neurons' contributions and status within a specific subnet,
+
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Explain what information is included in NeuronInfo object
+        # TODO: Add examples of accessing neuron attributes (stake, rank, trust, etc.)
+        # TODO: Show how to handle null neurons (when UID doesn't exist)
+        # TODO: Explain the difference between this and get_neuron_for_pubkey_and_subnet
+        # TODO: Add guidance on when to use this vs neurons() for bulk queries
+        # TODO: Show examples of neuron analysis and monitoring use cases
         offering insights into their roles in the network's consensus and validation mechanisms.
         """
         if uid is None:
@@ -3658,6 +4317,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         Understanding the distribution and status of neurons within a subnet is key to comprehending the network's
         decentralized structure and the dynamics of its consensus and governance processes.
+
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Explain what information is included in each NeuronInfo object
+        # TODO: Add examples of filtering and analyzing neuron data
+        # TODO: Show how to access specific neuron attributes (stake, rank, trust, etc.)
+        # TODO: Explain when to use this vs neurons_lite() for performance
+        # TODO: Add guidance on handling large subnet populations
+        # TODO: Show examples of subnet analysis and monitoring use cases
         """
         result = await self.query_runtime_api(
             runtime_api="NeuronInfoRuntimeApi",
@@ -3696,6 +4363,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         This function offers a quick overview of the neuron population within a subnet, facilitating efficient analysis
         of the network's decentralized structure and neuron dynamics.
+
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Explain what information is included vs excluded in NeuronInfoLite
+        # TODO: Add examples of when to use lite vs full neuron data
+        # TODO: Show performance comparisons and use cases for large subnets
+        # TODO: Explain what "key attributes" are specifically included
+        # TODO: Add guidance on when lite format is sufficient for analysis
+        # TODO: Show examples of efficient subnet monitoring with lite data
         """
         result = await self.query_runtime_api(
             runtime_api="NeuronInfoRuntimeApi",
@@ -3739,6 +4414,14 @@ class AsyncSubtensor(SubtensorMixin):
         Note:
             See the ``Bittensor CLI documentation <https://docs.bittensor.com/reference/btcli>``_ for supported identity
                 parameters.
+
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Explain what information is included in ChainIdentity object
+        # TODO: Add examples of accessing identity attributes (display name, website, etc.)
+        # TODO: Show how to handle cases where identity is not set
+        # TODO: Explain the difference between identity and neuron registration
+        # TODO: Add guidance on when identity information is useful
+        # TODO: Show examples of identity verification and display in applications
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         identity_info = cast(
@@ -3784,6 +4467,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         Understanding the 'Burn' rate is essential for analyzing the network registration usage, particularly how it is
         correlated with user activity and the overall cost of participation in a given subnet.
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain what "recycle" means in the context of subnet registration
+        # TODO: Add examples of using recycle cost for registration planning
+        # TODO: Explain the relationship between recycle cost and subnet difficulty
+        # TODO: Show how recycle cost affects subnet economics and barriers to entry
+        # TODO: Add guidance on when recycle cost is used vs proof-of-work registration
+        # TODO: Explain how recycle cost changes based on subnet demand
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
@@ -3857,6 +4548,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             Optional[DynamicInfo]: A DynamicInfo object, containing detailed information about a subnet.
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain what information is included in DynamicInfo object
+        # TODO: Add examples of accessing subnet attributes (registration cost, emissions, etc.)
+        # TODO: Show how to handle case where subnet doesn't exist
+        # TODO: Explain the difference between this and get_all_subnets_info()
+        # TODO: Add guidance on when to use this vs other subnet query methods
+        # TODO: Show examples of subnet monitoring and analysis use cases
         """
         block_hash = await self.determine_block_hash(
             block=block, block_hash=block_hash, reuse_block=reuse_block
@@ -3908,6 +4607,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         This function is critical for verifying the presence of specific subnets in the network, enabling a deeper
         understanding of the network's structure and composition.
+
+        # DOCSTRING HELPFULNESS RATING: 7/10
+        # TODO: Add examples of using this for error handling before subnet operations
+        # TODO: Explain what determines when a subnet exists vs is deregistered
+        # TODO: Show practical examples of subnet validation patterns
+        # TODO: Add guidance on handling edge cases (subnet creation/destruction)
+        # TODO: Explain relationship to subnet registration and lifecycle
+        # TODO: Add timing considerations for subnet existence checks
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query(
@@ -3927,7 +4634,15 @@ class AsyncSubtensor(SubtensorMixin):
         reuse_block: bool = False,
     ) -> Optional[int]:
         """
-        Returns network SubnetworkN hyperparameter.
+        Retrieves the current number of registered neurons (UIDs) in a specific subnet.
+
+        SubnetworkN represents the actual count of neurons currently registered and active within a subnet. This value
+        starts at 0 when a subnet is created and increments by 1 each time a new neuron successfully registers. It
+        represents the "filled slots" in the subnet and determines the next available UID for new registrations.
+
+        This is different from the maximum capacity (MaxAllowedUids) - SubnetworkN shows how many neurons are actually
+        registered, while MaxAllowedUids shows the theoretical limit. When SubnetworkN reaches MaxAllowedUids, new
+        registrations require pruning (replacing) existing neurons with lower performance scores.
 
         Arguments:
             netuid: The unique identifier of the subnetwork.
@@ -3936,8 +4651,27 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            Optional[int]: The value of the SubnetworkN hyperparameter, or ``None`` if the subnetwork does not exist or
-                the parameter is not found.
+            Optional[int]: The current number of registered neurons in the subnet, or ``None`` if the subnetwork does
+                not exist.
+
+        Example:
+            # Get current neuron count for subnet 1
+            neuron_count = await subtensor.subnetwork_n(netuid=1)
+            print(f"Subnet 1 has {neuron_count} registered neurons")
+
+            # Check if subnet is at capacity
+            max_uids = await subtensor.max_allowed_uids(netuid=1)
+            current_count = await subtensor.subnetwork_n(netuid=1)
+
+            if current_count >= max_uids:
+                print("Subnet is at capacity - new registrations will require pruning")
+            else:
+                print(f"Subnet has {max_uids - current_count} available slots")
+
+        # DOCSTRING HELPFULNESS RATING: 8/10
+        # TODO: Add examples of using this for subnet health monitoring and analytics
+        # TODO: Show how to track subnet growth over time using historical queries
+        # TODO: Explain relationship to neuron registration fees and difficulty scaling
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
@@ -3967,6 +4701,14 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             Optional[int]: The value of the Tempo hyperparameter, or ``None`` if the subnetwork does not exist or the
                 parameter is not found.
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain what Tempo represents (epoch length in blocks)
+        # TODO: Add examples of calculating timing based on tempo and block time
+        # TODO: Explain how tempo affects emissions, weight setting, and consensus
+        # TODO: Show practical use cases for tempo-based scheduling
+        # TODO: Add guidance on typical tempo values and their implications
+        # TODO: Explain relationship to blocks_since_last_step and epoch timing
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
@@ -3998,6 +4740,14 @@ class AsyncSubtensor(SubtensorMixin):
         The transaction rate limit is an essential parameter for ensuring the stability and scalability of the Bittensor
         network. It helps in managing network load and preventing congestion, thereby maintaining efficient and timely
         transaction processing.
+
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Explain what time frame the rate limit applies to
+        # TODO: Add examples of how rate limiting affects transaction submission
+        # TODO: Show how to handle rate limit errors and implement backoff strategies
+        # TODO: Explain the relationship between rate limits and network congestion
+        # TODO: Add guidance on optimal transaction timing and batching
+        # TODO: Show examples of monitoring network load and adjusting behavior
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.query_subtensor(
@@ -4015,12 +4765,23 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             bool: ``True`` if the target block was reached, ``False`` if timeout occurred.
 
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Explain typical use cases for waiting on blocks
+        # TODO: Add examples of timing operations around epochs and emissions
+        # TODO: Show how to handle timeout scenarios and error cases
+        # TODO: Explain the relationship to block time (12 seconds) and timing calculations
+        # TODO: Add guidance on when to use this vs other timing mechanisms
+        # TODO: Show examples of coordinating actions with blockchain state
+
         Example:
             import bittensor as bt
             subtensor = bt.Subtensor()
 
-            await subtensor.wait_for_block() # Waits for next block
-            await subtensor.wait_for_block(block=1234) # Waits for a specific block
+            # Waits for next block
+            await subtensor.wait_for_block()
+            
+            # Waits for a specific block
+            await subtensor.wait_for_block(block=1234)
         """
 
         async def handler(block_data: dict):
@@ -4067,6 +4828,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         The weight distribution is a key factor in the network's consensus algorithm and the ranking of neurons,
         influencing their influence and reward allocation within the subnet.
+
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Explain what weight values represent and how they're normalized
+        # TODO: Add examples of interpreting weight distributions for consensus analysis
+        # TODO: Show how to use weights for validator performance tracking
+        # TODO: Explain the relationship between weights and trust/rank calculations
+        # TODO: Add guidance on handling sparse weight data and missing entries
+        # TODO: Show examples of weight evolution analysis over time
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         # TODO look into seeing if we can speed this up with storage query
@@ -4102,6 +4871,14 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             Optional[int]: The value of the WeightsSetRateLimit hyperparameter, or ``None`` if the subnetwork does not
                 exist or the parameter is not found.
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain what the rate limit represents (minimum blocks between weight updates)
+        # TODO: Add examples of calculating when weight updates are allowed
+        # TODO: Show how to handle rate limit errors and retry strategies
+        # TODO: Explain the relationship to tempo and epoch timing
+        # TODO: Add guidance on optimal weight update timing strategies
+        # TODO: Show examples of coordinating weight updates with other validators
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
@@ -4130,6 +4907,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             datetime object for the timestamp of the block.
+
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Explain typical use cases for block timestamps (timing analysis, historical data)
+        # TODO: Add examples of calculating time differences between blocks
+        # TODO: Show how to use timestamps for epoch and tempo calculations
+        # TODO: Explain timezone handling and UTC normalization
+        # TODO: Add guidance on timestamp precision and accuracy considerations
+        # TODO: Show examples of coordinating actions with specific block times
         """
         res = await self.query_module(
             "Timestamp",
@@ -4156,6 +4941,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             The hotkey of the subnet owner if available; None otherwise.
+
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Explain what subnet ownership means and the owner's responsibilities
+        # TODO: Add examples of using owner information for subnet governance
+        # TODO: Show how to handle cases where subnets don't have owners
+        # TODO: Explain the relationship between subnet ownership and registration
+        # TODO: Add guidance on when subnet ownership information is useful
+        # TODO: Show examples of owner-based subnet filtering and analysis
         """
         return await self.query_subtensor(
             name="SubnetOwnerHotkey", params=[netuid], block=block
@@ -4173,6 +4966,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             A list of boolean values representing validator permits, or None if not available.
+
+        # DOCSTRING HELPFULNESS RATING: 5/10
+        # TODO: Explain what validator permits represent and how they're earned
+        # TODO: Add examples of using permit information for validator analysis
+        # TODO: Show how permits relate to stake amounts and validator responsibilities
+        # TODO: Explain the relationship between permits and weight setting privileges
+        # TODO: Add guidance on interpreting permit distribution across subnet
+        # TODO: Show examples of permit-based validator filtering and monitoring
         """
         query = await self.query_subtensor(
             name="ValidatorPermit",
@@ -4197,6 +4998,16 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> tuple[bool, str]:
         """
         Helper method to sign and submit an extrinsic call to chain.
+
+        # DOCSTRING HELPFULNESS RATING: 4/10
+        # TODO: Add comprehensive documentation for all arguments
+        # TODO: Explain the difference between inclusion and finalization waiting
+        # TODO: Add examples of using this method for different extrinsic types
+        # TODO: Show error handling patterns and retry strategies
+        # TODO: Explain nonce management and when to use custom nonces
+        # TODO: Add guidance on transaction period and expiration handling
+        # TODO: Show examples of signing with different key types (coldkey vs hotkey)
+        # TODO: Explain return values and how to interpret success/failure
 
         Arguments:
             call: a prepared Call object
@@ -5672,6 +6483,14 @@ class AsyncSubtensor(SubtensorMixin):
                     rate_tolerance=None,
                 )
                 print(result)
+
+        # DOCSTRING HELPFULNESS RATING: 8/10
+        # TODO: Clarify the difference between this and unstake() with unstake_all=True
+        # TODO: Explain when to use rate_tolerance vs None for price protection
+        # TODO: Add guidance on checking current stake amounts before unstaking
+        # TODO: Show how to handle partial failures in batch unstaking scenarios
+        # TODO: Add examples of monitoring transaction status and handling timeouts
+        # TODO: Explain fees and costs associated with unstaking operations
         """
         if netuid != 0:
             logging.debug(
@@ -5720,6 +6539,15 @@ class AsyncSubtensor(SubtensorMixin):
 
         This function allows for strategic reallocation or withdrawal of stakes, aligning with the dynamic stake
         management aspect of the Bittensor network.
+
+        # DOCSTRING HELPFULNESS RATING: 6/10
+        # TODO: Add practical examples of batch unstaking scenarios
+        # TODO: Explain how to handle list length mismatches between parameters
+        # TODO: Add guidance on optimal batch sizes for performance
+        # TODO: Show how to handle partial failures in batch operations
+        # TODO: Explain the atomicity of batch operations (all or nothing vs partial success)
+        # TODO: Add examples of stake rebalancing across multiple subnets
+        # TODO: Explain fee calculations for batch operations
         """
         return await unstake_multiple_extrinsic(
             subtensor=self,
@@ -5742,6 +6570,14 @@ async def get_async_subtensor(
 ) -> "AsyncSubtensor":
     """Factory method to create an initialized AsyncSubtensor.
     Mainly useful for when you don't want to run `await subtensor.initialize()` after instantiation.
+
+    # DOCSTRING HELPFULNESS RATING: 5/10
+    # TODO: Add comprehensive documentation for all arguments
+    # TODO: Explain when to use this vs manual initialization
+    # TODO: Add examples of using this factory function
+    # TODO: Show error handling patterns for initialization failures
+    # TODO: Explain the difference between this and direct instantiation
+    # TODO: Add guidance on when this convenience function is beneficial
     """
     sub = AsyncSubtensor(
         network=network, config=config, _mock=_mock, log_verbose=log_verbose
