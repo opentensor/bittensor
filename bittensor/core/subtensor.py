@@ -2271,7 +2271,7 @@ class Subtensor(SubtensorMixin):
             has sufficient funds to cover both the transfer amount and the associated costs. This function provides a
             crucial tool for managing financial operations within the Bittensor network.
         """
-        call_params = {"dest": dest}
+        call_params: dict[str, Union[int, str, bool]] = {"dest": dest}
         if value is None:
             call_function = "transfer_all"
             if keep_alive:
