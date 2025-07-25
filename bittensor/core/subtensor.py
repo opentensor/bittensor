@@ -107,6 +107,7 @@ from bittensor.utils import (
     u16_normalized_float,
     u64_normalized_float,
     deprecated_message,
+    get_transfer_fn_params,
 )
 from bittensor.utils.balance import (
     Balance,
@@ -2271,20 +2272,11 @@ class Subtensor(SubtensorMixin):
             has sufficient funds to cover both the transfer amount and the associated costs. This function provides a
             crucial tool for managing financial operations within the Bittensor network.
         """
-        call_params: dict[str, Union[int, str, bool]] = {"dest": dest}
-        if value is None:
-            call_function = "transfer_all"
-            if keep_alive:
-                call_params["keep_alive"] = True
-            else:
-                call_params["keep_alive"] = False
-        else:
+        if value is not None:
             value = check_and_convert_to_balance(value)
-            call_params["value"] = value.rao
-            if keep_alive:
-                call_function = "transfer_keep_alive"
-            else:
-                call_function = "transfer_allow_death"
+        call_params: dict[str, Union[int, str, bool]]
+        call_function, call_params = get_transfer_fn_params(value, dest, keep_alive)
+
         call = self.substrate.compose_call(
             call_module="Balances",
             call_function=call_function,

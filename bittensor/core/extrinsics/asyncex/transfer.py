@@ -6,6 +6,7 @@ from bittensor.utils import (
     get_explorer_url_for_network,
     is_valid_bittensor_address_or_public_key,
     unlock_key,
+    get_transfer_fn_params,
 )
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -45,19 +46,7 @@ async def _do_transfer(
     Returns:
         success, block hash, formatted error message
     """
-    call_params = {"dest": destination}
-    if amount is None:
-        call_function = "transfer_all"
-        if keep_alive:
-            call_params["keep_alive"] = True
-        else:
-            call_params["keep_alive"] = False
-    else:
-        call_params["value"] = amount.rao
-        if keep_alive:
-            call_function = "transfer_keep_alive"
-        else:
-            call_function = "transfer_allow_death"
+    call_function, call_params = get_transfer_fn_params(amount, destination, keep_alive)
 
     call = await subtensor.substrate.compose_call(
         call_module="Balances",
