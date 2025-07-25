@@ -19,10 +19,10 @@ def _do_transfer(
     wallet: "Wallet",
     destination: str,
     amount: Optional[Balance],
-    keep_alive: bool = True,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
     period: Optional[int] = None,
+    keep_alive: bool = True,
 ) -> tuple[bool, str, str]:
     """
     Makes transfer from wallet to destination public key address.
@@ -32,7 +32,6 @@ def _do_transfer(
         wallet (bittensor_wallet.Wallet): Bittensor wallet object to make transfer from.
         destination (str): Destination public key address (ss58_address or ed25519) of recipient.
         amount (bittensor.utils.balance.Balance): Amount to stake as Bittensor balance. `None` if transferring all.
-        keep_alive (bool): If `True`, will keep the existential deposit in the account.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns
             `False` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
@@ -40,6 +39,7 @@ def _do_transfer(
         period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted.
             If the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
+        keep_alive (bool): If `True`, will keep the existential deposit in the account.
 
     Returns:
         success, block hash, formatted error message

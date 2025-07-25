@@ -41,9 +41,9 @@ def test_do_transfer_is_success_true(
         fake_wallet,
         fake_dest,
         amount,
-        keep_alive,
         fake_wait_for_inclusion,
         fake_wait_for_finalization,
+        keep_alive=keep_alive,
     )
 
     # Asserts
@@ -81,9 +81,9 @@ def test_do_transfer_is_success_false(subtensor, fake_wallet, mocker):
         fake_wallet,
         fake_dest,
         fake_transfer_balance,
-        keep_alive,
         fake_wait_for_inclusion,
         fake_wait_for_finalization,
+        keep_alive=keep_alive,
     )
 
     # Asserts
@@ -122,9 +122,9 @@ def test_do_transfer_no_waits(subtensor, fake_wallet, mocker):
         fake_wallet,
         fake_dest,
         fake_transfer_balance,
-        keep_alive,
         fake_wait_for_inclusion,
         fake_wait_for_finalization,
+        keep_alive=keep_alive,
     )
 
     # Asserts
