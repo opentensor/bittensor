@@ -147,7 +147,9 @@ def transfer_extrinsic(
     else:
         existential_deposit = subtensor.get_existential_deposit(block=block)
 
-    fee = subtensor.get_transfer_fee(wallet=wallet, dest=dest, value=amount)
+    fee = subtensor.get_transfer_fee(
+        wallet=wallet, dest=dest, value=amount, keep_alive=keep_alive
+    )
 
     # Check if we have enough balance.
     if transfer_all is True:

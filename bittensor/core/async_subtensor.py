@@ -3134,7 +3134,7 @@ class AsyncSubtensor(SubtensorMixin):
         return getattr(result, "value", None)
 
     async def get_transfer_fee(
-        self, wallet: "Wallet", dest: str, value: Balance
+        self, wallet: "Wallet", dest: str, value: Balance, keep_alive: bool = True
     ) -> Balance:
         """
         Calculates the transaction fee for transferring tokens from a wallet to a specified destination address. This
@@ -3146,6 +3146,8 @@ class AsyncSubtensor(SubtensorMixin):
             dest: The ``SS58`` address of the destination account.
             value: The amount of tokens to be transferred, specified as a Balance object, or in Tao (float) or Rao
                 (int) units.
+            keep_alive: Whether the transfer fee should be calculated based on keeping the wallet alive (existential
+                deposit) or not.
 
         Returns:
             bittensor.utils.balance.Balance: The estimated transaction fee for the transfer, represented as a Balance
@@ -3155,12 +3157,25 @@ class AsyncSubtensor(SubtensorMixin):
         wallet has sufficient funds to cover both the transfer amount and the associated costs. This function provides
         a crucial tool for managing financial operations within the Bittensor network.
         """
-        value = check_and_convert_to_balance(value)
+        call_params = {"dest": dest}
+        if value is None:
+            call_function = "transfer_all"
+            if keep_alive:
+                call_params["keep_alive"] = True
+            else:
+                call_params["keep_alive"] = False
+        else:
+            value = check_and_convert_to_balance(value)
+            call_params["value"] = value.rao
+            if keep_alive:
+                call_function = "transfer_keep_alive"
+            else:
+                call_function = "transfer_allow_death"
 
         call = await self.substrate.compose_call(
             call_module="Balances",
-            call_function="transfer_keep_alive",
-            call_params={"dest": dest, "value": value.rao},
+            call_function=call_function,
+            call_params=call_params,
         )
 
         try:
