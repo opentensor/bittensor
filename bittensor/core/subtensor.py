@@ -107,6 +107,7 @@ from bittensor.utils import (
     u16_normalized_float,
     u64_normalized_float,
     deprecated_message,
+    get_transfer_fn_params,
 )
 from bittensor.utils.balance import (
     Balance,
@@ -2243,7 +2244,13 @@ class Subtensor(SubtensorMixin):
         )
         return getattr(result, "value", None)
 
-    def get_transfer_fee(self, wallet: "Wallet", dest: str, value: Balance) -> Balance:
+    def get_transfer_fee(
+        self,
+        wallet: "Wallet",
+        dest: str,
+        value: Optional[Balance],
+        keep_alive: bool = True,
+    ) -> Balance:
         """
         Calculates the transaction fee for transferring tokens from a wallet to a specified destination address. This
             function simulates the transfer to estimate the associated cost, taking into account the current network
@@ -2254,6 +2261,8 @@ class Subtensor(SubtensorMixin):
             dest (str): The ``SS58`` address of the destination account.
             value (Union[bittensor.utils.balance.Balance, float, int]): The amount of tokens to be transferred,
                 specified as a Balance object, or in Tao (float) or Rao (int) units.
+            keep_alive: Whether the transfer fee should be calculated based on keeping the wallet alive (existential
+                deposit) or not.
 
         Returns:
             bittensor.utils.balance.Balance: The estimated transaction fee for the transfer, represented as a Balance
@@ -2263,11 +2272,15 @@ class Subtensor(SubtensorMixin):
             has sufficient funds to cover both the transfer amount and the associated costs. This function provides a
             crucial tool for managing financial operations within the Bittensor network.
         """
-        value = check_and_convert_to_balance(value)
+        if value is not None:
+            value = check_and_convert_to_balance(value)
+        call_params: dict[str, Union[int, str, bool]]
+        call_function, call_params = get_transfer_fn_params(value, dest, keep_alive)
+
         call = self.substrate.compose_call(
             call_module="Balances",
-            call_function="transfer_keep_alive",
-            call_params={"dest": dest, "value": value.rao},
+            call_function=call_function,
+            call_params=call_params,
         )
 
         try:
@@ -4266,7 +4279,7 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         dest: str,
-        amount: Balance,
+        amount: Optional[Balance],
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         transfer_all: bool = False,
@@ -4292,7 +4305,8 @@ class Subtensor(SubtensorMixin):
         Returns:
             `True` if the transferring was successful, otherwise `False`.
         """
-        amount = check_and_convert_to_balance(amount)
+        if amount is not None:
+            amount = check_and_convert_to_balance(amount)
         return transfer_extrinsic(
             subtensor=self,
             wallet=wallet,

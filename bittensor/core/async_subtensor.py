@@ -98,6 +98,7 @@ from bittensor.utils import (
     torch,
     u16_normalized_float,
     u64_normalized_float,
+    get_transfer_fn_params,
 )
 from bittensor.core.extrinsics.asyncex.liquidity import (
     add_liquidity_extrinsic,
@@ -3134,7 +3135,7 @@ class AsyncSubtensor(SubtensorMixin):
         return getattr(result, "value", None)
 
     async def get_transfer_fee(
-        self, wallet: "Wallet", dest: str, value: Balance
+        self, wallet: "Wallet", dest: str, value: Balance, keep_alive: bool = True
     ) -> Balance:
         """
         Calculates the transaction fee for transferring tokens from a wallet to a specified destination address. This
@@ -3146,6 +3147,8 @@ class AsyncSubtensor(SubtensorMixin):
             dest: The ``SS58`` address of the destination account.
             value: The amount of tokens to be transferred, specified as a Balance object, or in Tao (float) or Rao
                 (int) units.
+            keep_alive: Whether the transfer fee should be calculated based on keeping the wallet alive (existential
+                deposit) or not.
 
         Returns:
             bittensor.utils.balance.Balance: The estimated transaction fee for the transfer, represented as a Balance
@@ -3155,12 +3158,15 @@ class AsyncSubtensor(SubtensorMixin):
         wallet has sufficient funds to cover both the transfer amount and the associated costs. This function provides
         a crucial tool for managing financial operations within the Bittensor network.
         """
-        value = check_and_convert_to_balance(value)
+        if value is not None:
+            value = check_and_convert_to_balance(value)
+        call_params: dict[str, Union[int, str, bool]]
+        call_function, call_params = get_transfer_fn_params(value, dest, keep_alive)
 
         call = await self.substrate.compose_call(
             call_module="Balances",
-            call_function="transfer_keep_alive",
-            call_params={"dest": dest, "value": value.rao},
+            call_function=call_function,
+            call_params=call_params,
         )
 
         try:
@@ -5455,7 +5461,7 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         dest: str,
-        amount: Balance,
+        amount: Optional[Balance],
         transfer_all: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -5468,7 +5474,7 @@ class AsyncSubtensor(SubtensorMixin):
         Arguments:
             wallet: Source wallet for the transfer.
             dest: Destination address for the transfer.
-            amount: Number of tokens to transfer.
+            amount: Number of tokens to transfer. `None` is transferring all.
             transfer_all: Flag to transfer all tokens. Default is `False`.
             wait_for_inclusion: Waits for the transaction to be included in a block. Defaults to `True`.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Defaults to `False`.
@@ -5479,7 +5485,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             `True` if the transferring was successful, otherwise `False`.
         """
-        amount = check_and_convert_to_balance(amount)
+        if amount is not None:
+            amount = check_and_convert_to_balance(amount)
         return await transfer_extrinsic(
             subtensor=self,
             wallet=wallet,
