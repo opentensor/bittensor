@@ -1,10 +1,18 @@
+import typing
+
+from bittensor_wallet import Wallet
+import pytest
+
 from bittensor.utils.balance import Balance
 from bittensor import logging
+
+if typing.TYPE_CHECKING:
+    from bittensor.core.subtensor_api import SubtensorApi
 
 logging.set_trace()
 
 
-def test_transfer(subtensor, alice_wallet):
+def test_transfer(subtensor: "SubtensorApi", alice_wallet):
     """
     Test the transfer mechanism on the chain
 
@@ -47,3 +55,90 @@ def test_transfer(subtensor, alice_wallet):
     )
 
     print("✅ Passed test_transfer")
+
+
+def test_transfer_all(subtensor: "Subtensor", alice_wallet):
+    # create two dummy accounts we can drain
+    dummy_account_1 = Wallet(path="/tmp/bittensor-dummy-account-1")
+    dummy_account_2 = Wallet(path="/tmp/bittensor-dummy-account-2")
+    dummy_account_1.create_new_coldkey(use_password=False, overwrite=True)
+    dummy_account_2.create_new_coldkey(use_password=False, overwrite=True)
+
+    # fund the first dummy account
+    assert subtensor.transfer(
+        alice_wallet,
+        dest=dummy_account_1.coldkeypub.ss58_address,
+        amount=Balance.from_tao(2.0),
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
+    )
+    # Account details before transfer
+    existential_deposit = subtensor.get_existential_deposit()
+    assert subtensor.transfer(
+        wallet=dummy_account_1,
+        dest=dummy_account_2.coldkeypub.ss58_address,
+        amount=None,
+        transfer_all=True,
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
+        keep_alive=True,
+    )
+    balance_after = subtensor.get_balance(dummy_account_1.coldkeypub.ss58_address)
+    assert balance_after == existential_deposit
+    assert subtensor.transfer(
+        wallet=dummy_account_2,
+        dest=alice_wallet.coldkeypub.ss58_address,
+        amount=None,
+        transfer_all=True,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        keep_alive=False,
+    )
+    balance_after = subtensor.get_balance(dummy_account_2.coldkeypub.ss58_address)
+    assert balance_after == Balance(0)
+
+
+@pytest.mark.asyncio
+async def test_async_transfer(async_subtensor: "SubtensorApi", alice_wallet):
+    # create two dummy accounts we can drain
+    dummy_account_1 = Wallet(path="/tmp/bittensor-dummy-account-3")
+    dummy_account_2 = Wallet(path="/tmp/bittensor-dummy-account-4")
+    dummy_account_1.create_new_coldkey(use_password=False, overwrite=True)
+    dummy_account_2.create_new_coldkey(use_password=False, overwrite=True)
+
+    # fund the first dummy account
+    assert await async_subtensor.transfer(
+        alice_wallet,
+        dest=dummy_account_1.coldkeypub.ss58_address,
+        amount=Balance.from_tao(2.0),
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
+    )
+    # Account details before transfer
+    existential_deposit = await async_subtensor.get_existential_deposit()
+    assert await async_subtensor.transfer(
+        wallet=dummy_account_1,
+        dest=dummy_account_2.coldkeypub.ss58_address,
+        amount=None,
+        transfer_all=True,
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
+        keep_alive=True,
+    )
+    balance_after = await async_subtensor.get_balance(
+        dummy_account_1.coldkeypub.ss58_address
+    )
+    assert balance_after == existential_deposit
+    assert await async_subtensor.transfer(
+        wallet=dummy_account_2,
+        dest=alice_wallet.coldkeypub.ss58_address,
+        amount=None,
+        transfer_all=True,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        keep_alive=False,
+    )
+    balance_after = await async_subtensor.get_balance(
+        dummy_account_2.coldkeypub.ss58_address
+    )
+    assert balance_after == Balance(0)
