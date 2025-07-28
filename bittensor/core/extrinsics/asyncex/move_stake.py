@@ -71,14 +71,6 @@ async def transfer_stake_extrinsic(
     """
 
     amount.set_unit(netuid=origin_netuid)
-    # Verify ownership
-    hotkey_owner = await subtensor.get_hotkey_owner(hotkey_ss58)
-    if hotkey_owner != wallet.coldkeypub.ss58_address:
-        logging.error(
-            f":cross_mark: [red]Failed[/red]: Hotkey: {hotkey_ss58} does not belong to the origin coldkey owner: "
-            f"{wallet.coldkeypub.ss58_address}"
-        )
-        return False
 
     # Check sufficient stake
     stake_in_origin, stake_in_destination = await _get_stake_in_origin_and_dest(
@@ -194,14 +186,6 @@ async def swap_stake_extrinsic(
         bool: True if the swap was successful, False otherwise.
     """
     amount.set_unit(netuid=origin_netuid)
-    # Verify ownership
-    hotkey_owner = await subtensor.get_hotkey_owner(hotkey_ss58)
-    if hotkey_owner != wallet.coldkeypub.ss58_address:
-        logging.error(
-            f":cross_mark: [red]Failed[/red]: Hotkey: {hotkey_ss58} does not belong to the origin coldkey owner: "
-            f"{wallet.coldkeypub.ss58_address}"
-        )
-        return False
 
     # Check sufficient stake
     stake_in_origin, stake_in_destination = await _get_stake_in_origin_and_dest(
