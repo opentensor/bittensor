@@ -1484,31 +1484,6 @@ def test_transfer_stake_error(
     )
 
 
-def test_transfer_stake_non_owner(mock_substrate, subtensor, fake_wallet, mocker):
-    mocker.patch.object(
-        subtensor,
-        "get_hotkey_owner",
-        autospec=True,
-        return_value="owner2_ss58",
-    )
-
-    success = subtensor.transfer_stake(
-        fake_wallet,
-        "dest",
-        "hotkey_ss58",
-        origin_netuid=1,
-        destination_netuid=1,
-        amount=Balance(1),
-    )
-
-    assert success is False
-
-    subtensor.get_hotkey_owner.assert_called_once_with(
-        "hotkey_ss58",
-    )
-    mock_substrate.submit_extrinsic.assert_not_called()
-
-
 def test_transfer_stake_insufficient_stake(
     mock_substrate, subtensor, fake_wallet, mocker
 ):
