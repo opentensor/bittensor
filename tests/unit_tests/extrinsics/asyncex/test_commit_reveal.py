@@ -220,7 +220,7 @@ async def test_commit_reveal_v3_extrinsic_success_with_torch(
         netuid=fake_netuid,
         current_block=mock_block.return_value["header"]["number"],
         block_time=12.0,
-        hotkey=fake_wallet.hotkey.ss58_address,
+        hotkey=fake_wallet.hotkey.ss58_address.encode(),
     )
     mock_do_commit_reveal_v3.assert_awaited_once_with(
         subtensor=subtensor,
