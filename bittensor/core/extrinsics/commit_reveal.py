@@ -123,6 +123,7 @@ def commit_reveal_v3_extrinsic(
             netuid=netuid,
             subnet_reveal_period_epochs=subnet_reveal_period_epochs,
             block_time=block_time,
+            hotkey=wallet.hotkey.ss58_address.encode(),
         )
 
         success, message = _do_commit_reveal_v3(
