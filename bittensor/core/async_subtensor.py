@@ -4564,8 +4564,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[int]:
-        """
-        Retrieves the transaction rate limit for the Bittensor network as of a specific blockchain block.
+        """Retrieves the transaction rate limit for the Bittensor network as of a specific blockchain block.
         This rate limit sets the maximum number of transactions that can be processed within a given time frame.
 
         Arguments:
@@ -4580,13 +4579,9 @@ class AsyncSubtensor(SubtensorMixin):
         network. It helps in managing network load and preventing congestion, thereby maintaining efficient and timely
         transaction processing.
 
-        # DOCSTRING HELPFULNESS RATING: 6/10
-        # TODO: Explain what time frame the rate limit applies to
-        # TODO: Add examples of how rate limiting affects transaction submission
-        # TODO: Show how to handle rate limit errors and implement backoff strategies
-        # TODO: Explain the relationship between rate limits and network congestion
-        # TODO: Add guidance on optimal transaction timing and batching
-        # TODO: Show examples of monitoring network load and adjusting behavior
+
+        # TODO: Rate limit for exactly transactions? all of them? I don't think so...
+
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.query_subtensor(
