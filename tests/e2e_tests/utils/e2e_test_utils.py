@@ -274,13 +274,14 @@ async def async_wait_to_start_call(
     if await subtensor.is_fast_blocks() is False:
         in_blocks = 5
 
+    current_block = await subtensor.block
+
     bittensor.logging.console.info(
         f"Waiting for [blue]{in_blocks}[/blue] blocks before [red]start call[/red]. "
-        f"Current block: [blue]{await subtensor.block}[/blue]."
+        f"Current block: [blue]{current_block}[/blue]."
     )
 
     # make sure we passed start_call limit
-    current_block = await subtensor.block
     await subtensor.wait_for_block(current_block + in_blocks + 1)
     status, message = await subtensor.start_call(
         wallet=subnet_owner_wallet,
