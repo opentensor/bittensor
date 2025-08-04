@@ -276,7 +276,7 @@ async def async_wait_to_start_call(
 
     bittensor.logging.console.info(
         f"Waiting for [blue]{in_blocks}[/blue] blocks before [red]start call[/red]. "
-        f"Current block: [blue]{subtensor.block}[/blue]."
+        f"Current block: [blue]{await subtensor.block}[/blue]."
     )
 
     # make sure we passed start_call limit
