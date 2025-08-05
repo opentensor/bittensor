@@ -94,6 +94,14 @@ python3 -m pip install --upgrade bittensor
 
 ## Install on macOS and Linux
 
+### Note for macOS users
+The macOS preinstalled CPython installation is compiled with LibreSSL instead of OpenSSL. There are a number
+of issues with LibreSSL, and as such is not fully supported by the libraries used by bittensor. Thus we highly recommend, if 
+you are using a Mac, to first install Python from [Homebrew](https://brew.sh/). Additionally, the Rust FFI bindings 
+[if installing from precompiled wheels (default)] require the Homebrew-installed OpenSSL pacakge. If you choose to use
+the preinstalled Python version from macOS, things may not work completely.
+
+### Installation
 You can install Bittensor SDK on your local machine in either of the following ways. **Make sure you verify your installation after you install**:
 - [Install using a Bash command](#install-using-a-bash-command).
 - [Install using `pip3 install`](#install-using-pip3-install)
@@ -158,6 +166,13 @@ You can install using any of the below options:
   1. Install `cubit` first. See the [Install](https://github.com/opentensor/cubit?tab=readme-ov-file#install) section. **Only Python 3.9 and 3.10 versions are supported**. 
   2. Then install SDK with `pip install bittensor`.
   
+
+### Troubleshooting
+#### SSL: CERTIFICATE_VERIFY_FAILED
+
+If you are encountering a `[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate` 
+error, use the command `python -m bittensor certifi` which will update your local SSL certificates.
+
 ---
 
 ## Install on Windows
