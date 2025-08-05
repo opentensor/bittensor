@@ -166,6 +166,13 @@ You can install using any of the below options:
   1. Install `cubit` first. See the [Install](https://github.com/opentensor/cubit?tab=readme-ov-file#install) section. **Only Python 3.9 and 3.10 versions are supported**. 
   2. Then install SDK with `pip install bittensor`.
   
+
+### Troubleshooting
+#### SSL: CERTIFICATE_VERIFY_FAILED
+
+If you are encountering a `[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate` 
+error, use the command `python -m bittensor certifi` which will update your local SSL certificates.
+
 ---
 
 ## Install on Windows
