@@ -44,7 +44,7 @@ Since you need to use a secret when releasing bittensor (github personal access 
 
 So you can have:
 ```
-GITHUB_ACCESS_TOKEN=$(pass github/your_personal_token_with_permisions)
+GITHUB_ACCESS_TOKEN=$(pass github/your_personal_token_with_permissions)
 ```
 
 or
