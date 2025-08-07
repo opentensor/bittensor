@@ -255,7 +255,9 @@ def format_error_message(error_message: Union[dict, Exception]) -> str:
             err_type = error_message.get("type", err_type)
             err_name = error_message.get("name", err_name)
             err_docs = error_message.get("docs", [err_description])
-            err_description = " ".join(err_docs)
+            err_description = (
+                err_docs if isinstance(err_docs, str) else " ".join(err_docs)
+            )
             err_description += (
                 f" | Please consult {BT_DOCS_LINK}/errors/subtensor#{err_name.lower()}"
             )
