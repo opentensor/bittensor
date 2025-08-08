@@ -143,7 +143,7 @@ def add_stake_extrinsic(
                 f"[blue]netuid: [green]{netuid}[/green], amount: [green]{staking_balance}[/green] "
                 f"on [blue]{subtensor.network}[/blue][magenta]...[/magenta]"
             )
-            call_function = "add_stake"
+            call_function = "add_stake_aggregate"
 
         call = subtensor.substrate.compose_call(
             call_module="SubtensorModule",
@@ -328,7 +328,7 @@ def add_stake_multiple_extrinsic(
             )
             call = subtensor.substrate.compose_call(
                 call_module="SubtensorModule",
-                call_function="add_stake",
+                call_function="add_stake_aggregate",
                 call_params={
                     "hotkey": hotkey_ss58,
                     "amount_staked": staking_balance.rao,

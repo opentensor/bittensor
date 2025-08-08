@@ -40,7 +40,7 @@ def test_add_stake_extrinsic(mocker):
 
     fake_subtensor.substrate.compose_call.assert_called_once_with(
         call_module="SubtensorModule",
-        call_function="add_stake",
+        call_function="add_stake_aggregate",
         call_params={"hotkey": "hotkey", "amount_staked": 9, "netuid": 1},
     )
     fake_subtensor.sign_and_send_extrinsic.assert_called_once_with(
@@ -115,7 +115,7 @@ def test_add_stake_multiple_extrinsic(mocker):
 
     fake_subtensor.substrate.compose_call.assert_any_call(
         call_module="SubtensorModule",
-        call_function="add_stake",
+        call_function="add_stake_aggregate",
         call_params={
             "hotkey": "hotkey2",
             "amount_staked": 2199999333,
@@ -124,7 +124,7 @@ def test_add_stake_multiple_extrinsic(mocker):
     )
     fake_subtensor.substrate.compose_call.assert_any_call(
         call_module="SubtensorModule",
-        call_function="add_stake",
+        call_function="add_stake_aggregate",
         call_params={
             "hotkey": "hotkey2",
             "amount_staked": 2199999333,
