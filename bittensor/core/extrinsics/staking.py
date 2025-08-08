@@ -136,7 +136,7 @@ def add_stake_extrinsic(
                     "allow_partial": allow_partial_stake,
                 }
             )
-            call_function = "add_stake_limit"
+            call_function = "add_stake_limit_aggregate"
         else:
             logging.info(
                 f":satellite: [magenta]Staking to:[/magenta] "
