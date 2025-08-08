@@ -353,7 +353,7 @@ async def move_stake_extrinsic(
         )
         call = await subtensor.substrate.compose_call(
             call_module="SubtensorModule",
-            call_function="move_stake",
+            call_function="move_stake_aggregate",
             call_params={
                 "origin_hotkey": origin_hotkey,
                 "origin_netuid": origin_netuid,

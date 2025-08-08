@@ -710,7 +710,7 @@ def test_move_stake(mock_substrate, subtensor, fake_wallet, wait):
         mock_substrate,
         fake_wallet.coldkey,
         call_module="SubtensorModule",
-        call_function="move_stake",
+        call_function="move_stake_aggregate",
         call_params={
             "origin_hotkey": "origin_hotkey",
             "origin_netuid": 1,
@@ -761,7 +761,7 @@ def test_move_stake_error(mock_substrate, subtensor, fake_wallet, mocker):
         mock_substrate,
         fake_wallet.coldkey,
         call_module="SubtensorModule",
-        call_function="move_stake",
+        call_function="move_stake_aggregate",
         call_params={
             "origin_hotkey": "origin_hotkey",
             "origin_netuid": 1,
@@ -792,7 +792,7 @@ def test_move_stake_exception(mock_substrate, subtensor, fake_wallet):
         mock_substrate,
         fake_wallet.coldkey,
         call_module="SubtensorModule",
-        call_function="move_stake",
+        call_function="move_stake_aggregate",
         call_params={
             "origin_hotkey": "origin_hotkey",
             "origin_netuid": 1,
