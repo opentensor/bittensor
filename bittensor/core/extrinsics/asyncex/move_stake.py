@@ -98,7 +98,7 @@ async def transfer_stake_extrinsic(
         )
         call = await subtensor.substrate.compose_call(
             call_module="SubtensorModule",
-            call_function="transfer_stake",
+            call_function="transfer_stake_aggregate",
             call_params={
                 "destination_coldkey": destination_coldkey_ss58,
                 "hotkey": hotkey_ss58,
