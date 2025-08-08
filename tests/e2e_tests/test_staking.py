@@ -78,7 +78,9 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
     logging.console.info(f"Bob stake: {stake_bob}")
     assert stake_bob > Balance(0).set_unit(alice_subnet_netuid)
 
-    stakes = subtensor.get_stake_for_coldkey(coldkey_ss58=alice_wallet.coldkey.ss58_address)
+    stakes = subtensor.get_stake_for_coldkey(
+        coldkey_ss58=alice_wallet.coldkey.ss58_address
+    )
 
     expected_stakes = [
         StakeInfo(
