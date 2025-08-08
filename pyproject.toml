@@ -35,7 +35,7 @@ dependencies = [
     "scalecodec==1.2.11",
     "uvicorn",
     "bittensor-drand>=1.0.0",
-    "bittensor-wallet>=3.1.0",
+    "bittensor-wallet>=4.0.0,<5.0",
     "async-substrate-interface>=1.4.2"
 ]
 
