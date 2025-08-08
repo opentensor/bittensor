@@ -35,7 +35,7 @@ def test_unstake_extrinsic(fake_wallet, mocker):
 
     fake_subtensor.substrate.compose_call.assert_called_once_with(
         call_module="SubtensorModule",
-        call_function="remove_stake",
+        call_function="remove_stake_aggregate",
         call_params={
             "hotkey": "hotkey",
             "amount_unstaked": 1100000000,
@@ -80,7 +80,7 @@ def test_unstake_all_extrinsic(fake_wallet, mocker):
 
     fake_subtensor.substrate.compose_call.assert_called_once_with(
         call_module="SubtensorModule",
-        call_function="remove_stake_full_limit",
+        call_function="remove_stake_full_limit_aggregate",
         call_params={
             "hotkey": "hotkey",
             "netuid": fake_netuid,
@@ -138,16 +138,7 @@ def test_unstake_multiple_extrinsic(fake_wallet, mocker):
 
     fake_subtensor.substrate.compose_call.assert_any_call(
         call_module="SubtensorModule",
-        call_function="remove_stake",
-        call_params={
-            "hotkey": "hotkey1",
-            "amount_unstaked": 1100000000,
-            "netuid": 1,
-        },
-    )
-    fake_subtensor.substrate.compose_call.assert_any_call(
-        call_module="SubtensorModule",
-        call_function="remove_stake",
+        call_function="remove_stake_aggregate",
         call_params={
             "hotkey": "hotkey1",
             "amount_unstaked": 1100000000,
