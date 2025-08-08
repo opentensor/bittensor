@@ -1076,7 +1076,7 @@ def test_swap_stake(mock_substrate, subtensor, fake_wallet, mocker):
         mock_substrate,
         fake_wallet.coldkey,
         call_module="SubtensorModule",
-        call_function="swap_stake",
+        call_function="swap_stake_aggregate",
         call_params={
             "hotkey": fake_wallet.hotkey.ss58_address,
             "origin_netuid": 1,

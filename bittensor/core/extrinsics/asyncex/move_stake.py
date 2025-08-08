@@ -240,7 +240,7 @@ async def swap_stake_extrinsic(
                 f"Amount: [green]{amount}[/green] from netuid [green]{origin_netuid}[/green] to netuid "
                 f"[green]{destination_netuid}[/green]"
             )
-            call_function = "swap_stake"
+            call_function = "swap_stake_aggregate"
 
         call = await subtensor.substrate.compose_call(
             call_module="SubtensorModule",
