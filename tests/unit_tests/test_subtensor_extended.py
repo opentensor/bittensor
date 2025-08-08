@@ -1420,7 +1420,7 @@ def test_transfer_stake(mock_substrate, subtensor, fake_wallet, mocker, wait):
         mock_substrate,
         fake_wallet.coldkey,
         call_module="SubtensorModule",
-        call_function="transfer_stake",
+        call_function="transfer_stake_aggregate",
         call_params={
             "destination_coldkey": "dest",
             "hotkey": "hotkey_ss58",
@@ -1471,7 +1471,7 @@ def test_transfer_stake_error(
         mock_substrate,
         fake_wallet.coldkey,
         call_module="SubtensorModule",
-        call_function="transfer_stake",
+        call_function="transfer_stake_aggregate",
         call_params={
             "destination_coldkey": "dest",
             "hotkey": "hotkey_ss58",
