@@ -370,7 +370,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
         rate_tolerance=0.005,  # 0.5%
         allow_partial_stake=False,
     )
-    assert success is False
+    assert success is False, "Staking should fail."
 
     current_stake = subtensor.staking.get_stake(
         coldkey_ss58=alice_wallet.coldkey.ss58_address,
