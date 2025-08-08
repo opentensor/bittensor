@@ -136,7 +136,7 @@ def unstake_extrinsic(
                 f"netuid: [green]{netuid}[/green], amount: [green]{unstaking_balance}[/green] "
                 f"on [blue]{subtensor.network}[/blue][magenta]...[/magenta]"
             )
-            call_function = "remove_stake"
+            call_function = "remove_stake_aggregate"
 
         call = subtensor.substrate.compose_call(
             call_module="SubtensorModule",
@@ -247,7 +247,7 @@ def unstake_all_extrinsic(
 
     call = subtensor.substrate.compose_call(
         call_module="SubtensorModule",
-        call_function="remove_stake_full_limit",
+        call_function="remove_stake_full_limit_aggregate",
         call_params=call_params,
     )
 
@@ -377,7 +377,7 @@ def unstake_multiple_extrinsic(
             )
             call = subtensor.substrate.compose_call(
                 call_module="SubtensorModule",
-                call_function="remove_stake",
+                call_function="remove_stake_aggregate",
                 call_params={
                     "hotkey": hotkey_ss58,
                     "amount_unstaked": unstaking_balance.rao,
