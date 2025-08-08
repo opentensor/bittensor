@@ -129,7 +129,7 @@ def unstake_extrinsic(
                     "allow_partial": allow_partial_stake,
                 }
             )
-            call_function = "remove_stake_limit"
+            call_function = "remove_stake_limit_aggregate"
         else:
             logging.info(
                 f":satellite: [magenta]Unstaking from:[/magenta] "
