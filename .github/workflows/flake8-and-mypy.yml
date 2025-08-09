@@ -42,7 +42,8 @@ jobs:
           python -m venv venv
           source venv/bin/activate
           python -m pip install --upgrade pip
-          python -m pip install uv
+          # uv==0.8.6 is the last version that supports python 3.9
+          python -m pip install uv==0.8.6
           python -m uv sync --extra dev --active
 
       - name: Flake8
