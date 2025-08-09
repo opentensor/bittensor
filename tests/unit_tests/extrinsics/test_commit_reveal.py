@@ -70,11 +70,12 @@ def test_do_commit_reveal_v3_success(mocker, subtensor, fake_wallet):
     # Asserts
     mocked_compose_call.assert_called_once_with(
         call_module="SubtensorModule",
-        call_function="commit_crv3_weights",
+        call_function="commit_timelocked_weights",
         call_params={
             "netuid": fake_netuid,
             "commit": fake_commit,
             "reveal_round": fake_reveal_round,
+            "commit_reveal_version": 4,
         },
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
@@ -123,11 +124,12 @@ def test_do_commit_reveal_v3_failure_due_to_error(mocker, subtensor, fake_wallet
     # Asserts
     mocked_compose_call.assert_called_once_with(
         call_module="SubtensorModule",
-        call_function="commit_crv3_weights",
+        call_function="commit_timelocked_weights",
         call_params={
             "netuid": fake_netuid,
             "commit": fake_commit,
             "reveal_round": fake_reveal_round,
+            "commit_reveal_version": 4,
         },
     )
     mocked_create_signed_extrinsic.assert_called_once_with(
@@ -205,6 +207,7 @@ def test_commit_reveal_v3_extrinsic_success_with_torch(
         netuid=fake_netuid,
         current_block=mock_block.return_value,
         block_time=12.0,
+        hotkey=fake_wallet.hotkey.public_key,
     )
     mock_do_commit_reveal_v3.assert_called_once_with(
         subtensor=subtensor,

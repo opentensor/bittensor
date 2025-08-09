@@ -16,19 +16,20 @@ if TYPE_CHECKING:
     from bittensor.utils.registration import torch
 
 
+# TODO: Merge this logic with `commit_reveal_extrinsic` in SDKv10 bc this is not CRv3 anymore.
 def _do_commit_reveal_v3(
     subtensor: "Subtensor",
     wallet: "Wallet",
     netuid: int,
     commit: bytes,
     reveal_round: int,
+    commit_reveal_version: int = 4,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
     period: Optional[int] = None,
 ) -> tuple[bool, str]:
     """
-    Executes commit-reveal phase 3 for a given netuid and commit, and optionally waits for extrinsic inclusion or
-        finalization.
+    Executes commit-reveal extrinsic for a given netuid, commit, reveal_round, and commit_reveal_version.
 
     Arguments:
         subtensor: An instance of the Subtensor class.
@@ -36,6 +37,7 @@ def _do_commit_reveal_v3(
         netuid: int The network unique identifier.
         commit: bytes The commit data in bytes format.
         reveal_round: int The round number for the reveal phase.
+        commit_reveal_version: The version of the chain commit-reveal protocol to use. Default is ``4``.
         wait_for_inclusion: bool, optional Flag indicating whether to wait for the extrinsic to be included in a block.
         wait_for_finalization: bool, optional Flag indicating whether to wait for the extrinsic to be finalized.
         period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
@@ -53,11 +55,12 @@ def _do_commit_reveal_v3(
 
     call = subtensor.substrate.compose_call(
         call_module="SubtensorModule",
-        call_function="commit_crv3_weights",
+        call_function="commit_timelocked_weights",
         call_params={
             "netuid": netuid,
             "commit": commit,
             "reveal_round": reveal_round,
+            "commit_reveal_version": commit_reveal_version,
         },
     )
     return subtensor.sign_and_send_extrinsic(
@@ -70,6 +73,7 @@ def _do_commit_reveal_v3(
     )
 
 
+# TODO: rename this extrinsic to `commit_reveal_extrinsic` in SDK.v10
 def commit_reveal_v3_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
@@ -123,6 +127,7 @@ def commit_reveal_v3_extrinsic(
             netuid=netuid,
             subnet_reveal_period_epochs=subnet_reveal_period_epochs,
             block_time=block_time,
+            hotkey=wallet.hotkey.public_key,
         )
 
         success, message = _do_commit_reveal_v3(
@@ -136,7 +141,7 @@ def commit_reveal_v3_extrinsic(
             period=period,
         )
 
-        if success is not True:
+        if not success:
             logging.error(message)
             return False, message
 
