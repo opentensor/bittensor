@@ -1,5 +1,36 @@
 # Changelog
 
+## 9.9.0 /2025-08-11
+
+## What's Changed
+* Fix crv3 tests after devnet-ready get `CRV3WeightCommitsV2` by @basfroman in https://github.com/opentensor/bittensor/pull/2978
+* Add webhook for failed nightly tests by @basfroman in https://github.com/opentensor/bittensor/pull/2987
+* Fix liquidity test (non-fast-blocks node) by @basfroman in https://github.com/opentensor/bittensor/pull/2988
+* improve nightly logic by @basfroman in https://github.com/opentensor/bittensor/pull/2989
+* improve nightly 2 by @basfroman in https://github.com/opentensor/bittensor/pull/2990
+* Add `get_stake_weight` methods by @basfroman in https://github.com/opentensor/bittensor/pull/2985
+* Handles both exceptions for Swap pallet fetching by @thewhaleking in https://github.com/opentensor/bittensor/pull/2991
+* chore: fix typo by @socialsister in https://github.com/opentensor/bittensor/pull/2969
+* optimisations mostly related to liquidity_list by @thewhaleking in https://github.com/opentensor/bittensor/pull/2980
+* Transfers improvements by @thewhaleking in https://github.com/opentensor/bittensor/pull/2993
+* Remove ownership check in `transfer_stake_extrinsic` and `swap_stake_extrinsic` by @basfroman in https://github.com/opentensor/bittensor/pull/2996
+* Missed await by @thewhaleking in https://github.com/opentensor/bittensor/pull/3002
+* chore: fix typo by @lechpzn in https://github.com/opentensor/bittensor/pull/3001
+* Adds note for installing on macOS by @thewhaleking in https://github.com/opentensor/bittensor/pull/3004
+* Bump bittensor-wallet version by @thewhaleking in https://github.com/opentensor/bittensor/pull/3005
+* Format Error with string docs by @thewhaleking in https://github.com/opentensor/bittensor/pull/3006
+* `LoggingMachine` initialization updated to explicitly call both parent constructors by @basfroman in https://github.com/opentensor/bittensor/pull/3008
+* Fixed `moving_price` conversion from `I96F32` to float by @mcjkula in https://github.com/opentensor/bittensor/pull/3010
+* Add new CRv4 logic by @basfroman in https://github.com/opentensor/bittensor/pull/2999
+* UV Fix by @thewhaleking in https://github.com/opentensor/bittensor/pull/3011
+
+## New Contributors
+* @socialsister made their first contribution in https://github.com/opentensor/bittensor/pull/2969
+* @lechpzn made their first contribution in https://github.com/opentensor/bittensor/pull/3001
+* @mcjkula made their first contribution in https://github.com/opentensor/bittensor/pull/3010
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.8.3...v9.9.0
+
 ## 9.8.3 /2025-07-18
 * improve make file by @basfroman in https://github.com/opentensor/bittensor/pull/2965
 * Move all workflows from `app.circleci.com` to `GH actions` by @basfroman in https://github.com/opentensor/bittensor/pull/2970
