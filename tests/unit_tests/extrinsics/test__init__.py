@@ -102,3 +102,22 @@ def test_format_error_message_with_custom_error_message_without_index():
         == f"Subtensor returned `SubstrateRequestException({fake_custom_error['message']})` error. This means: "
         f"`{fake_custom_error['data']}`."
     )
+
+
+def test_format_error_with_string_docs():
+    fake_error_message = {
+        "type": "SomeType",
+        "name": "SomeErrorName",
+        "docs": "Some error description.",
+    }
+
+    # Call
+    result = format_error_message(fake_error_message)
+
+    # Assertions
+
+    assert (
+        result == "Subtensor returned `SomeErrorName(SomeType)` error. "
+        "This means: `Some error description."
+        f" | Please consult {BT_DOCS_LINK}/errors/subtensor#someerrorname`."
+    )

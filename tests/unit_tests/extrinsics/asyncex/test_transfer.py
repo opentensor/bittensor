@@ -3,12 +3,32 @@ from bittensor.core.extrinsics.asyncex import transfer as async_transfer
 from bittensor.utils.balance import Balance
 
 
+@pytest.mark.parametrize(
+    "amount,keep_alive,call_function,call_params",
+    [
+        (
+            Balance(1),
+            True,
+            "transfer_keep_alive",
+            {"dest": "SS58PUBLICKEY", "value": Balance(1).rao},
+        ),
+        (None, True, "transfer_all", {"dest": "SS58PUBLICKEY", "keep_alive": True}),
+        (None, False, "transfer_all", {"dest": "SS58PUBLICKEY", "keep_alive": False}),
+        (
+            Balance(1),
+            False,
+            "transfer_allow_death",
+            {"dest": "SS58PUBLICKEY", "value": Balance(1).rao},
+        ),
+    ],
+)
 @pytest.mark.asyncio
-async def test_do_transfer_success(subtensor, fake_wallet, mocker):
+async def test_do_transfer_success(
+    subtensor, fake_wallet, mocker, amount, keep_alive, call_function, call_params
+):
     """Tests _do_transfer when the transfer is successful."""
     # Preps
-    fake_destination = "destination_address"
-    fake_amount = mocker.Mock(autospec=Balance, rao=1000)
+    fake_destination = "SS58PUBLICKEY"
     fake_block_hash = "fake_block_hash"
 
     mocker.patch.object(subtensor.substrate, "compose_call")
@@ -24,7 +44,8 @@ async def test_do_transfer_success(subtensor, fake_wallet, mocker):
         subtensor=subtensor,
         wallet=fake_wallet,
         destination=fake_destination,
-        amount=fake_amount,
+        amount=amount,
+        keep_alive=keep_alive,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -32,8 +53,8 @@ async def test_do_transfer_success(subtensor, fake_wallet, mocker):
     # Asserts
     subtensor.substrate.compose_call.assert_awaited_once_with(
         call_module="Balances",
-        call_function="transfer_keep_alive",
-        call_params={"dest": fake_destination, "value": fake_amount.rao},
+        call_function=call_function,
+        call_params=call_params,
     )
 
     subtensor.sign_and_send_extrinsic.assert_awaited_once_with(

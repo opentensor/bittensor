@@ -48,6 +48,9 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.get_current_weight_commit_info = (
         subtensor._subtensor.get_current_weight_commit_info
     )
+    subtensor.get_current_weight_commit_info_v2 = (
+        subtensor._subtensor.get_current_weight_commit_info_v2
+    )
     subtensor.get_delegate_by_hotkey = subtensor._subtensor.get_delegate_by_hotkey
     subtensor.get_delegate_identities = subtensor._subtensor.get_delegate_identities
     subtensor.get_delegate_take = subtensor._subtensor.get_delegate_take
@@ -87,6 +90,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     )
     subtensor.get_stake_movement_fee = subtensor._subtensor.get_stake_movement_fee
     subtensor.get_stake_operations_fee = subtensor._subtensor.get_stake_operations_fee
+    subtensor.get_stake_weight = subtensor._subtensor.get_stake_weight
     subtensor.get_subnet_burn_cost = subtensor._subtensor.get_subnet_burn_cost
     subtensor.get_subnet_hyperparameters = (
         subtensor._subtensor.get_subnet_hyperparameters

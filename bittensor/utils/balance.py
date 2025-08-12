@@ -4,6 +4,7 @@ from typing import Union, TypedDict, Optional
 from scalecodec import ScaleType
 
 from bittensor.core import settings
+from bittensor.utils import deprecated_message
 
 
 def _check_currencies(self, other):
@@ -349,8 +350,7 @@ def fixed_to_float(
 ) -> float:
     # By default, this is a U64F64
     # which is 64 bits of integer and 64 bits of fractional
-
-    data: int = fixed["bits"]
+    data: int = fb.value if isinstance((fb := fixed["bits"]), ScaleType) else fb
 
     # Logical and to get the fractional part; remaining is the integer part
     fractional_part = data & (2**frac_bits - 1)
@@ -830,12 +830,9 @@ def check_and_convert_to_balance(
     This is used to support backwards compatibility while also providing a deprecation notice.
     """
     if isinstance(amount, (float, int)):
-        warnings.simplefilter("default", DeprecationWarning)
-        warnings.warn(
+        deprecated_message(
             "Detected a non-balance amount. Converting to Balance from Tao for backwards compatibility."
-            "Please update your code to use tao(amount) or Balance.from_tao(amount) for the main release 9.0.0.",
-            category=DeprecationWarning,
-            stacklevel=2,
+            "Please update your code to use tao(amount) or Balance.from_tao(amount) for the main release 10.0.0."
         )
         amount = tao(amount)
     return amount
