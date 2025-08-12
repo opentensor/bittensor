@@ -98,7 +98,7 @@ async def transfer_stake_extrinsic(
         )
         call = await subtensor.substrate.compose_call(
             call_module="SubtensorModule",
-            call_function="transfer_stake",
+            call_function="transfer_stake_aggregate",
             call_params={
                 "destination_coldkey": destination_coldkey_ss58,
                 "hotkey": hotkey_ss58,
@@ -240,7 +240,7 @@ async def swap_stake_extrinsic(
                 f"Amount: [green]{amount}[/green] from netuid [green]{origin_netuid}[/green] to netuid "
                 f"[green]{destination_netuid}[/green]"
             )
-            call_function = "swap_stake"
+            call_function = "swap_stake_aggregate"
 
         call = await subtensor.substrate.compose_call(
             call_module="SubtensorModule",
@@ -353,7 +353,7 @@ async def move_stake_extrinsic(
         )
         call = await subtensor.substrate.compose_call(
             call_module="SubtensorModule",
-            call_function="move_stake",
+            call_function="move_stake_aggregate",
             call_params={
                 "origin_hotkey": origin_hotkey,
                 "origin_netuid": origin_netuid,
