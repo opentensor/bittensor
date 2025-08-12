@@ -10,6 +10,7 @@ import numpy as np
 import scalecodec
 from async_substrate_interface import AsyncSubstrateInterface
 from async_substrate_interface.substrate_addons import RetryAsyncSubstrate
+from async_substrate_interface.utils.storage import StorageKey
 from bittensor_drand import get_encrypted_commitment
 from bittensor_wallet.utils import SS58_FORMAT
 from numpy.typing import NDArray
@@ -97,6 +98,7 @@ from bittensor.utils import (
     torch,
     u16_normalized_float,
     u64_normalized_float,
+    get_transfer_fn_params,
 )
 from bittensor.core.extrinsics.asyncex.liquidity import (
     add_liquidity_extrinsic,
@@ -109,6 +111,7 @@ from bittensor.utils.balance import (
     fixed_to_float,
     check_and_convert_to_balance,
 )
+from bittensor.utils import deprecated_message
 from bittensor.utils.btlogging import logging
 from bittensor.utils.liquidity import (
     calculate_fees,
@@ -767,7 +770,8 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         return await self.substrate.rpc_request(
             method="state_call",
-            params=[method, data, block_hash] if block_hash else [method, data],
+            params=[method, data],
+            block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
 
@@ -820,7 +824,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         decoded = query.decode()
 
-        if not isinstance(subnet_prices, SubstrateRequestException):
+        if not isinstance(subnet_prices, (SubstrateRequestException, ValueError)):
             for sn in decoded:
                 sn.update(
                     {"price": subnet_prices.get(sn["netuid"], Balance.from_tao(0))}
@@ -1154,7 +1158,7 @@ class AsyncSubtensor(SubtensorMixin):
         if not result:
             return []
 
-        if not isinstance(prices, SubstrateRequestException):
+        if not isinstance(prices, (SubstrateRequestException, ValueError)):
             for subnet in result:
                 subnet.update({"price": prices.get(subnet["netuid"], 0)})
         else:
@@ -1695,7 +1699,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> list:
+    ) -> list[tuple[str, str, int]]:
         """
         Retrieves CRV3 weight commit information for a specific subnet.
 
@@ -1706,9 +1710,17 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            list: A list of commit details, where each entry is a dictionary with keys 'who', 'serialized_commit', and
-            'reveal_round', or an empty list if no data is found.
+            A list of commit details, where each item contains:
+                - ss58_address: The address of the committer.
+                - commit_message: The commit message.
+                - reveal_round: The round when the commitment was revealed.
+
+            The list may be empty if there are no commits found.
         """
+        deprecated_message(
+            message="The method `get_current_weight_commit_info` is deprecated and will be removed in version 10.0.0. "
+            "Use `get_current_weight_commit_info_v2` instead."
+        )
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query_map(
             module="SubtensorModule",
@@ -1720,6 +1732,43 @@ class AsyncSubtensor(SubtensorMixin):
 
         commits = result.records[0][1] if result.records else []
         return [WeightCommitInfo.from_vec_u8(commit) for commit in commits]
+
+    async def get_current_weight_commit_info_v2(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> list[tuple[str, int, str, int]]:
+        """
+        Retrieves CRV3 weight commit information for a specific subnet.
+
+        Arguments:
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query. Default is ``None``.
+            block_hash: The hash of the block to retrieve the subnet unique identifiers from.
+            reuse_block: Whether to reuse the last-used block hash.
+
+        Returns:
+            A list of commit details, where each item contains:
+                - ss58_address: The address of the committer.
+                - commit_block: The block number when the commitment was made.
+                - commit_message: The commit message.
+                - reveal_round: The round when the commitment was revealed.
+
+            The list may be empty if there are no commits found.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        result = await self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function="CRV3WeightCommitsV2",
+            params=[netuid],
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+
+        commits = result.records[0][1] if result.records else []
+        return [WeightCommitInfo.from_vec_u8_v2(commit) for commit in commits]
 
     async def get_delegate_by_hotkey(
         self,
@@ -2242,29 +2291,35 @@ class AsyncSubtensor(SubtensorMixin):
             block=block, block_hash=block_hash, reuse_block=reuse_block
         )
 
-        query = self.substrate.query
+        # Fetch global fees and current price
+        fee_global_tao_query_sk = await self.substrate.create_storage_key(
+            pallet="Swap",
+            storage_function="FeeGlobalTao",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+        fee_global_alpha_query_sk = await self.substrate.create_storage_key(
+            pallet="Swap",
+            storage_function="FeeGlobalAlpha",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+        sqrt_price_query_sk = await self.substrate.create_storage_key(
+            pallet="Swap",
+            storage_function="AlphaSqrtPrice",
+            params=[netuid],
+            block_hash=block_hash,
+        )
         (
-            fee_global_tao,
-            fee_global_alpha,
-            sqrt_price,
+            (fee_global_tao_query, fee_global_alpha_query, sqrt_price_query),
             positions_response,
         ) = await asyncio.gather(
-            query(
-                module="Swap",
-                storage_function="FeeGlobalTao",
-                params=[netuid],
-                block_hash=block_hash,
-            ),
-            query(
-                module="Swap",
-                storage_function="FeeGlobalAlpha",
-                params=[netuid],
-                block_hash=block_hash,
-            ),
-            query(
-                module="Swap",
-                storage_function="AlphaSqrtPrice",
-                params=[netuid],
+            self.substrate.query_multi(
+                [
+                    fee_global_tao_query_sk,
+                    fee_global_alpha_query_sk,
+                    sqrt_price_query_sk,
+                ],
                 block_hash=block_hash,
             ),
             self.query_map(
@@ -2275,36 +2330,46 @@ class AsyncSubtensor(SubtensorMixin):
             ),
         )
         # convert to floats
-        fee_global_tao = fixed_to_float(fee_global_tao)
-        fee_global_alpha = fixed_to_float(fee_global_alpha)
-        sqrt_price = fixed_to_float(sqrt_price)
+        fee_global_tao = fixed_to_float(fee_global_tao_query[1])
+        fee_global_alpha = fixed_to_float(fee_global_alpha_query[1])
+        sqrt_price = fixed_to_float(sqrt_price_query[1])
 
         # Fetch global fees and current price
         current_tick = price_to_tick(sqrt_price**2)
 
         # Fetch positions
-        positions = []
+        positions_values: list[tuple[dict, int, int]] = []
+        positions_storage_keys: list[StorageKey] = []
         async for _, p in positions_response:
             position = p.value
 
             tick_low_idx = position.get("tick_low")[0]
             tick_high_idx = position.get("tick_high")[0]
-
-            tick_low, tick_high = await asyncio.gather(
-                query(
-                    module="Swap",
-                    storage_function="Ticks",
-                    params=[netuid, tick_low_idx],
-                    block_hash=block_hash,
-                ),
-                query(
-                    module="Swap",
-                    storage_function="Ticks",
-                    params=[netuid, tick_high_idx],
-                    block_hash=block_hash,
-                ),
+            positions_values.append((position, tick_low_idx, tick_high_idx))
+            tick_low_sk = await self.substrate.create_storage_key(
+                pallet="Swap",
+                storage_function="Ticks",
+                params=[netuid, tick_low_idx],
+                block_hash=block_hash,
             )
+            tick_high_sk = await self.substrate.create_storage_key(
+                pallet="Swap",
+                storage_function="Ticks",
+                params=[netuid, tick_high_idx],
+                block_hash=block_hash,
+            )
+            positions_storage_keys.extend([tick_low_sk, tick_high_sk])
 
+        # query all our ticks at once
+        ticks_query = await self.substrate.query_multi(
+            positions_storage_keys, block_hash=block_hash
+        )
+        # iterator with just the values
+        ticks = iter([x[1] for x in ticks_query])
+        positions = []
+        for position, tick_low_idx, tick_high_idx in positions_values:
+            tick_low = next(ticks)
+            tick_high = next(ticks)
             # Calculate fees above/below range for both tokens
             tao_below = get_fees(
                 current_tick=current_tick,
@@ -2878,6 +2943,7 @@ class AsyncSubtensor(SubtensorMixin):
                 or reuse_block.
             reuse_block: Whether to reuse for this query the last-used block. Do not specify if also specifying block
                 or block_hash.
+
         Returns:
             The calculated stake fee as a Balance object.
         """
@@ -2891,6 +2957,38 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
         )
         return amount * (result.value / U16_MAX)
+
+    async def get_stake_weight(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> list[float]:
+        """
+        Retrieves the stake weight for all hotkeys in a given subnet.
+
+        Arguments:
+            netuid: Netuid of subnet.
+            block: Block number at which to perform the calculation.
+            block_hash: The hash of the blockchain block number for the query. Do not specify if also specifying block
+                or reuse_block.
+            reuse_block: Whether to reuse for this query the last-used block. Do not specify if also specifying block
+                or block_hash.
+
+        Returns:
+            A list of stake weights for all hotkeys in the specified subnet.
+        """
+        block_hash = await self.determine_block_hash(
+            block=block, block_hash=block_hash, reuse_block=reuse_block
+        )
+        result = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="StakeWeight",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+        return [u16_normalized_float(w) for w in result]
 
     async def get_subnet_burn_cost(
         self,
@@ -3037,7 +3135,7 @@ class AsyncSubtensor(SubtensorMixin):
         return getattr(result, "value", None)
 
     async def get_transfer_fee(
-        self, wallet: "Wallet", dest: str, value: Balance
+        self, wallet: "Wallet", dest: str, value: Balance, keep_alive: bool = True
     ) -> Balance:
         """
         Calculates the transaction fee for transferring tokens from a wallet to a specified destination address. This
@@ -3049,6 +3147,8 @@ class AsyncSubtensor(SubtensorMixin):
             dest: The ``SS58`` address of the destination account.
             value: The amount of tokens to be transferred, specified as a Balance object, or in Tao (float) or Rao
                 (int) units.
+            keep_alive: Whether the transfer fee should be calculated based on keeping the wallet alive (existential
+                deposit) or not.
 
         Returns:
             bittensor.utils.balance.Balance: The estimated transaction fee for the transfer, represented as a Balance
@@ -3058,12 +3158,15 @@ class AsyncSubtensor(SubtensorMixin):
         wallet has sufficient funds to cover both the transfer amount and the associated costs. This function provides
         a crucial tool for managing financial operations within the Bittensor network.
         """
-        value = check_and_convert_to_balance(value)
+        if value is not None:
+            value = check_and_convert_to_balance(value)
+        call_params: dict[str, Union[int, str, bool]]
+        call_function, call_params = get_transfer_fn_params(value, dest, keep_alive)
 
         call = await self.substrate.compose_call(
             call_module="Balances",
-            call_function="transfer_keep_alive",
-            call_params={"dest": dest, "value": value.rao},
+            call_function=call_function,
+            call_params=call_params,
         )
 
         try:
@@ -3779,7 +3882,7 @@ class AsyncSubtensor(SubtensorMixin):
         )
 
         if isinstance(decoded := query.decode(), dict):
-            if isinstance(price, SubstrateRequestException):
+            if isinstance(price, (SubstrateRequestException, ValueError)):
                 price = None
             return DynamicInfo.from_dict({**decoded, "price": price})
         return None
@@ -5358,7 +5461,7 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         dest: str,
-        amount: Balance,
+        amount: Optional[Balance],
         transfer_all: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -5371,7 +5474,7 @@ class AsyncSubtensor(SubtensorMixin):
         Arguments:
             wallet: Source wallet for the transfer.
             dest: Destination address for the transfer.
-            amount: Number of tokens to transfer.
+            amount: Number of tokens to transfer. `None` is transferring all.
             transfer_all: Flag to transfer all tokens. Default is `False`.
             wait_for_inclusion: Waits for the transaction to be included in a block. Defaults to `True`.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Defaults to `False`.
@@ -5382,7 +5485,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             `True` if the transferring was successful, otherwise `False`.
         """
-        amount = check_and_convert_to_balance(amount)
+        if amount is not None:
+            amount = check_and_convert_to_balance(amount)
         return await transfer_extrinsic(
             subtensor=self,
             wallet=wallet,

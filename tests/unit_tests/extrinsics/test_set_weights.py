@@ -1,9 +1,8 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-import torch
+# import torch
 
-from bittensor.core import subtensor as subtensor_module
 from bittensor.core.extrinsics.set_weights import (
     _do_set_weights,
     set_weights_extrinsic,

@@ -5,6 +5,7 @@ from bittensor.utils import (
     is_valid_bittensor_address_or_public_key,
     unlock_key,
     get_explorer_url_for_network,
+    get_transfer_fn_params,
 )
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -18,10 +19,11 @@ def _do_transfer(
     subtensor: "Subtensor",
     wallet: "Wallet",
     destination: str,
-    amount: Balance,
+    amount: Optional[Balance],
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
     period: Optional[int] = None,
+    keep_alive: bool = True,
 ) -> tuple[bool, str, str]:
     """
     Makes transfer from wallet to destination public key address.
@@ -30,7 +32,7 @@ def _do_transfer(
         subtensor (bittensor.core.subtensor.Subtensor): the Subtensor object used for transfer
         wallet (bittensor_wallet.Wallet): Bittensor wallet object to make transfer from.
         destination (str): Destination public key address (ss58_address or ed25519) of recipient.
-        amount (bittensor.utils.balance.Balance): Amount to stake as Bittensor balance.
+        amount (bittensor.utils.balance.Balance): Amount to stake as Bittensor balance. `None` if transferring all.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns
             `False` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
@@ -38,14 +40,17 @@ def _do_transfer(
         period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted.
             If the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
+        keep_alive (bool): If `True`, will keep the existential deposit in the account.
 
     Returns:
         success, block hash, formatted error message
     """
+    call_function, call_params = get_transfer_fn_params(amount, destination, keep_alive)
+
     call = subtensor.substrate.compose_call(
         call_module="Balances",
-        call_function="transfer_keep_alive",
-        call_params={"dest": destination, "value": amount.rao},
+        call_function=call_function,
+        call_params=call_params,
     )
 
     success, message = subtensor.sign_and_send_extrinsic(
@@ -72,7 +77,7 @@ def transfer_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     dest: str,
-    amount: Balance,
+    amount: Optional[Balance],
     transfer_all: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
@@ -85,7 +90,7 @@ def transfer_extrinsic(
         subtensor (bittensor.core.subtensor.Subtensor): the Subtensor object used for transfer
         wallet (bittensor_wallet.Wallet): Bittensor wallet object to make transfer from.
         dest (str): Destination public key address (ss58_address or ed25519) of recipient.
-        amount (bittensor.utils.balance.Balance): Amount to stake as Bittensor balance.
+        amount (bittensor.utils.balance.Balance): Amount to stake as Bittensor balance. `None` if transferring all.
         transfer_all (bool): Whether to transfer all funds from this wallet to the destination address.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns
             `False` if the extrinsic fails to enter the block within the timeout.
@@ -100,6 +105,10 @@ def transfer_extrinsic(
         success (bool): Flag is `True` if extrinsic was finalized or included in the block. If we did not wait for
             finalization / inclusion, the response is `True`, regardless of its inclusion.
     """
+    if amount is None and not transfer_all:
+        logging.error("If not transferring all, `amount` must be specified.")
+        return False
+
     # Validate destination address.
     if not is_valid_bittensor_address_or_public_key(dest):
         logging.error(
@@ -127,16 +136,16 @@ def transfer_extrinsic(
     else:
         existential_deposit = subtensor.get_existential_deposit(block=block)
 
-    fee = subtensor.get_transfer_fee(wallet=wallet, dest=dest, value=amount)
+    fee = subtensor.get_transfer_fee(
+        wallet=wallet, dest=dest, value=amount, keep_alive=keep_alive
+    )
 
     # Check if we have enough balance.
     if transfer_all is True:
-        amount = account_balance - fee - existential_deposit
-        if amount < Balance(0):
+        if (account_balance - fee) < existential_deposit:
             logging.error("Not enough balance to transfer")
             return False
-
-    if account_balance < (amount + fee + existential_deposit):
+    elif account_balance < (amount + fee + existential_deposit):
         logging.error(":cross_mark: [red]Not enough balance[/red]")
         logging.error(f"\t\tBalance:\t[blue]{account_balance}[/blue]")
         logging.error(f"\t\tAmount:\t[blue]{amount}[/blue]")
@@ -149,6 +158,7 @@ def transfer_extrinsic(
         wallet=wallet,
         destination=dest,
         amount=amount,
+        keep_alive=keep_alive,
         wait_for_finalization=wait_for_finalization,
         wait_for_inclusion=wait_for_inclusion,
         period=period,
