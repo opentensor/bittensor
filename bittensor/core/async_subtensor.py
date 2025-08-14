@@ -1880,7 +1880,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> list[tuple[DelegateInfo, Balance]]:
+    ) -> list[DelegateInfo]:
         """
         Retrieves a list of delegates and their associated stakes for a given coldkey. This function identifies the
         delegates that a specific account has staked tokens on.
@@ -1892,7 +1892,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used blockchain block hash.
 
         Returns:
-            A list of tuples, each containing a delegate's information and staked amount.
+            A list containing the delegated information for the specified coldkey.
 
         This function is important for account holders to understand their stake allocations and their involvement in
         the network's delegation and consensus mechanisms.

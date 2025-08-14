@@ -1223,7 +1223,7 @@ class Subtensor(SubtensorMixin):
 
     def get_delegated(
         self, coldkey_ss58: str, block: Optional[int] = None
-    ) -> list[tuple["DelegateInfo", Balance]]:
+    ) -> list["DelegateInfo"]:
         """
         Retrieves a list of delegates and their associated stakes for a given coldkey. This function identifies the
         delegates that a specific account has staked tokens on.
@@ -1233,7 +1233,7 @@ class Subtensor(SubtensorMixin):
             block (Optional[int]): The blockchain block number for the query.
 
         Returns:
-            A list of tuples, each containing a delegate's information and staked amount.
+            A list containing the delegated information for the specified coldkey.
 
         This function is important for account holders to understand their stake allocations and their involvement in
             the network's delegation and consensus mechanisms.
