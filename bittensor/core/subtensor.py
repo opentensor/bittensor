@@ -1223,7 +1223,7 @@ class Subtensor(SubtensorMixin):
 
     def get_delegated(
         self, coldkey_ss58: str, block: Optional[int] = None
-    ) -> list["DelegateInfo"]:
+    ) -> list[DelegatedInfo]:
         """
         Retrieves a list of delegates and their associated stakes for a given coldkey. This function identifies the
         delegates that a specific account has staked tokens on.
