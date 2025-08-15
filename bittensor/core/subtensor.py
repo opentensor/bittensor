@@ -4368,7 +4368,7 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         hotkey_ss58: Optional[str] = None,
-        netuid: Optional[int] = None,
+        netuid: Optional[int] = None,  # TODO why is this optional?
         amount: Optional[Balance] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,

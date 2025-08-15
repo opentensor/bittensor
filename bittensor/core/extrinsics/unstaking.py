@@ -372,9 +372,6 @@ def unstake_multiple_extrinsic(
             continue
 
         try:
-            logging.info(
-                f"Unstaking [blue]{unstaking_balance}[/blue] from [magenta]{hotkey_ss58}[/magenta] on [blue]{netuid}[/blue]"
-            )
             call = subtensor.substrate.compose_call(
                 call_module="SubtensorModule",
                 call_function="remove_stake",
@@ -383,6 +380,12 @@ def unstake_multiple_extrinsic(
                     "amount_unstaked": unstaking_balance.rao,
                     "netuid": netuid,
                 },
+            )
+            payment_info = subtensor.substrate.get_payment_info(call, wallet.coldkeypub)
+            fee = Balance.from_rao(payment_info["partial_fee"]).set_unit(netuid)
+            logging.info(
+                f"Unstaking [blue]{unstaking_balance}[/blue] from [magenta]{hotkey_ss58}[/magenta]"
+                f" on [blue]{netuid}[/blue] for fee [blue]{fee}[/blue"
             )
             staking_response, err_msg = subtensor.sign_and_send_extrinsic(
                 call=call,
