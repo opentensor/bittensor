@@ -3,6 +3,9 @@ from bittensor.utils.balance import Balance
 
 
 def test_unstake_extrinsic(fake_wallet, mocker):
+    fake_substrate = mocker.Mock(
+        **{"get_payment_info.return_value": {"partial_fee": 10}}
+    )
     # Preps
     fake_subtensor = mocker.Mock(
         **{
@@ -10,6 +13,7 @@ def test_unstake_extrinsic(fake_wallet, mocker):
             "get_stake_for_coldkey_and_hotkey.return_value": Balance(10.0),
             "sign_and_send_extrinsic.return_value": (True, ""),
             "get_stake.return_value": Balance(10.0),
+            "substrate": fake_substrate,
         }
     )
     fake_wallet.coldkeypub.ss58_address = "hotkey_owner"
@@ -102,12 +106,16 @@ def test_unstake_all_extrinsic(fake_wallet, mocker):
 def test_unstake_multiple_extrinsic(fake_wallet, mocker):
     """Verify that sync `unstake_multiple_extrinsic` method calls proper async method."""
     # Preps
+    fake_substrate = mocker.Mock(
+        **{"get_payment_info.return_value": {"partial_fee": 10}}
+    )
     fake_subtensor = mocker.Mock(
         **{
             "get_hotkey_owner.return_value": "hotkey_owner",
             "get_stake_for_coldkey_and_hotkey.return_value": [Balance(10.0)],
             "sign_and_send_extrinsic.return_value": (True, ""),
             "tx_rate_limit.return_value": 0,
+            "substrate": fake_substrate,
         }
     )
     mocker.patch.object(
