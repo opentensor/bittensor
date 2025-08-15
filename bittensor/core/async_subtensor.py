@@ -134,7 +134,7 @@ if TYPE_CHECKING:
 
 
 class AsyncSubtensor(SubtensorMixin):
-    """Asynchronous interface for interacting with the Bittensor blockchain.
+    """Asynchronous interface for interacting with the Bittensor blockchain
 
     This class provides a thin layer over the Substrate Interface, offering a collection of frequently-used calls for
     querying blockchain data, managing stakes, registering neurons, and interacting with the Bittensor network.
