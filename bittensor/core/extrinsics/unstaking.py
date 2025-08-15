@@ -53,6 +53,7 @@ def unstake_extrinsic(
             - `True` and a success message if the unstake operation succeeded;
             - `False` and an error message otherwise.
     """
+
     def get_unstaking_fee(call_: GenericCall):
         payment_info = subtensor.substrate.get_payment_info(call_, wallet.coldkeypub)
         return Balance.from_rao(payment_info["partial_fee"]).set_unit(netuid)
