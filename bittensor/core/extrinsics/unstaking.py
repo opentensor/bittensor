@@ -1,6 +1,7 @@
 from typing import Optional, TYPE_CHECKING
 
 from async_substrate_interface.errors import SubstrateRequestException
+from scalecodec import GenericCall
 
 from bittensor.core.extrinsics.utils import get_old_stakes
 from bittensor.utils import unlock_key, format_error_message
@@ -52,6 +53,10 @@ def unstake_extrinsic(
             - `True` and a success message if the unstake operation succeeded;
             - `False` and an error message otherwise.
     """
+    def get_unstaking_fee(call_: GenericCall):
+        payment_info = subtensor.substrate.get_payment_info(call_, wallet.coldkeypub)
+        return Balance.from_rao(payment_info["partial_fee"]).set_unit(netuid)
+
     if amount and unstake_all:
         raise ValueError("Cannot specify both `amount` and `unstake_all`.")
 
@@ -112,14 +117,14 @@ def unstake_extrinsic(
             else:
                 price_with_tolerance = base_price * (1 - rate_tolerance)
 
-            logging.info(
+            logging_info = (
                 f":satellite: [magenta]Safe Unstaking from:[/magenta] "
                 f"netuid: [green]{netuid}[/green], amount: [green]{unstaking_balance}[/green], "
                 f"tolerance percentage: [green]{rate_tolerance * 100}%[/green], "
                 f"price limit: [green]{price_with_tolerance}[/green], "
                 f"original price: [green]{base_price}[/green], "
                 f"with partial unstake: [green]{allow_partial_stake}[/green] "
-                f"on [blue]{subtensor.network}[/blue][magenta]...[/magenta]"
+                f"on [blue]{subtensor.network}[/blue]"
             )
 
             limit_price = Balance.from_tao(price_with_tolerance).rao
@@ -131,10 +136,10 @@ def unstake_extrinsic(
             )
             call_function = "remove_stake_limit"
         else:
-            logging.info(
+            logging_info = (
                 f":satellite: [magenta]Unstaking from:[/magenta] "
                 f"netuid: [green]{netuid}[/green], amount: [green]{unstaking_balance}[/green] "
-                f"on [blue]{subtensor.network}[/blue][magenta]...[/magenta]"
+                f"on [blue]{subtensor.network}[/blue]"
             )
             call_function = "remove_stake"
 
@@ -143,6 +148,8 @@ def unstake_extrinsic(
             call_function=call_function,
             call_params=call_params,
         )
+        fee = get_unstaking_fee(call)
+        logging.info(f"{logging_info} for fee [blue]{fee}[/blue][magenta]...[/magenta]")
 
         success, message = subtensor.sign_and_send_extrinsic(
             call=call,
