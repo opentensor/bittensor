@@ -10,6 +10,7 @@ import time
 from typing import Optional, Union, TYPE_CHECKING
 
 from bittensor.utils import unlock_key
+from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import create_pow, log_no_torch_error, torch
 
@@ -120,8 +121,20 @@ def burned_register_extrinsic(
         return True
 
     recycle_amount = subtensor.recycle(netuid=netuid, block=block)
+    call = subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="burned_register",
+        call_params={
+            "netuid": netuid,
+            "hotkey": wallet.hotkey.ss58_address,
+        },
+    )
+    payment_info = subtensor.substrate.get_payment_info(call, wallet.coldkeypub)
+    fee = Balance.from_rao(payment_info["partial_fee"])
     logging.debug(":satellite: [magenta]Recycling TAO for Registration...[/magenta]")
-    logging.info(f"Recycling {recycle_amount} to register on subnet:{netuid}")
+    logging.info(
+        f"Recycling {recycle_amount} to register on subnet:{netuid}, with fee: {fee}"
+    )
 
     success, err_msg = _do_burned_register(
         subtensor=subtensor,
