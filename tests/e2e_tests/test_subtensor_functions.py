@@ -147,16 +147,26 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
 
     # Fetch recycle_amount to register to the subnet
     recycle_amount = subtensor.recycle(netuid)
+    call = subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="burned_register",
+        call_params={
+            "netuid": netuid,
+            "hotkey": bob_wallet.hotkey.ss58_address,
+        },
+    )
+    payment_info = subtensor.substrate.get_payment_info(call, bob_wallet.coldkeypub)
+    fee = Balance.from_rao(payment_info["partial_fee"])
     bob_balance_post_reg = subtensor.get_balance(bob_wallet.coldkeypub.ss58_address)
 
     # Ensure recycled amount is only deducted from the balance after registration
-    assert bob_balance - recycle_amount == bob_balance_post_reg, (
+    assert bob_balance - recycle_amount - fee == bob_balance_post_reg, (
         "Balance for Bob is not correct after burned register"
     )
 
-    neuron_info_old = subtensor.get_neuron_for_pubkey_and_subnet(
-        alice_wallet.hotkey.ss58_address, netuid=netuid
-    )
+    # neuron_info_old = subtensor.get_neuron_for_pubkey_and_subnet(
+    #     alice_wallet.hotkey.ss58_address, netuid=netuid
+    # )
 
     async with templates.validator(alice_wallet, netuid):
         await asyncio.sleep(
