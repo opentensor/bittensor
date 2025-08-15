@@ -168,6 +168,7 @@ def test_bonds(mock_substrate, subtensor, mocker):
 
 
 def test_burned_register(mock_substrate, subtensor, fake_wallet, mocker):
+    mock_substrate.get_payment_info.return_value = {"partial_fee": 10}
     mocker.patch.object(
         subtensor,
         "get_neuron_for_pubkey_and_subnet",

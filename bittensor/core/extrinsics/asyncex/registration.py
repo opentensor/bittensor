@@ -11,6 +11,7 @@ import asyncio
 from typing import Optional, Union, TYPE_CHECKING
 
 from bittensor.utils import unlock_key
+from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import log_no_torch_error, create_pow_async, torch
 
@@ -92,6 +93,22 @@ async def burned_register_extrinsic(
         success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
             finalization / inclusion, the response is ``True``.
     """
+
+    async def get_registration_fee():
+        call = await subtensor.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="burned_register",
+            call_params={
+                "netuid": netuid,
+                "hotkey": wallet.hotkey.ss58_address,
+            },
+            block_hash=block_hash,
+        )
+        payment_info = await subtensor.substrate.get_payment_info(
+            call, wallet.coldkeypub
+        )
+        return Balance.from_rao(payment_info["partial_fee"])
+
     block_hash = await subtensor.substrate.get_chain_head()
     if not await subtensor.subnet_exists(netuid, block_hash=block_hash):
         logging.error(
@@ -110,12 +127,13 @@ async def burned_register_extrinsic(
     # We could do this as_completed because we don't need old_balance and recycle
     # if neuron is null, but the complexity isn't worth it considering the small performance
     # gains we'd hypothetically receive in this situation
-    neuron, old_balance, recycle_amount = await asyncio.gather(
+    neuron, old_balance, recycle_amount, registration_fee = await asyncio.gather(
         subtensor.get_neuron_for_pubkey_and_subnet(
             wallet.hotkey.ss58_address, netuid=netuid, block_hash=block_hash
         ),
         subtensor.get_balance(wallet.coldkeypub.ss58_address, block_hash=block_hash),
         subtensor.recycle(netuid=netuid, block_hash=block_hash),
+        get_registration_fee(),
     )
 
     if not neuron.is_null:
@@ -127,7 +145,9 @@ async def burned_register_extrinsic(
         return True
 
     logging.debug(":satellite: [magenta]Recycling TAO for Registration...[/magenta]")
-    logging.info(f"Recycling {recycle_amount} to register on subnet:{netuid}")
+    logging.info(
+        f"Recycling {recycle_amount} to register on subnet:{netuid} for fee {registration_fee}"
+    )
 
     success, err_msg = await _do_burned_register(
         subtensor=subtensor,

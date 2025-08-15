@@ -205,6 +205,10 @@ def test_burned_register_extrinsic(
     mocker,
 ):
     # Arrange
+    mock_substrate_ = mocker.MagicMock(
+        **{"get_payment_info.return_value": {"partial_fee": 10}}
+    )
+    mocker.patch.object(mock_subtensor, "substrate", mock_substrate_)
     mocker.patch.object(mock_subtensor, "subnet_exists", return_value=subnet_exists)
     mocker.patch.object(
         mock_subtensor,
