@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 def get_dynamic_balance(rao: int, netuid: int = 0):
     """Returns a Balance object with the given rao and netuid for testing purposes with dynamic values."""
-    return Balance(rao).set_unit(netuid)
+    return Balance.from_rao(rao).set_unit(netuid)
 
 
 def sudo_set_hyperparameter_bool(

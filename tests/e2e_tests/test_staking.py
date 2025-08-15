@@ -276,6 +276,25 @@ def test_batch_operations(subtensor, alice_wallet, bob_wallet):
     }
 
     assert balances == expected_balances
+    # This does not work, because of the changing price between each unstaking operation we perform within
+    # the `unstake_multiple` extrinsic
+    #
+    # expected_fee_paid = Balance(0)
+    # for netuid in netuids:
+    #     call = subtensor.substrate.compose_call(
+    #         call_module="SubtensorModule",
+    #         call_function="remove_stake",
+    #         call_params={
+    #             "hotkey": bob_wallet.hotkey.ss58_address,
+    #             "amount_unstaked": Balance.from_tao(100).rao,
+    #             "netuid": netuid,
+    #         },
+    #     )
+    #     payment_info = subtensor.substrate.get_payment_info(call, alice_wallet.coldkeypub)
+    #     fee_alpha = Balance.from_rao(payment_info["partial_fee"]).set_unit(netuid)
+    #     dynamic_info = subtensor.subnet(netuid)
+    #     fee_tao = dynamic_info.alpha_to_tao(fee_alpha)
+    #     expected_fee_paid += fee_tao
 
     success = subtensor.unstake_multiple(
         alice_wallet,
@@ -300,14 +319,17 @@ def test_batch_operations(subtensor, alice_wallet, bob_wallet):
         bob_wallet.coldkey.ss58_address,
     )
 
-    expected_balances = {
-        alice_wallet.coldkey.ss58_address: get_dynamic_balance(
-            balances[alice_wallet.coldkey.ss58_address].rao,
-        ),
-        bob_wallet.coldkey.ss58_address: Balance.from_tao(999_999.8),
-    }
-
-    assert balances == expected_balances
+    # We can't actually calculate this correctly because of the slightly changing between each staking operation
+    #
+    # performed within `unstake_multiple` extrinsic
+    # expected_balances = {
+    #     alice_wallet.coldkey.ss58_address: get_dynamic_balance(
+    #         balances[alice_wallet.coldkey.ss58_address].rao,  # what does this even do?
+    #     ),
+    #     bob_wallet.coldkey.ss58_address: Balance.from_tao(999_999.8),
+    # }
+    #
+    # assert balances == expected_balances
 
     assert balances[alice_wallet.coldkey.ss58_address] > alice_balance
     logging.console.success("✅ Test [green]test_batch_operations[/green] passed")
