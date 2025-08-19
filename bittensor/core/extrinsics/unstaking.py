@@ -1,7 +1,7 @@
 from typing import Optional, TYPE_CHECKING
 
 from async_substrate_interface.errors import SubstrateRequestException
-from scalecodec import GenericCall
+from bittensor.core.extrinsics.utils import get_unstaking_fee
 
 from bittensor.core.extrinsics.utils import get_old_stakes
 from bittensor.utils import unlock_key, format_error_message
@@ -53,11 +53,6 @@ def unstake_extrinsic(
             - `True` and a success message if the unstake operation succeeded;
             - `False` and an error message otherwise.
     """
-
-    def get_unstaking_fee(call_: GenericCall):
-        payment_info = subtensor.substrate.get_payment_info(call_, wallet.coldkeypub)
-        return Balance.from_rao(payment_info["partial_fee"]).set_unit(netuid)
-
     if amount and unstake_all:
         raise ValueError("Cannot specify both `amount` and `unstake_all`.")
 
@@ -149,7 +144,9 @@ def unstake_extrinsic(
             call_function=call_function,
             call_params=call_params,
         )
-        fee = get_unstaking_fee(call)
+        fee = get_unstaking_fee(
+            subtensor=subtensor, netuid=netuid, call=call, keypair=wallet.coldkeypub
+        )
         logging.info(f"{logging_info} for fee [blue]{fee}[/blue][magenta]...[/magenta]")
 
         success, message = subtensor.sign_and_send_extrinsic(
@@ -389,12 +386,14 @@ def unstake_multiple_extrinsic(
                     "netuid": netuid,
                 },
             )
-            payment_info = subtensor.substrate.get_payment_info(call, wallet.coldkeypub)
-            fee = Balance.from_rao(payment_info["partial_fee"]).set_unit(netuid)
-            logging.info(
-                f"Unstaking [blue]{unstaking_balance}[/blue] from [magenta]{hotkey_ss58}[/magenta]"
-                f" on [blue]{netuid}[/blue] for fee [blue]{fee}[/blue"
+            fee = get_unstaking_fee(
+                subtensor=subtensor, netuid=netuid, call=call, keypair=wallet.coldkeypub
             )
+            logging.info(
+                f"Unstaking [blue]{unstaking_balance}[/blue] from hotkey: [magenta]{hotkey_ss58}[/magenta] on netuid: "
+                f"[blue]{netuid}[/blue] for fee [blue]{fee}[/blue]"
+            )
+
             staking_response, err_msg = subtensor.sign_and_send_extrinsic(
                 call=call,
                 wallet=wallet,

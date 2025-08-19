@@ -2,8 +2,7 @@ import asyncio
 from typing import Optional, TYPE_CHECKING
 
 from async_substrate_interface.errors import SubstrateRequestException
-from scalecodec import GenericCall
-
+from bittensor.core.extrinsics.asyncex.utils import get_unstaking_fee
 from bittensor.core.extrinsics.utils import get_old_stakes
 from bittensor.utils import unlock_key, format_error_message
 from bittensor.utils.balance import Balance
@@ -54,13 +53,6 @@ async def unstake_extrinsic(
             - `True` and a success message if the unstake operation succeeded;
             - `False` and an error message otherwise.
     """
-
-    async def get_unstaking_fee(call_: GenericCall, netuid_: int):
-        payment_info = await subtensor.substrate.get_payment_info(
-            call_, wallet.coldkeypub
-        )
-        return Balance.from_rao(payment_info["partial_fee"]).set_unit(netuid_)
-
     if amount and unstake_all:
         raise ValueError("Cannot specify both `amount` and `unstake_all`.")
 
@@ -153,7 +145,9 @@ async def unstake_extrinsic(
             call_function=call_function,
             call_params=call_params,
         )
-        fee = await get_unstaking_fee(call, netuid_=netuid)
+        fee = await get_unstaking_fee(
+            subtensor=subtensor, netuid=netuid, call=call, keypair=wallet.coldkeypub
+        )
         logging.info(f"{logging_info} for fee [blue]{fee}[/blue][magenta]...[/magenta]")
         success, message = await subtensor.sign_and_send_extrinsic(
             call=call,
@@ -311,13 +305,6 @@ async def unstake_multiple_extrinsic(
             - `True` and a success message if the unstake operation succeeded;
             - `False` and an error message otherwise.
     """
-
-    async def get_unstaking_fee(call_: GenericCall, netuid_: int):
-        payment_info = await subtensor.substrate.get_payment_info(
-            call_, wallet.coldkeypub
-        )
-        return Balance.from_rao(payment_info["partial_fee"]).set_unit(netuid_)
-
     if amounts and unstake_all:
         raise ValueError("Cannot specify both `amounts` and `unstake_all`.")
 
@@ -407,7 +394,9 @@ async def unstake_multiple_extrinsic(
                     "netuid": netuid,
                 },
             )
-            fee = await get_unstaking_fee(call, netuid)
+            fee = await get_unstaking_fee(
+                subtensor=subtensor, netuid=netuid, call=call, keypair=wallet.coldkeypub
+            )
             logging.info(
                 f"Unstaking [blue]{unstaking_balance}[/blue] from hotkey: [magenta]{hotkey_ss58}[/magenta] on netuid: "
                 f"[blue]{netuid}[/blue] for fee [blue]{fee}[/blue]"
