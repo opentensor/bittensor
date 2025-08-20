@@ -1,7 +1,7 @@
 from typing import Optional, TYPE_CHECKING
 
 from async_substrate_interface.errors import SubstrateRequestException
-from bittensor.core.extrinsics.utils import get_unstaking_fee
+from bittensor.core.extrinsics.utils import get_extrinsic_fee
 
 from bittensor.core.extrinsics.utils import get_old_stakes
 from bittensor.utils import unlock_key, format_error_message
@@ -144,7 +144,7 @@ def unstake_extrinsic(
             call_function=call_function,
             call_params=call_params,
         )
-        fee = get_unstaking_fee(
+        fee = get_extrinsic_fee(
             subtensor=subtensor, netuid=netuid, call=call, keypair=wallet.coldkeypub
         )
         logging.info(f"{logging_info} for fee [blue]{fee}[/blue][magenta]...[/magenta]")
@@ -386,7 +386,7 @@ def unstake_multiple_extrinsic(
                     "netuid": netuid,
                 },
             )
-            fee = get_unstaking_fee(
+            fee = get_extrinsic_fee(
                 subtensor=subtensor, netuid=netuid, call=call, keypair=wallet.coldkeypub
             )
             logging.info(
