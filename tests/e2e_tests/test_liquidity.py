@@ -67,7 +67,7 @@ async def test_liquidity(local_chain, subtensor, alice_wallet, bob_wallet):
     assert success, message
     assert message == "", "❌ Cannot enable user liquidity."
 
-    # In non fast-blocks node Alice doesn't have stake
+    # Add steak to call add_liquidity
     assert subtensor.extrinsics.add_stake(
         wallet=alice_wallet,
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
