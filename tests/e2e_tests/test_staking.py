@@ -6,6 +6,7 @@ from bittensor.core.chain_data.stake_info import StakeInfo
 from bittensor.utils.balance import Balance
 from tests.e2e_tests.utils.chain_interactions import get_dynamic_balance
 from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
+from tests.helpers.helpers import CLOSE_IN_VALUE
 
 
 def test_single_operation(subtensor, alice_wallet, bob_wallet):
@@ -261,22 +262,6 @@ def test_batch_operations(subtensor, alice_wallet, bob_wallet):
 
     alice_balance -= len(netuids) * Balance.from_tao(10_000)
 
-    balances = subtensor.get_balances(
-        alice_wallet.coldkey.ss58_address,
-        bob_wallet.coldkey.ss58_address,
-    )
-
-    expected_balances = {
-        alice_wallet.coldkey.ss58_address: get_dynamic_balance(
-            balances[alice_wallet.coldkey.ss58_address].rao
-        ),
-        bob_wallet.coldkey.ss58_address: get_dynamic_balance(
-            balances[bob_wallet.coldkey.ss58_address].rao
-        ),
-    }
-
-    assert balances == expected_balances
-
     success = subtensor.unstake_multiple(
         alice_wallet,
         hotkey_ss58s=[bob_wallet.hotkey.ss58_address for _ in netuids],
@@ -300,14 +285,9 @@ def test_batch_operations(subtensor, alice_wallet, bob_wallet):
         bob_wallet.coldkey.ss58_address,
     )
 
-    expected_balances = {
-        alice_wallet.coldkey.ss58_address: get_dynamic_balance(
-            balances[alice_wallet.coldkey.ss58_address].rao,
-        ),
-        bob_wallet.coldkey.ss58_address: Balance.from_tao(999_999.8),
-    }
-
-    assert balances == expected_balances
+    assert CLOSE_IN_VALUE(  # Make sure we are within 0.0001 TAO due to tx fees
+        balances[bob_wallet.coldkey.ss58_address], Balance.from_rao(100_000)
+    ) == Balance.from_tao(999_999.7994)
 
     assert balances[alice_wallet.coldkey.ss58_address] > alice_balance
     logging.console.success("✅ Test [green]test_batch_operations[/green] passed")
