@@ -9,8 +9,8 @@ Extrinsics:
 import time
 from typing import Optional, Union, TYPE_CHECKING
 
+from bittensor.core.extrinsics.utils import get_extrinsic_fee
 from bittensor.utils import unlock_key
-from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import create_pow, log_no_torch_error, torch
 
@@ -56,6 +56,10 @@ def _do_burned_register(
             "netuid": netuid,
             "hotkey": wallet.hotkey.ss58_address,
         },
+    )
+    fee = get_extrinsic_fee(subtensor=subtensor, call=call, keypair=wallet.coldkeypub)
+    logging.info(
+        f"The registration fee for SN #[blue]{netuid}[/blue] is [blue]{fee}[/blue]."
     )
     return subtensor.sign_and_send_extrinsic(
         call=call,
@@ -121,20 +125,8 @@ def burned_register_extrinsic(
         return True
 
     recycle_amount = subtensor.recycle(netuid=netuid, block=block)
-    call = subtensor.substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="burned_register",
-        call_params={
-            "netuid": netuid,
-            "hotkey": wallet.hotkey.ss58_address,
-        },
-    )
-    payment_info = subtensor.substrate.get_payment_info(call, wallet.coldkeypub)
-    fee = Balance.from_rao(payment_info["partial_fee"])
     logging.debug(":satellite: [magenta]Recycling TAO for Registration...[/magenta]")
-    logging.info(
-        f"Recycling {recycle_amount} to register on subnet:{netuid}, with fee: {fee}"
-    )
+    logging.info(f"Recycling {recycle_amount} to register on subnet:{netuid}")
 
     success, err_msg = _do_burned_register(
         subtensor=subtensor,
@@ -210,6 +202,7 @@ def _do_pow_register(
             "coldkey": wallet.coldkeypub.ss58_address,
         },
     )
+    logging.debug(":satellite: [magenta]Sending POW Register Extrinsic...[/magenta]")
     return subtensor.sign_and_send_extrinsic(
         call=call,
         wallet=wallet,
