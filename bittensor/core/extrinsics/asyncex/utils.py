@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from bittensor.utils.balance import Balance
 
@@ -8,11 +8,14 @@ if TYPE_CHECKING:
     from bittensor.core.async_subtensor import AsyncSubtensor
 
 
-async def get_unstaking_fee(
-    subtensor: "AsyncSubtensor", netuid: int, call: "GenericCall", keypair: "Keypair"
+async def get_extrinsic_fee(
+    subtensor: "AsyncSubtensor",
+    call: "GenericCall",
+    keypair: "Keypair",
+    netuid: Optional[int] = None,
 ):
     """
-    Get unstaking fee for a given extrinsic call and keypair for a given SN's netuid.
+    Get extrinsic fee for a given extrinsic call and keypair for a given SN's netuid.
 
     Arguments:
         subtensor: The Subtensor instance.
@@ -21,7 +24,7 @@ async def get_unstaking_fee(
         keypair: The keypair associated with the extrinsic.
 
     Returns:
-        Balance object representing the unstaking fee in RAO.
+        Balance object representing the extrinsic fee in RAO.
     """
     payment_info = await subtensor.substrate.get_payment_info(
         call=call, keypair=keypair
