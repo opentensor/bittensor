@@ -29,4 +29,6 @@ async def get_extrinsic_fee(
     payment_info = await subtensor.substrate.get_payment_info(
         call=call, keypair=keypair
     )
-    return Balance.from_rao(amount=payment_info["partial_fee"]).set_unit(netuid=netuid)
+    return Balance.from_rao(amount=payment_info["partial_fee"]).set_unit(
+        netuid=netuid or 0
+    )
