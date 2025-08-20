@@ -10,6 +10,7 @@ Extrinsics:
 import asyncio
 from typing import Optional, Union, TYPE_CHECKING
 
+from bittensor.core.extrinsics.asyncex.utils import get_extrinsic_fee
 from bittensor.utils import unlock_key
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import log_no_torch_error, create_pow_async, torch
@@ -56,6 +57,12 @@ async def _do_burned_register(
             "netuid": netuid,
             "hotkey": wallet.hotkey.ss58_address,
         },
+    )
+    fee = await get_extrinsic_fee(
+        subtensor=subtensor, call=call, keypair=wallet.coldkeypub
+    )
+    logging.info(
+        f"The registration fee for SN #[blue]{netuid}[/blue] is [blue]{fee}[/blue]."
     )
     return await subtensor.sign_and_send_extrinsic(
         call=call,
@@ -127,7 +134,6 @@ async def burned_register_extrinsic(
         return True
 
     logging.debug(":satellite: [magenta]Recycling TAO for Registration...[/magenta]")
-    logging.info(f"Recycling {recycle_amount} to register on subnet:{netuid}")
 
     success, err_msg = await _do_burned_register(
         subtensor=subtensor,
