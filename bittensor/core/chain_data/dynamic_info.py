@@ -126,7 +126,7 @@ class DynamicInfo(InfoBase):
             network_registered_at=int(decoded["network_registered_at"]),
             subnet_identity=subnet_identity,
             subnet_volume=subnet_volume,
-            moving_price=fixed_to_float(decoded["moving_price"]),
+            moving_price=fixed_to_float(decoded["moving_price"], 32),
         )
 
     def tao_to_alpha(self, tao: Union[Balance, float, int]) -> Balance:

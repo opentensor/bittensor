@@ -2,7 +2,7 @@ import asyncio
 from typing import Optional, TYPE_CHECKING
 
 from async_substrate_interface.errors import SubstrateRequestException
-
+from bittensor.core.extrinsics.asyncex.utils import get_extrinsic_fee
 from bittensor.core.extrinsics.utils import get_old_stakes
 from bittensor.utils import unlock_key, format_error_message
 from bittensor.utils.balance import Balance
@@ -114,14 +114,14 @@ async def unstake_extrinsic(
             else:
                 price_with_tolerance = base_price * (1 - rate_tolerance)
 
-            logging.info(
+            logging_info = (
                 f":satellite: [magenta]Safe Unstaking from:[/magenta] "
                 f"netuid: [green]{netuid}[/green], amount: [green]{unstaking_balance}[/green], "
                 f"tolerance percentage: [green]{rate_tolerance * 100}%[/green], "
                 f"price limit: [green]{price_with_tolerance}[/green], "
                 f"original price: [green]{base_price}[/green], "
                 f"with partial unstake: [green]{allow_partial_stake}[/green] "
-                f"on [blue]{subtensor.network}[/blue][magenta]...[/magenta]"
+                f"on [blue]{subtensor.network}[/blue]"
             )
 
             limit_price = Balance.from_tao(price_with_tolerance).rao
@@ -133,10 +133,10 @@ async def unstake_extrinsic(
             )
             call_function = "remove_stake_limit_aggregate"
         else:
-            logging.info(
+            logging_info = (
                 f":satellite: [magenta]Unstaking from:[/magenta] "
                 f"netuid: [green]{netuid}[/green], amount: [green]{unstaking_balance}[/green] "
-                f"on [blue]{subtensor.network}[/blue][magenta]...[/magenta]"
+                f"on [blue]{subtensor.network}[/blue]"
             )
             call_function = "remove_stake_aggregate"
 
@@ -145,6 +145,10 @@ async def unstake_extrinsic(
             call_function=call_function,
             call_params=call_params,
         )
+        fee = await get_extrinsic_fee(
+            subtensor=subtensor, call=call, keypair=wallet.coldkeypub, netuid=netuid
+        )
+        logging.info(f"{logging_info} for fee [blue]{fee}[/blue][magenta]...[/magenta]")
         success, message = await subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
@@ -381,10 +385,6 @@ async def unstake_multiple_extrinsic(
             continue
 
         try:
-            logging.info(
-                f"Unstaking [blue]{unstaking_balance}[/blue] from hotkey: [magenta]{hotkey_ss58}[/magenta] on netuid: "
-                f"[blue]{netuid}[/blue]"
-            )
             call = await subtensor.substrate.compose_call(
                 call_module="SubtensorModule",
                 call_function="remove_stake_aggregate",
@@ -393,6 +393,13 @@ async def unstake_multiple_extrinsic(
                     "amount_unstaked": unstaking_balance.rao,
                     "netuid": netuid,
                 },
+            )
+            fee = await get_extrinsic_fee(
+                subtensor=subtensor, call=call, keypair=wallet.coldkeypub, netuid=netuid
+            )
+            logging.info(
+                f"Unstaking [blue]{unstaking_balance}[/blue] from hotkey: [magenta]{hotkey_ss58}[/magenta] on netuid: "
+                f"[blue]{netuid}[/blue] for fee [blue]{fee}[/blue]"
             )
 
             staking_response, err_msg = await subtensor.sign_and_send_extrinsic(

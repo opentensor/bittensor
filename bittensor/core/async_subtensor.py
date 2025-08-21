@@ -2519,6 +2519,7 @@ class AsyncSubtensor(SubtensorMixin):
             netuid=netuid, block=block, block_hash=block_hash, reuse_block=reuse_block
         )
 
+        block = block or await self.substrate.get_block_number(block_hash=block_hash)
         if block and blocks_since_last_step is not None and tempo:
             return block - blocks_since_last_step + tempo + 1
         return None
@@ -5548,7 +5549,7 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         hotkey_ss58: Optional[str] = None,
-        netuid: Optional[int] = None,
+        netuid: Optional[int] = None,  # TODO why is this optional?
         amount: Optional[Balance] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,

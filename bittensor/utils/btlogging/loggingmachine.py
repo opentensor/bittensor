@@ -137,7 +137,8 @@ class LoggingMachine(StateMachine, Logger):
 
     def __init__(self, config: "Config", name: str = BITTENSOR_LOGGER_NAME):
         # basics
-        super(LoggingMachine, self).__init__()
+        StateMachine.__init__(self)
+        stdlogging.Logger.__init__(self, name)
         self._queue = mp.Queue(-1)
         self._primary_loggers = {name}
         self._config = self._extract_logging_config(config)
