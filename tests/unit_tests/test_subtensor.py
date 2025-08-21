@@ -4305,3 +4305,31 @@ def test_get_stake_weight(subtensor, mocker):
         block_hash=mock_determine_block_hash.return_value,
     )
     assert result == expected_result
+
+
+def test_get_timelocked_weight_commits(subtensor, mocker):
+    """Verify that `get_timelocked_weight_commits` method calls proper methods and returns the correct value."""
+    # Preps
+    netuid = mocker.Mock()
+
+    mock_determine_block_hash = mocker.patch.object(
+        subtensor,
+        "determine_block_hash",
+    )
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate,
+        "query_map",
+    )
+
+    # Call
+    result = subtensor.get_timelocked_weight_commits(netuid=netuid)
+
+    # Asserts
+    mock_determine_block_hash.assert_called_once_with(block=None)
+    mocked_query_map.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="TimelockedWeightCommits",
+        params=[netuid],
+        block_hash=mock_determine_block_hash.return_value,
+    )
+    assert result == []
