@@ -170,7 +170,7 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
     )
 
     # Fetch current commits pending on the chain
-    commits_on_chain = subtensor.commitments.get_current_weight_commit_info_v2(
+    commits_on_chain = subtensor.commitments.get_timelocked_weight_commits(
         netuid=alice_subnet_netuid
     )
     address, commit_block, commit, reveal_round = commits_on_chain[0]
@@ -219,9 +219,7 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
 
     # Now that the commit has been revealed, there shouldn't be any pending commits
     assert (
-        subtensor.commitments.get_current_weight_commit_info_v2(
-            netuid=alice_subnet_netuid
-        )
+        subtensor.commitments.get_timelocked_weight_commits(netuid=alice_subnet_netuid)
         == []
     )
 
@@ -395,7 +393,7 @@ async def test_async_commit_and_reveal_weights_cr4(
 
         # Fetch current commits pending on the chain
         commits_on_chain = (
-            await async_subtensor.commitments.get_current_weight_commit_info_v2(
+            await async_subtensor.commitments.get_timelocked_weight_commits(
                 netuid=alice_subnet_netuid
             )
         )
@@ -450,7 +448,7 @@ async def test_async_commit_and_reveal_weights_cr4(
 
         # Now that the commit has been revealed, there shouldn't be any pending commits
         assert (
-            await async_subtensor.commitments.get_current_weight_commit_info_v2(
+            await async_subtensor.commitments.get_timelocked_weight_commits(
                 netuid=alice_subnet_netuid
             )
             == []
