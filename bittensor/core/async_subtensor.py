@@ -2519,6 +2519,7 @@ class AsyncSubtensor(SubtensorMixin):
             netuid=netuid, block=block, block_hash=block_hash, reuse_block=reuse_block
         )
 
+        block = block or await self.substrate.get_block_number(block_hash=block_hash)
         if block and blocks_since_last_step is not None and tempo:
             return block - blocks_since_last_step + tempo + 1
         return None
