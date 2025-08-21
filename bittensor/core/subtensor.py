@@ -1945,6 +1945,35 @@ class Subtensor(SubtensorMixin):
         prices.update({0: Balance.from_tao(1)})
         return prices
 
+    def get_timelocked_weight_commits(
+        self, netuid: int, block: Optional[int] = None
+    ) -> list[tuple[str, int, str, int]]:
+        """
+        Retrieves CRv4 weight commit information for a specific subnet.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query. Default is ``None``.
+
+        Returns:
+            A list of commit details, where each item contains:
+                - ss58_address: The address of the committer.
+                - commit_block: The block number when the commitment was made.
+                - commit_message: The commit message.
+                - reveal_round: The round when the commitment was revealed.
+
+            The list may be empty if there are no commits found.
+        """
+        result = self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function="TimelockedWeightCommits",
+            params=[netuid],
+            block_hash=self.determine_block_hash(block=block),
+        )
+
+        commits = result.records[0][1] if result.records else []
+        return [WeightCommitInfo.from_vec_u8_v2(commit) for commit in commits]
+
     # TODO: remove unused parameters in SDK.v10
     def get_unstake_fee(
         self,
