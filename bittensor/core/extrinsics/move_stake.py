@@ -229,7 +229,7 @@ def swap_stake_extrinsic(
                     "allow_partial": allow_partial_stake,
                 }
             )
-            call_function = "swap_stake_limit"
+            call_function = "swap_stake_limit_aggregate"
         else:
             logging.info(
                 f"Swapping stake for hotkey [blue]{hotkey_ss58}[/blue]\n"
