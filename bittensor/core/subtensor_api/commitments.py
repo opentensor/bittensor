@@ -22,5 +22,6 @@ class Commitments:
         self.get_revealed_commitment_by_hotkey = (
             subtensor.get_revealed_commitment_by_hotkey
         )
+        self.get_timelocked_weight_commits = subtensor.get_timelocked_weight_commits
         self.set_commitment = subtensor.set_commitment
         self.set_reveal_commitment = subtensor.set_reveal_commitment
