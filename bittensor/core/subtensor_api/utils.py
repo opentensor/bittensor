@@ -106,6 +106,9 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
         subtensor._subtensor.get_subnet_validator_permits
     )
     subtensor.get_subnets = subtensor._subtensor.get_subnets
+    subtensor.get_timelocked_weight_commits = (
+        subtensor._subtensor.get_timelocked_weight_commits
+    )
     subtensor.get_timestamp = subtensor._subtensor.get_timestamp
     subtensor.get_total_subnets = subtensor._subtensor.get_total_subnets
     subtensor.get_transfer_fee = subtensor._subtensor.get_transfer_fee
