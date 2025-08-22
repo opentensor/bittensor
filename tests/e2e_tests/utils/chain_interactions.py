@@ -14,13 +14,14 @@ from bittensor.utils.btlogging import logging
 # for typing purposes
 if TYPE_CHECKING:
     from bittensor import Wallet
+    from bittensor.core.async_subtensor import AsyncSubtensor
     from bittensor.core.subtensor import Subtensor
     from async_substrate_interface import SubstrateInterface, ExtrinsicReceipt
 
 
 def get_dynamic_balance(rao: int, netuid: int = 0):
     """Returns a Balance object with the given rao and netuid for testing purposes with dynamic values."""
-    return Balance(rao).set_unit(netuid)
+    return Balance.from_rao(rao).set_unit(netuid)
 
 
 def sudo_set_hyperparameter_bool(
@@ -136,6 +137,44 @@ async def wait_interval(
             sleep,
         )  # Wait before checking the block number again
         current_block = subtensor.get_current_block()
+        if last_reported is None or current_block - last_reported >= reporting_interval:
+            last_reported = current_block
+            print(
+                f"Current Block: {current_block}  Next tempo for netuid {netuid} at: {next_tempo_block_start}"
+            )
+            logging.info(
+                f"Current Block: {current_block}  Next tempo for netuid {netuid} at: {next_tempo_block_start}"
+            )
+
+
+async def async_wait_interval(
+    tempo: int,
+    subtensor: "AsyncSubtensor",
+    netuid: int = 1,
+    reporting_interval: int = 1,
+    sleep: float = 0.25,
+    times: int = 1,
+):
+    """
+    Waits until the next tempo interval starts for a specific subnet.
+
+    Calculates the next tempo block start based on the current block number
+    and the provided tempo, then enters a loop where it periodically checks
+    the current block number until the next tempo interval starts.
+    """
+    current_block = await subtensor.get_current_block()
+    next_tempo_block_start = current_block
+
+    for _ in range(times):
+        next_tempo_block_start = next_tempo(next_tempo_block_start, tempo)
+
+    last_reported = None
+
+    while current_block < next_tempo_block_start:
+        await asyncio.sleep(
+            sleep,
+        )  # Wait before checking the block number again
+        current_block = await subtensor.get_current_block()
         if last_reported is None or current_block - last_reported >= reporting_interval:
             last_reported = current_block
             print(
