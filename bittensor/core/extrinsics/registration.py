@@ -9,6 +9,7 @@ Extrinsics:
 import time
 from typing import Optional, Union, TYPE_CHECKING
 
+from bittensor.core.extrinsics.utils import get_extrinsic_fee
 from bittensor.utils import unlock_key
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import create_pow, log_no_torch_error, torch
@@ -55,6 +56,10 @@ def _do_burned_register(
             "netuid": netuid,
             "hotkey": wallet.hotkey.ss58_address,
         },
+    )
+    fee = get_extrinsic_fee(subtensor=subtensor, call=call, keypair=wallet.coldkeypub)
+    logging.info(
+        f"The registration fee for SN #[blue]{netuid}[/blue] is [blue]{fee}[/blue]."
     )
     return subtensor.sign_and_send_extrinsic(
         call=call,
@@ -197,6 +202,7 @@ def _do_pow_register(
             "coldkey": wallet.coldkeypub.ss58_address,
         },
     )
+    logging.debug(":satellite: [magenta]Sending POW Register Extrinsic...[/magenta]")
     return subtensor.sign_and_send_extrinsic(
         call=call,
         wallet=wallet,
