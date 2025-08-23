@@ -4,7 +4,10 @@ from bittensor import logging
 from bittensor.core.chain_data.stake_info import StakeInfo
 from bittensor.core.errors import ChainError
 from bittensor.utils.balance import Balance
-from tests.e2e_tests.utils.chain_interactions import get_dynamic_balance
+from tests.e2e_tests.utils.chain_interactions import (
+    get_dynamic_balance,
+    sudo_set_admin_utils,
+)
 from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 from tests.helpers.helpers import CLOSE_IN_VALUE
 
@@ -328,7 +331,9 @@ def test_batch_operations(subtensor, alice_wallet, bob_wallet):
     logging.console.success("✅ Test [green]test_batch_operations[/green] passed")
 
 
-def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
+def test_safe_staking_scenarios(
+    local_chain, subtensor, alice_wallet, bob_wallet, eve_wallet
+):
     """
     Tests safe staking scenarios with different parameters.
 
@@ -337,44 +342,56 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
     2. Succeeds with strict threshold (0.5%) and partial staking allowed
     3. Succeeds with lenient threshold (10% and 30%) and no partial staking
     """
-    alice_subnet_netuid = subtensor.get_total_subnets()  # 2
+    alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
     # Register root as Alice - the subnet owner and validator
-    assert subtensor.register_subnet(alice_wallet, True, True)
+    assert subtensor.extrinsics.register_subnet(alice_wallet, True, True)
 
     # Verify subnet created successfully
-    assert subtensor.subnet_exists(alice_subnet_netuid), (
+    assert subtensor.subnets.subnet_exists(alice_subnet_netuid), (
         "Subnet wasn't created successfully"
     )
 
+    # Change the tempo of the subnet
+    TEMPO_TO_SET = 100 if subtensor.chain.is_fast_blocks() else 20
+    assert (
+        sudo_set_admin_utils(
+            local_chain,
+            alice_wallet,
+            call_function="sudo_set_tempo",
+            call_params={"netuid": alice_subnet_netuid, "tempo": TEMPO_TO_SET},
+        )[0]
+        is True
+    )
+    tempo = subtensor.subnets.get_subnet_hyperparameters(
+        netuid=alice_subnet_netuid
+    ).tempo
+    assert tempo == TEMPO_TO_SET, "SN tempos has not been changed."
+    logging.console.success(f"SN #{alice_subnet_netuid} tempo set to {TEMPO_TO_SET}")
+
     assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
 
-    subtensor.burned_register(
-        alice_wallet,
-        netuid=alice_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
-    subtensor.burned_register(
-        bob_wallet,
+    subtensor.extrinsics.burned_register(
+        wallet=bob_wallet,
         netuid=alice_subnet_netuid,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
 
-    initial_stake = subtensor.get_stake(
-        alice_wallet.coldkey.ss58_address,
-        bob_wallet.hotkey.ss58_address,
+    initial_stake = subtensor.staking.get_stake(
+        coldkey_ss58=alice_wallet.coldkey.ss58_address,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
     )
     assert initial_stake == Balance(0).set_unit(alice_subnet_netuid)
+    logging.console.info(f"[orange]Initial stake: {initial_stake}[orange]")
 
     # Test Staking Scenarios
     stake_amount = Balance.from_tao(100)
 
     # 1. Strict params - should fail
-    success = subtensor.add_stake(
-        alice_wallet,
-        bob_wallet.hotkey.ss58_address,
+    success = subtensor.staking.add_stake(
+        wallet=alice_wallet,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
         amount=stake_amount,
         wait_for_inclusion=True,
@@ -385,19 +402,20 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
     )
     assert success is False
 
-    current_stake = subtensor.get_stake(
-        alice_wallet.coldkey.ss58_address,
-        bob_wallet.hotkey.ss58_address,
+    current_stake = subtensor.staking.get_stake(
+        coldkey_ss58=alice_wallet.coldkey.ss58_address,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
     )
     assert current_stake == Balance(0).set_unit(alice_subnet_netuid), (
         "Stake should not change after failed attempt"
     )
+    logging.console.info(f"[orange]Current stake: {current_stake}[orange]")
 
     # 2. Partial allowed - should succeed partially
-    success = subtensor.add_stake(
-        alice_wallet,
-        bob_wallet.hotkey.ss58_address,
+    success = subtensor.staking.add_stake(
+        wallet=alice_wallet,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
         amount=stake_amount,
         wait_for_inclusion=True,
@@ -408,9 +426,9 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
     )
     assert success is True
 
-    partial_stake = subtensor.get_stake(
-        alice_wallet.coldkey.ss58_address,
-        bob_wallet.hotkey.ss58_address,
+    partial_stake = subtensor.staking.get_stake(
+        coldkey_ss58=alice_wallet.coldkey.ss58_address,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
     )
     assert partial_stake > Balance(0).set_unit(alice_subnet_netuid), (
@@ -422,9 +440,9 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
 
     # 3. Higher threshold - should succeed fully
     amount = Balance.from_tao(100)
-    success = subtensor.add_stake(
-        alice_wallet,
-        bob_wallet.hotkey.ss58_address,
+    success = subtensor.staking.add_stake(
+        wallet=alice_wallet,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
         amount=amount,
         wait_for_inclusion=True,
@@ -435,17 +453,17 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
     )
     assert success is True
 
-    full_stake = subtensor.get_stake(
-        alice_wallet.coldkey.ss58_address,
-        bob_wallet.hotkey.ss58_address,
+    full_stake = subtensor.staking.get_stake(
+        coldkey_ss58=alice_wallet.coldkey.ss58_address,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
     )
 
     # Test Unstaking Scenarios
     # 1. Strict params - should fail
-    success = subtensor.unstake(
-        alice_wallet,
-        bob_wallet.hotkey.ss58_address,
+    success = subtensor.staking.unstake(
+        wallet=alice_wallet,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
         amount=full_stake,
         wait_for_inclusion=True,
@@ -456,9 +474,9 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
     )
     assert success is False, "Unstake should fail."
 
-    current_stake = subtensor.get_stake(
-        alice_wallet.coldkey.ss58_address,
-        bob_wallet.hotkey.ss58_address,
+    current_stake = subtensor.staking.get_stake(
+        coldkey_ss58=alice_wallet.coldkey.ss58_address,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
     )
 
@@ -470,9 +488,9 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
     )
 
     # 2. Partial allowed - should succeed partially
-    success = subtensor.unstake(
-        alice_wallet,
-        bob_wallet.hotkey.ss58_address,
+    success = subtensor.staking.unstake(
+        wallet=alice_wallet,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
         amount=current_stake,
         wait_for_inclusion=True,
@@ -484,8 +502,8 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
     assert success is True
 
     partial_unstake = subtensor.get_stake(
-        alice_wallet.coldkey.ss58_address,
-        bob_wallet.hotkey.ss58_address,
+        coldkey_ss58=alice_wallet.coldkey.ss58_address,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
     )
     logging.console.info(f"[orange]Partial unstake: {partial_unstake}[orange]")
@@ -495,8 +513,8 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet):
 
     # 3. Higher threshold - should succeed fully
     success = subtensor.unstake(
-        alice_wallet,
-        bob_wallet.hotkey.ss58_address,
+        wallet=alice_wallet,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
         amount=partial_unstake,
         wait_for_inclusion=True,
