@@ -2748,6 +2748,45 @@ class AsyncSubtensor(SubtensorMixin):
         prices.update({0: Balance.from_tao(1)})
         return prices
 
+    async def get_timelocked_weight_commits(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> list[tuple[str, int, str, int]]:
+        """
+        Retrieves CRv4 weight commit information for a specific subnet.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query. Default is ``None``.
+            block_hash: The hash of the block to retrieve the stake from. Do not specify if using block
+                or reuse_block
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            A list of commit details, where each item contains:
+                - ss58_address: The address of the committer.
+                - commit_block: The block number when the commitment was made.
+                - commit_message: The commit message.
+                - reveal_round: The round when the commitment was revealed.
+
+            The list may be empty if there are no commits found.
+        """
+        block_hash = await self.determine_block_hash(
+            block=block, block_hash=block_hash, reuse_block=reuse_block
+        )
+        result = await self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function="TimelockedWeightCommits",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+
+        commits = result.records[0][1] if result.records else []
+        return [WeightCommitInfo.from_vec_u8_v2(commit) for commit in commits]
+
     # TODO: remove unused parameters in SDK.v10
     async def get_unstake_fee(
         self,
