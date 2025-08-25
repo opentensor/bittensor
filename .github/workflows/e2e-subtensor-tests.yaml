@@ -130,7 +130,7 @@ jobs:
 
   # Job to run tests in parallel
   run-fast-blocks-e2e-test:
-    name: "FB: ${{ matrix.test.label }} / Python ${{ matrix.python-version }}"
+    name: "${{ matrix.test.label }} / Py ${{ matrix.python-version }}"
     needs:
       - find-tests
       - pull-docker-image
