@@ -37,6 +37,18 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
         "Subnet wasn't created successfully"
     )
 
+    # Disable commit_reveal on the subnet to check proper behavior
+    status, error = sudo_set_admin_utils(
+        local_chain,
+        alice_wallet,
+        call_function="sudo_set_commit_reveal_weights_enabled",
+        call_params={
+            "netuid": alice_subnet_netuid,
+            "enabled": False,
+        },
+    )
+    assert status is True, error
+
     assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
 
     # Register Bob as a neuron on the subnet
