@@ -33,10 +33,24 @@ jobs:
       - name: Check-out repository under $GITHUB_WORKSPACE
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps for collection
+        run: |
+         python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
       - name: Find test files
         id: get-tests
         run: |
           test_files=$(find tests/e2e_tests -name "test*.py" | jq -R -s -c 'split("\n") | map(select(. != ""))')
+          test_files=$(pytest -q --collect-only tests/e2e_tests \
+            | sed -n '/^e2e_tests\//p' \
+            | sed 's|^|tests/|' \
+            | jq -R -s -c 'split("\n") | map(select(. != ""))')
           # keep it here for future debug
           # test_files=$(find tests/e2e_tests -type f -name "test*.py" | grep -E 'test_(hotkeys|staking)\.py$' | jq -R -s -c 'split("\n") | map(select(. != ""))')
           echo "Found test files: $test_files"
