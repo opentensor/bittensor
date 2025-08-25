@@ -130,7 +130,7 @@ jobs:
 
   # Job to run tests in parallel
   run-fast-blocks-e2e-test:
-    name: "FB: ${{ matrix.label }} / Python ${{ matrix.python-version }}"  # ← было matrix.test-file
+    name: "FB: ${{ matrix.test.label }} / Python ${{ matrix.python-version }}"
     needs:
       - find-tests
       - pull-docker-image
@@ -142,7 +142,7 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-        include: ${{ fromJson(needs.find-tests.outputs.test-files) }}
+        test: ${{ fromJson(needs.find-tests.outputs.test-files) }}
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
     steps:
       - name: Check-out repository
@@ -173,7 +173,7 @@ jobs:
         run: |
           for i in 1 2 3; do
             echo "::group::🔁 Test attempt $i"
-            if uv run pytest "${{ matrix.nodeid }}" -s; then
+            if uv run pytest "${{ matrix.test.nodeid }}" -s; then
               echo "✅ Tests passed on attempt $i"
               echo "::endgroup::"
               exit 0
