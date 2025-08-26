@@ -305,28 +305,34 @@ async def move_stake_extrinsic(
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
     period: Optional[int] = None,
+    move_all_stake: bool = False,
 ) -> bool:
     """
     Moves stake from one hotkey to another within subnets in the Bittensor network.
 
     Args:
-        subtensor (Subtensor): The subtensor instance to interact with the blockchain.
-        wallet (Wallet): The wallet containing the coldkey to authorize the move.
-        origin_hotkey (str): SS58 address of the origin hotkey associated with the stake.
-        origin_netuid (int): Network UID of the origin subnet.
-        destination_hotkey (str): SS58 address of the destination hotkey.
-        destination_netuid (int): Network UID of the destination subnet.
-        amount (Balance): The amount of stake to move as a `Balance` object.
-        wait_for_inclusion (bool): If True, waits for transaction inclusion in a block. Defaults to True.
-        wait_for_finalization (bool): If True, waits for transaction finalization. Defaults to False.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
+        subtensor: The subtensor instance to interact with the blockchain.
+        wallet: The wallet containing the coldkey to authorize the move.
+        origin_hotkey: SS58 address of the origin hotkey associated with the stake.
+        origin_netuid: Network UID of the origin subnet.
+        destination_hotkey: SS58 address of the destination hotkey.
+        destination_netuid: Network UID of the destination subnet.
+        amount: The amount of stake to move as a `Balance` object.
+        wait_for_inclusion: If True, waits for transaction inclusion in a block. Defaults to True.
+        wait_for_finalization: If True, waits for transaction finalization. Defaults to False.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        move_all_stake: If true, moves all stake from the source hotkey to the destination hotkey.
 
     Returns:
         bool: True if the move was successful, False otherwise.
     """
-    amount.set_unit(netuid=origin_netuid)
+    if not amount and not move_all_stake:
+        logging.error(
+            ":cross_mark: [red]Failed[/red]: Please specify an `amount` or `move_all_stake` argument to move stake."
+        )
+        return False
 
     # Check sufficient stake
     stake_in_origin, stake_in_destination = await _get_stake_in_origin_and_dest(
@@ -338,12 +344,17 @@ async def move_stake_extrinsic(
         origin_netuid=origin_netuid,
         destination_netuid=destination_netuid,
     )
-    if stake_in_origin < amount:
+    if move_all_stake:
+        amount = stake_in_origin
+
+    elif stake_in_origin < amount:
         logging.error(
             f":cross_mark: [red]Failed[/red]: Insufficient stake in origin hotkey: {origin_hotkey}. "
             f"Stake: {stake_in_origin}, amount: {amount}"
         )
         return False
+
+    amount.set_unit(netuid=origin_netuid)
 
     try:
         logging.info(
