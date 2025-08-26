@@ -34,7 +34,7 @@ def __mock_wallet_factory__(*_, **__) -> _MockWallet:
     return mock_wallet
 
 
-class CLOSE_IN_VALUE:
+class CloseInValue:
     value: Union[float, int, Balance]
     tolerance: Union[float, int, Balance]
 
@@ -53,8 +53,14 @@ class CLOSE_IN_VALUE:
             (self.value - self.tolerance) <= __o <= (self.value + self.tolerance)
         ) or ((__o - self.tolerance) <= self.value <= (__o + self.tolerance))
 
+    def __str__(self) -> str:
+        return f"CloseInValue<value: {self.value}, tolerance: {self.tolerance}>"
 
-class ApproxBalance(CLOSE_IN_VALUE, Balance):
+    def __repr__(self) -> str:
+        return self.__str__()
+
+
+class ApproxBalance(CloseInValue, Balance):
     def __init__(
         self,
         balance: Union[float, int],
