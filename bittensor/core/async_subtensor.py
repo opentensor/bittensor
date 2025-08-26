@@ -738,7 +738,9 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             An object containing the requested data if found, ``None`` otherwise.
 
-        Available modules in subtensor runtime (from construct_runtime! macro):
+        Available modules in subtensor runtime:
+            
+            Core Substrate modules (standard blockchain functionality):
             - System (frame_system) - Basic blockchain functionality and account management
             - RandomnessCollectiveFlip (pallet_insecure_randomness_collective_flip) - Basic randomness
             - Timestamp (pallet_timestamp) - Block timestamp functionality
@@ -746,20 +748,22 @@ class AsyncSubtensor(SubtensorMixin):
             - Grandpa (pallet_grandpa) - Block finality consensus
             - Balances (pallet_balances) - Account balances and transfers
             - TransactionPayment (pallet_transaction_payment) - Transaction fee handling
+            - Sudo (pallet_sudo) - Superuser operations for development/emergency
+            - Multisig (pallet_multisig) - Multi-signature account operations
+            - Preimage (pallet_preimage) - On-chain preimage storage for governance
+            - Scheduler (pallet_scheduler) - Scheduled calls and delayed execution
+            - SafeMode (pallet_safe_mode) - Emergency network protection mechanisms
+            
+            Custom Bittensor pallets:
             - SubtensorModule (pallet_subtensor) - Core Bittensor functionality (neurons, subnets, consensus)
             - Triumvirate (pallet_collective) - Governance collective for network decisions
             - TriumvirateMembers (pallet_membership) - Triumvirate membership management
             - SenateMembers (pallet_membership) - Senate membership management
             - Utility (pallet_utility) - Batch operations and utility functions
-            - Sudo (pallet_sudo) - Superuser operations for development/emergency
-            - Multisig (pallet_multisig) - Multi-signature account operations
-            - Preimage (pallet_preimage) - On-chain preimage storage for governance
-            - Scheduler (pallet_scheduler) - Scheduled calls and delayed execution
             - Proxy (pallet_proxy) - Proxy accounts and delegated operations
             - Registry (pallet_registry) - Identity registration and management
             - Commitments (pallet_commitments) - Commit-reveal mechanism for secure operations
             - AdminUtils (pallet_admin_utils) - Administrative functions and network management
-            - SafeMode (pallet_safe_mode) - Emergency network protection mechanisms
             - Ethereum (pallet_ethereum) - Ethereum compatibility layer
             - EVM (pallet_evm) - Ethereum Virtual Machine support
             - EVMChainId (pallet_evm_chain_id) - EVM chain identifier management
@@ -767,43 +771,15 @@ class AsyncSubtensor(SubtensorMixin):
             - Drand (pallet_drand) - Distributed randomness beacon integration
             - Crowdloan (pallet_crowdloan) - Crowdfunding functionality
             - Swap (pallet_subtensor_swap) - Liquidity provision and alpha token swapping
+                        
 
-        **When to Use This Method:**
+        When to Use This Method:
         - Accessing storage functions not covered by higher-level methods
         - Debugging or development requiring direct blockchain access
         - Custom applications needing specific storage data
         - Querying new or experimental storage items
 
-        ## Examples:
-
-        ```python
-        # Query account balance (prefer get_balance() for production)
-        balance_data = await subtensor.query_module(
-            module="System",
-            name="Account",
-            params=["5F..."]
-        )
-
-        # Query neuron owner (prefer get_hotkey_owner() for production)
-        owner = await subtensor.query_module(
-            module="SubtensorModule",
-            name="Owner",
-            params=["5G..."]
-        )
-
-        # Query subnet bonds (prefer bonds() for production)
-        bonds_data = await subtensor.query_module(
-            module="SubtensorModule",
-            name="Bonds",
-            params=[1]  # netuid
-        )
-
-        # Query commit-reveal data
-        commitment = await subtensor.query_module(
-            module="Commitments",
-            name="CommitmentOf",
-            params=[1, "5H..."]  # netuid, hotkey
-        )
+        Example:
 
         # Query liquidity position
         position = await subtensor.query_module(
@@ -811,8 +787,11 @@ class AsyncSubtensor(SubtensorMixin):
             name="Positions",
             params=[1, "5J...", 0]  # netuid, account, position_id
         )
-        ```
 
+        Notes:
+            Source code repositories:
+            - Core Substrate modules: <https://github.com/paritytech/substrate/tree/master/frame/>
+            - Custom Bittensor pallets: <https://github.com/opentensor/subtensor/tree/main/pallets/>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         return await self.substrate.query(
