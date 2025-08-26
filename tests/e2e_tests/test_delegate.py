@@ -13,7 +13,7 @@ from tests.e2e_tests.utils.chain_interactions import (
     vote,
 )
 from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
-from tests.helpers.helpers import CLOSE_IN_VALUE
+from tests.helpers.helpers import CloseInValue
 
 DEFAULT_DELEGATE_TAKE = 0.179995422293431
 
@@ -449,7 +449,7 @@ def test_get_vote_data(subtensor, alice_wallet):
 
     assert proposal == ProposalVoteData(
         ayes=[],
-        end=CLOSE_IN_VALUE(1_000_000, subtensor.block),
+        end=CloseInValue(1_000_000, subtensor.block),
         index=0,
         nays=[],
         threshold=3,
@@ -475,7 +475,7 @@ def test_get_vote_data(subtensor, alice_wallet):
         ayes=[
             alice_wallet.hotkey.ss58_address,
         ],
-        end=CLOSE_IN_VALUE(1_000_000, subtensor.block),
+        end=CloseInValue(1_000_000, subtensor.block),
         index=0,
         nays=[],
         threshold=3,
