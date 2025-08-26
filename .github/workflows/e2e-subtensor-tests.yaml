@@ -33,18 +33,37 @@ jobs:
       - name: Check-out repository under $GITHUB_WORKSPACE
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps for collection
+        run: |
+         python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
       - name: Find test files
         id: get-tests
-        run: |
-          test_files=$(find tests/e2e_tests -name "test*.py" | jq -R -s -c 'split("\n") | map(select(. != ""))')
-          # keep it here for future debug
-          # test_files=$(find tests/e2e_tests -type f -name "test*.py" | grep -E 'test_(hotkeys|staking)\.py$' | jq -R -s -c 'split("\n") | map(select(. != ""))')
-          echo "Found test files: $test_files"
-          echo "test-files=$test_files" >> "$GITHUB_OUTPUT"
         shell: bash
+        run: |
+          set -euo pipefail
+          test_matrix=$(
+            pytest -q --collect-only tests/e2e_tests \
+            | sed -n '/^e2e_tests\//p' \
+            | sed 's|^|tests/|' \
+            | jq -R -s -c '
+                split("\n")
+                | map(select(. != ""))
+                | map({nodeid: ., label: (sub("^tests/e2e_tests/"; ""))})
+              '
+          )
+          echo "Found tests: $test_matrix"
+          echo "test-files=$test_matrix" >> "$GITHUB_OUTPUT"
 
   # Pull docker image
   pull-docker-image:
+    needs: find-tests
     runs-on: ubuntu-latest
     outputs:
       image-name: ${{ steps.set-image.outputs.image }}
@@ -111,7 +130,7 @@ jobs:
 
   # Job to run tests in parallel
   run-fast-blocks-e2e-test:
-    name: "FB: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}"
+    name: "${{ matrix.test.label }} / Py ${{ matrix.python-version }}"
     needs:
       - find-tests
       - pull-docker-image
@@ -119,11 +138,11 @@ jobs:
     timeout-minutes: 45
     strategy:
       fail-fast: false  # Allow other matrix jobs to run even if this job fails
-      max-parallel: 32  # Set the maximum number of parallel jobs (same as we have cores in ubuntu-latest runner)
+      max-parallel: 64  # Set the maximum number of parallel jobs (same as we have cores in ubuntu-latest runner)
       matrix:
         os:
           - ubuntu-latest
-        test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
+        test: ${{ fromJson(needs.find-tests.outputs.test-files) }}
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
     steps:
       - name: Check-out repository
@@ -154,7 +173,7 @@ jobs:
         run: |
           for i in 1 2 3; do
             echo "::group::🔁 Test attempt $i"
-            if uv run pytest ${{ matrix.test-file }} -s; then
+            if uv run pytest "${{ matrix.test.nodeid }}" -s; then
               echo "✅ Tests passed on attempt $i"
               echo "::endgroup::"
               exit 0
