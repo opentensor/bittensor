@@ -4657,10 +4657,11 @@ class AsyncSubtensor(SubtensorMixin):
         origin_netuid: int,
         destination_hotkey: str,
         destination_netuid: int,
-        amount: Balance,
+        amount: Optional[Balance] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         period: Optional[int] = None,
+        move_all_stake: bool = False,
     ) -> bool:
         """
         Moves stake to a different hotkey and/or subnet.
@@ -4677,6 +4678,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
+            move_all_stake: If true, moves all stake from the source hotkey to the destination hotkey.
 
         Returns:
             success: True if the stake movement was successful.
@@ -4693,6 +4695,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             period=period,
+            move_all_stake=move_all_stake,
         )
 
     async def register(

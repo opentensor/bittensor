@@ -9,7 +9,7 @@ from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_admin_utils,
 )
 from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
-from tests.helpers.helpers import CLOSE_IN_VALUE
+from tests.helpers.helpers import CloseInValue
 
 
 def test_single_operation(subtensor, alice_wallet, bob_wallet):
@@ -323,7 +323,7 @@ def test_batch_operations(subtensor, alice_wallet, bob_wallet):
         bob_wallet.coldkey.ss58_address,
     )
 
-    assert CLOSE_IN_VALUE(  # Make sure we are within 0.0001 TAO due to tx fees
+    assert CloseInValue(  # Make sure we are within 0.0001 TAO due to tx fees
         balances[bob_wallet.coldkey.ss58_address], Balance.from_rao(100_000)
     ) == Balance.from_tao(999_999.7994)
 
@@ -643,11 +643,12 @@ def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
     )
 
 
-def test_move_stake(subtensor, alice_wallet, bob_wallet):
+def test_move_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
     """
     Tests:
     - Adding stake
     - Moving stake from one hotkey-subnet pair to another
+    - Testing `move_stake` method with `move_all_stake=True` flag.
     """
 
     alice_subnet_netuid = subtensor.get_total_subnets()  # 2
@@ -658,16 +659,9 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet):
 
     assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
 
-    subtensor.burned_register(
-        alice_wallet,
-        netuid=alice_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
-
     assert subtensor.add_stake(
-        alice_wallet,
-        alice_wallet.hotkey.ss58_address,
+        wallet=alice_wallet,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
         amount=Balance.from_tao(1_000),
         wait_for_inclusion=True,
@@ -697,8 +691,22 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet):
 
     assert wait_to_start_call(subtensor, bob_wallet, bob_subnet_netuid)
 
+    subtensor.burned_register(
+        wallet=bob_wallet,
+        netuid=alice_subnet_netuid,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    subtensor.burned_register(
+        wallet=dave_wallet,
+        netuid=alice_subnet_netuid,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
     assert subtensor.move_stake(
-        alice_wallet,
+        wallet=alice_wallet,
         origin_hotkey=alice_wallet.hotkey.ss58_address,
         origin_netuid=alice_subnet_netuid,
         destination_hotkey=bob_wallet.hotkey.ss58_address,
@@ -743,9 +751,59 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet):
     )
 
     expected_stakes += fast_block_stake
-
     assert stakes == expected_stakes
-    logging.console.success("✅ Test [green]test_move_stake[/green] passed")
+
+    # test move_stake with move_all_stake=True
+    dave_stake = subtensor.staking.get_stake(
+        coldkey_ss58=dave_wallet.coldkey.ss58_address,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
+        netuid=bob_subnet_netuid,
+    )
+    logging.console.info(f"[orange]Dave stake before adding: {dave_stake}[orange]")
+
+    assert subtensor.staking.add_stake(
+        wallet=dave_wallet,
+        hotkey_ss58=dave_wallet.hotkey.ss58_address,
+        netuid=bob_subnet_netuid,
+        amount=Balance.from_tao(1000),
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        allow_partial_stake=True,
+    )
+
+    dave_stake = subtensor.staking.get_stake(
+        coldkey_ss58=dave_wallet.coldkey.ss58_address,
+        hotkey_ss58=dave_wallet.hotkey.ss58_address,
+        netuid=bob_subnet_netuid,
+    )
+    logging.console.info(f"[orange]Dave stake after adding: {dave_stake}[orange]")
+
+    # let chain to process the transaction
+    subtensor.wait_for_block(
+        subtensor.block + subtensor.subnets.tempo(netuid=bob_subnet_netuid)
+    )
+
+    assert subtensor.staking.move_stake(
+        wallet=dave_wallet,
+        origin_hotkey=dave_wallet.hotkey.ss58_address,
+        origin_netuid=bob_subnet_netuid,
+        destination_hotkey=bob_wallet.hotkey.ss58_address,
+        destination_netuid=bob_subnet_netuid,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        move_all_stake=True,
+    )
+
+    dave_stake = subtensor.staking.get_stake(
+        coldkey_ss58=dave_wallet.coldkey.ss58_address,
+        hotkey_ss58=dave_wallet.hotkey.ss58_address,
+        netuid=bob_subnet_netuid,
+    )
+    logging.console.info(f"[orange]Dave stake after moving all: {dave_stake}[orange]")
+
+    assert dave_stake.rao == CloseInValue(0, 0.00001)
+
+    logging.console.success("✅ Test [green]test_move_stake[/green] passed.")
 
 
 def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
