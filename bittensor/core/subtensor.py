@@ -107,6 +107,7 @@ from bittensor.utils import (
     u16_normalized_float,
     u64_normalized_float,
     deprecated_message,
+    get_transfer_fn_params,
 )
 from bittensor.utils.balance import (
     Balance,
@@ -1222,7 +1223,7 @@ class Subtensor(SubtensorMixin):
 
     def get_delegated(
         self, coldkey_ss58: str, block: Optional[int] = None
-    ) -> list[tuple["DelegateInfo", Balance]]:
+    ) -> list[DelegatedInfo]:
         """
         Retrieves a list of delegates and their associated stakes for a given coldkey. This function identifies the
         delegates that a specific account has staked tokens on.
@@ -1232,7 +1233,7 @@ class Subtensor(SubtensorMixin):
             block (Optional[int]): The blockchain block number for the query.
 
         Returns:
-            A list of tuples, each containing a delegate's information and staked amount.
+            A list containing the delegated information for the specified coldkey.
 
         This function is important for account holders to understand their stake allocations and their involvement in
             the network's delegation and consensus mechanisms.
@@ -1944,6 +1945,35 @@ class Subtensor(SubtensorMixin):
         prices.update({0: Balance.from_tao(1)})
         return prices
 
+    def get_timelocked_weight_commits(
+        self, netuid: int, block: Optional[int] = None
+    ) -> list[tuple[str, int, str, int]]:
+        """
+        Retrieves CRv4 weight commit information for a specific subnet.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query. Default is ``None``.
+
+        Returns:
+            A list of commit details, where each item contains:
+                - ss58_address: The address of the committer.
+                - commit_block: The block number when the commitment was made.
+                - commit_message: The commit message.
+                - reveal_round: The round when the commitment was revealed.
+
+            The list may be empty if there are no commits found.
+        """
+        result = self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function="TimelockedWeightCommits",
+            params=[netuid],
+            block_hash=self.determine_block_hash(block=block),
+        )
+
+        commits = result.records[0][1] if result.records else []
+        return [WeightCommitInfo.from_vec_u8_v2(commit) for commit in commits]
+
     # TODO: remove unused parameters in SDK.v10
     def get_unstake_fee(
         self,
@@ -2243,7 +2273,13 @@ class Subtensor(SubtensorMixin):
         )
         return getattr(result, "value", None)
 
-    def get_transfer_fee(self, wallet: "Wallet", dest: str, value: Balance) -> Balance:
+    def get_transfer_fee(
+        self,
+        wallet: "Wallet",
+        dest: str,
+        value: Optional[Balance],
+        keep_alive: bool = True,
+    ) -> Balance:
         """
         Calculates the transaction fee for transferring tokens from a wallet to a specified destination address. This
             function simulates the transfer to estimate the associated cost, taking into account the current network
@@ -2254,6 +2290,8 @@ class Subtensor(SubtensorMixin):
             dest (str): The ``SS58`` address of the destination account.
             value (Union[bittensor.utils.balance.Balance, float, int]): The amount of tokens to be transferred,
                 specified as a Balance object, or in Tao (float) or Rao (int) units.
+            keep_alive: Whether the transfer fee should be calculated based on keeping the wallet alive (existential
+                deposit) or not.
 
         Returns:
             bittensor.utils.balance.Balance: The estimated transaction fee for the transfer, represented as a Balance
@@ -2263,11 +2301,15 @@ class Subtensor(SubtensorMixin):
             has sufficient funds to cover both the transfer amount and the associated costs. This function provides a
             crucial tool for managing financial operations within the Bittensor network.
         """
-        value = check_and_convert_to_balance(value)
+        if value is not None:
+            value = check_and_convert_to_balance(value)
+        call_params: dict[str, Union[int, str, bool]]
+        call_function, call_params = get_transfer_fn_params(value, dest, keep_alive)
+
         call = self.substrate.compose_call(
             call_module="Balances",
-            call_function="transfer_keep_alive",
-            call_params={"dest": dest, "value": value.rao},
+            call_function=call_function,
+            call_params=call_params,
         )
 
         try:
@@ -3451,10 +3493,11 @@ class Subtensor(SubtensorMixin):
         origin_netuid: int,
         destination_hotkey: str,
         destination_netuid: int,
-        amount: Balance,
+        amount: Optional[Balance] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         period: Optional[int] = None,
+        move_all_stake: bool = False,
     ) -> bool:
         """
         Moves stake to a different hotkey and/or subnet.
@@ -3471,6 +3514,7 @@ class Subtensor(SubtensorMixin):
             period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
+            move_all_stake: If true, moves all stake from the source hotkey to the destination hotkey.
 
         Returns:
             success (bool): True if the stake movement was successful.
@@ -3487,6 +3531,7 @@ class Subtensor(SubtensorMixin):
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             period=period,
+            move_all_stake=move_all_stake,
         )
 
     def register(
@@ -4266,7 +4311,7 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         dest: str,
-        amount: Balance,
+        amount: Optional[Balance],
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         transfer_all: bool = False,
@@ -4292,7 +4337,8 @@ class Subtensor(SubtensorMixin):
         Returns:
             `True` if the transferring was successful, otherwise `False`.
         """
-        amount = check_and_convert_to_balance(amount)
+        if amount is not None:
+            amount = check_and_convert_to_balance(amount)
         return transfer_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -4354,7 +4400,7 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         hotkey_ss58: Optional[str] = None,
-        netuid: Optional[int] = None,
+        netuid: Optional[int] = None,  # TODO why is this optional?
         amount: Optional[Balance] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,

@@ -98,6 +98,7 @@ from bittensor.utils import (
     torch,
     u16_normalized_float,
     u64_normalized_float,
+    get_transfer_fn_params,
 )
 from bittensor.core.extrinsics.asyncex.liquidity import (
     add_liquidity_extrinsic,
@@ -2112,7 +2113,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> list[tuple[DelegateInfo, Balance]]:
+    ) -> list[DelegatedInfo]:
         """
         Retrieves a list of delegates and their associated stakes for a given coldkey. This function identifies the
         delegates that a specific account has staked tokens on.
@@ -2124,7 +2125,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used blockchain block hash.
 
         Returns:
-            A list of tuples, each containing a delegate's information and staked amount.
+            A list containing the delegated information for the specified coldkey.
 
         This function is important for account holders to understand their stake allocations and their involvement in
         the network's delegation and consensus mechanisms.
@@ -2808,6 +2809,7 @@ class AsyncSubtensor(SubtensorMixin):
             netuid=netuid, block=block, block_hash=block_hash, reuse_block=reuse_block
         )
 
+        block = block or await self.substrate.get_block_number(block_hash=block_hash)
         if block and blocks_since_last_step is not None and tempo:
             return block - blocks_since_last_step + tempo + 1
         return None
@@ -3054,6 +3056,45 @@ class AsyncSubtensor(SubtensorMixin):
         # SN0 price is always 1 TAO
         prices.update({0: Balance.from_tao(1)})
         return prices
+
+    async def get_timelocked_weight_commits(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> list[tuple[str, int, str, int]]:
+        """
+        Retrieves CRv4 weight commit information for a specific subnet.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query. Default is ``None``.
+            block_hash: The hash of the block to retrieve the stake from. Do not specify if using block
+                or reuse_block
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            A list of commit details, where each item contains:
+                - ss58_address: The address of the committer.
+                - commit_block: The block number when the commitment was made.
+                - commit_message: The commit message.
+                - reveal_round: The round when the commitment was revealed.
+
+            The list may be empty if there are no commits found.
+        """
+        block_hash = await self.determine_block_hash(
+            block=block, block_hash=block_hash, reuse_block=reuse_block
+        )
+        result = await self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function="TimelockedWeightCommits",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+
+        commits = result.records[0][1] if result.records else []
+        return [WeightCommitInfo.from_vec_u8_v2(commit) for commit in commits]
 
     # TODO: remove unused parameters in SDK.v10
     async def get_unstake_fee(
@@ -3559,7 +3600,7 @@ class AsyncSubtensor(SubtensorMixin):
         return getattr(result, "value", None)
 
     async def get_transfer_fee(
-        self, wallet: "Wallet", dest: str, value: Balance
+        self, wallet: "Wallet", dest: str, value: Balance, keep_alive: bool = True
     ) -> Balance:
         """
         Calculates the transaction fee for transferring tokens from a wallet to a specified destination address. This
@@ -3571,6 +3612,8 @@ class AsyncSubtensor(SubtensorMixin):
             dest: The SS58 address of the destination account.
             value: The amount of tokens to be transferred, specified as a Balance object, or in Tao (float) or Rao
                 (int) units.
+            keep_alive: Whether the transfer fee should be calculated based on keeping the wallet alive (existential
+                deposit) or not.
 
         Returns:
             bittensor.utils.balance.Balance: The estimated transaction fee for the transfer, represented as a Balance
@@ -3588,12 +3631,15 @@ class AsyncSubtensor(SubtensorMixin):
         # TODO: Add guidance on handling fee estimation failures
         # TODO: Show how to budget for transfers including fees
         """
-        value = check_and_convert_to_balance(value)
+        if value is not None:
+            value = check_and_convert_to_balance(value)
+        call_params: dict[str, Union[int, str, bool]]
+        call_function, call_params = get_transfer_fn_params(value, dest, keep_alive)
 
         call = await self.substrate.compose_call(
             call_module="Balances",
-            call_function="transfer_keep_alive",
-            call_params={"dest": dest, "value": value.rao},
+            call_function=call_function,
+            call_params=call_params,
         )
 
         try:
@@ -5262,10 +5308,11 @@ class AsyncSubtensor(SubtensorMixin):
         origin_netuid: int,
         destination_hotkey: str,
         destination_netuid: int,
-        amount: Balance,
+        amount: Optional[Balance] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         period: Optional[int] = None,
+        move_all_stake: bool = False,
     ) -> bool:
         """
         Moves stake to a different hotkey and/or subnet.
@@ -5282,6 +5329,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
+            move_all_stake: If true, moves all stake from the source hotkey to the destination hotkey.
 
         Returns:
             success: True if the stake movement was successful.
@@ -5298,6 +5346,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             period=period,
+            move_all_stake=move_all_stake,
         )
 
     async def register(
@@ -6107,7 +6156,7 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         dest: str,
-        amount: Balance,
+        amount: Optional[Balance],
         transfer_all: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -6120,18 +6169,19 @@ class AsyncSubtensor(SubtensorMixin):
         Arguments:
             wallet: Source wallet for the transfer.
             dest: Destination address for the transfer.
-            amount: Number of tokens to transfer.
-                    transfer_all: Flag to transfer all tokens. Default is ``False``.
-        wait_for_inclusion: Waits for the transaction to be included in a block. Defaults to ``True``.
-        wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Defaults to ``False``.
-        keep_alive: Flag to keep the connection alive. Default is ``True``.
+            amount: Number of tokens to transfer. `None` is transferring all.
+            transfer_all: Flag to transfer all tokens. Default is `False`.
+            wait_for_inclusion: Waits for the transaction to be included in a block. Defaults to `True`.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Defaults to `False`.
+            keep_alive: Flag to keep the connection alive. Default is `True`.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
         Returns:
             ``True`` if the transferring was successful, otherwise ``False``.
         """
-        amount = check_and_convert_to_balance(amount)
+        if amount is not None:
+            amount = check_and_convert_to_balance(amount)
         return await transfer_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -6193,7 +6243,7 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         hotkey_ss58: Optional[str] = None,
-        netuid: Optional[int] = None,
+        netuid: Optional[int] = None,  # TODO why is this optional?
         amount: Optional[Balance] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
