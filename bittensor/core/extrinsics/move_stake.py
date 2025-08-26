@@ -301,29 +301,34 @@ def move_stake_extrinsic(
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
     period: Optional[int] = None,
+    move_all_stake: bool = False,
 ) -> bool:
     """
     Moves stake to a different hotkey and/or subnet while keeping the same coldkey owner.
 
     Args:
-        subtensor (Subtensor): Subtensor instance.
-        wallet (bittensor.wallet): The wallet to move stake from.
-        origin_hotkey (str): The SS58 address of the source hotkey.
-        origin_netuid (int): The netuid of the source subnet.
-        destination_hotkey (str): The SS58 address of the destination hotkey.
-        destination_netuid (int): The netuid of the destination subnet.
-        amount (Union[Balance, float]): Amount to move.
-        wait_for_inclusion (bool): If true, waits for inclusion before returning.
-        wait_for_finalization (bool): If true, waits for finalization before returning.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
+        subtensor: Subtensor instance.
+        wallet: The wallet to move stake from.
+        origin_hotkey: The SS58 address of the source hotkey.
+        origin_netuid: The netuid of the source subnet.
+        destination_hotkey: The SS58 address of the destination hotkey.
+        destination_netuid: The netuid of the destination subnet.
+        amount: Amount to move.
+        wait_for_inclusion: If true, waits for inclusion before returning.
+        wait_for_finalization: If true, waits for finalization before returning.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        move_all_stake: If true, moves all stake from the source hotkey to the destination hotkey.
 
     Returns:
-        success (bool): True if the move was successful.
+        success: True if the move was successful. Otherwise, False.
     """
-
-    amount.set_unit(netuid=origin_netuid)
+    if not amount and not move_all_stake:
+        logging.error(
+            ":cross_mark: [red]Failed[/red]: Please specify an `amount` or `move_all_stake` argument to move stake."
+        )
+        return False
 
     # Check sufficient stake
     stake_in_origin, stake_in_destination = _get_stake_in_origin_and_dest(
@@ -335,11 +340,17 @@ def move_stake_extrinsic(
         origin_coldkey_ss58=wallet.coldkeypub.ss58_address,
         destination_coldkey_ss58=wallet.coldkeypub.ss58_address,
     )
-    if stake_in_origin < amount:
+    if move_all_stake:
+        amount = stake_in_origin
+
+    elif stake_in_origin < amount:
         logging.error(
-            f":cross_mark: [red]Failed[/red]: Insufficient stake in origin hotkey: {origin_hotkey}. Stake: {stake_in_origin}, amount: {amount}"
+            f":cross_mark: [red]Failed[/red]: Insufficient stake in origin hotkey: {origin_hotkey}. "
+            f"Stake: {stake_in_origin}, amount: {amount}"
         )
         return False
+
+    amount.set_unit(netuid=origin_netuid)
 
     try:
         logging.info(
