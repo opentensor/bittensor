@@ -48,7 +48,7 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
     )
 
     # Verify subnet 2 created successfully
-    assert subtensor.subnet_exists(alice_subnet_netuid), (
+    assert subtensor.subnets.subnet_exists(alice_subnet_netuid), (
         f"SN #{alice_subnet_netuid} wasn't created successfully"
     )
 
@@ -92,7 +92,7 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
         ).weights_rate_limit
         == 0
     ), "Failed to set weights_rate_limit"
-    assert subtensor.weights_rate_limit(netuid=alice_subnet_netuid) == 0
+    assert subtensor.subnets.weights_rate_limit(netuid=alice_subnet_netuid) == 0
     logging.console.success("sudo_set_weights_set_rate_limit executed: set to 0")
 
     # Change the tempo of the subnet
@@ -183,7 +183,7 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
     assert expected_commit_block in [commit_block - 1, commit_block, commit_block + 1]
 
     # Ensure no weights are available as of now
-    assert subtensor.weights(netuid=alice_subnet_netuid) == []
+    assert subtensor.subnets.weights(netuid=alice_subnet_netuid) == []
     logging.console.success("No weights are available before next epoch.")
 
     # 5 is safety drand offset
@@ -232,7 +232,7 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
 
 
 @pytest.mark.asyncio
-async def test_async_commit_and_reveal_weights_cr4(
+async def test_commit_and_reveal_weights_cr4_async(
     local_chain, async_subtensor, alice_wallet
 ):
     """
@@ -267,7 +267,7 @@ async def test_async_commit_and_reveal_weights_cr4(
         )
 
         # Verify subnet 2 created successfully
-        assert await async_subtensor.subnet_exists(alice_subnet_netuid), (
+        assert await async_subtensor.subnets.subnet_exists(alice_subnet_netuid), (
             f"SN #{alice_subnet_netuid} wasn't created successfully"
         )
 
@@ -310,7 +310,10 @@ async def test_async_commit_and_reveal_weights_cr4(
                 netuid=alice_subnet_netuid
             )
         ).weights_rate_limit == 0, "Failed to set weights_rate_limit"
-        assert await async_subtensor.weights_rate_limit(netuid=alice_subnet_netuid) == 0
+        assert (
+            await async_subtensor.subnets.weights_rate_limit(netuid=alice_subnet_netuid)
+            == 0
+        )
         logging.console.success("sudo_set_weights_set_rate_limit executed: set to 0")
 
         # Change the tempo of the subnet
@@ -407,7 +410,7 @@ async def test_async_commit_and_reveal_weights_cr4(
         # assert expected_commit_block in [commit_block - 1, commit_block, commit_block + 1]
 
         # Ensure no weights are available as of now
-        assert await async_subtensor.weights(netuid=alice_subnet_netuid) == []
+        assert await async_subtensor.subnets.weights(netuid=alice_subnet_netuid) == []
         logging.console.success("No weights are available before next epoch.")
 
         # 5 is safety drand offset
