@@ -1,0 +1,146 @@
+# Plan
+
+## Extrinsics and related
+1. Standardize parameter order across all extrinsics and related calls. Pass extrinsic-specific arguments first (e.g., wallet, hotkey, netuid, amount), followed by optional general flags (e.g., wait_for_inclusion, wait_for_finalization)
+    <details>
+        <summary>Example</summary>
+
+    ```py
+    def swap_stake_extrinsic(
+        subtensor: "Subtensor",
+        wallet: "Wallet",
+        hotkey_ss58: str,
+        origin_netuid: int,
+        destination_netuid: int,
+        amount: Optional[Balance] = None,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        safe_staking: bool = False,
+        allow_partial_stake: bool = False,
+        rate_tolerance: float = 0.005,
+        period: Optional[int] = None,
+    ) -> bool:
+    ```
+    it will be 
+    ```py
+    def swap_stake_extrinsic(
+        subtensor: "Subtensor",
+        wallet: "Wallet",
+        hotkey_ss58: str,
+        origin_netuid: int,
+        destination_netuid: int,
+        amount: Optional[Balance] = None,
+        rate_tolerance: float = 0.005,
+        allow_partial_stake: bool = False,
+        safe_staking: bool = False,
+        period: Optional[int] = None,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+    ```
+    </details>
+  
+2. Unify extrinsic return values by introducing an ExtrinsicResponse class. Extrinsics currently return either a boolean or a tuple. 
+
+    Purpose:
+    - Ease of processing
+    - This class should contain success, message, and optionally data and logs. (to save all logs during the extrinsic)
+
+3. Set `wait_for_inclusion` and `wait_for_finalization` to `True` by default in extrinsics and their related calls. Then we will guarantee the correct/expected extrinsic call response is consistent with the chain response. If the user changes those values, then it is the user's responsibility.
+4. Make the internal logic of extrinsics the same. There are extrinsics that are slightly different in implementation.
+
+5. Since SDK is not a responsible tool, try to remove all calculations inside extrinsics that do not affect the result, but are only used in logging. Actually, this should be applied not to extrinsics only but for all codebase.
+
+6. Remove `unstake_all` parameter from `unstake_extrinsic` since we have `unstake_all_extrinsic`which is calles another subtensor function.
+
+7. `unstake` and `unstake_multiple` extrinsics should have `safe_unstaking` parameters instead of `safe_staking`.
+
+8. Remove `_do*` extrinsic calls and combine them with extrinsic logic.
+
+9. `subtensor.get_transfer_fee` calls extrinsic inside the subtensor module. Actually the method could be updated by using `bittensor.core.extrinsics.utils.get_extrinsic_fee`.
+
+## Subtensor
+1. In the synchronous Subtensor class, the `get_owned_hotkeys` method includes a `reuse_block` parameter that is inconsistent with other methods. Either remove this parameter from `get_owned_hotkeys`, or add it to all other methods that directly call self.substrate.* to maintain a consistent interface.
+2. In all methods where we `get_stake_operations_fee` is called, remove unused arguments. Consider combining all methods using `get_stake_operations_fee` into one common one. 
+3. Delete deprecated `get_current_weight_commit_info` and `get_current_weight_commit_info_v2`. Rename `get_timelocked_weight_commits` to get_current_weight_commit_info.
+4. Remove references like `get_stake_info_for_coldkey = get_stake_for_coldkey`.
+5. Reconsider some methods naming across the entire subtensor module.
+6. Add `hotkey_ss58` parameter to `get_liquidity_list` method. One wallet can have many HKs. Currently, the mentioned method uses default HK only.
+
+## Metagraph
+1. Remove verbose archival node warnings for blocks older than 300. Some users complained about many messages for them.
+2. Reconsider entire metagraph module logic.
+
+## Balance
+1. In `bittensor.utils.balance._check_currencies` raise the error instead of `warnings.warn`.
+2. In `bittensor.utils.balance.check_and_convert_to_balance` raise the error instead of `warnings.warn`. 
+This may seem like a harsh decision at first, but ultimately we will push the community to use Balance and there will be fewer errors in their calculations. Confusion with TAO and Alpha in calculations and display/printing/logging will be eliminated.
+
+## Common things
+1. Reduce the amount of logging.info or transfer part of logging.info to logging.debug
+
+2. To be consistent across all SDK regarding local environment variables name:
+remove `BT_CHAIN_ENDPOINT` (settings.py :line 124) and use `BT_SUBTENSOR_CHAIN_ENDPOINT` instead of that.
+rename this variable in documentation.
+
+3. Move `bittensor.utils.get_transfer_fn_params` to `bittensor.core.extrinsics.utils`.
+
+4. Common refactoring (improve type annotations, etc)
+
+5. Rename `non-/fast-blocks` to `non-/fast-runtime` in related places to be consistent with subtensor repo. Related with testing, subtensor scripts, documentation.
+
+6. To be consistent throughout the SDK:
+`hotkey`, `coldkey`, `hotkeypub`, and `coldkeypub` are keypairs
+`hotkey_ss58`, `coldkey_ss58`, `hotkeypub_ss58`, and `coldkeypub_ss58` are SS58 addresses of keypair.
+
+7. Replace `Arguments` with `Parameters`. Matches Python rules. Improve docstrings for writing MСP server.
+
+8. Remove all type annotations for parameters in docstrings.
+
+9. Remove all logic related to CRv3 as it will be removed from the chain next week.
+
+10. Revise `bittensor/utils/easy_imports.py` module to remove deprecated backwards compatibility objects. Use this module as a functionality for exporting existing objects to the package root to keep __init__.py minimal and simple.
+
+11. Remove `bittensor.utils.version.version_checking`
+
+12. Find and process all `TODOs` across the entire code base. If in doubt, discuss each one with the team separately. SDK has 29 TODOs.
+
+## New features
+1. Add `bittensor.utils.hex_to_ss58` function. SDK still doesn't have it. (Probably inner import `from scalecodec import ss58_encode, ss58_decode`) 
+2. Implement Crowdloan logic.
+3. “Implement Sub-subnets / Metagraph Changes?” (implementation unsure) Maciej Kula idea, requires mode details.
+
+## Testing
+1. When running tests via Docker, ensure no lingering processes occupy required ports before launch.
+
+2. Improve failed test reporting from GH Actions to the Docker channel (e.g., clearer messages, formatting).
+
+3. Write a configurable test harness class for tests that will accept arguments and immediately:
+create a subnet
+activate a subnet (if the argument is passed as True)
+register neurons (use wallets as arguments)
+set the necessary hyperparameters (tempo, etc. if the argument are passed)
+Will greatly simplify tests.
+
+4. Add an async test versions. This will help us greatly improve the asynchronous implementation of Subtensors and Extrinsics.
+
+
+## Implementation
+
+To implement the above changes and prepare for the v10 release, the following steps must be taken:
+
+-[x] Create a new branch named SDKv10.~~
+All breaking changes and refactors should be targeted into this branch to isolate them from staging and maintain backward compatibility during development.
+-[x] Add a `migration.md` document at the root of the repository and use it as a check list. This file will serve as a changelog and technical reference.
+It must include:
+  - All change categories (Extrinsics, Subtensor, Metagraph, etc.)
+  - Per-PR breakdown of what was added, removed, renamed, or refactored.
+  - Justifications and migration notes for users (if API behavior changed).
+
+-[ ] Based on the final `migration.md`, develop migration documentation for the community. 
+-[ ] Once complete, merge SDKv10 into staging and release version 10.
+
+
+# Migration guide
+
+_Step-by-step explanation of breaking changes ..._
