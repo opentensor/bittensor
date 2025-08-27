@@ -136,6 +136,7 @@ It must include:
   - All change categories (Extrinsics, Subtensor, Metagraph, etc.)
   - Per-PR breakdown of what was added, removed, renamed, or refactored.
   - Justifications and migration notes for users (if API behavior changed).
+
 -[ ] Based on the final `migration.md`, develop migration documentation for the community. 
 -[ ] Once complete, merge SDKv10 into staging and release version 10.
 
