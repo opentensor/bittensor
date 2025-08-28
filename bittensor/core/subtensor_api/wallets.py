@@ -13,6 +13,7 @@ class Wallets:
         )
         self.is_hotkey_registered_any = subtensor.is_hotkey_registered_any
         self.is_hotkey_registered = subtensor.is_hotkey_registered
+        self.is_hotkey_registered_on_subnet = subtensor.is_hotkey_registered_on_subnet
         self.is_hotkey_delegate = subtensor.is_hotkey_delegate
         self.get_balance = subtensor.get_balance
         self.get_balances = subtensor.get_balances
@@ -26,6 +27,7 @@ class Wallets:
         self.get_minimum_required_stake = subtensor.get_minimum_required_stake
         self.get_netuids_for_hotkey = subtensor.get_netuids_for_hotkey
         self.get_owned_hotkeys = subtensor.get_owned_hotkeys
+        self.get_parents = subtensor.get_parents
         self.get_stake = subtensor.get_stake
         self.get_stake_add_fee = subtensor.get_stake_add_fee
         self.get_stake_for_coldkey = subtensor.get_stake_for_coldkey
