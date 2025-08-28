@@ -419,6 +419,37 @@ def set_identity(
     )
 
 
+async def async_set_identity(
+    subtensor: "AsyncSubtensor",
+    wallet: "Wallet",
+    name="",
+    url="",
+    github_repo="",
+    image="",
+    discord="",
+    description="",
+    additional="",
+):
+    return await subtensor.sign_and_send_extrinsic(
+        await subtensor.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="set_identity",
+            call_params={
+                "name": name,
+                "url": url,
+                "github_repo": github_repo,
+                "image": image,
+                "discord": discord,
+                "description": description,
+                "additional": additional,
+            },
+        ),
+        wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+
 def propose(subtensor, wallet, proposal, duration):
     return subtensor.sign_and_send_extrinsic(
         subtensor.substrate.compose_call(
@@ -431,6 +462,28 @@ def propose(subtensor, wallet, proposal, duration):
             },
         ),
         wallet,
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
+    )
+
+
+async def async_propose(
+    subtensor: "AsyncSubtensor",
+    wallet: "Wallet",
+    proposal,
+    duration,
+):
+    return await subtensor.sign_and_send_extrinsic(
+        call=await subtensor.substrate.compose_call(
+            call_module="Triumvirate",
+            call_function="propose",
+            call_params={
+                "proposal": proposal,
+                "length_bound": len(proposal.data),
+                "duration": duration,
+            },
+        ),
+        wallet=wallet,
         wait_for_finalization=True,
         wait_for_inclusion=True,
     )
@@ -456,6 +509,31 @@ def vote(
             },
         ),
         wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+
+async def async_vote(
+    subtensor: "AsyncSubtensor",
+    wallet: "Wallet",
+    hotkey,
+    proposal,
+    index,
+    approve,
+):
+    return await subtensor.sign_and_send_extrinsic(
+        call=await subtensor.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="vote",
+            call_params={
+                "approve": approve,
+                "hotkey": hotkey,
+                "index": index,
+                "proposal": proposal,
+            },
+        ),
+        wallet=wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
