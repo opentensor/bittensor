@@ -2,7 +2,10 @@ import pytest
 from async_substrate_interface.errors import SubstrateRequestException
 
 from bittensor import logging
-from tests.e2e_tests.utils.chain_interactions import sudo_set_admin_utils
+from tests.e2e_tests.utils.chain_interactions import (
+    async_sudo_set_admin_utils,
+    sudo_set_admin_utils,
+)
 from tests.e2e_tests.utils.e2e_test_utils import (
     wait_to_start_call,
     async_wait_to_start_call,
@@ -11,7 +14,7 @@ from tests.e2e_tests.utils.e2e_test_utils import (
 logging.set_trace()
 
 
-def test_commitment(local_chain, subtensor, alice_wallet, dave_wallet):
+def test_commitment(subtensor, alice_wallet, dave_wallet):
     dave_subnet_netuid = 2
     assert subtensor.register_subnet(dave_wallet, True, True)
     assert subtensor.subnet_exists(dave_subnet_netuid), (
@@ -45,14 +48,14 @@ def test_commitment(local_chain, subtensor, alice_wallet, dave_wallet):
     )
 
     assert subtensor.set_commitment(
-        alice_wallet,
+        wallet=alice_wallet,
         netuid=dave_subnet_netuid,
         data="Hello World!",
     )
 
     status, error = sudo_set_admin_utils(
-        local_chain,
-        alice_wallet,
+        substrate=subtensor.substrate,
+        wallet=alice_wallet,
         call_module="Commitments",
         call_function="set_max_space",
         call_params={
@@ -68,7 +71,7 @@ def test_commitment(local_chain, subtensor, alice_wallet, dave_wallet):
         match="SpaceLimitExceeded",
     ):
         subtensor.set_commitment(
-            alice_wallet,
+            wallet=alice_wallet,
             netuid=dave_subnet_netuid,
             data="Hello World!1",
         )
@@ -87,9 +90,7 @@ def test_commitment(local_chain, subtensor, alice_wallet, dave_wallet):
 
 
 @pytest.mark.asyncio
-async def test_commitment_async(
-    local_chain, async_subtensor, alice_wallet, dave_wallet
-):
+async def test_commitment_async(async_subtensor, alice_wallet, dave_wallet):
     dave_subnet_netuid = 2
     assert await async_subtensor.register_subnet(dave_wallet)
     assert await async_subtensor.subnet_exists(dave_subnet_netuid), (
@@ -131,9 +132,9 @@ async def test_commitment_async(
             data="Hello World!",
         )
 
-        status, error = sudo_set_admin_utils(
-            local_chain,
-            alice_wallet,
+        status, error = await async_sudo_set_admin_utils(
+            substrate=async_subtensor.substrate,
+            wallet=alice_wallet,
             call_module="Commitments",
             call_function="set_max_space",
             call_params={
