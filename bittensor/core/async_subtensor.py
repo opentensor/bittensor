@@ -1880,7 +1880,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> list[tuple[DelegateInfo, Balance]]:
+    ) -> list[DelegatedInfo]:
         """
         Retrieves a list of delegates and their associated stakes for a given coldkey. This function identifies the
         delegates that a specific account has staked tokens on.
@@ -1892,7 +1892,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used blockchain block hash.
 
         Returns:
-            A list of tuples, each containing a delegate's information and staked amount.
+            A list containing the delegated information for the specified coldkey.
 
         This function is important for account holders to understand their stake allocations and their involvement in
         the network's delegation and consensus mechanisms.
@@ -2519,6 +2519,7 @@ class AsyncSubtensor(SubtensorMixin):
             netuid=netuid, block=block, block_hash=block_hash, reuse_block=reuse_block
         )
 
+        block = block or await self.substrate.get_block_number(block_hash=block_hash)
         if block and blocks_since_last_step is not None and tempo:
             return block - blocks_since_last_step + tempo + 1
         return None
@@ -2746,6 +2747,45 @@ class AsyncSubtensor(SubtensorMixin):
         # SN0 price is always 1 TAO
         prices.update({0: Balance.from_tao(1)})
         return prices
+
+    async def get_timelocked_weight_commits(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> list[tuple[str, int, str, int]]:
+        """
+        Retrieves CRv4 weight commit information for a specific subnet.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query. Default is ``None``.
+            block_hash: The hash of the block to retrieve the stake from. Do not specify if using block
+                or reuse_block
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            A list of commit details, where each item contains:
+                - ss58_address: The address of the committer.
+                - commit_block: The block number when the commitment was made.
+                - commit_message: The commit message.
+                - reveal_round: The round when the commitment was revealed.
+
+            The list may be empty if there are no commits found.
+        """
+        block_hash = await self.determine_block_hash(
+            block=block, block_hash=block_hash, reuse_block=reuse_block
+        )
+        result = await self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function="TimelockedWeightCommits",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+
+        commits = result.records[0][1] if result.records else []
+        return [WeightCommitInfo.from_vec_u8_v2(commit) for commit in commits]
 
     # TODO: remove unused parameters in SDK.v10
     async def get_unstake_fee(
@@ -4617,10 +4657,11 @@ class AsyncSubtensor(SubtensorMixin):
         origin_netuid: int,
         destination_hotkey: str,
         destination_netuid: int,
-        amount: Balance,
+        amount: Optional[Balance] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         period: Optional[int] = None,
+        move_all_stake: bool = False,
     ) -> bool:
         """
         Moves stake to a different hotkey and/or subnet.
@@ -4637,6 +4678,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
+            move_all_stake: If true, moves all stake from the source hotkey to the destination hotkey.
 
         Returns:
             success: True if the stake movement was successful.
@@ -4653,6 +4695,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             period=period,
+            move_all_stake=move_all_stake,
         )
 
     async def register(
@@ -5548,7 +5591,7 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         hotkey_ss58: Optional[str] = None,
-        netuid: Optional[int] = None,
+        netuid: Optional[int] = None,  # TODO why is this optional?
         amount: Optional[Balance] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,

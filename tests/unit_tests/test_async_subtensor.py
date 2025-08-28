@@ -168,6 +168,7 @@ async def test_burned_register(mock_substrate, subtensor, fake_wallet, mocker):
     mock_substrate.submit_extrinsic.return_value = mocker.AsyncMock(
         is_success=mocker.AsyncMock(return_value=True)(),
     )
+    mock_substrate.get_payment_info.return_value = {"partial_fee": 10}
     mocker.patch.object(
         subtensor,
         "get_neuron_for_pubkey_and_subnet",
@@ -4119,3 +4120,34 @@ async def test_get_stake_weight(subtensor, mocker):
         block_hash=mock_determine_block_hash.return_value,
     )
     assert result == expected_result
+
+
+@pytest.mark.asyncio
+async def test_get_timelocked_weight_commits(subtensor, mocker):
+    """Verify that `get_timelocked_weight_commits` method calls proper methods and returns the correct value."""
+    # Preps
+    netuid = mocker.Mock()
+
+    mock_determine_block_hash = mocker.patch.object(
+        subtensor,
+        "determine_block_hash",
+    )
+    mocked_query_map = mocker.AsyncMock(
+        autospec=async_subtensor.AsyncSubstrateInterface.query_map,
+    )
+    subtensor.substrate.query_map = mocked_query_map
+
+    # Call
+    result = await subtensor.get_timelocked_weight_commits(netuid=netuid)
+
+    # Asserts
+    mock_determine_block_hash.assert_awaited_once_with(
+        block=None, block_hash=None, reuse_block=False
+    )
+    mocked_query_map.assert_awaited_once_with(
+        module="SubtensorModule",
+        storage_function="TimelockedWeightCommits",
+        params=[netuid],
+        block_hash=mock_determine_block_hash.return_value,
+    )
+    assert result == []
