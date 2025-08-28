@@ -64,6 +64,7 @@ async def _do_commit_weights(
         period=period,
         nonce_key="hotkey",
         sign_with="hotkey",
+        raise_error=True,
     )
 
 
