@@ -1,5 +1,20 @@
 # Changelog
 
+## 9.10.0 /2025-08-28
+
+## What's Changed
+* Fixes broken e2e tests by @thewhaleking in https://github.com/opentensor/bittensor/pull/3020
+* Add async crv4 e2e test by @basfroman in https://github.com/opentensor/bittensor/pull/3022
+* Use `TimelockedWeightCommits` instead of `CRV3WeightCommitsV2` by @basfroman in https://github.com/opentensor/bittensor/pull/3023
+* fix: reflect correct return types for get_delegated by @Arthurdw in https://github.com/opentensor/bittensor/pull/3016
+* Fix `flaky` e2e test (tests.e2e_tests.test_staking.test_safe_staking_scenarios) by @basfroman in https://github.com/opentensor/bittensor/pull/3025
+* Separation of test modules into separate text elements as independent matrix elements by @basfroman in https://github.com/opentensor/bittensor/pull/3027
+* Improve `move_stake` extrinsic (add `move_all_stake` parameter) by @basfroman in https://github.com/opentensor/bittensor/pull/3028
+* Fix tests related with disabled `sudo_set_commit_reveal_weights_enabled` by @basfroman in https://github.com/opentensor/bittensor/pull/3026
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.9.0...v9.10.0
+
 ## 9.9.0 /2025-08-11
 
 ## What's Changed
