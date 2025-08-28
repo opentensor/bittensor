@@ -7,7 +7,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from bittensor.utils.balance import Balance
-from tests.helpers import CLOSE_IN_VALUE
+from tests.helpers import CloseInValue
 
 
 valid_tao_numbers_strategy = st.one_of(
@@ -36,7 +36,7 @@ def test_balance_init(balance: Union[int, float]):
     if isinstance(balance, int):
         assert balance_.rao == balance
     elif isinstance(balance, float):
-        assert balance_.tao == CLOSE_IN_VALUE(balance, 0.00001)
+        assert balance_.tao == CloseInValue(balance, 0.00001)
 
 
 @given(balance=valid_tao_numbers_strategy, balance2=valid_tao_numbers_strategy)
@@ -59,7 +59,7 @@ def test_balance_add(balance: Union[int, float], balance2: Union[int, float]):
 
     sum_ = balance_ + balance2_
     assert isinstance(sum_, Balance)
-    assert CLOSE_IN_VALUE(sum_.rao, 5) == rao_ + rao2_
+    assert CloseInValue(sum_.rao, 5) == rao_ + rao2_
 
 
 @given(balance=valid_tao_numbers_strategy, balance2=valid_tao_numbers_strategy)
@@ -82,7 +82,7 @@ def test_balance_add_other_not_balance(
 
     sum_ = balance_ + balance2_
     assert isinstance(sum_, Balance)
-    assert CLOSE_IN_VALUE(sum_.rao, 5) == rao_ + rao2_
+    assert CloseInValue(sum_.rao, 5) == rao_ + rao2_
 
 
 @given(balance=valid_tao_numbers_strategy)
@@ -95,7 +95,7 @@ def test_balance_eq_other_not_balance(balance: Union[int, float]):
     # convert balance2 to rao. This assumes balance2 is a rao value
     rao2_ = int(balance_.rao)
 
-    assert CLOSE_IN_VALUE(rao2_, 5) == balance_
+    assert CloseInValue(rao2_, 5) == balance_
 
 
 @given(balance=valid_tao_numbers_strategy, balance2=valid_tao_numbers_strategy)
@@ -118,7 +118,7 @@ def test_balance_radd_other_not_balance(
 
     sum_ = balance2_ + balance_  # This is an radd
     assert isinstance(sum_, Balance)
-    assert CLOSE_IN_VALUE(sum_.rao, 5) == rao2_ + rao_
+    assert CloseInValue(sum_.rao, 5) == rao2_ + rao_
 
 
 @given(balance=valid_tao_numbers_strategy, balance2=valid_tao_numbers_strategy)
@@ -141,7 +141,7 @@ def test_balance_sub(balance: Union[int, float], balance2: Union[int, float]):
 
     diff_ = balance_ - balance2_
     assert isinstance(diff_, Balance)
-    assert CLOSE_IN_VALUE(diff_.rao, 5) == rao_ - rao2_
+    assert CloseInValue(diff_.rao, 5) == rao_ - rao2_
 
 
 @given(balance=valid_tao_numbers_strategy, balance2=valid_tao_numbers_strategy)
@@ -164,7 +164,7 @@ def test_balance_sub_other_not_balance(
 
     diff_ = balance_ - balance2_
     assert isinstance(diff_, Balance)
-    assert CLOSE_IN_VALUE(diff_.rao, 5) == rao_ - rao2_
+    assert CloseInValue(diff_.rao, 5) == rao_ - rao2_
 
 
 @given(balance=valid_tao_numbers_strategy, balance2=valid_tao_numbers_strategy)
@@ -187,7 +187,7 @@ def test_balance_rsub_other_not_balance(
 
     diff_ = balance2_ - balance_  # This is an rsub
     assert isinstance(diff_, Balance)
-    assert CLOSE_IN_VALUE(diff_.rao, 5) == rao2_ - rao_
+    assert CloseInValue(diff_.rao, 5) == rao2_ - rao_
 
 
 @given(balance=valid_tao_numbers_strategy, balance2=valid_tao_numbers_strategy)
@@ -373,7 +373,7 @@ def test_balance_floordiv(balance: Union[int, float], balance2: Union[int, float
 
     quot_ = balance_ // balance2_
     assert isinstance(quot_, Balance)
-    assert CLOSE_IN_VALUE(quot_.rao, 5) == rao_ // rao2_
+    assert CloseInValue(quot_.rao, 5) == rao_ // rao2_
 
 
 @given(

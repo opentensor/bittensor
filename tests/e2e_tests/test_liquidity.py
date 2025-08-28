@@ -1,6 +1,6 @@
 import pytest
 
-from bittensor import Balance
+from bittensor import Balance, logging
 from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 from bittensor.utils.liquidity import LiquidityPosition
 
@@ -67,16 +67,26 @@ async def test_liquidity(local_chain, subtensor, alice_wallet, bob_wallet):
     assert success, message
     assert message == "", "❌ Cannot enable user liquidity."
 
-    # In non fast-blocks node Alice doesn't have stake
-    if not subtensor.chain.is_fast_blocks():
-        assert subtensor.extrinsics.add_stake(
-            wallet=alice_wallet,
-            hotkey_ss58=alice_wallet.hotkey.ss58_address,
-            netuid=alice_subnet_netuid,
-            amount=Balance.from_tao(1),
-            wait_for_inclusion=True,
-            wait_for_finalization=True,
-        ), "❌ Cannot cannot add stake to Alice from Alice."
+    # Add steak to call add_liquidity
+    assert subtensor.extrinsics.add_stake(
+        wallet=alice_wallet,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        netuid=alice_subnet_netuid,
+        amount=Balance.from_tao(1),
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    ), "❌ Cannot cannot add stake to Alice from Alice."
+
+    # wait for the next block to give the chain time to update the stake
+    subtensor.wait_for_block()
+
+    current_balance = subtensor.get_balance(alice_wallet.hotkey.ss58_address)
+    current_sn_stake = subtensor.staking.get_stake_info_for_coldkey(
+        coldkey_ss58=alice_wallet.coldkey.ss58_address
+    )
+    logging.console.info(
+        f"Alice balance: {current_balance} and stake: {current_sn_stake}"
+    )
 
     # Add liquidity
     success, message = subtensor.extrinsics.add_liquidity(
@@ -183,6 +193,17 @@ async def test_liquidity(local_chain, subtensor, alice_wallet, bob_wallet):
         wait_for_inclusion=True,
         wait_for_finalization=True,
     ), "❌ Cannot add stake from Bob to Alice."
+
+    # wait for the next block to give the chain time to update the stake
+    subtensor.wait_for_block()
+
+    current_balance = subtensor.get_balance(alice_wallet.hotkey.ss58_address)
+    current_sn_stake = subtensor.staking.get_stake_info_for_coldkey(
+        coldkey_ss58=alice_wallet.coldkey.ss58_address
+    )
+    logging.console.info(
+        f"Alice balance: {current_balance} and stake: {current_sn_stake}"
+    )
 
     # Add second liquidity position
     success, message = subtensor.extrinsics.add_liquidity(
