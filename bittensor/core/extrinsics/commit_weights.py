@@ -58,6 +58,7 @@ def _do_commit_weights(
         period=period,
         sign_with="hotkey",
         nonce_key="hotkey",
+        raise_error=True,
     )
 
 
