@@ -14,8 +14,7 @@ from bittensor.utils.btlogging import logging
 # for typing purposes
 if TYPE_CHECKING:
     from bittensor import Wallet
-    from bittensor.core.async_subtensor import AsyncSubtensor
-    from bittensor.core.subtensor import Subtensor
+    from bittensor.core.subtensor_api import SubtensorApi
     from async_substrate_interface import (
         AsyncSubstrateInterface,
         AsyncExtrinsicReceipt,
@@ -101,7 +100,7 @@ def sudo_set_hyperparameter_values(
     return response.is_success
 
 
-async def wait_epoch(subtensor: "Subtensor", netuid: int = 1, **kwargs):
+async def wait_epoch(subtensor: "SubtensorApi", netuid: int = 1, **kwargs):
     """
     Waits for the next epoch to start on a specific subnet.
 
@@ -112,7 +111,7 @@ async def wait_epoch(subtensor: "Subtensor", netuid: int = 1, **kwargs):
     Raises:
         Exception: If the tempo cannot be determined from the chain.
     """
-    q_tempo = [v for (k, v) in subtensor.query_map_subtensor("Tempo") if k == netuid]
+    q_tempo = [v for (k, v) in subtensor.queries.query_map_subtensor("Tempo") if k == netuid]
     if len(q_tempo) == 0:
         raise Exception("could not determine tempo")
     tempo = q_tempo[0].value
@@ -121,7 +120,7 @@ async def wait_epoch(subtensor: "Subtensor", netuid: int = 1, **kwargs):
 
 
 async def async_wait_epoch(
-    async_subtensor: "AsyncSubtensor", netuid: int = 1, **kwargs
+    async_subtensor: "SubtensorApi", netuid: int = 1, **kwargs
 ):
     """
     Waits for the next epoch to start on a specific subnet.
@@ -135,7 +134,7 @@ async def async_wait_epoch(
     """
     q_tempo = [
         v
-        async for (k, v) in await async_subtensor.query_map_subtensor("Tempo")
+        async for (k, v) in await async_subtensor.queries.query_map_subtensor("Tempo")
         if k == netuid
     ]
     if len(q_tempo) == 0:
@@ -161,7 +160,7 @@ def next_tempo(current_block: int, tempo: int) -> int:
 
 async def wait_interval(
     tempo: int,
-    subtensor: "Subtensor",
+    subtensor: "SubtensorApi",
     netuid: int = 1,
     reporting_interval: int = 1,
     sleep: float = 0.25,
@@ -174,7 +173,7 @@ async def wait_interval(
     and the provided tempo, then enters a loop where it periodically checks
     the current block number until the next tempo interval starts.
     """
-    current_block = subtensor.get_current_block()
+    current_block = subtensor.chain.get_current_block()
     next_tempo_block_start = current_block
 
     for _ in range(times):
@@ -186,7 +185,7 @@ async def wait_interval(
         await asyncio.sleep(
             sleep,
         )  # Wait before checking the block number again
-        current_block = subtensor.get_current_block()
+        current_block = subtensor.chain.get_current_block()
         if last_reported is None or current_block - last_reported >= reporting_interval:
             last_reported = current_block
             print(
@@ -199,7 +198,7 @@ async def wait_interval(
 
 async def async_wait_interval(
     tempo: int,
-    subtensor: "AsyncSubtensor",
+    subtensor: "SubtensorApi",
     netuid: int = 1,
     reporting_interval: int = 1,
     sleep: float = 0.25,
@@ -212,7 +211,7 @@ async def async_wait_interval(
     and the provided tempo, then enters a loop where it periodically checks
     the current block number until the next tempo interval starts.
     """
-    current_block = await subtensor.get_current_block()
+    current_block = await subtensor.chain.get_current_block()
     next_tempo_block_start = current_block
 
     for _ in range(times):
@@ -224,7 +223,7 @@ async def async_wait_interval(
         await asyncio.sleep(
             sleep,
         )  # Wait before checking the block number again
-        current_block = await subtensor.get_current_block()
+        current_block = await subtensor.chain.get_current_block()
         if last_reported is None or current_block - last_reported >= reporting_interval:
             last_reported = current_block
             print(
@@ -236,7 +235,7 @@ async def async_wait_interval(
 
 
 def execute_and_wait_for_next_nonce(
-    subtensor, wallet, sleep=0.25, timeout=60.0, max_retries=3
+    subtensor: "SubtensorApi", wallet, sleep=0.25, timeout=60.0, max_retries=3
 ):
     """Decorator that ensures the nonce has been consumed after a blockchain extrinsic call."""
 
@@ -389,7 +388,7 @@ def root_set_subtensor_hyperparameter_values(
 
 
 def set_identity(
-    subtensor,
+    subtensor: "SubtensorApi",
     wallet,
     name="",
     url="",
@@ -420,7 +419,7 @@ def set_identity(
 
 
 async def async_set_identity(
-    subtensor: "AsyncSubtensor",
+    subtensor: "SubtensorApi",
     wallet: "Wallet",
     name="",
     url="",
@@ -468,7 +467,7 @@ def propose(subtensor, wallet, proposal, duration):
 
 
 async def async_propose(
-    subtensor: "AsyncSubtensor",
+    subtensor: "SubtensorApi",
     wallet: "Wallet",
     proposal,
     duration,
@@ -490,8 +489,8 @@ async def async_propose(
 
 
 def vote(
-    subtensor,
-    wallet,
+    subtensor: "SubtensorApi",
+    wallet: "Wallet",
     hotkey,
     proposal,
     index,
@@ -515,7 +514,7 @@ def vote(
 
 
 async def async_vote(
-    subtensor: "AsyncSubtensor",
+    subtensor: "SubtensorApi",
     wallet: "Wallet",
     hotkey,
     proposal,
