@@ -111,7 +111,9 @@ async def wait_epoch(subtensor: "SubtensorApi", netuid: int = 1, **kwargs):
     Raises:
         Exception: If the tempo cannot be determined from the chain.
     """
-    q_tempo = [v for (k, v) in subtensor.queries.query_map_subtensor("Tempo") if k == netuid]
+    q_tempo = [
+        v for (k, v) in subtensor.queries.query_map_subtensor("Tempo") if k == netuid
+    ]
     if len(q_tempo) == 0:
         raise Exception("could not determine tempo")
     tempo = q_tempo[0].value
@@ -119,9 +121,7 @@ async def wait_epoch(subtensor: "SubtensorApi", netuid: int = 1, **kwargs):
     await wait_interval(tempo, subtensor, netuid, **kwargs)
 
 
-async def async_wait_epoch(
-    async_subtensor: "SubtensorApi", netuid: int = 1, **kwargs
-):
+async def async_wait_epoch(async_subtensor: "SubtensorApi", netuid: int = 1, **kwargs):
     """
     Waits for the next epoch to start on a specific subnet.
 
