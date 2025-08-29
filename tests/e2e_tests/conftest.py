@@ -266,13 +266,13 @@ def templates():
 
 @pytest.fixture
 def subtensor(local_chain):
-    return SubtensorApi(network="ws://localhost:9944", legacy_methods=True)
+    return SubtensorApi(network="ws://localhost:9944", legacy_methods=False)
 
 
 @pytest.fixture
 def async_subtensor(local_chain):
     return SubtensorApi(
-        network="ws://localhost:9944", legacy_methods=True, async_subtensor=True
+        network="ws://localhost:9944", legacy_methods=False, async_subtensor=True
     )
 
 
