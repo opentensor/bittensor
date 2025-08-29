@@ -272,7 +272,7 @@ async def async_wait_to_start_call(
     in_blocks: int = 10,
 ):
     """Waits for a certain number of blocks before making a start call."""
-    if await subtensor.subnets.is_fast_blocks() is False:
+    if await subtensor.chain.is_fast_blocks() is False:
         in_blocks = 5
 
     current_block = await subtensor.block
