@@ -113,7 +113,9 @@ async def async_sudo_set_hyperparameter_values(
         call_function=call_function,
         call_params=call_params,
     )
-    extrinsic = await substrate.create_signed_extrinsic(call=call, keypair=wallet.coldkey)
+    extrinsic = await substrate.create_signed_extrinsic(
+        call=call, keypair=wallet.coldkey
+    )
     response = await substrate.submit_extrinsic(
         extrinsic=extrinsic,
         wait_for_inclusion=True,
@@ -124,7 +126,6 @@ async def async_sudo_set_hyperparameter_values(
         return await response.is_success, await response.error_message
 
     return await response.is_success
-
 
 
 async def wait_epoch(subtensor: "SubtensorApi", netuid: int = 1, **kwargs):
