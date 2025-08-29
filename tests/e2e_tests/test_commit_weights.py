@@ -465,7 +465,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     assert len(weight_commits.value) == AMOUNT_OF_COMMIT_WEIGHTS, (
         "Expected exact list of weight commits"
     )
-    logging.console.success("Passed `test_commit_and_reveal_weights` test.")
+    logging.console.success("✅ Passed `test_commit_and_reveal_weights` test.")
 
 
 @pytest.mark.asyncio
@@ -652,4 +652,4 @@ async def test_commit_weights_uses_next_nonce_async(async_subtensor, alice_walle
     assert len(weight_commits.value) == AMOUNT_OF_COMMIT_WEIGHTS, (
         "Expected exact list of weight commits"
     )
-    logging.console.success("Passed `test_commit_and_reveal_weights_async` test.")
+    logging.console.success("✅ Passed `test_commit_and_reveal_weights_async` test.")
