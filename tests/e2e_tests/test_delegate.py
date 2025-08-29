@@ -342,7 +342,7 @@ def test_nominator_min_required_stake(
         wallet=dave_wallet,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
-        amount=Balance.from_tao(1000),
+        amount=Balance.from_tao(10_000),
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )

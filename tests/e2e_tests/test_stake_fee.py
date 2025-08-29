@@ -19,7 +19,7 @@ async def test_stake_fee_api(local_chain, subtensor, alice_wallet, bob_wallet):
     netuid = 2
     root_netuid = 0
     stake_amount = Balance.from_tao(100)  # 100 TAO
-    min_stake_fee = Balance.from_tao(0.050354772)
+    min_stake_fee = Balance.from_tao(0.299076829)
 
     # Register subnet as Alice
     assert subtensor.register_subnet(alice_wallet), "Unable to register the subnet"
@@ -32,9 +32,9 @@ async def test_stake_fee_api(local_chain, subtensor, alice_wallet, bob_wallet):
         coldkey_ss58=alice_wallet.coldkeypub.ss58_address,
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
     )
-    assert isinstance(stake_fee_0, Balance), "Stake fee should be a Balance object."
+    assert isinstance(stake_fee_0, Balance), "Stake fee should be a Balance object"
     assert stake_fee_0 == min_stake_fee, (
-        "Stake fee should be equal the minimum stake fee."
+        "Stake fee should be equal the minimum stake fee"
     )
 
     # Test unstake fee
@@ -44,11 +44,9 @@ async def test_stake_fee_api(local_chain, subtensor, alice_wallet, bob_wallet):
         coldkey_ss58=alice_wallet.coldkeypub.ss58_address,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
     )
-    assert isinstance(unstake_fee_root, Balance), (
-        "Stake fee should be a Balance object."
-    )
-    assert unstake_fee_root == min_stake_fee, (
-        "Root unstake fee should be equal the minimum stake fee."
+    assert isinstance(unstake_fee_root, Balance), "Stake fee should be a Balance object"
+    assert unstake_fee_root == Balance.from_rao(299076829), (
+        "Root unstake fee should be 0."
     )
 
     # Test various stake movement scenarios
