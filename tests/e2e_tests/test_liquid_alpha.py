@@ -242,7 +242,7 @@ async def test_liquid_alpha_async(async_subtensor, alice_wallet):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    logging.console.info("Testing [blue]test_liquid_alpha[/blue]")
+    logging.console.info("Testing [blue]test_liquid_alpha_async[/blue]")
 
     u16_max = 65535
     netuid = 2
@@ -402,4 +402,4 @@ async def test_liquid_alpha_async(async_subtensor, alice_wallet):
         await async_subtensor.subnets.get_subnet_hyperparameters(netuid)
     ).liquid_alpha_enabled is False, "Failed to disable liquid alpha."
 
-    logging.console.info("✅ Passed [blue]test_liquid_alpha[/blue]")
+    logging.console.info("✅ Passed [blue]test_liquid_alpha_async[/blue]")
