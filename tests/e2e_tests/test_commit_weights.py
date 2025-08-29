@@ -345,7 +345,9 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     subtensor.wait_for_block(subtensor.block + (subnet_tempo * 2) + 1)
 
     # Register root as Alice
-    assert subtensor.subnets.register_subnet(alice_wallet), "Unable to register the subnet"
+    assert subtensor.subnets.register_subnet(alice_wallet), (
+        "Unable to register the subnet"
+    )
 
     # Verify subnet 1 created successfully
     assert subtensor.subnets.subnet_exists(netuid), "Subnet wasn't created successfully"
@@ -370,10 +372,13 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
         netuid,
     ), "Unable to enable commit reveal on the subnet"
 
-    assert subtensor.commitments.commit_reveal_enabled(netuid), "Failed to enable commit/reveal"
+    assert subtensor.commitments.commit_reveal_enabled(netuid), (
+        "Failed to enable commit/reveal"
+    )
 
     assert (
-        subtensor.subnets.get_subnet_hyperparameters(netuid=netuid).commit_reveal_period == 1
+        subtensor.subnets.get_subnet_hyperparameters(netuid=netuid).commit_reveal_period
+        == 1
     ), "Failed to set commit/reveal periods"
 
     assert subtensor.subnets.weights_rate_limit(netuid=netuid) > 0, (
@@ -391,7 +396,8 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     assert error is None and status is True, f"Failed to set rate limit: {error}"
 
     assert (
-        subtensor.subnets.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
+        subtensor.subnets.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit
+        == 0
     ), "Failed to set weights_rate_limit"
     assert subtensor.subnets.weights_rate_limit(netuid=netuid) == 0
 
@@ -426,7 +432,9 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
         send_commit(salt, weight_uids, weight_vals)
 
         # let's wait for 3 (12 fast blocks) seconds between transactions, next block for non-fast-blocks
-        waiting_block = (subtensor.block + 12) if subtensor.chain.is_fast_blocks() else None
+        waiting_block = (
+            (subtensor.block + 12) if subtensor.chain.is_fast_blocks() else None
+        )
         subtensor.wait_for_block(waiting_block)
 
     logging.console.info(
