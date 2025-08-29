@@ -100,6 +100,33 @@ def sudo_set_hyperparameter_values(
     return response.is_success
 
 
+async def async_sudo_set_hyperparameter_values(
+    substrate: "AsyncSubstrateInterface",
+    wallet: "Wallet",
+    call_function: str,
+    call_params: dict,
+    return_error_message: bool = False,
+) -> Union[bool, tuple[bool, Optional[str]]]:
+    """Sets liquid alpha values using AdminUtils. Mimics setting hyperparams."""
+    call = await substrate.compose_call(
+        call_module="AdminUtils",
+        call_function=call_function,
+        call_params=call_params,
+    )
+    extrinsic = await substrate.create_signed_extrinsic(call=call, keypair=wallet.coldkey)
+    response = await substrate.submit_extrinsic(
+        extrinsic=extrinsic,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    if return_error_message:
+        return await response.is_success, await response.error_message
+
+    return await response.is_success
+
+
+
 async def wait_epoch(subtensor: "SubtensorApi", netuid: int = 1, **kwargs):
     """
     Waits for the next epoch to start on a specific subnet.
