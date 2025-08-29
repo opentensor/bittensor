@@ -9,7 +9,10 @@ from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_hyperparameter_values,
     sudo_set_admin_utils,
 )
-from tests.e2e_tests.utils.e2e_test_utils import async_wait_to_start_call, wait_to_start_call
+from tests.e2e_tests.utils.e2e_test_utils import (
+    async_wait_to_start_call,
+    wait_to_start_call,
+)
 
 
 def liquid_alpha_call_params(netuid: int, alpha_values: str):
@@ -267,7 +270,9 @@ async def test_liquid_alpha_async(async_subtensor, alice_wallet):
     ), "Unable to stake to Alice neuron"
 
     # Assert liquid alpha is disabled
-    assert (await async_subtensor.subnets.get_subnet_hyperparameters(netuid=netuid)).liquid_alpha_enabled is False, "Liquid alpha is enabled by default"
+    assert (
+        await async_subtensor.subnets.get_subnet_hyperparameters(netuid=netuid)
+    ).liquid_alpha_enabled is False, "Liquid alpha is enabled by default"
 
     # Attempt to set alpha high/low while disabled (should fail)
     alpha_values = "6553, 53083"
@@ -291,9 +296,11 @@ async def test_liquid_alpha_async(async_subtensor, alice_wallet):
         netuid=netuid,
     ), "Unable to enable liquid alpha"
 
-    assert (await async_subtensor.subnets.get_subnet_hyperparameters(
-        netuid,
-    )).liquid_alpha_enabled, "Failed to enable liquid alpha"
+    assert (
+        await async_subtensor.subnets.get_subnet_hyperparameters(
+            netuid,
+        )
+    ).liquid_alpha_enabled, "Failed to enable liquid alpha"
 
     # Attempt to set alpha high & low after enabling the hyperparameter
     alpha_values = "26001, 54099"
@@ -392,8 +399,7 @@ async def test_liquid_alpha_async(async_subtensor, alice_wallet):
     ), "Unable to disable liquid alpha."
 
     assert (
-        (await async_subtensor.subnets.get_subnet_hyperparameters(netuid)).liquid_alpha_enabled
-        is False
-    ), "Failed to disable liquid alpha."
+        await async_subtensor.subnets.get_subnet_hyperparameters(netuid)
+    ).liquid_alpha_enabled is False, "Failed to disable liquid alpha."
 
     logging.console.info("✅ Passed [blue]test_liquid_alpha[/blue]")

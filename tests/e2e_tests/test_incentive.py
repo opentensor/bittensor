@@ -255,9 +255,9 @@ async def test_incentive_async(async_subtensor, templates, alice_wallet, bob_wal
     await async_wait_epoch(async_subtensor, alice_subnet_netuid)
 
     # Get current miner/validator stats
-    alice_neuron = (
-        await async_subtensor.neurons.neurons(netuid=alice_subnet_netuid)
-    )[0]
+    alice_neuron = (await async_subtensor.neurons.neurons(netuid=alice_subnet_netuid))[
+        0
+    ]
 
     assert alice_neuron.validator_permit is True
     assert alice_neuron.dividends == 0
