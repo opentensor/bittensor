@@ -37,7 +37,7 @@ def test_identity(subtensor, alice_wallet, bob_wallet):
     - Check Delegate's default identity
     - Update Delegate's identity
     """
-    logging.console.info("Testing [green]test_identity_async[/green].")
+    logging.console.info("Testing [green]test_identity[/green].")
 
     identity = subtensor.neurons.query_identity(alice_wallet.coldkeypub.ss58_address)
     assert identity is None
@@ -89,7 +89,7 @@ def test_identity(subtensor, alice_wallet, bob_wallet):
         name="Alice",
         url="https://www.example.com",
     )
-    logging.console.success("Test [green]test_identity_async[/green] passed.")
+    logging.console.success("Test [green]test_identity[/green] passed.")
 
 
 @pytest.mark.asyncio
@@ -99,7 +99,7 @@ async def test_identity_async(async_subtensor, alice_wallet, bob_wallet):
     - Check Delegate's default identity
     - Update Delegate's identity
     """
-    logging.console.info("Testing [green]test_identity_async_async[/green].")
+    logging.console.info("Testing [green]test_identity_async[/green].")
 
     identity = await async_subtensor.neurons.query_identity(
         alice_wallet.coldkeypub.ss58_address
@@ -660,7 +660,7 @@ def test_nominator_min_required_stake(subtensor, alice_wallet, bob_wallet, dave_
     """
     logging.console.info("Testing [green]test_delegates_async[/green].")
 
-    alice_subnet_netuid = subtensor.get_total_subnets()  # 2
+    alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
 
     # Register a subnet, netuid 2
     assert subtensor.subnets.register_subnet(
@@ -749,7 +749,7 @@ async def test_nominator_min_required_stake_async(
         "Testing [green]test_nominator_min_required_stake_async[/green]."
     )
 
-    alice_subnet_netuid = await async_subtensor.get_total_subnets()  # 2
+    alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
 
     # Register a subnet, netuid 2
     assert await async_subtensor.subnets.register_subnet(
@@ -839,7 +839,7 @@ def test_get_vote_data(subtensor, alice_wallet):
         "Can not register Alice in root SN."
     )
 
-    proposals = subtensor.query_map(
+    proposals = subtensor.queries.query_map(
         "Triumvirate",
         "ProposalOf",
         params=[],
@@ -865,7 +865,7 @@ def test_get_vote_data(subtensor, alice_wallet):
     assert error == ""
     assert success is True
 
-    proposals = subtensor.query_map(
+    proposals = subtensor.queries.query_map(
         module="Triumvirate",
         name="ProposalOf",
         params=[],
@@ -946,7 +946,7 @@ async def test_get_vote_data_async(async_subtensor, alice_wallet):
         "Can not register Alice in root SN."
     )
 
-    proposals = await async_subtensor.query_map(
+    proposals = await async_subtensor.queries.query_map(
         "Triumvirate",
         "ProposalOf",
         params=[],
@@ -972,7 +972,7 @@ async def test_get_vote_data_async(async_subtensor, alice_wallet):
     assert error == ""
     assert success is True
 
-    proposals = await async_subtensor.query_map(
+    proposals = await async_subtensor.queries.query_map(
         module="Triumvirate",
         name="ProposalOf",
         params=[],
