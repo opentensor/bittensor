@@ -53,7 +53,7 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
     )
 
     # Verify subnet 2 created successfully
-    assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
+    assert subtensor.subnets.subnet_exists(netuid), "Subnet wasn't created successfully"
 
     assert sudo_set_mechanism_count_extrinsic(
         subtensor, alice_wallet, netuid, TESTED_SUB_SUBNETS
@@ -137,7 +137,7 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
         assert success is True, message
 
         storage_index = get_mechid_storage_index(netuid, mechid)
-        weight_commits = subtensor.query_module(
+        weight_commits = subtensor.queries.query_module(
             module="SubtensorModule",
             name="WeightCommits",
             params=[storage_index, alice_wallet.hotkey.ss58_address],
@@ -207,7 +207,7 @@ async def test_commit_and_reveal_weights_legacy_async(async_subtensor, alice_wal
     )
 
     # Verify subnet 2 created successfully
-    assert await async_subtensor.subnet_exists(netuid), (
+    assert await async_subtensor.subnets.subnet_exists(netuid), (
         "Subnet wasn't created successfully"
     )
 
@@ -280,7 +280,7 @@ async def test_commit_and_reveal_weights_legacy_async(async_subtensor, alice_wal
 
     assert success is True
 
-    weight_commits = await async_subtensor.query_module(
+    weight_commits = await async_subtensor.queries.query_module(
         module="SubtensorModule",
         name="WeightCommits",
         params=[netuid, alice_wallet.hotkey.ss58_address],
@@ -312,7 +312,7 @@ async def test_commit_and_reveal_weights_legacy_async(async_subtensor, alice_wal
     assert success is True
 
     # Query the Weights storage map
-    revealed_weights = await async_subtensor.query_module(
+    revealed_weights = await async_subtensor.queries.query_module(
         module="SubtensorModule",
         name="Weights",
         params=[netuid, 0],  # netuid and uid
@@ -364,17 +364,17 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
         "Failed to set admin freeze window to 0"
     )
 
-    subnet_tempo = 50 if subtensor.is_fast_blocks() else 20
-    netuid = subtensor.get_total_subnets()  # 2
+    subnet_tempo = 50 if subtensor.chain.is_fast_blocks() else 20
+    netuid = subtensor.subnets.get_total_subnets()  # 2
 
     # Wait for 2 tempos to pass as CR3 only reveals weights after 2 tempos
     subtensor.wait_for_block(subtensor.block + (subnet_tempo * 2) + 1)
 
     # Register root as Alice
-    assert subtensor.register_subnet(alice_wallet), "Unable to register the subnet"
+    assert subtensor.subnets.register_subnet(alice_wallet), "Unable to register the subnet"
 
     # Verify subnet 1 created successfully
-    assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
+    assert subtensor.subnets.subnet_exists(netuid), "Subnet wasn't created successfully"
 
     # weights sensitive to epoch changes
     assert sudo_set_admin_utils(
@@ -396,13 +396,13 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
         netuid=netuid,
     ), "Unable to enable commit reveal on the subnet"
 
-    assert subtensor.commit_reveal_enabled(netuid), "Failed to enable commit/reveal"
+    assert subtensor.commitments.commit_reveal_enabled(netuid), "Failed to enable commit/reveal"
 
     assert (
-        subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_period == 1
+        subtensor.subnets.get_subnet_hyperparameters(netuid=netuid).commit_reveal_period == 1
     ), "Failed to set commit/reveal periods"
 
-    assert subtensor.weights_rate_limit(netuid=netuid) > 0, (
+    assert subtensor.subnets.weights_rate_limit(netuid=netuid) > 0, (
         "Weights rate limit is below 0"
     )
 
@@ -417,9 +417,9 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     assert error is None and status is True, f"Failed to set rate limit: {error}"
 
     assert (
-        subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
+        subtensor.subnets.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
     ), "Failed to set weights_rate_limit"
-    assert subtensor.weights_rate_limit(netuid=netuid) == 0
+    assert subtensor.subnets.weights_rate_limit(netuid=netuid) == 0
 
     # wait while weights_rate_limit changes applied.
     subtensor.wait_for_block(subnet_tempo + 1)
@@ -433,7 +433,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     @retry.retry(exceptions=Exception, tries=3, delay=1)
     @execute_and_wait_for_next_nonce(subtensor=subtensor, wallet=alice_wallet)
     def send_commit(salt_, weight_uids_, weight_vals_):
-        success, message = subtensor.commit_weights(
+        success, message = subtensor.extrinsics.commit_weights(
             wallet=alice_wallet,
             netuid=netuid,
             salt=salt_,
@@ -452,7 +452,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
         send_commit(salt, weight_uids, weight_vals)
 
         # let's wait for 3 (12 fast blocks) seconds between transactions, next block for non-fast-blocks
-        waiting_block = (subtensor.block + 12) if subtensor.is_fast_blocks() else None
+        waiting_block = (subtensor.block + 12) if subtensor.chain.is_fast_blocks() else None
         subtensor.wait_for_block(waiting_block)
 
     logging.console.info(
@@ -462,14 +462,14 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
 
     # Wait a few blocks
     waiting_block = (
-        (subtensor.block + subtensor.tempo(netuid) * 2)
-        if subtensor.is_fast_blocks()
+        (subtensor.block + subtensor.subnets.tempo(netuid) * 2)
+        if subtensor.chain.is_fast_blocks()
         else None
     )
     subtensor.wait_for_block(waiting_block)
 
     # Query the WeightCommits storage map for all three salts
-    weight_commits = subtensor.query_module(
+    weight_commits = subtensor.queries.query_module(
         module="SubtensorModule",
         name="WeightCommits",
         params=[netuid, alice_wallet.hotkey.ss58_address],
@@ -503,8 +503,8 @@ async def test_commit_weights_uses_next_nonce_async(async_subtensor, alice_walle
     """
     logging.console.info("Testing test_commit_and_reveal_weights")
 
-    subnet_tempo = 50 if await async_subtensor.is_fast_blocks() else 10
-    netuid = await async_subtensor.get_total_subnets()  # 2
+    subnet_tempo = 50 if await async_subtensor.chain.is_fast_blocks() else 10
+    netuid = await async_subtensor.subnets.get_total_subnets()  # 2
 
     # Wait for 2 tempos to pass as CR3 only reveals weights after 2 tempos
     await async_subtensor.wait_for_block(
@@ -512,12 +512,12 @@ async def test_commit_weights_uses_next_nonce_async(async_subtensor, alice_walle
     )
 
     # Register root as Alice
-    assert await async_subtensor.register_subnet(alice_wallet), (
+    assert await async_subtensor.subnets.register_subnet(alice_wallet), (
         "Unable to register the subnet"
     )
 
     # Verify subnet 1 created successfully
-    assert await async_subtensor.subnet_exists(netuid), (
+    assert await async_subtensor.subnets.subnet_exists(netuid), (
         "Subnet wasn't created successfully"
     )
 
@@ -541,15 +541,15 @@ async def test_commit_weights_uses_next_nonce_async(async_subtensor, alice_walle
         netuid=netuid,
     ), "Unable to enable commit reveal on the subnet"
 
-    assert await async_subtensor.commit_reveal_enabled(netuid), (
+    assert await async_subtensor.commitments.commit_reveal_enabled(netuid), (
         "Failed to enable commit/reveal"
     )
 
     assert (
-        await async_subtensor.get_subnet_hyperparameters(netuid=netuid)
+        await async_subtensor.subnets.get_subnet_hyperparameters(netuid=netuid)
     ).commit_reveal_period == 1, "Failed to set commit/reveal periods"
 
-    assert await async_subtensor.weights_rate_limit(netuid=netuid) > 0, (
+    assert await async_subtensor.subnets.weights_rate_limit(netuid=netuid) > 0, (
         "Weights rate limit is below 0"
     )
 
@@ -564,9 +564,9 @@ async def test_commit_weights_uses_next_nonce_async(async_subtensor, alice_walle
     assert error is None and status is True, f"Failed to set rate limit: {error}"
 
     assert (
-        await async_subtensor.get_subnet_hyperparameters(netuid=netuid)
+        await async_subtensor.subnets.get_subnet_hyperparameters(netuid=netuid)
     ).weights_rate_limit == 0, "Failed to set weights_rate_limit"
-    assert await async_subtensor.weights_rate_limit(netuid=netuid) == 0
+    assert await async_subtensor.subnets.weights_rate_limit(netuid=netuid) == 0
 
     # wait while weights_rate_limit changes applied.
     await async_subtensor.wait_for_block(subnet_tempo + 1)
@@ -656,7 +656,7 @@ async def test_commit_weights_uses_next_nonce_async(async_subtensor, alice_walle
     await async_subtensor.wait_for_block(waiting_block)
 
     # Query the WeightCommits storage map for all three salts
-    weight_commits = await async_subtensor.query_module(
+    weight_commits = await async_subtensor.queries.query_module(
         module="SubtensorModule",
         name="WeightCommits",
         params=[netuid, alice_wallet.hotkey.ss58_address],
