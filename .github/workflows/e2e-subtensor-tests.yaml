@@ -142,9 +142,7 @@ jobs:
         include: ${{ fromJson(needs.find-tests.outputs.test-files) }}
     uses: ./.github/workflows/_run-e2e-single.yaml
     with:
-      python-version: "3.9"
       nodeid: ${{ matrix.nodeid }}
-      label: ${{ matrix.label }}
       image-name: ${{ needs.pull-docker-image.outputs.image-name }}
     secrets: inherit
 
