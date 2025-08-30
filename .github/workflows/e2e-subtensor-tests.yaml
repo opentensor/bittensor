@@ -132,7 +132,7 @@ jobs:
   # Python versions. To reduce DRY we use reusable workflow.
 
   run-e2e-3-9:
-    name: ${{ matrix.label }} / Python 3.9
+#    name: ${{ matrix.label }} / Python 3.9
     needs:
       - find-tests
       - pull-docker-image
@@ -144,7 +144,7 @@ jobs:
     with:
       python-version: "3.9"
       nodeid: ${{ matrix.nodeid }}
-      label: ${{ name }}
+      label: ${{ matrix.label }}
       image-name: ${{ needs.pull-docker-image.outputs.image-name }}
     secrets: inherit
 
