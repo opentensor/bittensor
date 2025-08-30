@@ -13,10 +13,6 @@ on:
         required: true
         type: string
 
-    secrets:
-      GITHUB_TOKEN:
-        required: true
-
 jobs:
   run-fast-blocks-e2e:
     name: "${{ matrix.test.label }} / Py ${{ inputs.python-version }}"
