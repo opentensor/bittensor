@@ -144,7 +144,7 @@ jobs:
     with:
       python-version: "3.9"
       nodeid: ${{ matrix.nodeid }}
-      label: ${{ matrix.label }}
+      label: ${{ name }}
       image-name: ${{ needs.pull-docker-image.outputs.image-name }}
     secrets: inherit
 
