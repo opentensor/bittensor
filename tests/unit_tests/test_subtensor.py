@@ -2031,6 +2031,7 @@ def test_reveal_weights(subtensor, fake_wallet, mocker):
         wait_for_inclusion=False,
         wait_for_finalization=False,
         period=16,
+        raise_error=True,
     )
 
 
