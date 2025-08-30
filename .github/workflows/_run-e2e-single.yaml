@@ -46,23 +46,36 @@ jobs:
 
       - name: Run test with retry
         env:
+          PY_VERSION: ${{ matrix.python-version }}
           LOCALNET_IMAGE_NAME: ${{ inputs.image-name }}
         run: |
           for i in 1 2 3; do
             echo "::group::🔁 Test attempt $i"
-            if uv run pytest "${{ inputs.nodeid }}" -s; then
-              echo "✅ Tests passed on attempt $i"
-              echo "::endgroup::"
-              exit 0
+      
+            if [[ "PY_VERSION" == "3.9" ]]; then
+              echo "🔧 Running plain pytest (no uv)"
+              if pytest "${{ inputs.nodeid }}" -s; then
+                echo "✅ Passed on attempt $i"
+                echo "::endgroup::"
+                exit 0
+              fi
             else
-              echo "❌ Tests failed on attempt $i"
-              echo "::endgroup::"
-              if [ "$i" -lt 3 ]; then
-                echo "Retrying..."
-                sleep 5
+              echo "🚀 Running uv run pytest"
+              if uv run pytest "${{ inputs.nodeid }}" -s; then
+                echo "✅ Passed on attempt $i"
+                echo "::endgroup::"
+                exit 0
               fi
             fi
-
+      
+            echo "❌ Failed on attempt $i"
+            echo "::endgroup::"
+      
+            if [ "$i" -lt 3 ]; then
+              echo "Retrying..."
+              sleep 5
+            fi
           done
+
           echo "Tests failed after 3 attempts"
           exit 1
