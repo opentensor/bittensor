@@ -15,14 +15,13 @@ on:
 
 jobs:
   run-fast-blocks-e2e:
-    name: "${{ matrix.test.label }} / Py ${{ inputs.python-version }}"
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
       fail-fast: false
       max-parallel: 64
       matrix:
-        name: ${{ fromJson(inputs.test-files) }}
+        name: "${{ matrix.test.label }} / Py ${{ inputs.python-version }}"
         test: ${{ fromJson(inputs.test-files) }}
 
     steps:
