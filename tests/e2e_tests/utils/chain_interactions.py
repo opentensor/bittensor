@@ -14,9 +14,13 @@ from bittensor.utils.btlogging import logging
 # for typing purposes
 if TYPE_CHECKING:
     from bittensor import Wallet
-    from bittensor.core.async_subtensor import AsyncSubtensor
-    from bittensor.core.subtensor import Subtensor
-    from async_substrate_interface import SubstrateInterface, ExtrinsicReceipt
+    from bittensor.core.subtensor_api import SubtensorApi
+    from async_substrate_interface import (
+        AsyncSubstrateInterface,
+        AsyncExtrinsicReceipt,
+        SubstrateInterface,
+        ExtrinsicReceipt,
+    )
 
 
 def get_dynamic_balance(rao: int, netuid: int = 0):
@@ -31,9 +35,7 @@ def sudo_set_hyperparameter_bool(
     value: bool,
     netuid: int,
 ) -> bool:
-    """
-    Sets boolean hyperparameter value through AdminUtils. Mimics setting hyperparams
-    """
+    """Sets boolean hyperparameter value through AdminUtils. Mimics setting hyperparams."""
     call = substrate.compose_call(
         call_module="AdminUtils",
         call_function=call_function,
@@ -48,6 +50,30 @@ def sudo_set_hyperparameter_bool(
     return response.is_success
 
 
+async def async_sudo_set_hyperparameter_bool(
+    substrate: "AsyncSubstrateInterface",
+    wallet: "Wallet",
+    call_function: str,
+    value: bool,
+    netuid: int,
+) -> bool:
+    """Sets boolean hyperparameter value through AdminUtils. Mimics setting hyperparams."""
+    call = await substrate.compose_call(
+        call_module="AdminUtils",
+        call_function=call_function,
+        call_params={"netuid": netuid, "enabled": value},
+    )
+    extrinsic = await substrate.create_signed_extrinsic(
+        call=call, keypair=wallet.coldkey
+    )
+    response = await substrate.submit_extrinsic(
+        extrinsic,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    return await response.is_success
+
+
 def sudo_set_hyperparameter_values(
     substrate: "SubstrateInterface",
     wallet: "Wallet",
@@ -55,9 +81,7 @@ def sudo_set_hyperparameter_values(
     call_params: dict,
     return_error_message: bool = False,
 ) -> Union[bool, tuple[bool, Optional[str]]]:
-    """
-    Sets liquid alpha values using AdminUtils. Mimics setting hyperparams
-    """
+    """Sets liquid alpha values using AdminUtils. Mimics setting hyperparams."""
     call = substrate.compose_call(
         call_module="AdminUtils",
         call_function=call_function,
@@ -76,7 +100,35 @@ def sudo_set_hyperparameter_values(
     return response.is_success
 
 
-async def wait_epoch(subtensor: "Subtensor", netuid: int = 1, **kwargs):
+async def async_sudo_set_hyperparameter_values(
+    substrate: "AsyncSubstrateInterface",
+    wallet: "Wallet",
+    call_function: str,
+    call_params: dict,
+    return_error_message: bool = False,
+) -> Union[bool, tuple[bool, Optional[str]]]:
+    """Sets liquid alpha values using AdminUtils. Mimics setting hyperparams."""
+    call = await substrate.compose_call(
+        call_module="AdminUtils",
+        call_function=call_function,
+        call_params=call_params,
+    )
+    extrinsic = await substrate.create_signed_extrinsic(
+        call=call, keypair=wallet.coldkey
+    )
+    response = await substrate.submit_extrinsic(
+        extrinsic=extrinsic,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    if return_error_message:
+        return await response.is_success, await response.error_message
+
+    return await response.is_success
+
+
+async def wait_epoch(subtensor: "SubtensorApi", netuid: int = 1, **kwargs):
     """
     Waits for the next epoch to start on a specific subnet.
 
@@ -87,7 +139,9 @@ async def wait_epoch(subtensor: "Subtensor", netuid: int = 1, **kwargs):
     Raises:
         Exception: If the tempo cannot be determined from the chain.
     """
-    q_tempo = [v for (k, v) in subtensor.query_map_subtensor("Tempo") if k == netuid]
+    q_tempo = [
+        v for (k, v) in subtensor.queries.query_map_subtensor("Tempo") if k == netuid
+    ]
     if len(q_tempo) == 0:
         raise Exception("could not determine tempo")
     tempo = q_tempo[0].value
@@ -95,13 +149,36 @@ async def wait_epoch(subtensor: "Subtensor", netuid: int = 1, **kwargs):
     await wait_interval(tempo, subtensor, netuid, **kwargs)
 
 
+async def async_wait_epoch(async_subtensor: "SubtensorApi", netuid: int = 1, **kwargs):
+    """
+    Waits for the next epoch to start on a specific subnet.
+
+    Queries the tempo value from the Subtensor module and calculates the
+    interval based on the tempo. Then waits for the next epoch to start
+    by monitoring the current block number.
+
+    Raises:
+        Exception: If the tempo cannot be determined from the chain.
+    """
+    q_tempo = [
+        v
+        async for (k, v) in await async_subtensor.queries.query_map_subtensor("Tempo")
+        if k == netuid
+    ]
+    if len(q_tempo) == 0:
+        raise Exception("could not determine tempo")
+    tempo = q_tempo[0].value
+    logging.info(f"tempo = {tempo}")
+    await async_wait_interval(tempo, async_subtensor, netuid, **kwargs)
+
+
 def next_tempo(current_block: int, tempo: int) -> int:
     """
     Calculates the next tempo block for a specific subnet.
 
     Args:
-        current_block (int): The current block number.
-        tempo (int): The tempo value for the subnet.
+        current_block: The current block number.
+        tempo: The tempo value for the subnet.
 
     Returns:
         int: The next tempo block number.
@@ -111,7 +188,7 @@ def next_tempo(current_block: int, tempo: int) -> int:
 
 async def wait_interval(
     tempo: int,
-    subtensor: "Subtensor",
+    subtensor: "SubtensorApi",
     netuid: int = 1,
     reporting_interval: int = 1,
     sleep: float = 0.25,
@@ -124,7 +201,7 @@ async def wait_interval(
     and the provided tempo, then enters a loop where it periodically checks
     the current block number until the next tempo interval starts.
     """
-    current_block = subtensor.get_current_block()
+    current_block = subtensor.chain.get_current_block()
     next_tempo_block_start = current_block
 
     for _ in range(times):
@@ -136,7 +213,7 @@ async def wait_interval(
         await asyncio.sleep(
             sleep,
         )  # Wait before checking the block number again
-        current_block = subtensor.get_current_block()
+        current_block = subtensor.chain.get_current_block()
         if last_reported is None or current_block - last_reported >= reporting_interval:
             last_reported = current_block
             print(
@@ -149,7 +226,7 @@ async def wait_interval(
 
 async def async_wait_interval(
     tempo: int,
-    subtensor: "AsyncSubtensor",
+    subtensor: "SubtensorApi",
     netuid: int = 1,
     reporting_interval: int = 1,
     sleep: float = 0.25,
@@ -162,7 +239,7 @@ async def async_wait_interval(
     and the provided tempo, then enters a loop where it periodically checks
     the current block number until the next tempo interval starts.
     """
-    current_block = await subtensor.get_current_block()
+    current_block = await subtensor.chain.get_current_block()
     next_tempo_block_start = current_block
 
     for _ in range(times):
@@ -174,7 +251,7 @@ async def async_wait_interval(
         await asyncio.sleep(
             sleep,
         )  # Wait before checking the block number again
-        current_block = await subtensor.get_current_block()
+        current_block = await subtensor.chain.get_current_block()
         if last_reported is None or current_block - last_reported >= reporting_interval:
             last_reported = current_block
             print(
@@ -186,11 +263,9 @@ async def async_wait_interval(
 
 
 def execute_and_wait_for_next_nonce(
-    subtensor, wallet, sleep=0.25, timeout=60.0, max_retries=3
+    subtensor: "SubtensorApi", wallet, sleep=0.25, timeout=60.0, max_retries=3
 ):
-    """
-    Decorator that ensures the nonce has been consumed after a blockchain extrinsic call.
-    """
+    """Decorator that ensures the nonce has been consumed after a blockchain extrinsic call."""
 
     def decorator(func):
         @functools.wraps(func)
@@ -242,14 +317,14 @@ def sudo_set_admin_utils(
     Wraps the call in sudo to set hyperparameter values using AdminUtils.
 
     Args:
-        substrate (SubstrateInterface): Substrate connection.
-        wallet (Wallet): Wallet object with the keypair for signing.
-        call_function (str): The AdminUtils function to call.
-        call_params (dict): Parameters for the AdminUtils function.
-        call_module (str): The AdminUtils module to call. Defaults to "AdminUtils".
+        substrate: Substrate connection.
+        wallet: Wallet object with the keypair for signing.
+        call_function: The AdminUtils function to call.
+        call_params: Parameters for the AdminUtils function.
+        call_module: The AdminUtils module to call. Defaults to "AdminUtils".
 
     Returns:
-        tuple[bool, Optional[dict]]: (success status, error details).
+        tuple: (success status, error details).
     """
     inner_call = substrate.compose_call(
         call_module=call_module,
@@ -274,16 +349,56 @@ def sudo_set_admin_utils(
     return response.is_success, response.error_message
 
 
-async def root_set_subtensor_hyperparameter_values(
+async def async_sudo_set_admin_utils(
+    substrate: "AsyncSubstrateInterface",
+    wallet: "Wallet",
+    call_function: str,
+    call_params: dict,
+    call_module: str = "AdminUtils",
+) -> tuple[bool, Optional[dict]]:
+    """
+    Wraps the call in sudo to set hyperparameter values using AdminUtils.
+
+    Parameters:
+        substrate: Substrate connection.
+        wallet: Wallet object with the keypair for signing.
+        call_function: The AdminUtils function to call.
+        call_params: Parameters for the AdminUtils function.
+        call_module: The AdminUtils module to call. Defaults to "AdminUtils".
+
+    Returns:
+        tuple: (success status, error details).
+    """
+    inner_call = await substrate.compose_call(
+        call_module=call_module,
+        call_function=call_function,
+        call_params=call_params,
+    )
+
+    sudo_call = await substrate.compose_call(
+        call_module="Sudo",
+        call_function="sudo",
+        call_params={"call": inner_call},
+    )
+    extrinsic = await substrate.create_signed_extrinsic(
+        call=sudo_call, keypair=wallet.coldkey
+    )
+    response: "AsyncExtrinsicReceipt" = await substrate.submit_extrinsic(
+        extrinsic,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    return await response.is_success, await response.error_message
+
+
+def root_set_subtensor_hyperparameter_values(
     substrate: "SubstrateInterface",
     wallet: "Wallet",
     call_function: str,
     call_params: dict,
-    return_error_message: bool = False,
 ) -> tuple[bool, Optional[dict]]:
-    """
-    Sets liquid alpha values using AdminUtils. Mimics setting hyperparams
-    """
+    """Sets liquid alpha values using AdminUtils. Mimics setting hyperparams."""
     call = substrate.compose_call(
         call_module="SubtensorModule",
         call_function=call_function,
@@ -301,7 +416,7 @@ async def root_set_subtensor_hyperparameter_values(
 
 
 def set_identity(
-    subtensor,
+    subtensor: "SubtensorApi",
     wallet,
     name="",
     url="",
@@ -313,6 +428,37 @@ def set_identity(
 ):
     return subtensor.sign_and_send_extrinsic(
         subtensor.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="set_identity",
+            call_params={
+                "name": name,
+                "url": url,
+                "github_repo": github_repo,
+                "image": image,
+                "discord": discord,
+                "description": description,
+                "additional": additional,
+            },
+        ),
+        wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+
+async def async_set_identity(
+    subtensor: "SubtensorApi",
+    wallet: "Wallet",
+    name="",
+    url="",
+    github_repo="",
+    image="",
+    discord="",
+    description="",
+    additional="",
+):
+    return await subtensor.sign_and_send_extrinsic(
+        await subtensor.substrate.compose_call(
             call_module="SubtensorModule",
             call_function="set_identity",
             call_params={
@@ -348,9 +494,31 @@ def propose(subtensor, wallet, proposal, duration):
     )
 
 
+async def async_propose(
+    subtensor: "SubtensorApi",
+    wallet: "Wallet",
+    proposal,
+    duration,
+):
+    return await subtensor.sign_and_send_extrinsic(
+        call=await subtensor.substrate.compose_call(
+            call_module="Triumvirate",
+            call_function="propose",
+            call_params={
+                "proposal": proposal,
+                "length_bound": len(proposal.data),
+                "duration": duration,
+            },
+        ),
+        wallet=wallet,
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
+    )
+
+
 def vote(
-    subtensor,
-    wallet,
+    subtensor: "SubtensorApi",
+    wallet: "Wallet",
     hotkey,
     proposal,
     index,
@@ -368,6 +536,31 @@ def vote(
             },
         ),
         wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+
+async def async_vote(
+    subtensor: "SubtensorApi",
+    wallet: "Wallet",
+    hotkey,
+    proposal,
+    index,
+    approve,
+):
+    return await subtensor.sign_and_send_extrinsic(
+        call=await subtensor.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="vote",
+            call_params={
+                "approve": approve,
+                "hotkey": hotkey,
+                "index": index,
+                "proposal": proposal,
+            },
+        ),
+        wallet=wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )

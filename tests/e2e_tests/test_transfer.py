@@ -12,7 +12,7 @@ if typing.TYPE_CHECKING:
 logging.set_trace()
 
 
-def test_transfer(subtensor: "SubtensorApi", alice_wallet):
+def test_transfer(subtensor, alice_wallet):
     """
     Test the transfer mechanism on the chain
 
@@ -22,24 +22,23 @@ def test_transfer(subtensor: "SubtensorApi", alice_wallet):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-
-    print("Testing test_transfer")
+    logging.console.info("Testing [blue]test_transfer[/blue]")
 
     transfer_value = Balance.from_tao(2)
     dest_coldkey = "5GpzQgpiAKHMWNSH3RN4GLf96GVTDct9QxYEFAY7LWcVzTbx"
 
     # Fetch transfer fee
-    transfer_fee = subtensor.get_transfer_fee(
+    transfer_fee = subtensor.wallets.get_transfer_fee(
         wallet=alice_wallet,
         dest=dest_coldkey,
         value=transfer_value,
     )
 
     # Account details before transfer
-    balance_before = subtensor.get_balance(alice_wallet.coldkeypub.ss58_address)
+    balance_before = subtensor.wallets.get_balance(alice_wallet.coldkeypub.ss58_address)
 
     # Transfer Tao
-    assert subtensor.transfer(
+    assert subtensor.extrinsics.transfer(
         wallet=alice_wallet,
         dest=dest_coldkey,
         amount=transfer_value,
@@ -47,17 +46,68 @@ def test_transfer(subtensor: "SubtensorApi", alice_wallet):
         wait_for_inclusion=True,
     )
     # Account details after transfer
-    balance_after = subtensor.get_balance(alice_wallet.coldkeypub.ss58_address)
+    balance_after = subtensor.wallets.get_balance(alice_wallet.coldkeypub.ss58_address)
 
     # Assert correct transfer calculations
     assert balance_before - transfer_fee - transfer_value == balance_after, (
         f"Expected {balance_before - transfer_value - transfer_fee}, got {balance_after}"
     )
 
-    print("✅ Passed test_transfer")
+    logging.console.success("✅ Passed [blue]test_transfer[/blue]")
 
 
-def test_transfer_all(subtensor: "Subtensor", alice_wallet):
+@pytest.mark.asyncio
+async def test_transfer_async(async_subtensor, alice_wallet):
+    """
+    Test the transfer mechanism on the chain
+
+    Steps:
+        1. Calculate existing balance and transfer 2 Tao
+        2. Calculate balance after transfer call and verify calculations
+    Raises:
+        AssertionError: If any of the checks or verifications fail
+    """
+    logging.console.info("Testing [blue]test_transfer[/blue]")
+
+    transfer_value = Balance.from_tao(2)
+    dest_coldkey = "5GpzQgpiAKHMWNSH3RN4GLf96GVTDct9QxYEFAY7LWcVzTbx"
+
+    # Fetch transfer fee
+    transfer_fee = await async_subtensor.wallets.get_transfer_fee(
+        wallet=alice_wallet,
+        dest=dest_coldkey,
+        value=transfer_value,
+    )
+
+    # Account details before transfer
+    balance_before = await async_subtensor.wallets.get_balance(
+        alice_wallet.coldkeypub.ss58_address
+    )
+
+    # Transfer Tao
+    assert await async_subtensor.extrinsics.transfer(
+        wallet=alice_wallet,
+        dest=dest_coldkey,
+        amount=transfer_value,
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
+    )
+    # Account details after transfer
+    balance_after = await async_subtensor.wallets.get_balance(
+        alice_wallet.coldkeypub.ss58_address
+    )
+
+    # Assert correct transfer calculations
+    assert balance_before - transfer_fee - transfer_value == balance_after, (
+        f"Expected {balance_before - transfer_value - transfer_fee}, got {balance_after}"
+    )
+
+    logging.console.success("✅ Passed [blue]test_transfer[/blue]")
+
+
+def test_transfer_all(subtensor, alice_wallet):
+    logging.console.info("Testing [blue]test_transfer_all[/blue]")
+
     # create two dummy accounts we can drain
     dummy_account_1 = Wallet(path="/tmp/bittensor-dummy-account-1")
     dummy_account_2 = Wallet(path="/tmp/bittensor-dummy-account-2")
@@ -65,7 +115,7 @@ def test_transfer_all(subtensor: "Subtensor", alice_wallet):
     dummy_account_2.create_new_coldkey(use_password=False, overwrite=True)
 
     # fund the first dummy account
-    assert subtensor.transfer(
+    assert subtensor.extrinsics.transfer(
         alice_wallet,
         dest=dummy_account_1.coldkeypub.ss58_address,
         amount=Balance.from_tao(2.0),
@@ -73,8 +123,8 @@ def test_transfer_all(subtensor: "Subtensor", alice_wallet):
         wait_for_inclusion=True,
     )
     # Account details before transfer
-    existential_deposit = subtensor.get_existential_deposit()
-    assert subtensor.transfer(
+    existential_deposit = subtensor.chain.get_existential_deposit()
+    assert subtensor.extrinsics.transfer(
         wallet=dummy_account_1,
         dest=dummy_account_2.coldkeypub.ss58_address,
         amount=None,
@@ -83,9 +133,11 @@ def test_transfer_all(subtensor: "Subtensor", alice_wallet):
         wait_for_inclusion=True,
         keep_alive=True,
     )
-    balance_after = subtensor.get_balance(dummy_account_1.coldkeypub.ss58_address)
+    balance_after = subtensor.wallets.get_balance(
+        dummy_account_1.coldkeypub.ss58_address
+    )
     assert balance_after == existential_deposit
-    assert subtensor.transfer(
+    assert subtensor.extrinsics.transfer(
         wallet=dummy_account_2,
         dest=alice_wallet.coldkeypub.ss58_address,
         amount=None,
@@ -94,20 +146,26 @@ def test_transfer_all(subtensor: "Subtensor", alice_wallet):
         wait_for_finalization=True,
         keep_alive=False,
     )
-    balance_after = subtensor.get_balance(dummy_account_2.coldkeypub.ss58_address)
+    balance_after = subtensor.wallets.get_balance(
+        dummy_account_2.coldkeypub.ss58_address
+    )
     assert balance_after == Balance(0)
+
+    logging.console.success("✅ Test [green]test_transfer_all[/green] passed.")
 
 
 @pytest.mark.asyncio
-async def test_async_transfer(async_subtensor: "SubtensorApi", alice_wallet):
+async def test_transfer_all_async(async_subtensor, alice_wallet):
     # create two dummy accounts we can drain
+    logging.console.info("Testing [blue]test_transfer_async[/blue]")
+
     dummy_account_1 = Wallet(path="/tmp/bittensor-dummy-account-3")
     dummy_account_2 = Wallet(path="/tmp/bittensor-dummy-account-4")
     dummy_account_1.create_new_coldkey(use_password=False, overwrite=True)
     dummy_account_2.create_new_coldkey(use_password=False, overwrite=True)
 
     # fund the first dummy account
-    assert await async_subtensor.transfer(
+    assert await async_subtensor.extrinsics.transfer(
         alice_wallet,
         dest=dummy_account_1.coldkeypub.ss58_address,
         amount=Balance.from_tao(2.0),
@@ -115,8 +173,8 @@ async def test_async_transfer(async_subtensor: "SubtensorApi", alice_wallet):
         wait_for_inclusion=True,
     )
     # Account details before transfer
-    existential_deposit = await async_subtensor.get_existential_deposit()
-    assert await async_subtensor.transfer(
+    existential_deposit = await async_subtensor.chain.get_existential_deposit()
+    assert await async_subtensor.extrinsics.transfer(
         wallet=dummy_account_1,
         dest=dummy_account_2.coldkeypub.ss58_address,
         amount=None,
@@ -125,11 +183,11 @@ async def test_async_transfer(async_subtensor: "SubtensorApi", alice_wallet):
         wait_for_inclusion=True,
         keep_alive=True,
     )
-    balance_after = await async_subtensor.get_balance(
+    balance_after = await async_subtensor.wallets.get_balance(
         dummy_account_1.coldkeypub.ss58_address
     )
     assert balance_after == existential_deposit
-    assert await async_subtensor.transfer(
+    assert await async_subtensor.extrinsics.transfer(
         wallet=dummy_account_2,
         dest=alice_wallet.coldkeypub.ss58_address,
         amount=None,
@@ -138,7 +196,9 @@ async def test_async_transfer(async_subtensor: "SubtensorApi", alice_wallet):
         wait_for_finalization=True,
         keep_alive=False,
     )
-    balance_after = await async_subtensor.get_balance(
+    balance_after = await async_subtensor.wallets.get_balance(
         dummy_account_2.coldkeypub.ss58_address
     )
     assert balance_after == Balance(0)
+
+    logging.console.success("✅ Test [green]test_transfer_async[/green] passed.")

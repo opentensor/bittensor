@@ -51,6 +51,7 @@ def test_do_commit_weights(subtensor, fake_wallet, mocker):
         nonce_key="hotkey",
         sign_with="hotkey",
         use_nonce=True,
+        raise_error=True,
     )
 
     assert result == (False, "")

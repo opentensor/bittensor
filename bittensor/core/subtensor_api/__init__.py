@@ -178,7 +178,8 @@ class SubtensorApi:
             raise NotImplementedError(
                 "Sync version of SubtensorApi cannot be used with async context manager."
             )
-        return await self._subtensor.__aenter__()
+        await self._subtensor.__aenter__()
+        return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if not self.is_async:

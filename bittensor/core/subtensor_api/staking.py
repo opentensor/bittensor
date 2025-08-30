@@ -23,6 +23,8 @@ class Staking:
         self.get_stake_weight = subtensor.get_stake_weight
         self.get_unstake_fee = subtensor.get_unstake_fee
         self.move_stake = subtensor.move_stake
+        self.swap_stake = subtensor.swap_stake
+        self.transfer_stake = subtensor.transfer_stake
         self.unstake = subtensor.unstake
         self.unstake_all = subtensor.unstake_all
         self.unstake_multiple = subtensor.unstake_multiple

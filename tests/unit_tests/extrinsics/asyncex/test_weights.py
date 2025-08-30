@@ -446,6 +446,7 @@ async def test_commit_weights_extrinsic_success(subtensor, fake_wallet, mocker):
         wait_for_inclusion=True,
         wait_for_finalization=True,
         period=None,
+        raise_error=False,
     )
     assert result is True
     assert message == "✅ [green]Successfully committed weights.[green]"
@@ -481,6 +482,7 @@ async def test_commit_weights_extrinsic_failure(subtensor, fake_wallet, mocker):
         wait_for_inclusion=True,
         wait_for_finalization=True,
         period=None,
+        raise_error=False,
     )
     assert result is False
     assert message == "Commit failed."
