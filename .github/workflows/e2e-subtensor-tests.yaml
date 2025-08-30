@@ -129,7 +129,9 @@ jobs:
           path: subtensor-localnet.tar
 
   # Job to run tests in parallel
-  run-fast-blocks-e2e-test:
+  # Since GH Actions matrix has a limit of 256 jobs, we need to split the tests into multiple jobs with different
+  # Python versions
+  run-fast-blocks-e2e-test-3.9:
     name: "${{ matrix.test.label }} / Py ${{ matrix.python-version }}"
     needs:
       - find-tests
@@ -143,7 +145,7 @@ jobs:
         os:
           - ubuntu-latest
         test: ${{ fromJson(needs.find-tests.outputs.test-files) }}
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: "3.9"
     steps:
       - name: Check-out repository
         uses: actions/checkout@v4
@@ -189,3 +191,248 @@ jobs:
 
           echo "Tests failed after 3 attempts"
           exit 1
+
+  run-fast-blocks-e2e-test-3.10:
+    name: "${{ matrix.test.label }} / Py ${{ matrix.python-version }}"
+    needs:
+      - find-tests
+      - pull-docker-image
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false  # Allow other matrix jobs to run even if this job fails
+      max-parallel: 64  # Set the maximum number of parallel jobs (same as we have cores in ubuntu-latest runner)
+      matrix:
+        os:
+          - ubuntu-latest
+        test: ${{ fromJson(needs.find-tests.outputs.test-files) }}
+        python-version: "3.10"
+    steps:
+      - name: Check-out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: install dependencies
+        run: uv sync --extra dev --dev
+
+      - name: Download Cached Docker Image
+        uses: actions/download-artifact@v4
+        with:
+          name: subtensor-localnet
+
+      - name: Load Docker Image
+        run: docker load -i subtensor-localnet.tar
+
+      - name: Run tests with retry
+        env:
+          LOCALNET_IMAGE_NAME: ${{ needs.pull-docker-image.outputs.image-name }}
+        run: |
+          for i in 1 2 3; do
+            echo "::group::🔁 Test attempt $i"
+            if uv run pytest "${{ matrix.test.nodeid }}" -s; then
+              echo "✅ Tests passed on attempt $i"
+              echo "::endgroup::"
+              exit 0
+            else
+              echo "❌ Tests failed on attempt $i"
+              echo "::endgroup::"
+              if [ "$i" -lt 3 ]; then
+                echo "Retrying..."
+                sleep 5
+              fi
+            fi
+          done
+
+          echo "Tests failed after 3 attempts"
+          exit 1
+
+  run-fast-blocks-e2e-test-3.11:
+    name: "${{ matrix.test.label }} / Py ${{ matrix.python-version }}"
+    needs:
+      - find-tests
+      - pull-docker-image
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false  # Allow other matrix jobs to run even if this job fails
+      max-parallel: 64  # Set the maximum number of parallel jobs (same as we have cores in ubuntu-latest runner)
+      matrix:
+        os:
+          - ubuntu-latest
+        test: ${{ fromJson(needs.find-tests.outputs.test-files) }}
+        python-version: "3.11"
+    steps:
+      - name: Check-out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: install dependencies
+        run: uv sync --extra dev --dev
+
+      - name: Download Cached Docker Image
+        uses: actions/download-artifact@v4
+        with:
+          name: subtensor-localnet
+
+      - name: Load Docker Image
+        run: docker load -i subtensor-localnet.tar
+
+      - name: Run tests with retry
+        env:
+          LOCALNET_IMAGE_NAME: ${{ needs.pull-docker-image.outputs.image-name }}
+        run: |
+          for i in 1 2 3; do
+            echo "::group::🔁 Test attempt $i"
+            if uv run pytest "${{ matrix.test.nodeid }}" -s; then
+              echo "✅ Tests passed on attempt $i"
+              echo "::endgroup::"
+              exit 0
+            else
+              echo "❌ Tests failed on attempt $i"
+              echo "::endgroup::"
+              if [ "$i" -lt 3 ]; then
+                echo "Retrying..."
+                sleep 5
+              fi
+            fi
+          done
+
+          echo "Tests failed after 3 attempts"
+          exit 1
+
+  run-fast-blocks-e2e-test-3.12:
+    name: "${{ matrix.test.label }} / Py ${{ matrix.python-version }}"
+    needs:
+      - find-tests
+      - pull-docker-image
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false  # Allow other matrix jobs to run even if this job fails
+      max-parallel: 64  # Set the maximum number of parallel jobs (same as we have cores in ubuntu-latest runner)
+      matrix:
+        os:
+          - ubuntu-latest
+        test: ${{ fromJson(needs.find-tests.outputs.test-files) }}
+        python-version: "3.12"
+    steps:
+      - name: Check-out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: install dependencies
+        run: uv sync --extra dev --dev
+
+      - name: Download Cached Docker Image
+        uses: actions/download-artifact@v4
+        with:
+          name: subtensor-localnet
+
+      - name: Load Docker Image
+        run: docker load -i subtensor-localnet.tar
+
+      - name: Run tests with retry
+        env:
+          LOCALNET_IMAGE_NAME: ${{ needs.pull-docker-image.outputs.image-name }}
+        run: |
+          for i in 1 2 3; do
+            echo "::group::🔁 Test attempt $i"
+            if uv run pytest "${{ matrix.test.nodeid }}" -s; then
+              echo "✅ Tests passed on attempt $i"
+              echo "::endgroup::"
+              exit 0
+            else
+              echo "❌ Tests failed on attempt $i"
+              echo "::endgroup::"
+              if [ "$i" -lt 3 ]; then
+                echo "Retrying..."
+                sleep 5
+              fi
+            fi
+          done
+
+          echo "Tests failed after 3 attempts"
+          exit 1
+
+  run-fast-blocks-e2e-test-3.13:
+    name: "${{ matrix.test.label }} / Py ${{ matrix.python-version }}"
+    needs:
+      - find-tests
+      - pull-docker-image
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false  # Allow other matrix jobs to run even if this job fails
+      max-parallel: 64  # Set the maximum number of parallel jobs (same as we have cores in ubuntu-latest runner)
+      matrix:
+        os:
+          - ubuntu-latest
+        test: ${{ fromJson(needs.find-tests.outputs.test-files) }}
+        python-version: "3.13"
+    steps:
+      - name: Check-out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: install dependencies
+        run: uv sync --extra dev --dev
+
+      - name: Download Cached Docker Image
+        uses: actions/download-artifact@v4
+        with:
+          name: subtensor-localnet
+
+      - name: Load Docker Image
+        run: docker load -i subtensor-localnet.tar
+
+      - name: Run tests with retry
+        env:
+          LOCALNET_IMAGE_NAME: ${{ needs.pull-docker-image.outputs.image-name }}
+        run: |
+          for i in 1 2 3; do
+            echo "::group::🔁 Test attempt $i"
+            if uv run pytest "${{ matrix.test.nodeid }}" -s; then
+              echo "✅ Tests passed on attempt $i"
+              echo "::endgroup::"
+              exit 0
+            else
+              echo "❌ Tests failed on attempt $i"
+              echo "::endgroup::"
+              if [ "$i" -lt 3 ]; then
+                echo "Retrying..."
+                sleep 5
+              fi
+            fi
+          done
+
+          echo "Tests failed after 3 attempts"
+          exit 1
+
