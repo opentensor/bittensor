@@ -66,5 +66,6 @@ jobs:
               fi
             fi
 
+          done
           echo "Tests failed after 3 attempts"
           exit 1
