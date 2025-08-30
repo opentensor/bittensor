@@ -3558,6 +3558,7 @@ class Subtensor(SubtensorMixin):
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                     period=period,
+                    raise_error=True,
                 )
                 if success:
                     break
