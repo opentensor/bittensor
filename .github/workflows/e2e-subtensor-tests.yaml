@@ -131,7 +131,7 @@ jobs:
   # Since GH Actions matrix has a limit of 256 jobs, we need to split the tests into multiple jobs with different
   # Python versions. To reduce DRY we use reusable workflow.
 
-  run-e2e-3-9:
+  e2e-test:
     name: ${{ matrix.label }}
     needs:
       - find-tests
@@ -145,51 +145,3 @@ jobs:
       nodeid: ${{ matrix.nodeid }}
       image-name: ${{ needs.pull-docker-image.outputs.image-name }}
     secrets: inherit
-
-#  run-e2e-3-10:
-#    name: Run E2E / Python 3.10
-#    uses: ./.github/workflows/_run-e2e-single.yaml
-#    needs:
-#      - find-tests
-#      - pull-docker-image
-#    with:
-#      python-version: "3.10"
-#      test-files: ${{ needs.find-tests.outputs.test-files }}
-#      image-name: ${{ needs.pull-docker-image.outputs.image-name }}
-#    secrets: inherit
-#
-#  run-e2e-3-11:
-#    name: Run E2E / Python 3.11
-#    uses: ./.github/workflows/_run-e2e-single.yaml
-#    needs:
-#      - find-tests
-#      - pull-docker-image
-#    with:
-#      python-version: "3.11"
-#      test-files: ${{ needs.find-tests.outputs.test-files }}
-#      image-name: ${{ needs.pull-docker-image.outputs.image-name }}
-#    secrets: inherit
-#
-#  run-e2e-3-12:
-#    name: Run E2E / Python 3.12
-#    uses: ./.github/workflows/_run-e2e-single.yaml
-#    needs:
-#      - find-tests
-#      - pull-docker-image
-#    with:
-#      python-version: "3.12"
-#      test-files: ${{ needs.find-tests.outputs.test-files }}
-#      image-name: ${{ needs.pull-docker-image.outputs.image-name }}
-#    secrets: inherit
-#
-#  run-e2e-3-13:
-#    name: Run E2E / Python 3.13
-#    uses: ./.github/workflows/_run-e2e-single.yaml
-#    needs:
-#      - find-tests
-#      - pull-docker-image
-#    with:
-#      python-version: "3.13"
-#      test-files: ${{ needs.find-tests.outputs.test-files }}
-#      image-name: ${{ needs.pull-docker-image.outputs.image-name }}
-#    secrets: inherit
