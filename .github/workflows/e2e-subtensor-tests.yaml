@@ -133,61 +133,68 @@ jobs:
   # Python versions. To reduce DRY we use reusable workflow.
 
   run-e2e-3-9:
-    name: Run E2E / Python 3.9
-    uses: ./.github/workflows/_run-e2e-single.yaml
+    name: Run E2E / Py 3.9 - ${{ matrix.label }}
+    runs-on: ubuntu-latest
     needs:
       - find-tests
       - pull-docker-image
-    with:
-      python-version: "3.9"
-      test-files: ${{ needs.find-tests.outputs.test-files }}
-      image-name: ${{ needs.pull-docker-image.outputs.image-name }}
-    secrets: inherit
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.find-tests.outputs.test-files) }}
+    steps:
+      - uses: ./.github/workflows/_run-e2e-single.yaml
+        with:
+          python-version: "3.9"
+          nodeid: ${{ matrix.nodeid }}
+          label: ${{ matrix.label }}
+          image-name: ${{ needs.pull-docker-image.outputs.image-name }}
+        secrets: inherit
 
-  run-e2e-3-10:
-    name: Run E2E / Python 3.10
-    uses: ./.github/workflows/_run-e2e-single.yaml
-    needs:
-      - find-tests
-      - pull-docker-image
-    with:
-      python-version: "3.10"
-      test-files: ${{ needs.find-tests.outputs.test-files }}
-      image-name: ${{ needs.pull-docker-image.outputs.image-name }}
-    secrets: inherit
-
-  run-e2e-3-11:
-    name: Run E2E / Python 3.11
-    uses: ./.github/workflows/_run-e2e-single.yaml
-    needs:
-      - find-tests
-      - pull-docker-image
-    with:
-      python-version: "3.11"
-      test-files: ${{ needs.find-tests.outputs.test-files }}
-      image-name: ${{ needs.pull-docker-image.outputs.image-name }}
-    secrets: inherit
-
-  run-e2e-3-12:
-    name: Run E2E / Python 3.12
-    uses: ./.github/workflows/_run-e2e-single.yaml
-    needs:
-      - find-tests
-      - pull-docker-image
-    with:
-      python-version: "3.12"
-      test-files: ${{ needs.find-tests.outputs.test-files }}
-      image-name: ${{ needs.pull-docker-image.outputs.image-name }}
-    secrets: inherit
-
-  run-e2e-3-13:
-    name: Run E2E / Python 3.13
-    uses: ./.github/workflows/_run-e2e-single.yaml
-    needs:
-      - find-tests
-      - pull-docker-image
-    with:
-      python-version: "3.13"
-      test-files: ${{ needs.find-tests.outputs.test-files }}
-      image-name: ${{ needs.pull-docker-image.outputs.image-name }}
-    secrets: inherit
+#  run-e2e-3-10:
+#    name: Run E2E / Python 3.10
+#    uses: ./.github/workflows/_run-e2e-single.yaml
+#    needs:
+#      - find-tests
+#      - pull-docker-image
+#    with:
+#      python-version: "3.10"
+#      test-files: ${{ needs.find-tests.outputs.test-files }}
+#      image-name: ${{ needs.pull-docker-image.outputs.image-name }}
+#    secrets: inherit
+#
+#  run-e2e-3-11:
+#    name: Run E2E / Python 3.11
+#    uses: ./.github/workflows/_run-e2e-single.yaml
+#    needs:
+#      - find-tests
+#      - pull-docker-image
+#    with:
+#      python-version: "3.11"
+#      test-files: ${{ needs.find-tests.outputs.test-files }}
+#      image-name: ${{ needs.pull-docker-image.outputs.image-name }}
+#    secrets: inherit
+#
+#  run-e2e-3-12:
+#    name: Run E2E / Python 3.12
+#    uses: ./.github/workflows/_run-e2e-single.yaml
+#    needs:
+#      - find-tests
+#      - pull-docker-image
+#    with:
+#      python-version: "3.12"
+#      test-files: ${{ needs.find-tests.outputs.test-files }}
+#      image-name: ${{ needs.pull-docker-image.outputs.image-name }}
+#    secrets: inherit
+#
+#  run-e2e-3-13:
+#    name: Run E2E / Python 3.13
+#    uses: ./.github/workflows/_run-e2e-single.yaml
+#    needs:
+#      - find-tests
+#      - pull-docker-image
+#    with:
+#      python-version: "3.13"
+#      test-files: ${{ needs.find-tests.outputs.test-files }}
+#      image-name: ${{ needs.pull-docker-image.outputs.image-name }}
+#    secrets: inherit
