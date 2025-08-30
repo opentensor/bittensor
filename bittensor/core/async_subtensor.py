@@ -2,7 +2,6 @@ import asyncio
 import copy
 import ssl
 from datetime import datetime, timezone
-from functools import partial
 from typing import cast, Optional, Any, Union, Iterable, TYPE_CHECKING
 
 import asyncstdlib as a
@@ -2665,24 +2664,27 @@ class AsyncSubtensor(SubtensorMixin):
             Balance: The stake under the coldkey - hotkey pairing.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        sub_query = partial(
-            self.query_subtensor,
+
+        alpha_shares = await self.query_subtensor(
+            name="Alpha",
+            block=block,
             block_hash=block_hash,
             reuse_block=reuse_block,
+            params=[hotkey_ss58, coldkey_ss58, netuid],
         )
-        alpha_shares, hotkey_alpha_result, hotkey_shares = await asyncio.gather(
-            sub_query(
-                name="Alpha",
-                params=[hotkey_ss58, coldkey_ss58, netuid],
-            ),
-            sub_query(
-                name="TotalHotkeyAlpha",
-                params=[hotkey_ss58, netuid],
-            ),
-            sub_query(
-                name="TotalHotkeyShares",
-                params=[hotkey_ss58, netuid],
-            ),
+        hotkey_alpha_result = await self.query_subtensor(
+            name="TotalHotkeyAlpha",
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+            params=[hotkey_ss58, netuid],
+        )
+        hotkey_shares = await self.query_subtensor(
+            name="TotalHotkeyShares",
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+            params=[hotkey_ss58, netuid],
         )
 
         hotkey_alpha: int = getattr(hotkey_alpha_result, "value", 0)
