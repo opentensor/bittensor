@@ -22,7 +22,8 @@ jobs:
       fail-fast: false
       max-parallel: 64
       matrix:
-        include: ${{ fromJson(inputs.test-files) }}
+        name: ${{ fromJson(inputs.test-files) }}
+        test: ${{ fromJson(inputs.test-files) }}
 
     steps:
       - name: Check-out repository
