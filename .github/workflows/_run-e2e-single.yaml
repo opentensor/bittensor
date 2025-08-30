@@ -1,4 +1,4 @@
-name: Run Single E2E Test
+name: Run Single E2E Test with multiple Python versions
 
 on:
   workflow_call:
@@ -51,31 +51,19 @@ jobs:
         run: |
           for i in 1 2 3; do
             echo "::group::🔁 Test attempt $i"
-      
-            if [[ "PY_VERSION" == "3.9" ]]; then
-              echo "🔧 Running plain pytest (no uv)"
-              if pytest "${{ inputs.nodeid }}" -s; then
-                echo "✅ Passed on attempt $i"
-                echo "::endgroup::"
-                exit 0
-              fi
+            if uv run pytest "${{ inputs.nodeid }}" -s; then
+              echo "✅ Tests passed on attempt $i"
+              echo "::endgroup::"
+              exit 0
             else
-              echo "🚀 Running uv run pytest"
-              if uv run pytest "${{ inputs.nodeid }}" -s; then
-                echo "✅ Passed on attempt $i"
-                echo "::endgroup::"
-                exit 0
+              echo "❌ Tests failed on attempt $i"
+              echo "::endgroup::"
+              if [ "$i" -lt 3 ]; then
+                echo "Retrying..."
+                sleep 5
               fi
             fi
-      
-            echo "❌ Failed on attempt $i"
-            echo "::endgroup::"
-      
-            if [ "$i" -lt 3 ]; then
-              echo "Retrying..."
-              sleep 5
-            fi
-          done
 
+          done
           echo "Tests failed after 3 attempts"
           exit 1
