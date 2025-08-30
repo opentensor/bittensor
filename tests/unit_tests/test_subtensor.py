@@ -1990,6 +1990,7 @@ def test_commit_weights(subtensor, fake_wallet, mocker):
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
         period=16,
+        raise_error=True,
     )
     assert result == expected_result
 
