@@ -130,6 +130,7 @@ def _do_reveal_weights(
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
     period: Optional[int] = None,
+    raise_error: bool = False,
 ) -> tuple[bool, str]:
     """
     Internal method to send a transaction to the Bittensor blockchain, revealing the weights for a specific subnet.
@@ -178,6 +179,7 @@ def _do_reveal_weights(
         period=period,
         sign_with="hotkey",
         nonce_key="hotkey",
+        raise_error=raise_error,
     )
 
 
@@ -192,6 +194,7 @@ def reveal_weights_extrinsic(
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
     period: Optional[int] = None,
+    raise_error: bool = False,
 ) -> tuple[bool, str]:
     """
     Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
@@ -210,6 +213,7 @@ def reveal_weights_extrinsic(
         period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
+        raise_error: raises the relevant exception rather than returning `False` if unsuccessful.
 
     Returns:
         tuple[bool, str]:
@@ -231,6 +235,7 @@ def reveal_weights_extrinsic(
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
         period=period,
+        raise_error=raise_error,
     )
 
     if success:
