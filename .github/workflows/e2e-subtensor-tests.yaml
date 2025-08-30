@@ -133,7 +133,7 @@ jobs:
   # Python versions. To reduce DRY we use reusable workflow.
 
   run-e2e-3-9:
-    name: Run E2E / Py 3.9 - ${{ matrix.label }}
+    name: ${{ matrix.label }} / Python 3.9
     needs:
       - find-tests
       - pull-docker-image
