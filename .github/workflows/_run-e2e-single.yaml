@@ -1,0 +1,74 @@
+name: Run E2E for single Python version
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        required: true
+        type: string
+      test-files:
+        required: true
+        type: string
+      image-name:
+        required: true
+        type: string
+
+    secrets:
+      GITHUB_TOKEN:
+        required: true
+
+jobs:
+  run-fast-blocks-e2e:
+    name: "${{ matrix.test.label }} / Py ${{ inputs.python-version }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 64
+      matrix:
+        test: ${{ fromJson(inputs.test-files) }}
+
+    steps:
+      - name: Check-out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ inputs.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --extra dev --dev
+
+      - name: Download Cached Docker Image
+        uses: actions/download-artifact@v4
+        with:
+          name: subtensor-localnet
+
+      - name: Load Docker Image
+        run: docker load -i subtensor-localnet.tar
+
+      - name: Run tests with retry
+        env:
+          LOCALNET_IMAGE_NAME: ${{ inputs.image-name }}
+        run: |
+          for i in 1 2 3; do
+            echo "::group::🔁 Test attempt $i"
+            if uv run pytest "${{ matrix.test.nodeid }}" -s; then
+              echo "✅ Tests passed on attempt $i"
+              echo "::endgroup::"
+              exit 0
+            else
+              echo "❌ Tests failed on attempt $i"
+              echo "::endgroup::"
+              if [ "$i" -lt 3 ]; then
+                echo "Retrying..."
+                sleep 5
+              fi
+            fi
+
+          echo "Tests failed after 3 attempts"
+          exit 1
