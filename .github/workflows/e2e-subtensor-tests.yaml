@@ -63,7 +63,6 @@ jobs:
 
   # Pull docker image
   pull-docker-image:
-    needs: find-tests
     runs-on: ubuntu-latest
     outputs:
       image-name: ${{ steps.set-image.outputs.image }}
