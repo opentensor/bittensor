@@ -12,7 +12,7 @@ on:
 
 jobs:
   run-e2e:
-    name: "${{ matrix.python-version }} / Py ${{ inputs.python-version }}"
+    name: "${{ matrix.python-version }}"
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
