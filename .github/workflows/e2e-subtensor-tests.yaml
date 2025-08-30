@@ -149,7 +149,7 @@ jobs:
           nodeid: ${{ matrix.nodeid }}
           label: ${{ matrix.label }}
           image-name: ${{ needs.pull-docker-image.outputs.image-name }}
-        secrets: inherit
+    secrets: inherit
 
 #  run-e2e-3-10:
 #    name: Run E2E / Python 3.10
