@@ -28,14 +28,14 @@ The following is a set of guidelines for contributing to Bittensor, which are ho
 We have an official Discord server where the community chimes in with helpful advice if you have questions. 
 This is the fastest way to get an answer and the core development team is active on Discord.
 
-* [Official Bittensor Discord](https://discord.gg/7wvFuPJZgq)
+* [Official Bittensor Discord](https://discord.gg/bittensor)
 
 ## What should I know before I get started?
-Bittensor is still in the Alpha stages, and as such you will likely run into some problems in deploying your model or installing Bittensor itself. If you run into an issue or end up resolving an issue yourself, feel free to create a pull request with a fix or with a fix to the documentation. The documentation repository can be found [here](https://github.com/opentensor/docs). 
+Bittensor is still in the Alpha stages, and as such you will likely run into some problems in deploying your model or installing Bittensor itself. If you run into an issue or end up resolving an issue yourself, feel free to create a pull request with a fix or with a fix to the documentation. The documentation repository can be found [here](https://github.com/latent-to/developer-docs). 
 
 Additionally, note that the core implementation of Bittensor consists of two separate repositories: [The core Bittensor code](https://github.com/opentensor/bittensor) and the Bittensor Blockchain [subtensor](https://github.com/opentensor/subtensor).
 
-Supplemental repository for the Bittensor subnet template can be found [here](https://github.com/opentensor/bittensor-subnet-template). This is a great first place to look for getting your hands dirty and start learning and building on Bittensor. See the subnet links [page](https://github.com/opentensor/bittensor-subnet-template/blob/main/subnet_links.json) for a list of all the repositories for the active registered subnets.
+Supplemental repository for the Bittensor subnet template can be found [here](https://github.com/opentensor/bittensor-subnet-template). This is a great first place to look for getting your hands dirty and start learning and building on Bittensor. See the [Tao.app](https://www.tao.app/explorer) explorer for a list of all the repositories for the active registered subnets.
 
 ## Getting Started
 New contributors are very welcome and needed.
@@ -59,12 +59,9 @@ You can start by looking through these `beginner` and `help-wanted` issues:
 * [Help wanted issues](https://github.com/opentensor/bittensor/labels/help%20wanted) - issues which should be a bit more involved than `beginner` issues.
 
 ## Communication Channels
-Most communication about Bittensor development happens on Discord channel.
-Here's the link of Discord community.
-[Bittensor Discord](https://discord.com/channels/799672011265015819/799672011814862902)
+Most communication about Bittensor development happens on [Discord](https://discord.gg/bittensor).
 
-And also here.
-[Bittensor Community Discord](https://discord.com/channels/1120750674595024897/1120799375703162950)
+You can engage with the community in the [general](https://discord.com/channels/799672011265015819/799672011814862902) channel and follow the release announcements posted [here](https://discord.com/channels/799672011265015819/1359587876563718144).
 
 ## How Can I Contribute?
 
@@ -93,7 +90,7 @@ Here is a high-level summary:
 
 > Review the Bittensor [style guide](./STYLE.md) and [development workflow](./DEVELOPMENT_WORKFLOW.md) before contributing. 
 
-If you're looking to contribute to Bittensor but unsure where to start, please join our community [discord](https://discord.gg/bittensor), a developer-friendly Bittensor town square. Start with [#development](https://discord.com/channels/799672011265015819/799678806159392768) and [#bounties](https://discord.com/channels/799672011265015819/1095684873810890883) to see what issues are currently posted. For a greater understanding of Bittensor's usage and development, check the [Bittensor Documentation](https://docs.bittensor.com).
+If you're looking to contribute to Bittensor but unsure where to start, please join our community [discord](https://discord.gg/bittensor), a developer-friendly Bittensor town square. You can also browse through the GitHub [issues](https://github.com/opentensor/bittensor/issues) to see where help might be needed. For a greater understanding of Bittensor's usage and development, check the [Bittensor Documentation](https://docs.learnbittensor.org).
 
 #### Pull Request Philosophy
 
@@ -125,7 +122,7 @@ Please follow these steps to have your contribution considered by the maintainer
 
 *Before* creating the PR:
 1. Read the [development workflow](./DEVELOPMENT_WORKFLOW.md) defined for this repository to understand our workflow.
-2. Ensure your PR meets the criteria stated in the 'Pull Request Philosophy' section.
+2. Ensure your PR meets the criteria stated in the [Pull Request Philosophy](#pull-request-philosophy) section.
 3. Include relevant tests for any fixed bugs or new features as stated in the [testing guide](./TESTING.md).
 4. Follow all instructions in [the template](../.github/pull_request_template.md) to create the PR.
 5. Ensure your commit messages are clear and concise. Include the issue number if applicable.
@@ -163,7 +160,7 @@ git push origin <your-branch-name>
 #### Testing
 Before making a PR for any code changes, please write adequate testing with unittest and/or pytest if it is warranted.  This is **mandatory** for new features and enhancements. See the [testing guide](./TESTING.md) for more complete information. 
 
-You may also like to view the [/tests](https://github.com/opentensor/bittensor/tree/master/tests) for starter examples.
+You may also like to view the [/tests](../tests) for starter examples.
 
 Here is a quick summary:
 - **Running Tests**: Use `pytest` from the root directory of the Bittensor repository to run all tests. To run a specific test file or a specific test within a file, specify it directly (e.g., `pytest tests/test_wallet.py::test_create_new_coldkey`).
@@ -224,7 +221,7 @@ Reviewers should include the commit(s) they have reviewed in their comments. Thi
 
 A pull request that changes consensus-critical code is considerably more involved than a pull request that adds a feature to the wallet, for example. Such patches must be reviewed and thoroughly tested by several reviewers who are knowledgeable about the changed subsystems. Where new features are proposed, it is helpful for reviewers to try out the patch set on a test network and indicate that they have done so in their review. Project maintainers will take this into consideration when merging changes.
 
-For a more detailed description of the review process, see the [Code Review Guidelines](CODE_REVIEW_DOCS.md).
+For a more detailed description of the review process, see the [Code Review Guidelines](./CODE_REVIEW_DOCS.md).
 
 ### Reporting Bugs
 
@@ -237,8 +234,8 @@ When you are creating a bug report, please [include as many details as possible]
 #### Before Submitting A Bug Report
 
 * **Check the [debugging guide](./DEBUGGING.md).** You might be able to find the cause of the problem and fix things yourself. Most importantly, check if you can reproduce the problem in the latest version of Bittensor by updating to the latest Master branch changes.
-* **Check the [Discord Server](https://discord.gg/7wvFuPJZgq)** and ask in [#finney-issues](https://discord.com/channels/799672011265015819/1064247007688007800) or [#subnet-1-issues](https://discord.com/channels/799672011265015819/1096187495667998790).
-* **Determine which repository the problem should be reported in**: if it has to do with your ML model, then it's likely [Bittensor](https://github.com/opentensor/bittensor). If you are having problems with your emissions or Blockchain, then it is in [subtensor](https://github.com/opentensor/subtensor) 
+* **Check the [Discord Server](https://discord.gg/bittensor)** and ask in [#general](https://discord.com/channels/799672011265015819/799672011814862902).
+* **Determine which repository the problem should be reported in**: if it has to do with your ML model, then it's likely [Bittensor](https://github.com/opentensor/bittensor). If you are having problems with your emissions or Blockchain, then it is in [subtensor](https://github.com/opentensor/subtensor).
 
 #### How Do I Submit A (Good) Bug Report?
 
@@ -248,11 +245,11 @@ Explain the problem and include additional details to help maintainers reproduce
 
 * **Use a clear and descriptive title** for the issue to identify the problem.
 * **Describe the exact steps which reproduce the problem** in as many details as possible. For example, start by explaining how you started Bittensor, e.g. which command exactly you used in the terminal, or how you started Bittensor otherwise. When listing steps, **don't just say what you did, but explain how you did it**. For example, if you ran Bittensor with a set of custom configs, explain if you used a config file or command line arguments. 
-* **Provide specific examples to demonstrate the steps**. Include links to files or GitHub projects, or copy/pasteable snippets, which you use in those examples. If you're providing snippets in the issue, use [Markdown code blocks](https://help.github.com/articles/markdown-basics/#multiple-lines).
+* **Provide specific examples to demonstrate the steps**. Include links to files or GitHub projects, or copy/pasteable snippets, which you use in those examples. If you're providing snippets in the issue, use [Markdown code blocks](https://docs.github.com/get-started/writing-on-github/working-with-advanced-formatting/creating-and-highlighting-code-blocks).
 * **Describe the behavior you observed after following the steps** and point out what exactly is the problem with that behavior.
 * **Explain which behavior you expected to see instead and why.**
-* **Include screenshots and animated GIFs** which show you following the described steps and clearly demonstrate the problem. You can use [this tool](https://www.cockos.com/licecap/) to record GIFs on macOS and Windows, and [this tool](https://github.com/colinkeenan/silentcast) or [this tool](https://github.com/GNOME/byzanz) on Linux.
-* **If you're reporting that Bittensor crashed**, include a crash report with a stack trace from the operating system. On macOS, the crash report will be available in `Console.app` under "Diagnostic and usage information" > "User diagnostic reports". Include the crash report in the issue in a [code block](https://help.github.com/articles/markdown-basics/#multiple-lines), a [file attachment](https://docs.github.com/articles/file-attachments-on-issues-and-pull-requests/), or put it in a [gist](https://gist.github.com/) and provide link to that gist.
+* **Include screenshots and animated GIFs** which show you following the described steps and clearly demonstrate the problem. You can use [Licecap](https://www.cockos.com/licecap/) to record GIFs on macOS and Windows, and [Silentcast](https://github.com/colinkeenan/silentcast) or [byzanz-record](https://manpages.ubuntu.com/manpages/questing/en/man1/byzanz-record.1.html) on Linux.
+* **If you're reporting that Bittensor crashed**, include a crash report with a stack trace from the operating system. On macOS, the crash report will be available in `Console.app` under "Diagnostic and usage information" > "User diagnostic reports". Include the crash report in the issue in a [code block](https://docs.github.com/get-started/writing-on-github/working-with-advanced-formatting/creating-and-highlighting-code-blocks), a [file attachment](https://docs.github.com/articles/file-attachments-on-issues-and-pull-requests/), or put it in a [gist](https://gist.github.com/) and provide link to that gist.
 * **If the problem is related to performance or memory**, include a CPU profile capture with your report, if you're using a GPU then include a GPU profile capture as well. Look into the [PyTorch Profiler](https://pytorch.org/tutorials/recipes/recipes/profiler_recipe.html) to look at memory usage of your model.
 * **If the problem wasn't triggered by a specific action**, describe what you were doing before the problem happened and share more information using the guidelines below.
 
@@ -264,12 +261,12 @@ Provide more context by answering these questions:
 
 Include details about your configuration and environment:
 
-* **Which version of Bittensor are you using?** You can get the version by checking for `__version__` in [`bittensor/bittensor/__init.py`](https://github.com/opentensor/bittensor/blob/master/bittensor/__init__.py#L30). This is not sufficient. Also add the commit hash of the branch you are on.
-* **What commit hash are you on?** You can get the exact commit hash by checking `git log` and pasting the full commit hash.
+* **Which version of Bittensor are you using?** You can get the version of the Bittensor SDK by executing the `python3 -m bittensor` command.
+* **What commit hash are you on?** You can get the exact commit hash by executing `git rev-parse HEAD` and pasting the full commit hash.
 * **What's the name and version of the OS you're using**?
 * **Are you running Bittensor in a virtual machine?** If so, which VM software are you using and which operating systems and versions are used for the host and the guest?
 * **Are you running Bittensor in a dockerized container?** If so, have you made sure that your docker container contains your latest changes and is up to date with Master branch?
-* **Are you using [local configuration files](https://opentensor.github.io/getting-started/configuration.html)** `config.yaml` to customize your Bittensor experiment? If so, provide the contents of that config file, preferably in a [code block](https://help.github.com/articles/markdown-basics/#multiple-lines) or with a link to a [gist](https://gist.github.com/).
+* **Are you using [local configuration files](https://docs.learnbittensor.org/getting-started/install-btcli#configuration)** `config.yml` to customize your Bittensor experiment? If so, provide the contents of that config file, preferably in a [code block](https://docs.github.com/get-started/writing-on-github/working-with-advanced-formatting/creating-and-highlighting-code-blocks) or with a link to a [gist](https://gist.github.com/).
 
 ### Suggesting Enhancements and Features
 
@@ -279,21 +276,21 @@ When you are creating an enhancement suggestion, please [include as many details
 
 #### Before Submitting An Enhancement Suggestion
 
-* **Check the [debugging guide](./DEBUGGING.md).** for tips — you might discover that the enhancement is already available. Most importantly, check if you're using the latest version of Bittensor by pulling the latest changes from the Master branch and if you can get the desired behavior by changing [Bittensor's config settings](https://opentensor.github.io/getting-started/configuration.html).
-* **Determine which repository the problem should be reported in: if it has to do with your ML model, then it's likely [Bittensor](https://github.com/opentensor/bittensor). If you are having problems with your emissions or Blockchain, then it is in [subtensor](https://github.com/opentensor/subtensor) 
+* **Check the [debugging guide](./DEBUGGING.md).** for tips — you might discover that the enhancement is already available. Most importantly, check if you're using the latest version of Bittensor by pulling the latest changes from the Master branch and if you can get the desired behavior by changing [Bittensor's config settings](https://docs.learnbittensor.org/getting-started/install-btcli#configuration).
+* **Determine which repository the problem should be reported in**: if it has to do with your ML model, then it's likely [Bittensor](https://github.com/opentensor/bittensor). If you are having problems with your emissions or Blockchain, then it is in [subtensor](https://github.com/opentensor/subtensor) 
 
 #### How To Submit A (Good) Feature Suggestion
 
-Enhancement suggestions are tracked as [GitHub issues](https://guides.github.com/features/issues/). After you've determined which repository ([Bittensor](https://github.com/opentensor/bittensor) or [subtensor](https://github.com/opentensor/subtensor))  your enhancement suggestion is related to, create an issue on that repository and provide the following information:
+Enhancement suggestions are tracked as [GitHub issues](https://guides.github.com/features/issues/). After you've determined which repository ([Bittensor](https://github.com/opentensor/bittensor) or [subtensor](https://github.com/opentensor/subtensor)) your enhancement suggestion is related to, create an issue on that repository and provide the following information:
 
 * **Use a clear and descriptive title** for the issue to identify the problem.
 * **Provide a step-by-step description of the suggested enhancement** in as many details as possible.
-* **Provide specific examples to demonstrate the steps**. Include copy/pasteable snippets which you use in those examples, as [Markdown code blocks](https://help.github.com/articles/markdown-basics/#multiple-lines).
+* **Provide specific examples to demonstrate the steps**. Include copy/pasteable snippets which you use in those examples, as [Markdown code blocks](https://docs.github.com/get-started/writing-on-github/working-with-advanced-formatting/creating-and-highlighting-code-blocks).
 * **Describe the current behavior** and **explain which behavior you expected to see instead** and why.
-* **Include screenshots and animated GIFs** which help you demonstrate the steps or point out the part of Bittensor which the suggestion is related to. You can use [this tool](https://www.cockos.com/licecap/) to record GIFs on macOS and Windows, and [this tool](https://github.com/colinkeenan/silentcast) or [this tool](https://github.com/GNOME/byzanz) on Linux.
+* **Include screenshots and animated GIFs** which show you following the described steps and clearly demonstrate the problem. You can use [Licecap](https://www.cockos.com/licecap/) to record GIFs on macOS and Windows, and [Silentcast](https://github.com/colinkeenan/silentcast) or [byzanz-record](https://manpages.ubuntu.com/manpages/questing/en/man1/byzanz-record.1.html) on Linux.
 * **Explain why this enhancement would be useful** to most Bittensor users.
 * **List some other text editors or applications where this enhancement exists.**
-* **Specify which version of Bittensor are you using?** You can get the exact version by checking for `__version__` in [`bittensor/bittensor/__init.py`](https://github.com/opentensor/bittensor/blob/master/bittensor/__init__.py#L30).
+* **Specify which version of Bittensor are you using?** You can get the version of the Bittensor SDK by executing the `python3 -m bittensor` command.
 * **Specify the name and version of the OS you're using.**
 
 Thank you for considering contributing to Bittensor! Any help is greatly appreciated along this journey to incentivize open and permissionless intelligence.
