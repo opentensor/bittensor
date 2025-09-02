@@ -1766,7 +1766,7 @@ class AsyncSubtensor(SubtensorMixin):
             result[hotkey_ss58_address] = commitment_message
         return result
 
-    # TODO: deprecated in SDKv10
+    # TODO: remove in SDKv10
     async def get_current_weight_commit_info(
         self,
         netuid: int,
@@ -1807,7 +1807,7 @@ class AsyncSubtensor(SubtensorMixin):
         commits = result.records[0][1] if result.records else []
         return [WeightCommitInfo.from_vec_u8(commit) for commit in commits]
 
-    # TODO: deprecated in SDKv10
+    # TODO: remove in SDKv10
     async def get_current_weight_commit_info_v2(
         self,
         netuid: int,
