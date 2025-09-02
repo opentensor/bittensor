@@ -7,7 +7,7 @@ ruff format .
 echo ">>> Run the pre-submit format check with \`mypy\`."
 
 # mypy checks python versions compatibility
-versions=("3.9" "3.10" "3.11")
+versions=("3.10" "3.11", "3.12", "3.13")
 for version in "${versions[@]}"; do
     echo "Running mypy for Python $version..."
     mypy --ignore-missing-imports bittensor/ --python-version="$version"
