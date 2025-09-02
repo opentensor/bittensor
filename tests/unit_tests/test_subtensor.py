@@ -3153,7 +3153,7 @@ def test_set_weights_with_commit_reveal_enabled(subtensor, fake_wallet, mocker):
         subtensor, "commit_reveal_enabled", return_value=True
     )
     mocked_commit_reveal_v3_extrinsic = mocker.patch.object(
-        subtensor_module, "commit_reveal_v3_extrinsic"
+        subtensor_module, "commit_reveal_extrinsic"
     )
     mocked_commit_reveal_v3_extrinsic.return_value = (
         True,
