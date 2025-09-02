@@ -17,7 +17,7 @@ from tests.e2e_tests.utils.chain_interactions import (
 
 
 @pytest.mark.asyncio
-async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wallet):
+async def test_commit_and_reveal_weights_legacy(subtensor, alice_wallet):
     """
     Tests the commit/reveal weights mechanism with subprocess disabled (CR1.0)
 
@@ -45,11 +45,11 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
 
     # Enable commit_reveal on the subnet
     assert sudo_set_hyperparameter_bool(
-        local_chain,
-        alice_wallet,
-        "sudo_set_commit_reveal_weights_enabled",
-        True,
-        netuid,
+        substrate=subtensor.substrate,
+        wallet=alice_wallet,
+        call_function="sudo_set_commit_reveal_weights_enabled",
+        value=True,
+        netuid=netuid,
     ), "Unable to enable commit reveal on the subnet"
 
     assert subtensor.subnets.commit_reveal_enabled(netuid), (
@@ -67,8 +67,8 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
 
     # Lower the rate limit
     status, error = sudo_set_admin_utils(
-        local_chain,
-        alice_wallet,
+        substrate=subtensor.substrate,
+        wallet=alice_wallet,
         call_function="sudo_set_weights_set_rate_limit",
         call_params={"netuid": netuid, "weights_set_rate_limit": "0"},
     )
@@ -84,8 +84,8 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
 
     # Increase subnet tempo so we have enough time to commit and reveal weights
     sudo_set_admin_utils(
-        local_chain,
-        alice_wallet,
+        substrate=subtensor.substrate,
+        wallet=alice_wallet,
         call_function="sudo_set_tempo",
         call_params={
             "netuid": netuid,
@@ -322,7 +322,7 @@ def get_weights_and_salt(counter: int):
 
 
 @pytest.mark.asyncio
-async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wallet):
+async def test_commit_weights_uses_next_nonce(subtensor, alice_wallet):
     """
     Tests that committing weights doesn't re-use nonce in the transaction pool.
 
@@ -354,8 +354,8 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
 
     # weights sensitive to epoch changes
     assert sudo_set_admin_utils(
-        local_chain,
-        alice_wallet,
+        substrate=subtensor.substrate,
+        wallet=alice_wallet,
         call_function="sudo_set_tempo",
         call_params={
             "netuid": netuid,
@@ -365,11 +365,11 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
 
     # Enable commit_reveal on the subnet
     assert sudo_set_hyperparameter_bool(
-        local_chain,
-        alice_wallet,
-        "sudo_set_commit_reveal_weights_enabled",
-        True,
-        netuid,
+        substrate=subtensor.substrate,
+        wallet=alice_wallet,
+        call_function="sudo_set_commit_reveal_weights_enabled",
+        value=True,
+        netuid=netuid,
     ), "Unable to enable commit reveal on the subnet"
 
     assert subtensor.commitments.commit_reveal_enabled(netuid), (
@@ -387,8 +387,8 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
 
     # Lower the rate limit
     status, error = sudo_set_admin_utils(
-        local_chain,
-        alice_wallet,
+        substrate=subtensor.substrate,
+        wallet=alice_wallet,
         call_function="sudo_set_weights_set_rate_limit",
         call_params={"netuid": netuid, "weights_set_rate_limit": "0"},
     )

@@ -7,6 +7,8 @@ from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
     async_wait_interval,
+    async_sudo_set_admin_utils,
+    async_sudo_set_hyperparameter_bool,
     sudo_set_admin_utils,
     sudo_set_hyperparameter_bool,
     wait_interval,
@@ -233,7 +235,7 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
 
 @pytest.mark.asyncio
 async def test_commit_and_reveal_weights_cr4_async(
-    local_chain, async_subtensor, alice_wallet
+    async_subtensor, alice_wallet, local_chain
 ):
     """
     Tests the commit/reveal weights mechanism (CR3)
@@ -257,7 +259,7 @@ async def test_commit_and_reveal_weights_cr4_async(
             (0.25, 100) if await async_subtensor.chain.is_fast_blocks() else (12.0, 20)
         )
 
-        logging.console.info(f"Using block time: {BLOCK_TIME}")
+        logging.console.info(f"Using block time: {BLOCK_TIME} seconds.")
 
         alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
 
@@ -274,8 +276,8 @@ async def test_commit_and_reveal_weights_cr4_async(
         logging.console.success(f"SN #{alice_subnet_netuid} is registered.")
 
         # Enable commit_reveal on the subnet
-        assert sudo_set_hyperparameter_bool(
-            substrate=local_chain,
+        assert await async_sudo_set_hyperparameter_bool(
+            substrate=async_subtensor.substrate,
             wallet=alice_wallet,
             call_function="sudo_set_commit_reveal_weights_enabled",
             value=True,
@@ -370,8 +372,6 @@ async def test_commit_and_reveal_weights_cr4_async(
             f"Post first wait_interval (to ensure window isn't too low): {current_block}, next tempo: {upcoming_tempo}, drand: {latest_drand_round}"
         )
 
-        # commit_block is the block when weights were committed on the chain (transaction block)
-        expected_commit_block = await async_subtensor.block + 1
         # Commit weights
         success, message = await async_subtensor.extrinsics.set_weights(
             wallet=alice_wallet,
