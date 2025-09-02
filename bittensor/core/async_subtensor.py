@@ -2,7 +2,6 @@ import asyncio
 import copy
 import ssl
 from datetime import datetime, timezone
-from functools import partial
 from typing import cast, Optional, Any, Union, Iterable, TYPE_CHECKING
 
 import asyncstdlib as a
@@ -46,6 +45,12 @@ from bittensor.core.extrinsics.asyncex.children import (
     set_children_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.commit_reveal import commit_reveal_v3_extrinsic
+from bittensor.core.extrinsics.asyncex.liquidity import (
+    add_liquidity_extrinsic,
+    modify_liquidity_extrinsic,
+    remove_liquidity_extrinsic,
+    toggle_user_liquidity_extrinsic,
+)
 from bittensor.core.extrinsics.asyncex.move_stake import (
     transfer_stake_extrinsic,
     swap_stake_extrinsic,
@@ -100,18 +105,12 @@ from bittensor.utils import (
     u64_normalized_float,
     get_transfer_fn_params,
 )
-from bittensor.core.extrinsics.asyncex.liquidity import (
-    add_liquidity_extrinsic,
-    modify_liquidity_extrinsic,
-    remove_liquidity_extrinsic,
-    toggle_user_liquidity_extrinsic,
-)
+from bittensor.utils import deprecated_message
 from bittensor.utils.balance import (
     Balance,
     fixed_to_float,
     check_and_convert_to_balance,
 )
-from bittensor.utils import deprecated_message
 from bittensor.utils.btlogging import logging
 from bittensor.utils.liquidity import (
     calculate_fees,
@@ -821,7 +820,6 @@ class AsyncSubtensor(SubtensorMixin):
             self.get_subnet_prices(block_hash=block_hash),
             return_exceptions=True,
         )
-
         decoded = query.decode()
 
         if not isinstance(subnet_prices, (SubstrateRequestException, ValueError)):
@@ -2579,24 +2577,27 @@ class AsyncSubtensor(SubtensorMixin):
             Balance: The stake under the coldkey - hotkey pairing.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        sub_query = partial(
-            self.query_subtensor,
+
+        alpha_shares = await self.query_subtensor(
+            name="Alpha",
+            block=block,
             block_hash=block_hash,
             reuse_block=reuse_block,
+            params=[hotkey_ss58, coldkey_ss58, netuid],
         )
-        alpha_shares, hotkey_alpha_result, hotkey_shares = await asyncio.gather(
-            sub_query(
-                name="Alpha",
-                params=[hotkey_ss58, coldkey_ss58, netuid],
-            ),
-            sub_query(
-                name="TotalHotkeyAlpha",
-                params=[hotkey_ss58, netuid],
-            ),
-            sub_query(
-                name="TotalHotkeyShares",
-                params=[hotkey_ss58, netuid],
-            ),
+        hotkey_alpha_result = await self.query_subtensor(
+            name="TotalHotkeyAlpha",
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+            params=[hotkey_ss58, netuid],
+        )
+        hotkey_shares = await self.query_subtensor(
+            name="TotalHotkeyShares",
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+            params=[hotkey_ss58, netuid],
         )
 
         hotkey_alpha: int = getattr(hotkey_alpha_result, "value", 0)
@@ -4569,6 +4570,7 @@ class AsyncSubtensor(SubtensorMixin):
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                     period=period,
+                    raise_error=True,
                 )
                 if success:
                     break
@@ -4896,6 +4898,7 @@ class AsyncSubtensor(SubtensorMixin):
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                     period=period,
+                    raise_error=True,
                 )
                 if success:
                     break

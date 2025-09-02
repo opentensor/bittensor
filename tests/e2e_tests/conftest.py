@@ -9,6 +9,7 @@ import threading
 import time
 
 import pytest
+import pytest_asyncio
 from async_substrate_interface import SubstrateInterface
 
 from bittensor.core.subtensor_api import SubtensorApi
@@ -266,14 +267,24 @@ def templates():
 
 @pytest.fixture
 def subtensor(local_chain):
-    return SubtensorApi(network="ws://localhost:9944", legacy_methods=True)
+    return SubtensorApi(network="ws://localhost:9944", legacy_methods=False)
 
 
-@pytest.fixture
-def async_subtensor(local_chain):
-    return SubtensorApi(
-        network="ws://localhost:9944", legacy_methods=True, async_subtensor=True
-    )
+# @pytest.fixture
+# def async_subtensor(local_chain):
+#     a_sub = SubtensorApi(
+#         network="ws://localhost:9944", legacy_methods=False, async_subtensor=True
+#     )
+#     a_sub.initialize()
+#     return a_sub
+
+
+@pytest_asyncio.fixture
+async def async_subtensor(local_chain):
+    async with SubtensorApi(
+        network="ws://localhost:9944", legacy_methods=False, async_subtensor=True
+    ) as a_sub:
+        return a_sub
 
 
 @pytest.fixture

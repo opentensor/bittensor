@@ -7,6 +7,8 @@ from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
     async_wait_interval,
+    async_sudo_set_admin_utils,
+    async_sudo_set_hyperparameter_bool,
     sudo_set_admin_utils,
     sudo_set_hyperparameter_bool,
     wait_interval,
@@ -48,7 +50,7 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
     )
 
     # Verify subnet 2 created successfully
-    assert subtensor.subnet_exists(alice_subnet_netuid), (
+    assert subtensor.subnets.subnet_exists(alice_subnet_netuid), (
         f"SN #{alice_subnet_netuid} wasn't created successfully"
     )
 
@@ -92,7 +94,7 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
         ).weights_rate_limit
         == 0
     ), "Failed to set weights_rate_limit"
-    assert subtensor.weights_rate_limit(netuid=alice_subnet_netuid) == 0
+    assert subtensor.subnets.weights_rate_limit(netuid=alice_subnet_netuid) == 0
     logging.console.success("sudo_set_weights_set_rate_limit executed: set to 0")
 
     # Change the tempo of the subnet
@@ -183,7 +185,7 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
     assert expected_commit_block in [commit_block - 1, commit_block, commit_block + 1]
 
     # Ensure no weights are available as of now
-    assert subtensor.weights(netuid=alice_subnet_netuid) == []
+    assert subtensor.subnets.weights(netuid=alice_subnet_netuid) == []
     logging.console.success("No weights are available before next epoch.")
 
     # 5 is safety drand offset
@@ -232,8 +234,8 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
 
 
 @pytest.mark.asyncio
-async def test_async_commit_and_reveal_weights_cr4(
-    local_chain, async_subtensor, alice_wallet
+async def test_commit_and_reveal_weights_cr4_async(
+    async_subtensor, alice_wallet, local_chain
 ):
     """
     Tests the commit/reveal weights mechanism (CR3)
@@ -257,7 +259,7 @@ async def test_async_commit_and_reveal_weights_cr4(
             (0.25, 100) if await async_subtensor.chain.is_fast_blocks() else (12.0, 20)
         )
 
-        logging.console.info(f"Using block time: {BLOCK_TIME}")
+        logging.console.info(f"Using block time: {BLOCK_TIME} seconds.")
 
         alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
 
@@ -267,15 +269,15 @@ async def test_async_commit_and_reveal_weights_cr4(
         )
 
         # Verify subnet 2 created successfully
-        assert await async_subtensor.subnet_exists(alice_subnet_netuid), (
+        assert await async_subtensor.subnets.subnet_exists(alice_subnet_netuid), (
             f"SN #{alice_subnet_netuid} wasn't created successfully"
         )
 
         logging.console.success(f"SN #{alice_subnet_netuid} is registered.")
 
         # Enable commit_reveal on the subnet
-        assert sudo_set_hyperparameter_bool(
-            substrate=local_chain,
+        assert await async_sudo_set_hyperparameter_bool(
+            substrate=async_subtensor.substrate,
             wallet=alice_wallet,
             call_function="sudo_set_commit_reveal_weights_enabled",
             value=True,
@@ -310,7 +312,10 @@ async def test_async_commit_and_reveal_weights_cr4(
                 netuid=alice_subnet_netuid
             )
         ).weights_rate_limit == 0, "Failed to set weights_rate_limit"
-        assert await async_subtensor.weights_rate_limit(netuid=alice_subnet_netuid) == 0
+        assert (
+            await async_subtensor.subnets.weights_rate_limit(netuid=alice_subnet_netuid)
+            == 0
+        )
         logging.console.success("sudo_set_weights_set_rate_limit executed: set to 0")
 
         # Change the tempo of the subnet
@@ -367,8 +372,6 @@ async def test_async_commit_and_reveal_weights_cr4(
             f"Post first wait_interval (to ensure window isn't too low): {current_block}, next tempo: {upcoming_tempo}, drand: {latest_drand_round}"
         )
 
-        # commit_block is the block when weights were committed on the chain (transaction block)
-        expected_commit_block = await async_subtensor.block + 1
         # Commit weights
         success, message = await async_subtensor.extrinsics.set_weights(
             wallet=alice_wallet,
@@ -407,7 +410,7 @@ async def test_async_commit_and_reveal_weights_cr4(
         # assert expected_commit_block in [commit_block - 1, commit_block, commit_block + 1]
 
         # Ensure no weights are available as of now
-        assert await async_subtensor.weights(netuid=alice_subnet_netuid) == []
+        assert await async_subtensor.subnets.weights(netuid=alice_subnet_netuid) == []
         logging.console.success("No weights are available before next epoch.")
 
         # 5 is safety drand offset

@@ -1,0 +1,69 @@
+name: Run Single E2E Test with multiple Python versions
+
+on:
+  workflow_call:
+    inputs:
+      nodeid:
+        required: true
+        type: string
+      image-name:
+        required: true
+        type: string
+
+jobs:
+  run-e2e:
+    name: "${{ matrix.python-version }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - name: Check-out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --extra dev --dev
+
+      - name: Download Cached Docker Image
+        uses: actions/download-artifact@v4
+        with:
+          name: subtensor-localnet
+
+      - name: Load Docker Image
+        run: docker load -i subtensor-localnet.tar
+
+      - name: Run test with retry
+        env:
+          PY_VERSION: ${{ matrix.python-version }}
+          LOCALNET_IMAGE_NAME: ${{ inputs.image-name }}
+        run: |
+          for i in 1 2 3; do
+            echo "::group::🔁 Test attempt $i"
+            if uv run pytest "${{ inputs.nodeid }}" -s; then
+              echo "✅ Tests passed on attempt $i"
+              echo "::endgroup::"
+              exit 0
+            else
+              echo "❌ Tests failed on attempt $i"
+              echo "::endgroup::"
+              if [ "$i" -lt 3 ]; then
+                echo "Retrying..."
+                sleep 5
+              fi
+            fi
+
+          done
+          echo "Tests failed after 3 attempts"
+          exit 1
