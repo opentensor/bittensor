@@ -181,7 +181,7 @@ def test_commit_reveal_v3_extrinsic_success_with_torch(
     )
 
     # Call
-    success, message = commit_reveal.commit_reveal_v3_extrinsic(
+    success, message = commit_reveal.commit_reveal_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
         netuid=fake_netuid,
@@ -249,7 +249,7 @@ def test_commit_reveal_v3_extrinsic_success_with_numpy(
     )
 
     # Call
-    success, message = commit_reveal.commit_reveal_v3_extrinsic(
+    success, message = commit_reveal.commit_reveal_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
         netuid=fake_netuid,
@@ -300,7 +300,7 @@ def test_commit_reveal_v3_extrinsic_response_false(
     )
 
     # Call
-    success, message = commit_reveal.commit_reveal_v3_extrinsic(
+    success, message = commit_reveal.commit_reveal_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
         netuid=fake_netuid,
@@ -339,7 +339,7 @@ def test_commit_reveal_v3_extrinsic_exception(mocker, subtensor, fake_wallet):
     )
 
     # Call
-    success, message = commit_reveal.commit_reveal_v3_extrinsic(
+    success, message = commit_reveal.commit_reveal_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
         netuid=fake_netuid,
