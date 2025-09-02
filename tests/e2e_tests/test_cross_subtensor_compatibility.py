@@ -4,7 +4,7 @@ import pytest
 
 
 @pytest.mark.asyncio
-async def test_get_timestamp(subtensor, async_subtensor, local_chain):
+async def test_get_timestamp(subtensor, async_subtensor):
     with subtensor:
         block_number = subtensor.chain.get_current_block()
         assert isinstance(
