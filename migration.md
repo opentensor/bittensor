@@ -105,6 +105,7 @@ rename this variable in documentation.
 
 12. Find and process all `TODOs` across the entire code base. If in doubt, discuss each one with the team separately. SDK has 29 TODOs.
 
+
 ## New features
 1. Add `bittensor.utils.hex_to_ss58` function. SDK still doesn't have it. (Probably inner import `from scalecodec import ss58_encode, ss58_decode`) 
 2. Implement Crowdloan logic.
@@ -143,4 +144,4 @@ It must include:
 
 # Migration guide
 
-_Step-by-step explanation of breaking changes ..._
+-[x] The SDK is dropping support for `Python 3.9` starting with this release.
