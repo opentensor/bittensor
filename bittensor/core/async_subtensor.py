@@ -44,7 +44,7 @@ from bittensor.core.extrinsics.asyncex.children import (
     root_set_pending_childkey_cooldown_extrinsic,
     set_children_extrinsic,
 )
-from bittensor.core.extrinsics.asyncex.commit_reveal import commit_reveal_v3_extrinsic
+from bittensor.core.extrinsics.asyncex.commit_reveal import commit_reveal_extrinsic
 from bittensor.core.extrinsics.asyncex.liquidity import (
     add_liquidity_extrinsic,
     modify_liquidity_extrinsic,
@@ -5283,7 +5283,7 @@ class AsyncSubtensor(SubtensorMixin):
                 logging.info(
                     f"Committing weights for subnet #{netuid}. Attempt {retries + 1} of {max_retries}."
                 )
-                success, message = await commit_reveal_v3_extrinsic(
+                success, message = await commit_reveal_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,

@@ -43,7 +43,7 @@ from bittensor.core.extrinsics.children import (
     set_children_extrinsic,
     root_set_pending_childkey_cooldown_extrinsic,
 )
-from bittensor.core.extrinsics.commit_reveal import commit_reveal_v3_extrinsic
+from bittensor.core.extrinsics.commit_reveal import commit_reveal_extrinsic
 from bittensor.core.extrinsics.commit_weights import (
     commit_weights_extrinsic,
     reveal_weights_extrinsic,
@@ -4088,7 +4088,7 @@ class Subtensor(SubtensorMixin):
                     f"Committing weights for subnet [blue]{netuid}[/blue]. "
                     f"Attempt [blue]{retries + 1}[blue] of [green]{max_retries}[/green]."
                 )
-                success, message = commit_reveal_v3_extrinsic(
+                success, message = commit_reveal_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,

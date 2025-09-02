@@ -16,65 +16,7 @@ if TYPE_CHECKING:
     from bittensor.utils.registration import torch
 
 
-# TODO: Merge this logic with `commit_reveal_extrinsic` in SDKv10 bc this is not CRv3 anymore.
-def _do_commit_reveal_v3(
-    subtensor: "Subtensor",
-    wallet: "Wallet",
-    netuid: int,
-    commit: bytes,
-    reveal_round: int,
-    commit_reveal_version: int = 4,
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = False,
-    period: Optional[int] = None,
-) -> tuple[bool, str]:
-    """
-    Executes commit-reveal extrinsic for a given netuid, commit, reveal_round, and commit_reveal_version.
-
-    Arguments:
-        subtensor: An instance of the Subtensor class.
-        wallet: Wallet An instance of the Wallet class containing the user's keypair.
-        netuid: int The network unique identifier.
-        commit: bytes The commit data in bytes format.
-        reveal_round: int The round number for the reveal phase.
-        commit_reveal_version: The version of the chain commit-reveal protocol to use. Default is ``4``.
-        wait_for_inclusion: bool, optional Flag indicating whether to wait for the extrinsic to be included in a block.
-        wait_for_finalization: bool, optional Flag indicating whether to wait for the extrinsic to be finalized.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
-
-    Returns:
-        A tuple where the first element is a boolean indicating success or failure, and the second element is a string
-            containing an error message if any.
-    """
-    logging.info(
-        f"Committing weights hash [blue]{commit.hex()}[/blue] for subnet #[blue]{netuid}[/blue] with "
-        f"reveal round [blue]{reveal_round}[/blue]..."
-    )
-
-    call = subtensor.substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="commit_timelocked_weights",
-        call_params={
-            "netuid": netuid,
-            "commit": commit,
-            "reveal_round": reveal_round,
-            "commit_reveal_version": commit_reveal_version,
-        },
-    )
-    return subtensor.sign_and_send_extrinsic(
-        call=call,
-        wallet=wallet,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-        sign_with="hotkey",
-        period=period,
-    )
-
-
-# TODO: rename this extrinsic to `commit_reveal_extrinsic` in SDK.v10
-def commit_reveal_v3_extrinsic(
+def commit_reveal_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     netuid: int,
@@ -85,6 +27,7 @@ def commit_reveal_v3_extrinsic(
     wait_for_finalization: bool = False,
     block_time: Union[int, float] = 12.0,
     period: Optional[int] = None,
+    commit_reveal_version: int = 4,
 ) -> tuple[bool, str]:
     """
     Commits and reveals weights for a given subtensor and wallet with provided uids and weights.
@@ -102,6 +45,7 @@ def commit_reveal_v3_extrinsic(
         period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted.
             If the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
+        commit_reveal_version: The version of the chain commit-reveal protocol to use. Default is ``4``.
 
     Returns:
         tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure, and the second
@@ -130,14 +74,27 @@ def commit_reveal_v3_extrinsic(
             hotkey=wallet.hotkey.public_key,
         )
 
-        success, message = _do_commit_reveal_v3(
-            subtensor=subtensor,
+        logging.info(
+            f"Committing weights hash [blue]{commit_for_reveal.hex()}[/blue] for subnet #[blue]{netuid}[/blue] with "
+            f"reveal round [blue]{reveal_round}[/blue]..."
+        )
+
+        call = subtensor.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="commit_timelocked_weights",
+            call_params={
+                "netuid": netuid,
+                "commit": commit_for_reveal,
+                "reveal_round": reveal_round,
+                "commit_reveal_version": commit_reveal_version,
+            },
+        )
+        success, message = subtensor.sign_and_send_extrinsic(
+            call=call,
             wallet=wallet,
-            netuid=netuid,
-            commit=commit_for_reveal,
-            reveal_round=reveal_round,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            sign_with="hotkey",
             period=period,
         )
 
