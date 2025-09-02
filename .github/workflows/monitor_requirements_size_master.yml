@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: [3.10", "3.11", "3.12", "3.13"]
     outputs:
       py39: ${{ steps.set-output.outputs.py39 }}
       py310: ${{ steps.set-output.outputs.py310 }}
@@ -47,7 +47,6 @@ jobs:
           VERSION=${{ matrix.python-version }}
           echo "Detected size: $SIZE MB for Python $VERSION"
           case "$VERSION" in
-            3.9)  echo "py39=$SIZE" >> $GITHUB_OUTPUT ;;
             3.10) echo "py310=$SIZE" >> $GITHUB_OUTPUT ;;
             3.11) echo "py311=$SIZE" >> $GITHUB_OUTPUT ;;
             3.12) echo "py312=$SIZE" >> $GITHUB_OUTPUT ;;
@@ -64,7 +63,6 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const sizes = {
-              "3.9": "${{ needs.measure-venv.outputs.py39 || 'N/A' }}",
               "3.10": "${{ needs.measure-venv.outputs.py310 || 'N/A' }}",
               "3.11": "${{ needs.measure-venv.outputs.py311 || 'N/A' }}",
               "3.12": "${{ needs.measure-venv.outputs.py312 || 'N/A' }}",
