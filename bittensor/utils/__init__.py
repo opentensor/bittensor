@@ -5,7 +5,7 @@ import warnings
 from collections import namedtuple
 from typing import Any, Literal, Union, Optional, TYPE_CHECKING
 from urllib.parse import urlparse
-
+import inspect
 import scalecodec
 from async_substrate_interface.utils import (
     hex_to_bytes,
@@ -479,3 +479,8 @@ def get_transfer_fn_params(
         else:
             call_function = "transfer_allow_death"
     return call_function, call_params
+
+
+def get_function_name() -> str:
+    """Returns the name of the calling function."""
+    return inspect.currentframe().f_back.f_code.co_name
