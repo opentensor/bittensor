@@ -149,3 +149,4 @@ It must include:
 -[x] `._do_commit_reveal_v3` logic is included in the main code `.commit_reveal_v3_extrinsic`
 -[x] `.commit_reveal_v3_extrinsic` renamed to `.commit_reveal_extrinsic`
 -[x] `revecommit_reveal_version` parameter with default value `4` added to `revecommit_reveal_version`
+-[x] `._do_commit_weights` logic is included in the main code `.commit_weights_extrinsic`
