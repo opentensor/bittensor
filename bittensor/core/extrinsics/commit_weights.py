@@ -9,62 +9,6 @@ if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
 
 
-def _do_commit_weights(
-    subtensor: "Subtensor",
-    wallet: "Wallet",
-    netuid: int,
-    commit_hash: str,
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = False,
-    period: Optional[int] = None,
-    raise_error: bool = True,
-) -> tuple[bool, str]:
-    """
-    Internal method to send a transaction to the Bittensor blockchain, committing the hash of a neuron's weights.
-    This method constructs and submits the transaction, handling retries and blockchain communication.
-
-    Args:
-        subtensor (bittensor.core.subtensor.Subtensor): The subtensor instance used for blockchain interaction.
-        wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the weights.
-        netuid (int): The unique identifier of the subnet.
-        commit_hash (str): The hash of the neuron's weights to be committed.
-        wait_for_inclusion (bool): Waits for the transaction to be included in a block.
-        wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
-        raise_error: raises the relevant exception rather than returning `True` if unsuccessful.
-
-    Returns:
-        tuple[bool, str]:
-            `True` if the weight commitment is successful, `False` otherwise.
-            `msg` is a string value describing the success or potential error.
-
-    This method ensures that the weight commitment is securely recorded on the Bittensor blockchain, providing a
-        verifiable record of the neuron's weight distribution at a specific point in time.
-    """
-    call = subtensor.substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="commit_weights",
-        call_params={
-            "netuid": netuid,
-            "commit_hash": commit_hash,
-        },
-    )
-    return subtensor.sign_and_send_extrinsic(
-        call=call,
-        wallet=wallet,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-        use_nonce=True,
-        period=period,
-        sign_with="hotkey",
-        nonce_key="hotkey",
-        raise_error=raise_error,
-    )
-
-
-# TODO: deprecate in SDKv10
 def commit_weights_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
@@ -100,24 +44,33 @@ def commit_weights_extrinsic(
         error handling and user interaction when required.
     """
 
-    success, error_message = _do_commit_weights(
-        subtensor=subtensor,
+    call = subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="commit_weights",
+        call_params={
+            "netuid": netuid,
+            "commit_hash": commit_hash,
+        },
+    )
+    success, message = subtensor.sign_and_send_extrinsic(
+        call=call,
         wallet=wallet,
-        netuid=netuid,
-        commit_hash=commit_hash,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        use_nonce=True,
         period=period,
+        sign_with="hotkey",
+        nonce_key="hotkey",
         raise_error=raise_error,
     )
 
     if success:
-        success_message = "Successfully committed weights."
+        success_message = "✅ [green]Successfully committed weights.[green]"
         logging.info(success_message)
         return True, success_message
 
-    logging.error(f"Failed to commit weights: {error_message}")
-    return False, error_message
+    logging.error(f"Failed to commit weights: {message}")
+    return False, message
 
 
 def _do_reveal_weights(
