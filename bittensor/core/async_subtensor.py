@@ -45,6 +45,12 @@ from bittensor.core.extrinsics.asyncex.children import (
     set_children_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.commit_reveal import commit_reveal_v3_extrinsic
+from bittensor.core.extrinsics.asyncex.liquidity import (
+    add_liquidity_extrinsic,
+    modify_liquidity_extrinsic,
+    remove_liquidity_extrinsic,
+    toggle_user_liquidity_extrinsic,
+)
 from bittensor.core.extrinsics.asyncex.move_stake import (
     transfer_stake_extrinsic,
     swap_stake_extrinsic,
@@ -99,18 +105,12 @@ from bittensor.utils import (
     u64_normalized_float,
     get_transfer_fn_params,
 )
-from bittensor.core.extrinsics.asyncex.liquidity import (
-    add_liquidity_extrinsic,
-    modify_liquidity_extrinsic,
-    remove_liquidity_extrinsic,
-    toggle_user_liquidity_extrinsic,
-)
+from bittensor.utils import deprecated_message
 from bittensor.utils.balance import (
     Balance,
     fixed_to_float,
     check_and_convert_to_balance,
 )
-from bittensor.utils import deprecated_message
 from bittensor.utils.btlogging import logging
 from bittensor.utils.liquidity import (
     calculate_fees,
@@ -811,13 +811,15 @@ class AsyncSubtensor(SubtensorMixin):
         if not block_hash and reuse_block:
             block_hash = self.substrate.last_block_hash
 
-        query = await self.substrate.runtime_call(
-            api="SubnetInfoRuntimeApi",
-            method="get_all_dynamic_info",
-            block_hash=block_hash,
+        query, subnet_prices = await asyncio.gather(
+            self.substrate.runtime_call(
+                api="SubnetInfoRuntimeApi",
+                method="get_all_dynamic_info",
+                block_hash=block_hash,
+            ),
+            self.get_subnet_prices(block_hash=block_hash),
+            return_exceptions=True,
         )
-        subnet_prices = await self.get_subnet_prices(block_hash=block_hash)
-
         decoded = query.decode()
 
         if not isinstance(subnet_prices, (SubstrateRequestException, ValueError)):
@@ -3904,17 +3906,20 @@ class AsyncSubtensor(SubtensorMixin):
         if not block_hash and reuse_block:
             block_hash = self.substrate.last_block_hash
 
-        query = await self.substrate.runtime_call(
-            "SubnetInfoRuntimeApi",
-            "get_dynamic_info",
-            params=[netuid],
-            block_hash=block_hash,
-        )
-        price = await self.get_subnet_price(
-            netuid=netuid,
-            block=block,
-            block_hash=block_hash,
-            reuse_block=reuse_block,
+        query, price = await asyncio.gather(
+            self.substrate.runtime_call(
+                "SubnetInfoRuntimeApi",
+                "get_dynamic_info",
+                params=[netuid],
+                block_hash=block_hash,
+            ),
+            self.get_subnet_price(
+                netuid=netuid,
+                block=block,
+                block_hash=block_hash,
+                reuse_block=reuse_block,
+            ),
+            return_exceptions=True,
         )
 
         if isinstance(decoded := query.decode(), dict):
