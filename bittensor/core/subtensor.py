@@ -4479,7 +4479,7 @@ class Subtensor(SubtensorMixin):
     def transfer(
         self,
         wallet: "Wallet",
-        dest: str,
+        destination: str,
         amount: Optional[Balance],
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -4492,7 +4492,7 @@ class Subtensor(SubtensorMixin):
 
         Arguments:
             wallet (bittensor_wallet.Wallet): Source wallet for the transfer.
-            dest (str): Destination address for the transfer.
+            destination (str): Destination address for the transfer.
             amount (float): Amount of tao to transfer.
             transfer_all (bool): Flag to transfer all tokens. Default is ``False``.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.  Default is ``True``.
@@ -4511,7 +4511,7 @@ class Subtensor(SubtensorMixin):
         return transfer_extrinsic(
             subtensor=self,
             wallet=wallet,
-            dest=dest,
+            destination=destination,
             amount=amount,
             transfer_all=transfer_all,
             wait_for_inclusion=wait_for_inclusion,
