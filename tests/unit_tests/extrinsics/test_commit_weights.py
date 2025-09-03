@@ -1,6 +1,6 @@
 import pytest
 
-from bittensor.core.extrinsics.commit_weights import (
+from bittensor.core.extrinsics.weights import (
     commit_weights_extrinsic,
     reveal_weights_extrinsic,
 )
