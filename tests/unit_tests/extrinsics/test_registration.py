@@ -129,8 +129,9 @@ def test_register_extrinsic_with_pow(
         "bittensor.utils.registration.pow._solve_for_difficulty_fast_cuda",
         return_value=mock_pow_solution if pow_success else None,
     )
-    mocker.patch(
-        "bittensor.core.extrinsics.registration._do_pow_register",
+    mocker.patch.object(
+        mock_subtensor,
+        "sign_and_send_extrinsic",
         return_value=(registration_success, "HotKeyAlreadyRegisteredInSubNet"),
     )
     mocker.patch("torch.cuda.is_available", return_value=cuda)
