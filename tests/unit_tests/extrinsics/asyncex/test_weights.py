@@ -1,6 +1,7 @@
 import pytest
 from bittensor.core import async_subtensor
 from bittensor.core.extrinsics.asyncex import weights as async_weights
+from bittensor.core.settings import version_as_int
 
 
 @pytest.mark.asyncio
@@ -52,7 +53,7 @@ async def test_set_weights_extrinsic_success_with_finalization(
             "dests": mocker_converter_normalize.return_value[0],
             "weights": mocker_converter_normalize.return_value[1],
             "netuid": fake_netuid,
-            "version_key": 0,
+            "version_key": version_as_int,
         },
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
@@ -119,7 +120,7 @@ async def test_set_weights_extrinsic_no_waiting(subtensor, fake_wallet, mocker):
             "dests": mocker_converter_normalize.return_value[0],
             "weights": mocker_converter_normalize.return_value[1],
             "netuid": fake_netuid,
-            "version_key": 0,
+            "version_key": version_as_int,
         },
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
@@ -184,7 +185,7 @@ async def test_set_weights_extrinsic_failure(subtensor, fake_wallet, mocker):
             "dests": mocker_converter_normalize.return_value[0],
             "weights": mocker_converter_normalize.return_value[1],
             "netuid": fake_netuid,
-            "version_key": 0,
+            "version_key": version_as_int,
         },
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
