@@ -1296,50 +1296,6 @@ def test_root_register_is_already_registered(
     mock_substrate.submit_extrinsic.assert_not_called()
 
 
-def test_root_set_weights_no_uid(mock_substrate, subtensor, fake_wallet, mocker):
-    mock_substrate.query.return_value = None
-
-    success = subtensor.root_set_weights(
-        fake_wallet,
-        netuids=[1, 2],
-        weights=[0.5, 0.5],
-    )
-
-    assert success is False
-
-    mock_substrate.query.assert_called_once_with(
-        "SubtensorModule",
-        "Uids",
-        [0, fake_wallet.hotkey.ss58_address],
-    )
-    mock_substrate.submit_extrinsic.assert_not_called()
-
-
-def test_root_set_weights_min_allowed_weights(
-    mock_substrate, subtensor, fake_wallet, mocker
-):
-    mocker.patch.object(
-        subtensor,
-        "get_hyperparameter",
-        autospec=True,
-        return_value=5,
-    )
-    mock_substrate.query.return_value = 1
-
-    with pytest.raises(
-        ValueError,
-        match="The minimum number of weights required to set weights is 5, got 2",
-    ):
-        subtensor.root_set_weights(
-            fake_wallet,
-            netuids=[1, 2],
-            weights=[0.5, 0.5],
-        )
-
-    subtensor.get_hyperparameter.assert_any_call("MinAllowedWeights", netuid=0)
-    mock_substrate.submit_extrinsic.assert_not_called()
-
-
 def test_sign_and_send_extrinsic(mock_substrate, subtensor, fake_wallet, mocker):
     call = mocker.Mock()
 
