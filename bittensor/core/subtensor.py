@@ -4223,8 +4223,8 @@ class Subtensor(SubtensorMixin):
         version_key: int = version_as_int,
         period: Optional[int] = 8,
         raise_error: bool = False,
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
         mechid: int = 0,
     ) -> tuple[bool, str]:
         """
