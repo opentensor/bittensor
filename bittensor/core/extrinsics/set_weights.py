@@ -25,7 +25,7 @@ def set_weights_extrinsic(
     netuid: int,
     uids: Union[NDArray[np.int64], "torch.LongTensor", list],
     weights: Union[NDArray[np.float32], "torch.FloatTensor", list],
-    version_key: int = 0,
+    version_key: int = version_as_int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
     period: Optional[int] = 8,
