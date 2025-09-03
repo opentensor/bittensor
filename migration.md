@@ -132,25 +132,25 @@ Will greatly simplify tests.
 
 To implement the above changes and prepare for the v10 release, the following steps must be taken:
 
--[x] Create a new branch named SDKv10.~~
+- [x] Create a new branch named SDKv10.~~
 All breaking changes and refactors should be targeted into this branch to isolate them from staging and maintain backward compatibility during development.
--[ ] Add a `migration.md` document at the root of the repository and use it as a check list. This file will serve as a changelog and technical reference.
+- [ ] Add a `migration.md` document at the root of the repository and use it as a check list. This file will serve as a changelog and technical reference.
 It must include:
-  -[ ] All change categories (Extrinsics, Subtensor, Metagraph, etc.)
-  -[ ] Per-PR breakdown of what was added, removed, renamed, or refactored.
-  -[ ] Justifications and migration notes for users (if API behavior changed).
+  - [ ] All change categories (Extrinsics, Subtensor, Metagraph, etc.)
+  - [ ] Per-PR breakdown of what was added, removed, renamed, or refactored.
+  - [ ] Justifications and migration notes for users (if API behavior changed).
 
--[ ] Based on the final `migration.md`, develop migration documentation for the community. 
--[ ] Once complete, merge SDKv10 into staging and release version 10.
+- [ ] Based on the final `migration.md`, develop migration documentation for the community. 
+- [ ] Once complete, merge SDKv10 into staging and release version 10.
 
 
 # Migration guide
 
--[x] `._do_commit_reveal_v3` logic is included in the main code `.commit_reveal_v3_extrinsic`
--[x] `.commit_reveal_v3_extrinsic` renamed to `.commit_reveal_extrinsic`
--[x] `revecommit_reveal_version` parameter with default value `4` added to `revecommit_reveal_version`
--[x] `._do_commit_weights` logic is included in the main code `.commit_weights_extrinsic`
--[x] `._do_reveal_weights` logic is included in the main code `.reveal_weights_extrinsic`
--[x] `._do_set_weights` logic is included in the main code `.set_weights_extrinsic`
--[x] `set_weights_extrinsic` moved to `bittensor/core/extrinsics/commit_weights.py`
--[x] `bittensor/core/extrinsics/commit_weights.py` module renamed to `bittensor/core/extrinsics/weights.py` (consistent naming with async module)
+- [x] `._do_commit_reveal_v3` logic is included in the main code `.commit_reveal_v3_extrinsic`
+- [x] `.commit_reveal_v3_extrinsic` renamed to `.commit_reveal_extrinsic`
+- [x] `revecommit_reveal_version` parameter with default value `4` added to `revecommit_reveal_version`
+- [x] `._do_commit_weights` logic is included in the main code `.commit_weights_extrinsic`
+- [x] `._do_reveal_weights` logic is included in the main code `.reveal_weights_extrinsic`
+- [x] `._do_set_weights` logic is included in the main code `.set_weights_extrinsic`
+- [x] `set_weights_extrinsic` moved to `bittensor/core/extrinsics/commit_weights.py`
+- [x] `bittensor/core/extrinsics/commit_weights.py` module renamed to `bittensor/core/extrinsics/weights.py` (consistent naming with async module)
