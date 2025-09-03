@@ -64,10 +64,7 @@ from bittensor.core.extrinsics.registration import (
     register_subnet_extrinsic,
     set_subnet_identity_extrinsic,
 )
-from bittensor.core.extrinsics.root import (
-    root_register_extrinsic,
-    set_root_weights_extrinsic,
-)
+from bittensor.core.extrinsics.root import root_register_extrinsic
 from bittensor.core.extrinsics.serving import (
     get_last_bonds_reset,
     publish_metadata,
@@ -3996,48 +3993,6 @@ class Subtensor(SubtensorMixin):
             cooldown=cooldown,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            period=period,
-        )
-
-    def root_set_weights(
-        self,
-        wallet: "Wallet",
-        netuids: UIDs,
-        weights: list[float],
-        version_key: int = 0,
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = False,
-        period: Optional[int] = None,
-    ) -> bool:
-        """
-        Set weights for the root network.
-
-        Arguments:
-            wallet (bittensor_wallet.Wallet): bittensor wallet instance.
-            netuids (list[int]): The list of subnet uids.
-            weights (list[float]): The list of weights to be set.
-            version_key (int, optional): Version key for compatibility with the network. Default is ``0``.
-            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block. Defaults to
-                ``False``.
-            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-                Defaults to ``False``.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
-                submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction.
-
-        Returns:
-            `True` if the setting of weights is successful, `False` otherwise.
-        """
-        netuids_, weights_ = convert_uids_and_weights(netuids, weights)
-        logging.info(f"Setting weights in network: [blue]{self.network}[/blue]")
-        return set_root_weights_extrinsic(
-            subtensor=self,
-            wallet=wallet,
-            netuids=netuids_,
-            weights=weights_,
-            version_key=version_key,
-            wait_for_finalization=wait_for_finalization,
-            wait_for_inclusion=wait_for_inclusion,
             period=period,
         )
 

@@ -1,18 +1,9 @@
 import asyncio
-from typing import Optional, Union, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
-import numpy as np
-from numpy.typing import NDArray
-
-from bittensor.core.errors import SubstrateRequestException
-from bittensor.utils import u16_normalized_float, format_error_message, unlock_key
+from bittensor.utils import u16_normalized_float, unlock_key
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
-from bittensor.utils.weight_utils import (
-    normalize_max_weight,
-    convert_weights_and_uids_for_emit,
-    convert_uids_and_weights,
-)
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -146,109 +137,3 @@ async def root_register_extrinsic(
             # neuron not found, try again
             logging.error(":cross_mark: [red]Unknown error. Neuron not found.[/red]")
             return False
-
-
-async def set_root_weights_extrinsic(
-    subtensor: "AsyncSubtensor",
-    wallet: "Wallet",
-    netuids: Union[NDArray[np.int64], list[int]],
-    weights: Union[NDArray[np.float32], list[float]],
-    version_key: int = 0,
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = False,
-    period: Optional[int] = None,
-) -> bool:
-    """Sets the given weights and values on a chain for a wallet hotkey account.
-
-    Arguments:
-        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The AsyncSubtensor object
-        wallet (bittensor_wallet.Wallet): Bittensor wallet object.
-        netuids (Union[NDArray[np.int64], list[int]]): The `netuid` of the subnet to set weights for.
-        weights (Union[NDArray[np.float32], list[Float]]): Weights to set. These must be `Float`s and must correspond
-            to the passed `netuid` s.
-        version_key (int): The version key of the validator.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns
-            `False` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning `
-            True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
-
-    Returns:
-        `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion, the
-            response is `True`.
-    """
-    my_uid = await subtensor.substrate.query(
-        "SubtensorModule", "Uids", [0, wallet.hotkey.ss58_address]
-    )
-
-    if my_uid is None:
-        logging.error("Your hotkey is not registered to the root network.")
-        return False
-
-    if not (unlock := unlock_key(wallet)).success:
-        logging.error(unlock.message)
-        return False
-
-    # Convert types.
-    netuids, weights = convert_uids_and_weights(netuids, weights)
-
-    logging.debug("[magenta]Fetching weight limits ...[/magenta]")
-    min_allowed_weights, max_weight_limit = await _get_limits(subtensor)
-
-    # Get non zero values.
-    non_zero_weight_idx = np.argwhere(weights > 0).squeeze(axis=1)
-    non_zero_weights = weights[non_zero_weight_idx]
-    if non_zero_weights.size < min_allowed_weights:
-        raise ValueError(
-            "The minimum number of weights required to set weights is {}, got {}".format(
-                min_allowed_weights, non_zero_weights.size
-            )
-        )
-
-    # Normalize the weights to max value.
-    logging.info("[magenta]Normalizing weights ...[/magenta]")
-    formatted_weights = normalize_max_weight(x=weights, limit=max_weight_limit)
-    logging.info(
-        f"Raw weights -> Normalized weights: [blue]{weights}[/blue] -> [green]{formatted_weights}[/green]"
-    )
-
-    try:
-        logging.info(":satellite: [magenta]Setting root weights...[magenta]")
-        weight_uids, weight_vals = convert_weights_and_uids_for_emit(netuids, weights)
-
-        # Since this extrinsic is only for the root network, we can set netuid to 0.
-        netuid = 0
-        call = await subtensor.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="set_root_weights",
-            call_params={
-                "dests": weight_uids,
-                "weights": weight_vals,
-                "netuid": netuid,
-                "version_key": version_key,
-                "hotkey": wallet.hotkey.ss58_address,
-            },
-        )
-
-        success, message = await subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            use_nonce=True,
-            period=period,
-        )
-
-        if success:
-            logging.info(":white_heavy_check_mark: [green]Finalized[/green]")
-            return True
-
-        logging.error(f":cross_mark: [red]Failed error:[/red] {message}")
-        return False
-
-    except SubstrateRequestException as e:
-        fmt_err = format_error_message(e)
-        logging.error(f":cross_mark: [red]Failed error:[/red] {fmt_err}")
-        return False
