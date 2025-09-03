@@ -2799,8 +2799,8 @@ async def test_set_weights_success(subtensor, fake_wallet, mocker):
         netuid=fake_netuid,
         uids=fake_uids,
         version_key=async_subtensor.version_as_int,
-        wait_for_finalization=False,
-        wait_for_inclusion=False,
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
         weights=fake_weights,
         period=8,
     )
