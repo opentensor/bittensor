@@ -12,30 +12,31 @@ async def set_children_extrinsic(
     hotkey: str,
     netuid: int,
     children: list[tuple[float, str]],
-    wait_for_inclusion: bool = True,
-    wait_for_finalization: bool = False,
-    raise_error: bool = False,
     period: Optional[int] = None,
-):
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
+) -> tuple[bool, str]:
     """
     Allows a coldkey to set children-keys.
 
-    Arguments:
-        subtensor: bittensor subtensor.
+    Parameters:
+        subtensor: The Subtensor client instance used for blockchain interaction.
         wallet: bittensor wallet instance.
         hotkey: The ``SS58`` address of the neuron's hotkey.
         netuid: The netuid value.
         children: A list of children with their proportions.
-        wait_for_inclusion: Waits for the transaction to be included in a block.
-        wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
-        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Waits for the transaction to be included in a block.
+        wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
 
     Returns:
-        tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the operation,
-            and the second element is a message providing additional information.
+        Tuple[bool, str]:
+            - True and a success message if the extrinsic is successfully submitted or processed.
+            - False and an error message if the submission fails or the wallet cannot be unlocked.
 
     Raises:
         DuplicateChild: There are duplicates in the list of children.
@@ -75,10 +76,10 @@ async def set_children_extrinsic(
         success, message = await subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
+            period=period,
+            raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            raise_error=raise_error,
-            period=period,
         )
 
         if not wait_for_finalization and not wait_for_inclusion:
@@ -94,12 +95,29 @@ async def root_set_pending_childkey_cooldown_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
     cooldown: int,
-    wait_for_inclusion: bool = True,
-    wait_for_finalization: bool = False,
     period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
 ) -> tuple[bool, str]:
     """
-    Allows a coldkey to set children-keys.
+    Allows a root coldkey to set children-keys.
+
+    Parameters:
+        subtensor: The Subtensor client instance used for blockchain interaction.
+        wallet: The wallet used to sign the extrinsic (must be unlocked).
+        cooldown: The cooldown period in blocks.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Waits for the transaction to be included in a block.
+        wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+
+    Returns:
+        Tuple[bool, str]:
+            - True and a success message if the extrinsic is successfully submitted or processed.
+            - False and an error message if the submission fails or the wallet cannot be unlocked.
     """
     unlock = unlock_key(wallet)
 
@@ -122,9 +140,10 @@ async def root_set_pending_childkey_cooldown_extrinsic(
         success, message = await subtensor.sign_and_send_extrinsic(
             call=sudo_call,
             wallet=wallet,
+            period=period,
+            raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            period=period,
         )
 
         if not wait_for_finalization and not wait_for_inclusion:
