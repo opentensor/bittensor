@@ -149,74 +149,6 @@ def root_register_extrinsic(
             return False
 
 
-def _do_set_root_weights(
-    subtensor: "Subtensor",
-    wallet: "Wallet",
-    netuids: Union[NDArray[np.int64], list[int]],
-    weights: Union[NDArray[np.float32], list[float]],
-    netuid: int = 0,
-    version_key: int = 0,
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = False,
-    period: Optional[int] = 8,
-) -> tuple[bool, str]:
-    """
-    Sets the root weights on the Subnet for the given wallet hotkey account.
-
-    This function constructs and submits an extrinsic to set the root weights for the given wallet hotkey account.
-    It waits for inclusion or finalization of the extrinsic based on the provided parameters.
-
-    Arguments:
-        subtensor (bittensor.core.subtensor.Subtensor): The Subtensor object used to interact with the
-            blockchain.
-        wallet (bittensor_wallet.Wallet): The wallet containing the hotkey and coldkey for the transaction.
-        netuids (Union[NDArray[np.int64], list[int]]): List of UIDs to set weights for.
-        weights (Union[NDArray[np.float32], list[float]]): Corresponding weights to set for each UID.
-        netuid (int): The netuid of the subnet to set weights for. Defaults to 0.
-        version_key (int, optional): The version key of the validator. Defaults to 0.
-        wait_for_inclusion (bool, optional): If True, waits for the extrinsic to be included in a block. Defaults to
-            False.
-        wait_for_finalization (bool, optional): If True, waits for the extrinsic to be finalized on the chain. Defaults
-            to False.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
-
-    Returns:
-        tuple: Returns a tuple containing a boolean indicating success and a message describing the result of the
-            operation.
-    """
-    call = subtensor.substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="set_root_weights",
-        call_params={
-            "dests": netuids,
-            "weights": weights,
-            "netuid": netuid,
-            "version_key": version_key,
-            "hotkey": wallet.hotkey.ss58_address,
-        },
-    )
-
-    success, message = subtensor.sign_and_send_extrinsic(
-        call=call,
-        wallet=wallet,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-        use_nonce=True,
-        period=period,
-    )
-
-    # We only wait here if we expect finalization.
-    if not wait_for_finalization and not wait_for_inclusion:
-        return True, "Not waiting for finalization or inclusion."
-
-    if success:
-        return True, "Successfully set weights."
-
-    return False, message
-
-
 def set_root_weights_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
@@ -287,18 +219,30 @@ def set_root_weights_extrinsic(
         logging.info(":satellite: [magenta]Setting root weights...[magenta]")
         weight_uids, weight_vals = convert_weights_and_uids_for_emit(netuids, weights)
 
-        success, message = _do_set_root_weights(
-            subtensor=subtensor,
+        # Since this extrinsic is only for the root network, we can set netuid to 0.
+        netuid = 0
+        call = subtensor.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="set_root_weights",
+            call_params={
+                "dests": weight_uids,
+                "weights": weight_vals,
+                "netuid": netuid,
+                "version_key": version_key,
+                "hotkey": wallet.hotkey.ss58_address,
+            },
+        )
+
+        success, message = subtensor.sign_and_send_extrinsic(
+            call=call,
             wallet=wallet,
-            netuids=weight_uids,
-            weights=weight_vals,
-            version_key=version_key,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            use_nonce=True,
             period=period,
         )
 
-        if success is True:
+        if success:
             logging.info(":white_heavy_check_mark: [green]Finalized[/green]")
             return True
 
