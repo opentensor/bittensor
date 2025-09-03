@@ -1,20 +1,3 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
 import pytest
 from bittensor_wallet import Wallet
 
@@ -215,8 +198,10 @@ def test_burned_register_extrinsic(
         "get_neuron_for_pubkey_and_subnet",
         return_value=mocker.MagicMock(is_null=neuron_is_null),
     )
-    mocker.patch(
-        "bittensor.core.extrinsics.registration._do_burned_register",
+    mocker.patch("bittensor.core.extrinsics.registration.get_extrinsic_fee")
+    mocker.patch.object(
+        mock_subtensor,
+        "sign_and_send_extrinsic",
         return_value=(recycle_success, "Mock error message"),
     )
     mocker.patch.object(
