@@ -3674,8 +3674,9 @@ async def test_add_liquidity(subtensor, fake_wallet, mocker):
         price_high=Balance.from_tao(130).rao,
         hotkey=None,
         wait_for_inclusion=True,
-        wait_for_finalization=False,
+        wait_for_finalization=True,
         period=None,
+        raise_error=False,
     )
     assert result == mocked_extrinsic.return_value
 
