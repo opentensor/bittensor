@@ -106,7 +106,8 @@ rename this variable in documentation.
 11. Remove `bittensor.utils.version.version_checking`
 
 12. Find and process all `TODOs` across the entire code base. If in doubt, discuss each one with the team separately. SDK has 29 TODOs.
-13. ✅ The SDK is dropping support for `Python 3.9` starting with this release.~~
+13. ✅ The SDK is dropping support for `Python 3.9` starting with this release.
+14. Remove `Default is` and `Default to` in docstrings bc parameters enough.
 
 ## New features
 1. Add `bittensor.utils.hex_to_ss58` function. SDK still doesn't have it. (Probably inner import `from scalecodec import ss58_encode, ss58_decode`) 
@@ -159,9 +160,9 @@ It must include:
 - [x] `._do_set_root_weights` logic is included in the main code `.set_root_weights_extrinsic`
 - [x] `._do_transfer` logic is included in the main code `.transfer_extrinsic`
 - [x] `dest` parameter has been renamed to `destination` in `transfer_extrinsic` function and `subtensor.transfer` method.
-- [x]] obsolete extrinsic `set_root_weights_extrinsic` removed. Also related subtensor calls `subtensor.set_root_weights_extrinsic` removed too.
+- [x] obsolete extrinsic `set_root_weights_extrinsic` removed. Also related subtensor calls `subtensor.set_root_weights_extrinsic` removed too.
 
 # Standardize parameter order is applied for (extrinsics and related calls):
 Note: `raise_error` parameter is included in the list of parameters and parameters order is standardized. 
 - [x] `.set_children_extrinsic` and `.root_set_pending_childkey_cooldown_extrinsic`. `subtensor.set_children` and `subtensor.root_set_pending_childkey_cooldown` methods.
-- 
+- [x] `.commit_reveal_extrinsic` and `subtensor.set_weights`
