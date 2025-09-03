@@ -1,5 +1,5 @@
 """
-This module provides functionalities for registering a wallet with the subtensor network using Proof-of-Work (PoW).
+This module provides sync functionalities for registering a wallet with the subtensor network using Proof-of-Work (PoW).
 
 Extrinsics:
 - register_extrinsic: Registers the wallet to the subnet.
@@ -20,56 +20,6 @@ if TYPE_CHECKING:
     from bittensor.utils.registration.pow import POWSolution
 
 
-def _do_burned_register(
-    subtensor: "Subtensor",
-    netuid: int,
-    wallet: "Wallet",
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = True,
-    period: Optional[int] = None,
-) -> tuple[bool, str]:
-    """
-    Performs a burned register extrinsic call to the Subtensor chain.
-
-    This method sends a registration transaction to the Subtensor blockchain using the burned register mechanism.
-
-    Args:
-        subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance.
-        netuid (int): The network unique identifier to register on.
-        wallet (bittensor_wallet.Wallet): The wallet to be registered.
-        wait_for_inclusion (bool): Whether to wait for the transaction to be included in a block. Default is False.
-        wait_for_finalization (bool): Whether to wait for the transaction to be finalized. Default is True.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
-
-    Returns:
-        Tuple[bool, Optional[str]]: A tuple containing a boolean indicating success or failure, and an optional error
-            message.
-    """
-
-    # create extrinsic call
-    call = subtensor.substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="burned_register",
-        call_params={
-            "netuid": netuid,
-            "hotkey": wallet.hotkey.ss58_address,
-        },
-    )
-    fee = get_extrinsic_fee(subtensor=subtensor, call=call, keypair=wallet.coldkeypub)
-    logging.info(
-        f"The registration fee for SN #[blue]{netuid}[/blue] is [blue]{fee}[/blue]."
-    )
-    return subtensor.sign_and_send_extrinsic(
-        call=call,
-        wallet=wallet,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-        period=period,
-    )
-
-
 def burned_register_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
@@ -77,20 +27,22 @@ def burned_register_extrinsic(
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
     period: Optional[int] = None,
+    raise_error: bool = False,
 ) -> bool:
     """Registers the wallet to chain by recycling TAO.
 
     Args:
-        subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance.
-        wallet (bittensor.wallet): Bittensor wallet object.
-        netuid (int): The ``netuid`` of the subnet to register on.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``True``, or
-            returns ``False`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
-            ``True``, or returns ``False`` if the extrinsic fails to be finalized within the timeout.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
+        subtensor: Subtensor instance.
+        wallet: Bittensor wallet object.
+        netuid: The ``netuid`` of the subnet to register on.
+        wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning ``True``, or returns
+            ``False`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning ``True``,
+            or returns ``False`` if the extrinsic fails to be finalized within the timeout.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: raises the relevant exception rather than returning `False` if unsuccessful.
 
     Returns:
         success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
@@ -128,38 +80,53 @@ def burned_register_extrinsic(
     logging.debug(":satellite: [magenta]Recycling TAO for Registration...[/magenta]")
     logging.info(f"Recycling {recycle_amount} to register on subnet:{netuid}")
 
-    success, err_msg = _do_burned_register(
-        subtensor=subtensor,
-        netuid=netuid,
+    # create extrinsic call
+    call = subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="burned_register",
+        call_params={
+            "netuid": netuid,
+            "hotkey": wallet.hotkey.ss58_address,
+        },
+    )
+    fee = get_extrinsic_fee(subtensor=subtensor, call=call, keypair=wallet.coldkeypub)
+    logging.info(
+        f"The registration fee for SN #[blue]{netuid}[/blue] is [blue]{fee}[/blue]."
+    )
+    success, message = subtensor.sign_and_send_extrinsic(
+        call=call,
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
         period=period,
+        raise_error=raise_error,
     )
 
     if not success:
-        logging.error(f":cross_mark: [red]Failed error:[/red] {err_msg}")
+        logging.error(f":cross_mark: [red]Failed error:[/red] {message}")
         time.sleep(0.5)
         return False
-    # Successful registration, final check for neuron and pubkey
-    else:
-        logging.info(":satellite: [magenta]Checking Balance...[/magenta]")
-        block = subtensor.get_current_block()
-        new_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address, block=block)
 
-        logging.info(
-            f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
-        )
-        is_registered = subtensor.is_hotkey_registered(
-            netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address, block=block
-        )
-        if is_registered:
-            logging.info(":white_heavy_check_mark: [green]Registered[/green]")
-            return True
-        else:
-            # neuron not found, try again
-            logging.error(":cross_mark: [red]Unknown error. Neuron not found.[/red]")
-            return False
+    # TODO: It is worth deleting everything below and simply returning the result without additional verification. This
+    #  should be the responsibility of the user. We will also reduce the number of calls to the chain.
+    # Successful registration, final check for neuron and pubkey
+    logging.info(":satellite: [magenta]Checking Balance...[/magenta]")
+    block = subtensor.get_current_block()
+    new_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address, block=block)
+
+    logging.info(
+        f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
+    )
+    is_registered = subtensor.is_hotkey_registered(
+        netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address, block=block
+    )
+    if is_registered:
+        logging.info(":white_heavy_check_mark: [green]Registered[/green]")
+        return True
+
+    # neuron not found, try again
+    logging.error(":cross_mark: [red]Unknown error. Neuron not found.[/red]")
+    return False
 
 
 def _do_pow_register(
