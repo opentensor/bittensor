@@ -5175,8 +5175,8 @@ class AsyncSubtensor(SubtensorMixin):
         version_key: int = version_as_int,
         period: Optional[int] = 8,
         raise_error: bool = False,
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
     ):
         """
         Sets the weight vector for a neuron acting as a validator, specifying the weights assigned to subnet miners
