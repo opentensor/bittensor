@@ -186,6 +186,67 @@ async def _do_pow_register(
     )
 
 
+async def register_subnet_extrinsic(
+    subtensor: "AsyncSubtensor",
+    wallet: "Wallet",
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = True,
+    period: Optional[int] = None,
+) -> bool:
+    """
+    Registers a new subnetwork on the Bittensor blockchain asynchronously.
+
+    Args:
+        subtensor (AsyncSubtensor): The async subtensor interface to send the extrinsic.
+        wallet (Wallet): The wallet to be used for subnet registration.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning true.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning true.
+        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
+            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            You can think of it as an expiration date for the transaction.
+
+    Returns:
+        bool: True if the subnet registration was successful, False otherwise.
+    """
+    balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
+    burn_cost = await subtensor.get_subnet_burn_cost()
+
+    if burn_cost > balance:
+        logging.error(
+            f"Insufficient balance {balance} to register subnet. Current burn cost is {burn_cost} TAO"
+        )
+        return False
+
+    call = await subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="register_network",
+        call_params={
+            "hotkey": wallet.hotkey.ss58_address,
+            "mechid": 1,
+        },
+    )
+
+    success, message = await subtensor.sign_and_send_extrinsic(
+        call=call,
+        wallet=wallet,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+        period=period,
+    )
+
+    if not wait_for_finalization and not wait_for_inclusion:
+        return True
+
+    if success:
+        logging.success(
+            ":white_heavy_check_mark: [green]Successfully registered subnet[/green]"
+        )
+        return True
+
+    logging.error(f"Failed to register subnet: {message}")
+    return False
+
+
 async def register_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
@@ -371,67 +432,6 @@ async def register_extrinsic(
             # Failed to register after max attempts.
             logging.error("[red]No more attempts.[/red]")
             return False
-
-
-async def register_subnet_extrinsic(
-    subtensor: "AsyncSubtensor",
-    wallet: "Wallet",
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = True,
-    period: Optional[int] = None,
-) -> bool:
-    """
-    Registers a new subnetwork on the Bittensor blockchain asynchronously.
-
-    Args:
-        subtensor (AsyncSubtensor): The async subtensor interface to send the extrinsic.
-        wallet (Wallet): The wallet to be used for subnet registration.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning true.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning true.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
-
-    Returns:
-        bool: True if the subnet registration was successful, False otherwise.
-    """
-    balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
-    burn_cost = await subtensor.get_subnet_burn_cost()
-
-    if burn_cost > balance:
-        logging.error(
-            f"Insufficient balance {balance} to register subnet. Current burn cost is {burn_cost} TAO"
-        )
-        return False
-
-    call = await subtensor.substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="register_network",
-        call_params={
-            "hotkey": wallet.hotkey.ss58_address,
-            "mechid": 1,
-        },
-    )
-
-    success, message = await subtensor.sign_and_send_extrinsic(
-        call=call,
-        wallet=wallet,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-        period=period,
-    )
-
-    if not wait_for_finalization and not wait_for_inclusion:
-        return True
-
-    if success:
-        logging.success(
-            ":white_heavy_check_mark: [green]Successfully registered subnet[/green]"
-        )
-        return True
-
-    logging.error(f"Failed to register subnet: {message}")
-    return False
 
 
 async def set_subnet_identity_extrinsic(
