@@ -3965,25 +3965,27 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         cooldown: int,
+        period: Optional[int] = None,
+        raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-        period: Optional[int] = None,
     ) -> tuple[bool, str]:
         """Sets the pending childkey cooldown.
 
-        Arguments:
+        Parameters:
             wallet: bittensor wallet instance.
             cooldown: the number of blocks to setting pending childkey cooldown.
-            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
-            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
-                ``False``.
             period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
 
         Returns:
-            tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
-                operation, and the second element is a message providing additional information.
+            Tuple[bool, str]:
+                - True and a success message if the extrinsic is successfully submitted or processed.
+                - False and an error message if the submission fails or the wallet cannot be unlocked.
 
         Note: This operation can only be successfully performed if your wallet has root privileges.
         """
@@ -3991,9 +3993,10 @@ class Subtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             cooldown=cooldown,
+            period=period,
+            raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            period=period,
         )
 
     def set_auto_stake(
@@ -4042,30 +4045,30 @@ class Subtensor(SubtensorMixin):
         hotkey: str,
         netuid: int,
         children: list[tuple[float, str]],
+        period: Optional[int] = None,
+        raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-        raise_error: bool = False,
-        period: Optional[int] = None,
     ) -> tuple[bool, str]:
         """
         Allows a coldkey to set children-keys.
 
-        Arguments:
+        Parameters:
             wallet: bittensor wallet instance.
             hotkey: The ``SS58`` address of the neuron's hotkey.
             netuid: The netuid value.
             children: A list of children with their proportions.
-            wait_for_inclusion: Waits for the transaction to be included in a block.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
 
         Returns:
-            tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
-                operation, and the second element is a message providing additional information.
-
+            Tuple[bool, str]:
+                - True and a success message if the extrinsic is successfully submitted or processed.
+                - False and an error message if the submission fails or the wallet cannot be unlocked.
         """
         return set_children_extrinsic(
             subtensor=self,
@@ -4073,10 +4076,10 @@ class Subtensor(SubtensorMixin):
             hotkey=hotkey,
             netuid=netuid,
             children=children,
+            period=period,
+            raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            raise_error=raise_error,
-            period=period,
         )
 
     def set_delegate_take(
@@ -4093,7 +4096,7 @@ class Subtensor(SubtensorMixin):
         Sets the delegate 'take' percentage for a neuron identified by its hotkey.
         The 'take' represents the percentage of rewards that the delegate claims from its nominators' stakes.
 
-        Arguments:
+        Parameters:
             wallet (bittensor_wallet.Wallet): bittensor wallet instance.
             hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
             take (float): Percentage reward for the delegate.
