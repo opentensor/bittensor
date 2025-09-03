@@ -184,8 +184,11 @@ def test_set_root_weights_extrinsic(
     mocker,
 ):
     # Preps
-    mocker.patch.object(
-        root, "_do_set_root_weights", return_value=(expected_success, "Mock error")
+    mocked_compose_call = mocker.patch.object(mock_subtensor.substrate, "compose_call")
+    mocked_sign_and_send_extrinsic = mocker.patch.object(
+        mock_subtensor,
+        "sign_and_send_extrinsic",
+        return_value=(expected_success, "Mock error"),
     )
     mocker.patch.object(
         root,
@@ -203,7 +206,14 @@ def test_set_root_weights_extrinsic(
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
     )
-
+    mocked_sign_and_send_extrinsic.assert_called_once_with(
+        call=mocked_compose_call.return_value,
+        wallet=mock_wallet,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+        period=None,
+        use_nonce=True,
+    )
     # Asserts
     assert result == expected_success
 
