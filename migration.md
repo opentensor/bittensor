@@ -167,3 +167,6 @@ Note: `raise_error` parameter is included in the list of parameters and paramete
 - [x] `.set_children_extrinsic` and `.root_set_pending_childkey_cooldown_extrinsic`. `subtensor.set_children` and `subtensor.root_set_pending_childkey_cooldown` methods.
 - [x] `.commit_reveal_extrinsic` and `subtensor.set_weights`
 - [x] `.add_liquidity_extrinsic` and `subtensor.add_liquidity`
+- [x] `.modify_liquidity_extrinsic` and `subtensor.modify_liquidity`
+- [x] `.remove_liquidity_extrinsic` and `subtensor.remove_liquidity`
+- [x] `.toggle_user_liquidity_extrinsic` and `subtensor.toggle_user_liquidity`
