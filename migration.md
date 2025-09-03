@@ -153,3 +153,4 @@ It must include:
 -[x] `._do_reveal_weights` logic is included in the main code `.reveal_weights_extrinsic`
 -[x] `._do_set_weights` logic is included in the main code `.set_weights_extrinsic`
 -[x] `set_weights_extrinsic` moved to `bittensor/core/extrinsics/commit_weights.py`
+-[x] `bittensor/core/extrinsics/commit_weights.py` module renamed to `bittensor/core/extrinsics/weights.py` (consistent naming with async module)
