@@ -2588,7 +2588,7 @@ async def test_transfer_success(subtensor, fake_wallet, mocker):
     # Call
     result = await subtensor.transfer(
         wallet=fake_wallet,
-        dest=fake_destination,
+        destination=fake_destination,
         amount=fake_amount,
         transfer_all=fake_transfer_all,
     )
@@ -2597,7 +2597,7 @@ async def test_transfer_success(subtensor, fake_wallet, mocker):
     mocked_transfer_extrinsic.assert_awaited_once_with(
         subtensor=subtensor,
         wallet=fake_wallet,
-        dest=fake_destination,
+        destination=fake_destination,
         amount=fake_amount,
         transfer_all=fake_transfer_all,
         wait_for_inclusion=True,
