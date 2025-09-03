@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from bittensor.core.extrinsics.commit_weights import (
+from bittensor.core.extrinsics.weights import (
     set_weights_extrinsic,
 )
 from bittensor.core.subtensor import Subtensor
