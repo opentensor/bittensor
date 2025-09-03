@@ -40,7 +40,7 @@ def test_transfer(subtensor, alice_wallet):
     # Transfer Tao
     assert subtensor.extrinsics.transfer(
         wallet=alice_wallet,
-        dest=dest_coldkey,
+        destination=dest_coldkey,
         amount=transfer_value,
         wait_for_finalization=True,
         wait_for_inclusion=True,
@@ -87,7 +87,7 @@ async def test_transfer_async(async_subtensor, alice_wallet):
     # Transfer Tao
     assert await async_subtensor.extrinsics.transfer(
         wallet=alice_wallet,
-        dest=dest_coldkey,
+        destination=dest_coldkey,
         amount=transfer_value,
         wait_for_finalization=True,
         wait_for_inclusion=True,
@@ -116,8 +116,8 @@ def test_transfer_all(subtensor, alice_wallet):
 
     # fund the first dummy account
     assert subtensor.extrinsics.transfer(
-        alice_wallet,
-        dest=dummy_account_1.coldkeypub.ss58_address,
+        wallet=alice_wallet,
+        destination=dummy_account_1.coldkeypub.ss58_address,
         amount=Balance.from_tao(2.0),
         wait_for_finalization=True,
         wait_for_inclusion=True,
@@ -126,7 +126,7 @@ def test_transfer_all(subtensor, alice_wallet):
     existential_deposit = subtensor.chain.get_existential_deposit()
     assert subtensor.extrinsics.transfer(
         wallet=dummy_account_1,
-        dest=dummy_account_2.coldkeypub.ss58_address,
+        destination=dummy_account_2.coldkeypub.ss58_address,
         amount=None,
         transfer_all=True,
         wait_for_finalization=True,
@@ -139,7 +139,7 @@ def test_transfer_all(subtensor, alice_wallet):
     assert balance_after == existential_deposit
     assert subtensor.extrinsics.transfer(
         wallet=dummy_account_2,
-        dest=alice_wallet.coldkeypub.ss58_address,
+        destination=alice_wallet.coldkeypub.ss58_address,
         amount=None,
         transfer_all=True,
         wait_for_inclusion=True,
@@ -166,8 +166,8 @@ async def test_transfer_all_async(async_subtensor, alice_wallet):
 
     # fund the first dummy account
     assert await async_subtensor.extrinsics.transfer(
-        alice_wallet,
-        dest=dummy_account_1.coldkeypub.ss58_address,
+        wallet=alice_wallet,
+        destination=dummy_account_1.coldkeypub.ss58_address,
         amount=Balance.from_tao(2.0),
         wait_for_finalization=True,
         wait_for_inclusion=True,
@@ -176,7 +176,7 @@ async def test_transfer_all_async(async_subtensor, alice_wallet):
     existential_deposit = await async_subtensor.chain.get_existential_deposit()
     assert await async_subtensor.extrinsics.transfer(
         wallet=dummy_account_1,
-        dest=dummy_account_2.coldkeypub.ss58_address,
+        destination=dummy_account_2.coldkeypub.ss58_address,
         amount=None,
         transfer_all=True,
         wait_for_finalization=True,
@@ -189,7 +189,7 @@ async def test_transfer_all_async(async_subtensor, alice_wallet):
     assert balance_after == existential_deposit
     assert await async_subtensor.extrinsics.transfer(
         wallet=dummy_account_2,
-        dest=alice_wallet.coldkeypub.ss58_address,
+        destination=alice_wallet.coldkeypub.ss58_address,
         amount=None,
         transfer_all=True,
         wait_for_inclusion=True,
