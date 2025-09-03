@@ -126,7 +126,7 @@ def test_transfer_extrinsic_call_successful_with_failed_response(
     mocked_unlock_key.assert_called_once_with(fake_wallet)
     mocked_get_balance.assert_called_with(
         fake_wallet.coldkeypub.ss58_address,
-        block=subtensor.substrate.get_block_number.return_value
+        block=subtensor.substrate.get_block_number.return_value,
     )
     mocked_get_existential_deposit.assert_called_once_with(
         block=subtensor.substrate.get_block_number.return_value
