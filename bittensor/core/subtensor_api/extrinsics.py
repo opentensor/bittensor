@@ -19,7 +19,6 @@ class Extrinsics:
         self.remove_liquidity = subtensor.remove_liquidity
         self.reveal_weights = subtensor.reveal_weights
         self.root_register = subtensor.root_register
-        self.root_set_weights = subtensor.root_set_weights
         self.root_set_pending_childkey_cooldown = (
             subtensor.root_set_pending_childkey_cooldown
         )
