@@ -50,10 +50,10 @@ async def test_set_children_extrinsic(subtensor, mocker, fake_wallet):
     mocked_sign_and_send_extrinsic.assert_awaited_once_with(
         call=substrate.compose_call.return_value,
         wallet=fake_wallet,
-        wait_for_inclusion=True,
-        wait_for_finalization=False,
         period=None,
         raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
     )
 
     assert success is True
@@ -86,9 +86,10 @@ async def test_root_set_pending_childkey_cooldown_extrinsic(
     mocked_sign_and_send_extrinsic.assert_awaited_once_with(
         call=substrate.compose_call.return_value,
         wallet=fake_wallet,
-        wait_for_inclusion=True,
-        wait_for_finalization=False,
         period=None,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
     )
     assert success is True
     assert "Success" in message
