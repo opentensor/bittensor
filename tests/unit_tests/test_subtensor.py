@@ -3991,8 +3991,9 @@ def test_modify_liquidity(subtensor, fake_wallet, mocker):
         liquidity_delta=Balance.from_tao(150),
         hotkey=None,
         wait_for_inclusion=True,
-        wait_for_finalization=False,
+        wait_for_finalization=True,
         period=None,
+        raise_error=False,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -4021,8 +4022,9 @@ def test_remove_liquidity(subtensor, fake_wallet, mocker):
         position_id=position_id,
         hotkey=None,
         wait_for_inclusion=True,
-        wait_for_finalization=False,
+        wait_for_finalization=True,
         period=None,
+        raise_error=False,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -4050,8 +4052,9 @@ def test_toggle_user_liquidity(subtensor, fake_wallet, mocker):
         netuid=netuid,
         enable=enable,
         wait_for_inclusion=True,
-        wait_for_finalization=False,
+        wait_for_finalization=True,
         period=None,
+        raise_error=False,
     )
     assert result == mocked_extrinsic.return_value
 

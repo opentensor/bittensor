@@ -3420,24 +3420,25 @@ class Subtensor(SubtensorMixin):
         position_id: int,
         liquidity_delta: Balance,
         hotkey: Optional[str] = None,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
         period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
     ) -> tuple[bool, str]:
         """Modifies liquidity in liquidity position by adding or removing liquidity from it.
 
-        Arguments:
+        Parameters:
             wallet: The wallet used to sign the extrinsic (must be unlocked).
             netuid: The UID of the target subnet for which the call is being initiated.
             position_id: The id of the position record in the pool.
             liquidity_delta: The amount of liquidity to be added or removed (add if positive or remove if negative).
-            hotkey: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used. Defaults to
-                `None`.
-            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block. Defaults to True.
-            wait_for_finalization: Whether to wait for finalization of the extrinsic. Defaults to False.
+            hotkey: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
             Tuple[bool, str]:
@@ -3471,7 +3472,7 @@ class Subtensor(SubtensorMixin):
             )
 
         Note: Modifying is allowed even when user liquidity is enabled in specified subnet. Call `toggle_user_liquidity`
-            to enable/disable user liquidity.
+        to enable/disable user liquidity.
         """
         return modify_liquidity_extrinsic(
             subtensor=self,
@@ -3480,9 +3481,10 @@ class Subtensor(SubtensorMixin):
             position_id=position_id,
             liquidity_delta=liquidity_delta,
             hotkey=hotkey,
+            period=period,
+            raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            period=period,
         )
 
     def move_stake(
@@ -3634,23 +3636,24 @@ class Subtensor(SubtensorMixin):
         netuid: int,
         position_id: int,
         hotkey: Optional[str] = None,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
         period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
     ) -> tuple[bool, str]:
         """Remove liquidity and credit balances back to wallet's hotkey stake.
 
-        Arguments:
+        Parameters:
             wallet: The wallet used to sign the extrinsic (must be unlocked).
             netuid: The UID of the target subnet for which the call is being initiated.
             position_id: The id of the position record in the pool.
-            hotkey: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used. Defaults to
-                `None`.
-            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block. Defaults to True.
-            wait_for_finalization: Whether to wait for finalization of the extrinsic. Defaults to False.
+            hotkey: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
             Tuple[bool, str]:
@@ -3659,7 +3662,7 @@ class Subtensor(SubtensorMixin):
 
         Note:
             - Adding is allowed even when user liquidity is enabled in specified subnet. Call `toggle_user_liquidity`
-                extrinsic to enable/disable user liquidity.
+        extrinsic to enable/disable user liquidity.
             - To get the `position_id` use `get_liquidity_list` method.
         """
         return remove_liquidity_extrinsic(
@@ -3668,9 +3671,10 @@ class Subtensor(SubtensorMixin):
             netuid=netuid,
             position_id=position_id,
             hotkey=hotkey,
+            period=period,
+            raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            period=period,
         )
 
     def reveal_weights(
@@ -4244,21 +4248,23 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         netuid: int,
         enable: bool,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
         period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
     ) -> tuple[bool, str]:
         """Allow to toggle user liquidity for specified subnet.
 
-        Arguments:
+        Parameters:
             wallet: The wallet used to sign the extrinsic (must be unlocked).
             netuid: The UID of the target subnet for which the call is being initiated.
             enable: Boolean indicating whether to enable user liquidity.
-            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block. Defaults to True.
-            wait_for_finalization: Whether to wait for finalization of the extrinsic. Defaults to False.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
             Tuple[bool, str]:
@@ -4272,9 +4278,10 @@ class Subtensor(SubtensorMixin):
             wallet=wallet,
             netuid=netuid,
             enable=enable,
+            period=period,
+            raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            period=period,
         )
 
     def transfer(
