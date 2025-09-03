@@ -119,6 +119,7 @@ def test_commit_reveal_v3_extrinsic_success_with_torch(
         wait_for_finalization=True,
         sign_with="hotkey",
         period=None,
+        raise_error=False,
     )
 
 
@@ -173,6 +174,7 @@ def test_commit_reveal_v3_extrinsic_success_with_numpy(
         wait_for_finalization=False,
         sign_with="hotkey",
         period=None,
+        raise_error=False,
     )
 
 
@@ -230,6 +232,7 @@ def test_commit_reveal_v3_extrinsic_response_false(
         wait_for_finalization=True,
         sign_with="hotkey",
         period=None,
+        raise_error=False,
     )
 
 
