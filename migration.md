@@ -157,3 +157,5 @@ It must include:
 - [x] `_do_burned_register` logic is included in the main code `.burned_register_extrinsic`
 - [x] `_do_pow_register` logic is included in the main code `.register_extrinsic`
 - [x] `._do_set_root_weights` logic is included in the main code `.set_root_weights_extrinsic`
+- [x] `._do_transfer` logic is included in the main code `.transfer_extrinsic`
+- [x] `dest` parameter has been renamed to `destination` in `transfer_extrinsic` function and `subtensor.transfer` method.
