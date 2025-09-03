@@ -159,3 +159,4 @@ It must include:
 - [x] `._do_set_root_weights` logic is included in the main code `.set_root_weights_extrinsic`
 - [x] `._do_transfer` logic is included in the main code `.transfer_extrinsic`
 - [x] `dest` parameter has been renamed to `destination` in `transfer_extrinsic` function and `subtensor.transfer` method.
+- [x]] obsolete extrinsic `set_root_weights_extrinsic` removed. Also related subtensor calls `subtensor.set_root_weights_extrinsic` removed too.
