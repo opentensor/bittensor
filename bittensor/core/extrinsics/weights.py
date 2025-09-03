@@ -223,7 +223,7 @@ def set_weights_extrinsic(
     )
 
     if success:
-        logging.info(message)
+        logging.info("Successfully set weights and Finalized.")
     else:
         logging.error(f"{get_function_name}: {message}")
     return success, message
