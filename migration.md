@@ -155,3 +155,4 @@ It must include:
 - [x] `set_weights_extrinsic` moved to `bittensor/core/extrinsics/commit_weights.py`
 - [x] `bittensor/core/extrinsics/commit_weights.py` module renamed to `bittensor/core/extrinsics/weights.py` (consistent naming with async module)
 - [x] `_do_burned_register` logic is included in the main code `.burned_register_extrinsic`
+- [x] `_do_pow_register` logic is included in the main code `.register_extrinsic`
