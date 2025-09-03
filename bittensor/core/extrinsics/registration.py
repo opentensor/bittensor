@@ -17,7 +17,6 @@ from bittensor.utils.registration import create_pow, log_no_torch_error, torch
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.subtensor import Subtensor
-    from bittensor.utils.registration.pow import POWSolution
 
 
 def burned_register_extrinsic(
@@ -127,56 +126,6 @@ def burned_register_extrinsic(
     # neuron not found, try again
     logging.error(":cross_mark: [red]Unknown error. Neuron not found.[/red]")
     return False
-
-
-def _do_pow_register(
-    subtensor: "Subtensor",
-    netuid: int,
-    wallet: "Wallet",
-    pow_result: "POWSolution",
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = True,
-    period: Optional[int] = None,
-) -> tuple[bool, Optional[str]]:
-    """Sends a (POW) register extrinsic to the chain.
-
-    Args:
-        subtensor (bittensor.core.subtensor.Subtensor): The subtensor to send the extrinsic to.
-        netuid (int): The subnet to register on.
-        wallet (bittensor.wallet): The wallet to register.
-        pow_result (POWSolution): The PoW result to register.
-        wait_for_inclusion (bool): If ``True``, waits for the extrinsic to be included in a block. Default to `False`.
-        wait_for_finalization (bool): If ``True``, waits for the extrinsic to be finalized. Default to `True`.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
-
-    Returns:
-        success (bool): ``True`` if the extrinsic was included in a block.
-        error (Optional[str]): ``None`` on success or not waiting for inclusion/finalization, otherwise the error
-            message.
-    """
-    # create extrinsic call
-    call = subtensor.substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="register",
-        call_params={
-            "netuid": netuid,
-            "block_number": pow_result.block_number,
-            "nonce": pow_result.nonce,
-            "work": [int(byte_) for byte_ in pow_result.seal],
-            "hotkey": wallet.hotkey.ss58_address,
-            "coldkey": wallet.coldkeypub.ss58_address,
-        },
-    )
-    logging.debug(":satellite: [magenta]Sending POW Register Extrinsic...[/magenta]")
-    return subtensor.sign_and_send_extrinsic(
-        call=call,
-        wallet=wallet,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-        period=period,
-    )
 
 
 def register_subnet_extrinsic(
@@ -368,28 +317,41 @@ def register_extrinsic(
             logging.info(":satellite: [magenta]Submitting POW...[/magenta]")
             # check if a pow result is still valid
             while not pow_result.is_stale(subtensor=subtensor):
-                result: tuple[bool, Optional[str]] = _do_pow_register(
-                    subtensor=subtensor,
-                    netuid=netuid,
+                # create extrinsic call
+                call = subtensor.substrate.compose_call(
+                    call_module="SubtensorModule",
+                    call_function="register",
+                    call_params={
+                        "netuid": netuid,
+                        "block_number": pow_result.block_number,
+                        "nonce": pow_result.nonce,
+                        "work": [int(byte_) for byte_ in pow_result.seal],
+                        "hotkey": wallet.hotkey.ss58_address,
+                        "coldkey": wallet.coldkeypub.ss58_address,
+                    },
+                )
+                logging.debug(
+                    ":satellite: [magenta]Sending POW Register Extrinsic...[/magenta]"
+                )
+                success, message = subtensor.sign_and_send_extrinsic(
+                    call=call,
                     wallet=wallet,
-                    pow_result=pow_result,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                     period=period,
                 )
 
-                success, err_msg = result
                 if not success:
                     # Look error here
                     # https://github.com/opentensor/subtensor/blob/development/pallets/subtensor/src/errors.rs
 
-                    if "HotKeyAlreadyRegisteredInSubNet" in err_msg:
+                    if "HotKeyAlreadyRegisteredInSubNet" in message:
                         logging.info(
                             f":white_heavy_check_mark: [green]Already Registered on subnet:[/green] "
                             f"[blue]{netuid}[/blue]."
                         )
                         return True
-                    logging.error(f":cross_mark: [red]Failed[/red]: {err_msg}")
+                    logging.error(f":cross_mark: [red]Failed[/red]: {message}")
                     time.sleep(0.5)
 
                 # Successful registration, final check for neuron and pubkey
