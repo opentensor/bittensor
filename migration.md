@@ -166,3 +166,4 @@ It must include:
 Note: `raise_error` parameter is included in the list of parameters and parameters order is standardized. 
 - [x] `.set_children_extrinsic` and `.root_set_pending_childkey_cooldown_extrinsic`. `subtensor.set_children` and `subtensor.root_set_pending_childkey_cooldown` methods.
 - [x] `.commit_reveal_extrinsic` and `subtensor.set_weights`
+- [x] `.add_liquidity_extrinsic` and `subtensor.add_liquidity`
