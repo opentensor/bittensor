@@ -22,34 +22,37 @@ async def commit_reveal_extrinsic(
     netuid: int,
     uids: Union[NDArray[np.int64], "torch.LongTensor", list],
     weights: Union[NDArray[np.float32], "torch.FloatTensor", list],
+    block_time: Union[int, float] = 12.0,
+    commit_reveal_version: int = 4,
     version_key: int = version_as_int,
+    period: Optional[int] = None,
+    raise_error: bool = False,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-    block_time: Union[int, float] = 12.0,
-    period: Optional[int] = None,
-    commit_reveal_version: int = 4,
 ) -> tuple[bool, str]:
     """
     Commits and reveals weights for a given subtensor and wallet with provided uids and weights.
 
-    Arguments:
-        subtensor: The AsyncSubtensor instance.
+    Parameters:
+        subtensor: The Subtensor instance.
         wallet: The wallet to use for committing and revealing.
         netuid: The id of the network.
         uids: The uids to commit.
         weights: The weights associated with the uids.
-        version_key: The version key to use for committing and revealing. Default is version_as_int.
-        wait_for_inclusion: Whether to wait for the inclusion of the transaction. Default is False.
-        wait_for_finalization: Whether to wait for the finalization of the transaction. Default is False.
-        block_time (float): The number of seconds for block duration. Default is 12.0 seconds.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
-        commit_reveal_version: The version of the chain commit-reveal protocol to use. Default is ``4``.
+        block_time: The number of seconds for block duration.
+        commit_reveal_version: The version of the chain commit-reveal protocol to use.
+        version_key: The version key to use for committing and revealing.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure, and the second
-            element is a message associated with the result
+        Tuple[bool, str]:
+            - True and a success message if the extrinsic is successfully submitted or processed.
+            - False and an error message if the submission fails or the wallet cannot be unlocked.
     """
     try:
         uids, weights = convert_and_normalize_weights_and_uids(uids, weights)
@@ -96,6 +99,7 @@ async def commit_reveal_extrinsic(
             wait_for_finalization=wait_for_finalization,
             sign_with="hotkey",
             period=period,
+            raise_error=raise_error,
         )
 
         if not success:
