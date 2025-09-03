@@ -44,7 +44,7 @@ from bittensor.core.extrinsics.asyncex.children import (
     root_set_pending_childkey_cooldown_extrinsic,
     set_children_extrinsic,
 )
-from bittensor.core.extrinsics.asyncex.commit_reveal import commit_reveal_v3_extrinsic
+from bittensor.core.extrinsics.asyncex.commit_reveal import commit_reveal_extrinsic
 from bittensor.core.extrinsics.asyncex.liquidity import (
     add_liquidity_extrinsic,
     modify_liquidity_extrinsic,
@@ -62,10 +62,7 @@ from bittensor.core.extrinsics.asyncex.registration import (
     register_subnet_extrinsic,
     set_subnet_identity_extrinsic,
 )
-from bittensor.core.extrinsics.asyncex.root import (
-    set_root_weights_extrinsic,
-    root_register_extrinsic,
-)
+from bittensor.core.extrinsics.asyncex.root import root_register_extrinsic
 from bittensor.core.extrinsics.asyncex.serving import (
     get_last_bonds_reset,
     publish_metadata,
@@ -121,7 +118,6 @@ from bittensor.utils.liquidity import (
 )
 from bittensor.utils.weight_utils import (
     generate_weight_hash,
-    convert_uids_and_weights,
     U16_MAX,
 )
 
@@ -4977,47 +4973,6 @@ class AsyncSubtensor(SubtensorMixin):
             period=period,
         )
 
-    async def root_set_weights(
-        self,
-        wallet: "Wallet",
-        netuids: list[int],
-        weights: list[float],
-        version_key: int = 0,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = True,
-        period: Optional[int] = None,
-    ) -> bool:
-        """
-        Set weights for the root network.
-
-        Arguments:
-            wallet: bittensor wallet instance.
-            netuids: The list of subnet uids.
-            weights: The list of weights to be set.
-            version_key: Version key for compatibility with the network. Default is `0`.
-            wait_for_inclusion: Waits for the transaction to be included in a block.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Defaults to `False`.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-            transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
-
-        Returns:
-            `True` if the setting of weights is successful, `False` otherwise.
-        """
-        netuids_, weights_ = convert_uids_and_weights(netuids, weights)
-        logging.info(f"Setting weights in network: [blue]{self.network}[/blue]")
-        # Run the set weights operation.
-        return await set_root_weights_extrinsic(
-            subtensor=self,
-            wallet=wallet,
-            netuids=netuids_,
-            weights=weights_,
-            version_key=version_key,
-            wait_for_finalization=wait_for_finalization,
-            wait_for_inclusion=wait_for_inclusion,
-            period=period,
-        )
-
     async def set_children(
         self,
         wallet: "Wallet",
@@ -5283,7 +5238,7 @@ class AsyncSubtensor(SubtensorMixin):
                 logging.info(
                     f"Committing weights for subnet #{netuid}. Attempt {retries + 1} of {max_retries}."
                 )
-                success, message = await commit_reveal_v3_extrinsic(
+                success, message = await commit_reveal_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
@@ -5506,7 +5461,7 @@ class AsyncSubtensor(SubtensorMixin):
     async def transfer(
         self,
         wallet: "Wallet",
-        dest: str,
+        destination: str,
         amount: Optional[Balance],
         transfer_all: bool = False,
         wait_for_inclusion: bool = True,
@@ -5519,7 +5474,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Arguments:
             wallet: Source wallet for the transfer.
-            dest: Destination address for the transfer.
+            destination: Destination address for the transfer.
             amount: Number of tokens to transfer. `None` is transferring all.
             transfer_all: Flag to transfer all tokens. Default is `False`.
             wait_for_inclusion: Waits for the transaction to be included in a block. Defaults to `True`.
@@ -5536,7 +5491,7 @@ class AsyncSubtensor(SubtensorMixin):
         return await transfer_extrinsic(
             subtensor=self,
             wallet=wallet,
-            dest=dest,
+            destination=destination,
             amount=amount,
             transfer_all=transfer_all,
             wait_for_inclusion=wait_for_inclusion,

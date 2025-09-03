@@ -19,6 +19,7 @@
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
         period: Optional[int] = None,
+        raise_error: bool = True,
     ) -> bool:
     ```
     it will be 
@@ -36,6 +37,7 @@
         period: Optional[int] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
+        raise_error: bool = True,
     ) -> bool:
     ```
     </details>
@@ -55,7 +57,7 @@
 
 7. `unstake` and `unstake_multiple` extrinsics should have `safe_unstaking` parameters instead of `safe_staking`.
 
-8. Remove `_do*` extrinsic calls and combine them with extrinsic logic.
+8. ✅ Remove `_do*` extrinsic calls and combine them with extrinsic logic.
 
 9. `subtensor.get_transfer_fee` calls extrinsic inside the subtensor module. Actually the method could be updated by using `bittensor.core.extrinsics.utils.get_extrinsic_fee`.
 
@@ -104,7 +106,7 @@ rename this variable in documentation.
 11. Remove `bittensor.utils.version.version_checking`
 
 12. Find and process all `TODOs` across the entire code base. If in doubt, discuss each one with the team separately. SDK has 29 TODOs.
-
+13. ✅ The SDK is dropping support for `Python 3.9` starting with this release.~~
 
 ## New features
 1. Add `bittensor.utils.hex_to_ss58` function. SDK still doesn't have it. (Probably inner import `from scalecodec import ss58_encode, ss58_decode`) 
@@ -130,18 +132,31 @@ Will greatly simplify tests.
 
 To implement the above changes and prepare for the v10 release, the following steps must be taken:
 
--[x] Create a new branch named SDKv10.~~
+- [x] Create a new branch named SDKv10.~~
 All breaking changes and refactors should be targeted into this branch to isolate them from staging and maintain backward compatibility during development.
--[x] Add a `migration.md` document at the root of the repository and use it as a check list. This file will serve as a changelog and technical reference.
+- [ ] Add a `migration.md` document at the root of the repository and use it as a check list. This file will serve as a changelog and technical reference.
 It must include:
-  - All change categories (Extrinsics, Subtensor, Metagraph, etc.)
-  - Per-PR breakdown of what was added, removed, renamed, or refactored.
-  - Justifications and migration notes for users (if API behavior changed).
+  - [ ] All change categories (Extrinsics, Subtensor, Metagraph, etc.)
+  - [ ] Per-PR breakdown of what was added, removed, renamed, or refactored.
+  - [ ] Justifications and migration notes for users (if API behavior changed).
 
--[ ] Based on the final `migration.md`, develop migration documentation for the community. 
--[ ] Once complete, merge SDKv10 into staging and release version 10.
+- [ ] Based on the final `migration.md`, develop migration documentation for the community. 
+- [ ] Once complete, merge SDKv10 into staging and release version 10.
 
 
 # Migration guide
 
--[x] The SDK is dropping support for `Python 3.9` starting with this release.
+- [x] `._do_commit_reveal_v3` logic is included in the main code `.commit_reveal_v3_extrinsic`
+- [x] `.commit_reveal_v3_extrinsic` renamed to `.commit_reveal_extrinsic`
+- [x] `revecommit_reveal_version` parameter with default value `4` added to `revecommit_reveal_version`
+- [x] `._do_commit_weights` logic is included in the main code `.commit_weights_extrinsic`
+- [x] `._do_reveal_weights` logic is included in the main code `.reveal_weights_extrinsic`
+- [x] `._do_set_weights` logic is included in the main code `.set_weights_extrinsic`
+- [x] `set_weights_extrinsic` moved to `bittensor/core/extrinsics/commit_weights.py`
+- [x] `bittensor/core/extrinsics/commit_weights.py` module renamed to `bittensor/core/extrinsics/weights.py` (consistent naming with async module)
+- [x] `_do_burned_register` logic is included in the main code `.burned_register_extrinsic`
+- [x] `_do_pow_register` logic is included in the main code `.register_extrinsic`
+- [x] `._do_set_root_weights` logic is included in the main code `.set_root_weights_extrinsic`
+- [x] `._do_transfer` logic is included in the main code `.transfer_extrinsic`
+- [x] `dest` parameter has been renamed to `destination` in `transfer_extrinsic` function and `subtensor.transfer` method.
+- [x]] obsolete extrinsic `set_root_weights_extrinsic` removed. Also related subtensor calls `subtensor.set_root_weights_extrinsic` removed too.

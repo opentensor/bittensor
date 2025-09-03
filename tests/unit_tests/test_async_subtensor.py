@@ -2588,7 +2588,7 @@ async def test_transfer_success(subtensor, fake_wallet, mocker):
     # Call
     result = await subtensor.transfer(
         wallet=fake_wallet,
-        dest=fake_destination,
+        destination=fake_destination,
         amount=fake_amount,
         transfer_all=fake_transfer_all,
     )
@@ -2597,7 +2597,7 @@ async def test_transfer_success(subtensor, fake_wallet, mocker):
     mocked_transfer_extrinsic.assert_awaited_once_with(
         subtensor=subtensor,
         wallet=fake_wallet,
-        dest=fake_destination,
+        destination=fake_destination,
         amount=fake_amount,
         transfer_all=fake_transfer_all,
         wait_for_inclusion=True,
@@ -2851,48 +2851,6 @@ async def test_set_weights_with_exception(subtensor, fake_wallet, mocker):
     assert mocked_set_weights_extrinsic.call_count == max_retries
     assert result is False
     assert message == "No attempt made. Perhaps it is too soon to set weights!"
-
-
-@pytest.mark.asyncio
-async def test_root_set_weights_success(subtensor, fake_wallet, mocker):
-    """Tests root_set_weights when the setting of weights is successful."""
-    # Preps
-    fake_netuids = [1, 2, 3]
-    fake_weights = [0.3, 0.5, 0.2]
-
-    mocked_set_root_weights_extrinsic = mocker.AsyncMock()
-    mocker.patch.object(
-        async_subtensor, "set_root_weights_extrinsic", mocked_set_root_weights_extrinsic
-    )
-
-    mocked_np_array_netuids = mocker.Mock(autospec=async_subtensor.np.ndarray)
-    mocked_np_array_weights = mocker.Mock(autospec=async_subtensor.np.ndarray)
-    mocker.patch.object(
-        async_subtensor.np,
-        "array",
-        side_effect=[mocked_np_array_netuids, mocked_np_array_weights],
-    )
-
-    # Call
-    result = await subtensor.root_set_weights(
-        wallet=fake_wallet,
-        netuids=fake_netuids,
-        weights=fake_weights,
-    )
-
-    # Asserts
-    mocked_set_root_weights_extrinsic.assert_awaited_once()
-    mocked_set_root_weights_extrinsic.assert_called_once_with(
-        subtensor=subtensor,
-        wallet=fake_wallet,
-        netuids=mocked_np_array_netuids,
-        weights=mocked_np_array_weights,
-        version_key=0,
-        wait_for_finalization=True,
-        wait_for_inclusion=True,
-        period=None,
-    )
-    assert result == mocked_set_root_weights_extrinsic.return_value
 
 
 @pytest.mark.asyncio

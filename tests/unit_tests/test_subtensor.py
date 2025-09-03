@@ -1309,18 +1309,18 @@ def test_transfer(subtensor, fake_wallet, mocker):
 
     # Call
     result = subtensor.transfer(
-        fake_wallet,
-        fake_dest,
-        fake_amount,
-        fake_wait_for_inclusion,
-        fake_wait_for_finalization,
+        wallet=fake_wallet,
+        destination=fake_dest,
+        amount=fake_amount,
+        wait_for_inclusion=fake_wait_for_inclusion,
+        wait_for_finalization=fake_wait_for_finalization,
     )
 
     # Asserts
     mocked_transfer_extrinsic.assert_called_once_with(
         subtensor=subtensor,
         wallet=fake_wallet,
-        dest=fake_dest,
+        destination=fake_dest,
         amount=Balance(fake_amount),
         transfer_all=False,
         wait_for_inclusion=fake_wait_for_inclusion,
@@ -3153,7 +3153,7 @@ def test_set_weights_with_commit_reveal_enabled(subtensor, fake_wallet, mocker):
         subtensor, "commit_reveal_enabled", return_value=True
     )
     mocked_commit_reveal_v3_extrinsic = mocker.patch.object(
-        subtensor_module, "commit_reveal_v3_extrinsic"
+        subtensor_module, "commit_reveal_extrinsic"
     )
     mocked_commit_reveal_v3_extrinsic.return_value = (
         True,

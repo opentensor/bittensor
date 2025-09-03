@@ -153,7 +153,6 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.root_set_pending_childkey_cooldown = (
         subtensor._subtensor.root_set_pending_childkey_cooldown
     )
-    subtensor.root_set_weights = subtensor._subtensor.root_set_weights
     subtensor.serve_axon = subtensor._subtensor.serve_axon
     subtensor.set_children = subtensor._subtensor.set_children
     subtensor.set_commitment = subtensor._subtensor.set_commitment

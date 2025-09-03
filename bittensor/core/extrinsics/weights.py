@@ -1,6 +1,6 @@
-"""This module provides async functionality for working with weights in the Bittensor network."""
+"""Module sync commit weights and reveal weights extrinsic."""
 
-from typing import Union, TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -14,13 +14,13 @@ from bittensor.utils.weight_utils import (
 )
 
 if TYPE_CHECKING:
+    from bittensor.core.subtensor import Subtensor
     from bittensor_wallet import Wallet
-    from bittensor.core.async_subtensor import AsyncSubtensor
     from bittensor.utils.registration import torch
 
 
-async def commit_weights_extrinsic(
-    subtensor: "AsyncSubtensor",
+def commit_weights_extrinsic(
+    subtensor: "Subtensor",
     wallet: "Wallet",
     netuid: int,
     commit_hash: str,
@@ -43,7 +43,7 @@ async def commit_weights_extrinsic(
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
-        raise_error: raises the relevant exception rather than returning `False` if unsuccessful.
+        raise_error (bool): Whether to raise an error if the transaction fails.
 
     Returns:
         tuple[bool, str]:
@@ -53,7 +53,8 @@ async def commit_weights_extrinsic(
     This function provides a user-friendly interface for committing weights to the Bittensor blockchain, ensuring proper
         error handling and user interaction when required.
     """
-    call = await subtensor.substrate.compose_call(
+
+    call = subtensor.substrate.compose_call(
         call_module="SubtensorModule",
         call_function="commit_weights",
         call_params={
@@ -61,27 +62,27 @@ async def commit_weights_extrinsic(
             "commit_hash": commit_hash,
         },
     )
-    success, message = await subtensor.sign_and_send_extrinsic(
+    success, message = subtensor.sign_and_send_extrinsic(
         call=call,
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
         use_nonce=True,
         period=period,
-        nonce_key="hotkey",
         sign_with="hotkey",
+        nonce_key="hotkey",
         raise_error=raise_error,
     )
 
     if success:
         logging.info(message)
     else:
-        logging.error(f"{get_function_name}: {message}")
+        logging.error(f"{get_function_name()}: {message}")
     return success, message
 
 
-async def reveal_weights_extrinsic(
-    subtensor: "AsyncSubtensor",
+def reveal_weights_extrinsic(
+    subtensor: "Subtensor",
     wallet: "Wallet",
     netuid: int,
     uids: list[int],
@@ -120,7 +121,8 @@ async def reveal_weights_extrinsic(
     This function provides a user-friendly interface for revealing weights on the Bittensor blockchain, ensuring proper
         error handling and user interaction when required.
     """
-    call = await subtensor.substrate.compose_call(
+
+    call = subtensor.substrate.compose_call(
         call_module="SubtensorModule",
         call_function="reveal_weights",
         call_params={
@@ -131,27 +133,28 @@ async def reveal_weights_extrinsic(
             "version_key": version_key,
         },
     )
-    success, message = await subtensor.sign_and_send_extrinsic(
+
+    success, message = subtensor.sign_and_send_extrinsic(
         call=call,
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
-        sign_with="hotkey",
-        period=period,
-        nonce_key="hotkey",
         use_nonce=True,
+        period=period,
+        sign_with="hotkey",
+        nonce_key="hotkey",
         raise_error=raise_error,
     )
 
     if success:
         logging.info(message)
     else:
-        logging.error(f"{get_function_name}: {message}")
+        logging.error(f"{get_function_name()}: {message}")
     return success, message
 
 
-async def set_weights_extrinsic(
-    subtensor: "AsyncSubtensor",
+def set_weights_extrinsic(
+    subtensor: "Subtensor",
     wallet: "Wallet",
     netuid: int,
     uids: Union[NDArray[np.int64], "torch.LongTensor", list],
@@ -162,7 +165,7 @@ async def set_weights_extrinsic(
     period: Optional[int] = 8,
     raise_error: bool = False,
 ) -> tuple[bool, str]:
-    """Sets the given weights and values on chain for a given wallet hotkey account.
+    """Sets the given weights and values on a chain for a wallet hotkey account.
 
     Args:
         subtensor: Bittensor subtensor object.
@@ -197,7 +200,7 @@ async def set_weights_extrinsic(
         f"[magenta]...[/magenta]"
     )
 
-    call = await subtensor.substrate.compose_call(
+    call = subtensor.substrate.compose_call(
         call_module="SubtensorModule",
         call_function="set_weights",
         call_params={
@@ -207,7 +210,7 @@ async def set_weights_extrinsic(
             "version_key": version_key,
         },
     )
-    success, message = await subtensor.sign_and_send_extrinsic(
+    success, message = subtensor.sign_and_send_extrinsic(
         call=call,
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
