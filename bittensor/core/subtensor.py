@@ -3363,26 +3363,27 @@ class Subtensor(SubtensorMixin):
         price_low: Balance,
         price_high: Balance,
         hotkey: Optional[str] = None,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
         period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
     ) -> tuple[bool, str]:
         """
         Adds liquidity to the specified price range.
 
-        Arguments:
+        Parameters:
             wallet: The wallet used to sign the extrinsic (must be unlocked).
             netuid: The UID of the target subnet for which the call is being initiated.
             liquidity: The amount of liquidity to be added.
             price_low: The lower bound of the price tick range. In TAO.
             price_high: The upper bound of the price tick range. In TAO.
-            hotkey: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used. Defaults to
-                `None`.
-            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block. Defaults to True.
-            wait_for_finalization: Whether to wait for finalization of the extrinsic. Defaults to False.
+            hotkey: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
             Tuple[bool, str]:
@@ -3390,7 +3391,7 @@ class Subtensor(SubtensorMixin):
                 - False and an error message if the submission fails or the wallet cannot be unlocked.
 
         Note: Adding is allowed even when user liquidity is enabled in specified subnet. Call `toggle_user_liquidity`
-            method to enable/disable user liquidity.
+        method to enable/disable user liquidity.
         """
         return add_liquidity_extrinsic(
             subtensor=self,
@@ -3400,9 +3401,10 @@ class Subtensor(SubtensorMixin):
             price_low=price_low,
             price_high=price_high,
             hotkey=hotkey,
+            period=period,
+            raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            period=period,
         )
 
     def add_stake_multiple(
