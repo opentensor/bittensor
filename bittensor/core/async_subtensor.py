@@ -1235,8 +1235,6 @@ class AsyncSubtensor(SubtensorMixin):
         """
         if reuse_block:
             block_hash = self.substrate.last_block_hash
-        elif not block_hash:
-            block_hash = await self.get_block_hash(block)
         else:
             block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         calls = [
