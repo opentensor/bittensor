@@ -59,10 +59,7 @@ from bittensor.core.extrinsics.asyncex.registration import (
     register_subnet_extrinsic,
     set_subnet_identity_extrinsic,
 )
-from bittensor.core.extrinsics.asyncex.root import (
-    set_root_weights_extrinsic,
-    root_register_extrinsic,
-)
+from bittensor.core.extrinsics.asyncex.root import root_register_extrinsic
 from bittensor.core.extrinsics.asyncex.serving import (
     get_last_bonds_reset,
     publish_metadata,
@@ -5161,47 +5158,6 @@ class AsyncSubtensor(SubtensorMixin):
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            period=period,
-        )
-
-    async def root_set_weights(
-        self,
-        wallet: "Wallet",
-        netuids: UIDs,
-        weights: Weights,
-        version_key: int = 0,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = True,
-        period: Optional[int] = None,
-    ) -> bool:
-        """
-        Set weights for the root network.
-
-        Arguments:
-            wallet: bittensor wallet instance.
-            netuids: The list of subnet uids.
-            weights: The list of weights to be set.
-            version_key: Version key for compatibility with the network. Default is `0`.
-            wait_for_inclusion: Waits for the transaction to be included in a block.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Defaults to `False`.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-            transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
-
-        Returns:
-            `True` if the setting of weights is successful, `False` otherwise.
-        """
-        netuids_, weights_ = convert_uids_and_weights(netuids, weights)
-        logging.info(f"Setting weights in network: [blue]{self.network}[/blue]")
-        # Run the set weights operation.
-        return await set_root_weights_extrinsic(
-            subtensor=self,
-            wallet=wallet,
-            netuids=netuids_,
-            weights=weights_,
-            version_key=version_key,
-            wait_for_finalization=wait_for_finalization,
-            wait_for_inclusion=wait_for_inclusion,
             period=period,
         )
 
