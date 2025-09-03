@@ -34,15 +34,15 @@ def commit_weights_extrinsic(
     This function is a wrapper around the `do_commit_weights` method.
 
     Args:
-        subtensor (bittensor.core.subtensor.Subtensor): The subtensor instance used for blockchain interaction.
-        wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the weights.
-        netuid (int): The unique identifier of the subnet.
-        commit_hash (str): The hash of the neuron's weights to be committed.
-        wait_for_inclusion (bool): Waits for the transaction to be included in a block.
-        wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
+        subtensor: The subtensor instance used for blockchain interaction.
+        wallet: The wallet associated with the neuron committing the weights.
+        netuid: The unique identifier of the subnet.
+        commit_hash: The hash of the neuron's weights to be committed.
+        wait_for_inclusion: Waits for the transaction to be included in a block.
+        wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
         raise_error (bool): Whether to raise an error if the transaction fails.
 
     Returns:
@@ -100,18 +100,18 @@ def reveal_weights_extrinsic(
     This function is a wrapper around the `_do_reveal_weights` method.
 
     Args:
-        subtensor (bittensor.core.subtensor.Subtensor): The subtensor instance used for blockchain interaction.
-        wallet (bittensor_wallet.Wallet): The wallet associated with the neuron revealing the weights.
-        netuid (int): The unique identifier of the subnet.
-        uids (list[int]): List of neuron UIDs for which weights are being revealed.
-        weights (list[int]): List of weight values corresponding to each UID.
-        salt (list[int]): List of salt values corresponding to the hash function.
-        version_key (int): Version key for compatibility with the network.
-        wait_for_inclusion (bool): Waits for the transaction to be included in a block.
-        wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
+        subtensor: The subtensor instance used for blockchain interaction.
+        wallet: The wallet associated with the neuron revealing the weights.
+        netuid: The unique identifier of the subnet.
+        uids: List of neuron UIDs for which weights are being revealed.
+        weights: List of weight values corresponding to each UID.
+        salt: List of salt values corresponding to the hash function.
+        version_key: Version key for compatibility with the network.
+        wait_for_inclusion: Waits for the transaction to be included in a block.
+        wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
         raise_error: raises the relevant exception rather than returning `False` if unsuccessful.
 
     Returns:
@@ -164,28 +164,30 @@ def set_weights_extrinsic(
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
     period: Optional[int] = 8,
+    raise_error: bool = False,
 ) -> tuple[bool, str]:
     """Sets the given weights and values on a chain for a wallet hotkey account.
 
     Args:
-        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): Bittensor subtensor object.
-        wallet (bittensor_wallet.Wallet): Bittensor wallet object.
-        netuid (int): The ``netuid`` of the subnet to set weights for.
-        uids (Union[NDArray[np.int64], torch.LongTensor, list]): The ``uint64`` uids of destination neurons.
-        weights (Union[NDArray[np.float32], torch.FloatTensor, list]): The weights to set. These must be ``float`` s
-            and correspond to the passed ``uid`` s.
-        version_key (int): The version key of the validator.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``True``, or
-            returns ``False`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
-            ``True``, or returns ``False`` if the extrinsic fails to be finalized within the timeout.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted.
-            If the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
+        subtensor: Bittensor subtensor object.
+        wallet: Bittensor wallet object.
+        netuid: The ``netuid`` of the subnet to set weights for.
+        uids: The ``uint64`` uids of destination neurons.
+        weights: The weights to set. These must be ``float``s and correspond to the passed ``uid``s.
+        version_key: The version key of the validator.
+        wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning ``True``, or returns
+            ``False`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning ``True``,
+            or returns ``False`` if the extrinsic fails to be finalized within the timeout.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: raises the relevant exception rather than returning `False` if unsuccessful.
 
     Returns:
-        success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
-            finalization / inclusion, the response is ``True``.
+        tuple[bool, str]:
+            `True` if the weight commitment is successful, `False` otherwise.
+            `msg` is a string value describing the success or potential error.
     """
     # Convert types.
     uids, weights = convert_uids_and_weights(uids, weights)
@@ -218,6 +220,7 @@ def set_weights_extrinsic(
         use_nonce=True,
         nonce_key="hotkey",
         sign_with="hotkey",
+        raise_error=raise_error,
     )
 
     if success:
