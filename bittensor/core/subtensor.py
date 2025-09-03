@@ -3985,40 +3985,47 @@ class Subtensor(SubtensorMixin):
         netuid: int,
         uids: Union[NDArray[np.int64], "torch.LongTensor", list],
         weights: Union[NDArray[np.float32], "torch.FloatTensor", list],
+        block_time: float = 12.0,
+        commit_reveal_version: int = 4,
+        max_retries: int = 5,
         version_key: int = version_as_int,
+        period: Optional[int] = 8,
+        raise_error: bool = False,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
-        max_retries: int = 5,
-        block_time: float = 12.0,
-        period: Optional[int] = 8,
     ) -> tuple[bool, str]:
         """
-        Sets the interneuronal weights for the specified neuron. This process involves specifying the influence or
-            trust a neuron places on other neurons in the network, which is a fundamental aspect of Bittensor's
-            decentralized learning architecture.
+        Sets the interneuronal weights for the specified neuron. This process involves specifying the influence or trust
+        a neuron places on other neurons in the network, which is a fundamental aspect of Bittensor's decentralized
+        learning architecture.
 
-        Arguments:
-            wallet: The wallet associated with the neuron setting the weights.
+        Parameters:
+            wallet: The wallet associated with the subnet validator setting the weights.
             netuid: The unique identifier of the subnet.
-            uids: The list of neuron UIDs that the weights are being set for.
-            weights: The corresponding weights to be set for each UID.
-            version_key: Version key for compatibility with the network.  Default is int representation of a Bittensor
-                version.
-            wait_for_inclusion: Waits for the transaction to be included in a block. Default is ``False``.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Default is ``False``.
-            max_retries: The number of maximum attempts to set weights. Default is ``5``.
-            block_time: The number of seconds for block duration. Default is 12.0 seconds.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+            uids: The list of subnet miner neuron UIDs that the weights are being set for.
+            weights: The corresponding weights to be set for each UID, representing the validator's evaluation of each
+                miner's performance.
+            block_time: The number of seconds for block duration.
+            commit_reveal_version: The version of the chain commit-reveal protocol to use.
+            max_retries: The number of maximum attempts to set weights.
+            version_key: Version key for compatibility with the network.
+            period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction. Default is 8.
+                and be rejected. You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
 
         Returns:
-            tuple:
-                `True` if the setting of weights is successful, `False` otherwise.
-                `msg` is a string value describing the success or potential error.
+            Tuple[bool, str]:
+                - True and a success message if the extrinsic is successfully submitted or processed.
+                - False and an error message if the submission fails or the wallet cannot be unlocked.
 
         This function is crucial in shaping the network's collective intelligence, where each neuron's learning and
-            contribution are influenced by the weights it sets towards others.
+        contribution are influenced by the weights it sets towards others.
+
+        Notes:
+            See <https://docs.learnbittensor.org/glossary#yuma-consensus>
         """
 
         def _blocks_weight_limit() -> bool:
@@ -4051,11 +4058,13 @@ class Subtensor(SubtensorMixin):
                     netuid=netuid,
                     uids=uids,
                     weights=weights,
+                    block_time=block_time,
+                    commit_reveal_version=commit_reveal_version,
                     version_key=version_key,
+                    period=period,
+                    raise_error=raise_error,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
-                    block_time=block_time,
-                    period=period,
                 )
                 retries += 1
             return success, message

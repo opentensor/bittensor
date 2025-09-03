@@ -3180,11 +3180,13 @@ def test_set_weights_with_commit_reveal_enabled(subtensor, fake_wallet, mocker):
         netuid=fake_netuid,
         uids=fake_uids,
         weights=fake_weights,
+        commit_reveal_version=4,
         version_key=subtensor_module.version_as_int,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
         block_time=12.0,
         period=8,
+        raise_error=False,
     )
     assert result == mocked_commit_reveal_v3_extrinsic.return_value
 
