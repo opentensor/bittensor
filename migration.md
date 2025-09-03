@@ -152,3 +152,4 @@ It must include:
 -[x] `._do_commit_weights` logic is included in the main code `.commit_weights_extrinsic`
 -[x] `._do_reveal_weights` logic is included in the main code `.reveal_weights_extrinsic`
 -[x] `._do_set_weights` logic is included in the main code `.set_weights_extrinsic`
+-[x] `set_weights_extrinsic` moved to `bittensor/core/extrinsics/commit_weights.py`
