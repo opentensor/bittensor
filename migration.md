@@ -1,7 +1,7 @@
 # Plan
 
 ## Extrinsics and related
-1. Standardize parameter order across all extrinsics and related calls. Pass extrinsic-specific arguments first (e.g., wallet, hotkey, netuid, amount), followed by optional general flags (e.g., wait_for_inclusion, wait_for_finalization)
+1. ✅ Standardize parameter order across all extrinsics and related calls. Pass extrinsic-specific arguments first (e.g., wallet, hotkey, netuid, amount), followed by optional general flags (e.g., wait_for_inclusion, wait_for_finalization)
     <details>
         <summary>Example</summary>
 
@@ -35,9 +35,9 @@
         allow_partial_stake: bool = False,
         safe_staking: bool = False,
         period: Optional[int] = None,
+        raise_error: bool = True,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-        raise_error: bool = True,
     ) -> bool:
     ```
     </details>
@@ -48,8 +48,8 @@
     - Ease of processing
     - This class should contain success, message, and optionally data and logs. (to save all logs during the extrinsic)
 
-3. Set `wait_for_inclusion` and `wait_for_finalization` to `True` by default in extrinsics and their related calls. Then we will guarantee the correct/expected extrinsic call response is consistent with the chain response. If the user changes those values, then it is the user's responsibility.
-4. Make the internal logic of extrinsics the same. There are extrinsics that are slightly different in implementation.
+3. ✅ Set `wait_for_inclusion` and `wait_for_finalization` to `True` by default in extrinsics and their related calls. Then we will guarantee the correct/expected extrinsic call response is consistent with the chain response. If the user changes those values, then it is the user's responsibility.
+4. ✅ Make the internal logic of extrinsics the same. There are extrinsics that are slightly different in implementation.
 
 5. Since SDK is not a responsible tool, try to remove all calculations inside extrinsics that do not affect the result, but are only used in logging. Actually, this should be applied not to extrinsics only but for all codebase.
 
@@ -160,3 +160,8 @@ It must include:
 - [x] `._do_transfer` logic is included in the main code `.transfer_extrinsic`
 - [x] `dest` parameter has been renamed to `destination` in `transfer_extrinsic` function and `subtensor.transfer` method.
 - [x]] obsolete extrinsic `set_root_weights_extrinsic` removed. Also related subtensor calls `subtensor.set_root_weights_extrinsic` removed too.
+
+# Standardize parameter order is applied for (extrinsics and related calls):
+Note: `raise_error` parameter is included in the list of parameters and parameters order is standardized. 
+- [x] `.set_children_extrinsic` and `.root_set_pending_childkey_cooldown_extrinsic`. `subtensor.set_children` and `subtensor.root_set_pending_childkey_cooldown` methods.
+- 
