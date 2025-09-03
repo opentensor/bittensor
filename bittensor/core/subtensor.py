@@ -44,7 +44,7 @@ from bittensor.core.extrinsics.children import (
     root_set_pending_childkey_cooldown_extrinsic,
 )
 from bittensor.core.extrinsics.commit_reveal import commit_reveal_extrinsic
-from bittensor.core.extrinsics.commit_weights import (
+from bittensor.core.extrinsics.weights import (
     commit_weights_extrinsic,
     reveal_weights_extrinsic,
 )
@@ -75,7 +75,7 @@ from bittensor.core.extrinsics.serving import (
     get_metadata,
     serve_axon_extrinsic,
 )
-from bittensor.core.extrinsics.commit_weights import set_weights_extrinsic
+from bittensor.core.extrinsics.weights import set_weights_extrinsic
 from bittensor.core.extrinsics.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
