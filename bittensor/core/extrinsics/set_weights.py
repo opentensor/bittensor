@@ -6,6 +6,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from bittensor.core.settings import version_as_int
+from bittensor.utils import get_function_name
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import (
     convert_and_normalize_weights_and_uids,
@@ -18,66 +19,6 @@ if TYPE_CHECKING:
     from bittensor.utils.registration import torch
 
 
-def _do_set_weights(
-    subtensor: "Subtensor",
-    wallet: "Wallet",
-    netuid: int,
-    uids: list[int],
-    vals: list[int],
-    version_key: int = version_as_int,
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = False,
-    period: Optional[int] = None,
-) -> tuple[bool, str]:
-    """
-    Internal method to send a transaction to the Bittensor blockchain, setting weights
-    for specified neurons. This method constructs and submits the transaction, handling
-    retries and blockchain communication.
-
-    Args:
-        subtensor (subtensor.core.subtensor.Subtensor): Subtensor instance.
-        wallet (bittensor_wallet.Wallet): The wallet associated with the neuron setting the weights.
-        uids (List[int]): List of neuron UIDs for which weights are being set.
-        vals (List[int]): List of weight values corresponding to each UID.
-        netuid (int): Unique identifier for the network.
-        version_key (int, optional): Version key for compatibility with the network.
-        wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
-        wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
-
-    Returns:
-        Tuple[bool, str]: A tuple containing a success flag and an optional error message.
-
-    This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their
-        trust in other neurons based on observed performance and contributions.
-    """
-
-    call = subtensor.substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="set_weights",
-        call_params={
-            "dests": uids,
-            "weights": vals,
-            "netuid": netuid,
-            "version_key": version_key,
-        },
-    )
-    success, message = subtensor.sign_and_send_extrinsic(
-        call=call,
-        wallet=wallet,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-        period=period,
-        use_nonce=True,
-        nonce_key="hotkey",
-        sign_with="hotkey",
-    )
-    return success, message
-
-
-# TODO: deprecate in SDKv10
 def set_weights_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
@@ -122,30 +63,30 @@ def set_weights_extrinsic(
         f"[blue]{subtensor.network}[/blue] "
         f"[magenta]...[/magenta]"
     )
-    try:
-        success, message = _do_set_weights(
-            subtensor=subtensor,
-            wallet=wallet,
-            netuid=netuid,
-            uids=weight_uids,
-            vals=weight_vals,
-            version_key=version_key,
-            wait_for_finalization=wait_for_finalization,
-            wait_for_inclusion=wait_for_inclusion,
-            period=period,
-        )
 
-        if not wait_for_finalization and not wait_for_inclusion:
-            return True, message
+    call = subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="set_weights",
+        call_params={
+            "dests": weight_uids,
+            "weights": weight_vals,
+            "netuid": netuid,
+            "version_key": version_key,
+        },
+    )
+    success, message = subtensor.sign_and_send_extrinsic(
+        call=call,
+        wallet=wallet,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+        period=period,
+        use_nonce=True,
+        nonce_key="hotkey",
+        sign_with="hotkey",
+    )
 
-        if success is True:
-            message = "Successfully set weights and Finalized."
-            logging.success(f":white_heavy_check_mark: [green]{message}[/green]")
-            return True, message
-
-        logging.error(f"[red]Failed[/red] set weights. Error: {message}")
-        return False, message
-
-    except Exception as error:
-        logging.error(f":cross_mark: [red]Failed[/red] set weights. Error: {error}")
-        return False, str(error)
+    if success:
+        logging.info(message)
+    else:
+        logging.error(f"{get_function_name}: {message}")
+    return success, message
