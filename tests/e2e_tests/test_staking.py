@@ -1132,7 +1132,7 @@ def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
         amount=stake_swap_amount,
         wait_for_inclusion=True,
         wait_for_finalization=True,
-        safe_staking=True,
+        safe_swapping=True,
         rate_tolerance=0.005,  # 0.5%
         allow_partial_stake=False,
     )
@@ -1158,7 +1158,7 @@ def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
         amount=stake_swap_amount,
         wait_for_inclusion=True,
         wait_for_finalization=True,
-        safe_staking=True,
+        safe_swapping=True,
         rate_tolerance=0.3,  # 30%
         allow_partial_stake=True,
     )
@@ -1248,7 +1248,7 @@ async def test_safe_swap_stake_scenarios_async(
         amount=stake_swap_amount,
         wait_for_inclusion=True,
         wait_for_finalization=True,
-        safe_staking=True,
+        safe_swapping=True,
         rate_tolerance=0.005,  # 0.5%
         allow_partial_stake=False,
     )
@@ -1274,7 +1274,7 @@ async def test_safe_swap_stake_scenarios_async(
         amount=stake_swap_amount,
         wait_for_inclusion=True,
         wait_for_finalization=True,
-        safe_staking=True,
+        safe_swapping=True,
         rate_tolerance=0.3,  # 30%
         allow_partial_stake=True,
     )
