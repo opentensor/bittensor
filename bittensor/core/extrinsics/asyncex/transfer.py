@@ -4,9 +4,9 @@ from typing import TYPE_CHECKING, Optional
 from bittensor.core.settings import NETWORK_EXPLORER_MAP
 from bittensor.utils import (
     get_explorer_url_for_network,
+    get_transfer_fn_params,
     is_valid_bittensor_address_or_public_key,
     unlock_key,
-    get_transfer_fn_params,
 )
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -21,33 +21,31 @@ async def transfer_extrinsic(
     wallet: "Wallet",
     destination: str,
     amount: Optional[Balance],
-    transfer_all: bool = False,
-    wait_for_inclusion: bool = True,
-    wait_for_finalization: bool = False,
     keep_alive: bool = True,
+    transfer_all: bool = False,
     period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
 ) -> bool:
     """Transfers funds from this wallet to the destination public key address.
 
-    Args:
-        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): initialized AsyncSubtensor object used for transfer
-        wallet (bittensor_wallet.Wallet): Bittensor wallet object to make transfer from.
-        destination (str): Destination public key address (ss58_address or ed25519) of recipient.
-        amount (Optional[bittensor.utils.balance.Balance]): Amount to stake as Bittensor balance. `None` if
-            transferring all.
-        transfer_all (bool): Whether to transfer all funds from this wallet to the destination address.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns
-            `False` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
-            `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
-        keep_alive (bool): If set, keeps the account alive by keeping the balance above the existential deposit.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted.
-            If the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
+    Parameters:
+        subtensor: The Subtensor instance.
+        wallet: The wallet to sign the extrinsic.
+        destination: Destination public key address (ss58_address or ed25519) of recipient.
+        amount: Amount to stake as Bittensor balance. `None` if transferring all.
+        transfer_all: Whether to transfer all funds from this wallet to the destination address.
+        keep_alive: If set, keeps the account alive by keeping the balance above the existential deposit.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        success (bool): Flag is `True` if extrinsic was finalized or included in the block. If we did not wait for
-            finalization / inclusion, the response is `True`, regardless of its inclusion.
+        bool: True if the subnet registration was successful, False otherwise.
     """
     if amount is None and not transfer_all:
         logging.error("If not transferring all, `amount` must be specified.")
@@ -114,6 +112,7 @@ async def transfer_extrinsic(
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
         period=period,
+        raise_error=raise_error,
     )
 
     if success:
