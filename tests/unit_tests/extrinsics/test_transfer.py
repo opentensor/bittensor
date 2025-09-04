@@ -67,6 +67,7 @@ def test_transfer_extrinsic_success(subtensor, fake_wallet, mocker):
         wait_for_inclusion=True,
         wait_for_finalization=True,
         period=None,
+        raise_error=False,
     )
     assert result is True
 
@@ -137,6 +138,7 @@ def test_transfer_extrinsic_call_successful_with_failed_response(
         wait_for_inclusion=True,
         wait_for_finalization=True,
         period=None,
+        raise_error=False,
     )
     assert result is False
 
