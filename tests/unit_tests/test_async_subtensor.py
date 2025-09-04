@@ -2624,6 +2624,7 @@ async def test_register_success(subtensor, fake_wallet, mocker):
 
     # Asserts
     mocked_register_extrinsic.assert_awaited_once_with(
+        wallet=fake_wallet,
         cuda=False,
         dev_id=0,
         log_verbose=False,
@@ -2634,10 +2635,10 @@ async def test_register_success(subtensor, fake_wallet, mocker):
         subtensor=subtensor,
         tpb=256,
         update_interval=None,
-        wait_for_finalization=True,
-        wait_for_inclusion=False,
-        wallet=fake_wallet,
         period=None,
+        raise_error=False,
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
     )
     assert result == mocked_register_extrinsic.return_value
 
