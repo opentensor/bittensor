@@ -4422,6 +4422,7 @@ class AsyncSubtensor(SubtensorMixin):
         amounts: Optional[list[Balance]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
+        period: Optional[int] = None,
     ) -> bool:
         """
         Adds stakes to multiple neurons identified by their hotkey SS58 addresses.
@@ -4434,6 +4435,9 @@ class AsyncSubtensor(SubtensorMixin):
             amounts: Corresponding amounts of TAO to stake for each hotkey.
             wait_for_inclusion: Waits for the transaction to be included in a block. Defaults to `True`.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Defaults to `False`.
+            period: The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
 
         Returns:
             bool: ``True`` if the staking is successful for all specified neurons, ``False`` otherwise.
@@ -4449,6 +4453,7 @@ class AsyncSubtensor(SubtensorMixin):
             amounts=amounts,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            period=period,
         )
 
     async def burned_register(
