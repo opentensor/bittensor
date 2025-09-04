@@ -186,3 +186,4 @@ wait_for_finalization: bool = False,
     - `destination_hotkey` to `destination_hotkey_ss58`
 - [x] `.burned_register_extrinsic` and `subtensor.burned_register`
 - [x] `.register_subnet_extrinsic` and `subtensor.register_subnet`
+- [x] `.register_extrinsic` and `subtensor.register`
