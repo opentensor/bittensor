@@ -2604,6 +2604,7 @@ async def test_transfer_success(subtensor, fake_wallet, mocker):
         wait_for_finalization=False,
         keep_alive=True,
         period=None,
+        raise_error=False,
     )
     assert result == mocked_transfer_extrinsic.return_value
 
