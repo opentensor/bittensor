@@ -16,7 +16,7 @@ logging.set_trace()
 
 def test_commitment(subtensor, alice_wallet, dave_wallet):
     dave_subnet_netuid = 2
-    assert subtensor.subnets.register_subnet(dave_wallet, True, True)
+    assert subtensor.subnets.register_subnet(dave_wallet)
     assert subtensor.subnets.subnet_exists(dave_subnet_netuid), (
         "Subnet wasn't created successfully"
     )
