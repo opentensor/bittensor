@@ -345,9 +345,10 @@ async def test_set_subnet_identity_extrinsic_is_success(subtensor, fake_wallet, 
     mocked_sign_and_send_extrinsic.assert_awaited_once_with(
         call=mocked_compose_call.return_value,
         wallet=fake_wallet,
-        wait_for_inclusion=False,
+        wait_for_inclusion=True,
         wait_for_finalization=True,
         period=None,
+        raise_error=False,
     )
 
     assert result == (True, "Identities for subnet 123 are set.")
@@ -416,6 +417,7 @@ async def test_set_subnet_identity_extrinsic_is_failed(subtensor, fake_wallet, m
         wait_for_inclusion=True,
         wait_for_finalization=True,
         period=None,
+        raise_error=False,
     )
 
     assert result == (

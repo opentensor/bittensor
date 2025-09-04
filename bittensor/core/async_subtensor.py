@@ -5292,29 +5292,30 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         netuid: int,
         subnet_identity: SubnetIdentity,
-        wait_for_inclusion: bool = False,
+        period: Optional[int] = 8,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-        period: Optional[int] = None,
     ) -> tuple[bool, str]:
         """
         Sets the identity of a subnet for a specific wallet and network.
 
-        Arguments:
+        Parameters:
             wallet: The wallet instance that will authorize the transaction.
             netuid: The unique ID of the network on which the operation takes place.
-            subnet_identity: The identity data of the subnet including attributes like name, GitHub
-                repository, contact, URL, discord, description, and any additional metadata.
-            wait_for_inclusion: Indicates if the function should wait for the transaction to be included in the
-                block.
-            wait_for_finalization: Indicates if the function should wait for the transaction to reach
-                finalization.
+            subnet_identity: The identity data of the subnet including attributes like name, GitHub repository, contact,
+                URL, discord, description, and any additional metadata.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
 
         Returns:
-            tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
-             operation, and the second element is a message providing additional information.
+            Tuple[bool, str]:
+                - True and a success message if the extrinsic is successfully submitted or processed.
+                - False and an error message if the submission fails or the wallet cannot be unlocked.
         """
         return await set_subnet_identity_extrinsic(
             subtensor=self,
@@ -5328,9 +5329,10 @@ class AsyncSubtensor(SubtensorMixin):
             discord=subnet_identity.discord,
             description=subnet_identity.description,
             additional=subnet_identity.additional,
+            period=period,
+            raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            period=period,
         )
 
     async def set_weights(
