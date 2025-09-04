@@ -696,10 +696,10 @@ def test_last_drand_round(mock_substrate, subtensor):
 )
 def test_move_stake(mock_substrate, subtensor, fake_wallet, wait):
     success = subtensor.move_stake(
-        fake_wallet,
-        origin_hotkey="origin_hotkey",
+        wallet=fake_wallet,
+        origin_hotkey_ss58="origin_hotkey",
         origin_netuid=1,
-        destination_hotkey="destination_hotkey",
+        destination_hotkey_ss58="destination_hotkey",
         destination_netuid=2,
         amount=Balance(1),
         wait_for_finalization=wait,
@@ -730,9 +730,9 @@ def test_move_stake_insufficient_stake(mock_substrate, subtensor, fake_wallet, m
 
     success = subtensor.move_stake(
         fake_wallet,
-        origin_hotkey="origin_hotkey",
+        origin_hotkey_ss58="origin_hotkey",
         origin_netuid=1,
-        destination_hotkey="destination_hotkey",
+        destination_hotkey_ss58="destination_hotkey",
         destination_netuid=2,
         amount=Balance(1),
     )
@@ -750,9 +750,9 @@ def test_move_stake_error(mock_substrate, subtensor, fake_wallet, mocker):
 
     success = subtensor.move_stake(
         fake_wallet,
-        origin_hotkey="origin_hotkey",
+        origin_hotkey_ss58="origin_hotkey",
         origin_netuid=1,
-        destination_hotkey="destination_hotkey",
+        destination_hotkey_ss58="destination_hotkey",
         destination_netuid=2,
         amount=Balance(1),
     )
@@ -771,7 +771,7 @@ def test_move_stake_error(mock_substrate, subtensor, fake_wallet, mocker):
             "destination_netuid": 2,
             "alpha_amount": 1,
         },
-        wait_for_finalization=False,
+        wait_for_finalization=True,
         wait_for_inclusion=True,
     )
 
@@ -781,9 +781,9 @@ def test_move_stake_exception(mock_substrate, subtensor, fake_wallet):
 
     success = subtensor.move_stake(
         fake_wallet,
-        origin_hotkey="origin_hotkey",
+        origin_hotkey_ss58="origin_hotkey",
         origin_netuid=1,
-        destination_hotkey="destination_hotkey",
+        destination_hotkey_ss58="destination_hotkey",
         destination_netuid=2,
         amount=Balance(1),
     )
@@ -802,7 +802,7 @@ def test_move_stake_exception(mock_substrate, subtensor, fake_wallet):
             "destination_netuid": 2,
             "alpha_amount": 1,
         },
-        wait_for_finalization=False,
+        wait_for_finalization=True,
         wait_for_inclusion=True,
     )
 
