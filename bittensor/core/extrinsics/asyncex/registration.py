@@ -407,34 +407,37 @@ async def set_subnet_identity_extrinsic(
     discord: str,
     description: str,
     additional: str,
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = True,
     period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
 ) -> tuple[bool, str]:
     """
     Set the identity information for a given subnet.
 
-    Arguments:
-        subtensor (AsyncSubtensor): An instance of the Subtensor class to interact with the blockchain.
-        wallet (Wallet): A wallet instance used to sign and submit the extrinsic.
-        netuid (int): The unique ID for the subnet.
-        subnet_name (str): The name of the subnet to assign the identity information.
-        github_repo (str): URL of the GitHub repository related to the subnet.
-        subnet_contact (str): Subnet's contact information, e.g., email or contact link.
-        subnet_url (str): The URL of the subnet's primary web portal.
-        logo_url (str): The URL of the logo's primary web portal.
-        discord (str): Discord server or contact for the subnet.
-        description (str): A textual description of the subnet.
-        additional (str): Any additional metadata or information related to the subnet.
-        wait_for_inclusion (bool): Whether to wait for the extrinsic inclusion in a block (default: False).
-        wait_for_finalization (bool): Whether to wait for the extrinsic finalization in a block (default: True).
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
+    Parameters:
+        subtensor: An instance of the Subtensor class to interact with the blockchain.
+        wallet: A wallet instance used to sign and submit the extrinsic.
+        netuid: The unique ID for the subnet.
+        subnet_name: The name of the subnet to assign the identity information.
+        github_repo: URL of the GitHub repository related to the subnet.
+        subnet_contact: Subnet's contact information, e.g., email or contact link.
+        subnet_url: The URL of the subnet's primary web portal.
+        logo_url: The URL of the logo's primary web portal.
+        discord: Discord server or contact for the subnet.
+        description: A textual description of the subnet.
+        additional: Any additional metadata or information related to the subnet.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        tuple[bool, str]: A tuple where the first element indicates success or failure (True/False), and the second
-            element contains a descriptive message.
+        Tuple[bool, str]:
+            - True and a success message if the extrinsic is successfully submitted or processed.
+            - False and an error message if the submission fails or the wallet cannot be unlocked.
     """
 
     if not (unlock := unlock_key(wallet)).success:
@@ -464,6 +467,7 @@ async def set_subnet_identity_extrinsic(
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
         period=period,
+        raise_error=raise_error,
     )
 
     if not wait_for_finalization and not wait_for_inclusion:

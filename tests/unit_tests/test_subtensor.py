@@ -3245,9 +3245,10 @@ def test_set_subnet_identity(mocker, subtensor, fake_wallet):
         discord=fake_subnet_identity.discord,
         description=fake_subnet_identity.description,
         additional=fake_subnet_identity.additional,
+        period=8,
+        raise_error=False,
         wait_for_finalization=True,
-        wait_for_inclusion=False,
-        period=None,
+        wait_for_inclusion=True,
     )
     assert result == mocked_extrinsic.return_value
 
