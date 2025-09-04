@@ -53,6 +53,7 @@ def test_add_stake_extrinsic(mocker):
         sign_with="coldkey",
         use_nonce=True,
         period=None,
+        raise_error=False,
     )
 
 
@@ -135,12 +136,13 @@ def test_add_stake_multiple_extrinsic(mocker):
     fake_subtensor.sign_and_send_extrinsic.assert_called_with(
         call=fake_subtensor.substrate.compose_call.return_value,
         wallet=fake_wallet_,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
         nonce_key="coldkeypub",
         sign_with="coldkey",
         use_nonce=True,
         period=None,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
     )
 
 

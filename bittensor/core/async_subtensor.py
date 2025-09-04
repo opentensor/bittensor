@@ -4479,36 +4479,38 @@ class AsyncSubtensor(SubtensorMixin):
         hotkey_ss58: Optional[str] = None,
         netuid: Optional[int] = None,
         amount: Optional[Balance] = None,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
         safe_staking: bool = False,
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
         period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
     ) -> bool:
         """
         Adds a stake from the specified wallet to the neuron identified by the SS58 address of its hotkey in specified
         subnet. Staking is a fundamental process in the Bittensor network that enables neurons to participate actively
         and earn incentives.
 
-        Arguments:
+        Parameters:
             wallet: The wallet to be used for staking.
             hotkey_ss58: The SS58 address of the hotkey associated with the neuron to which you intend to delegate your
-                stake. If not specified, the wallet's hotkey will be used. Defaults to ``None``.
+                stake. If not specified, the wallet's hotkey will be used.
             netuid: The unique identifier of the subnet to which the neuron belongs.
             amount: The amount of TAO to stake.
-            wait_for_inclusion: Waits for the transaction to be included in a block. Defaults to `True`.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Defaults to `False`.
             safe_staking: If true, enables price safety checks to protect against fluctuating prices. The stake will
                 only execute if the price change doesn't exceed the rate tolerance. Default is ``False``.
             allow_partial_stake: If true and safe_staking is enabled, allows partial staking when the full amount would
                 exceed the price tolerance. If false, the entire stake fails if it would exceed the tolerance.
                 Default is ``False``.
             rate_tolerance: The maximum allowed price change ratio when staking. For example, 0.005 = 0.5% maximum price
-                increase. Only used when safe_staking is True. Default is ``0.005``.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
-                can think of it as an expiration date for the transaction. Defaults to ``None``.
+                increase. Only used when safe_staking is True.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
             bool: ``True`` if the staking is successful, ``False`` otherwise.
@@ -4524,12 +4526,13 @@ class AsyncSubtensor(SubtensorMixin):
             hotkey_ss58=hotkey_ss58,
             netuid=netuid,
             amount=amount,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
             safe_staking=safe_staking,
             allow_partial_stake=allow_partial_stake,
             rate_tolerance=rate_tolerance,
             period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
         )
 
     async def add_liquidity(
@@ -4590,9 +4593,10 @@ class AsyncSubtensor(SubtensorMixin):
         hotkey_ss58s: list[str],
         netuids: UIDs,
         amounts: Optional[list[Balance]] = None,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
         period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
     ) -> bool:
         """
         Adds stakes to multiple neurons identified by their hotkey SS58 addresses.
@@ -4603,11 +4607,12 @@ class AsyncSubtensor(SubtensorMixin):
             hotkey_ss58s: List of ``SS58`` addresses of hotkeys to stake to.
             netuids: list of subnet UIDs.
             amounts: Corresponding amounts of TAO to stake for each hotkey.
-            wait_for_inclusion: Waits for the transaction to be included in a block. Defaults to `True`.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Defaults to `False`.
-            period: The number of blocks during which the transaction will remain valid after it's
-                submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
 
         Returns:
             bool: ``True`` if the staking is successful for all specified neurons, ``False`` otherwise.
@@ -4621,9 +4626,10 @@ class AsyncSubtensor(SubtensorMixin):
             hotkey_ss58s=hotkey_ss58s,
             netuids=netuids,
             amounts=amounts,
+            period=period,
+            raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            period=period,
         )
 
     async def burned_register(
