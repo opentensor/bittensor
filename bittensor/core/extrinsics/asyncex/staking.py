@@ -20,39 +20,39 @@ async def add_stake_extrinsic(
     hotkey_ss58: Optional[str] = None,
     netuid: Optional[int] = None,
     amount: Optional[Balance] = None,
-    wait_for_inclusion: bool = True,
-    wait_for_finalization: bool = False,
     safe_staking: bool = False,
     allow_partial_stake: bool = False,
     rate_tolerance: float = 0.005,
     period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
 ) -> bool:
     """
     Adds a stake from the specified wallet to the neuron identified by the SS58 address of its hotkey in specified subnet.
-    Staking is a fundamental process in the Bittensor network that enables neurons to participate actively and earn incentives.
+    Staking is a fundamental process in the Bittensor network that enables neurons to participate actively and earn
+    incentives.
 
-    Arguments:
+    Parameters:
         subtensor: Subtensor instance with the connection to the chain.
         wallet: Bittensor wallet object.
         old_balance: the balance prior to the staking
         hotkey_ss58: The `ss58` address of the hotkey account to stake to default to the wallet's hotkey. If not
-            specified, the wallet's hotkey will be used. Defaults to ``None``.
+            specified, the wallet's hotkey will be used.
         netuid: The unique identifier of the subnet to which the neuron belongs.
-        amount: Amount to stake as Bittensor balance in TAO always, `None` if staking all. Defaults is ``None``.
-        wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning `True`, or returns
-            `False` if the extrinsic fails to enter the block within the timeout.  Defaults to ``True``.
-        wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning `True`,
-            or returns `False` if the extrinsic fails to be finalized within the timeout. Defaults to ``False``.
+        amount: Amount to stake as Bittensor balance in TAO always, `None` if staking all.
         safe_staking: If True, enables price safety checks. Default is ``False``.
         allow_partial_stake: If True, allows partial unstaking if price tolerance exceeded. Default is ``False``.
         rate_tolerance: Maximum allowed price increase percentage (0.005 = 0.5%). Default is ``0.005``.
-        period: The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction. Defaults to ``None``.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        success: Flag is `True` if extrinsic was finalized or included in the block. If we did not wait for
-                      finalization/inclusion, the response is `True`.
+        bool: True if the subnet registration was successful, False otherwise.
 
     Raises:
         SubstrateRequestException: Raised if the extrinsic fails to be included in the block within the timeout.
@@ -158,7 +158,7 @@ async def add_stake_extrinsic(
             call_function=call_function,
             call_params=call_params,
         )
-        staking_response, err_msg = await subtensor.sign_and_send_extrinsic(
+        success, message = await subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
@@ -167,8 +167,9 @@ async def add_stake_extrinsic(
             sign_with="coldkey",
             use_nonce=True,
             period=period,
+            raise_error=raise_error,
         )
-        if staking_response is True:  # If we successfully staked.
+        if success:  # If we successfully staked.
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
                 return True
@@ -199,14 +200,14 @@ async def add_stake_extrinsic(
                 f"Stake: [blue]{old_stake}[/blue] :arrow_right: [green]{new_stake}[/green]"
             )
             return True
+
+        if safe_staking and "Custom error: 8" in message:
+            logging.error(
+                ":cross_mark: [red]Failed[/red]: Price exceeded tolerance limit. Either increase price tolerance or enable partial staking."
+            )
         else:
-            if safe_staking and "Custom error: 8" in err_msg:
-                logging.error(
-                    ":cross_mark: [red]Failed[/red]: Price exceeded tolerance limit. Either increase price tolerance or enable partial staking."
-                )
-            else:
-                logging.error(f":cross_mark: [red]Failed: {err_msg}.[/red]")
-            return False
+            logging.error(f":cross_mark: [red]Failed: {message}.[/red]")
+        return False
 
     except SubstrateRequestException as error:
         logging.error(
@@ -222,30 +223,30 @@ async def add_stake_multiple_extrinsic(
     netuids: list[int],
     old_balance: Optional[Balance] = None,
     amounts: Optional[list[Balance]] = None,
-    wait_for_inclusion: bool = True,
-    wait_for_finalization: bool = False,
     period: Optional[int] = None,
+    raise_error: bool = True,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
 ) -> bool:
-    """Adds a stake to each ``hotkey_ss58`` in the list, using each amount, from a common coldkey.
+    """
+    Adds a stake to each ``hotkey_ss58`` in the list, using each amount, from a common coldkey.
 
-    Arguments:
-        subtensor: The initialized SubtensorInterface object.
+    Parameters:
+        subtensor: AsyncSubtensor instance with the connection to the chain.
         wallet: Bittensor wallet object for the coldkey.
         old_balance: The balance of the wallet prior to staking.
         hotkey_ss58s: List of hotkeys to stake to.
         netuids: List of netuids to stake to.
         amounts: List of amounts to stake. If `None`, stake all to the first hotkey.
-        wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning `True`, or returns `False`
-            if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning `True`, or
-            returns `False` if the extrinsic fails to be finalized within the timeout.
-        period: The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        success: `True` if extrinsic was finalized or included in the block. `True` if any wallet was staked. If we did
-            not wait for finalization/inclusion, the response is `True`.
+        bool: True if the subnet registration was successful, False otherwise.
     """
     if not isinstance(hotkey_ss58s, list) or not all(
         isinstance(hotkey_ss58, str) for hotkey_ss58 in hotkey_ss58s
@@ -362,11 +363,11 @@ async def add_stake_multiple_extrinsic(
                 sign_with="coldkey",
                 use_nonce=True,
                 period=period,
+                raise_error=raise_error,
             )
 
-            if success is True:  # If we successfully staked.
-                # We only wait here if we expect finalization.
-
+            # If we successfully staked.
+            if success:
                 if not wait_for_finalization and not wait_for_inclusion:
                     old_balance -= staking_balance
                     successful_stakes += 1
