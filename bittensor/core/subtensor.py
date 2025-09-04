@@ -4240,7 +4240,7 @@ class Subtensor(SubtensorMixin):
         origin_netuid: int,
         destination_netuid: int,
         amount: Balance,
-        safe_staking: bool = False,
+        safe_swapping: bool = False,
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
         period: Optional[int] = None,
@@ -4258,7 +4258,7 @@ class Subtensor(SubtensorMixin):
             origin_netuid: The netuid from which stake is removed.
             destination_netuid: The netuid to which stake is added.
             amount: The amount to swap.
-            safe_staking: If true, enables price safety checks to protect against fluctuating prices. The swap
+            safe_swapping: If true, enables price safety checks to protect against fluctuating prices. The swap
                 will only execute if the price ratio between subnets doesn't exceed the rate tolerance.
             allow_partial_stake: If true and safe_staking is enabled, allows partial stake swaps when the full amount
                 would exceed the price tolerance. If false, the entire swap fails if it would exceed the tolerance.
@@ -4290,7 +4290,7 @@ class Subtensor(SubtensorMixin):
             origin_netuid=origin_netuid,
             destination_netuid=destination_netuid,
             amount=amount,
-            safe_staking=safe_staking,
+            safe_swapping=safe_swapping,
             allow_partial_stake=allow_partial_stake,
             rate_tolerance=rate_tolerance,
             period=period,

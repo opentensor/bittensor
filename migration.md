@@ -33,7 +33,7 @@
         amount: Optional[Balance] = None,
         rate_tolerance: float = 0.005,
         allow_partial_stake: bool = False,
-        safe_staking: bool = False,
+        safe_swapping: bool = False,
         period: Optional[int] = None,
         raise_error: bool = True,
         wait_for_inclusion: bool = True,
@@ -180,6 +180,8 @@ wait_for_finalization: bool = False,
 - [x] `.toggle_user_liquidity_extrinsic` and `subtensor.toggle_user_liquidity`
 - [x] `.transfer_stake_extrinsic` and `subtensor.transfer_stake`
 - [x] `.swap_stake_extrinsic` and `subtensor.swap_stake`
+  - Changes in `swap_stake_extrinsic` and `subtensor.swap_stake`:
+    - parameter `safe_staking: bool` renamed to `safe_swapping: bool`
 - [x] `.move_stake_extrinsic` and `subtensor.move_stake`
   - Changes in `move_stake_extrinsic` and `subtensor.move_stake`:
     - parameter `origin_hotkey` renamed to `origin_hotkey_ss58`
