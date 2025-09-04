@@ -161,28 +161,27 @@ def set_weights_extrinsic(
     uids: Union[NDArray[np.int64], "torch.LongTensor", list],
     weights: Union[NDArray[np.float32], "torch.FloatTensor", list],
     version_key: int = version_as_int,
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = False,
     period: Optional[int] = 8,
     raise_error: bool = False,
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = False,
 ) -> tuple[bool, str]:
-    """Sets the given weights and values on a chain for a wallet hotkey account.
+    """
+    Sets the given weights and values on a chain for a wallet hotkey account.
 
-    Args:
+    Parameters:
         subtensor: Bittensor subtensor object.
         wallet: Bittensor wallet object.
         netuid: The ``netuid`` of the subnet to set weights for.
         uids: The ``uint64`` uids of destination neurons.
         weights: The weights to set. These must be ``float``s and correspond to the passed ``uid``s.
         version_key: The version key of the validator.
-        wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning ``True``, or returns
-            ``False`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning ``True``,
-            or returns ``False`` if the extrinsic fails to be finalized within the timeout.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
-        raise_error: raises the relevant exception rather than returning `False` if unsuccessful.
+        raise_error: Whether to raise an error if the transaction fails.
+        wait_for_inclusion: Waits for the transaction to be included in a block.
+        wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
 
     Returns:
         tuple[bool, str]:
