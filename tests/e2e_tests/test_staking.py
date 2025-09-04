@@ -41,15 +41,11 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
     subtensor.subnets.burned_register(
         wallet=alice_wallet,
         netuid=alice_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     logging.console.success(f"Alice is registered in subnet {alice_subnet_netuid}")
     subtensor.subnets.burned_register(
         wallet=bob_wallet,
         netuid=alice_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     logging.console.success(f"Bob is registered in subnet {alice_subnet_netuid}")
 
@@ -219,15 +215,11 @@ async def test_single_operation_async(async_subtensor, alice_wallet, bob_wallet)
     await async_subtensor.subnets.burned_register(
         wallet=alice_wallet,
         netuid=alice_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     logging.console.success(f"Alice is registered in subnet {alice_subnet_netuid}")
     await async_subtensor.subnets.burned_register(
         wallet=bob_wallet,
         netuid=alice_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     logging.console.success(f"Bob is registered in subnet {alice_subnet_netuid}")
 
@@ -404,10 +396,8 @@ def test_batch_operations(subtensor, alice_wallet, bob_wallet):
 
     for netuid in netuids:
         subtensor.subnets.burned_register(
-            bob_wallet,
-            netuid,
-            wait_for_inclusion=True,
-            wait_for_finalization=True,
+            wallet=bob_wallet,
+            netuid=netuid,
         )
 
     for netuid in netuids:
@@ -553,8 +543,6 @@ async def test_batch_operations_async(async_subtensor, alice_wallet, bob_wallet)
         await async_subtensor.subnets.burned_register(
             wallet=bob_wallet,
             netuid=netuid,
-            wait_for_inclusion=True,
-            wait_for_finalization=True,
         )
 
     for netuid in netuids:
@@ -1115,14 +1103,10 @@ def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
     subtensor.subnets.burned_register(
         wallet=alice_wallet,
         netuid=origin_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     subtensor.subnets.burned_register(
         wallet=alice_wallet,
         netuid=dest_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     # Add initial stake to swap from
@@ -1235,14 +1219,10 @@ async def test_safe_swap_stake_scenarios_async(
     await async_subtensor.subnets.burned_register(
         wallet=alice_wallet,
         netuid=origin_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     await async_subtensor.subnets.burned_register(
         wallet=alice_wallet,
         netuid=dest_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     # Add initial stake to swap from
@@ -1374,15 +1354,11 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
     subtensor.subnets.burned_register(
         wallet=bob_wallet,
         netuid=alice_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     subtensor.subnets.burned_register(
         wallet=dave_wallet,
         netuid=alice_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     assert subtensor.staking.move_stake(
@@ -1545,15 +1521,11 @@ async def test_move_stake_async(async_subtensor, alice_wallet, bob_wallet, dave_
     await async_subtensor.subnets.burned_register(
         wallet=bob_wallet,
         netuid=alice_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     await async_subtensor.subnets.burned_register(
         wallet=dave_wallet,
         netuid=alice_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     assert await async_subtensor.staking.move_stake(
@@ -1678,10 +1650,8 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
     assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
 
     subtensor.subnets.burned_register(
-        alice_wallet,
+        wallet=alice_wallet,
         netuid=alice_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     assert subtensor.staking.add_stake(
@@ -1724,10 +1694,8 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
     assert wait_to_start_call(subtensor, dave_wallet, dave_subnet_netuid)
 
     subtensor.subnets.burned_register(
-        bob_wallet,
+        wallet=bob_wallet,
         netuid=dave_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     assert subtensor.staking.transfer_stake(
@@ -1813,10 +1781,8 @@ async def test_transfer_stake_async(
     )
 
     await async_subtensor.subnets.burned_register(
-        alice_wallet,
+        wallet=alice_wallet,
         netuid=alice_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     assert await async_subtensor.staking.add_stake(
@@ -1861,10 +1827,8 @@ async def test_transfer_stake_async(
     )
 
     await async_subtensor.subnets.burned_register(
-        bob_wallet,
+        wallet=bob_wallet,
         netuid=dave_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     assert await async_subtensor.staking.transfer_stake(
@@ -1957,15 +1921,11 @@ def test_unstaking_with_limit(
     assert subtensor.subnets.burned_register(
         wallet=bob_wallet,
         netuid=alice_subnet_netuid_2,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     assert subtensor.subnets.burned_register(
         wallet=dave_wallet,
         netuid=alice_subnet_netuid_2,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     # Register second SN
@@ -1981,15 +1941,11 @@ def test_unstaking_with_limit(
     assert subtensor.subnets.burned_register(
         wallet=bob_wallet,
         netuid=alice_subnet_netuid_3,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     assert subtensor.subnets.burned_register(
         wallet=dave_wallet,
         netuid=alice_subnet_netuid_3,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     # Check Bob's stakes are empty.
@@ -2087,15 +2043,11 @@ async def test_unstaking_with_limit_async(
     assert await async_subtensor.subnets.burned_register(
         wallet=bob_wallet,
         netuid=alice_subnet_netuid_2,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     assert await async_subtensor.subnets.burned_register(
         wallet=dave_wallet,
         netuid=alice_subnet_netuid_2,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     # Register second SN
@@ -2111,15 +2063,11 @@ async def test_unstaking_with_limit_async(
     assert await async_subtensor.subnets.burned_register(
         wallet=bob_wallet,
         netuid=alice_subnet_netuid_3,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     assert await async_subtensor.subnets.burned_register(
         wallet=dave_wallet,
         netuid=alice_subnet_netuid_3,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     # Check Bob's stakes are empty.
