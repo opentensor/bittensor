@@ -216,9 +216,9 @@ async def test_metagraph_async(async_subtensor, alice_wallet, bob_wallet, dave_w
         alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
 
         logging.console.info("Register the subnet through Alice")
-        assert await async_subtensor.subnets.register_subnet(
-            alice_wallet, True, True
-        ), "Unable to register the subnet"
+        assert await async_subtensor.subnets.register_subnet(alice_wallet), (
+            "Unable to register the subnet"
+        )
 
         logging.console.info("Verify subnet was created successfully")
         assert await async_subtensor.subnets.subnet_exists(alice_subnet_netuid), (
@@ -596,11 +596,7 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
     ]
 
     alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 3
-    assert subtensor.subnets.register_subnet(
-        alice_wallet,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
+    assert subtensor.subnets.register_subnet(alice_wallet)
 
     block = subtensor.chain.get_current_block()
     metagraph_info = subtensor.metagraphs.get_metagraph_info(
@@ -862,11 +858,7 @@ async def test_metagraph_info_async(async_subtensor, alice_wallet, bob_wallet):
     ]
 
     alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 3
-    assert await async_subtensor.subnets.register_subnet(
-        alice_wallet,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
+    assert await async_subtensor.subnets.register_subnet(alice_wallet)
 
     block = await async_subtensor.chain.get_current_block()
     metagraph_info = await async_subtensor.metagraphs.get_metagraph_info(
