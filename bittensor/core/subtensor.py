@@ -3763,7 +3763,7 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         period: Optional[int] = None,
         raise_error: bool = False,
-        wait_for_inclusion: bool = False,
+        wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
     ) -> bool:
         """
