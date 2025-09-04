@@ -15,7 +15,6 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.bonds = subtensor._subtensor.bonds
     subtensor.burned_register = subtensor._subtensor.burned_register
     subtensor.chain_endpoint = subtensor._subtensor.chain_endpoint
-    subtensor.commit = subtensor._subtensor.commit
     subtensor.commit_reveal_enabled = subtensor._subtensor.commit_reveal_enabled
     subtensor.commit_weights = subtensor._subtensor.commit_weights
     subtensor.determine_block_hash = subtensor._subtensor.determine_block_hash
