@@ -129,7 +129,7 @@ def serve_axon_extrinsic(
     certificate: Optional["Certificate"] = None,
     period: Optional[int] = None,
     raise_error: bool = False,
-    wait_for_inclusion: bool = False,
+    wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
 ) -> bool:
     """
@@ -193,10 +193,10 @@ def publish_metadata(
     netuid: int,
     data_type: str,
     data: Union[bytes, dict],
+    reset_bonds: bool = False,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
     period: Optional[int] = None,
-    reset_bonds: bool = False,
 ) -> bool:
     """
     Publishes metadata on the Bittensor network using the specified wallet and network identifier.
