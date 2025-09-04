@@ -812,7 +812,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet, eve_wallet)
         netuid=alice_subnet_netuid,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=full_stake,
-        safe_staking=True,
+        safe_unstaking=True,
         rate_tolerance=0.005,  # 0.5%
         allow_partial_stake=False,
     )
@@ -837,7 +837,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet, eve_wallet)
         netuid=alice_subnet_netuid,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=current_stake,
-        safe_staking=True,
+        safe_unstaking=True,
         rate_tolerance=0.005,  # 0.5%
         allow_partial_stake=True,
     )
@@ -859,7 +859,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet, eve_wallet)
         netuid=alice_subnet_netuid,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=partial_unstake,
-        safe_staking=True,
+        safe_unstaking=True,
         rate_tolerance=0.3,  # 30%
         allow_partial_stake=False,
     )
@@ -1008,7 +1008,7 @@ async def test_safe_staking_scenarios_async(
         netuid=alice_subnet_netuid,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=full_stake,
-        safe_staking=True,
+        safe_unstaking=True,
         rate_tolerance=0.005,  # 0.5%
         allow_partial_stake=False,
     )
@@ -1033,7 +1033,7 @@ async def test_safe_staking_scenarios_async(
         netuid=alice_subnet_netuid,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=current_stake,
-        safe_staking=True,
+        safe_unstaking=True,
         rate_tolerance=0.005,  # 0.5%
         allow_partial_stake=True,
     )
@@ -1055,7 +1055,7 @@ async def test_safe_staking_scenarios_async(
         netuid=alice_subnet_netuid,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=partial_unstake,
-        safe_staking=True,
+        safe_unstaking=True,
         rate_tolerance=0.3,  # 30%
         allow_partial_stake=False,
     )
