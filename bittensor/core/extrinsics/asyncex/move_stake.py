@@ -159,7 +159,7 @@ async def swap_stake_extrinsic(
     origin_netuid: int,
     destination_netuid: int,
     amount: Balance,
-    safe_staking: bool = False,
+    safe_swapping: bool = False,
     allow_partial_stake: bool = False,
     rate_tolerance: float = 0.005,
     period: Optional[int] = None,
@@ -177,7 +177,7 @@ async def swap_stake_extrinsic(
         origin_netuid: The source subnet UID.
         destination_netuid: The destination subnet UID.
         amount: Amount to swap.
-        safe_staking: If true, enables price safety checks to protect against price impact.
+        safe_swapping: If true, enables price safety checks to protect against price impact.
         allow_partial_stake: If true, allows partial stake swaps when the full amount would exceed the price tolerance.
         rate_tolerance: Maximum allowed increase in a price ratio (0.005 = 0.5%).
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
@@ -218,7 +218,7 @@ async def swap_stake_extrinsic(
             "alpha_amount": amount.rao,
         }
 
-        if safe_staking:
+        if safe_swapping:
             origin_pool, destination_pool = await asyncio.gather(
                 subtensor.subnet(netuid=origin_netuid),
                 subtensor.subnet(netuid=destination_netuid),
@@ -288,7 +288,7 @@ async def swap_stake_extrinsic(
 
             return True
         else:
-            if safe_staking and "Custom error: 8" in err_msg:
+            if safe_swapping and "Custom error: 8" in err_msg:
                 logging.error(
                     ":cross_mark: [red]Failed[/red]: Price ratio exceeded tolerance limit. Either increase price tolerance or enable partial staking."
                 )
