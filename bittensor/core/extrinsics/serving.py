@@ -16,56 +16,6 @@ if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
 
 
-def do_serve_axon(
-    subtensor: "Subtensor",
-    wallet: "Wallet",
-    call_params: "AxonServeCallParams",
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = True,
-    period: Optional[int] = None,
-) -> tuple[bool, str]:
-    """
-    Internal method to submit a serve axon transaction to the Bittensor blockchain. This method creates and submits a
-        transaction, enabling a neuron's ``Axon`` to serve requests on the network.
-
-    Args:
-        subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance object.
-        wallet (bittensor_wallet.Wallet): The wallet associated with the neuron.
-        call_params (bittensor.core.types.AxonServeCallParams): Parameters required for the serve axon call.
-        wait_for_inclusion (bool): Waits for the transaction to be included in a block.
-        wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
-
-    Returns:
-        tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
-
-    This function is crucial for initializing and announcing a neuron's ``Axon`` service on the network, enhancing the
-        decentralized computation capabilities of Bittensor.
-    """
-    if call_params.certificate is None:
-        call_function = "serve_axon"
-    else:
-        call_function = "serve_axon_tls"
-
-    call = subtensor.substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function=call_function,
-        call_params=call_params.dict(),
-    )
-
-    success, message = subtensor.sign_and_send_extrinsic(
-        call=call,
-        wallet=wallet,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-        sign_with="hotkey",
-        period=period,
-    )
-    return success, message
-
-
 def serve_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
@@ -75,35 +25,34 @@ def serve_extrinsic(
     netuid: int,
     placeholder1: int = 0,
     placeholder2: int = 0,
-    wait_for_inclusion: bool = False,
-    wait_for_finalization=True,
     certificate: Optional[Certificate] = None,
     period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
 ) -> bool:
-    """Subscribes a Bittensor endpoint to the subtensor chain.
+    """
+    Subscribes a Bittensor endpoint to the subtensor chain.
 
-    Args:
-        subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance object.
-        wallet (bittensor_wallet.Wallet): Bittensor wallet object.
-        ip (str): Endpoint host port i.e., ``192.122.31.4``.
-        port (int): Endpoint port number i.e., ``9221``.
-        protocol (int): An ``int`` representation of the protocol.
-        netuid (int): The network uid to serve on.
-        placeholder1 (int): A placeholder for future use.
-        placeholder2 (int): A placeholder for future use.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``True``, or
-            returns ``False`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
-            ``True``, or returns ``False`` if the extrinsic fails to be finalized within the timeout.
-        certificate (bittensor.utils.Certificate): Certificate to use for TLS. If ``None``, no TLS will be used.
-            Defaults to ``None``.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
+    Parameters:
+        subtensor: Subtensor instance object.
+        wallet: Bittensor wallet object.
+        ip: Endpoint host port i.e., ``192.122.31.4``.
+        port: Endpoint port number i.e., ``9221``.
+        protocol: An ``int`` representation of the protocol.
+        netuid: The network uid to serve on.
+        placeholder1: A placeholder for future use.
+        placeholder2: A placeholder for future use.
+        certificate: Certificate to use for TLS. If ``None``, no TLS will be used.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
-            finalization / inclusion, the response is ``True``.
+        bool: True if the subnet registration was successful, False otherwise.
     """
     # Decrypt hotkey
     if not (unlock := unlock_key(wallet, "hotkey")).success:
@@ -140,13 +89,26 @@ def serve_extrinsic(
         f"Serving axon with: [blue]AxonInfo({wallet.hotkey.ss58_address}, {ip}:{port})[/blue] -> "
         f"[green]{subtensor.network}:{netuid}[/green]"
     )
-    success, message = do_serve_axon(
-        subtensor=subtensor,
+
+    if params.certificate is None:
+        call_function = "serve_axon"
+    else:
+        call_function = "serve_axon_tls"
+
+    call = subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function=call_function,
+        call_params=params.dict(),
+    )
+
+    success, message = subtensor.sign_and_send_extrinsic(
+        call=call,
         wallet=wallet,
-        call_params=params,
-        wait_for_finalization=wait_for_finalization,
         wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+        sign_with="hotkey",
         period=period,
+        raise_error=raise_error,
     )
 
     if success:
@@ -164,30 +126,30 @@ def serve_axon_extrinsic(
     subtensor: "Subtensor",
     netuid: int,
     axon: "Axon",
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = True,
     certificate: Optional["Certificate"] = None,
     period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = True,
 ) -> bool:
-    """Serves the axon to the network.
+    """
+    Serves the axon to the network.
 
-    Args:
-        subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance object.
+    Parameters:
+        subtensor: Subtensor instance object.
         netuid (int): The ``netuid`` being served on.
         axon (bittensor.core.axon.Axon): Axon to serve.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``True``, or
-            returns ``False`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
-            ``True``, or returns ``False`` if the extrinsic fails to be finalized within the timeout.
         certificate (bittensor.utils.Certificate): Certificate to use for TLS. If ``None``, no TLS will be used.
             Defaults to ``None``.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
-            finalization / inclusion, the response is ``true``.
+        bool: True if the subnet registration was successful, False otherwise.
     """
     if not (unlock := unlock_key(axon.wallet, "hotkey")).success:
         logging.error(unlock.message)
@@ -216,10 +178,11 @@ def serve_axon_extrinsic(
         port=external_port,
         protocol=4,
         netuid=netuid,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
         certificate=certificate,
         period=period,
+        raise_error=raise_error,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
     )
     return serve_success
 
