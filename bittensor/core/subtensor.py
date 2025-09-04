@@ -3698,7 +3698,7 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         netuid: int,
-        wait_for_inclusion: bool = False,
+        wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
         max_allowed_attempts: int = 3,
         output_in_place: bool = True,
@@ -3911,7 +3911,7 @@ class Subtensor(SubtensorMixin):
     def root_register(
         self,
         wallet: "Wallet",
-        wait_for_inclusion: bool = False,
+        wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
         period: Optional[int] = None,
     ) -> bool:
