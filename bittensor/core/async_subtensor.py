@@ -935,45 +935,6 @@ class AsyncSubtensor(SubtensorMixin):
 
         return b_map
 
-    async def commit(
-        self, wallet: "Wallet", netuid: int, data: str, period: Optional[int] = None
-    ) -> bool:
-        """Commits arbitrary data to the Bittensor network by publishing metadata.
-
-        This method allows neurons to publish arbitrary data to the blockchain, which can be used for various purposes
-        such as sharing model updates, configuration data, or other network-relevant information.
-
-        Arguments:
-            wallet: The wallet associated with the neuron committing the data.
-            netuid: The unique identifier of the subnet.
-            data: The data to be committed to the network.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
-                can think of it as an expiration date for the transaction.
-
-        Returns:
-            bool: True if the commit was successful, False otherwise.
-
-        Example:
-            # Commit some data to subnet 1
-            success = await subtensor.commit(wallet=my_wallet, netuid=1, data="Hello Bittensor!")
-
-            # Commit with custom period
-            success = await subtensor.commit(wallet=my_wallet, netuid=1, data="Model update v2.0", period=100)
-
-        Note: See <https://docs.learnbittensor.org/glossary#commit-reveal>
-        """
-        return await publish_metadata(
-            subtensor=self,
-            wallet=wallet,
-            netuid=netuid,
-            data_type=f"Raw{len(data)}",
-            data=data.encode(),
-            period=period,
-        )
-
-    set_commitment = commit
-
     async def commit_reveal_enabled(
         self,
         netuid: int,
@@ -3992,23 +3953,29 @@ class AsyncSubtensor(SubtensorMixin):
         blocks_until_reveal: int = 360,
         block_time: Union[int, float] = 12,
         period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
     ) -> tuple[bool, int]:
         """
         Commits arbitrary data to the Bittensor network by publishing metadata.
 
-        Arguments:
+        Parameters:
             wallet: The wallet associated with the neuron committing the data.
             netuid: The unique identifier of the subnetwork.
             data: The data to be committed to the network.
-            blocks_until_reveal: The number of blocks from now after which the data will be revealed.
-                Defaults to ``360`` (the number of blocks in one epoch).
-            block_time: The number of seconds between each block. Defaults to ``12``.
-            period: The number of blocks during which the transaction will remain valid after it's
-                submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction.
+            blocks_until_reveal: The number of blocks from now after which the data will be revealed. Then number of
+                blocks in one epoch.
+            block_time: The number of seconds between each block.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
 
         Returns:
-            bool: ``True`` if the commitment was successful, ``False`` otherwise.
+            bool: `True` if the commitment was successful, `False` otherwise.
 
         Note: A commitment can be set once per subnet epoch and is reset at the next epoch in the chain automatically.
         """
@@ -4027,6 +3994,9 @@ class AsyncSubtensor(SubtensorMixin):
             data_type="TimelockEncrypted",
             data=data_,
             period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
         ), reveal_round
 
     async def subnet(
@@ -5506,6 +5476,57 @@ class AsyncSubtensor(SubtensorMixin):
             netuid=netuid,
             axon=axon,
             certificate=certificate,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+    async def set_commitment(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        data: str,
+        period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> bool:
+        """
+        Commits arbitrary data to the Bittensor network by publishing metadata.
+
+        This method allows neurons to publish arbitrary data to the blockchain, which can be used for various purposes
+        such as sharing model updates, configuration data, or other network-relevant information.
+
+        Parameters:
+            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the data.
+            netuid (int): The unique identifier of the subnetwork.
+            data (str): The data to be committed to the network.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+        Returns:
+            bool: `True` if the commitment was successful, `False` otherwise.
+
+        Example:
+            # Commit some data to subnet 1
+            success = await subtensor.commit(wallet=my_wallet, netuid=1, data="Hello Bittensor!")
+
+            # Commit with custom period
+            success = await subtensor.commit(wallet=my_wallet, netuid=1, data="Model update v2.0", period=100)
+
+        Note: See <https://docs.learnbittensor.org/glossary#commit-reveal>
+        """
+        return await publish_metadata(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            data_type=f"Raw{len(data)}",
+            data=data.encode(),
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
