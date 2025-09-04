@@ -29,7 +29,7 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
     alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
 
     # Register root as Alice - the subnet owner and validator
-    assert subtensor.subnets.register_subnet(alice_wallet, True, True)
+    assert subtensor.subnets.register_subnet(alice_wallet)
 
     # Verify subnet <netuid> created successfully
     assert subtensor.subnets.subnet_exists(alice_subnet_netuid), (
@@ -205,7 +205,7 @@ async def test_single_operation_async(async_subtensor, alice_wallet, bob_wallet)
     alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
 
     # Register root as Alice - the subnet owner and validator
-    assert await async_subtensor.subnets.register_subnet(alice_wallet, True, True)
+    assert await async_subtensor.subnets.register_subnet(alice_wallet)
 
     # Verify subnet <netuid> created successfully
     assert await async_subtensor.subnets.subnet_exists(alice_subnet_netuid), (
@@ -706,7 +706,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet, eve_wallet)
 
     alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
     # Register root as Alice - the subnet owner and validator
-    assert subtensor.extrinsics.register_subnet(alice_wallet, True, True)
+    assert subtensor.extrinsics.register_subnet(alice_wallet)
 
     # Verify subnet created successfully
     assert subtensor.subnets.subnet_exists(alice_subnet_netuid), (
@@ -905,7 +905,7 @@ async def test_safe_staking_scenarios_async(
 
     alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
     # Register root as Alice - the subnet owner and validator
-    assert await async_subtensor.extrinsics.register_subnet(alice_wallet, True, True)
+    assert await async_subtensor.extrinsics.register_subnet(alice_wallet)
 
     # Verify subnet created successfully
     assert await async_subtensor.subnets.subnet_exists(alice_subnet_netuid), (
@@ -1105,12 +1105,12 @@ def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
 
     # Create new subnet (netuid 2) and register Alice
     origin_netuid = 2
-    assert subtensor.subnets.register_subnet(bob_wallet, True, True)
+    assert subtensor.subnets.register_subnet(bob_wallet)
     assert subtensor.subnets.subnet_exists(origin_netuid), (
         "Subnet wasn't created successfully"
     )
     dest_netuid = 3
-    assert subtensor.subnets.register_subnet(bob_wallet, True, True)
+    assert subtensor.subnets.register_subnet(bob_wallet)
     assert subtensor.subnets.subnet_exists(dest_netuid), (
         "Subnet wasn't created successfully"
     )
@@ -1225,12 +1225,12 @@ async def test_safe_swap_stake_scenarios_async(
 
     # Create new subnet (netuid 2) and register Alice
     origin_netuid = 2
-    assert await async_subtensor.subnets.register_subnet(bob_wallet, True, True)
+    assert await async_subtensor.subnets.register_subnet(bob_wallet)
     assert await async_subtensor.subnets.subnet_exists(origin_netuid), (
         "Subnet wasn't created successfully"
     )
     dest_netuid = 3
-    assert await async_subtensor.subnets.register_subnet(bob_wallet, True, True)
+    assert await async_subtensor.subnets.register_subnet(bob_wallet)
     assert await async_subtensor.subnets.subnet_exists(dest_netuid), (
         "Subnet wasn't created successfully"
     )
@@ -1340,7 +1340,7 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
     logging.console.info("Testing [blue]test_move_stake[/blue]")
 
     alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
-    assert subtensor.subnets.register_subnet(alice_wallet, True, True)
+    assert subtensor.subnets.register_subnet(alice_wallet)
     assert subtensor.subnets.subnet_exists(alice_subnet_netuid), (
         "Subnet wasn't created successfully"
     )
@@ -1372,7 +1372,7 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
     ]
 
     bob_subnet_netuid = subtensor.subnets.get_total_subnets()  # 3
-    subtensor.subnets.register_subnet(bob_wallet, True, True)
+    subtensor.subnets.register_subnet(bob_wallet)
     assert subtensor.subnets.subnet_exists(bob_subnet_netuid), (
         "Subnet wasn't created successfully"
     )
@@ -1505,7 +1505,7 @@ async def test_move_stake_async(async_subtensor, alice_wallet, bob_wallet, dave_
     logging.console.info("Testing [blue]test_move_stake_async[/blue]")
 
     alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
-    assert await async_subtensor.subnets.register_subnet(alice_wallet, True, True)
+    assert await async_subtensor.subnets.register_subnet(alice_wallet)
     assert await async_subtensor.subnets.subnet_exists(alice_subnet_netuid), (
         "Subnet wasn't created successfully"
     )
@@ -1541,7 +1541,7 @@ async def test_move_stake_async(async_subtensor, alice_wallet, bob_wallet, dave_
     ]
 
     bob_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 3
-    await async_subtensor.subnets.register_subnet(bob_wallet, True, True)
+    await async_subtensor.subnets.register_subnet(bob_wallet)
     assert await async_subtensor.subnets.subnet_exists(bob_subnet_netuid), (
         "Subnet wasn't created successfully"
     )
@@ -1678,7 +1678,7 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
 
     alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
 
-    assert subtensor.subnets.register_subnet(alice_wallet, True, True)
+    assert subtensor.subnets.register_subnet(alice_wallet)
     assert subtensor.subnets.subnet_exists(alice_subnet_netuid), (
         "Subnet wasn't created successfully"
     )
@@ -1727,7 +1727,7 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
     assert bob_stakes == []
 
     dave_subnet_netuid = subtensor.subnets.get_total_subnets()  # 3
-    subtensor.subnets.register_subnet(dave_wallet, True, True)
+    subtensor.subnets.register_subnet(dave_wallet)
 
     assert wait_to_start_call(subtensor, dave_wallet, dave_subnet_netuid)
 
@@ -1811,7 +1811,7 @@ async def test_transfer_stake_async(
 
     alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
 
-    assert await async_subtensor.subnets.register_subnet(alice_wallet, True, True)
+    assert await async_subtensor.subnets.register_subnet(alice_wallet)
     assert await async_subtensor.subnets.subnet_exists(alice_subnet_netuid), (
         "Subnet wasn't created successfully"
     )
@@ -1862,7 +1862,7 @@ async def test_transfer_stake_async(
     assert bob_stakes == []
 
     dave_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 3
-    await async_subtensor.subnets.register_subnet(dave_wallet, True, True)
+    await async_subtensor.subnets.register_subnet(dave_wallet)
 
     assert await async_wait_to_start_call(
         async_subtensor, dave_wallet, dave_subnet_netuid
@@ -1954,7 +1954,7 @@ def test_unstaking_with_limit(
 
     # Register first SN
     alice_subnet_netuid_2 = subtensor.subnets.get_total_subnets()  # 2
-    assert subtensor.subnets.register_subnet(alice_wallet, True, True)
+    assert subtensor.subnets.register_subnet(alice_wallet)
     assert subtensor.subnets.subnet_exists(alice_subnet_netuid_2), (
         "Subnet wasn't created successfully"
     )
@@ -1978,7 +1978,7 @@ def test_unstaking_with_limit(
 
     # Register second SN
     alice_subnet_netuid_3 = subtensor.subnets.get_total_subnets()  # 3
-    assert subtensor.subnets.register_subnet(alice_wallet, True, True)
+    assert subtensor.subnets.register_subnet(alice_wallet)
     assert subtensor.subnets.subnet_exists(alice_subnet_netuid_3), (
         "Subnet wasn't created successfully"
     )
@@ -2082,7 +2082,7 @@ async def test_unstaking_with_limit_async(
 
     # Register first SN
     alice_subnet_netuid_2 = await async_subtensor.subnets.get_total_subnets()  # 2
-    assert await async_subtensor.subnets.register_subnet(alice_wallet, True, True)
+    assert await async_subtensor.subnets.register_subnet(alice_wallet)
     assert await async_subtensor.subnets.subnet_exists(alice_subnet_netuid_2), (
         "Subnet wasn't created successfully"
     )
@@ -2108,7 +2108,7 @@ async def test_unstaking_with_limit_async(
 
     # Register second SN
     alice_subnet_netuid_3 = await async_subtensor.subnets.get_total_subnets()  # 3
-    assert await async_subtensor.subnets.register_subnet(alice_wallet, True, True)
+    assert await async_subtensor.subnets.register_subnet(alice_wallet)
     assert await async_subtensor.subnets.subnet_exists(alice_subnet_netuid_3), (
         "Subnet wasn't created successfully"
     )
