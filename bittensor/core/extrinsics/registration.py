@@ -193,8 +193,6 @@ def register_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     netuid: int,
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = True,
     max_allowed_attempts: int = 3,
     output_in_place: bool = True,
     cuda: bool = False,
@@ -204,32 +202,33 @@ def register_extrinsic(
     update_interval: Optional[int] = None,
     log_verbose: bool = False,
     period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
 ) -> bool:
-    """Registers the wallet to the chain.
+    """Registers a neuron on the Bittensor subnet with provided netuid using the provided wallet.
 
-    Args:
-        subtensor (bittensor.core.subtensor.Subtensor): Subtensor object to use for chain interactions
-        wallet (bittensor_wallet.Wallet): Bittensor wallet object.
-        netuid (int): The ``netuid`` of the subnet to register on.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns
-            `False` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
-            `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
-        max_allowed_attempts (int): Maximum number of attempts to register the wallet.
-        output_in_place (bool): Whether the POW solving should be outputted to the console as it goes along.
-        cuda (bool): If `True`, the wallet should be registered using CUDA device(s).
+    Parameters:
+        subtensor: Subtensor object to use for chain interactions
+        wallet: Bittensor wallet object.
+        netuid: The ``netuid`` of the subnet to register on.
+        max_allowed_attempts: Maximum number of attempts to register the wallet.
+        output_in_place: Whether the POW solving should be outputted to the console as it goes along.
+        cuda: If `True`, the wallet should be registered using CUDA device(s).
         dev_id: The CUDA device id to use, or a list of device ids.
         tpb: The number of threads per block (CUDA).
         num_processes: The number of processes to use to register.
         update_interval: The number of nonces to solve between updates.
         log_verbose: If `True`, the registration process will log more information.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion, the
-            response is `True`.
+        bool: True if the subnet registration was successful, False otherwise.
     """
 
     logging.debug("[magenta]Checking subnet status... [/magenta]")
@@ -339,6 +338,7 @@ def register_extrinsic(
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                     period=period,
+                    raise_error=raise_error,
                 )
 
                 if not success:

@@ -59,6 +59,7 @@ async def test_register_extrinsic_success(subtensor, fake_wallet, mocker):
         wait_for_inclusion=True,
         wait_for_finalization=True,
         period=None,
+        raise_error=False,
     )
     mocked_is_hotkey_registered.assert_called_once_with(
         netuid=1, hotkey_ss58="hotkey_ss58"
@@ -124,6 +125,7 @@ async def test_register_extrinsic_success_with_cuda(subtensor, fake_wallet, mock
         wait_for_inclusion=True,
         wait_for_finalization=True,
         period=None,
+        raise_error=False,
     )
     mocked_is_hotkey_registered.assert_called_once_with(
         netuid=1, hotkey_ss58="hotkey_ss58"
@@ -281,6 +283,7 @@ async def test_register_extrinsic_max_attempts_reached(subtensor, fake_wallet, m
         wait_for_inclusion=True,
         wait_for_finalization=True,
         period=None,
+        raise_error=False,
     )
     assert result is False
 
