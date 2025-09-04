@@ -206,3 +206,4 @@ wait_for_finalization: bool = False,
     - parameter `amount: Optional[Balance]` is now required -> `amount: Balance`
     - parameter `unstake_all: bool` removed (use `unstake_all_extrinsic` for unstake all stake)
 - [x] `.unstake_all_extrinsic` and `subtensor.unstake_all`
+- [x] `.unstake_multiple_extrinsic` and `subtensor.unstake_multiple`

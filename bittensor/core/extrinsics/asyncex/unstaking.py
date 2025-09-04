@@ -259,36 +259,34 @@ async def unstake_all_extrinsic(
 async def unstake_multiple_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
-    hotkey_ss58s: list[str],
     netuids: UIDs,
+    hotkey_ss58s: list[str],
     amounts: Optional[list[Balance]] = None,
-    wait_for_inclusion: bool = True,
-    wait_for_finalization: bool = False,
-    period: Optional[int] = None,
     unstake_all: bool = False,
+    period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
 ) -> bool:
-    """Removes stake from each ``hotkey_ss58`` in the list, using each amount, to a common coldkey.
+    """
+    Removes stake from each ``hotkey_ss58`` in the list, using each amount, to a common coldkey.
 
-    Args:
-        subtensor: Subtensor instance.
+    Parameters:
+        subtensor: AsyncSubtensor instance.
         wallet: The wallet with the coldkey to unstake to.
+        netuids: List of subnets unique IDs to unstake from.
         hotkey_ss58s: List of hotkeys to unstake from.
-        netuids: List of netuids to unstake from.
         amounts: List of amounts to unstake. If ``None``, unstake all.
-        wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning ``True``, or
-            returns ``False`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning
-            ``True``, or returns ``False`` if the extrinsic fails to be finalized within the timeout.
+        unstake_all: If true, unstakes all tokens. Default is ``False``.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
-        unstake_all: If true, unstakes all tokens. Default is ``False``.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        tuple[bool, str]:
-            A tuple containing:
-            - `True` and a success message if the unstake operation succeeded;
-            - `False` and an error message otherwise.
+        bool: True if the subnet registration was successful, False otherwise.
     """
     if amounts and unstake_all:
         raise ValueError("Cannot specify both `amounts` and `unstake_all`.")
@@ -396,6 +394,7 @@ async def unstake_multiple_extrinsic(
                 sign_with="coldkey",
                 use_nonce=True,
                 period=period,
+                raise_error=raise_error,
             )
 
             if staking_response is True:  # If we successfully unstaked.
