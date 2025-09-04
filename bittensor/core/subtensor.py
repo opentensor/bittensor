@@ -742,7 +742,7 @@ class Subtensor(SubtensorMixin):
             data. It is crucial for verifying transactions, ensuring data consistency, and maintaining the
             trustworthiness of the blockchain.
         """
-        if block:
+        if block is not None:
             return self._get_block_hash(block)
         else:
             return self.substrate.get_chain_head()

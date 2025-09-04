@@ -581,7 +581,7 @@ class MockSubtensor(Subtensor):
     ) -> MockSubtensorValue:
         if params is None:
             params = []
-        if block:
+        if block is not None:
             if self.block_number < block:
                 raise Exception("Cannot query block in the future")
 
@@ -622,7 +622,7 @@ class MockSubtensor(Subtensor):
         """
         if params is None:
             params = []
-        if block:
+        if block is not None:
             if self.block_number < block:
                 raise Exception("Cannot query block in the future")
 
@@ -668,7 +668,7 @@ class MockSubtensor(Subtensor):
     def query_constant(
         self, module_name: str, constant_name: str, block: Optional[int] = None
     ) -> Optional[object]:
-        if block:
+        if block is not None:
             if self.block_number < block:
                 raise Exception("Cannot query block in the future")
 
@@ -697,7 +697,7 @@ class MockSubtensor(Subtensor):
     # ==== Balance RPC methods ====
 
     def get_balance(self, address: str, block: int = None) -> "Balance":
-        if block:
+        if block is not None:
             if self.block_number < block:
                 raise Exception("Cannot query block in the future")
 
@@ -732,7 +732,7 @@ class MockSubtensor(Subtensor):
         if uid is None:
             return NeuronInfo.get_null_neuron()
 
-        if block:
+        if block is not None:
             if self.block_number < block:
                 raise Exception("Cannot query block in the future")
 
@@ -958,7 +958,7 @@ class MockSubtensor(Subtensor):
         if uid is None:
             return NeuronInfoLite.get_null_neuron()
 
-        if block:
+        if block is not None:
             if self.block_number < block:
                 raise Exception("Cannot query block in the future")
 
