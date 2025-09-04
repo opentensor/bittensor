@@ -1207,6 +1207,7 @@ def test_set_weights(subtensor, mocker, fake_wallet):
         wait_for_finalization=fake_wait_for_finalization,
         period=8,
         mechid=0,
+        raise_error=True,
     )
     assert result == expected_result
 
