@@ -194,33 +194,33 @@ def publish_metadata(
     data_type: str,
     data: Union[bytes, dict],
     reset_bonds: bool = False,
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = True,
     period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
 ) -> bool:
     """
     Publishes metadata on the Bittensor network using the specified wallet and network identifier.
 
-    Args:
-        subtensor (bittensor.subtensor): The subtensor instance representing the Bittensor blockchain connection.
-        wallet (bittensor.wallet): The wallet object used for authentication in the transaction.
-        netuid (int): Network UID on which the metadata is to be published.
-        data_type (str): The data type of the information being submitted. It should be one of the following:
+    Parameters:
+        subtensor: The subtensor instance representing the Bittensor blockchain connection.
+        wallet: The wallet object used for authentication in the transaction.
+        netuid: Network UID on which the metadata is to be published.
+        data_type: The data type of the information being submitted. It should be one of the following:
             ``'Sha256'``, ``'Blake256'``, ``'Keccak256'``, or ``'Raw0-128'``. This specifies the format or hashing
             algorithm used for the data.
-        data (Union[bytes, dict]): The actual metadata content to be published. This should be formatted or hashed
+        data: The actual metadata content to be published. This should be formatted or hashed
             according to the ``type`` specified. (Note: max ``str`` length is 128 bytes for ``'Raw0-128'``.)
-        wait_for_inclusion (bool, optional): If ``True``, the function will wait for the extrinsic to be included in a
-            block before returning. Defaults to ``False``.
-        wait_for_finalization (bool, optional): If ``True``, the function will wait for the extrinsic to be finalized
-            on the chain before returning. Defaults to ``True``.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
-        reset_bonds (bool): If `True`, the function will reset the bonds for the neuron. Defaults to `False`.
+        reset_bonds: If `True`, the function will reset the bonds for the neuron. Defaults to `False`.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        bool: ``True`` if the metadata was successfully published (and finalized if specified). ``False`` otherwise.
+        bool: True if the subnet registration was successful, False otherwise.
 
     Raises:
         MetadataError: If there is an error in submitting the extrinsic, or if the response from the blockchain indicates
@@ -251,6 +251,7 @@ def publish_metadata(
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
         period=period,
+        raise_error=raise_error,
     )
 
     if success:
@@ -277,11 +278,11 @@ def get_last_bonds_reset(
     """
     Fetches the last bonds reset triggered at commitment from the blockchain for a given hotkey and netuid.
 
-    Args:
-        subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance object.
-        netuid (int): The network uid to fetch from.
-        hotkey (str): The hotkey of the neuron for which to fetch the last bonds reset.
-        block (Optional[int]): The block number to query. If ``None``, the latest block is used.
+    Parameters:
+        subtensor: Subtensor instance object.
+        netuid: The network uid to fetch from.
+        hotkey: The hotkey of the neuron for which to fetch the last bonds reset.
+        block: The block number to query. If ``None``, the latest block is used.
 
     Returns:
         bytes: The last bonds reset data for the specified hotkey and netuid.
