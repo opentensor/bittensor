@@ -38,7 +38,7 @@ def test_set_reveal_commitment(subtensor, alice_wallet, bob_wallet):
     logging.console.info("Testing Drand encrypted commitments.")
 
     # Register subnet as Alice
-    assert subtensor.subnets.register_subnet(alice_wallet, True, True), (
+    assert subtensor.subnets.register_subnet(alice_wallet), (
         "Unable to register the subnet"
     )
 
@@ -152,7 +152,7 @@ async def test_set_reveal_commitment(async_subtensor, alice_wallet, bob_wallet):
     logging.console.info("Testing Drand encrypted commitments.")
 
     # Register subnet as Alice
-    assert await async_subtensor.subnets.register_subnet(alice_wallet, True, True), (
+    assert await async_subtensor.subnets.register_subnet(alice_wallet), (
         "Unable to register the subnet"
     )
 

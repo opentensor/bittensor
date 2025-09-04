@@ -14,11 +14,7 @@ def test_subnets(subtensor, alice_wallet):
     subnets = subtensor.subnets.all_subnets()
     assert len(subnets) == 2
 
-    subtensor.subnets.register_subnet(
-        alice_wallet,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
+    subtensor.subnets.register_subnet(alice_wallet)
 
     subnets = subtensor.subnets.all_subnets()
     assert len(subnets) == 3
@@ -50,11 +46,7 @@ async def test_subnets_async(async_subtensor, alice_wallet):
     subnets = await async_subtensor.subnets.all_subnets()
     assert len(subnets) == 2
 
-    assert await async_subtensor.subnets.register_subnet(
-        alice_wallet,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
+    assert await async_subtensor.subnets.register_subnet(alice_wallet)
 
     subnets = await async_subtensor.subnets.all_subnets()
     assert len(subnets) == 3
