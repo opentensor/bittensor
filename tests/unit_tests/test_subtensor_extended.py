@@ -1206,15 +1206,13 @@ def test_register_subnet(mock_substrate, subtensor, fake_wallet, mocker, success
         is_success=success,
     )
 
-    result = subtensor.register_subnet(
-        fake_wallet,
-    )
+    result = subtensor.register_subnet(fake_wallet)
 
     assert result is success
 
     assert_submit_signed_extrinsic(
-        mock_substrate,
-        fake_wallet.coldkey,
+        substrate=mock_substrate,
+        keypair=fake_wallet.coldkey,
         call_module="SubtensorModule",
         call_function="register_network",
         call_params={
@@ -1264,8 +1262,8 @@ def test_root_register(mock_substrate, subtensor, fake_wallet, mocker):
     )
 
     assert_submit_signed_extrinsic(
-        mock_substrate,
-        fake_wallet.coldkey,
+        substrate=mock_substrate,
+        keypair=fake_wallet.coldkey,
         call_module="SubtensorModule",
         call_function="root_register",
         call_params={
