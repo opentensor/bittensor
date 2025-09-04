@@ -136,21 +136,23 @@ async def burned_register_extrinsic(
 async def register_subnet_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = True,
     period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
 ) -> bool:
     """
     Registers a new subnetwork on the Bittensor blockchain asynchronously.
 
-    Args:
-        subtensor (AsyncSubtensor): The async subtensor interface to send the extrinsic.
-        wallet (Wallet): The wallet to be used for subnet registration.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning true.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning true.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
+    Parameters:
+        subtensor: The subtensor interface to send the extrinsic.
+        wallet: The wallet to be used for subnet registration.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
         bool: True if the subnet registration was successful, False otherwise.
@@ -179,6 +181,7 @@ async def register_subnet_extrinsic(
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
         period=period,
+        raise_error=raise_error,
     )
 
     if not wait_for_finalization and not wait_for_inclusion:

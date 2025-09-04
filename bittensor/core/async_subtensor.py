@@ -4971,22 +4971,22 @@ class AsyncSubtensor(SubtensorMixin):
     async def register_subnet(
         self: "AsyncSubtensor",
         wallet: "Wallet",
+        period: Optional[int] = None,
+        raise_error: bool = False,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-        period: Optional[int] = None,
     ) -> bool:
         """
         Registers a new subnetwork on the Bittensor network.
 
-        Arguments:
+        Parameters:
             wallet: The wallet to be used for subnet registration.
-            wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning `True`,
-                os `False` if the extrinsic fails to enter the block within the timeout. Default is `False`.
-            wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning
-                true, or returns false if the extrinsic fails to be finalized within the timeout. Default is `False`.
-            period: The number of blocks during which the transaction will remain valid after it's
-                submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
             bool: True if the subnet registration was successful, False otherwise.
@@ -4994,9 +4994,10 @@ class AsyncSubtensor(SubtensorMixin):
         return await register_subnet_extrinsic(
             subtensor=self,
             wallet=wallet,
+            period=period,
+            raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            period=period,
         )
 
     async def remove_liquidity(
