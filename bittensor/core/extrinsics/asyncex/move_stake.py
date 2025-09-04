@@ -45,26 +45,28 @@ async def transfer_stake_extrinsic(
     origin_netuid: int,
     destination_netuid: int,
     amount: Balance,
-    wait_for_inclusion: bool = True,
-    wait_for_finalization: bool = False,
     period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
 ) -> bool:
     """
     Transfers stake from one coldkey to another in the Bittensor network.
 
-    Args:
-        subtensor (AsyncSubtensor): The subtensor instance to interact with the blockchain.
-        wallet (Wallet): The wallet containing the coldkey to authorize the transfer.
-        destination_coldkey_ss58 (str): SS58 address of the destination coldkey.
-        hotkey_ss58 (str): SS58 address of the hotkey associated with the stake.
-        origin_netuid (int): Network UID of the origin subnet.
-        destination_netuid (int): Network UID of the destination subnet.
-        amount (Balance): The amount of stake to transfer as a `Balance` object.
-        wait_for_inclusion (bool): If True, waits for transaction inclusion in a block. Defaults to `True`.
-        wait_for_finalization (bool): If True, waits for transaction finalization. Defaults to `False`.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
+    Parameters:
+        subtensor: The subtensor instance to interact with the blockchain.
+        wallet: The wallet containing the coldkey to authorize the transfer.
+        destination_coldkey_ss58: SS58 address of the destination coldkey.
+        hotkey_ss58: SS58 address of the hotkey associated with the stake.
+        origin_netuid: Network UID of the origin subnet.
+        destination_netuid: Network UID of the destination subnet.
+        amount: The amount of stake to transfer as a `Balance` object.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
         bool: True if the transfer was successful, False otherwise.
@@ -108,12 +110,13 @@ async def transfer_stake_extrinsic(
             },
         )
 
-        success, err_msg = await subtensor.sign_and_send_extrinsic(
+        success, message = await subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             period=period,
+            raise_error=raise_error,
         )
 
         if success:
@@ -141,7 +144,7 @@ async def transfer_stake_extrinsic(
 
             return True
         else:
-            logging.error(f":cross_mark: [red]Failed[/red]: {err_msg}")
+            logging.error(f":cross_mark: [red]Failed[/red]: {message}")
             return False
 
     except Exception as e:
@@ -156,12 +159,13 @@ async def swap_stake_extrinsic(
     origin_netuid: int,
     destination_netuid: int,
     amount: Balance,
-    wait_for_inclusion: bool = True,
-    wait_for_finalization: bool = False,
     safe_staking: bool = False,
     allow_partial_stake: bool = False,
     rate_tolerance: float = 0.005,
     period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
 ) -> bool:
     """
     Swaps stake from one subnet to another for a given hotkey in the Bittensor network.
@@ -302,10 +306,11 @@ async def move_stake_extrinsic(
     destination_hotkey: str,
     destination_netuid: int,
     amount: Balance,
-    wait_for_inclusion: bool = True,
-    wait_for_finalization: bool = False,
-    period: Optional[int] = None,
     move_all_stake: bool = False,
+    period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
 ) -> bool:
     """
     Moves stake from one hotkey to another within subnets in the Bittensor network.
