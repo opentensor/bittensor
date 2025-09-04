@@ -3495,7 +3495,7 @@ class Subtensor(SubtensorMixin):
         Registers a neuron on the Bittensor network by recycling TAO. This method of registration involves recycling
         TAO tokens, allowing them to be re-mined by performing work on the network.
 
-        Args:
+        Parameters:
             wallet: The wallet associated with the neuron to be registered.
             netuid: The unique identifier of the subnet.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
@@ -3513,9 +3513,10 @@ class Subtensor(SubtensorMixin):
             return root_register_extrinsic(
                 subtensor=self,
                 wallet=wallet,
+                period=period,
+                raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                period=period,
             )
 
         return burned_register_extrinsic(
@@ -3946,32 +3947,34 @@ class Subtensor(SubtensorMixin):
     def root_register(
         self,
         wallet: "Wallet",
+        period: Optional[int] = None,
+        raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-        period: Optional[int] = None,
     ) -> bool:
         """
         Register neuron by recycling some TAO.
 
-        Arguments:
+        Parameters:
             wallet (bittensor_wallet.Wallet): Bittensor wallet instance.
-            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
-            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
-                ``False``.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
-                submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
 
         Returns:
-            `True` if registration was successful, otherwise `False`.
+            bool: ``True`` if the registration is successful, False otherwise.
         """
 
         return root_register_extrinsic(
             subtensor=self,
             wallet=wallet,
+            period=period,
+            raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            period=period,
         )
 
     def root_set_pending_childkey_cooldown(
