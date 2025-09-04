@@ -3990,7 +3990,7 @@ class Subtensor(SubtensorMixin):
         max_retries: int = 5,
         version_key: int = version_as_int,
         period: Optional[int] = 8,
-        raise_error: bool = False,
+        raise_error: bool = True,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
     ) -> tuple[bool, str]:
@@ -4052,21 +4052,25 @@ class Subtensor(SubtensorMixin):
                     f"Committing weights for subnet [blue]{netuid}[/blue]. "
                     f"Attempt [blue]{retries + 1}[blue] of [green]{max_retries}[/green]."
                 )
-                success, message = commit_reveal_extrinsic(
-                    subtensor=self,
-                    wallet=wallet,
-                    netuid=netuid,
-                    uids=uids,
-                    weights=weights,
-                    block_time=block_time,
-                    commit_reveal_version=commit_reveal_version,
-                    version_key=version_key,
-                    period=period,
-                    raise_error=raise_error,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
+                try:
+                    success, message = commit_reveal_extrinsic(
+                        subtensor=self,
+                        wallet=wallet,
+                        netuid=netuid,
+                        uids=uids,
+                        weights=weights,
+                        block_time=block_time,
+                        commit_reveal_version=commit_reveal_version,
+                        version_key=version_key,
+                        period=period,
+                        raise_error=raise_error,
+                        wait_for_inclusion=wait_for_inclusion,
+                        wait_for_finalization=wait_for_finalization,
+                    )
+                except Exception as e:
+                    logging.error(f"Error setting weights: {e}")
                 retries += 1
+
             return success, message
         else:
             # go with classic `set_weights_extrinsic`
@@ -4084,9 +4088,10 @@ class Subtensor(SubtensorMixin):
                         uids=uids,
                         weights=weights,
                         version_key=version_key,
+                        period=period,
+                        raise_error=raise_error,
                         wait_for_inclusion=wait_for_inclusion,
                         wait_for_finalization=wait_for_finalization,
-                        period=period,
                     )
                 except Exception as e:
                     logging.error(f"Error setting weights: {e}")

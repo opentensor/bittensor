@@ -54,63 +54,58 @@ def commit_reveal_extrinsic(
             - True and a success message if the extrinsic is successfully submitted or processed.
             - False and an error message if the submission fails or the wallet cannot be unlocked.
     """
-    try:
-        uids, weights = convert_and_normalize_weights_and_uids(uids, weights)
+    uids, weights = convert_and_normalize_weights_and_uids(uids, weights)
 
-        current_block = subtensor.get_current_block()
-        subnet_hyperparameters = subtensor.get_subnet_hyperparameters(
-            netuid, block=current_block
-        )
-        tempo = subnet_hyperparameters.tempo
-        subnet_reveal_period_epochs = subnet_hyperparameters.commit_reveal_period
+    current_block = subtensor.get_current_block()
+    subnet_hyperparameters = subtensor.get_subnet_hyperparameters(
+        netuid, block=current_block
+    )
+    tempo = subnet_hyperparameters.tempo
+    subnet_reveal_period_epochs = subnet_hyperparameters.commit_reveal_period
 
-        # Encrypt `commit_hash` with t-lock and `get reveal_round`
-        commit_for_reveal, reveal_round = get_encrypted_commit(
-            uids=uids,
-            weights=weights,
-            version_key=version_key,
-            tempo=tempo,
-            current_block=current_block,
-            netuid=netuid,
-            subnet_reveal_period_epochs=subnet_reveal_period_epochs,
-            block_time=block_time,
-            hotkey=wallet.hotkey.public_key,
-        )
+    # Encrypt `commit_hash` with t-lock and `get reveal_round`
+    commit_for_reveal, reveal_round = get_encrypted_commit(
+        uids=uids,
+        weights=weights,
+        version_key=version_key,
+        tempo=tempo,
+        current_block=current_block,
+        netuid=netuid,
+        subnet_reveal_period_epochs=subnet_reveal_period_epochs,
+        block_time=block_time,
+        hotkey=wallet.hotkey.public_key,
+    )
 
-        logging.info(
-            f"Committing weights hash [blue]{commit_for_reveal.hex()}[/blue] for subnet #[blue]{netuid}[/blue] with "
-            f"reveal round [blue]{reveal_round}[/blue]..."
-        )
+    logging.info(
+        f"Committing weights hash [blue]{commit_for_reveal.hex()}[/blue] for subnet #[blue]{netuid}[/blue] with "
+        f"reveal round [blue]{reveal_round}[/blue]..."
+    )
 
-        call = subtensor.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="commit_timelocked_weights",
-            call_params={
-                "netuid": netuid,
-                "commit": commit_for_reveal,
-                "reveal_round": reveal_round,
-                "commit_reveal_version": commit_reveal_version,
-            },
-        )
-        success, message = subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            sign_with="hotkey",
-            period=period,
-            raise_error=raise_error,
-        )
+    call = subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="commit_timelocked_weights",
+        call_params={
+            "netuid": netuid,
+            "commit": commit_for_reveal,
+            "reveal_round": reveal_round,
+            "commit_reveal_version": commit_reveal_version,
+        },
+    )
+    success, message = subtensor.sign_and_send_extrinsic(
+        call=call,
+        wallet=wallet,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+        sign_with="hotkey",
+        period=period,
+        raise_error=raise_error,
+    )
 
-        if not success:
-            logging.error(message)
-            return False, message
+    if not success:
+        logging.error(message)
+        return False, message
 
-        logging.success(
-            f"[green]Finalized![/green] Weights committed with reveal round [blue]{reveal_round}[/blue]."
-        )
-        return True, f"reveal_round:{reveal_round}"
-
-    except Exception as e:
-        logging.error(f":cross_mark: [red]Failed. Error:[/red] {e}")
-        return False, str(e)
+    logging.success(
+        f"[green]Finalized![/green] Weights committed with reveal round [blue]{reveal_round}[/blue]."
+    )
+    return True, f"reveal_round:{reveal_round}"
