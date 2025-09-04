@@ -180,3 +180,7 @@ wait_for_finalization: bool = False,
 - [x] `.toggle_user_liquidity_extrinsic` and `subtensor.toggle_user_liquidity`
 - [x] `.transfer_stake_extrinsic` and `subtensor.transfer_stake`
 - [x] `.swap_stake_extrinsic` and `subtensor.swap_stake`
+- [x] `.move_stake_extrinsic` and `subtensor.move_stake`
+- [x] `.move_stake_extrinsic` has renamed parameters:
+    - `origin_hotkey` to `origin_hotkey_ss58`
+    - `destination_hotkey` to `destination_hotkey_ss58`
