@@ -5836,23 +5836,25 @@ class AsyncSubtensor(SubtensorMixin):
         hotkey: str,
         netuid: int,
         rate_tolerance: Optional[float] = 0.005,
+        period: Optional[int] = None,
+        raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-        period: Optional[int] = None,
     ) -> tuple[bool, str]:
         """Unstakes all TAO/Alpha associated with a hotkey from the specified subnets on the Bittensor network.
 
-        Arguments:
+        Parameters:
             wallet: The wallet of the stake owner.
             hotkey: The SS58 address of the hotkey to unstake from.
             netuid: The unique identifier of the subnet.
             rate_tolerance: The maximum allowed price change ratio when unstaking. For example, 0.005 = 0.5% maximum
                 price decrease. If not passed (None), then unstaking goes without price limit. Default is 0.005.
-            wait_for_inclusion: Waits for the transaction to be included in a block. Default is `True`.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Default is `False`.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
-                can think of it as an expiration date for the transaction. Default is `None`.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
             tuple[bool, str]:
@@ -5909,9 +5911,10 @@ class AsyncSubtensor(SubtensorMixin):
             hotkey=hotkey,
             netuid=netuid,
             rate_tolerance=rate_tolerance,
+            period=period,
+            raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            period=period,
         )
 
     async def unstake_multiple(
