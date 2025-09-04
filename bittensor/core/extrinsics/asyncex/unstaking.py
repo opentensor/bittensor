@@ -173,7 +173,7 @@ async def unstake_extrinsic(
             )
             return True
 
-        if safe_staking and "Custom error: 8" in message:
+        if safe_unstaking and "Custom error: 8" in message:
             logging.error(
                 ":cross_mark: [red]Failed[/red]: Price exceeded tolerance limit. Either increase price tolerance or enable partial staking."
             )
