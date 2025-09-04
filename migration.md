@@ -189,3 +189,5 @@ wait_for_finalization: bool = False,
 - [x] `.register_extrinsic` and `subtensor.register`
 - [x] `.set_subnet_identity_extrinsic` and `subtensor.set_subnet_identity`
 - [x] `.root_register_extrinsic`, `subtensor.burned_register` and `subtensor.root_register`
+- [x] `.serve_extrinsic`
+- [x] `.serve_axon_extrinsic` and `subtensor.serve_axon`
