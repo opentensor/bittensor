@@ -386,4 +386,5 @@ def test_publish_metadata(
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             period=None,
+            raise_error=False,
         )
