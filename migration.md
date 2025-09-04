@@ -179,3 +179,4 @@ wait_for_finalization: bool = False,
 - [x] `.remove_liquidity_extrinsic` and `subtensor.remove_liquidity`
 - [x] `.toggle_user_liquidity_extrinsic` and `subtensor.toggle_user_liquidity`
 - [x] `.transfer_stake_extrinsic` and `subtensor.transfer_stake`
+- [x] `.swap_stake_extrinsic` and `subtensor.swap_stake`
