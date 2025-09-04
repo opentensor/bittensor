@@ -170,24 +170,26 @@ async def swap_stake_extrinsic(
     """
     Swaps stake from one subnet to another for a given hotkey in the Bittensor network.
 
-    Args:
-        subtensor (AsyncSubtensor): The subtensor instance to interact with the blockchain.
-        wallet (Wallet): The wallet containing the coldkey to authorize the swap.
-        hotkey_ss58 (str): SS58 address of the hotkey associated with the stake.
-        origin_netuid (int): Network UID of the origin subnet.
-        destination_netuid (int): Network UID of the destination subnet.
-        amount (Balance): The amount of stake to swap as a `Balance` object.
-        wait_for_inclusion (bool): If True, waits for transaction inclusion in a block. Defaults to True.
-        wait_for_finalization (bool): If True, waits for transaction finalization. Defaults to False.
-        safe_staking (bool): If true, enables price safety checks to protect against price impact.
-        allow_partial_stake (bool): If true, allows partial stake swaps when the full amount would exceed the price tolerance.
-        rate_tolerance (float): Maximum allowed increase in a price ratio (0.005 = 0.5%).
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
+    Parameters:
+        subtensor: Subtensor instance.
+        wallet: The wallet to swap stake from.
+        hotkey_ss58: The hotkey SS58 address associated with the stake.
+        origin_netuid: The source subnet UID.
+        destination_netuid: The destination subnet UID.
+        amount: Amount to swap.
+        safe_staking: If true, enables price safety checks to protect against price impact.
+        allow_partial_stake: If true, allows partial stake swaps when the full amount would exceed the price tolerance.
+        rate_tolerance: Maximum allowed increase in a price ratio (0.005 = 0.5%).
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
+
 
     Returns:
-        bool: True if the swap was successful, False otherwise.
+        success (bool): True if the swap was successful.
     """
     amount.set_unit(netuid=origin_netuid)
 
@@ -258,6 +260,7 @@ async def swap_stake_extrinsic(
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             period=period,
+            raise_error=raise_error,
         )
 
         if success:
