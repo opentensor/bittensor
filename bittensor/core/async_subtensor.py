@@ -4488,29 +4488,30 @@ class AsyncSubtensor(SubtensorMixin):
         uids: Union[NDArray[np.int64], list],
         weights: Union[NDArray[np.int64], list],
         version_key: int = version_as_int,
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = False,
         max_retries: int = 5,
         period: Optional[int] = 16,
+        raise_error: bool = True,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
     ) -> tuple[bool, str]:
         """
         Commits a hash of the subnet validator's weight vector to the Bittensor blockchain using the provided wallet.
         This action serves as a commitment or snapshot of the validator's current weight distribution.
 
-        Arguments:
-            wallet: The wallet associated with the subnet validator committing the weights.
+        Parameters:
+            wallet: The wallet associated with the neuron committing the weights.
             netuid: The unique identifier of the subnet.
             salt: list of randomly generated integers as salt to generated weighted hash.
-            uids: NumPy array of subnet miner neuron UIDs for which weights are being committed.
-            weights: of weight values corresponding toon_key
-            version_key: Integer representation of version key for compatibility with the network.
-            wait_for_inclusion: Waits for the transaction to be included in a block. Default is `False`.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Default is
-                `False`.
-            max_retries: The number of maximum attempts to commit weights. Default is `5`.
-            period: The number of blocks during which the transaction will remain valid after it's
-                submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction.
+            uids: NumPy array of neuron UIDs for which weights are being committed.
+            weights: NumPy array of weight values corresponding to each UID.
+            version_key: Version key for compatibility with the network.
+            max_retries: The number of maximum attempts to commit weights.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
             tuple[bool, str]:
@@ -4553,7 +4554,7 @@ class AsyncSubtensor(SubtensorMixin):
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                     period=period,
-                    raise_error=True,
+                    raise_error=raise_error,
                 )
                 if success:
                     break
