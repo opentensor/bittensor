@@ -4213,22 +4213,26 @@ class Subtensor(SubtensorMixin):
                     f"Committing weights for subnet [blue]{netuid}[/blue]. "
                     f"Attempt [blue]{retries + 1}[blue] of [green]{max_retries}[/green]."
                 )
-                success, message = commit_timelocked_mechanism_weights_extrinsic(
-                    subtensor=self,
-                    wallet=wallet,
-                    netuid=netuid,
-                    mechid=mechid,
-                    uids=uids,
-                    weights=weights,
-                    block_time=block_time,
-                    commit_reveal_version=commit_reveal_version,
-                    version_key=version_key,
-                    period=period,
-                    raise_error=raise_error,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
+                try:
+                    success, message = commit_timelocked_mechanism_weights_extrinsic(
+                        subtensor=self,
+                        wallet=wallet,
+                        netuid=netuid,
+                        mechid=mechid,
+                        uids=uids,
+                        weights=weights,
+                        block_time=block_time,
+                        commit_reveal_version=commit_reveal_version,
+                        version_key=version_key,
+                        period=period,
+                        raise_error=raise_error,
+                        wait_for_inclusion=wait_for_inclusion,
+                        wait_for_finalization=wait_for_finalization,
+                    )
+                except Exception as e:
+                    logging.error(f"Error setting weights: {e}")
                 retries += 1
+
             return success, message
         else:
             # go with `set_mechanism_weights_extrinsic`
@@ -4247,9 +4251,10 @@ class Subtensor(SubtensorMixin):
                         uids=uids,
                         weights=weights,
                         version_key=version_key,
+                        period=period,
+                        raise_error=raise_error,
                         wait_for_inclusion=wait_for_inclusion,
                         wait_for_finalization=wait_for_finalization,
-                        period=period,
                     )
                 except Exception as e:
                     logging.error(f"Error setting weights: {e}")
