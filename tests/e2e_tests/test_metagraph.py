@@ -562,8 +562,6 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
     assert subtensor.subnets.burned_register(
         bob_wallet,
         netuid=alice_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     metagraph_info = subtensor.metagraphs.get_metagraph_info(netuid=alice_subnet_netuid)
@@ -822,8 +820,6 @@ async def test_metagraph_info_async(async_subtensor, alice_wallet, bob_wallet):
     assert await async_subtensor.subnets.burned_register(
         bob_wallet,
         netuid=alice_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     metagraph_info = await async_subtensor.metagraphs.get_metagraph_info(
@@ -999,10 +995,8 @@ def test_metagraph_info_with_indexes(subtensor, alice_wallet, bob_wallet):
     assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
 
     assert subtensor.subnets.burned_register(
-        bob_wallet,
+        wallet=bob_wallet,
         netuid=alice_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     fields = [
@@ -1237,10 +1231,8 @@ async def test_metagraph_info_with_indexes_async(
     )
 
     assert await async_subtensor.subnets.burned_register(
-        bob_wallet,
+        wallet=bob_wallet,
         netuid=alice_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     fields = [
