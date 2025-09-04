@@ -198,3 +198,4 @@ wait_for_finalization: bool = False,
 - [x] `.add_stake_multiple_extrinsic` and `subtensor.add_stake_multiple`
 - [x] `.start_call_extrinsic` and `subtensor.start_call`
 - [x] `.increase_take_extrinsic`, `.decrease_take_extrinsic` and `subtenor.set_reveal_commitment`
+- [x] `.transfer_extrinsic` and `subtensor.transfer`
