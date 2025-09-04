@@ -3103,6 +3103,7 @@ async def test_start_call(subtensor, mocker):
         wait_for_inclusion=True,
         wait_for_finalization=False,
         period=None,
+        raise_error=False,
     )
     assert result == mocked_extrinsic.return_value
 
