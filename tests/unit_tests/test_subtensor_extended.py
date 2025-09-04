@@ -1228,9 +1228,7 @@ def test_register_subnet_insufficient_funds(
     mocker.patch.object(subtensor, "get_balance", return_value=Balance(0))
     mocker.patch.object(subtensor, "get_subnet_burn_cost", return_value=Balance(10))
 
-    success = subtensor.register_subnet(
-        fake_wallet,
-    )
+    success = subtensor.register_subnet(fake_wallet)
 
     assert success is False
 

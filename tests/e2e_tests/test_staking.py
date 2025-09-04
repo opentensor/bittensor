@@ -396,11 +396,7 @@ def test_batch_operations(subtensor, alice_wallet, bob_wallet):
     ]
 
     for _ in netuids:
-        subtensor.subnets.register_subnet(
-            alice_wallet,
-            wait_for_inclusion=True,
-            wait_for_finalization=True,
-        )
+        subtensor.subnets.register_subnet(alice_wallet)
 
     # make sure we passed start_call limit for both subnets
     for netuid in netuids:
@@ -547,11 +543,7 @@ async def test_batch_operations_async(async_subtensor, alice_wallet, bob_wallet)
     ]
 
     for _ in netuids:
-        await async_subtensor.subnets.register_subnet(
-            wallet=alice_wallet,
-            wait_for_inclusion=True,
-            wait_for_finalization=True,
-        )
+        await async_subtensor.subnets.register_subnet(alice_wallet)
 
     # make sure we passed start_call limit for both subnets
     for netuid in netuids:
