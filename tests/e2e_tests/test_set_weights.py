@@ -54,11 +54,9 @@ def test_set_weights_uses_next_nonce(subtensor, alice_wallet):
 
     for netuid in netuids:
         # Register the subnets
-        assert subtensor.subnets.register_subnet(
-            wallet=alice_wallet,
-            wait_for_inclusion=True,
-            wait_for_finalization=True,
-        ), "Unable to register the subnet"
+        assert subtensor.subnets.register_subnet(alice_wallet), (
+            "Unable to register the subnet"
+        )
 
         # Verify all subnets created successfully
         assert subtensor.subnets.subnet_exists(netuid), (
@@ -222,11 +220,9 @@ async def test_set_weights_uses_next_nonce_async(async_subtensor, alice_wallet):
 
     for netuid in netuids:
         # Register the subnets
-        assert await async_subtensor.subnets.register_subnet(
-            wallet=alice_wallet,
-            wait_for_inclusion=True,
-            wait_for_finalization=True,
-        ), "Unable to register the subnet"
+        assert await async_subtensor.subnets.register_subnet(alice_wallet), (
+            "Unable to register the subnet"
+        )
 
         # Verify all subnets created successfully
         assert await async_subtensor.subnets.subnet_exists(netuid), (
