@@ -4499,28 +4499,30 @@ class Subtensor(SubtensorMixin):
         origin_netuid: int,
         destination_netuid: int,
         amount: Balance,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
         period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
     ) -> bool:
         """
         Transfers stake from one subnet to another while changing the coldkey owner.
 
-        Args:
-            wallet (bittensor.wallet): The wallet to transfer stake from.
-            destination_coldkey_ss58 (str): The destination coldkey SS58 address.
-            hotkey_ss58 (str): The hotkey SS58 address associated with the stake.
-            origin_netuid (int): The source subnet UID.
-            destination_netuid (int): The destination subnet UID.
-            amount (Union[Balance, float, int]): Amount to transfer.
-            wait_for_inclusion (bool): If true, waits for inclusion before returning.
-            wait_for_finalization (bool): If true, waits for finalization before returning.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
-                submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction.
+        Parameters:
+            wallet: The wallet to transfer stake from.
+            destination_coldkey_ss58: The destination coldkey SS58 address.
+            hotkey_ss58: The hotkey SS58 address associated with the stake.
+            origin_netuid: The source subnet UID.
+            destination_netuid: The destination subnet UID.
+            amount: Amount to transfer.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            success (bool): True if the transfer was successful.
+            success: True if the transfer was successful.
         """
         amount = check_and_convert_to_balance(amount)
         return transfer_stake_extrinsic(
@@ -4531,9 +4533,10 @@ class Subtensor(SubtensorMixin):
             origin_netuid=origin_netuid,
             destination_netuid=destination_netuid,
             amount=amount,
+            period=period,
+            raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            period=period,
         )
 
     def unstake(
