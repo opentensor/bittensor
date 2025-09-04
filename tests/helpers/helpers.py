@@ -84,7 +84,7 @@ def assert_submit_signed_extrinsic(
     call_params: Optional[dict] = None,
     era: Optional[dict] = None,
     nonce: Optional[int] = None,
-    wait_for_inclusion: bool = False,
+    wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
 ):
     substrate.compose_call.assert_called_with(
