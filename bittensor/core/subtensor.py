@@ -4666,61 +4666,61 @@ class Subtensor(SubtensorMixin):
     def unstake(
         self,
         wallet: "Wallet",
-        hotkey_ss58: Optional[str] = None,
-        netuid: Optional[int] = None,  # TODO why is this optional?
-        amount: Optional[Balance] = None,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-        safe_staking: bool = False,
+        netuid: int,
+        hotkey_ss58: str,
+        amount: Balance,
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
+        safe_staking: bool = False,
         period: Optional[int] = None,
-        unstake_all: bool = False,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
     ) -> bool:
         """
         Removes a specified amount of stake from a single hotkey account. This function is critical for adjusting
-            individual neuron stakes within the Bittensor network.
+        individual neuron stakes within the Bittensor network.
 
-        Args:
+        Parameters:
             wallet: The wallet associated with the neuron from which the stake is being removed.
-            hotkey_ss58: The ``SS58`` address of the hotkey account to unstake from.
             netuid: The unique identifier of the subnet.
+            hotkey_ss58: The ``SS58`` address of the hotkey account to unstake from.
             amount: The amount of alpha to unstake. If not specified, unstakes all. Alpha amount.
-            wait_for_inclusion: Waits for the transaction to be included in a block.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
-            safe_staking: If true, enables price safety checks to protect against fluctuating prices. The unstake
-                will only execute if the price change doesn't exceed the rate tolerance. Default is False.
-            allow_partial_stake (bool): If true and safe_staking is enabled, allows partial unstaking when
+            allow_partial_stake: If true and safe_staking is enabled, allows partial unstaking when
                 the full amount would exceed the price tolerance. If false, the entire unstake fails if it would
-                exceed the tolerance. Default is False.
-            rate_tolerance (float): The maximum allowed price change ratio when unstaking. For example,
-                0.005 = 0.5% maximum price decrease. Only used when safe_staking is True. Default is 0.005.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
-                submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction.
-            unstake_all: If `True`, unstakes all tokens, and `amount` is ignored. Default is `False`.
+                exceed the tolerance.
+            rate_tolerance: The maximum allowed price change ratio when unstaking. For example,
+                0.005 = 0.5% maximum price decrease. Only used when safe_staking is True.
+            safe_staking: If true, enables price safety checks to protect against fluctuating prices. The unstake
+                will only execute if the price change doesn't exceed the rate tolerance.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
             bool: ``True`` if the unstaking process is successful, False otherwise.
 
         This function supports flexible stake management, allowing neurons to adjust their network participation and
-            potential reward accruals. When safe_staking is enabled, it provides protection against price fluctuations
-            during the time unstake is executed and the time it is actually processed by the chain.
+        potential reward accruals. When safe_staking is enabled, it provides protection against price fluctuations
+        during the time unstake is executed and the time it is actually processed by the chain.
         """
         amount = check_and_convert_to_balance(amount)
         return unstake_extrinsic(
             subtensor=self,
             wallet=wallet,
-            hotkey_ss58=hotkey_ss58,
             netuid=netuid,
+            hotkey_ss58=hotkey_ss58,
             amount=amount,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            safe_staking=safe_staking,
             allow_partial_stake=allow_partial_stake,
             rate_tolerance=rate_tolerance,
+            safe_staking=safe_staking,
             period=period,
-            unstake_all=unstake_all,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
         )
 
     def unstake_all(
@@ -4730,7 +4730,7 @@ class Subtensor(SubtensorMixin):
         netuid: int,
         rate_tolerance: Optional[float] = 0.005,
         wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
+        wait_for_finalization: bool = True,
         period: Optional[int] = None,
     ) -> tuple[bool, str]:
         """Unstakes all TAO/Alpha associated with a hotkey from the specified subnets on the Bittensor network.
