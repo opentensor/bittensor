@@ -3490,10 +3490,11 @@ class Subtensor(SubtensorMixin):
         uids: UIDs,
         weights: Weights,
         version_key: int = version_as_int,
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = False,
         max_retries: int = 5,
         period: Optional[int] = 16,
+        raise_error: bool = True,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
         mechid: int = 0,
     ) -> tuple[bool, str]:
         """
@@ -3504,24 +3505,24 @@ class Subtensor(SubtensorMixin):
             wallet: The wallet associated with the neuron committing the weights.
             netuid: The unique identifier of the subnet.
             salt: list of randomly generated integers as salt to generated weighted hash.
-            uids: Array/list of neuron UIDs for which weights are being committed.
-            weights: Array/list of weight values corresponding to each UID.
+            uids: NumPy array of neuron UIDs for which weights are being committed.
+            weights: NumPy array of weight values corresponding to each UID.
             version_key: Version key for compatibility with the network.
-            wait_for_inclusion: Waits for the transaction to be included in a block.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
             max_retries: The number of maximum attempts to commit weights.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
-                can think of it as an expiration date for the transaction.
-            mechid: The subnet mechanism unique identifier.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
             tuple[bool, str]:
                 `True` if the weight commitment is successful, False otherwise.
                 `msg` is a string value describing the success or potential error.
 
-        This function allows neurons to create a tamper-proof record of their weight distribution at a specific point
-            in time, enhancing transparency and accountability within the Bittensor network.
+        This function allows neurons to create a tamper-proof record of their weight distribution at a specific point in
+        time, enhancing transparency and accountability within the Bittensor network.
         """
         retries = 0
         success = False
@@ -3543,10 +3544,10 @@ class Subtensor(SubtensorMixin):
                     uids=uids,
                     weights=weights,
                     salt=salt,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
                     period=period,
                     raise_error=True,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
                 )
                 if success:
                     break
