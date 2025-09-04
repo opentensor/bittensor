@@ -104,6 +104,7 @@ def test_root_register_extrinsic(
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             period=None,
+            raise_error=False,
         )
 
 
