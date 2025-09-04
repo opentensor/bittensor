@@ -96,11 +96,12 @@ def test_unstake_all_extrinsic(fake_wallet, mocker):
         call=fake_subtensor.substrate.compose_call.return_value,
         wallet=fake_wallet,
         wait_for_inclusion=True,
-        wait_for_finalization=False,
+        wait_for_finalization=True,
         sign_with="coldkey",
         nonce_key="coldkeypub",
         use_nonce=True,
         period=None,
+        raise_error=False,
     )
 
 
