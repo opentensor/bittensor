@@ -4352,41 +4352,44 @@ class Subtensor(SubtensorMixin):
         self,
         netuid: int,
         axon: "Axon",
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = True,
         certificate: Optional[Certificate] = None,
         period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
     ) -> bool:
         """
-        Registers an ``Axon`` serving endpoint on the Bittensor network for a specific neuron. This function is used to
-            set up the Axon, a key component of a neuron that handles incoming queries and data processing tasks.
+        Registers an ``Axon`` serving endpoint on the Bittensor network for a specific neuron.
 
-        Args:
-            netuid (int): The unique identifier of the subnetwork.
-            axon (bittensor.core.axon.Axon): The Axon instance to be registered for serving.
-            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
-            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
-                ``True``.
-            certificate (bittensor.utils.Certificate): Certificate to use for TLS. If ``None``, no TLS will be used.
-                Defaults to ``None``.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
+        This function is used to set up the Axon, a key component of a neuron that handles incoming queries and data
+        processing tasks.
+
+        Parameters:
+            netuid: The unique identifier of the subnetwork.
+            axon: The Axon instance to be registered for serving.
+            certificate: Certificate to use for TLS. If ``None``, no TLS will be used.
+            period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
 
         Returns:
             bool: ``True`` if the Axon serve registration is successful, False otherwise.
 
         By registering an Axon, the neuron becomes an active part of the network's distributed computing infrastructure,
-            contributing to the collective intelligence of Bittensor.
+        contributing to the collective intelligence of Bittensor.
         """
         return serve_axon_extrinsic(
             subtensor=self,
             netuid=netuid,
             axon=axon,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
             certificate=certificate,
             period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
         )
 
     def start_call(
