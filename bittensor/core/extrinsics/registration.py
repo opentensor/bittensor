@@ -23,29 +23,26 @@ def burned_register_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     netuid: int,
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = True,
     period: Optional[int] = None,
     raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
 ) -> bool:
     """Registers the wallet to chain by recycling TAO.
 
-    Args:
+    Parameters:
         subtensor: Subtensor instance.
         wallet: Bittensor wallet object.
         netuid: The ``netuid`` of the subnet to register on.
-        wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning ``True``, or returns
-            ``False`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning ``True``,
-            or returns ``False`` if the extrinsic fails to be finalized within the timeout.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
-        raise_error: raises the relevant exception rather than returning `False` if unsuccessful.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
-            finalization / inclusion, the response is ``True``.
+        success: True if the extrinsic was successful. Otherwise, False.
     """
     block = subtensor.get_current_block()
     if not subtensor.subnet_exists(netuid, block=block):
