@@ -1395,9 +1395,9 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
 
     assert subtensor.staking.move_stake(
         wallet=alice_wallet,
-        origin_hotkey=alice_wallet.hotkey.ss58_address,
+        origin_hotkey_ss58=alice_wallet.hotkey.ss58_address,
         origin_netuid=alice_subnet_netuid,
-        destination_hotkey=bob_wallet.hotkey.ss58_address,
+        destination_hotkey_ss58=bob_wallet.hotkey.ss58_address,
         destination_netuid=bob_subnet_netuid,
         amount=stakes[0].stake,
         wait_for_finalization=True,
@@ -1473,9 +1473,9 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
 
     assert subtensor.staking.move_stake(
         wallet=dave_wallet,
-        origin_hotkey=dave_wallet.hotkey.ss58_address,
+        origin_hotkey_ss58=dave_wallet.hotkey.ss58_address,
         origin_netuid=bob_subnet_netuid,
-        destination_hotkey=bob_wallet.hotkey.ss58_address,
+        destination_hotkey_ss58=bob_wallet.hotkey.ss58_address,
         destination_netuid=bob_subnet_netuid,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -1566,9 +1566,9 @@ async def test_move_stake_async(async_subtensor, alice_wallet, bob_wallet, dave_
 
     assert await async_subtensor.staking.move_stake(
         wallet=alice_wallet,
-        origin_hotkey=alice_wallet.hotkey.ss58_address,
+        origin_hotkey_ss58=alice_wallet.hotkey.ss58_address,
         origin_netuid=alice_subnet_netuid,
-        destination_hotkey=bob_wallet.hotkey.ss58_address,
+        destination_hotkey_ss58=bob_wallet.hotkey.ss58_address,
         destination_netuid=bob_subnet_netuid,
         amount=stakes[0].stake,
         wait_for_finalization=True,
@@ -1647,9 +1647,9 @@ async def test_move_stake_async(async_subtensor, alice_wallet, bob_wallet, dave_
 
     assert await async_subtensor.staking.move_stake(
         wallet=dave_wallet,
-        origin_hotkey=dave_wallet.hotkey.ss58_address,
+        origin_hotkey_ss58=dave_wallet.hotkey.ss58_address,
         origin_netuid=bob_subnet_netuid,
-        destination_hotkey=bob_wallet.hotkey.ss58_address,
+        destination_hotkey_ss58=bob_wallet.hotkey.ss58_address,
         destination_netuid=bob_subnet_netuid,
         wait_for_inclusion=True,
         wait_for_finalization=True,
