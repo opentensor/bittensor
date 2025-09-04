@@ -59,6 +59,7 @@ async def test_unstake_extrinsic(fake_wallet, mocker):
         nonce_key="coldkeypub",
         use_nonce=True,
         period=None,
+        raise_error=False,
     )
 
 

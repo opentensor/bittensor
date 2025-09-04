@@ -199,3 +199,9 @@ wait_for_finalization: bool = False,
 - [x] `.start_call_extrinsic` and `subtensor.start_call`
 - [x] `.increase_take_extrinsic`, `.decrease_take_extrinsic` and `subtenor.set_reveal_commitment`
 - [x] `.transfer_extrinsic` and `subtensor.transfer`
+- [x] `.unstake_extrinsic` and `subtensor.unstake`
+  - Changes in `unstake_extrinsic`:
+    - parameter `netuid: Optional[int]` is now required -> `netuid: int`
+    - parameter `hotkey_ss58: Optional[str]` is now required -> `hotkey_ss58: str`
+    - parameter `amount: Optional[Balance]` is now required -> `amount: Balance`
+    - parameter `unstake_all: bool` removed (use `unstake_all_extrinsic` for unstake all stake)
