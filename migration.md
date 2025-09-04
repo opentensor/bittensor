@@ -184,3 +184,4 @@ wait_for_finalization: bool = False,
 - [x] `.move_stake_extrinsic` has renamed parameters:
     - `origin_hotkey` to `origin_hotkey_ss58`
     - `destination_hotkey` to `destination_hotkey_ss58`
+- [x] `.burned_register_extrinsic` and `subtensor.burned_register`
