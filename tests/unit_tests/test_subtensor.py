@@ -2846,7 +2846,7 @@ def test_unstake_success(mocker, subtensor, fake_wallet):
         amount=fake_amount,
         wait_for_inclusion=True,
         wait_for_finalization=False,
-        safe_staking=False,
+        safe_unstaking=False,
         allow_partial_stake=False,
         rate_tolerance=0.005,
     )
@@ -2858,7 +2858,7 @@ def test_unstake_success(mocker, subtensor, fake_wallet):
         netuid=fake_netuid,
         hotkey_ss58=fake_hotkey_ss58,
         amount=Balance.from_rao(fake_amount),
-        safe_staking=False,
+        safe_unstaking=False,
         allow_partial_stake=False,
         rate_tolerance=0.005,
         period=None,
@@ -2869,8 +2869,8 @@ def test_unstake_success(mocker, subtensor, fake_wallet):
     assert result == mock_unstake_extrinsic.return_value
 
 
-def test_unstake_with_safe_staking(mocker, subtensor, fake_wallet):
-    """Test unstake with safe staking parameters enabled."""
+def test_unstake_with_safe_unstaking(mocker, subtensor, fake_wallet):
+    """Test unstake with `safe_unstaking` parameters enabled."""
     fake_hotkey_ss58 = "hotkey_1"
     fake_amount = 10.0
     fake_netuid = 14
@@ -2886,7 +2886,7 @@ def test_unstake_with_safe_staking(mocker, subtensor, fake_wallet):
         amount=fake_amount,
         wait_for_inclusion=True,
         wait_for_finalization=False,
-        safe_staking=True,
+        safe_unstaking=True,
         allow_partial_stake=True,
         rate_tolerance=fake_rate_tolerance,
     )
@@ -2898,7 +2898,7 @@ def test_unstake_with_safe_staking(mocker, subtensor, fake_wallet):
         netuid=fake_netuid,
         hotkey_ss58=fake_hotkey_ss58,
         amount=Balance.from_rao(fake_amount),
-        safe_staking=True,
+        safe_unstaking=True,
         allow_partial_stake=True,
         rate_tolerance=fake_rate_tolerance,
         period=None,

@@ -5633,7 +5633,7 @@ class AsyncSubtensor(SubtensorMixin):
         hotkey_ss58: str,
         amount: Balance,
         allow_partial_stake: bool = False,
-        safe_staking: bool = False,
+        safe_unstaking: bool = False,
         rate_tolerance: float = 0.005,
         period: Optional[int] = None,
         raise_error: bool = False,
@@ -5654,7 +5654,7 @@ class AsyncSubtensor(SubtensorMixin):
                 exceed the tolerance.
             rate_tolerance: The maximum allowed price change ratio when unstaking. For example,
                 0.005 = 0.5% maximum price decrease. Only used when safe_staking is True.
-            safe_staking: If true, enables price safety checks to protect against fluctuating prices. The unstake
+            safe_unstaking: If true, enables price safety checks to protect against fluctuating prices. The unstake
                 will only execute if the price change doesn't exceed the rate tolerance.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
@@ -5678,7 +5678,7 @@ class AsyncSubtensor(SubtensorMixin):
             amount=amount,
             allow_partial_stake=allow_partial_stake,
             rate_tolerance=rate_tolerance,
-            safe_staking=safe_staking,
+            safe_unstaking=safe_unstaking,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
