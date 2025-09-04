@@ -203,7 +203,7 @@ async def test_burned_register(mock_substrate, subtensor, fake_wallet, mocker):
             "hotkey": fake_wallet.hotkey.ss58_address,
         },
         wait_for_finalization=True,
-        wait_for_inclusion=False,
+        wait_for_inclusion=True,
     )
 
 
@@ -244,7 +244,7 @@ async def test_burned_register_on_root(mock_substrate, subtensor, fake_wallet, m
             "hotkey": fake_wallet.hotkey.ss58_address,
         },
         wait_for_finalization=True,
-        wait_for_inclusion=False,
+        wait_for_inclusion=True,
     )
 
 
