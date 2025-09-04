@@ -3245,7 +3245,7 @@ def test_set_subnet_identity(mocker, subtensor, fake_wallet):
         discord=fake_subnet_identity.discord,
         description=fake_subnet_identity.description,
         additional=fake_subnet_identity.additional,
-        period=8,
+        period=None,
         raise_error=False,
         wait_for_finalization=True,
         wait_for_inclusion=True,
