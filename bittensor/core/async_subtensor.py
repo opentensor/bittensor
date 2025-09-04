@@ -5035,10 +5035,11 @@ class AsyncSubtensor(SubtensorMixin):
         weights: Weights,
         salt: Salt,
         version_key: int = version_as_int,
+        period: Optional[int] = 16,
+        raise_error: bool = True,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         max_retries: int = 5,
-        period: Optional[int] = None,
         mechid: int = 0,
     ) -> tuple[bool, str]:
         """
@@ -5085,10 +5086,10 @@ class AsyncSubtensor(SubtensorMixin):
                     weights=weights,
                     salt=salt,
                     version_key=version_key,
+                    period=period,
+                    raise_error=raise_error,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
-                    period=period,
-                    raise_error=True,
                 )
                 if success:
                     break
