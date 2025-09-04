@@ -4183,7 +4183,7 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         netuid: int,
         subnet_identity: SubnetIdentity,
-        period: Optional[int] = 8,
+        period: Optional[int] = None,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
