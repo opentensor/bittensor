@@ -5769,25 +5769,28 @@ class AsyncSubtensor(SubtensorMixin):
         destination: str,
         amount: Optional[Balance],
         transfer_all: bool = False,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
         keep_alive: bool = True,
         period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
     ) -> bool:
         """
         Transfer token of amount to destination.
 
-        Arguments:
+        Parameters:
             wallet: Source wallet for the transfer.
             destination: Destination address for the transfer.
             amount: Number of tokens to transfer. `None` is transferring all.
             transfer_all: Flag to transfer all tokens. Default is `False`.
-            wait_for_inclusion: Waits for the transaction to be included in a block. Defaults to `True`.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Defaults to `False`.
             keep_alive: Flag to keep the connection alive. Default is `True`.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
-                can think of it as an expiration date for the transaction.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic.
+
         Returns:
             `True` if the transferring was successful, otherwise `False`.
         """
@@ -5799,10 +5802,11 @@ class AsyncSubtensor(SubtensorMixin):
             destination=destination,
             amount=amount,
             transfer_all=transfer_all,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
             keep_alive=keep_alive,
             period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
         )
 
     async def transfer_stake(
