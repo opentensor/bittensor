@@ -24,26 +24,26 @@ def commit_weights_extrinsic(
     wallet: "Wallet",
     netuid: int,
     commit_hash: str,
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = False,
     period: Optional[int] = None,
     raise_error: bool = False,
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = False,
 ) -> tuple[bool, str]:
     """
     Commits a hash of the neuron's weights to the Bittensor blockchain using the provided wallet.
     This function is a wrapper around the `do_commit_weights` method.
 
-    Args:
+    Parameters:
         subtensor: The subtensor instance used for blockchain interaction.
         wallet: The wallet associated with the neuron committing the weights.
         netuid: The unique identifier of the subnet.
         commit_hash: The hash of the neuron's weights to be committed.
-        wait_for_inclusion: Waits for the transaction to be included in a block.
-        wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
-        raise_error (bool): Whether to raise an error if the transaction fails.
+        raise_error: Whether to raise an error if the transaction fails.
+        wait_for_inclusion: Waits for the transaction to be included in a block.
+        wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
 
     Returns:
         tuple[bool, str]:
@@ -51,7 +51,7 @@ def commit_weights_extrinsic(
             `msg` is a string value describing the success or potential error.
 
     This function provides a user-friendly interface for committing weights to the Bittensor blockchain, ensuring proper
-        error handling and user interaction when required.
+    error handling and user interaction when required.
     """
 
     call = subtensor.substrate.compose_call(
