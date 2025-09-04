@@ -3030,6 +3030,7 @@ def test_unstake_multiple_success(mocker, subtensor, fake_wallet):
         wait_for_finalization=False,
         period=None,
         unstake_all=False,
+        raise_error=False,
     )
     assert result == mock_unstake_multiple_extrinsic.return_value
 
