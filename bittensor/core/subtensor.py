@@ -3867,11 +3867,12 @@ class Subtensor(SubtensorMixin):
         uids: UIDs,
         weights: Weights,
         salt: Salt,
+        max_retries: int = 5,
         version_key: int = version_as_int,
+        period: Optional[int] = 16,
+        raise_error: bool = True,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
-        max_retries: int = 5,
-        period: Optional[int] = 16,
         mechid: int = 0,
     ) -> tuple[bool, str]:
         """
@@ -3921,7 +3922,7 @@ class Subtensor(SubtensorMixin):
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                     period=period,
-                    raise_error=True,
+                    raise_error=raise_error,
                 )
                 if success:
                     break
