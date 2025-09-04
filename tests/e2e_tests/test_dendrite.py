@@ -15,6 +15,9 @@ from tests.e2e_tests.utils.e2e_test_utils import (
     wait_to_start_call,
 )
 
+logging.on()
+logging.set_debug()
+
 
 @pytest.mark.asyncio
 async def test_dendrite(subtensor, templates, alice_wallet, bob_wallet):
@@ -108,7 +111,7 @@ async def test_dendrite(subtensor, templates, alice_wallet, bob_wallet):
     )
 
     assert subtensor.staking.add_stake(
-        bob_wallet,
+        wallet=bob_wallet,
         netuid=alice_subnet_netuid,
         amount=tao,
     )
@@ -188,6 +191,8 @@ async def test_dendrite_async(async_subtensor, templates, alice_wallet, bob_wall
         wallet=alice_wallet,
         netuid=alice_subnet_netuid,
         amount=Balance.from_tao(1),
+        wait_for_inclusion=False,
+        wait_for_finalization=False,
     )
 
     # update max_allowed_validators so only one neuron can get validator_permit
@@ -242,9 +247,11 @@ async def test_dendrite_async(async_subtensor, templates, alice_wallet, bob_wall
     ).tao_to_alpha_with_slippage(tao)
 
     assert await async_subtensor.staking.add_stake(
-        bob_wallet,
+        wallet=bob_wallet,
         netuid=alice_subnet_netuid,
         amount=tao,
+        wait_for_inclusion=False,
+        wait_for_finalization=False,
     )
 
     # Refresh metagraph
