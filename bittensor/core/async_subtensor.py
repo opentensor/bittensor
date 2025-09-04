@@ -4804,32 +4804,34 @@ class AsyncSubtensor(SubtensorMixin):
     async def move_stake(
         self,
         wallet: "Wallet",
-        origin_hotkey: str,
+        origin_hotkey_ss58: str,
         origin_netuid: int,
-        destination_hotkey: str,
+        destination_hotkey_ss58: str,
         destination_netuid: int,
         amount: Optional[Balance] = None,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-        period: Optional[int] = None,
         move_all_stake: bool = False,
+        period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
     ) -> bool:
         """
         Moves stake to a different hotkey and/or subnet.
 
         Arguments:
             wallet: The wallet to move stake from.
-            origin_hotkey: The SS58 address of the source hotkey.
+            origin_hotkey_ss58: The SS58 address of the source hotkey.
             origin_netuid: The netuid of the source subnet.
-            destination_hotkey: The SS58 address of the destination hotkey.
+            destination_hotkey_ss58: The SS58 address of the destination hotkey.
             destination_netuid: The netuid of the destination subnet.
             amount: Amount of stake to move.
+            move_all_stake: If true, moves all stake from the source hotkey to the destination hotkey.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
-            period: The number of blocks during which the transaction will remain valid after it's
-                submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction.
-            move_all_stake: If true, moves all stake from the source hotkey to the destination hotkey.
 
         Returns:
             success: True if the stake movement was successful.
@@ -4838,15 +4840,16 @@ class AsyncSubtensor(SubtensorMixin):
         return await move_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
-            origin_hotkey=origin_hotkey,
+            origin_hotkey_ss58=origin_hotkey_ss58,
             origin_netuid=origin_netuid,
-            destination_hotkey=destination_hotkey,
+            destination_hotkey_ss58=destination_hotkey_ss58,
             destination_netuid=destination_netuid,
             amount=amount,
+            move_all_stake=move_all_stake,
+            period=period,
+            raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            period=period,
-            move_all_stake=move_all_stake,
         )
 
     async def register(
