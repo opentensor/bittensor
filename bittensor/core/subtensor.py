@@ -4421,40 +4421,40 @@ class Subtensor(SubtensorMixin):
         origin_netuid: int,
         destination_netuid: int,
         amount: Balance,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
         safe_staking: bool = False,
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
         period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
     ) -> bool:
         """
         Moves stake between subnets while keeping the same coldkey-hotkey pair ownership.
         Like subnet hopping - same owner, same hotkey, just changing which subnet the stake is in.
 
-        Args:
-            wallet (bittensor.wallet): The wallet to swap stake from.
-            hotkey_ss58 (str): The SS58 address of the hotkey whose stake is being swapped.
-            origin_netuid (int): The netuid from which stake is removed.
-            destination_netuid (int): The netuid to which stake is added.
-            amount (Union[Balance, float]): The amount to swap.
-            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
-            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
-            safe_staking (bool): If true, enables price safety checks to protect against fluctuating prices. The swap
+        Parameters:
+            wallet: The wallet to swap stake from.
+            hotkey_ss58: The SS58 address of the hotkey whose stake is being swapped.
+            origin_netuid: The netuid from which stake is removed.
+            destination_netuid: The netuid to which stake is added.
+            amount: The amount to swap.
+            safe_staking: If true, enables price safety checks to protect against fluctuating prices. The swap
                 will only execute if the price ratio between subnets doesn't exceed the rate tolerance.
-                Default is False.
-            allow_partial_stake (bool): If true and safe_staking is enabled, allows partial stake swaps when
-                the full amount would exceed the price tolerance. If false, the entire swap fails if it would
-                exceed the tolerance. Default is False.
-            rate_tolerance (float): The maximum allowed increase in the price ratio between subnets
-                (origin_price/destination_price). For example, 0.005 = 0.5% maximum increase. Only used
-                when safe_staking is True. Default is 0.005.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
-                submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction.
+            allow_partial_stake: If true and safe_staking is enabled, allows partial stake swaps when the full amount
+                would exceed the price tolerance. If false, the entire swap fails if it would exceed the tolerance.
+            rate_tolerance: The maximum allowed increase in the price ratio between subnets
+                (origin_price/destination_price). For example, 0.005 = 0.5% maximum increase. Only used when
+                safe_staking is True.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
 
         Returns:
-            success (bool): True if the extrinsic was successful.
+            success: True if the extrinsic was successful.
 
         The price ratio for swap_stake in safe mode is calculated as: origin_subnet_price / destination_subnet_price
         When safe_staking is enabled, the swap will only execute if:
@@ -4471,12 +4471,13 @@ class Subtensor(SubtensorMixin):
             origin_netuid=origin_netuid,
             destination_netuid=destination_netuid,
             amount=amount,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
             safe_staking=safe_staking,
             allow_partial_stake=allow_partial_stake,
             rate_tolerance=rate_tolerance,
             period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
         )
 
     def toggle_user_liquidity(
