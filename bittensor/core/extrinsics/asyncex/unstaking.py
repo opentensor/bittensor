@@ -192,24 +192,26 @@ async def unstake_all_extrinsic(
     hotkey: str,
     netuid: int,
     rate_tolerance: Optional[float] = 0.005,
-    wait_for_inclusion: bool = True,
-    wait_for_finalization: bool = False,
     period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
 ) -> tuple[bool, str]:
     """Unstakes all TAO/Alpha associated with a hotkey from the specified subnets on the Bittensor network.
 
-    Arguments:
+    Parameters:
         subtensor: Subtensor instance.
         wallet: The wallet of the stake owner.
         hotkey: The SS58 address of the hotkey to unstake from.
         netuid: The unique identifier of the subnet.
         rate_tolerance: The maximum allowed price change ratio when unstaking. For example, 0.005 = 0.5% maximum
             price decrease. If not passed (None), then unstaking goes without price limit. Default is `0.005`.
-        wait_for_inclusion: Waits for the transaction to be included in a block. Default is `True`.
-        wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Default is `False`.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
-            think of it as an expiration date for the transaction. Default is `None`.
+            think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
         tuple[bool, str]:
@@ -248,6 +250,7 @@ async def unstake_all_extrinsic(
             sign_with="coldkey",
             use_nonce=True,
             period=period,
+            raise_error=raise_error,
         )
 
 

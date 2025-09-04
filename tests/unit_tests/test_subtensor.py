@@ -3708,8 +3708,9 @@ def test_unstake_all(subtensor, fake_wallet, mocker):
         netuid=1,
         rate_tolerance=0.005,
         wait_for_inclusion=True,
-        wait_for_finalization=False,
+        wait_for_finalization=True,
         period=None,
+        raise_error=False,
     )
     assert result == fake_unstake_all_extrinsic.return_value
 
