@@ -181,9 +181,9 @@ wait_for_finalization: bool = False,
 - [x] `.transfer_stake_extrinsic` and `subtensor.transfer_stake`
 - [x] `.swap_stake_extrinsic` and `subtensor.swap_stake`
 - [x] `.move_stake_extrinsic` and `subtensor.move_stake`
-- [x] `.move_stake_extrinsic` has renamed parameters:
-    - `origin_hotkey` to `origin_hotkey_ss58`
-    - `destination_hotkey` to `destination_hotkey_ss58`
+  - Changes in `move_stake_extrinsic` and `subtensor.move_stake`:
+    - parameter `origin_hotkey` renamed to `origin_hotkey_ss58`
+    - parameter `destination_hotkey` renamed to `destination_hotkey_ss58`
 - [x] `.burned_register_extrinsic` and `subtensor.burned_register`
 - [x] `.register_subnet_extrinsic` and `subtensor.register_subnet`
 - [x] `.register_extrinsic` and `subtensor.register`
@@ -200,7 +200,7 @@ wait_for_finalization: bool = False,
 - [x] `.increase_take_extrinsic`, `.decrease_take_extrinsic` and `subtenor.set_reveal_commitment`
 - [x] `.transfer_extrinsic` and `subtensor.transfer`
 - [x] `.unstake_extrinsic` and `subtensor.unstake`
-  - Changes in `unstake_extrinsic`:
+  - Changes in `unstake_extrinsic` and `subtensor.unstake`:
     - parameter `netuid: Optional[int]` is now required -> `netuid: int`
     - parameter `hotkey_ss58: Optional[str]` is now required -> `hotkey_ss58: str`
     - parameter `amount: Optional[Balance]` is now required -> `amount: Balance`
