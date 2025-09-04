@@ -179,7 +179,7 @@ async def serve_axon_extrinsic(
     certificate: Optional[Certificate] = None,
     period: Optional[int] = None,
     raise_error: bool = False,
-    wait_for_inclusion: bool = False,
+    wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
 ) -> bool:
     """
