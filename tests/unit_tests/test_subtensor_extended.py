@@ -1086,7 +1086,7 @@ def test_swap_stake(mock_substrate, subtensor, fake_wallet, mocker):
             "alpha_amount": 999,
         },
         wait_for_inclusion=True,
-        wait_for_finalization=False,
+        wait_for_finalization=True,
     )
 
 
