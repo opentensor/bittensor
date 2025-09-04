@@ -56,7 +56,7 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
 
     logging.console.info("Register the subnet through Alice")
-    assert subtensor.subnets.register_subnet(alice_wallet, True, True), (
+    assert subtensor.subnets.register_subnet(alice_wallet), (
         "Unable to register the subnet"
     )
 
@@ -375,7 +375,7 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
     logging.console.info("Testing [blue]test_metagraph_info[/blue]")
 
     alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
-    assert subtensor.subnets.register_subnet(alice_wallet, True, True)
+    assert subtensor.subnets.register_subnet(alice_wallet)
 
     metagraph_info = subtensor.metagraphs.get_metagraph_info(netuid=1, block=1)
 
@@ -635,7 +635,7 @@ async def test_metagraph_info_async(async_subtensor, alice_wallet, bob_wallet):
     logging.console.info("Testing [blue]test_metagraph_info_async[/blue]")
 
     alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
-    assert await async_subtensor.subnets.register_subnet(alice_wallet, True, True)
+    assert await async_subtensor.subnets.register_subnet(alice_wallet)
 
     metagraph_info = await async_subtensor.metagraphs.get_metagraph_info(
         netuid=1, block=1
@@ -900,7 +900,7 @@ def test_metagraph_info_with_indexes(subtensor, alice_wallet, bob_wallet):
     logging.console.info("Testing [blue]test_metagraph_info_with_indexes[/blue]")
 
     alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
-    assert subtensor.subnets.register_subnet(alice_wallet, True, True)
+    assert subtensor.subnets.register_subnet(alice_wallet)
 
     field_indices = [
         SelectiveMetagraphIndex.Name,
@@ -1136,7 +1136,7 @@ async def test_metagraph_info_with_indexes_async(
     logging.console.info("Testing [blue]test_metagraph_info_with_indexes_async[/blue]")
 
     alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
-    assert await async_subtensor.subnets.register_subnet(alice_wallet, True, True)
+    assert await async_subtensor.subnets.register_subnet(alice_wallet)
 
     field_indices = [
         SelectiveMetagraphIndex.Name,
