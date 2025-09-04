@@ -204,6 +204,7 @@ wait_for_finalization: bool = False,
     - parameter `netuid: Optional[int]` is now required -> `netuid: int`
     - parameter `hotkey_ss58: Optional[str]` is now required -> `hotkey_ss58: str`
     - parameter `amount: Optional[Balance]` is now required -> `amount: Balance`
+    - parameter `safe_staking: bool` renamed to `safe_unstaking: bool`
     - parameter `unstake_all: bool` removed (use `unstake_all_extrinsic` for unstake all stake)
 - [x] `.unstake_all_extrinsic` and `subtensor.unstake_all`
 - [x] `.unstake_multiple_extrinsic` and `subtensor.unstake_multiple`
