@@ -208,3 +208,4 @@ wait_for_finalization: bool = False,
 - [x] `.unstake_all_extrinsic` and `subtensor.unstake_all`
 - [x] `.unstake_multiple_extrinsic` and `subtensor.unstake_multiple`
 - [x] `.commit_weights_extrinsic` and `subtensor.commit_weights`
+- [x] `.reveal_weights_extrinsic` and `subtensor.reveal_weights`
