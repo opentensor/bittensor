@@ -23,7 +23,7 @@ async def unstake_extrinsic(
     amount: Balance,
     allow_partial_stake: bool = False,
     rate_tolerance: float = 0.005,
-    safe_staking: bool = False,
+    safe_unstaking: bool = False,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
@@ -39,7 +39,7 @@ async def unstake_extrinsic(
         hotkey_ss58: The ``ss58`` address of the hotkey to unstake from.
         amount: Amount to stake as Bittensor balance.
         allow_partial_stake: If true, allows partial unstaking if price tolerance exceeded.
-        safe_staking: If true, enables price safety checks.
+        safe_unstaking: If true, enables price safety checks.
         rate_tolerance: Maximum allowed price decrease percentage (0.005 = 0.5%).
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
@@ -86,7 +86,7 @@ async def unstake_extrinsic(
             "netuid": netuid,
             "amount_unstaked": amount.rao,
         }
-        if safe_staking:
+        if safe_unstaking:
             pool = await subtensor.subnet(netuid=netuid)
             base_price = pool.price.tao
 
