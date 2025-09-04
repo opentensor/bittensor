@@ -15,6 +15,7 @@ from bittensor.core.chain_data.stake_info import StakeInfo
 from bittensor.utils import U16_MAX, U64_MAX
 from bittensor.utils.balance import Balance
 from tests.helpers.helpers import assert_submit_signed_extrinsic
+from bittensor.core.extrinsics import move_stake
 
 
 @pytest.fixture
@@ -1436,7 +1437,7 @@ def test_transfer_stake_error(
             "destination_netuid": 1,
             "alpha_amount": 1,
         },
-        wait_for_finalization=False,
+        wait_for_finalization=True,
         wait_for_inclusion=True,
     )
 

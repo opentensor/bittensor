@@ -41,27 +41,29 @@ def transfer_stake_extrinsic(
     hotkey_ss58: str,
     origin_netuid: int,
     destination_netuid: int,
-    amount: Optional[Balance] = None,
-    wait_for_inclusion: bool = True,
-    wait_for_finalization: bool = False,
+    amount: Balance,
     period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
 ) -> bool:
     """
     Transfers stake from one subnet to another while changing the coldkey owner.
 
-    Args:
-        subtensor (Subtensor): Subtensor instance.
-        wallet (bittensor.wallet): The wallet to transfer stake from.
-        destination_coldkey_ss58 (str): The destination coldkey SS58 address.
-        hotkey_ss58 (str): The hotkey SS58 address associated with the stake.
-        origin_netuid (int): The source subnet UID.
-        destination_netuid (int): The destination subnet UID.
-        amount (Union[Balance, float, int]): Amount to transfer.
-        wait_for_inclusion (bool): If true, waits for inclusion before returning.
-        wait_for_finalization (bool): If true, waits for finalization before returning.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
+    Parameters:
+        subtensor: The subtensor instance to interact with the blockchain.
+        wallet: The wallet containing the coldkey to authorize the transfer.
+        destination_coldkey_ss58: SS58 address of the destination coldkey.
+        hotkey_ss58: SS58 address of the hotkey associated with the stake.
+        origin_netuid: Network UID of the origin subnet.
+        destination_netuid: Network UID of the destination subnet.
+        amount: The amount of stake to transfer as a `Balance` object.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
         success (bool): True if the transfer was successful.
@@ -105,12 +107,13 @@ def transfer_stake_extrinsic(
             },
         )
 
-        success, err_msg = subtensor.sign_and_send_extrinsic(
+        success, message = subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             period=period,
+            raise_error=raise_error,
         )
 
         if success:
@@ -121,7 +124,7 @@ def transfer_stake_extrinsic(
 
             # Get updated stakes
             origin_stake, dest_stake = _get_stake_in_origin_and_dest(
-                subtensor,
+                subtensor=subtensor,
                 origin_hotkey_ss58=hotkey_ss58,
                 destination_hotkey_ss58=hotkey_ss58,
                 origin_netuid=origin_netuid,
@@ -138,7 +141,7 @@ def transfer_stake_extrinsic(
 
             return True
         else:
-            logging.error(f":cross_mark: [red]Failed[/red]: {err_msg}")
+            logging.error(f":cross_mark: [red]Failed[/red]: {message}")
             return False
 
     except Exception as e:
@@ -152,13 +155,14 @@ def swap_stake_extrinsic(
     hotkey_ss58: str,
     origin_netuid: int,
     destination_netuid: int,
-    amount: Optional[Balance] = None,
-    wait_for_inclusion: bool = True,
-    wait_for_finalization: bool = False,
+    amount: Balance,
     safe_staking: bool = False,
     allow_partial_stake: bool = False,
     rate_tolerance: float = 0.005,
     period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
 ) -> bool:
     """
     Moves stake between subnets while keeping the same coldkey-hotkey pair ownership.
@@ -297,11 +301,12 @@ def move_stake_extrinsic(
     origin_netuid: int,
     destination_hotkey: str,
     destination_netuid: int,
-    amount: Optional[Balance] = None,
-    wait_for_inclusion: bool = True,
-    wait_for_finalization: bool = False,
-    period: Optional[int] = None,
+    amount: Balance,
     move_all_stake: bool = False,
+    period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
 ) -> bool:
     """
     Moves stake to a different hotkey and/or subnet while keeping the same coldkey owner.
