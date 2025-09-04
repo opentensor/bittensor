@@ -3056,6 +3056,7 @@ def test_swap_stake_success(mocker, subtensor, fake_wallet):
         allow_partial_stake=False,
         rate_tolerance=0.005,
         period=None,
+        raise_error=False,
     )
     assert result == mock_swap_stake_extrinsic.return_value
 
@@ -3101,6 +3102,7 @@ def test_swap_stake_with_safe_staking(mocker, subtensor, fake_wallet):
         allow_partial_stake=True,
         rate_tolerance=fake_rate_tolerance,
         period=None,
+        raise_error=False,
     )
     assert result == mock_swap_stake_extrinsic.return_value
 
