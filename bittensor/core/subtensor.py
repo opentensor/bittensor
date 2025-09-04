@@ -4338,27 +4338,28 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         destination: str,
         amount: Optional[Balance],
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
         transfer_all: bool = False,
         keep_alive: bool = True,
         period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
     ) -> bool:
         """
         Transfer token of amount to destination.
 
-        Arguments:
-            wallet (bittensor_wallet.Wallet): Source wallet for the transfer.
-            destination (str): Destination address for the transfer.
-            amount (float): Amount of tao to transfer.
-            transfer_all (bool): Flag to transfer all tokens. Default is ``False``.
-            wait_for_inclusion (bool): Waits for the transaction to be included in a block.  Default is ``True``.
-            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.  Default is
-                ``False``.
-            keep_alive (bool): Flag to keep the connection alive. Default is ``True``.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
-                submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction.
+        Parameters:
+            wallet: Source wallet for the transfer.
+            destination: Destination address for the transfer.
+            amount: Number of tokens to transfer. `None` is transferring all.
+            transfer_all: Flag to transfer all tokens. Default is `False`.
+            keep_alive: Flag to keep the connection alive. Default is `True`.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
             `True` if the transferring was successful, otherwise `False`.
@@ -4371,10 +4372,11 @@ class Subtensor(SubtensorMixin):
             destination=destination,
             amount=amount,
             transfer_all=transfer_all,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
             keep_alive=keep_alive,
             period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
         )
 
     def transfer_stake(
