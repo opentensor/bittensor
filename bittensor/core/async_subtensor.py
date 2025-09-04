@@ -338,7 +338,7 @@ class AsyncSubtensor(SubtensorMixin):
         # Return the appropriate value.
         if block_hash:
             return block_hash
-        if block:
+        if block is not None:
             return await self.get_block_hash(block)
         return None
 
@@ -1190,7 +1190,8 @@ class AsyncSubtensor(SubtensorMixin):
         """
         if reuse_block:
             block_hash = self.substrate.last_block_hash
-        elif not block_hash:
+        elif block_hash is None and block is None:
+            # Neither block nor block_hash provided, default to head
             block_hash = await self.get_block_hash()
         else:
             block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
@@ -1263,7 +1264,7 @@ class AsyncSubtensor(SubtensorMixin):
         Notes:
             See also: <https://docs.learnbittensor.org/glossary#block>
         """
-        if block:
+        if block is not None:
             return await self._get_block_hash(block)
         else:
             return await self.substrate.get_chain_head()
