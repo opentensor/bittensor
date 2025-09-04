@@ -191,3 +191,6 @@ wait_for_finalization: bool = False,
 - [x] `.root_register_extrinsic`, `subtensor.burned_register` and `subtensor.root_register`
 - [x] `.serve_extrinsic`
 - [x] `.serve_axon_extrinsic` and `subtensor.serve_axon`
+- [x] alias `subtensor.set_commitment` removed
+- [x] `subtensor.comit` renamed to `subtensor.set_commitment`
+- [x] `.publish_metadata`, `subtensor.set_commitment` and `subtenor.set_reveal_commitment`

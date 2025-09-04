@@ -1262,7 +1262,7 @@ def test_commit(subtensor, fake_wallet, mocker):
     mocked_publish_metadata = mocker.patch.object(subtensor_module, "publish_metadata")
 
     # Call
-    result = subtensor.commit(fake_wallet, fake_netuid, fake_data)
+    result = subtensor.set_commitment(fake_wallet, fake_netuid, fake_data)
 
     # Asserts
     mocked_publish_metadata.assert_called_once_with(
@@ -1272,6 +1272,9 @@ def test_commit(subtensor, fake_wallet, mocker):
         data_type=f"Raw{len(fake_data)}",
         data=fake_data.encode(),
         period=None,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
     )
     assert result is mocked_publish_metadata.return_value
 
