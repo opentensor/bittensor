@@ -6006,29 +6006,31 @@ class AsyncSubtensor(SubtensorMixin):
     async def unstake_multiple(
         self,
         wallet: "Wallet",
-        hotkey_ss58s: list[str],
         netuids: UIDs,
+        hotkey_ss58s: list[str],
         amounts: Optional[list[Balance]] = None,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-        period: Optional[int] = None,
         unstake_all: bool = False,
+        period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
     ) -> bool:
         """
         Performs batch unstaking from multiple hotkey accounts, allowing a neuron to reduce its staked amounts
         efficiently. This function is useful for managing the distribution of stakes across multiple neurons.
 
-        Arguments:
+        Parameters:
             wallet: The wallet linked to the coldkey from which the stakes are being withdrawn.
-            hotkey_ss58s: A list of hotkey `SS58` addresses to unstake from.
             netuids: Subnets unique IDs.
+            hotkey_ss58s: A list of hotkey `SS58` addresses to unstake from.
             amounts: The amounts of TAO to unstake from each hotkey. If not provided, unstakes all.
-            wait_for_inclusion: Waits for the transaction to be included in a block.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
-                can think of it as an expiration date for the transaction.
             unstake_all: If true, unstakes all tokens. Default is `False`. If `True` amounts are ignored.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
             bool: `True` if the batch unstaking is successful, False otherwise.
@@ -6039,13 +6041,14 @@ class AsyncSubtensor(SubtensorMixin):
         return await unstake_multiple_extrinsic(
             subtensor=self,
             wallet=wallet,
-            hotkey_ss58s=hotkey_ss58s,
             netuids=netuids,
+            hotkey_ss58s=hotkey_ss58s,
             amounts=amounts,
+            unstake_all=unstake_all,
+            period=period,
+            raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            period=period,
-            unstake_all=unstake_all,
         )
 
 
