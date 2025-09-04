@@ -3731,8 +3731,6 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         netuid: int,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = True,
         max_allowed_attempts: int = 3,
         output_in_place: bool = True,
         cuda: bool = False,
@@ -3742,44 +3740,45 @@ class Subtensor(SubtensorMixin):
         update_interval: Optional[int] = None,
         log_verbose: bool = False,
         period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
     ) -> bool:
         """
-        Registers a neuron on the Bittensor network using the provided wallet.
+        Registers a neuron on the Bittensor subnet with provided netuid using the provided wallet.
 
         Registration is a critical step for a neuron to become an active participant in the network, enabling it to
-            stake, set weights, and receive incentives.
+        stake, set weights, and receive incentives.
 
-        Args:
-            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron to be registered.
-            netuid (int): The unique identifier of the subnet.
-            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Defaults to `False`.
-            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Defaults to
-                `True`.
-            max_allowed_attempts (int): Maximum number of attempts to register the wallet.
-            output_in_place (bool): If true, prints the progress of the proof of work to the console in-place. Meaning
-                the progress is printed on the same lines. Defaults to `True`.
-            cuda (bool): If ``true``, the wallet should be registered using CUDA device(s). Defaults to `False`.
-            dev_id (Union[List[int], int]): The CUDA device id to use, or a list of device ids. Defaults to `0` (zero).
-            tpb (int): The number of threads per block (CUDA). Default to `256`.
-            num_processes (Optional[int]): The number of processes to use to register. Default to `None`.
-            update_interval (Optional[int]): The number of nonces to solve between updates.  Default to `None`.
-            log_verbose (bool): If ``true``, the registration process will log more information.  Default to `False`.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
-                submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction.
+        Parameters:
+            wallet: The wallet associated with the neuron to be registered.
+            netuid: The unique identifier of the subnet.
+            max_allowed_attempts: Maximum number of attempts to register the wallet.
+            output_in_place: If true, prints the progress of the proof of work to the console in-place. Meaning the
+                progress is printed on the same lines.
+            cuda: If ``true``, the wallet should be registered using CUDA device(s).
+            dev_id: The CUDA device id to use, or a list of device ids.
+            tpb: The number of threads per block (CUDA).
+            num_processes: The number of processes to use to register.
+            update_interval: The number of nonces to solve between updates.
+            log_verbose: If ``true``, the registration process will log more information.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
 
         Returns:
             bool: ``True`` if the registration is successful, False otherwise.
 
-        This function facilitates the entry of new neurons into the network, supporting the decentralized
-        growth and scalability of the Bittensor ecosystem.
+        This function facilitates the entry of new neurons into the network, supporting the decentralized growth and
+        scalability of the Bittensor ecosystem.
         """
         return register_extrinsic(
             subtensor=self,
             wallet=wallet,
             netuid=netuid,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
             max_allowed_attempts=max_allowed_attempts,
             tpb=tpb,
             update_interval=update_interval,
@@ -3789,6 +3788,9 @@ class Subtensor(SubtensorMixin):
             output_in_place=output_in_place,
             log_verbose=log_verbose,
             period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
         )
 
     def register_subnet(
