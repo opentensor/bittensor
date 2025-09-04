@@ -5271,30 +5271,30 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         hotkey_ss58: str,
         take: float,
+        period: Optional[int] = None,
+        raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-        raise_error: bool = False,
-        period: Optional[int] = None,
     ) -> tuple[bool, str]:
         """
         Sets the delegate 'take' percentage for a neuron identified by its hotkey.
         The 'take' represents the percentage of rewards that the delegate claims from its nominators' stakes.
 
-        Arguments:
+        Parameters:
             wallet: bittensor wallet instance.
             hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
             take: Percentage reward for the delegate.
-            wait_for_inclusion: Waits for the transaction to be included in a block.
-            wait_for_finalization: Waits for the transaction to be finalized on_error: Raises a relevant exception
-                rather than returning ``False`` if unsuccessful.
-            raise_error: raises a relevant exception rather than returning ``False`` if unsuccessful.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
 
         Returns:
-            tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure of the
-             operation, and the second element is a message providing additional information.
+            Tuple[bool, str]:
+                - True and a success message if the extrinsic is successfully submitted or processed.
+                - False and an error message if the submission fails or the wallet cannot be unlocked.
 
         Raises:
             DelegateTakeTooHigh: Delegate take is too high.
@@ -5309,7 +5309,6 @@ class AsyncSubtensor(SubtensorMixin):
         The delegate take is a critical parameter in the network's incentive structure, influencing the distribution of
         rewards among neurons and their nominators.
         """
-
         # u16 representation of the take
         take_u16 = int(take * 0xFFFF)
 
@@ -5322,33 +5321,27 @@ class AsyncSubtensor(SubtensorMixin):
 
         logging.info(f"Updating {hotkey_ss58} take: current={current_take} new={take}")
 
-        if current_take_u16 < take_u16:
-            success, error = await increase_take_extrinsic(
-                self,
-                wallet,
-                hotkey_ss58,
-                take_u16,
-                wait_for_finalization=wait_for_finalization,
-                wait_for_inclusion=wait_for_inclusion,
-                raise_error=raise_error,
-                period=period,
-            )
-        else:
-            success, error = await decrease_take_extrinsic(
-                self,
-                wallet,
-                hotkey_ss58,
-                take_u16,
-                wait_for_finalization=wait_for_finalization,
-                wait_for_inclusion=wait_for_inclusion,
-                raise_error=raise_error,
-                period=period,
-            )
+        extrinsic_call = (
+            increase_take_extrinsic
+            if current_take_u16 < take_u16
+            else decrease_take_extrinsic
+        )
+
+        success, message = await extrinsic_call(
+            subtensor=self,
+            wallet=wallet,
+            hotkey_ss58=hotkey_ss58,
+            take=take_u16,
+            period=period,
+            raise_error=raise_error,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_inclusion=wait_for_inclusion,
+        )
 
         if success:
             logging.info(":white_heavy_check_mark: [green]Take Updated[/green]")
 
-        return success, error
+        return success, message
 
     async def set_subnet_identity(
         self,
