@@ -677,15 +677,11 @@ def test_nominator_min_required_stake(subtensor, alice_wallet, bob_wallet, dave_
     subtensor.subnets.burned_register(
         wallet=bob_wallet,
         netuid=alice_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     subtensor.subnets.burned_register(
         wallet=dave_wallet,
         netuid=alice_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     success = subtensor.staking.add_stake(
@@ -766,15 +762,11 @@ async def test_nominator_min_required_stake_async(
     await async_subtensor.subnets.burned_register(
         wallet=bob_wallet,
         netuid=alice_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     await async_subtensor.subnets.burned_register(
         wallet=dave_wallet,
         netuid=alice_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     success = await async_subtensor.staking.add_stake(
