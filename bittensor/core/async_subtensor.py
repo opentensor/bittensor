@@ -5474,7 +5474,8 @@ class AsyncSubtensor(SubtensorMixin):
                 and await _blocks_weight_limit()
             ):
                 logging.info(
-                    f"Committing weights for subnet #{netuid}. Attempt {retries + 1} of {max_retries}."
+                    f"Committing weights for subnet [blue]{netuid}[/blue]. "
+                    f"Attempt [blue]{retries + 1}[blue] of [green]{max_retries}[/green]."
                 )
                 success, message = await commit_timelocked_mechanism_weights_extrinsic(
                     subtensor=self,
@@ -5514,9 +5515,10 @@ class AsyncSubtensor(SubtensorMixin):
                         uids=uids,
                         weights=weights,
                         version_key=version_key,
+                        period=period,
+                        raise_error=raise_error,
                         wait_for_inclusion=wait_for_inclusion,
                         wait_for_finalization=wait_for_finalization,
-                        period=period,
                     )
                 except Exception as e:
                     logging.error(f"Error setting weights: {e}")
