@@ -90,16 +90,16 @@ def reveal_weights_extrinsic(
     weights: list[int],
     salt: list[int],
     version_key: int,
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = False,
     period: Optional[int] = None,
     raise_error: bool = False,
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = False,
 ) -> tuple[bool, str]:
     """
     Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
     This function is a wrapper around the `_do_reveal_weights` method.
 
-    Args:
+    Parameters:
         subtensor: The subtensor instance used for blockchain interaction.
         wallet: The wallet associated with the neuron revealing the weights.
         netuid: The unique identifier of the subnet.
@@ -107,12 +107,12 @@ def reveal_weights_extrinsic(
         weights: List of weight values corresponding to each UID.
         salt: List of salt values corresponding to the hash function.
         version_key: Version key for compatibility with the network.
-        wait_for_inclusion: Waits for the transaction to be included in a block.
-        wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
-        raise_error: raises the relevant exception rather than returning `False` if unsuccessful.
+        raise_error: Whether to raise an error if the transaction fails.
+        wait_for_inclusion: Waits for the transaction to be included in a block.
+        wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
 
     Returns:
         tuple[bool, str]:
