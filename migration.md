@@ -163,10 +163,19 @@ It must include:
 - [x] obsolete extrinsic `set_root_weights_extrinsic` removed. Also related subtensor calls `subtensor.set_root_weights_extrinsic` removed too.
 
 # Standardize parameter order is applied for (extrinsics and related calls):
-Note: `raise_error` parameter is included in the list of parameters and parameters order is standardized. 
+
+These parameters will now exist in all extrinsics and related calls (default values could be different depends by extrinsic): 
+
+```py
+period: Optional[int] = None,
+raise_error: bool = False,
+wait_for_inclusion: bool = False,
+wait_for_finalization: bool = False,
+``` 
 - [x] `.set_children_extrinsic` and `.root_set_pending_childkey_cooldown_extrinsic`. `subtensor.set_children` and `subtensor.root_set_pending_childkey_cooldown` methods.
 - [x] `.commit_reveal_extrinsic` and `subtensor.set_weights`
 - [x] `.add_liquidity_extrinsic` and `subtensor.add_liquidity`
 - [x] `.modify_liquidity_extrinsic` and `subtensor.modify_liquidity`
 - [x] `.remove_liquidity_extrinsic` and `subtensor.remove_liquidity`
 - [x] `.toggle_user_liquidity_extrinsic` and `subtensor.toggle_user_liquidity`
+- [x] `.transfer_stake_extrinsic` and `subtensor.transfer_stake`
