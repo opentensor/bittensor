@@ -16,53 +16,43 @@ if TYPE_CHECKING:
 def unstake_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
-    hotkey_ss58: Optional[str] = None,
-    netuid: Optional[int] = None,
-    amount: Optional[Balance] = None,
-    wait_for_inclusion: bool = True,
-    wait_for_finalization: bool = False,
-    safe_staking: bool = False,
+    netuid: int,
+    hotkey_ss58: str,
+    amount: Balance,
     allow_partial_stake: bool = False,
     rate_tolerance: float = 0.005,
+    safe_staking: bool = False,
     period: Optional[int] = None,
-    unstake_all: bool = False,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
 ) -> bool:
-    """Removes stake into the wallet coldkey from the specified hotkey ``uid``.
+    """
+    Removes stake into the wallet coldkey from the specified hotkey ``uid``.
 
-    Args:
+    Parameters:
         subtensor: Subtensor instance.
         wallet: Bittensor wallet object.
-        hotkey_ss58: The ``ss58`` address of the hotkey to unstake from. By default, the wallet hotkey is used.
+        hotkey_ss58: The ``ss58`` address of the hotkey to unstake from.
         netuid: Subnet unique id.
         amount: Amount to stake as Bittensor balance.
-        wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning ``True``, or returns
-            ``False`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning ``True``,
-            or returns ``False`` if the extrinsic fails to be finalized within the timeout.
+        allow_partial_stake: If true, allows partial unstaking if price tolerance exceeded.
+        rate_tolerance: Maximum allowed price decrease percentage (0.005 = 0.5%).
         safe_staking: If true, enables price safety checks.
-        allow_partial_stake: If true, allows partial unstaking if price tolerance exceeded
-        rate_tolerance: Maximum allowed price decrease percentage (0.005 = 0.5%)
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
-        unstake_all: If true, unstakes all tokens. Default is ``False``.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        tuple[bool, str]:
-            A tuple containing:
-            - `True` and a success message if the unstake operation succeeded;
-            - `False` and an error message otherwise.
+        bool: True if the subnet registration was successful, False otherwise.
     """
-    if amount and unstake_all:
-        raise ValueError("Cannot specify both `amount` and `unstake_all`.")
-
     # Decrypt keys,
     if not (unlock := unlock_key(wallet)).success:
         logging.error(unlock.message)
         return False
-
-    if hotkey_ss58 is None:
-        hotkey_ss58 = wallet.hotkey.ss58_address  # Default to wallet's own hotkey.
 
     logging.info(
         f":satellite: [magenta]Syncing with chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
@@ -76,24 +66,14 @@ def unstake_extrinsic(
         block=block,
     )
 
-    # Convert to bittensor.Balance
-    if amount is None:
-        # Unstake it all.
-        logging.warning(
-            f"Didn't receive any unstaking amount. Unstaking all existing stake: [blue]{old_stake}[/blue] "
-            f"from hotkey: [blue]{hotkey_ss58}[/blue]"
-        )
-        unstaking_balance = old_stake
-    else:
-        unstaking_balance = amount
-    unstaking_balance.set_unit(netuid)
+    # unstaking_balance = amount
+    amount.set_unit(netuid)
 
     # Check enough to unstake.
-    stake_on_uid = old_stake
-    if unstaking_balance > stake_on_uid:
+    if amount > old_stake:
         logging.error(
-            f":cross_mark: [red]Not enough stake[/red]: [green]{stake_on_uid}[/green] to unstake: "
-            f"[blue]{unstaking_balance}[/blue] from hotkey: [yellow]{wallet.hotkey_str}[/yellow]"
+            f":cross_mark: [red]Not enough stake[/red]: [green]{old_stake}[/green] to unstake: "
+            f"[blue]{amount}[/blue] from hotkey: [yellow]{wallet.hotkey_str}[/yellow]"
         )
         return False
 
@@ -101,7 +81,7 @@ def unstake_extrinsic(
         call_params = {
             "hotkey": hotkey_ss58,
             "netuid": netuid,
-            "amount_unstaked": unstaking_balance.rao,
+            "amount_unstaked": amount.rao,
         }
 
         if safe_staking:
@@ -115,7 +95,7 @@ def unstake_extrinsic(
 
             logging_info = (
                 f":satellite: [magenta]Safe Unstaking from:[/magenta] "
-                f"netuid: [green]{netuid}[/green], amount: [green]{unstaking_balance}[/green], "
+                f"netuid: [green]{netuid}[/green], amount: [green]{amount}[/green], "
                 f"tolerance percentage: [green]{rate_tolerance * 100}%[/green], "
                 f"price limit: [green]{price_with_tolerance}[/green], "
                 f"original price: [green]{base_price}[/green], "
@@ -134,7 +114,7 @@ def unstake_extrinsic(
         else:
             logging_info = (
                 f":satellite: [magenta]Unstaking from:[/magenta] "
-                f"netuid: [green]{netuid}[/green], amount: [green]{unstaking_balance}[/green] "
+                f"netuid: [green]{netuid}[/green], amount: [green]{amount}[/green] "
                 f"on [blue]{subtensor.network}[/blue]"
             )
             call_function = "remove_stake"
@@ -158,6 +138,7 @@ def unstake_extrinsic(
             sign_with="coldkey",
             use_nonce=True,
             period=period,
+            raise_error=raise_error,
         )
 
         if success:  # If we successfully unstaked.
@@ -188,14 +169,15 @@ def unstake_extrinsic(
                 f"Stake: [blue]{old_stake}[/blue] :arrow_right: [green]{new_stake}[/green]"
             )
             return True
+
+        if safe_staking and "Custom error: 8" in message:
+            logging.error(
+                ":cross_mark: [red]Failed[/red]: Price exceeded tolerance limit. Either increase price tolerance or"
+                " enable partial staking."
+            )
         else:
-            if safe_staking and "Custom error: 8" in message:
-                logging.error(
-                    ":cross_mark: [red]Failed[/red]: Price exceeded tolerance limit. Either increase price tolerance or enable partial staking."
-                )
-            else:
-                logging.error(f":cross_mark: [red]Failed: {message}.[/red]")
-            return False
+            logging.error(f":cross_mark: [red]Failed: {message}.[/red]")
+        return False
 
     except SubstrateRequestException as error:
         logging.error(
