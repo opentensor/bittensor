@@ -196,3 +196,4 @@ wait_for_finalization: bool = False,
 - [x] `.publish_metadata`, `subtensor.set_commitment` and `subtenor.set_reveal_commitment`
 - [x] `.add_stake_extrinsic`, `subtensor.add_stake`
 - [x] `.add_stake_multiple_extrinsic`, `subtensor.add_stake_multiple`
+- [x] `.start_call_extrinsic`, `subtensor.start_call`
