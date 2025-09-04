@@ -3678,38 +3678,40 @@ class Subtensor(SubtensorMixin):
         uids: Union[NDArray[np.int64], list],
         weights: Union[NDArray[np.int64], list],
         salt: Union[NDArray[np.int64], list],
+        max_retries: int = 5,
         version_key: int = version_as_int,
+        period: Optional[int] = 16,
+        raise_error: bool = True,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
-        max_retries: int = 5,
-        period: Optional[int] = 16,
     ) -> tuple[bool, str]:
         """
         Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
         This action serves as a revelation of the neuron's previously committed weight distribution.
 
-        Args:
-            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron revealing the weights.
-            netuid (int): The unique identifier of the subnet.
-            uids (np.ndarray): NumPy array of neuron UIDs for which weights are being revealed.
-            weights (np.ndarray): NumPy array of weight values corresponding to each UID.
-            salt (np.ndarray): NumPy array of salt values corresponding to the hash function.
-            version_key (int): Version key for compatibility with the network. Default is ``int representation of
-                the Bittensor version``.
-            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
-            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
-                ``False``.
-            max_retries (int): The number of maximum attempts to reveal weights. Default is ``5``.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
-                submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction.
+        Parameters:
+            wallet: The wallet associated with the subnet validator revealing the weights.
+            netuid: unique identifier of the subnet.
+            uids: NumPy array of subnet miner neuron UIDs for which weights are being revealed.
+            weights: NumPy array of weight values corresponding to each UID.
+            salt: NumPy array of salt values
+            max_retries: The number of maximum attempts to reveal weights.
+            version_key: Version key for compatibility with the network.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            tuple[bool, str]: ``True`` if the weight revelation is successful, False otherwise. And `msg`, a string
-                value describing the success or potential error.
+            Tuple[bool, str]:
+                - True and a success message if the extrinsic is successfully submitted or processed.
+                - False and an error message if the submission fails or the wallet cannot be unlocked.
 
-        This function allows neurons to reveal their previously committed weight distribution, ensuring transparency
-            and accountability within the Bittensor network.
+        This function allows subnet validators to reveal their previously committed weight vector.
+
+        See also: <https://docs.learnbittensor.org/glossary#commit-reveal>,
         """
         retries = 0
         success = False
@@ -3728,7 +3730,7 @@ class Subtensor(SubtensorMixin):
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                     period=period,
-                    raise_error=True,
+                    raise_error=raise_error,
                 )
                 if success:
                     break
