@@ -63,8 +63,8 @@ def test_hotkeys(subtensor, alice_wallet, dave_wallet):
         is False
     )
 
-    subtensor.subnets.burned_register(
-        alice_wallet,
+    assert subtensor.subnets.burned_register(
+        wallet=alice_wallet,
         netuid=dave_subnet_netuid,
     )
 
@@ -122,7 +122,7 @@ async def test_hotkeys_async(async_subtensor, alice_wallet, dave_wallet):
     )
 
     assert await async_subtensor.subnets.burned_register(
-        alice_wallet,
+        wallet=alice_wallet,
         netuid=dave_subnet_netuid,
     )
 
