@@ -20,11 +20,46 @@ on:
 env:
   CARGO_TERM_COLOR: always
   VERBOSE: ${{ github.event.inputs.verbose }}
+  PY_VERSION: '["3.11","3.12","3.13"]'
 
 # job to run tests in parallel
 jobs:
+
+  prepare-deps:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ${{ fromJson(env.PY_VERSIONS_JSON) }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Cache uv and venv
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/uv
+            .venv
+          key: uv-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            uv-${{ runner.os }}-py${{ matrix.python-version }}-
+
+      - name: Sync deps (populate cache on miss)
+        run: uv sync --extra dev --dev
+
   # Looking for e2e tests
   find-tests:
+    needs: prepare-deps
     runs-on: ubuntu-latest
     if: ${{ github.event.pull_request.draft == false }}
     outputs:
@@ -38,15 +73,17 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install deps for collection
-        run: |
-         python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+      - name: Cache uv and venv
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/uv
+            .venv
+          key: uv-${{ runner.os }}-py3.11-${{ hashFiles('uv.lock', 'pyproject.toml') }}
+          restore-keys: |
+            uv-${{ runner.os }}-py3.11-
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-
-      - name: Install dependencies
+      - name: Install dependencies (faster if cache hit)
         run: uv sync --extra dev --dev
 
       - name: Find test files
@@ -151,4 +188,5 @@ jobs:
     with:
       nodeid: ${{ matrix.nodeid }}
       image-name: ${{ needs.pull-docker-image.outputs.image-name }}
+      python-versions: env.PY_VERSIONS_JSON)
     secrets: inherit
