@@ -287,22 +287,14 @@ def unstake_multiple_extrinsic(
     Returns:
         bool: True if the subnet registration was successful, False otherwise.
     """
+    # Unlock coldkey.
+    if not (unlock := unlock_key(wallet)).success:
+        logging.error(unlock.message)
+        return False
+
+    # or amounts or unstake_all (no both)
     if amounts and unstake_all:
         raise ValueError("Cannot specify both `amounts` and `unstake_all`.")
-
-    if not isinstance(hotkey_ss58s, list) or not all(
-        isinstance(hotkey_ss58, str) for hotkey_ss58 in hotkey_ss58s
-    ):
-        raise TypeError("hotkey_ss58s must be a list of str")
-
-    if len(hotkey_ss58s) == 0:
-        return True
-
-    if netuids is not None and len(netuids) != len(hotkey_ss58s):
-        raise ValueError("netuids must be a list of the same length as hotkey_ss58s")
-
-    if amounts is not None and len(amounts) != len(hotkey_ss58s):
-        raise ValueError("amounts must be a list of the same length as hotkey_ss58s")
 
     if amounts is not None and not all(
         isinstance(amount, Balance) for amount in amounts
@@ -318,10 +310,29 @@ def unstake_multiple_extrinsic(
             # Staking 0 tao
             return True
 
-    # Unlock coldkey.
-    if not (unlock := unlock_key(wallet)).success:
-        logging.error(unlock.message)
-        return False
+    assert all(
+        [
+            isinstance(netuids, list),
+            isinstance(hotkey_ss58s, list),
+            isinstance(amounts, list),
+        ]
+    ), "The `netuids`, `hotkey_ss58s` and `amounts` must be lists."
+
+    if len(hotkey_ss58s) == 0:
+        return True
+
+    assert len(netuids) == len(hotkey_ss58s) == len(amounts), (
+        "The number of items in `netuids`, `hotkey_ss58s` and `amounts` must be the same."
+    )
+
+    if not all(isinstance(hotkey_ss58, str) for hotkey_ss58 in hotkey_ss58s):
+        raise TypeError("hotkey_ss58s must be a list of str")
+
+    if amounts is not None and len(amounts) != len(hotkey_ss58s):
+        raise ValueError("amounts must be a list of the same length as hotkey_ss58s")
+
+    if netuids is not None and len(netuids) != len(hotkey_ss58s):
+        raise ValueError("netuids must be a list of the same length as hotkey_ss58s")
 
     logging.info(
         f":satellite: [magenta]Syncing with chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
@@ -377,7 +388,7 @@ def unstake_multiple_extrinsic(
                 f"[blue]{netuid}[/blue] for fee [blue]{fee}[/blue]"
             )
 
-            staking_response, err_msg = subtensor.sign_and_send_extrinsic(
+            success, message = subtensor.sign_and_send_extrinsic(
                 call=call,
                 wallet=wallet,
                 wait_for_inclusion=wait_for_inclusion,
@@ -389,7 +400,7 @@ def unstake_multiple_extrinsic(
                 raise_error=raise_error,
             )
 
-            if staking_response:  # If we successfully unstaked.
+            if success:  # If we successfully unstaked.
                 # We only wait here if we expect finalization.
 
                 if not wait_for_finalization and not wait_for_inclusion:
@@ -413,7 +424,7 @@ def unstake_multiple_extrinsic(
                 )
                 successful_unstakes += 1
             else:
-                logging.error(f":cross_mark: [red]Failed: {err_msg}.[/red]")
+                logging.error(f":cross_mark: [red]Failed: {message}.[/red]")
                 continue
 
         except SubstrateRequestException as error:
