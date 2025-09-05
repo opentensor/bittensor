@@ -84,6 +84,7 @@ jobs:
         uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
+          cache-dependency-glob: '**/pyproject.toml'
 
       - name: Cache uv and venv
         uses: actions/cache@v4
@@ -91,9 +92,9 @@ jobs:
           path: |
             ~/.cache/uv
             .venv
-          key: uv-${{ runner.os }}-py3.11-${{ hashFiles('pyproject.toml') }}
+          key: uv-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
-            uv-${{ runner.os }}-py3.11-
+            uv-${{ runner.os }}-py${{ matrix.python-version }}-
 
       - name: Install dependencies (faster if cache hit)
         run: uv sync --extra dev --dev
