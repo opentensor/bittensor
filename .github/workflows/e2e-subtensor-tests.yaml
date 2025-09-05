@@ -190,6 +190,7 @@ jobs:
   e2e-test:
     name: ${{ matrix.label }}
     needs:
+      - supported-versions
       - prepare-deps
       - find-tests
       - pull-docker-image
