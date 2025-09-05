@@ -112,8 +112,8 @@ rename this variable in documentation.
 
 ## New features
 1. Add `bittensor.utils.hex_to_ss58` function. SDK still doesn't have it. (Probably inner import `from scalecodec import ss58_encode, ss58_decode`) 
-2. Implement Crowdloan logic.
-3. “Implement Sub-subnets / Metagraph Changes?” (implementation unsure) Maciej Kula idea, requires mode details.
+2. Implement Crowdloan logic. Issue: https://github.com/opentensor/bittensor/issues/3017
+3. Implement Sub-subnets logic. Subtensor PR https://github.com/opentensor/subtensor/pull/1984
 
 ## Testing
 1. When running tests via Docker, ensure no lingering processes occupy required ports before launch.
