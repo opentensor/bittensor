@@ -68,7 +68,7 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
     pre_subnet_creation_cost = subtensor.subnets.get_subnet_burn_cost()
 
     # Register subnet
-    assert subtensor.subnets.register_subnet(alice_wallet, True, True), (
+    assert subtensor.subnets.register_subnet(alice_wallet), (
         "Unable to register the subnet"
     )
 
@@ -259,7 +259,7 @@ async def test_subtensor_extrinsics_async(
     pre_subnet_creation_cost = await async_subtensor.subnets.get_subnet_burn_cost()
 
     # Register subnet
-    assert await async_subtensor.subnets.register_subnet(alice_wallet, True, True), (
+    assert await async_subtensor.subnets.register_subnet(alice_wallet), (
         "Unable to register the subnet"
     )
 

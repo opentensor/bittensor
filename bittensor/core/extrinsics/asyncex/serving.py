@@ -76,35 +76,34 @@ async def serve_extrinsic(
     netuid: int,
     placeholder1: int = 0,
     placeholder2: int = 0,
-    wait_for_inclusion: bool = False,
-    wait_for_finalization=True,
     certificate: Optional[Certificate] = None,
     period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
 ) -> bool:
-    """Subscribes a Bittensor endpoint to the subtensor chain.
+    """
+    Subscribes a Bittensor endpoint to the subtensor chain.
 
-    Args:
-        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): Subtensor instance object.
-        wallet (bittensor_wallet.Wallet): Bittensor wallet object.
-        ip (str): Endpoint host port i.e., ``192.122.31.4``.
-        port (int): Endpoint port number i.e., ``9221``.
-        protocol (int): An ``int`` representation of the protocol.
-        netuid (int): The network uid to serve on.
-        placeholder1 (int): A placeholder for future use.
-        placeholder2 (int): A placeholder for future use.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``True``, or
-            returns ``False`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
-            ``True``, or returns ``False`` if the extrinsic fails to be finalized within the timeout.
-        certificate (bittensor.utils.Certificate): Certificate to use for TLS. If ``None``, no TLS will be used.
-            Defaults to ``None``.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
+    Parameters:
+        subtensor: Subtensor instance object.
+        wallet: Bittensor wallet object.
+        ip: Endpoint host port i.e., ``192.122.31.4``.
+        port: Endpoint port number i.e., ``9221``.
+        protocol: An ``int`` representation of the protocol.
+        netuid: The network uid to serve on.
+        placeholder1: A placeholder for future use.
+        placeholder2: A placeholder for future use.
+        certificate: Certificate to use for TLS. If ``None``, no TLS will be used.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
-            finalization / inclusion, the response is ``True``.
+        bool: True if the subnet registration was successful, False otherwise.
     """
     # Decrypt hotkey
     if not (unlock := unlock_key(wallet, "hotkey")).success:
@@ -141,13 +140,25 @@ async def serve_extrinsic(
         f"Serving axon with: [blue]AxonInfo({wallet.hotkey.ss58_address}, {ip}:{port})[/blue] -> "
         f"[green]{subtensor.network}:{netuid}[/green]"
     )
-    success, message = await do_serve_axon(
-        subtensor=subtensor,
+
+    if params.certificate is None:
+        call_function = "serve_axon"
+    else:
+        call_function = "serve_axon_tls"
+
+    call = await subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function=call_function,
+        call_params=params.dict(),
+    )
+    success, message = await subtensor.sign_and_send_extrinsic(
+        call=call,
         wallet=wallet,
-        call_params=params,
-        wait_for_finalization=wait_for_finalization,
         wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+        sign_with="hotkey",
         period=period,
+        raise_error=raise_error,
     )
 
     if success:
@@ -165,30 +176,30 @@ async def serve_axon_extrinsic(
     subtensor: "AsyncSubtensor",
     netuid: int,
     axon: "Axon",
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = True,
     certificate: Optional[Certificate] = None,
     period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
 ) -> bool:
-    """Serves the axon to the network.
+    """
+    Serves the axon to the network.
 
-    Args:
-        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): Subtensor instance object.
+    Parameters:
+        subtensor: AsyncSubtensor instance object.
         netuid (int): The ``netuid`` being served on.
         axon (bittensor.core.axon.Axon): Axon to serve.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``True``, or
-            returns ``False`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
-            ``True``, or returns ``False`` if the extrinsic fails to be finalized within the timeout.
         certificate (bittensor.utils.Certificate): Certificate to use for TLS. If ``None``, no TLS will be used.
             Defaults to ``None``.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
-            finalization / inclusion, the response is ``True``.
+        bool: True if the subnet registration was successful, False otherwise.
     """
     if not (unlock := unlock_key(axon.wallet, "hotkey")).success:
         logging.error(unlock.message)
@@ -219,10 +230,11 @@ async def serve_axon_extrinsic(
         port=external_port,
         protocol=4,
         netuid=netuid,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
         certificate=certificate,
         period=period,
+        raise_error=raise_error,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
     )
     return serve_success
 
@@ -233,34 +245,34 @@ async def publish_metadata(
     netuid: int,
     data_type: str,
     data: Union[bytes, dict],
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = True,
     period: Optional[int] = None,
     reset_bonds: bool = False,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
 ) -> bool:
     """
     Publishes metadata on the Bittensor network using the specified wallet and network identifier.
 
-    Args:
-        subtensor (bittensor.subtensor): The subtensor instance representing the Bittensor blockchain connection.
-        wallet (bittensor.wallet): The wallet object used for authentication in the transaction.
-        netuid (int): Network UID on which the metadata is to be published.
-        data_type (str): The data type of the information being submitted. It should be one of the following:
+    Parameters:
+        subtensor: The subtensor instance representing the Bittensor blockchain connection.
+        wallet: The wallet object used for authentication in the transaction.
+        netuid: Network UID on which the metadata is to be published.
+        data_type: The data type of the information being submitted. It should be one of the following:
             ``'Sha256'``, ``'Blake256'``, ``'Keccak256'``, or ``'Raw0-128'``. This specifies the format or hashing
             algorithm used for the data.
-        data (Union[bytes, dict]): The actual metadata content to be published. This should be formatted or hashed
+        data: The actual metadata content to be published. This should be formatted or hashed
             according to the ``type`` specified. (Note: max ``str`` length is 128 bytes for ``'Raw0-128'``.)
-        wait_for_inclusion (bool, optional): If ``True``, the function will wait for the extrinsic to be included in a
-            block before returning. Defaults to ``False``.
-        wait_for_finalization (bool, optional): If ``True``, the function will wait for the extrinsic to be finalized
-            on the chain before returning. Defaults to ``True``.
-        period (Optional[int]): The number of blocks during which the transaction will remain valid after it's submitted. If
-            the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            You can think of it as an expiration date for the transaction.
-        reset_bonds (bool): If `True`, the function will reset the bonds for the neuron. Defaults to `False`.
+        reset_bonds: If `True`, the function will reset the bonds for the neuron. Defaults to `False`.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        bool: ``True`` if the metadata was successfully published (and finalized if specified). ``False`` otherwise.
+        bool: True if the subnet registration was successful, False otherwise.
 
     Raises:
         MetadataError: If there is an error in submitting the extrinsic, or if the response from the blockchain indicates
@@ -292,6 +304,7 @@ async def publish_metadata(
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             period=period,
+            raise_error=raise_error,
         )
 
         if success:
@@ -330,7 +343,20 @@ async def get_last_bonds_reset(
     block_hash: Optional[str] = None,
     reuse_block: bool = False,
 ) -> bytes:
-    """Fetches the last bonds reset triggered at commitment from the blockchain for a given hotkey and netuid."""
+    """
+    Fetches the last bonds reset triggered at commitment from the blockchain for a given hotkey and netuid.
+
+    Parameters:
+        subtensor: Subtensor instance object.
+        netuid: The network uid to fetch from.
+        hotkey: The hotkey of the neuron for which to fetch the last bonds reset.
+        block: The block number to query. If ``None``, the latest block is used.
+        block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or reuse_block.
+        reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+
+    Returns:
+        bytes: The last bonds reset data for the specified hotkey and netuid.
+    """
     block_hash = await subtensor.determine_block_hash(block, block_hash, reuse_block)
     block = await subtensor.substrate.query(
         module="Commitments",

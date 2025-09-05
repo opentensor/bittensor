@@ -16,7 +16,7 @@ logging.set_trace()
 
 def test_commitment(subtensor, alice_wallet, dave_wallet):
     dave_subnet_netuid = 2
-    assert subtensor.subnets.register_subnet(dave_wallet, True, True)
+    assert subtensor.subnets.register_subnet(dave_wallet)
     assert subtensor.subnets.subnet_exists(dave_subnet_netuid), (
         "Subnet wasn't created successfully"
     )
@@ -31,12 +31,12 @@ def test_commitment(subtensor, alice_wallet, dave_wallet):
         )
 
     assert subtensor.subnets.burned_register(
-        alice_wallet,
+        wallet=alice_wallet,
         netuid=dave_subnet_netuid,
     )
 
     uid = subtensor.subnets.get_uid_for_hotkey_on_subnet(
-        alice_wallet.hotkey.ss58_address,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
         netuid=dave_subnet_netuid,
     )
 
@@ -110,7 +110,7 @@ async def test_commitment_async(async_subtensor, alice_wallet, dave_wallet):
             )
 
         assert await sub.subnets.burned_register(
-            alice_wallet,
+            wallet=alice_wallet,
             netuid=dave_subnet_netuid,
         )
 

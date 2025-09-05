@@ -452,11 +452,9 @@ def test_delegates(subtensor, alice_wallet, bob_wallet):
 
     subtensor.staking.add_stake(
         wallet=bob_wallet,
-        hotkey_ss58=alice_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(10_000),
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     # let chain update validator_permits
@@ -619,11 +617,9 @@ async def test_delegates_async(async_subtensor, alice_wallet, bob_wallet):
 
     await async_subtensor.staking.add_stake(
         wallet=bob_wallet,
-        hotkey_ss58=alice_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(10_000),
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     # let chain update validator_permits
@@ -663,11 +659,7 @@ def test_nominator_min_required_stake(subtensor, alice_wallet, bob_wallet, dave_
     alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
 
     # Register a subnet, netuid 2
-    assert subtensor.subnets.register_subnet(
-        alice_wallet,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    ), "Subnet wasn't created"
+    assert subtensor.subnets.register_subnet(alice_wallet), "Subnet wasn't created"
 
     # Verify subnet <netuid> created successfully
     assert subtensor.subnets.subnet_exists(alice_subnet_netuid), (
@@ -681,24 +673,18 @@ def test_nominator_min_required_stake(subtensor, alice_wallet, bob_wallet, dave_
     subtensor.subnets.burned_register(
         wallet=bob_wallet,
         netuid=alice_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     subtensor.subnets.burned_register(
         wallet=dave_wallet,
         netuid=alice_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     success = subtensor.staking.add_stake(
         wallet=dave_wallet,
-        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(1000),
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     assert success is True
 
@@ -752,11 +738,9 @@ async def test_nominator_min_required_stake_async(
     alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
 
     # Register a subnet, netuid 2
-    assert await async_subtensor.subnets.register_subnet(
-        alice_wallet,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    ), "Subnet wasn't created"
+    assert await async_subtensor.subnets.register_subnet(alice_wallet), (
+        "Subnet wasn't created"
+    )
 
     # Verify subnet <netuid> created successfully
     assert await async_subtensor.subnets.subnet_exists(alice_subnet_netuid), (
@@ -772,24 +756,18 @@ async def test_nominator_min_required_stake_async(
     await async_subtensor.subnets.burned_register(
         wallet=bob_wallet,
         netuid=alice_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     await async_subtensor.subnets.burned_register(
         wallet=dave_wallet,
         netuid=alice_subnet_netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     success = await async_subtensor.staking.add_stake(
         wallet=dave_wallet,
-        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(1000),
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     assert success is True
 

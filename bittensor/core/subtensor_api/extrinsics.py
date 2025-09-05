@@ -26,6 +26,7 @@ class Extrinsics:
         self.set_subnet_identity = subtensor.set_subnet_identity
         self.set_weights = subtensor.set_weights
         self.serve_axon = subtensor.serve_axon
+        self.set_commitment = subtensor.set_commitment
         self.start_call = subtensor.start_call
         self.swap_stake = subtensor.swap_stake
         self.toggle_user_liquidity = subtensor.toggle_user_liquidity

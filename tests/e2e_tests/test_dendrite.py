@@ -15,6 +15,11 @@ from tests.e2e_tests.utils.e2e_test_utils import (
     wait_to_start_call,
 )
 
+logging.on()
+logging.set_debug()
+
+NON_FAST_RUNTIME_TEMPO = 10
+
 
 @pytest.mark.asyncio
 async def test_dendrite(subtensor, templates, alice_wallet, bob_wallet):
@@ -35,9 +40,7 @@ async def test_dendrite(subtensor, templates, alice_wallet, bob_wallet):
     alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
 
     # Register a subnet, netuid 2
-    assert subtensor.subnets.register_subnet(alice_wallet, True, True), (
-        "Subnet wasn't created."
-    )
+    assert subtensor.subnets.register_subnet(alice_wallet), "Subnet wasn't created."
 
     # Verify subnet <netuid> created successfully
     assert subtensor.subnets.subnet_exists(alice_subnet_netuid), (
@@ -51,12 +54,24 @@ async def test_dendrite(subtensor, templates, alice_wallet, bob_wallet):
         "Subnet is not active."
     )
 
-    # Make sure Alice is Top Validator
-    assert subtensor.staking.add_stake(
-        wallet=alice_wallet,
-        netuid=alice_subnet_netuid,
-        amount=Balance.from_tao(1),
-    )
+    if not subtensor.chain.is_fast_blocks():
+        # Make sure Alice is Top Validator (for non-fast-runtime only)
+        assert subtensor.staking.add_stake(
+            wallet=alice_wallet,
+            netuid=alice_subnet_netuid,
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
+            amount=Balance.from_tao(1),
+        )
+        # set tempo to 10 block for non-fast-runtime
+        assert sudo_set_admin_utils(
+            substrate=subtensor.substrate,
+            wallet=alice_wallet,
+            call_function="sudo_set_tempo",
+            call_params={
+                "netuid": alice_subnet_netuid,
+                "tempo": NON_FAST_RUNTIME_TEMPO,
+            },
+        )
 
     # update max_allowed_validators so only one neuron can get validator_permit
     assert sudo_set_admin_utils(
@@ -110,8 +125,9 @@ async def test_dendrite(subtensor, templates, alice_wallet, bob_wallet):
     )
 
     assert subtensor.staking.add_stake(
-        bob_wallet,
+        wallet=bob_wallet,
         netuid=alice_subnet_netuid,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=tao,
     )
 
@@ -168,9 +184,9 @@ async def test_dendrite_async(async_subtensor, templates, alice_wallet, bob_wall
     alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
 
     # Register a subnet, netuid 2
-    assert await async_subtensor.subnets.register_subnet(
-        alice_wallet, wait_for_inclusion=True, wait_for_finalization=True
-    ), "Subnet wasn't created"
+    assert await async_subtensor.subnets.register_subnet(alice_wallet), (
+        "Subnet wasn't created"
+    )
 
     # Verify subnet <netuid> created successfully
     assert await async_subtensor.subnets.subnet_exists(alice_subnet_netuid), (
@@ -185,12 +201,26 @@ async def test_dendrite_async(async_subtensor, templates, alice_wallet, bob_wall
         "Subnet is not active."
     )
 
-    # Make sure Alice is Top Validator
-    assert await async_subtensor.staking.add_stake(
-        wallet=alice_wallet,
-        netuid=alice_subnet_netuid,
-        amount=Balance.from_tao(1),
-    )
+    if not await async_subtensor.chain.is_fast_blocks():
+        # Make sure Alice is Top Validator (for non-fast-runtime only)
+        assert await async_subtensor.staking.add_stake(
+            wallet=alice_wallet,
+            netuid=alice_subnet_netuid,
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
+            amount=Balance.from_tao(5),
+            wait_for_inclusion=False,
+            wait_for_finalization=False,
+        )
+        # set tempo to 10 block for non-fast-runtime
+        assert await async_sudo_set_admin_utils(
+            substrate=async_subtensor.substrate,
+            wallet=alice_wallet,
+            call_function="sudo_set_tempo",
+            call_params={
+                "netuid": alice_subnet_netuid,
+                "tempo": NON_FAST_RUNTIME_TEMPO,
+            },
+        )
 
     # update max_allowed_validators so only one neuron can get validator_permit
     assert await async_sudo_set_admin_utils(
@@ -244,9 +274,12 @@ async def test_dendrite_async(async_subtensor, templates, alice_wallet, bob_wall
     ).tao_to_alpha_with_slippage(tao)
 
     assert await async_subtensor.staking.add_stake(
-        bob_wallet,
+        wallet=bob_wallet,
         netuid=alice_subnet_netuid,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=tao,
+        wait_for_inclusion=False,
+        wait_for_finalization=False,
     )
 
     # Refresh metagraph

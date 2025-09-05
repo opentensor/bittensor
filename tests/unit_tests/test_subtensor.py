@@ -15,7 +15,6 @@ from bittensor.core import subtensor as subtensor_module
 from bittensor.core.async_subtensor import AsyncSubtensor, logging
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import SubnetHyperparameters, SelectiveMetagraphIndex
-from bittensor.core.extrinsics.serving import do_serve_axon
 from bittensor.core.settings import version_as_int
 from bittensor.core.subtensor import Subtensor
 from bittensor.core.types import AxonServeCallParams
@@ -1203,6 +1202,7 @@ def test_set_weights(subtensor, mocker, fake_wallet):
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
         period=8,
+        raise_error=True,
     )
     assert result == expected_result
 
@@ -1222,7 +1222,10 @@ def test_serve_axon(subtensor, mocker):
 
     # Call
     result = subtensor.serve_axon(
-        fake_netuid, fake_axon, fake_wait_for_inclusion, fake_wait_for_finalization
+        netuid=fake_netuid,
+        axon=fake_axon,
+        wait_for_inclusion=fake_wait_for_inclusion,
+        wait_for_finalization=fake_wait_for_finalization,
     )
 
     # Asserts
@@ -1230,10 +1233,11 @@ def test_serve_axon(subtensor, mocker):
         subtensor=subtensor,
         netuid=fake_netuid,
         axon=fake_axon,
-        wait_for_inclusion=fake_wait_for_inclusion,
-        wait_for_finalization=fake_wait_for_finalization,
         certificate=fake_certificate,
         period=None,
+        raise_error=False,
+        wait_for_inclusion=fake_wait_for_inclusion,
+        wait_for_finalization=fake_wait_for_finalization,
     )
     assert result == mocked_serve_axon_extrinsic.return_value
 
@@ -1259,7 +1263,7 @@ def test_commit(subtensor, fake_wallet, mocker):
     mocked_publish_metadata = mocker.patch.object(subtensor_module, "publish_metadata")
 
     # Call
-    result = subtensor.commit(fake_wallet, fake_netuid, fake_data)
+    result = subtensor.set_commitment(fake_wallet, fake_netuid, fake_data)
 
     # Asserts
     mocked_publish_metadata.assert_called_once_with(
@@ -1269,6 +1273,9 @@ def test_commit(subtensor, fake_wallet, mocker):
         data_type=f"Raw{len(fake_data)}",
         data=fake_data.encode(),
         period=None,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
     )
     assert result is mocked_publish_metadata.return_value
 
@@ -1327,6 +1334,7 @@ def test_transfer(subtensor, fake_wallet, mocker):
         wait_for_finalization=fake_wait_for_finalization,
         keep_alive=True,
         period=None,
+        raise_error=False,
     )
     assert result == mocked_transfer_extrinsic.return_value
 
@@ -1451,128 +1459,6 @@ def test_neuron_for_uid_success(subtensor, mocker):
     )
 
     assert result == mocked_neuron_from_dict.return_value
-
-
-@pytest.mark.parametrize(
-    ["fake_call_params", "expected_call_function"],
-    [
-        (call_params(), "serve_axon"),
-        (call_params_with_certificate(), "serve_axon_tls"),
-    ],
-)
-def test_do_serve_axon_is_success(
-    subtensor, fake_wallet, mocker, fake_call_params, expected_call_function
-):
-    """Successful do_serve_axon call."""
-    # Prep
-    fake_wait_for_inclusion = True
-    fake_wait_for_finalization = True
-
-    mocker.patch.object(subtensor, "sign_and_send_extrinsic", return_value=(True, ""))
-
-    # Call
-    result = do_serve_axon(
-        subtensor=subtensor,
-        wallet=fake_wallet,
-        call_params=fake_call_params,
-        wait_for_inclusion=fake_wait_for_inclusion,
-        wait_for_finalization=fake_wait_for_finalization,
-    )
-
-    # Asserts
-    subtensor.substrate.compose_call.assert_called_once_with(
-        call_module="SubtensorModule",
-        call_function=expected_call_function,
-        call_params=fake_call_params,
-    )
-
-    subtensor.sign_and_send_extrinsic.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value,
-        wallet=fake_wallet,
-        wait_for_inclusion=fake_wait_for_inclusion,
-        wait_for_finalization=fake_wait_for_finalization,
-        sign_with="hotkey",
-        period=None,
-    )
-
-    assert result[0] is True
-    assert result[1] == ""
-
-
-def test_do_serve_axon_is_not_success(subtensor, fake_wallet, mocker, fake_call_params):
-    """Unsuccessful do_serve_axon call."""
-    # Prep
-    fake_wait_for_inclusion = True
-    fake_wait_for_finalization = True
-
-    mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=(False, None)
-    )
-
-    # Call
-    result = do_serve_axon(
-        subtensor=subtensor,
-        wallet=fake_wallet,
-        call_params=fake_call_params,
-        wait_for_inclusion=fake_wait_for_inclusion,
-        wait_for_finalization=fake_wait_for_finalization,
-    )
-
-    # Asserts
-    subtensor.substrate.compose_call.assert_called_once_with(
-        call_module="SubtensorModule",
-        call_function="serve_axon",
-        call_params=fake_call_params,
-    )
-
-    subtensor.sign_and_send_extrinsic.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value,
-        wallet=fake_wallet,
-        wait_for_inclusion=fake_wait_for_inclusion,
-        wait_for_finalization=fake_wait_for_finalization,
-        sign_with="hotkey",
-        period=None,
-    )
-
-    assert result == (False, None)
-
-
-def test_do_serve_axon_no_waits(subtensor, fake_wallet, mocker, fake_call_params):
-    """Unsuccessful do_serve_axon call."""
-    # Prep
-    fake_wait_for_inclusion = False
-    fake_wait_for_finalization = False
-
-    mocked_sign_and_send_extrinsic = mocker.Mock(return_value=(True, ""))
-    mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", new=mocked_sign_and_send_extrinsic
-    )
-
-    # Call
-    result = do_serve_axon(
-        subtensor=subtensor,
-        wallet=fake_wallet,
-        call_params=fake_call_params,
-        wait_for_inclusion=fake_wait_for_inclusion,
-        wait_for_finalization=fake_wait_for_finalization,
-    )
-
-    # Asserts
-    subtensor.substrate.compose_call.assert_called_once_with(
-        call_module="SubtensorModule",
-        call_function="serve_axon",
-        call_params=fake_call_params,
-    )
-
-    mocked_sign_and_send_extrinsic.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value,
-        wallet=fake_wallet,
-        wait_for_inclusion=fake_wait_for_inclusion,
-        wait_for_finalization=fake_wait_for_finalization,
-        sign_with="hotkey",
-        period=None,
-    )
-    assert result == (True, "")
 
 
 def test_immunity_period(subtensor, mocker):
@@ -2831,7 +2717,8 @@ def test_add_stake_success(mocker, fake_wallet, subtensor):
     """Test add_stake returns True on successful staking."""
     # Prep
     fake_hotkey_ss58 = "fake_hotkey"
-    fake_amount = 10.0
+    fake_amount = Balance.from_tao(10.0)
+    fake_netuid = 14
 
     mock_add_stake_extrinsic = mocker.patch.object(
         subtensor_module, "add_stake_extrinsic"
@@ -2840,6 +2727,7 @@ def test_add_stake_success(mocker, fake_wallet, subtensor):
     # Call
     result = subtensor.add_stake(
         wallet=fake_wallet,
+        netuid=fake_netuid,
         hotkey_ss58=fake_hotkey_ss58,
         amount=fake_amount,
         wait_for_inclusion=True,
@@ -2854,14 +2742,15 @@ def test_add_stake_success(mocker, fake_wallet, subtensor):
         subtensor=subtensor,
         wallet=fake_wallet,
         hotkey_ss58=fake_hotkey_ss58,
-        netuid=None,
-        amount=Balance.from_rao(fake_amount),
+        netuid=14,
+        amount=fake_amount.rao,
         wait_for_inclusion=True,
         wait_for_finalization=False,
         safe_staking=False,
         allow_partial_stake=False,
         rate_tolerance=0.005,
         period=None,
+        raise_error=False,
     )
     assert result == mock_add_stake_extrinsic.return_value
 
@@ -2869,8 +2758,9 @@ def test_add_stake_success(mocker, fake_wallet, subtensor):
 def test_add_stake_with_safe_staking(mocker, fake_wallet, subtensor):
     """Test add_stake with safe staking parameters enabled."""
     # Prep
+    fake_netuid = 14
     fake_hotkey_ss58 = "fake_hotkey"
-    fake_amount = 10.0
+    fake_amount = Balance.from_tao(10.0)
     fake_rate_tolerance = 0.01  # 1% threshold
 
     mock_add_stake_extrinsic = mocker.patch.object(
@@ -2880,6 +2770,7 @@ def test_add_stake_with_safe_staking(mocker, fake_wallet, subtensor):
     # Call
     result = subtensor.add_stake(
         wallet=fake_wallet,
+        netuid=fake_netuid,
         hotkey_ss58=fake_hotkey_ss58,
         amount=fake_amount,
         wait_for_inclusion=True,
@@ -2894,14 +2785,15 @@ def test_add_stake_with_safe_staking(mocker, fake_wallet, subtensor):
         subtensor=subtensor,
         wallet=fake_wallet,
         hotkey_ss58=fake_hotkey_ss58,
-        netuid=None,
-        amount=Balance.from_rao(fake_amount),
+        netuid=14,
+        amount=fake_amount.rao,
         wait_for_inclusion=True,
         wait_for_finalization=False,
         safe_staking=True,
         allow_partial_stake=False,
         rate_tolerance=fake_rate_tolerance,
         period=None,
+        raise_error=False,
     )
     assert result == mock_add_stake_extrinsic.return_value
 
@@ -2936,6 +2828,7 @@ def test_add_stake_multiple_success(mocker, fake_wallet, subtensor):
         wait_for_inclusion=True,
         wait_for_finalization=False,
         period=None,
+        raise_error=False,
     )
     assert result == mock_add_stake_multiple_extrinsic.return_value
 
@@ -2944,6 +2837,7 @@ def test_unstake_success(mocker, subtensor, fake_wallet):
     """Test unstake operation is successful."""
     # Preps
     fake_hotkey_ss58 = "hotkey_1"
+    fake_netuid = 1
     fake_amount = 10.0
 
     mock_unstake_extrinsic = mocker.patch.object(subtensor_module, "unstake_extrinsic")
@@ -2951,11 +2845,12 @@ def test_unstake_success(mocker, subtensor, fake_wallet):
     # Call
     result = subtensor.unstake(
         wallet=fake_wallet,
+        netuid=fake_netuid,
         hotkey_ss58=fake_hotkey_ss58,
         amount=fake_amount,
         wait_for_inclusion=True,
         wait_for_finalization=False,
-        safe_staking=False,
+        safe_unstaking=False,
         allow_partial_stake=False,
         rate_tolerance=0.005,
     )
@@ -2964,24 +2859,25 @@ def test_unstake_success(mocker, subtensor, fake_wallet):
     mock_unstake_extrinsic.assert_called_once_with(
         subtensor=subtensor,
         wallet=fake_wallet,
+        netuid=fake_netuid,
         hotkey_ss58=fake_hotkey_ss58,
-        netuid=None,
         amount=Balance.from_rao(fake_amount),
-        wait_for_inclusion=True,
-        wait_for_finalization=False,
-        safe_staking=False,
+        safe_unstaking=False,
         allow_partial_stake=False,
         rate_tolerance=0.005,
         period=None,
-        unstake_all=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        raise_error=False,
     )
     assert result == mock_unstake_extrinsic.return_value
 
 
-def test_unstake_with_safe_staking(mocker, subtensor, fake_wallet):
-    """Test unstake with safe staking parameters enabled."""
+def test_unstake_with_safe_unstaking(mocker, subtensor, fake_wallet):
+    """Test unstake with `safe_unstaking` parameters enabled."""
     fake_hotkey_ss58 = "hotkey_1"
     fake_amount = 10.0
+    fake_netuid = 14
     fake_rate_tolerance = 0.01  # 1% threshold
 
     mock_unstake_extrinsic = mocker.patch.object(subtensor_module, "unstake_extrinsic")
@@ -2989,11 +2885,12 @@ def test_unstake_with_safe_staking(mocker, subtensor, fake_wallet):
     # Call
     result = subtensor.unstake(
         wallet=fake_wallet,
+        netuid=fake_netuid,
         hotkey_ss58=fake_hotkey_ss58,
         amount=fake_amount,
         wait_for_inclusion=True,
         wait_for_finalization=False,
-        safe_staking=True,
+        safe_unstaking=True,
         allow_partial_stake=True,
         rate_tolerance=fake_rate_tolerance,
     )
@@ -3002,16 +2899,16 @@ def test_unstake_with_safe_staking(mocker, subtensor, fake_wallet):
     mock_unstake_extrinsic.assert_called_once_with(
         subtensor=subtensor,
         wallet=fake_wallet,
+        netuid=fake_netuid,
         hotkey_ss58=fake_hotkey_ss58,
-        netuid=None,
         amount=Balance.from_rao(fake_amount),
-        wait_for_inclusion=True,
-        wait_for_finalization=False,
-        safe_staking=True,
+        safe_unstaking=True,
         allow_partial_stake=True,
         rate_tolerance=fake_rate_tolerance,
         period=None,
-        unstake_all=False,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
     )
     assert result == mock_unstake_extrinsic.return_value
 
@@ -3037,7 +2934,7 @@ def test_swap_stake_success(mocker, subtensor, fake_wallet):
         amount=fake_amount,
         wait_for_inclusion=True,
         wait_for_finalization=False,
-        safe_staking=False,
+        safe_swapping=False,
         allow_partial_stake=False,
         rate_tolerance=0.005,
     )
@@ -3052,10 +2949,11 @@ def test_swap_stake_success(mocker, subtensor, fake_wallet):
         amount=Balance.from_rao(fake_amount),
         wait_for_inclusion=True,
         wait_for_finalization=False,
-        safe_staking=False,
+        safe_swapping=False,
         allow_partial_stake=False,
         rate_tolerance=0.005,
         period=None,
+        raise_error=False,
     )
     assert result == mock_swap_stake_extrinsic.return_value
 
@@ -3082,7 +2980,7 @@ def test_swap_stake_with_safe_staking(mocker, subtensor, fake_wallet):
         amount=fake_amount,
         wait_for_inclusion=True,
         wait_for_finalization=False,
-        safe_staking=True,
+        safe_swapping=True,
         allow_partial_stake=True,
         rate_tolerance=fake_rate_tolerance,
     )
@@ -3097,10 +2995,11 @@ def test_swap_stake_with_safe_staking(mocker, subtensor, fake_wallet):
         amount=Balance.from_rao(fake_amount),
         wait_for_inclusion=True,
         wait_for_finalization=False,
-        safe_staking=True,
+        safe_swapping=True,
         allow_partial_stake=True,
         rate_tolerance=fake_rate_tolerance,
         period=None,
+        raise_error=False,
     )
     assert result == mock_swap_stake_extrinsic.return_value
 
@@ -3136,6 +3035,7 @@ def test_unstake_multiple_success(mocker, subtensor, fake_wallet):
         wait_for_finalization=False,
         period=None,
         unstake_all=False,
+        raise_error=False,
     )
     assert result == mock_unstake_multiple_extrinsic.return_value
 
@@ -3180,11 +3080,13 @@ def test_set_weights_with_commit_reveal_enabled(subtensor, fake_wallet, mocker):
         netuid=fake_netuid,
         uids=fake_uids,
         weights=fake_weights,
+        commit_reveal_version=4,
         version_key=subtensor_module.version_as_int,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
         block_time=12.0,
         period=8,
+        raise_error=True,
     )
     assert result == mocked_commit_reveal_v3_extrinsic.return_value
 
@@ -3241,9 +3143,10 @@ def test_set_subnet_identity(mocker, subtensor, fake_wallet):
         discord=fake_subnet_identity.discord,
         description=fake_subnet_identity.description,
         additional=fake_subnet_identity.additional,
-        wait_for_finalization=True,
-        wait_for_inclusion=False,
         period=None,
+        raise_error=False,
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3344,6 +3247,7 @@ def test_start_call(subtensor, mocker):
         wait_for_inclusion=True,
         wait_for_finalization=False,
         period=None,
+        raise_error=False,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3810,8 +3714,9 @@ def test_unstake_all(subtensor, fake_wallet, mocker):
         netuid=1,
         rate_tolerance=0.005,
         wait_for_inclusion=True,
-        wait_for_finalization=False,
+        wait_for_finalization=True,
         period=None,
+        raise_error=False,
     )
     assert result == fake_unstake_all_extrinsic.return_value
 
@@ -3956,8 +3861,9 @@ def test_add_liquidity(subtensor, fake_wallet, mocker):
         price_high=Balance.from_tao(130).rao,
         hotkey=None,
         wait_for_inclusion=True,
-        wait_for_finalization=False,
+        wait_for_finalization=True,
         period=None,
+        raise_error=False,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3988,8 +3894,9 @@ def test_modify_liquidity(subtensor, fake_wallet, mocker):
         liquidity_delta=Balance.from_tao(150),
         hotkey=None,
         wait_for_inclusion=True,
-        wait_for_finalization=False,
+        wait_for_finalization=True,
         period=None,
+        raise_error=False,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -4018,8 +3925,9 @@ def test_remove_liquidity(subtensor, fake_wallet, mocker):
         position_id=position_id,
         hotkey=None,
         wait_for_inclusion=True,
-        wait_for_finalization=False,
+        wait_for_finalization=True,
         period=None,
+        raise_error=False,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -4047,8 +3955,9 @@ def test_toggle_user_liquidity(subtensor, fake_wallet, mocker):
         netuid=netuid,
         enable=enable,
         wait_for_inclusion=True,
-        wait_for_finalization=False,
+        wait_for_finalization=True,
         period=None,
+        raise_error=False,
     )
     assert result == mocked_extrinsic.return_value
 

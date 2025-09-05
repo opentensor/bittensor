@@ -34,7 +34,7 @@ def test_hotkeys(subtensor, alice_wallet, dave_wallet):
     logging.console.info("Testing [green]test_hotkeys[/green].")
 
     dave_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
-    assert subtensor.subnets.register_subnet(dave_wallet, True, True)
+    assert subtensor.subnets.register_subnet(dave_wallet)
     assert subtensor.subnets.subnet_exists(dave_subnet_netuid), (
         f"Subnet #{dave_subnet_netuid} does not exist."
     )
@@ -60,8 +60,8 @@ def test_hotkeys(subtensor, alice_wallet, dave_wallet):
         is False
     )
 
-    subtensor.subnets.burned_register(
-        alice_wallet,
+    assert subtensor.subnets.burned_register(
+        wallet=alice_wallet,
         netuid=dave_subnet_netuid,
     )
 
@@ -90,7 +90,7 @@ async def test_hotkeys_async(async_subtensor, alice_wallet, dave_wallet):
     logging.console.info("Testing [green]test_hotkeys_async[/green].")
 
     dave_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
-    assert await async_subtensor.subnets.register_subnet(dave_wallet, True, True)
+    assert await async_subtensor.subnets.register_subnet(dave_wallet)
     assert await async_subtensor.subnets.subnet_exists(dave_subnet_netuid), (
         f"Subnet #{dave_subnet_netuid} does not exist."
     )
@@ -119,7 +119,7 @@ async def test_hotkeys_async(async_subtensor, alice_wallet, dave_wallet):
     )
 
     assert await async_subtensor.subnets.burned_register(
-        alice_wallet,
+        wallet=alice_wallet,
         netuid=dave_subnet_netuid,
     )
 
@@ -165,7 +165,7 @@ def test_children(subtensor, alice_wallet, bob_wallet, dave_wallet):
         == "Success with `root_set_pending_childkey_cooldown_extrinsic` response."
     )
 
-    assert subtensor.subnets.register_subnet(dave_wallet, True, True)
+    assert subtensor.subnets.register_subnet(dave_wallet)
     assert subtensor.subnets.subnet_exists(dave_subnet_netuid), (
         f"Subnet #{dave_subnet_netuid} does not exist."
     )
@@ -490,7 +490,7 @@ async def test_children_async(async_subtensor, alice_wallet, bob_wallet, dave_wa
         == "Success with `root_set_pending_childkey_cooldown_extrinsic` response."
     )
 
-    assert await async_subtensor.subnets.register_subnet(dave_wallet, True, True)
+    assert await async_subtensor.subnets.register_subnet(dave_wallet)
     assert await async_subtensor.subnets.subnet_exists(dave_subnet_netuid), (
         f"Subnet #{dave_subnet_netuid} does not exist."
     )

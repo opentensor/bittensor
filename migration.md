@@ -1,7 +1,7 @@
 # Plan
 
 ## Extrinsics and related
-1. Standardize parameter order across all extrinsics and related calls. Pass extrinsic-specific arguments first (e.g., wallet, hotkey, netuid, amount), followed by optional general flags (e.g., wait_for_inclusion, wait_for_finalization)
+1. ✅ Standardize parameter order across all extrinsics and related calls. Pass extrinsic-specific arguments first (e.g., wallet, hotkey, netuid, amount), followed by optional general flags (e.g., wait_for_inclusion, wait_for_finalization)
     <details>
         <summary>Example</summary>
 
@@ -33,11 +33,11 @@
         amount: Optional[Balance] = None,
         rate_tolerance: float = 0.005,
         allow_partial_stake: bool = False,
-        safe_staking: bool = False,
+        safe_swapping: bool = False,
         period: Optional[int] = None,
+        raise_error: bool = True,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-        raise_error: bool = True,
     ) -> bool:
     ```
     </details>
@@ -48,14 +48,14 @@
     - Ease of processing
     - This class should contain success, message, and optionally data and logs. (to save all logs during the extrinsic)
 
-3. Set `wait_for_inclusion` and `wait_for_finalization` to `True` by default in extrinsics and their related calls. Then we will guarantee the correct/expected extrinsic call response is consistent with the chain response. If the user changes those values, then it is the user's responsibility.
-4. Make the internal logic of extrinsics the same. There are extrinsics that are slightly different in implementation.
+3. ✅ Set `wait_for_inclusion` and `wait_for_finalization` to `True` by default in extrinsics and their related calls. Then we will guarantee the correct/expected extrinsic call response is consistent with the chain response. If the user changes those values, then it is the user's responsibility.
+4. ✅ Make the internal logic of extrinsics the same. There are extrinsics that are slightly different in implementation.
 
 5. Since SDK is not a responsible tool, try to remove all calculations inside extrinsics that do not affect the result, but are only used in logging. Actually, this should be applied not to extrinsics only but for all codebase.
 
-6. Remove `unstake_all` parameter from `unstake_extrinsic` since we have `unstake_all_extrinsic`which is calles another subtensor function.
+6. ✅ Remove `unstake_all` parameter from `unstake_extrinsic` since we have `unstake_all_extrinsic`which is calles another subtensor function.
 
-7. `unstake` and `unstake_multiple` extrinsics should have `safe_unstaking` parameters instead of `safe_staking`.
+7. ✅ `unstake` and `unstake_multiple` extrinsics should have `safe_unstaking` parameters instead of `safe_staking`.
 
 8. ✅ Remove `_do*` extrinsic calls and combine them with extrinsic logic.
 
@@ -106,7 +106,9 @@ rename this variable in documentation.
 11. Remove `bittensor.utils.version.version_checking`
 
 12. Find and process all `TODOs` across the entire code base. If in doubt, discuss each one with the team separately. SDK has 29 TODOs.
-13. ✅ The SDK is dropping support for `Python 3.9` starting with this release.~~
+13. ✅ The SDK is dropping support for `Python 3.9` starting with this release.
+14. Remove `Default is` and `Default to` in docstrings bc parameters enough.
+15. camfairchild: TODO, but we should have a grab_metadata if we don't already. Maybe don't decode, but can have a call that removes the Raw prefix, and another just doing grab_metadata_raw (no decoding)
 
 ## New features
 1. Add `bittensor.utils.hex_to_ss58` function. SDK still doesn't have it. (Probably inner import `from scalecodec import ss58_encode, ss58_decode`) 
@@ -159,4 +161,66 @@ It must include:
 - [x] `._do_set_root_weights` logic is included in the main code `.set_root_weights_extrinsic`
 - [x] `._do_transfer` logic is included in the main code `.transfer_extrinsic`
 - [x] `dest` parameter has been renamed to `destination` in `transfer_extrinsic` function and `subtensor.transfer` method.
-- [x]] obsolete extrinsic `set_root_weights_extrinsic` removed. Also related subtensor calls `subtensor.set_root_weights_extrinsic` removed too.
+- [x] obsolete extrinsic `set_root_weights_extrinsic` removed. Also related subtensor calls `subtensor.set_root_weights_extrinsic` removed too.
+
+# Standardize parameter order is applied for (extrinsics and related calls):
+
+These parameters will now exist in all extrinsics and related calls (default values could be different depends by extrinsic): 
+
+```py
+period: Optional[int] = None,
+raise_error: bool = False,
+wait_for_inclusion: bool = False,
+wait_for_finalization: bool = False,
+``` 
+- [x] `.set_children_extrinsic` and `.root_set_pending_childkey_cooldown_extrinsic`. `subtensor.set_children` and `subtensor.root_set_pending_childkey_cooldown` methods.
+- [x] `.commit_reveal_extrinsic` and `subtensor.set_weights`
+- [x] `.add_liquidity_extrinsic` and `subtensor.add_liquidity`
+- [x] `.modify_liquidity_extrinsic` and `subtensor.modify_liquidity`
+- [x] `.remove_liquidity_extrinsic` and `subtensor.remove_liquidity`
+- [x] `.toggle_user_liquidity_extrinsic` and `subtensor.toggle_user_liquidity`
+- [x] `.transfer_stake_extrinsic` and `subtensor.transfer_stake`
+- [x] `.swap_stake_extrinsic` and `subtensor.swap_stake`
+  - Changes in `swap_stake_extrinsic` and `subtensor.swap_stake`:
+    - parameter `safe_staking: bool` renamed to `safe_swapping: bool`
+- [x] `.move_stake_extrinsic` and `subtensor.move_stake`
+  - Changes in `move_stake_extrinsic` and `subtensor.move_stake`:
+    - parameter `origin_hotkey` renamed to `origin_hotkey_ss58`
+    - parameter `destination_hotkey` renamed to `destination_hotkey_ss58`
+- [x] `.burned_register_extrinsic` and `subtensor.burned_register`
+- [x] `.register_subnet_extrinsic` and `subtensor.register_subnet`
+- [x] `.register_extrinsic` and `subtensor.register`
+- [x] `.set_subnet_identity_extrinsic` and `subtensor.set_subnet_identity`
+- [x] `.root_register_extrinsic`, `subtensor.burned_register` and `subtensor.root_register`
+- [x] `.serve_extrinsic`
+- [x] `.serve_axon_extrinsic` and `subtensor.serve_axon`
+- [x] alias `subtensor.set_commitment` removed
+- [x] `subtensor.comit` renamed to `subtensor.set_commitment`
+- [x] `.publish_metadata`, `subtensor.set_commitment` and `subtenor.set_reveal_commitment`
+- [x] `.add_stake_extrinsic` and `subtensor.add_stake`
+    - Changes in `.add_stake_extrinsic` and `subtensor.add_stake`:
+      - parameter `old_balance` removed from async version
+      - parameter `netuid` required (no Optional anymore)
+      - parameter `hotkey_ss58` required (no Optional anymore)
+      - parameter `amount` required (no Optional anymore)
+- [x] `.add_stake_multiple_extrinsic` and `subtensor.add_stake_multiple`
+    - Changes in `.add_stake_multiple_extrinsic` and `subtensor.add_stake_multiple`:
+      - parameter `old_balance` removed from async version
+      - parameter `amounts` required (no Optional anymore)
+- [x] `.start_call_extrinsic` and `subtensor.start_call`
+- [x] `.increase_take_extrinsic`, `.decrease_take_extrinsic` and `subtenor.set_reveal_commitment`
+- [x] `.transfer_extrinsic` and `subtensor.transfer`
+- [x] `.unstake_extrinsic` and `subtensor.unstake`
+  - Changes in `unstake_extrinsic` and `subtensor.unstake`:
+    - parameter `netuid: Optional[int]` is now required -> `netuid: int`
+    - parameter `hotkey_ss58: Optional[str]` is now required -> `hotkey_ss58: str`
+    - parameter `amount: Optional[Balance]` is now required -> `amount: Balance`
+    - parameter `safe_staking: bool` renamed to `safe_unstaking: bool`
+    - parameter `unstake_all: bool` removed (use `unstake_all_extrinsic` for unstake all stake)
+- [x] `.unstake_all_extrinsic` and `subtensor.unstake_all`
+- [x] `.unstake_multiple_extrinsic` and `subtensor.unstake_multiple`
+  - Changes in `.unstake_multiple_extrinsic` and `subtensor.unstake_multiple`:
+    - parameter `amounts` is now required (no Optional anymore)
+- [x] `.commit_weights_extrinsic` and `subtensor.commit_weights`
+- [x] `.reveal_weights_extrinsic` and `subtensor.reveal_weights`
+- [x] `.set_weights_extrinsic` and `subtensor.set_weights`

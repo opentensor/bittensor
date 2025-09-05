@@ -203,7 +203,7 @@ async def test_burned_register(mock_substrate, subtensor, fake_wallet, mocker):
             "hotkey": fake_wallet.hotkey.ss58_address,
         },
         wait_for_finalization=True,
-        wait_for_inclusion=False,
+        wait_for_inclusion=True,
     )
 
 
@@ -244,7 +244,7 @@ async def test_burned_register_on_root(mock_substrate, subtensor, fake_wallet, m
             "hotkey": fake_wallet.hotkey.ss58_address,
         },
         wait_for_finalization=True,
-        wait_for_inclusion=False,
+        wait_for_inclusion=True,
     )
 
 
@@ -2604,6 +2604,7 @@ async def test_transfer_success(subtensor, fake_wallet, mocker):
         wait_for_finalization=False,
         keep_alive=True,
         period=None,
+        raise_error=False,
     )
     assert result == mocked_transfer_extrinsic.return_value
 
@@ -2624,6 +2625,7 @@ async def test_register_success(subtensor, fake_wallet, mocker):
 
     # Asserts
     mocked_register_extrinsic.assert_awaited_once_with(
+        wallet=fake_wallet,
         cuda=False,
         dev_id=0,
         log_verbose=False,
@@ -2634,10 +2636,10 @@ async def test_register_success(subtensor, fake_wallet, mocker):
         subtensor=subtensor,
         tpb=256,
         update_interval=None,
-        wait_for_finalization=True,
-        wait_for_inclusion=False,
-        wallet=fake_wallet,
         period=None,
+        raise_error=False,
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
     )
     assert result == mocked_register_extrinsic.return_value
 
@@ -2799,10 +2801,11 @@ async def test_set_weights_success(subtensor, fake_wallet, mocker):
         netuid=fake_netuid,
         uids=fake_uids,
         version_key=async_subtensor.version_as_int,
-        wait_for_finalization=False,
-        wait_for_inclusion=False,
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
         weights=fake_weights,
         period=8,
+        raise_error=True,
     )
     mocked_weights_rate_limit.assert_called_once_with(fake_netuid)
     assert result is True
@@ -3002,9 +3005,10 @@ async def test_set_subnet_identity(mocker, subtensor, fake_wallet):
         discord=fake_subnet_identity.discord,
         description=fake_subnet_identity.description,
         additional=fake_subnet_identity.additional,
-        wait_for_finalization=True,
-        wait_for_inclusion=False,
         period=None,
+        raise_error=False,
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3111,6 +3115,7 @@ async def test_start_call(subtensor, mocker):
         wait_for_inclusion=True,
         wait_for_finalization=False,
         period=None,
+        raise_error=False,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3475,8 +3480,9 @@ async def test_unstake_all(subtensor, fake_wallet, mocker):
         netuid=1,
         rate_tolerance=0.005,
         wait_for_inclusion=True,
-        wait_for_finalization=False,
+        wait_for_finalization=True,
         period=None,
+        raise_error=False,
     )
     assert result == fake_unstake_all_extrinsic.return_value
 
@@ -3698,8 +3704,9 @@ async def test_add_liquidity(subtensor, fake_wallet, mocker):
         price_high=Balance.from_tao(130).rao,
         hotkey=None,
         wait_for_inclusion=True,
-        wait_for_finalization=False,
+        wait_for_finalization=True,
         period=None,
+        raise_error=False,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3731,8 +3738,9 @@ async def test_modify_liquidity(subtensor, fake_wallet, mocker):
         liquidity_delta=Balance.from_tao(150),
         hotkey=None,
         wait_for_inclusion=True,
-        wait_for_finalization=False,
+        wait_for_finalization=True,
         period=None,
+        raise_error=False,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3762,8 +3770,9 @@ async def test_remove_liquidity(subtensor, fake_wallet, mocker):
         position_id=position_id,
         hotkey=None,
         wait_for_inclusion=True,
-        wait_for_finalization=False,
+        wait_for_finalization=True,
         period=None,
+        raise_error=False,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3792,8 +3801,9 @@ async def test_toggle_user_liquidity(subtensor, fake_wallet, mocker):
         netuid=netuid,
         enable=enable,
         wait_for_inclusion=True,
-        wait_for_finalization=False,
+        wait_for_finalization=True,
         period=None,
+        raise_error=False,
     )
     assert result == mocked_extrinsic.return_value
 

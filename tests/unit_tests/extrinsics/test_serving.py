@@ -110,20 +110,22 @@ def test_serve_extrinsic_happy_path(
     test_id,
     mocker,
 ):
-    # Arrange
-    serving.do_serve_axon = mocker.MagicMock(return_value=(True, ""))
-    # Act
+    # Prep
+    mocker.patch.object(
+        mock_subtensor, "sign_and_send_extrinsic", return_value=(True, "")
+    )
+    # Call
     result = serving.serve_extrinsic(
-        mock_subtensor,
-        mock_wallet,
-        ip,
-        port,
-        protocol,
-        netuid,
-        placeholder1,
-        placeholder2,
-        wait_for_inclusion,
-        wait_for_finalization,
+        subtensor=mock_subtensor,
+        wallet=mock_wallet,
+        ip=ip,
+        port=port,
+        protocol=protocol,
+        netuid=netuid,
+        placeholder1=placeholder1,
+        placeholder2=placeholder2,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
     )
 
     # Assert
@@ -164,20 +166,23 @@ def test_serve_extrinsic_edge_cases(
     test_id,
     mocker,
 ):
-    # Arrange
-    serving.do_serve_axon = mocker.MagicMock(return_value=(True, ""))
-    # Act
+    # Prep
+    mocker.patch.object(
+        mock_subtensor, "sign_and_send_extrinsic", return_value=(True, "")
+    )
+
+    # Call
     result = serving.serve_extrinsic(
-        mock_subtensor,
-        mock_wallet,
-        ip,
-        port,
-        protocol,
-        netuid,
-        placeholder1,
-        placeholder2,
-        wait_for_inclusion,
-        wait_for_finalization,
+        subtensor=mock_subtensor,
+        wallet=mock_wallet,
+        ip=ip,
+        port=port,
+        protocol=protocol,
+        netuid=netuid,
+        placeholder1=placeholder1,
+        placeholder2=placeholder2,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
     )
 
     # Assert
@@ -218,20 +223,22 @@ def test_serve_extrinsic_error_cases(
     test_id,
     mocker,
 ):
-    # Arrange
-    serving.do_serve_axon = mocker.MagicMock(return_value=(False, "Error serving axon"))
-    # Act
+    # Prep
+    mocker.patch.object(
+        mock_subtensor, "sign_and_send_extrinsic", return_value=(False, "")
+    )
+    # Call
     result = serving.serve_extrinsic(
-        mock_subtensor,
-        mock_wallet,
-        ip,
-        port,
-        protocol,
-        netuid,
-        placeholder1,
-        placeholder2,
-        wait_for_inclusion,
-        wait_for_finalization,
+        subtensor=mock_subtensor,
+        wallet=mock_wallet,
+        ip=ip,
+        port=port,
+        protocol=protocol,
+        netuid=netuid,
+        placeholder1=placeholder1,
+        placeholder2=placeholder2,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
     )
 
     # Assert
@@ -281,29 +288,32 @@ def test_serve_axon_extrinsic(
     mocker,
 ):
     mock_axon.external_ip = external_ip
-    # Arrange
+    # Preps
     with patch(
         "bittensor.utils.networking.get_external_ip",
         side_effect=Exception("Failed to fetch IP")
         if not external_ip_success
         else MagicMock(return_value="192.168.1.1"),
     ):
-        serving.do_serve_axon = mocker.MagicMock(return_value=(serve_success, ""))
-        # Act
+        mocker.patch.object(
+            mock_subtensor, "sign_and_send_extrinsic", return_value=(serve_success, "")
+        )
+
+        # Calls
         if not external_ip_success:
             with pytest.raises(ConnectionError):
                 serving.serve_axon_extrinsic(
-                    mock_subtensor,
-                    netuid,
-                    mock_axon,
+                    subtensor=mock_subtensor,
+                    netuid=netuid,
+                    axon=mock_axon,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                 )
         else:
             result = serving.serve_axon_extrinsic(
-                mock_subtensor,
-                netuid,
-                mock_axon,
+                subtensor=mock_subtensor,
+                netuid=netuid,
+                axon=mock_axon,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
@@ -376,4 +386,5 @@ def test_publish_metadata(
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             period=None,
+            raise_error=False,
         )

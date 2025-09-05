@@ -119,6 +119,7 @@ def test_commit_reveal_v3_extrinsic_success_with_torch(
         wait_for_finalization=True,
         sign_with="hotkey",
         period=None,
+        raise_error=False,
     )
 
 
@@ -173,6 +174,7 @@ def test_commit_reveal_v3_extrinsic_success_with_numpy(
         wait_for_finalization=False,
         sign_with="hotkey",
         period=None,
+        raise_error=False,
     )
 
 
@@ -230,6 +232,7 @@ def test_commit_reveal_v3_extrinsic_response_false(
         wait_for_finalization=True,
         sign_with="hotkey",
         period=None,
+        raise_error=False,
     )
 
 
@@ -246,15 +249,12 @@ def test_commit_reveal_v3_extrinsic_exception(mocker, subtensor, fake_wallet):
         side_effect=Exception("Test Error"),
     )
 
-    # Call
-    success, message = commit_reveal.commit_reveal_extrinsic(
-        subtensor=subtensor,
-        wallet=fake_wallet,
-        netuid=fake_netuid,
-        uids=fake_uids,
-        weights=fake_weights,
-    )
-
-    # Asserts
-    assert success is False
-    assert "Test Error" in message
+    # Call + Asserts
+    with pytest.raises(Exception):
+        commit_reveal.commit_reveal_extrinsic(
+            subtensor=subtensor,
+            wallet=fake_wallet,
+            netuid=fake_netuid,
+            uids=fake_uids,
+            weights=fake_weights,
+        )

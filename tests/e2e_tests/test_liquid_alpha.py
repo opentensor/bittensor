@@ -60,6 +60,7 @@ def test_liquid_alpha(subtensor, alice_wallet):
     assert subtensor.staking.add_stake(
         wallet=alice_wallet,
         netuid=netuid,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(10_000),
     ), "Unable to stake to Alice neuron"
 
@@ -241,6 +242,7 @@ async def test_liquid_alpha_async(async_subtensor, alice_wallet):
     assert await async_subtensor.staking.add_stake(
         wallet=alice_wallet,
         netuid=netuid,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(10_000),
     ), "Unable to stake to Alice neuron"
 

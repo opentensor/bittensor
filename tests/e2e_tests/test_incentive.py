@@ -35,9 +35,7 @@ async def test_incentive(subtensor, templates, alice_wallet, bob_wallet):
     alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
 
     # Register root as Alice - the subnet owner and validator
-    assert subtensor.subnets.register_subnet(alice_wallet, True, True), (
-        "Subnet wasn't created"
-    )
+    assert subtensor.subnets.register_subnet(alice_wallet), "Subnet wasn't created"
 
     # Verify subnet <netuid> created successfully
     assert subtensor.subnets.subnet_exists(alice_subnet_netuid), (
@@ -208,7 +206,7 @@ async def test_incentive_async(async_subtensor, templates, alice_wallet, bob_wal
     alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
 
     # Register root as Alice - the subnet owner and validator
-    assert await async_subtensor.subnets.register_subnet(alice_wallet, True, True), (
+    assert await async_subtensor.subnets.register_subnet(alice_wallet), (
         "Subnet wasn't created"
     )
 
