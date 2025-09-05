@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       max-parallel: 5
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ${{ fromJson(vars.SDK_SUPPORTED_PYTHON_VERSIONS) }}
 
     steps:
       - name: Checkout repository
@@ -24,36 +24,36 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
 
-      - name: Cache venv
-        id: cache
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: false
+
+      - name: Cache uv and .venv
         uses: actions/cache@v4
         with:
-          path: venv
-          key: v2-${{ runner.os }}-${{ hashFiles('pyproject.toml') }}
+          path: |
+            ~/.cache/uv
+            .venv
+          key: uv-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            uv-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python-version }}-
 
-      - name: Install deps
-        if: ${{ steps.cache.outputs.cache-hit != 'true' }}
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-          python -m pip install --upgrade pip
-          python -m pip install uv>=0.8.14
-          python -m uv sync --extra dev --active
+      - name: Sync dev deps (idempotent; fast on cache hit)
+        run: uv sync --extra dev --dev
 
       - name: Unit tests
         timeout-minutes: 20
         env:
           PYTHONUNBUFFERED: "1"
         run: |
-          source venv/bin/activate
-          python -m uv run pytest -n 2 tests/unit_tests/ --reruns 3
+          uv run pytest -n 2 tests/unit_tests/ --reruns 3
 
       - name: Integration tests
         timeout-minutes: 20
         env:
           PYTHONUNBUFFERED: "1"
         run: |
-          source venv/bin/activate
-          python -m uv run pytest -n 2 tests/integration_tests/ --reruns 3
+          uv run pytest -n 2 tests/integration_tests/ --reruns 3
