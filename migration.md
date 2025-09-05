@@ -197,6 +197,11 @@ wait_for_finalization: bool = False,
 - [x] `subtensor.comit` renamed to `subtensor.set_commitment`
 - [x] `.publish_metadata`, `subtensor.set_commitment` and `subtenor.set_reveal_commitment`
 - [x] `.add_stake_extrinsic` and `subtensor.add_stake`
+    - Changes in `.add_stake_extrinsic` and `subtensor.add_stake`:
+      - parameter `old_balance` removed from async version
+      - parameter `netuid` required (no Optional anymore)
+      - parameter `hotkey_ss58` required (no Optional anymore)
+      - parameter `amount` required (no Optional anymore)
 - [x] `.add_stake_multiple_extrinsic` and `subtensor.add_stake_multiple`
 - [x] `.start_call_extrinsic` and `subtensor.start_call`
 - [x] `.increase_take_extrinsic`, `.decrease_take_extrinsic` and `subtenor.set_reveal_commitment`
