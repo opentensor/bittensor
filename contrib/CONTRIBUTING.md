@@ -279,7 +279,7 @@ When you are creating an enhancement suggestion, please [include as many details
 
 #### Before Submitting An Enhancement Suggestion
 
-* **Check the [debugging guide](./DEBUGGING.md).** for tips — you might discover that the enhancement is already available. Most importantly, check if you're using the latest version of Bittensor by pulling the latest changes from the Master branch and if you can get the desired behavior by changing [Bittensor's config settings](https://opentensor.github.io/getting-started/configuration.html).
+* **Check the [debugging guide](./DEBUGGING.md).** for tips — you might discover that the enhancement is already available. Most importantly, check if you're using the latest version of Bittensor by pulling the latest changes from the Master branch and if you can get the desired behavior by changing [Bittensor's config settings](https://docs.learnbittensor.org/python-api/html/autoapi/bittensor/core/config/).
 * **Determine which repository the problem should be reported in: if it has to do with your ML model, then it's likely [Bittensor](https://github.com/opentensor/bittensor). If you are having problems with your emissions or Blockchain, then it is in [subtensor](https://github.com/opentensor/subtensor) 
 
 #### How To Submit A (Good) Feature Suggestion
