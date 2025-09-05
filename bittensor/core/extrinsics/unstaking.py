@@ -21,7 +21,7 @@ def unstake_extrinsic(
     amount: Balance,
     allow_partial_stake: bool = False,
     rate_tolerance: float = 0.005,
-    safe_staking: bool = False,
+    safe_unstaking: bool = False,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
@@ -38,7 +38,7 @@ def unstake_extrinsic(
         amount: Amount to stake as Bittensor balance.
         allow_partial_stake: If true, allows partial unstaking if price tolerance exceeded.
         rate_tolerance: Maximum allowed price decrease percentage (0.005 = 0.5%).
-        safe_staking: If true, enables price safety checks.
+        safe_unstaking: If true, enables price safety checks.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
@@ -84,7 +84,7 @@ def unstake_extrinsic(
             "amount_unstaked": amount.rao,
         }
 
-        if safe_staking:
+        if safe_unstaking:
             pool = subtensor.subnet(netuid=netuid)
             base_price = pool.price.tao
 
@@ -170,7 +170,7 @@ def unstake_extrinsic(
             )
             return True
 
-        if safe_staking and "Custom error: 8" in message:
+        if safe_unstaking and "Custom error: 8" in message:
             logging.error(
                 ":cross_mark: [red]Failed[/red]: Price exceeded tolerance limit. Either increase price tolerance or"
                 " enable partial staking."

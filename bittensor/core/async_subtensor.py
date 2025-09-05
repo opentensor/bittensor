@@ -5432,7 +5432,7 @@ class AsyncSubtensor(SubtensorMixin):
         origin_netuid: int,
         destination_netuid: int,
         amount: Balance,
-        safe_staking: bool = False,
+        safe_swapping: bool = False,
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
         period: Optional[int] = None,
@@ -5450,7 +5450,7 @@ class AsyncSubtensor(SubtensorMixin):
             origin_netuid: The netuid from which stake is removed.
             destination_netuid: The netuid to which stake is added.
             amount: The amount to swap.
-            safe_staking: If true, enables price safety checks to protect against fluctuating prices. The swap
+            safe_swapping: If true, enables price safety checks to protect against fluctuating prices. The swap
                 will only execute if the price ratio between subnets doesn't exceed the rate tolerance.
             allow_partial_stake: If true and safe_staking is enabled, allows partial stake swaps when the full amount
                 would exceed the price tolerance. If false, the entire swap fails if it would exceed the tolerance.
@@ -5482,7 +5482,7 @@ class AsyncSubtensor(SubtensorMixin):
             origin_netuid=origin_netuid,
             destination_netuid=destination_netuid,
             amount=amount,
-            safe_staking=safe_staking,
+            safe_swapping=safe_swapping,
             allow_partial_stake=allow_partial_stake,
             rate_tolerance=rate_tolerance,
             period=period,
@@ -5633,7 +5633,7 @@ class AsyncSubtensor(SubtensorMixin):
         hotkey_ss58: str,
         amount: Balance,
         allow_partial_stake: bool = False,
-        safe_staking: bool = False,
+        safe_unstaking: bool = False,
         rate_tolerance: float = 0.005,
         period: Optional[int] = None,
         raise_error: bool = False,
@@ -5654,7 +5654,7 @@ class AsyncSubtensor(SubtensorMixin):
                 exceed the tolerance.
             rate_tolerance: The maximum allowed price change ratio when unstaking. For example,
                 0.005 = 0.5% maximum price decrease. Only used when safe_staking is True.
-            safe_staking: If true, enables price safety checks to protect against fluctuating prices. The unstake
+            safe_unstaking: If true, enables price safety checks to protect against fluctuating prices. The unstake
                 will only execute if the price change doesn't exceed the rate tolerance.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
@@ -5678,7 +5678,7 @@ class AsyncSubtensor(SubtensorMixin):
             amount=amount,
             allow_partial_stake=allow_partial_stake,
             rate_tolerance=rate_tolerance,
-            safe_staking=safe_staking,
+            safe_unstaking=safe_unstaking,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,

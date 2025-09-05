@@ -33,7 +33,7 @@
         amount: Optional[Balance] = None,
         rate_tolerance: float = 0.005,
         allow_partial_stake: bool = False,
-        safe_staking: bool = False,
+        safe_swapping: bool = False,
         period: Optional[int] = None,
         raise_error: bool = True,
         wait_for_inclusion: bool = True,
@@ -53,9 +53,9 @@
 
 5. Since SDK is not a responsible tool, try to remove all calculations inside extrinsics that do not affect the result, but are only used in logging. Actually, this should be applied not to extrinsics only but for all codebase.
 
-6. Remove `unstake_all` parameter from `unstake_extrinsic` since we have `unstake_all_extrinsic`which is calles another subtensor function.
+6. ✅ Remove `unstake_all` parameter from `unstake_extrinsic` since we have `unstake_all_extrinsic`which is calles another subtensor function.
 
-7. `unstake` and `unstake_multiple` extrinsics should have `safe_unstaking` parameters instead of `safe_staking`.
+7. ✅ `unstake` and `unstake_multiple` extrinsics should have `safe_unstaking` parameters instead of `safe_staking`.
 
 8. ✅ Remove `_do*` extrinsic calls and combine them with extrinsic logic.
 
@@ -180,6 +180,8 @@ wait_for_finalization: bool = False,
 - [x] `.toggle_user_liquidity_extrinsic` and `subtensor.toggle_user_liquidity`
 - [x] `.transfer_stake_extrinsic` and `subtensor.transfer_stake`
 - [x] `.swap_stake_extrinsic` and `subtensor.swap_stake`
+  - Changes in `swap_stake_extrinsic` and `subtensor.swap_stake`:
+    - parameter `safe_staking: bool` renamed to `safe_swapping: bool`
 - [x] `.move_stake_extrinsic` and `subtensor.move_stake`
   - Changes in `move_stake_extrinsic` and `subtensor.move_stake`:
     - parameter `origin_hotkey` renamed to `origin_hotkey_ss58`
@@ -204,6 +206,7 @@ wait_for_finalization: bool = False,
     - parameter `netuid: Optional[int]` is now required -> `netuid: int`
     - parameter `hotkey_ss58: Optional[str]` is now required -> `hotkey_ss58: str`
     - parameter `amount: Optional[Balance]` is now required -> `amount: Balance`
+    - parameter `safe_staking: bool` renamed to `safe_unstaking: bool`
     - parameter `unstake_all: bool` removed (use `unstake_all_extrinsic` for unstake all stake)
 - [x] `.unstake_all_extrinsic` and `subtensor.unstake_all`
 - [x] `.unstake_multiple_extrinsic` and `subtensor.unstake_multiple`
