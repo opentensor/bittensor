@@ -38,6 +38,7 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: '**/pyproject.toml'
+          ignore-nothing-to-cache: true
 
       - name: Cache uv and venv
         uses: actions/cache@v4
