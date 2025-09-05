@@ -27,7 +27,7 @@ jobs:
     steps:
       - id: set
         run: |
-          echo 'py_json=["3.11","3.12","3.13"]' >> "$GITHUB_OUTPUT"
+          echo 'py_json=["3.10", "3.11","3.12","3.13"]' >> "$GITHUB_OUTPUT"
 
   # prepare dependencies for all jobs ib cache
   prepare-deps:
@@ -49,6 +49,7 @@ jobs:
         uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
+          cache-dependency-glob: '**/pyproject.toml'
 
       - name: Cache uv and venv
         uses: actions/cache@v4
