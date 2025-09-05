@@ -3279,9 +3279,9 @@ class Subtensor(SubtensorMixin):
     def add_stake(
         self,
         wallet: "Wallet",
-        hotkey_ss58: Optional[str] = None,
-        netuid: Optional[int] = None,
-        amount: Optional[Balance] = None,
+        netuid: int,
+        hotkey_ss58: str,
+        amount: Balance,
         safe_staking: bool = False,
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
@@ -3297,9 +3297,8 @@ class Subtensor(SubtensorMixin):
 
         Parameters:
             wallet: The wallet to be used for staking.
-            hotkey_ss58: The SS58 address of the hotkey associated with the neuron to which you intend to delegate your
-                stake. If not specified, the wallet's hotkey will be used.
             netuid: The unique identifier of the subnet to which the neuron belongs.
+            hotkey_ss58: The `ss58` address of the hotkey account to stake to default to the wallet's hotkey.
             amount: The amount of TAO to stake.
             safe_staking: If true, enables price safety checks to protect against fluctuating prices. The stake will
                 only execute if the price change doesn't exceed the rate tolerance. Default is ``False``.
