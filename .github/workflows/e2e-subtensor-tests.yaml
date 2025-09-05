@@ -36,7 +36,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ${{ fromJson(needs.decide-versions.outputs.py_json) }}
+        python-version: ${{ fromJson(needs.supported-versions.outputs.py_json) }}
 
     steps:
       - uses: actions/checkout@v4
@@ -66,7 +66,6 @@ jobs:
 
   # Looking for e2e tests
   find-tests:
-    needs: prepare-deps
     runs-on: ubuntu-latest
     if: ${{ github.event.pull_request.draft == false }}
     outputs:
@@ -203,5 +202,5 @@ jobs:
     with:
       nodeid: ${{ matrix.nodeid }}
       image-name: ${{ needs.pull-docker-image.outputs.image-name }}
-      python-versions: ${{ needs.decide-versions.outputs.py_json }}
+      python-versions: ${{ needs.supported-versions.outputs.py_json }}
     secrets: inherit
