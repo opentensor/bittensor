@@ -20,7 +20,7 @@ on:
 # job to run tests in parallel
 jobs:
   # keep python version in one place
-  decide-versions:
+  supported-versions:
     runs-on: ubuntu-latest
     outputs:
       py_json: ${{ steps.set.outputs.py_json }}
@@ -31,7 +31,7 @@ jobs:
 
   # prepare dependencies for all jobs ib cache
   prepare-deps:
-    needs: decide-versions
+    needs: supported-versions
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -191,7 +191,7 @@ jobs:
   e2e-test:
     name: ${{ matrix.label }}
     needs:
-      - decide-versions
+      - supported-versions
       - find-tests
       - pull-docker-image
     strategy:
