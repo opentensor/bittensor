@@ -50,6 +50,7 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: '**/pyproject.toml'
+          ignore-nothing-to-cache: true
 
       - name: Cache uv and venv
         uses: actions/cache@v4
@@ -84,6 +85,7 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: '**/pyproject.toml'
+          ignore-nothing-to-cache: true
 
       - name: Cache uv and venv
         uses: actions/cache@v4
@@ -196,7 +198,7 @@ jobs:
       - pull-docker-image
     strategy:
       fail-fast: false
-      max-parallel: 32
+      max-parallel: 24
       matrix:
         include: ${{ fromJson(needs.find-tests.outputs.test-files) }}
     uses: ./.github/workflows/_run-e2e-single.yaml
