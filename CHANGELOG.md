@@ -1,5 +1,17 @@
 # Changelog
 
+## 9.10.1 /2025-09-05
+
+## What's Changed
+* Async Get_balances at a specific block returns current block by @basfroman in https://github.com/opentensor/bittensor/pull/3043
+* Fix bug if `block==0` by @basfroman in https://github.com/opentensor/bittensor/pull/3044
+* docs: Update Bittensor documentation link by @Galoretka in https://github.com/opentensor/bittensor/pull/3040
+
+## New Contributors
+* @Galoretka made their first contribution in https://github.com/opentensor/bittensor/pull/3040
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.10.0...v9.10.1
+
 ## 9.10.0 /2025-08-28
 
 ## What's Changed
