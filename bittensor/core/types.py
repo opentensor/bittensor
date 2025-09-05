@@ -1,6 +1,9 @@
 import argparse
 from abc import ABC
-from typing import TypedDict, Optional, Union
+from dataclasses import dataclass
+from typing import Any, TypedDict, Optional, Union
+
+from scalecodec.types import GenericExtrinsic
 
 import numpy as np
 from numpy.typing import NDArray
@@ -8,8 +11,7 @@ from numpy.typing import NDArray
 from bittensor.core import settings
 from bittensor.core.chain_data import NeuronInfo, NeuronInfoLite
 from bittensor.core.config import Config
-from bittensor.utils import determine_chain_endpoint_and_network
-from bittensor.utils import networking, Certificate
+from bittensor.utils import determine_chain_endpoint_and_network, networking, Certificate
 from bittensor.utils.btlogging import logging
 
 # Type annotations for UIDs and weights.
@@ -270,3 +272,67 @@ class PrometheusServeCallParams(TypedDict):
 class ParamWithTypes(TypedDict):
     name: str  # Name of the parameter.
     type: str  # ScaleType string of the parameter.
+
+
+@dataclass
+class ExtrinsicResponse:
+    """
+    A standardized response container for handling the extrinsic results submissions and related operations in the SDK.
+
+    This class is designed to give developers a consistent way to represent the outcome of an extrinsic call — whether
+    it succeeded or failed — along with useful metadata for debugging, logging, or higher-level business logic.
+
+    Attributes:
+        success: Indicates if the extrinsic execution was successful.
+        message: A status or informational message returned from the execution (e.g., "Successfully registered subnet").
+        error: Captures the underlying exception if the extrinsic failed, otherwise `None`.
+        data: Arbitrary data returned from the extrinsic, such as decoded events, or extra context.
+        extrinsic_function: The name of the SDK extrinsic function that was executed (e.g. "register_subnet_extrinsic").
+        extrinsic: The raw extrinsic object used in the call, if available.
+
+    Example:
+        import bittensor as bt
+
+        subtensor = bt.SubtensorApi("local")
+        wallet = bt.Wallet("alice")
+
+        response = subtensor.subnets.register_subnet(alice_wallet)
+        print(response)
+
+        ExtrinsicResponse:
+            success: True
+            message: Successfully registered subnet
+            error: None
+            extrinsic_function: register_subnet_extrinsic
+            extrinsic: {'account_id': '0xd43593c715fdd31c...
+
+        success, message = response
+        print(success, message)
+
+        True Successfully registered subnet
+    """
+
+    success: bool = True
+    message: str = None
+    error: Optional[Exception] = None
+    data: Optional[Any] = None
+    extrinsic_function: Optional[str] = None
+    extrinsic: Optional[GenericExtrinsic] = None
+
+    def __iter__(self):
+        yield self.success
+        yield self.message
+
+    def __str__(self):
+        return str(
+            f"ExtrinsicResponse:"
+            f"\n\tsuccess: {self.success}"
+            f"\n\tmessage: {self.message}"
+            f"\n\terror: {self.error}"
+            f"\n\textrinsic_function: {self.extrinsic_function}"
+            f"\n\textrinsic: {self.extrinsic}"
+            f"\n\tdata: {self.data}"
+        )
+
+    def __repr__(self):
+        return repr((self.success, self.message))
