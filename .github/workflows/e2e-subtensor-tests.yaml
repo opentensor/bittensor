@@ -18,19 +18,17 @@ on:
         default: ""
 
 env:
-  CARGO_TERM_COLOR: always
-  VERBOSE: ${{ github.event.inputs.verbose }}
-  PY_VERSION: '["3.11","3.12","3.13"]'
+  PY_VERSIONS: '["3.11","3.12","3.13"]'
 
 # job to run tests in parallel
 jobs:
-
+  # prepare dependencies for all jobs ib cache
   prepare-deps:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: ${{ fromJson(env.PY_VERSION) }}
+        python-version: ${{ fromJson(env.PY_VERSIONS) }}
 
     steps:
       - uses: actions/checkout@v4
@@ -84,7 +82,7 @@ jobs:
           path: |
             ~/.cache/uv
             .venv
-          key: uv-${{ runner.os }}-py3.11-${{ hashFiles('uv.lock', 'pyproject.toml') }}
+          key: uv-${{ runner.os }}-py3.11-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
             uv-${{ runner.os }}-py3.11-
 
@@ -174,6 +172,7 @@ jobs:
         with:
           name: subtensor-localnet
           path: subtensor-localnet.tar
+          compression-level: 0
 
   # Job to run tests in parallel
   # Since GH Actions matrix has a limit of 256 jobs, we need to split the tests into multiple jobs with different
@@ -193,5 +192,5 @@ jobs:
     with:
       nodeid: ${{ matrix.nodeid }}
       image-name: ${{ needs.pull-docker-image.outputs.image-name }}
-      python-versions: env.PY_VERSION)
+      python-versions: ${{ env.PY_VERSIONS }}
     secrets: inherit
