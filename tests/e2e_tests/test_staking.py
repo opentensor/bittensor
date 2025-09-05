@@ -428,7 +428,7 @@ def test_batch_operations(subtensor, alice_wallet, bob_wallet):
     alice_balance = balances[alice_wallet.coldkey.ss58_address]
 
     success = subtensor.staking.add_stake_multiple(
-        alice_wallet,
+        wallet=alice_wallet,
         hotkey_ss58s=[bob_wallet.hotkey.ss58_address for _ in netuids],
         netuids=netuids,
         amounts=[Balance.from_tao(10_000) for _ in netuids],
@@ -438,8 +438,8 @@ def test_batch_operations(subtensor, alice_wallet, bob_wallet):
 
     stakes = [
         subtensor.staking.get_stake(
-            alice_wallet.coldkey.ss58_address,
-            bob_wallet.hotkey.ss58_address,
+            coldkey_ss58=alice_wallet.coldkey.ss58_address,
+            hotkey_ss58=bob_wallet.hotkey.ss58_address,
             netuid=netuid,
         )
         for netuid in netuids

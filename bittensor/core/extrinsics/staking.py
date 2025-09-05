@@ -188,23 +188,22 @@ def add_stake_multiple_extrinsic(
     wallet: "Wallet",
     hotkey_ss58s: list[str],
     netuids: list[int],
-    old_balance: Optional[Balance] = None,
-    amounts: Optional[list[Balance]] = None,
+    amounts: list[Balance],
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
 ) -> bool:
     """
-    Adds stake to each ``hotkey_ss58`` in the list, using each amount, from a common coldkey.
+    Adds stake to each ``hotkey_ss58`` in the list, using each amount, from a common coldkey on subnet with
+    corresponding netuid.
 
     Parameters:
         subtensor: Subtensor instance with the connection to the chain.
         wallet: Bittensor wallet object for the coldkey.
-        old_balance: The balance of the wallet prior to staking.
-        hotkey_ss58s: List of hotkeys to stake to.
         netuids: List of netuids to stake to.
-        amounts: List of amounts to stake. If `None`, stake all to the first hotkey.
+        hotkey_ss58s: List of hotkeys to stake to.
+        amounts: List of corresponding TAO amounts to bet for each netuid and hotkey.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
@@ -215,36 +214,36 @@ def add_stake_multiple_extrinsic(
     Returns:
         bool: True if the subnet registration was successful, False otherwise.
     """
-    if not isinstance(hotkey_ss58s, list) or not all(
-        isinstance(hotkey_ss58, str) for hotkey_ss58 in hotkey_ss58s
-    ):
-        raise TypeError("hotkey_ss58s must be a list of str")
-
-    if len(hotkey_ss58s) == 0:
-        return True
-
-    if amounts is not None and len(amounts) != len(hotkey_ss58s):
-        raise ValueError("amounts must be a list of the same length as hotkey_ss58s")
-
-    if netuids is not None and len(netuids) != len(hotkey_ss58s):
-        raise ValueError("netuids must be a list of the same length as hotkey_ss58s")
-
-    new_amounts: Sequence[Optional[Balance]]
-
-    if amounts is None:
-        new_amounts = [None] * len(hotkey_ss58s)
-    else:
-        new_amounts = [
-            amount.set_unit(netuid) for amount, netuid in zip(amounts, netuids)
-        ]
-        if sum(amount.tao for amount in new_amounts) == 0:
-            # Staking 0 tao
-            return True
-
     # Decrypt keys,
     if not (unlock := unlock_key(wallet)).success:
         logging.error(unlock.message)
         return False
+
+    assert all(
+        [
+            isinstance(netuids, list),
+            isinstance(hotkey_ss58s, list),
+            isinstance(amounts, list),
+        ]
+    ), "The `netuids`, `hotkey_ss58s` and `amounts` must be lists."
+
+    if len(hotkey_ss58s) == 0:
+        return True
+
+    assert len(netuids) == len(hotkey_ss58s) == len(amounts), (
+        "The number of items in `netuids`, `hotkey_ss58s` and `amounts` must be the same."
+    )
+
+    if not all(isinstance(hotkey_ss58, str) for hotkey_ss58 in hotkey_ss58s):
+        raise TypeError("hotkey_ss58s must be a list of str")
+
+    new_amounts: Sequence[Optional[Balance]] = [
+        amount.set_unit(netuid) for amount, netuid in zip(amounts, netuids)
+    ]
+
+    if sum(amount.tao for amount in new_amounts) == 0:
+        # Staking 0 tao
+        return True
 
     logging.info(
         f":satellite: [magenta]Syncing with chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
@@ -262,10 +261,9 @@ def add_stake_multiple_extrinsic(
     total_staking_rao = sum(
         [amount.rao if amount is not None else 0 for amount in new_amounts]
     )
-    if old_balance is None:
-        old_balance = initial_balance = subtensor.get_balance(
-            wallet.coldkeypub.ss58_address, block=block
-        )
+    old_balance = initial_balance = subtensor.get_balance(
+        address=wallet.coldkeypub.ss58_address, block=block
+    )
     if total_staking_rao == 0:
         # Staking all to the first wallet.
         if old_balance.rao > 1000:
@@ -286,32 +284,25 @@ def add_stake_multiple_extrinsic(
     for idx, (hotkey_ss58, amount, old_stake, netuid) in enumerate(
         zip(hotkey_ss58s, new_amounts, old_stakes, netuids)
     ):
-        staking_all = False
-        if amount is None:
-            # Stake it all.
-            staking_balance = Balance.from_tao(old_balance.tao)
-            staking_all = True
-        else:
-            staking_balance = amount
-
         # Check enough to stake
-        if staking_balance > old_balance:
+        if amount > old_balance:
             logging.error(
                 f":cross_mark: [red]Not enough balance[/red]: [green]{old_balance}[/green] to stake: "
-                f"[blue]{staking_balance}[/blue] from wallet: [white]{wallet.name}[/white]"
+                f"[blue]{amount}[/blue] from wallet: [white]{wallet.name}[/white]"
             )
             continue
 
         try:
             logging.info(
-                f"Staking [blue]{staking_balance}[/blue] to [magenta]{hotkey_ss58}[/magenta] on netuid [blue]{netuid}[/blue]"
+                f"Staking [blue]{amount}[/blue] to hotkey: [magenta]{hotkey_ss58}[/magenta] on netuid: "
+                f"[blue]{netuid}[/blue]"
             )
             call = subtensor.substrate.compose_call(
                 call_module="SubtensorModule",
                 call_function="add_stake",
                 call_params={
                     "hotkey": hotkey_ss58,
-                    "amount_staked": staking_balance.rao,
+                    "amount_staked": amount.rao,
                     "netuid": netuid,
                 },
             )
@@ -327,16 +318,12 @@ def add_stake_multiple_extrinsic(
                 raise_error=raise_error,
             )
 
-            if success is True:  # If we successfully staked.
+            # If we successfully staked.
+            if success:
                 # We only wait here if we expect finalization.
-
                 if not wait_for_finalization and not wait_for_inclusion:
-                    old_balance -= staking_balance
+                    old_balance -= amount
                     successful_stakes += 1
-                    if staking_all:
-                        # If staked all, no need to continue
-                        break
-
                     continue
 
                 logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
@@ -359,10 +346,6 @@ def add_stake_multiple_extrinsic(
                 )
                 old_balance = new_balance
                 successful_stakes += 1
-                if staking_all:
-                    # If staked all, no need to continue
-                    break
-
             else:
                 logging.error(f":cross_mark: [red]Failed[/red]: {message}")
                 continue
@@ -371,7 +354,6 @@ def add_stake_multiple_extrinsic(
             logging.error(
                 f":cross_mark: [red]Add Stake Multiple error: {format_error_message(error)}[/red]"
             )
-            continue
 
     if successful_stakes != 0:
         logging.info(
