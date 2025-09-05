@@ -9,9 +9,6 @@ on:
       image-name:
         required: true
         type: string
-      python-versions:
-        required: true
-        type: string
 
 jobs:
   run-e2e:
@@ -22,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ${{ fromJson(inputs.python-versions) }}
+        python-version: ${{ fromJson(vars.SDK_SUPPORTED_PYTHON_VERSIONS) }}
 
     steps:
       - name: Check-out repository
@@ -36,9 +33,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v4
         with:
-          enable-cache: true
-          cache-dependency-glob: '**/pyproject.toml'
-          ignore-nothing-to-cache: true
+          enable-cache: false
 
       - name: Cache uv and venv
         uses: actions/cache@v4
@@ -47,8 +42,7 @@ jobs:
             ~/.cache/uv
             .venv
           key: uv-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
-          restore-keys: |
-            uv-${{ runner.os }}-py${{ matrix.python-version }}-
+          restore-keys: uv-${{ runner.os }}-py${{ matrix.python-version }}-
 
       - name: Install dependencies
         run: uv sync --extra dev --dev
