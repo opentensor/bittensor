@@ -2720,7 +2720,8 @@ def test_add_stake_success(mocker, fake_wallet, subtensor):
     """Test add_stake returns True on successful staking."""
     # Prep
     fake_hotkey_ss58 = "fake_hotkey"
-    fake_amount = 10.0
+    fake_amount = Balance.from_tao(10.0)
+    fake_netuid = 14
 
     mock_add_stake_extrinsic = mocker.patch.object(
         subtensor_module, "add_stake_extrinsic"
@@ -2729,6 +2730,7 @@ def test_add_stake_success(mocker, fake_wallet, subtensor):
     # Call
     result = subtensor.add_stake(
         wallet=fake_wallet,
+        netuid=fake_netuid,
         hotkey_ss58=fake_hotkey_ss58,
         amount=fake_amount,
         wait_for_inclusion=True,
@@ -2743,8 +2745,8 @@ def test_add_stake_success(mocker, fake_wallet, subtensor):
         subtensor=subtensor,
         wallet=fake_wallet,
         hotkey_ss58=fake_hotkey_ss58,
-        netuid=None,
-        amount=Balance.from_rao(fake_amount),
+        netuid=14,
+        amount=fake_amount.rao,
         wait_for_inclusion=True,
         wait_for_finalization=False,
         safe_staking=False,
@@ -2759,8 +2761,9 @@ def test_add_stake_success(mocker, fake_wallet, subtensor):
 def test_add_stake_with_safe_staking(mocker, fake_wallet, subtensor):
     """Test add_stake with safe staking parameters enabled."""
     # Prep
+    fake_netuid = 14
     fake_hotkey_ss58 = "fake_hotkey"
-    fake_amount = 10.0
+    fake_amount = Balance.from_tao(10.0)
     fake_rate_tolerance = 0.01  # 1% threshold
 
     mock_add_stake_extrinsic = mocker.patch.object(
@@ -2770,6 +2773,7 @@ def test_add_stake_with_safe_staking(mocker, fake_wallet, subtensor):
     # Call
     result = subtensor.add_stake(
         wallet=fake_wallet,
+        netuid=fake_netuid,
         hotkey_ss58=fake_hotkey_ss58,
         amount=fake_amount,
         wait_for_inclusion=True,
@@ -2784,8 +2788,8 @@ def test_add_stake_with_safe_staking(mocker, fake_wallet, subtensor):
         subtensor=subtensor,
         wallet=fake_wallet,
         hotkey_ss58=fake_hotkey_ss58,
-        netuid=None,
-        amount=Balance.from_rao(fake_amount),
+        netuid=14,
+        amount=fake_amount.rao,
         wait_for_inclusion=True,
         wait_for_finalization=False,
         safe_staking=True,
