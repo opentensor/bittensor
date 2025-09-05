@@ -59,6 +59,7 @@ async def test_dendrite(subtensor, templates, alice_wallet, bob_wallet):
         assert subtensor.staking.add_stake(
             wallet=alice_wallet,
             netuid=alice_subnet_netuid,
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
             amount=Balance.from_tao(1),
         )
         # set tempo to 10 block for non-fast-runtime
@@ -126,6 +127,7 @@ async def test_dendrite(subtensor, templates, alice_wallet, bob_wallet):
     assert subtensor.staking.add_stake(
         wallet=bob_wallet,
         netuid=alice_subnet_netuid,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=tao,
     )
 
@@ -204,6 +206,7 @@ async def test_dendrite_async(async_subtensor, templates, alice_wallet, bob_wall
         assert await async_subtensor.staking.add_stake(
             wallet=alice_wallet,
             netuid=alice_subnet_netuid,
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
             amount=Balance.from_tao(5),
             wait_for_inclusion=False,
             wait_for_finalization=False,
@@ -273,6 +276,7 @@ async def test_dendrite_async(async_subtensor, templates, alice_wallet, bob_wall
     assert await async_subtensor.staking.add_stake(
         wallet=bob_wallet,
         netuid=alice_subnet_netuid,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=tao,
         wait_for_inclusion=False,
         wait_for_finalization=False,
