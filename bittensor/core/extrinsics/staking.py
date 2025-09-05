@@ -15,10 +15,9 @@ if TYPE_CHECKING:
 def add_stake_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
-    old_balance: Optional[Balance] = None,
-    hotkey_ss58: Optional[str] = None,
-    netuid: Optional[int] = None,
-    amount: Optional[Balance] = None,
+    netuid: int,
+    hotkey_ss58: str,
+    amount: Balance,
     safe_staking: bool = False,
     allow_partial_stake: bool = False,
     rate_tolerance: float = 0.005,
@@ -29,16 +28,15 @@ def add_stake_extrinsic(
 ) -> bool:
     """
     Adds a stake from the specified wallet to the neuron identified by the SS58 address of its hotkey in specified subnet.
-    Staking is a fundamental process in the Bittensor network that enables neurons to participate actively and earn incentives.
+    Staking is a fundamental process in the Bittensor network that enables neurons to participate actively and earn
+    incentives.
 
-    Arguments:
+    Parameters:
         subtensor: Subtensor instance with the connection to the chain.
         wallet: Bittensor wallet object.
-        old_balance: the balance prior to the staking
-        hotkey_ss58: The `ss58` address of the hotkey account to stake to default to the wallet's hotkey. If not
-            specified, the wallet's hotkey will be used.
         netuid: The unique identifier of the subnet to which the neuron belongs.
-        amount: Amount to stake as Bittensor balance in TAO always, `None` if staking all.
+        hotkey_ss58: The `ss58` address of the hotkey account to stake to default to the wallet's hotkey.
+        amount: Amount to stake as Bittensor balance in TAO always.
         safe_staking: If True, enables price safety checks. Default is ``False``.
         allow_partial_stake: If True, allows partial unstaking if price tolerance exceeded. Default is ``False``.
         rate_tolerance: Maximum allowed price increase percentage (0.005 = 0.5%). Default is ``0.005``.
@@ -61,15 +59,10 @@ def add_stake_extrinsic(
         logging.error(unlock.message)
         return False
 
-    # Default to wallet's own hotkey if the value is not passed.
-    if hotkey_ss58 is None:
-        hotkey_ss58 = wallet.hotkey.ss58_address
-
     logging.info(
         f":satellite: [magenta]Syncing with chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
     )
-    if not old_balance:
-        old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
+    old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
     block = subtensor.get_current_block()
 
     # Get current stake and existential deposit
@@ -81,131 +74,113 @@ def add_stake_extrinsic(
     )
     existential_deposit = subtensor.get_existential_deposit(block=block)
 
-    # Convert to bittensor.Balance
-    if amount is None:
-        # Stake it all.
-        staking_balance = Balance.from_tao(old_balance.tao)
-        logging.warning(
-            f"Didn't receive any staking amount. Staking all available balance: [blue]{staking_balance}[/blue] "
-            f"from wallet: [blue]{wallet.name}[/blue]"
-        )
-    else:
-        staking_balance = amount
-
     # Leave existential balance to keep key alive.
-    if staking_balance > old_balance - existential_deposit:
+    if amount > old_balance - existential_deposit:
         # If we are staking all, we need to leave at least the existential deposit.
-        staking_balance = old_balance - existential_deposit
+        amount = old_balance - existential_deposit
 
     # Check enough to stake.
-    if staking_balance > old_balance:
+    if amount > old_balance:
         logging.error(":cross_mark: [red]Not enough stake:[/red]")
         logging.error(f"\t\tbalance:{old_balance}")
-        logging.error(f"\t\tamount: {staking_balance}")
+        logging.error(f"\t\tamount: {amount}")
         logging.error(f"\t\twallet: {wallet.name}")
         return False
 
-    try:
-        call_params = {
-            "hotkey": hotkey_ss58,
-            "netuid": netuid,
-            "amount_staked": staking_balance.rao,
-        }
+    call_params = {
+        "hotkey": hotkey_ss58,
+        "netuid": netuid,
+        "amount_staked": amount.rao,
+    }
 
-        if safe_staking:
-            pool = subtensor.subnet(netuid=netuid)
-            base_price = pool.price.tao
+    if safe_staking:
+        pool = subtensor.subnet(netuid=netuid)
+        base_price = pool.price.tao
 
-            if pool.netuid == 0:
-                price_with_tolerance = base_price
-            else:
-                price_with_tolerance = base_price * (1 + rate_tolerance)
-
-            logging.info(
-                f":satellite: [magenta]Safe Staking to:[/magenta] "
-                f"[blue]netuid: [green]{netuid}[/green], amount: [green]{staking_balance}[/green], "
-                f"tolerance percentage: [green]{rate_tolerance * 100}%[/green], "
-                f"price limit: [green]{price_with_tolerance}[/green], "
-                f"original price: [green]{base_price}[/green], "
-                f"with partial stake: [green]{allow_partial_stake}[/green] "
-                f"on [blue]{subtensor.network}[/blue][/magenta]...[/magenta]"
-            )
-
-            limit_price = Balance.from_tao(price_with_tolerance).rao
-            call_params.update(
-                {
-                    "limit_price": limit_price,
-                    "allow_partial": allow_partial_stake,
-                }
-            )
-            call_function = "add_stake_limit"
-        else:
-            logging.info(
-                f":satellite: [magenta]Staking to:[/magenta] "
-                f"[blue]netuid: [green]{netuid}[/green], amount: [green]{staking_balance}[/green] "
-                f"on [blue]{subtensor.network}[/blue][magenta]...[/magenta]"
-            )
-            call_function = "add_stake"
-
-        call = subtensor.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function=call_function,
-            call_params=call_params,
+        price_with_tolerance = (
+            base_price if pool.netuid == 0 else base_price * (1 + rate_tolerance)
         )
 
-        success, message = subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            use_nonce=True,
-            sign_with="coldkey",
-            nonce_key="coldkeypub",
-            period=period,
-            raise_error=raise_error,
+        logging.info(
+            f":satellite: [magenta]Safe Staking to:[/magenta] "
+            f"[blue]netuid: [green]{netuid}[/green], amount: [green]{amount}[/green], "
+            f"tolerance percentage: [green]{rate_tolerance * 100}%[/green], "
+            f"price limit: [green]{price_with_tolerance}[/green], "
+            f"original price: [green]{base_price}[/green], "
+            f"with partial stake: [green]{allow_partial_stake}[/green] "
+            f"on [blue]{subtensor.network}[/blue][/magenta]...[/magenta]"
         )
-        if success is True:  # If we successfully staked.
-            # We only wait here if we expect finalization.
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True
 
-            logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
+        limit_price = Balance.from_tao(price_with_tolerance).rao
+        call_params.update(
+            {
+                "limit_price": limit_price,
+                "allow_partial": allow_partial_stake,
+            }
+        )
+        call_function = "add_stake_limit"
+    else:
+        logging.info(
+            f":satellite: [magenta]Staking to:[/magenta] "
+            f"[blue]netuid: [green]{netuid}[/green], amount: [green]{amount}[/green] "
+            f"on [blue]{subtensor.network}[/blue][magenta]...[/magenta]"
+        )
+        call_function = "add_stake"
 
-            logging.info(
-                f":satellite: [magenta]Checking Balance on:[/magenta] "
-                f"[blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
-            )
-            new_block = subtensor.get_current_block()
-            new_balance = subtensor.get_balance(
-                wallet.coldkeypub.ss58_address, block=new_block
-            )
-            new_stake = subtensor.get_stake(
-                coldkey_ss58=wallet.coldkeypub.ss58_address,
-                hotkey_ss58=hotkey_ss58,
-                netuid=netuid,
-                block=new_block,
-            )
-            logging.info(
-                f"Balance: [blue]{old_balance}[/blue] :arrow_right: {new_balance}[/green]"
-            )
-            logging.info(
-                f"Stake: [blue]{old_stake}[/blue] :arrow_right: [green]{new_stake}[/green]"
-            )
+    call = subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function=call_function,
+        call_params=call_params,
+    )
+
+    success, message = subtensor.sign_and_send_extrinsic(
+        call=call,
+        wallet=wallet,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+        use_nonce=True,
+        sign_with="coldkey",
+        nonce_key="coldkeypub",
+        period=period,
+        raise_error=raise_error,
+    )
+    # If we successfully staked.
+    if success:
+        # We only wait here if we expect finalization.
+        if not wait_for_finalization and not wait_for_inclusion:
             return True
 
-        if safe_staking and "Custom error: 8" in message:
-            logging.error(
-                ":cross_mark: [red]Failed[/red]: Price exceeded tolerance limit. Either increase price tolerance or enable partial staking."
-            )
-        else:
-            logging.error(f":cross_mark: [red]Failed: {message}.[/red]")
-        return False
+        logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
 
-    except SubstrateRequestException as error:
-        logging.error(
-            f":cross_mark: [red]Add Stake Error: {format_error_message(error)}[/red]"
+        logging.info(
+            f":satellite: [magenta]Checking Balance on:[/magenta] "
+            f"[blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
         )
-        return False
+        new_block = subtensor.get_current_block()
+        new_balance = subtensor.get_balance(
+            wallet.coldkeypub.ss58_address, block=new_block
+        )
+        new_stake = subtensor.get_stake(
+            coldkey_ss58=wallet.coldkeypub.ss58_address,
+            hotkey_ss58=hotkey_ss58,
+            netuid=netuid,
+            block=new_block,
+        )
+        logging.info(
+            f"Balance: [blue]{old_balance}[/blue] :arrow_right: {new_balance}[/green]"
+        )
+        logging.info(
+            f"Stake: [blue]{old_stake}[/blue] :arrow_right: [green]{new_stake}[/green]"
+        )
+        return True
+
+    if safe_staking and "Custom error: 8" in message:
+        logging.error(
+            ":cross_mark: [red]Failed[/red]: Price exceeded tolerance limit. Either increase price tolerance or enable partial staking."
+        )
+    else:
+        logging.error(f":cross_mark: [red]Failed: {message}.[/red]")
+    return False
 
 
 def add_stake_multiple_extrinsic(

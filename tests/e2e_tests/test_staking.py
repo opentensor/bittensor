@@ -59,11 +59,9 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
 
     success = subtensor.staking.add_stake(
         wallet=alice_wallet,
-        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(1),
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
         period=16,
     )
 
@@ -239,11 +237,9 @@ async def test_single_operation_async(async_subtensor, alice_wallet, bob_wallet)
 
     success = await async_subtensor.staking.add_stake(
         wallet=alice_wallet,
-        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(1),
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
         period=16,
     )
 
@@ -725,11 +721,9 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet, eve_wallet)
     # 1. Strict params - should fail
     success = subtensor.staking.add_stake(
         wallet=alice_wallet,
-        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=stake_amount,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
         safe_staking=True,
         rate_tolerance=0.005,  # 0.5%
         allow_partial_stake=False,
@@ -749,11 +743,9 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet, eve_wallet)
     # 2. Partial allowed - should succeed partially
     success = subtensor.staking.add_stake(
         wallet=alice_wallet,
-        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=stake_amount,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
         safe_staking=True,
         rate_tolerance=0.005,  # 0.5%
         allow_partial_stake=True,
@@ -776,11 +768,9 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet, eve_wallet)
     amount = Balance.from_tao(100)
     success = subtensor.staking.add_stake(
         wallet=alice_wallet,
-        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=amount,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
         safe_staking=True,
         rate_tolerance=0.22,  # 22%
         allow_partial_stake=False,
@@ -921,11 +911,9 @@ async def test_safe_staking_scenarios_async(
     # 1. Strict params - should fail
     success = await async_subtensor.staking.add_stake(
         wallet=alice_wallet,
-        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=stake_amount,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
         safe_staking=True,
         rate_tolerance=0.005,  # 0.5%
         allow_partial_stake=False,
@@ -945,11 +933,9 @@ async def test_safe_staking_scenarios_async(
     # 2. Partial allowed - should succeed partially
     success = await async_subtensor.staking.add_stake(
         wallet=alice_wallet,
-        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=stake_amount,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
         safe_staking=True,
         rate_tolerance=0.005,  # 0.5%
         allow_partial_stake=True,
@@ -972,11 +958,9 @@ async def test_safe_staking_scenarios_async(
     amount = Balance.from_tao(100)
     success = await async_subtensor.staking.add_stake(
         wallet=alice_wallet,
-        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=amount,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
         safe_staking=True,
         rate_tolerance=0.22,  # 22%
         allow_partial_stake=False,
@@ -1093,11 +1077,9 @@ def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
     initial_stake_amount = Balance.from_tao(10_000)
     success = subtensor.staking.add_stake(
         wallet=alice_wallet,
-        hotkey_ss58=alice_wallet.hotkey.ss58_address,
         netuid=origin_netuid,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
         amount=initial_stake_amount,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     assert success is True
 
@@ -1209,11 +1191,9 @@ async def test_safe_swap_stake_scenarios_async(
     initial_stake_amount = Balance.from_tao(10_000)
     success = await async_subtensor.staking.add_stake(
         wallet=alice_wallet,
-        hotkey_ss58=alice_wallet.hotkey.ss58_address,
         netuid=origin_netuid,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
         amount=initial_stake_amount,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     assert success is True
 
@@ -1301,11 +1281,9 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
 
     assert subtensor.staking.add_stake(
         wallet=alice_wallet,
-        hotkey_ss58=alice_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(1_000),
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     stakes = subtensor.staking.get_stake_for_coldkey(alice_wallet.coldkey.ss58_address)
@@ -1399,11 +1377,9 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
 
     assert subtensor.staking.add_stake(
         wallet=dave_wallet,
-        hotkey_ss58=dave_wallet.hotkey.ss58_address,
         netuid=bob_subnet_netuid,
+        hotkey_ss58=dave_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(1000),
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
         allow_partial_stake=True,
     )
 
@@ -1464,11 +1440,9 @@ async def test_move_stake_async(async_subtensor, alice_wallet, bob_wallet, dave_
 
     assert await async_subtensor.staking.add_stake(
         wallet=alice_wallet,
-        hotkey_ss58=alice_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(1_000),
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     stakes = await async_subtensor.staking.get_stake_for_coldkey(
@@ -1571,8 +1545,6 @@ async def test_move_stake_async(async_subtensor, alice_wallet, bob_wallet, dave_
         hotkey_ss58=dave_wallet.hotkey.ss58_address,
         netuid=bob_subnet_netuid,
         amount=Balance.from_tao(1000),
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
         allow_partial_stake=True,
     )
 
@@ -1635,12 +1607,10 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
     )
 
     assert subtensor.staking.add_stake(
-        alice_wallet,
-        alice_wallet.hotkey.ss58_address,
+        wallet=alice_wallet,
         netuid=alice_subnet_netuid,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(1_000),
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     alice_stakes = subtensor.staking.get_stake_for_coldkey(
@@ -1766,12 +1736,10 @@ async def test_transfer_stake_async(
     )
 
     assert await async_subtensor.staking.add_stake(
-        alice_wallet,
-        alice_wallet.hotkey.ss58_address,
+        wallet=alice_wallet,
         netuid=alice_subnet_netuid,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(1_000),
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     alice_stakes = await async_subtensor.staking.get_stake_for_coldkey(
@@ -1941,8 +1909,6 @@ def test_unstaking_with_limit(
         hotkey_ss58=dave_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid_2,
         amount=Balance.from_tao(10000),
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
         period=16,
     ), f"Cant add stake to dave in SN {alice_subnet_netuid_2}"
     assert subtensor.staking.add_stake(
@@ -1950,8 +1916,6 @@ def test_unstaking_with_limit(
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid_3,
         amount=Balance.from_tao(15000),
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
         period=16,
     ), f"Cant add stake to dave in SN {alice_subnet_netuid_3}"
 
@@ -2061,8 +2025,6 @@ async def test_unstaking_with_limit_async(
         netuid=alice_subnet_netuid_2,
         hotkey_ss58=dave_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(10000),
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
         period=16,
     ), f"Cant add stake to dave in SN {alice_subnet_netuid_2}"
     assert await async_subtensor.staking.add_stake(
@@ -2070,8 +2032,6 @@ async def test_unstaking_with_limit_async(
         netuid=alice_subnet_netuid_3,
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(15000),
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
         period=16,
     ), f"Cant add stake to dave in SN {alice_subnet_netuid_3}"
 
