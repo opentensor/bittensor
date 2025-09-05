@@ -308,7 +308,7 @@ async def move_stake_extrinsic(
     origin_netuid: int,
     destination_hotkey_ss58: str,
     destination_netuid: int,
-    amount: Balance,
+    amount: Optional[Balance] = None,
     move_all_stake: bool = False,
     period: Optional[int] = None,
     raise_error: bool = False,
