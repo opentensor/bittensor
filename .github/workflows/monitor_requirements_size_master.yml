@@ -19,9 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ${{ fromJson(vars.SDK_SUPPORTED_PYTHON_VERSIONS) }}
     outputs:
-      py39: ${{ steps.set-output.outputs.py39 }}
       py310: ${{ steps.set-output.outputs.py310 }}
       py311: ${{ steps.set-output.outputs.py311 }}
       py312: ${{ steps.set-output.outputs.py312 }}
