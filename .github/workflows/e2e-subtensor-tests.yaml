@@ -17,18 +17,26 @@ on:
         required: false
         default: ""
 
-env:
-  PY_VERSIONS: '["3.11","3.12","3.13"]'
-
 # job to run tests in parallel
 jobs:
+  # keep python version in one place
+  decide-versions:
+    runs-on: ubuntu-latest
+    outputs:
+      py_json: ${{ steps.set.outputs.py_json }}
+    steps:
+      - id: set
+        run: |
+          echo 'py_json=["3.11","3.12","3.13"]' >> "$GITHUB_OUTPUT"
+
   # prepare dependencies for all jobs ib cache
   prepare-deps:
+    needs: decide-versions
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: ${{ fromJson(env.PY_VERSIONS) }}
+        python-version: ${{ fromJson(needs.decide-versions.outputs.py_json) }}
 
     steps:
       - uses: actions/checkout@v4
@@ -181,6 +189,7 @@ jobs:
   e2e-test:
     name: ${{ matrix.label }}
     needs:
+      - decide-versions
       - find-tests
       - pull-docker-image
     strategy:
@@ -192,5 +201,5 @@ jobs:
     with:
       nodeid: ${{ matrix.nodeid }}
       image-name: ${{ needs.pull-docker-image.outputs.image-name }}
-      python-versions: ${{ env.PY_VERSIONS }}
+      python-versions: ${{ needs.decide-versions.outputs.py_json }}
     secrets: inherit
