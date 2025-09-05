@@ -119,7 +119,6 @@ async def test_dendrite(subtensor, templates, alice_wallet, bob_wallet):
 
     # Refresh metagraph
     metagraph = subtensor.metagraphs.metagraph(alice_subnet_netuid)
-    metagraph.sync()
     bob_neuron = metagraph.neurons[1]
 
     # Assert alpha is close to stake equivalent
@@ -193,7 +192,7 @@ async def test_dendrite_async(async_subtensor, templates, alice_wallet, bob_wall
         assert await async_subtensor.staking.add_stake(
             wallet=alice_wallet,
             netuid=alice_subnet_netuid,
-            amount=Balance.from_tao(1),
+            amount=Balance.from_tao(5),
             wait_for_inclusion=False,
             wait_for_finalization=False,
         )
