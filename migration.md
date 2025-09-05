@@ -203,6 +203,9 @@ wait_for_finalization: bool = False,
       - parameter `hotkey_ss58` required (no Optional anymore)
       - parameter `amount` required (no Optional anymore)
 - [x] `.add_stake_multiple_extrinsic` and `subtensor.add_stake_multiple`
+    - Changes in `.add_stake_multiple_extrinsic` and `subtensor.add_stake_multiple`:
+      - parameter `old_balance` removed from async version
+      - parameter `amounts` required (no Optional anymore)
 - [x] `.start_call_extrinsic` and `subtensor.start_call`
 - [x] `.increase_take_extrinsic`, `.decrease_take_extrinsic` and `subtenor.set_reveal_commitment`
 - [x] `.transfer_extrinsic` and `subtensor.transfer`
