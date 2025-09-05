@@ -3427,7 +3427,7 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         hotkey_ss58s: list[str],
         netuids: UIDs,
-        amounts: Optional[list[Balance]] = None,
+        amounts: list[Balance],
         period: Optional[int] = None,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -3437,11 +3437,11 @@ class Subtensor(SubtensorMixin):
         Adds stakes to multiple neurons identified by their hotkey SS58 addresses.
         This bulk operation allows for efficient staking across different neurons from a single wallet.
 
-        Arguments:
+        Parameters:
             wallet: The wallet used for staking.
             hotkey_ss58s: List of ``SS58`` addresses of hotkeys to stake to.
-            netuids: list of subnet UIDs.
-            amounts: Corresponding amounts of TAO to stake for each hotkey.
+            netuids: List of subnet UIDs.
+            amounts: List of corresponding TAO amounts to bet for each netuid and hotkey.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -3458,8 +3458,8 @@ class Subtensor(SubtensorMixin):
         return add_stake_multiple_extrinsic(
             subtensor=self,
             wallet=wallet,
-            hotkey_ss58s=hotkey_ss58s,
             netuids=netuids,
+            hotkey_ss58s=hotkey_ss58s,
             amounts=amounts,
             period=period,
             raise_error=raise_error,
