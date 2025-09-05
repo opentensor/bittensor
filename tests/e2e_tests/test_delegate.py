@@ -452,11 +452,9 @@ def test_delegates(subtensor, alice_wallet, bob_wallet):
 
     subtensor.staking.add_stake(
         wallet=bob_wallet,
-        hotkey_ss58=alice_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(10_000),
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     # let chain update validator_permits
@@ -619,11 +617,9 @@ async def test_delegates_async(async_subtensor, alice_wallet, bob_wallet):
 
     await async_subtensor.staking.add_stake(
         wallet=bob_wallet,
-        hotkey_ss58=alice_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(10_000),
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
 
     # let chain update validator_permits
@@ -686,11 +682,9 @@ def test_nominator_min_required_stake(subtensor, alice_wallet, bob_wallet, dave_
 
     success = subtensor.staking.add_stake(
         wallet=dave_wallet,
-        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(1000),
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     assert success is True
 
@@ -771,11 +765,9 @@ async def test_nominator_min_required_stake_async(
 
     success = await async_subtensor.staking.add_stake(
         wallet=dave_wallet,
-        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(1000),
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     assert success is True
 

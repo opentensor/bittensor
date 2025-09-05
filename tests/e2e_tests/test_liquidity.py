@@ -76,13 +76,11 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
     assert message == "", "❌ Cannot enable user liquidity."
 
     # Add steak to call add_liquidity
-    assert subtensor.extrinsics.add_stake(
+    assert subtensor.staking.add_stake(
         wallet=alice_wallet,
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
         amount=Balance.from_tao(1),
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     ), "❌ Cannot cannot add stake to Alice from Alice."
 
     # wait for the next block to give the chain time to update the stake
@@ -193,13 +191,11 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
     )
 
     # Add stake from Bob to Alice
-    assert subtensor.extrinsics.add_stake(
+    assert subtensor.staking.add_stake(
         wallet=bob_wallet,
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
         amount=Balance.from_tao(1000),
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     ), "❌ Cannot add stake from Bob to Alice."
 
     # wait for the next block to give the chain time to update the stake
@@ -371,13 +367,11 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
     assert message == "", "❌ Cannot enable user liquidity."
 
     # Add steak to call add_liquidity
-    assert await async_subtensor.extrinsics.add_stake(
+    assert await async_subtensor.staking.add_stake(
         wallet=alice_wallet,
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
         amount=Balance.from_tao(1),
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     ), "❌ Cannot cannot add stake to Alice from Alice."
 
     # wait for the next block to give the chain time to update the stake
@@ -490,13 +484,11 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
     )
 
     # Add stake from Bob to Alice
-    assert await async_subtensor.extrinsics.add_stake(
+    assert await async_subtensor.staking.add_stake(
         wallet=bob_wallet,
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
         amount=Balance.from_tao(1000),
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     ), "❌ Cannot add stake from Bob to Alice."
 
     # wait for the next block to give the chain time to update the stake
