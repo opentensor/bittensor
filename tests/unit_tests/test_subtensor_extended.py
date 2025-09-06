@@ -177,7 +177,7 @@ def test_burned_register(mock_substrate, subtensor, fake_wallet, mocker):
     )
     mocker.patch.object(subtensor, "get_balance")
 
-    success = subtensor.burned_register(
+    success, _ = subtensor.burned_register(
         fake_wallet,
         netuid=1,
     )
@@ -216,7 +216,7 @@ def test_burned_register_on_root(mock_substrate, subtensor, fake_wallet, mocker)
         return_value=False,
     )
 
-    success = subtensor.burned_register(
+    success, _ = subtensor.burned_register(
         fake_wallet,
         netuid=0,
     )
@@ -1208,7 +1208,7 @@ def test_register_subnet(mock_substrate, subtensor, fake_wallet, mocker, success
 
     result = subtensor.register_subnet(fake_wallet)
 
-    assert result is success
+    assert result.success is success
 
     assert_submit_signed_extrinsic(
         substrate=mock_substrate,
@@ -1228,7 +1228,7 @@ def test_register_subnet_insufficient_funds(
     mocker.patch.object(subtensor, "get_balance", return_value=Balance(0))
     mocker.patch.object(subtensor, "get_subnet_burn_cost", return_value=Balance(10))
 
-    success = subtensor.register_subnet(fake_wallet)
+    success, _ = subtensor.register_subnet(fake_wallet)
 
     assert success is False
 
@@ -1244,7 +1244,7 @@ def test_root_register(mock_substrate, subtensor, fake_wallet, mocker):
         subtensor, "is_hotkey_registered_on_subnet", autospec=True, return_value=False
     )
 
-    success = subtensor.root_register(fake_wallet)
+    success, _ = subtensor.root_register(fake_wallet)
 
     assert success is True
 
@@ -1281,7 +1281,7 @@ def test_root_register_is_already_registered(
         subtensor, "is_hotkey_registered_on_subnet", autospec=True, return_value=True
     )
 
-    success = subtensor.root_register(fake_wallet)
+    success, _ = subtensor.root_register(fake_wallet)
 
     assert success is True
 
