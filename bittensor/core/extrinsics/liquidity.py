@@ -1,6 +1,7 @@
 from typing import Optional, TYPE_CHECKING
 
-from bittensor.utils import unlock_key
+from bittensor.core.types import ExtrinsicResponse
+from bittensor.utils import unlock_key, get_function_name
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.liquidity import price_to_tick
@@ -22,7 +23,7 @@ def add_liquidity_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """
     Adds liquidity to the specified price range.
 
@@ -42,16 +43,16 @@ def add_liquidity_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        Tuple[bool, str]:
-            - True and a success message if the extrinsic is successfully submitted or processed.
-            - False and an error message if the submission fails or the wallet cannot be unlocked.
+        ExtrinsicResponse: The result object of the extrinsic execution.
 
     Note: Adding is allowed even when user liquidity is enabled in specified subnet. Call
     `toggle_user_liquidity_extrinsic` to enable/disable user liquidity.
     """
     if not (unlock := unlock_key(wallet)).success:
         logging.error(unlock.message)
-        return False, unlock.message
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
+        )
 
     tick_low = price_to_tick(price_low.tao)
     tick_high = price_to_tick(price_high.tao)
@@ -76,6 +77,7 @@ def add_liquidity_extrinsic(
         use_nonce=True,
         period=period,
         raise_error=raise_error,
+        calling_function=get_function_name(),
     )
 
 
@@ -90,7 +92,7 @@ def modify_liquidity_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """Modifies liquidity in liquidity position by adding or removing liquidity from it.
 
     Parameters:
@@ -108,16 +110,16 @@ def modify_liquidity_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        Tuple[bool, str]:
-            - True and a success message if the extrinsic is successfully submitted or processed.
-            - False and an error message if the submission fails or the wallet cannot be unlocked.
+        ExtrinsicResponse: The result object of the extrinsic execution.
 
     Note: Modifying is allowed even when user liquidity is enabled in specified subnet. Call
     `toggle_user_liquidity_extrinsic` to enable/disable user liquidity.
     """
     if not (unlock := unlock_key(wallet)).success:
         logging.error(unlock.message)
-        return False, unlock.message
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
+        )
 
     call = subtensor.substrate.compose_call(
         call_module="Swap",
@@ -138,6 +140,7 @@ def modify_liquidity_extrinsic(
         use_nonce=True,
         period=period,
         raise_error=raise_error,
+        calling_function=get_function_name(),
     )
 
 
@@ -151,7 +154,7 @@ def remove_liquidity_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """Remove liquidity and credit balances back to wallet's hotkey stake.
 
     Parameters:
@@ -168,16 +171,16 @@ def remove_liquidity_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        Tuple[bool, str]:
-            - True and a success message if the extrinsic is successfully submitted or processed.
-            - False and an error message if the submission fails or the wallet cannot be unlocked.
+        ExtrinsicResponse: The result object of the extrinsic execution.
 
     Note: Adding is allowed even when user liquidity is enabled in specified subnet. Call
     `toggle_user_liquidity_extrinsic` to enable/disable user liquidity.
     """
     if not (unlock := unlock_key(wallet)).success:
         logging.error(unlock.message)
-        return False, unlock.message
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
+        )
 
     call = subtensor.substrate.compose_call(
         call_module="Swap",
@@ -197,6 +200,7 @@ def remove_liquidity_extrinsic(
         use_nonce=True,
         period=period,
         raise_error=raise_error,
+        calling_function=get_function_name(),
     )
 
 
@@ -209,7 +213,7 @@ def toggle_user_liquidity_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """Allow to toggle user liquidity for specified subnet.
 
     Parameters:
@@ -225,13 +229,13 @@ def toggle_user_liquidity_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        Tuple[bool, str]:
-            - True and a success message if the extrinsic is successfully submitted or processed.
-            - False and an error message if the submission fails or the wallet cannot be unlocked.
+        ExtrinsicResponse: The result object of the extrinsic execution.
     """
     if not (unlock := unlock_key(wallet)).success:
         logging.error(unlock.message)
-        return False, unlock.message
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
+        )
 
     call = subtensor.substrate.compose_call(
         call_module="Swap",
@@ -246,4 +250,5 @@ def toggle_user_liquidity_extrinsic(
         wait_for_finalization=wait_for_finalization,
         period=period,
         raise_error=raise_error,
+        calling_function=get_function_name(),
     )
