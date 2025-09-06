@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Optional
 
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils import float_to_u64, unlock_key, get_function_name
+from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -54,6 +55,7 @@ async def set_children_extrinsic(
     unlock = unlock_key(wallet, raise_error=raise_error)
 
     if not unlock.success:
+        logging.error(unlock.message)
         return ExtrinsicResponse(
             False, unlock.message, extrinsic_function=get_function_name()
         )
@@ -122,6 +124,7 @@ async def root_set_pending_childkey_cooldown_extrinsic(
         ExtrinsicResponse: The result object of the extrinsic execution.
     """
     if not (unlock := unlock_key(wallet)).success:
+        logging.error(unlock.message)
         return ExtrinsicResponse(
             False, unlock.message, extrinsic_function=get_function_name()
         )
