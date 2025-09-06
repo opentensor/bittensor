@@ -5,6 +5,7 @@ import pytest
 from bittensor.core.extrinsics.weights import (
     set_weights_extrinsic,
 )
+from bittensor.core.types import ExtrinsicResponse
 from bittensor.core.subtensor import Subtensor
 
 
@@ -74,7 +75,7 @@ def test_set_weights_extrinsic(
         patch.object(
             mock_subtensor,
             "sign_and_send_extrinsic",
-            return_value=(expected_success, expected_message),
+            return_value=ExtrinsicResponse(expected_success, expected_message),
         ),
     ):
         result, message = set_weights_extrinsic(
