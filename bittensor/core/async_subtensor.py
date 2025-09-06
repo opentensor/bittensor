@@ -4503,7 +4503,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = True,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
-    ) -> tuple[bool, str]:
+    ) -> ExtrinsicResponse:
         """
         Commits a hash of the subnet validator's weight vector to the Bittensor blockchain using the provided wallet.
         This action serves as a commitment or snapshot of the validator's current weight distribution.
@@ -4533,8 +4533,9 @@ class AsyncSubtensor(SubtensorMixin):
             See also: <https://docs.learnbittensor.org/glossary#commit-reveal>,
         """
         retries = 0
-        success = False
-        message = "No attempt made. Perhaps it is too soon to commit weights!"
+        response = ExtrinsicResponse(
+            False, "No attempt made. Perhaps it is too soon to commit weights!"
+        )
 
         logging.info(
             f"Committing weights with params: "
@@ -4552,9 +4553,9 @@ class AsyncSubtensor(SubtensorMixin):
             version_key=version_key,
         )
 
-        while retries < max_retries and success is False:
+        while retries < max_retries and response.success is False:
             try:
-                success, message = await commit_weights_extrinsic(
+                response = await commit_weights_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
@@ -4564,13 +4565,12 @@ class AsyncSubtensor(SubtensorMixin):
                     period=period,
                     raise_error=raise_error,
                 )
-                if success:
-                    break
-            except Exception as e:
-                logging.error(f"Error committing weights: {e}")
-                retries += 1
+            except Exception as error:
+                response.error = error if not response.error else response.error
+                logging.error(f"Error committing weights: {error}")
+            retries += 1
 
-        return success, message
+        return response
 
     async def modify_liquidity(
         self,
@@ -4851,7 +4851,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = True,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
-    ) -> tuple[bool, str]:
+    ) -> ExtrinsicResponse:
         """
         Reveals the weight vector for a specific subnet on the Bittensor blockchain using the provided wallet.
         This action serves as a revelation of the subnet validator's previously committed weight distribution as part
@@ -4880,12 +4880,13 @@ class AsyncSubtensor(SubtensorMixin):
         See also: <https://docs.learnbittensor.org/glossary#commit-reveal>,
         """
         retries = 0
-        success = False
-        message = "No attempt made. Perhaps it is too soon to reveal weights!"
+        response = ExtrinsicResponse(
+            False, "No attempt made. Perhaps it is too soon to reveal weights!"
+        )
 
-        while retries < max_retries and success is False:
+        while retries < max_retries and response.success is False:
             try:
-                success, message = await reveal_weights_extrinsic(
+                response = await reveal_weights_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
@@ -4898,13 +4899,12 @@ class AsyncSubtensor(SubtensorMixin):
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                 )
-                if success:
-                    break
-            except Exception as e:
-                logging.error(f"Error revealing weights: {e}")
-                retries += 1
+            except Exception as error:
+                response.error = error if not response.error else response.error
+                logging.error(f"Error revealing weights: {error}")
+            retries += 1
 
-        return success, message
+        return response
 
     async def root_set_pending_childkey_cooldown(
         self,
@@ -5248,9 +5248,10 @@ class AsyncSubtensor(SubtensorMixin):
                         wait_for_inclusion=wait_for_inclusion,
                         wait_for_finalization=wait_for_finalization,
                     )
-                except Exception as e:
-                    logging.error(f"Error setting weights: {e}")
-                    retries += 1
+                except Exception as error:
+                    response.error = error if not response.error else response.error
+                    logging.error(f"Error setting weights: {error}")
+                retries += 1
 
             return response
         else:
@@ -5278,9 +5279,10 @@ class AsyncSubtensor(SubtensorMixin):
                         wait_for_inclusion=wait_for_inclusion,
                         wait_for_finalization=wait_for_finalization,
                     )
-                except Exception as e:
-                    logging.error(f"Error setting weights: {e}")
-                    retries += 1
+                except Exception as error:
+                    response.error = error if not response.error else response.error
+                    logging.error(f"Error setting weights: {error}")
+                retries += 1
 
             return response
 

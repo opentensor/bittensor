@@ -6,7 +6,8 @@ import numpy as np
 from numpy.typing import NDArray
 
 from bittensor.core.settings import version_as_int
-from bittensor.utils import get_function_name
+from bittensor.core.types import ExtrinsicResponse
+from bittensor.utils import get_function_name, unlock_key
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import (
     convert_and_normalize_weights_and_uids,
@@ -28,7 +29,7 @@ def commit_weights_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """
     Commits a hash of the neuron's weights to the Bittensor blockchain using the provided wallet.
     This function is a wrapper around the `do_commit_weights` method.
@@ -46,13 +47,15 @@ def commit_weights_extrinsic(
         wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
 
     Returns:
-        tuple[bool, str]:
-            `True` if the weight commitment is successful, `False` otherwise.
-            `msg` is a string value describing the success or potential error.
+        ExtrinsicResponse: The result object of the extrinsic execution.
 
     This function provides a user-friendly interface for committing weights to the Bittensor blockchain, ensuring proper
     error handling and user interaction when required.
     """
+    if not (unlock := unlock_key(wallet, unlock_type="hotkey")).success:
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
+        )
 
     call = subtensor.substrate.compose_call(
         call_module="SubtensorModule",
@@ -62,7 +65,7 @@ def commit_weights_extrinsic(
             "commit_hash": commit_hash,
         },
     )
-    success, message = subtensor.sign_and_send_extrinsic(
+    response = subtensor.sign_and_send_extrinsic(
         call=call,
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
@@ -72,13 +75,14 @@ def commit_weights_extrinsic(
         sign_with="hotkey",
         nonce_key="hotkey",
         raise_error=raise_error,
+        calling_function=get_function_name(),
     )
 
-    if success:
-        logging.info(message)
+    if response.success:
+        logging.info(response.message)
     else:
-        logging.error(f"{get_function_name()}: {message}")
-    return success, message
+        logging.error(f"{get_function_name()}: {response.message}")
+    return response
 
 
 def reveal_weights_extrinsic(
@@ -93,7 +97,7 @@ def reveal_weights_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """
     Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
     This function is a wrapper around the `_do_reveal_weights` method.
@@ -114,13 +118,15 @@ def reveal_weights_extrinsic(
         wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
 
     Returns:
-        tuple[bool, str]:
-            `True` if the weight commitment is successful, `False` otherwise.
-            `msg` is a string value describing the success or potential error.
+        ExtrinsicResponse: The result object of the extrinsic execution.
 
     This function provides a user-friendly interface for revealing weights on the Bittensor blockchain, ensuring proper
         error handling and user interaction when required.
     """
+    if not (unlock := unlock_key(wallet, unlock_type="hotkey")).success:
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
+        )
 
     call = subtensor.substrate.compose_call(
         call_module="SubtensorModule",
@@ -134,7 +140,7 @@ def reveal_weights_extrinsic(
         },
     )
 
-    success, message = subtensor.sign_and_send_extrinsic(
+    response = subtensor.sign_and_send_extrinsic(
         call=call,
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
@@ -144,13 +150,14 @@ def reveal_weights_extrinsic(
         sign_with="hotkey",
         nonce_key="hotkey",
         raise_error=raise_error,
+        calling_function=get_function_name(),
     )
 
-    if success:
-        logging.info(message)
+    if response.success:
+        logging.info(response.message)
     else:
-        logging.error(f"{get_function_name()}: {message}")
-    return success, message
+        logging.error(f"{get_function_name()}: {response.message}")
+    return response
 
 
 def set_weights_extrinsic(
@@ -164,7 +171,7 @@ def set_weights_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """
     Sets the given weights and values on a chain for a wallet hotkey account.
 
@@ -183,10 +190,13 @@ def set_weights_extrinsic(
         wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
 
     Returns:
-        tuple[bool, str]:
-            `True` if the weight commitment is successful, `False` otherwise.
-            `msg` is a string value describing the success or potential error.
+        ExtrinsicResponse: The result object of the extrinsic execution.
     """
+    if not (unlock := unlock_key(wallet, unlock_type="hotkey")).success:
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
+        )
+
     # Convert types.
     uids, weights = convert_uids_and_weights(uids, weights)
 
@@ -209,7 +219,7 @@ def set_weights_extrinsic(
             "version_key": version_key,
         },
     )
-    success, message = subtensor.sign_and_send_extrinsic(
+    response = subtensor.sign_and_send_extrinsic(
         call=call,
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
@@ -219,10 +229,11 @@ def set_weights_extrinsic(
         nonce_key="hotkey",
         sign_with="hotkey",
         raise_error=raise_error,
+        calling_function=get_function_name(),
     )
 
-    if success:
+    if response.success:
         logging.info("Successfully set weights and Finalized.")
     else:
-        logging.error(f"{get_function_name}: {message}")
-    return success, message
+        logging.error(f"{get_function_name}: {response.message}")
+    return response
