@@ -4,13 +4,14 @@ from bittensor.core.extrinsics.weights import (
     commit_weights_extrinsic,
     reveal_weights_extrinsic,
 )
+from bittensor.core.types import ExtrinsicResponse
 
 
 @pytest.mark.parametrize(
     "sign_and_send_return",
     [
-        (True, "Success"),
-        (False, "Failure"),
+        ExtrinsicResponse(True, "Success"),
+        ExtrinsicResponse(False, "Failure"),
     ],
     ids=["success", "failure"],
 )
@@ -52,6 +53,7 @@ def test_commit_weights_extrinsic(subtensor, fake_wallet, mocker, sign_and_send_
         raise_error=False,
         sign_with="hotkey",
         use_nonce=True,
+        calling_function="commit_weights_extrinsic",
     )
     assert result == sign_and_send_return
 
@@ -59,8 +61,8 @@ def test_commit_weights_extrinsic(subtensor, fake_wallet, mocker, sign_and_send_
 @pytest.mark.parametrize(
     "sign_and_send_return",
     [
-        (True, "Success"),
-        (False, "Failure"),
+        ExtrinsicResponse(True, "Success"),
+        ExtrinsicResponse(False, "Failure"),
     ],
     ids=["success", "failure"],
 )
@@ -115,5 +117,6 @@ def test_reveal_weights_extrinsic(subtensor, fake_wallet, mocker, sign_and_send_
         raise_error=False,
         sign_with="hotkey",
         use_nonce=True,
+        calling_function="reveal_weights_extrinsic",
     )
     assert result == sign_and_send_return
