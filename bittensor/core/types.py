@@ -336,3 +336,16 @@ class ExtrinsicResponse:
 
     def __repr__(self):
         return repr((self.success, self.message))
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, tuple):
+            return (self.success, self.message) == other
+        if isinstance(other, ExtrinsicResponse):
+            return (
+                self.success == other.success
+                and self.message == other.message
+                and self.error == other.error
+                and self.extrinsic_function == other.extrinsic_function
+                and self.extrinsic == other.extrinsic
+            )
+        return super().__eq__(other)
