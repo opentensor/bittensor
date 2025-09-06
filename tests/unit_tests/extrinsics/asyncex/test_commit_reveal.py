@@ -1,9 +1,10 @@
-from bittensor.core import async_subtensor as subtensor_module
-from bittensor.core.chain_data import SubnetHyperparameters
-from bittensor.core.extrinsics.asyncex import commit_reveal as async_commit_reveal
+import numpy as np
 import pytest
 import torch
-import numpy as np
+
+from bittensor.core.chain_data import SubnetHyperparameters
+from bittensor.core.extrinsics.asyncex import commit_reveal as async_commit_reveal
+from bittensor.core.types import ExtrinsicResponse
 
 
 @pytest.fixture
@@ -73,7 +74,9 @@ async def test_commit_reveal_v3_extrinsic_success_with_torch(
     )
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=(True, "Success")
+        subtensor,
+        "sign_and_send_extrinsic",
+        return_value=ExtrinsicResponse(True, "Success"),
     )
     mock_block = mocker.patch.object(
         subtensor.substrate,
@@ -122,6 +125,7 @@ async def test_commit_reveal_v3_extrinsic_success_with_torch(
         sign_with="hotkey",
         period=None,
         raise_error=False,
+        calling_function="commit_reveal_extrinsic",
     )
 
 
@@ -145,7 +149,9 @@ async def test_commit_reveal_v3_extrinsic_success_with_numpy(
     )
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=(True, "Success")
+        subtensor,
+        "sign_and_send_extrinsic",
+        return_value=ExtrinsicResponse(True, "Success"),
     )
     mocker.patch.object(subtensor.substrate, "get_block_number", return_value=1)
     mocker.patch.object(
@@ -178,6 +184,7 @@ async def test_commit_reveal_v3_extrinsic_success_with_numpy(
         sign_with="hotkey",
         period=None,
         raise_error=False,
+        calling_function="commit_reveal_extrinsic",
     )
 
 
@@ -206,7 +213,9 @@ async def test_commit_reveal_v3_extrinsic_response_false(
     )
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=(False, "Failed")
+        subtensor,
+        "sign_and_send_extrinsic",
+        return_value=ExtrinsicResponse(False, "Failed"),
     )
     mocker.patch.object(subtensor.substrate, "get_block_number", return_value=1)
     mocker.patch.object(
@@ -237,6 +246,7 @@ async def test_commit_reveal_v3_extrinsic_response_false(
         sign_with="hotkey",
         period=None,
         raise_error=False,
+        calling_function="commit_reveal_extrinsic",
     )
 
 
@@ -255,14 +265,11 @@ async def test_commit_reveal_v3_extrinsic_exception(mocker, subtensor, fake_wall
     )
 
     # Call
-    success, message = await async_commit_reveal.commit_reveal_extrinsic(
-        subtensor=subtensor,
-        wallet=fake_wallet,
-        netuid=fake_netuid,
-        uids=fake_uids,
-        weights=fake_weights,
-    )
-
-    # Asserts
-    assert success is False
-    assert "Test Error" in message
+    with pytest.raises(Exception):
+        await async_commit_reveal.commit_reveal_extrinsic(
+            subtensor=subtensor,
+            wallet=fake_wallet,
+            netuid=fake_netuid,
+            uids=fake_uids,
+            weights=fake_weights,
+        )
