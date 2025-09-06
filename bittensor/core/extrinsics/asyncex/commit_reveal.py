@@ -7,6 +7,8 @@ from bittensor_drand import get_encrypted_commit
 from numpy.typing import NDArray
 
 from bittensor.core.settings import version_as_int
+from bittensor.core.types import ExtrinsicResponse
+from bittensor.utils import get_function_name, unlock_key
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import convert_and_normalize_weights_and_uids
 
@@ -29,7 +31,7 @@ async def commit_reveal_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """
     Commits and reveals weights for a given subtensor and wallet with provided uids and weights.
 
@@ -50,67 +52,68 @@ async def commit_reveal_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        Tuple[bool, str]:
-            - True and a success message if the extrinsic is successfully submitted or processed.
-            - False and an error message if the submission fails or the wallet cannot be unlocked.
+        ExtrinsicResponse: The result object of the extrinsic execution.
     """
-    try:
-        uids, weights = convert_and_normalize_weights_and_uids(uids, weights)
-
-        current_block = await subtensor.substrate.get_block(None)
-        subnet_hyperparameters = await subtensor.get_subnet_hyperparameters(
-            netuid, block_hash=current_block["header"]["hash"]
-        )
-        tempo = subnet_hyperparameters.tempo
-        subnet_reveal_period_epochs = subnet_hyperparameters.commit_reveal_period
-
-        # Encrypt `commit_hash` with t-lock and `get reveal_round`
-        commit_for_reveal, reveal_round = get_encrypted_commit(
-            uids=uids,
-            weights=weights,
-            version_key=version_key,
-            tempo=tempo,
-            current_block=current_block["header"]["number"],
-            netuid=netuid,
-            subnet_reveal_period_epochs=subnet_reveal_period_epochs,
-            block_time=block_time,
-            hotkey=wallet.hotkey.public_key,
+    if not (unlock := unlock_key(wallet, unlock_type="hotkey")).success:
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
         )
 
-        logging.info(
-            f"Committing weights hash [blue]{commit_for_reveal.hex()}[/blue] for subnet #[blue]{netuid}[/blue] with "
-            f"reveal round [blue]{reveal_round}[/blue]..."
-        )
+    uids, weights = convert_and_normalize_weights_and_uids(uids, weights)
 
-        call = await subtensor.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="commit_timelocked_weights",
-            call_params={
-                "netuid": netuid,
-                "commit": commit_for_reveal,
-                "reveal_round": reveal_round,
-                "commit_reveal_version": commit_reveal_version,
-            },
-        )
-        success, message = await subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            sign_with="hotkey",
-            period=period,
-            raise_error=raise_error,
-        )
+    current_block = await subtensor.substrate.get_block(None)
+    subnet_hyperparameters = await subtensor.get_subnet_hyperparameters(
+        netuid, block_hash=current_block["header"]["hash"]
+    )
+    tempo = subnet_hyperparameters.tempo
+    subnet_reveal_period_epochs = subnet_hyperparameters.commit_reveal_period
 
-        if not success:
-            logging.error(message)
-            return False, message
+    # Encrypt `commit_hash` with t-lock and `get reveal_round`
+    commit_for_reveal, reveal_round = get_encrypted_commit(
+        uids=uids,
+        weights=weights,
+        version_key=version_key,
+        tempo=tempo,
+        current_block=current_block["header"]["number"],
+        netuid=netuid,
+        subnet_reveal_period_epochs=subnet_reveal_period_epochs,
+        block_time=block_time,
+        hotkey=wallet.hotkey.public_key,
+    )
 
-        logging.success(
-            f"[green]Finalized![/green] Weights committed with reveal round [blue]{reveal_round}[/blue]."
-        )
-        return True, f"reveal_round:{reveal_round}"
+    logging.info(
+        f"Committing weights hash [blue]{commit_for_reveal.hex()}[/blue] for subnet #[blue]{netuid}[/blue] with "
+        f"reveal round [blue]{reveal_round}[/blue]..."
+    )
 
-    except Exception as e:
-        logging.error(f":cross_mark: [red]Failed. Error:[/red] {e}")
-        return False, str(e)
+    call = await subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="commit_timelocked_weights",
+        call_params={
+            "netuid": netuid,
+            "commit": commit_for_reveal,
+            "reveal_round": reveal_round,
+            "commit_reveal_version": commit_reveal_version,
+        },
+    )
+    response = await subtensor.sign_and_send_extrinsic(
+        call=call,
+        wallet=wallet,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+        sign_with="hotkey",
+        period=period,
+        raise_error=raise_error,
+        calling_function=get_function_name(),
+    )
+
+    if not response.success:
+        logging.error(response.message)
+        return response
+
+    logging.success(
+        f"[green]Finalized![/green] Weights committed with reveal round [blue]{reveal_round}[/blue]."
+    )
+    response.message = f"reveal_round:{reveal_round}"
+    response.data = reveal_round
+    return response

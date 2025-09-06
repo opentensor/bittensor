@@ -1,7 +1,8 @@
 """This module provides sync functionality for commit reveal in the Bittensor network."""
 
 from typing import Union, TYPE_CHECKING, Optional
-
+from bittensor.core.types import ExtrinsicResponse
+from bittensor.utils import get_function_name, unlock_key
 import numpy as np
 from bittensor_drand import get_encrypted_commit
 from numpy.typing import NDArray
@@ -30,7 +31,7 @@ def commit_reveal_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """
     Commits and reveals weights for a given subtensor and wallet with provided uids and weights.
 
@@ -51,10 +52,13 @@ def commit_reveal_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        Tuple[bool, str]:
-            - True and a success message if the extrinsic is successfully submitted or processed.
-            - False and an error message if the submission fails or the wallet cannot be unlocked.
+        ExtrinsicResponse: The result object of the extrinsic execution.
     """
+    if not (unlock := unlock_key(wallet, unlock_type="hotkey")).success:
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
+        )
+
     uids, weights = convert_and_normalize_weights_and_uids(uids, weights)
 
     current_block = subtensor.get_current_block()
@@ -92,7 +96,7 @@ def commit_reveal_extrinsic(
             "commit_reveal_version": commit_reveal_version,
         },
     )
-    success, message = subtensor.sign_and_send_extrinsic(
+    response = subtensor.sign_and_send_extrinsic(
         call=call,
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
@@ -100,13 +104,16 @@ def commit_reveal_extrinsic(
         sign_with="hotkey",
         period=period,
         raise_error=raise_error,
+        calling_function=get_function_name(),
     )
 
-    if not success:
-        logging.error(message)
-        return False, message
+    if not response.success:
+        logging.error(response.message)
+        return response
 
     logging.success(
         f"[green]Finalized![/green] Weights committed with reveal round [blue]{reveal_round}[/blue]."
     )
-    return True, f"reveal_round:{reveal_round}"
+    response.message = f"reveal_round:{reveal_round}"
+    response.data = reveal_round
+    return response
