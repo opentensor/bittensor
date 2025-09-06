@@ -4223,7 +4223,7 @@ class Subtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
         mechid: int = 0,
-    ) -> tuple[bool, str]:
+    ) -> ExtrinsicResponse:
         """
         Sets the interneuronal weights for the specified neuron. This process involves specifying the influence or trust
         a neuron places on other neurons in the network, which is a fundamental aspect of Bittensor's decentralized
@@ -4263,12 +4263,13 @@ class Subtensor(SubtensorMixin):
             return bslu > wrl
 
         retries = 0
-        success = False
-        message = "No attempt made. Perhaps it is too soon to commit weights!"
+        response = ExtrinsicResponse(
+            False, "No attempt made. Perhaps it is too soon to set weights!"
+        )
         if (
             uid := self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
         ) is None:
-            return (
+            return ExtrinsicResponse(
                 False,
                 f"Hotkey {wallet.hotkey.ss58_address} not registered in subnet {netuid}",
             )
@@ -4276,13 +4277,17 @@ class Subtensor(SubtensorMixin):
         if self.commit_reveal_enabled(netuid=netuid):
             # go with `commit_timelocked_mechanism_weights_extrinsic` extrinsic
 
-            while retries < max_retries and success is False and _blocks_weight_limit():
+            while (
+                retries < max_retries
+                and response.success is False
+                and _blocks_weight_limit()
+            ):
                 logging.info(
                     f"Committing weights for subnet [blue]{netuid}[/blue]. "
                     f"Attempt [blue]{retries + 1}[blue] of [green]{max_retries}[/green]."
                 )
                 try:
-                    success, message = commit_timelocked_mechanism_weights_extrinsic(
+                    response = commit_timelocked_mechanism_weights_extrinsic(
                         subtensor=self,
                         wallet=wallet,
                         netuid=netuid,
@@ -4301,17 +4306,21 @@ class Subtensor(SubtensorMixin):
                     logging.error(f"Error setting weights: {e}")
                 retries += 1
 
-            return success, message
+            return response
         else:
             # go with `set_mechanism_weights_extrinsic`
 
-            while retries < max_retries and success is False and _blocks_weight_limit():
+            while (
+                retries < max_retries
+                and response.success is False
+                and _blocks_weight_limit()
+            ):
                 try:
                     logging.info(
                         f"Setting weights for subnet [blue]{netuid}[/blue]. "
                         f"Attempt [blue]{retries + 1}[/blue] of [green]{max_retries}[/green]."
                     )
-                    success, message = set_mechanism_weights_extrinsic(
+                    response = set_mechanism_weights_extrinsic(
                         subtensor=self,
                         wallet=wallet,
                         netuid=netuid,
@@ -4328,7 +4337,7 @@ class Subtensor(SubtensorMixin):
                     logging.error(f"Error setting weights: {e}")
                     retries += 1
 
-            return success, message
+            return response
 
     def serve_axon(
         self,
