@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Optional
 from bittensor_wallet.bittensor_wallet import Wallet
 
 from bittensor.utils import unlock_key
+from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
@@ -38,8 +39,8 @@ def increase_take_extrinsic(
             - False and an error message if the submission fails or the wallet cannot be unlocked.
     """
     unlock = unlock_key(wallet, raise_error=raise_error)
-
     if not unlock.success:
+        logging.error(unlock.message)
         return False, unlock.message
 
     call = subtensor.substrate.compose_call(
@@ -92,8 +93,8 @@ def decrease_take_extrinsic(
             - False and an error message if the submission fails or the wallet cannot be unlocked.
     """
     unlock = unlock_key(wallet, raise_error=raise_error)
-
     if not unlock.success:
+        logging.error(unlock.message)
         return False, unlock.message
 
     call = subtensor.substrate.compose_call(
