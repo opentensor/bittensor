@@ -2,6 +2,7 @@ import pytest
 from bittensor.core import async_subtensor
 from bittensor.core.extrinsics.asyncex import weights as async_weights
 from bittensor.core.settings import version_as_int
+from bittensor.core.types import ExtrinsicResponse
 
 
 @pytest.mark.asyncio
@@ -27,7 +28,7 @@ async def test_set_weights_extrinsic_success_with_finalization(
 
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=(True, "")
+        subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, "")
     )
 
     # Call
@@ -66,6 +67,7 @@ async def test_set_weights_extrinsic_success_with_finalization(
         nonce_key="hotkey",
         sign_with="hotkey",
         raise_error=False,
+        calling_function="set_weights_extrinsic",
     )
     assert result is True
     assert message == ""
@@ -94,7 +96,9 @@ async def test_set_weights_extrinsic_no_waiting(subtensor, fake_wallet, mocker):
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
-        return_value=(True, "Not waiting for finalization or inclusion."),
+        return_value=ExtrinsicResponse(
+            True, "Not waiting for finalization or inclusion."
+        ),
     )
 
     # Call
@@ -133,6 +137,7 @@ async def test_set_weights_extrinsic_no_waiting(subtensor, fake_wallet, mocker):
         nonce_key="hotkey",
         sign_with="hotkey",
         raise_error=False,
+        calling_function="set_weights_extrinsic",
     )
     assert result is True
     assert message == "Not waiting for finalization or inclusion."
@@ -159,7 +164,9 @@ async def test_set_weights_extrinsic_failure(subtensor, fake_wallet, mocker):
 
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=(False, "Test error message")
+        subtensor,
+        "sign_and_send_extrinsic",
+        return_value=ExtrinsicResponse(False, "Test error message"),
     )
 
     # Call
@@ -198,6 +205,7 @@ async def test_set_weights_extrinsic_failure(subtensor, fake_wallet, mocker):
         nonce_key="hotkey",
         sign_with="hotkey",
         raise_error=False,
+        calling_function="set_weights_extrinsic",
     )
     assert result is False
     assert message == "Test error message"
@@ -249,7 +257,7 @@ async def test_commit_weights_extrinsic_success(subtensor, fake_wallet, mocker):
 
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=(True, "")
+        subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, "")
     )
 
     # Call
@@ -278,6 +286,7 @@ async def test_commit_weights_extrinsic_success(subtensor, fake_wallet, mocker):
         raise_error=False,
         nonce_key="hotkey",
         sign_with="hotkey",
+        calling_function="commit_weights_extrinsic",
     )
     assert result is True
     assert message == ""
@@ -292,7 +301,9 @@ async def test_commit_weights_extrinsic_failure(subtensor, fake_wallet, mocker):
 
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=(False, "Commit failed.")
+        subtensor,
+        "sign_and_send_extrinsic",
+        return_value=ExtrinsicResponse(False, "Commit failed."),
     )
 
     # Call
@@ -321,6 +332,7 @@ async def test_commit_weights_extrinsic_failure(subtensor, fake_wallet, mocker):
         raise_error=False,
         nonce_key="hotkey",
         sign_with="hotkey",
+        calling_function="commit_weights_extrinsic",
     )
     assert result is False
     assert message == "Commit failed."
