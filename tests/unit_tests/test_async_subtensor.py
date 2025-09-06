@@ -2870,7 +2870,7 @@ async def test_commit_weights_success(subtensor, fake_wallet, mocker):
     fake_weights = [100, 200, 300]
     max_retries = 3
 
-    mocked_commit_weights_extrinsic = mocker.AsyncMock(return_value=(True, "Success"))
+    mocked_commit_weights_extrinsic = mocker.AsyncMock(return_value=ExtrinsicResponse(True, "Success"))
     mocker.patch.object(
         async_subtensor,
         "commit_mechanism_weights_extrinsic",
