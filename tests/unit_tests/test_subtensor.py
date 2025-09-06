@@ -2,7 +2,7 @@ import argparse
 import unittest.mock as mock
 import datetime
 from unittest.mock import MagicMock
-
+from bittensor.core.types import ExtrinsicResponse
 import pytest
 from bittensor_wallet import Wallet
 from async_substrate_interface import sync_substrate
@@ -1157,7 +1157,7 @@ def test_set_weights(subtensor, mocker, fake_wallet):
     fake_wait_for_finalization = False
     fake_max_retries = 5
 
-    expected_result = (True, None)
+    expected_result = ExtrinsicResponse(True, None)
 
     mocked_get_uid_for_hotkey_on_subnet = mocker.MagicMock()
     subtensor.get_uid_for_hotkey_on_subnet = mocked_get_uid_for_hotkey_on_subnet
@@ -3055,7 +3055,7 @@ def test_set_weights_with_commit_reveal_enabled(subtensor, fake_wallet, mocker):
     mocked_commit_reveal_v3_extrinsic = mocker.patch.object(
         subtensor_module, "commit_reveal_extrinsic"
     )
-    mocked_commit_reveal_v3_extrinsic.return_value = (
+    mocked_commit_reveal_v3_extrinsic.return_value = ExtrinsicResponse(
         True,
         "Weights committed successfully",
     )
