@@ -5,6 +5,7 @@ import torch
 from bittensor.core import subtensor as subtensor_module
 from bittensor.core.chain_data import SubnetHyperparameters
 from bittensor.core.extrinsics import commit_reveal
+from bittensor.core.types import ExtrinsicResponse
 
 
 @pytest.fixture
@@ -74,7 +75,9 @@ def test_commit_reveal_v3_extrinsic_success_with_torch(
     )
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=(True, "Success")
+        subtensor,
+        "sign_and_send_extrinsic",
+        return_value=ExtrinsicResponse(True, "Success"),
     )
     mock_block = mocker.patch.object(subtensor, "get_current_block", return_value=1)
     mock_hyperparams = mocker.patch.object(
@@ -120,6 +123,7 @@ def test_commit_reveal_v3_extrinsic_success_with_torch(
         sign_with="hotkey",
         period=None,
         raise_error=False,
+        calling_function="commit_reveal_extrinsic",
     )
 
 
@@ -142,7 +146,9 @@ def test_commit_reveal_v3_extrinsic_success_with_numpy(
     )
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=(True, "Success")
+        subtensor,
+        "sign_and_send_extrinsic",
+        return_value=ExtrinsicResponse(True, "Success"),
     )
     mocker.patch.object(subtensor, "get_current_block", return_value=1)
     mocker.patch.object(
@@ -175,6 +181,7 @@ def test_commit_reveal_v3_extrinsic_success_with_numpy(
         sign_with="hotkey",
         period=None,
         raise_error=False,
+        calling_function="commit_reveal_extrinsic",
     )
 
 
@@ -202,7 +209,9 @@ def test_commit_reveal_v3_extrinsic_response_false(
     )
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=(False, "Failed")
+        subtensor,
+        "sign_and_send_extrinsic",
+        return_value=ExtrinsicResponse(False, "Failed"),
     )
     mocker.patch.object(subtensor, "get_current_block", return_value=1)
     mocker.patch.object(
@@ -233,6 +242,7 @@ def test_commit_reveal_v3_extrinsic_response_false(
         sign_with="hotkey",
         period=None,
         raise_error=False,
+        calling_function="commit_reveal_extrinsic",
     )
 
 

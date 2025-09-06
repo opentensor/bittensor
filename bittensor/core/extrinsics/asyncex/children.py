@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Optional
-from bittensor.utils import float_to_u64, unlock_key, get_function_name
+
 from bittensor.core.types import ExtrinsicResponse
+from bittensor.utils import float_to_u64, unlock_key, get_function_name
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
