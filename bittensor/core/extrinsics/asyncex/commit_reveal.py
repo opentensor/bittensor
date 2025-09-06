@@ -55,6 +55,7 @@ async def commit_reveal_extrinsic(
         ExtrinsicResponse: The result object of the extrinsic execution.
     """
     if not (unlock := unlock_key(wallet, unlock_type="hotkey")).success:
+        logging.error(unlock.message)
         return ExtrinsicResponse(
             False, unlock.message, extrinsic_function=get_function_name()
         )
