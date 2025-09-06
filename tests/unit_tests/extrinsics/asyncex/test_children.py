@@ -1,6 +1,7 @@
 import pytest
 
 from bittensor.core.extrinsics.asyncex import children
+from bittensor.core.types import ExtrinsicResponse
 
 
 @pytest.mark.asyncio
@@ -19,7 +20,7 @@ async def test_set_children_extrinsic(subtensor, mocker, fake_wallet):
     substrate = subtensor.substrate.__aenter__.return_value
     substrate.compose_call = mocker.AsyncMock()
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=(True, "")
+        subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, "")
     )
 
     # Call
@@ -54,6 +55,7 @@ async def test_set_children_extrinsic(subtensor, mocker, fake_wallet):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        calling_function="set_children_extrinsic",
     )
 
     assert success is True
@@ -71,7 +73,7 @@ async def test_root_set_pending_childkey_cooldown_extrinsic(
     substrate = subtensor.substrate.__aenter__.return_value
     substrate.compose_call = mocker.AsyncMock()
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=(True, "")
+        subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, "")
     )
 
     # Call
@@ -90,6 +92,7 @@ async def test_root_set_pending_childkey_cooldown_extrinsic(
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        calling_function="root_set_pending_childkey_cooldown_extrinsic",
     )
     assert success is True
     assert "Success" in message
