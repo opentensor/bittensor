@@ -4514,7 +4514,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> tuple[bool, str]:
+    ) -> ExtrinsicResponse:
         """
         Adds liquidity to the specified price range.
 
@@ -4731,7 +4731,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> tuple[bool, str]:
+    ) -> ExtrinsicResponse:
         """Modifies liquidity in liquidity position by adding or removing liquidity from it.
 
         Parameters:
@@ -4951,7 +4951,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> tuple[bool, str]:
+    ) -> ExtrinsicResponse:
         """Remove liquidity and credit balances back to wallet's hotkey stake.
 
         Parameters:
@@ -5640,7 +5640,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> tuple[bool, str]:
+    ) -> ExtrinsicResponse:
         """Allow to toggle user liquidity for specified subnet.
 
         Parameters:
