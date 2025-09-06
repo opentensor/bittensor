@@ -1,6 +1,7 @@
 from typing import Optional, TYPE_CHECKING
 
-from bittensor.utils import unlock_key
+from bittensor.core.types import ExtrinsicResponse
+from bittensor.utils import unlock_key, get_function_name
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.liquidity import price_to_tick
@@ -22,7 +23,7 @@ async def add_liquidity_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """
     Adds liquidity to the specified price range.
 
@@ -51,7 +52,9 @@ async def add_liquidity_extrinsic(
     """
     if not (unlock := unlock_key(wallet)).success:
         logging.error(unlock.message)
-        return False, unlock.message
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
+        )
 
     tick_low = price_to_tick(price_low.tao)
     tick_high = price_to_tick(price_high.tao)
@@ -76,6 +79,7 @@ async def add_liquidity_extrinsic(
         use_nonce=True,
         period=period,
         raise_error=raise_error,
+        calling_function=get_function_name(),
     )
 
 
@@ -90,7 +94,7 @@ async def modify_liquidity_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """Modifies liquidity in liquidity position by adding or removing liquidity from it.
 
     Parameters:
@@ -117,7 +121,9 @@ async def modify_liquidity_extrinsic(
     """
     if not (unlock := unlock_key(wallet)).success:
         logging.error(unlock.message)
-        return False, unlock.message
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
+        )
 
     call = await subtensor.substrate.compose_call(
         call_module="Swap",
@@ -138,6 +144,7 @@ async def modify_liquidity_extrinsic(
         use_nonce=True,
         period=period,
         raise_error=raise_error,
+        calling_function=get_function_name(),
     )
 
 
@@ -151,7 +158,7 @@ async def remove_liquidity_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """Remove liquidity and credit balances back to wallet's hotkey stake.
 
     Parameters:
@@ -177,7 +184,9 @@ async def remove_liquidity_extrinsic(
     """
     if not (unlock := unlock_key(wallet)).success:
         logging.error(unlock.message)
-        return False, unlock.message
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
+        )
 
     call = await subtensor.substrate.compose_call(
         call_module="Swap",
@@ -197,6 +206,7 @@ async def remove_liquidity_extrinsic(
         use_nonce=True,
         period=period,
         raise_error=raise_error,
+        calling_function=get_function_name(),
     )
 
 
@@ -209,7 +219,7 @@ async def toggle_user_liquidity_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """Allow to toggle user liquidity for specified subnet.
 
     Parameters:
@@ -231,7 +241,9 @@ async def toggle_user_liquidity_extrinsic(
     """
     if not (unlock := unlock_key(wallet)).success:
         logging.error(unlock.message)
-        return False, unlock.message
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
+        )
 
     call = await subtensor.substrate.compose_call(
         call_module="Swap",
@@ -246,4 +258,5 @@ async def toggle_user_liquidity_extrinsic(
         wait_for_finalization=wait_for_finalization,
         period=period,
         raise_error=raise_error,
+        calling_function=get_function_name(),
     )
