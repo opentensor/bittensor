@@ -160,7 +160,7 @@ git push origin <your-branch-name>
 #### Testing
 Before making a PR for any code changes, please write adequate testing with unittest and/or pytest if it is warranted.  This is **mandatory** for new features and enhancements. See the [testing guide](./TESTING.md) for more complete information. 
 
-You may also like to view the [/tests](../tests) for starter examples.
+You may also like to view the [/tests](https://github.com/opentensor/bittensor/tree/master/tests) for starter examples.
 
 Here is a quick summary:
 - **Running Tests**: Use `pytest` from the root directory of the Bittensor repository to run all tests. To run a specific test file or a specific test within a file, specify it directly (e.g., `pytest tests/test_wallet.py::test_create_new_coldkey`).
@@ -276,8 +276,8 @@ When you are creating an enhancement suggestion, please [include as many details
 
 #### Before Submitting An Enhancement Suggestion
 
-* **Check the [debugging guide](./DEBUGGING.md).** for tips — you might discover that the enhancement is already available. Most importantly, check if you're using the latest version of Bittensor by pulling the latest changes from the Master branch and if you can get the desired behavior by changing [Bittensor's config settings](https://docs.learnbittensor.org/getting-started/install-btcli#configuration).
-* **Determine which repository the problem should be reported in**: if it has to do with your ML model, then it's likely [Bittensor](https://github.com/opentensor/bittensor). If you are having problems with your emissions or Blockchain, then it is in [subtensor](https://github.com/opentensor/subtensor) 
+* **Check the [debugging guide](./DEBUGGING.md).** for tips — you might discover that the enhancement is already available. Most importantly, check if you're using the latest version of Bittensor by pulling the latest changes from the Master branch and if you can get the desired behavior by changing [Bittensor's config settings](https://docs.learnbittensor.org/python-api/html/autoapi/bittensor/core/config/).
+* **Determine which repository the problem should be reported in: if it has to do with your ML model, then it's likely [Bittensor](https://github.com/opentensor/bittensor). If you are having problems with your emissions or Blockchain, then it is in [subtensor](https://github.com/opentensor/subtensor) 
 
 #### How To Submit A (Good) Feature Suggestion
 
