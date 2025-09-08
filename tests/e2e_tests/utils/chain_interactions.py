@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from bittensor import Wallet
     from bittensor.core.async_subtensor import AsyncSubtensor
     from bittensor.core.subtensor import Subtensor
-    from async_substrate_interface import SubstrateInterface, ExtrinsicReceipt
+    from async_substrate_interface import AsyncSubstrateInterface, AsyncExtrinsicReceipt, SubstrateInterface, ExtrinsicReceipt
 
 
 def get_dynamic_balance(rao: int, netuid: int = 0):
@@ -272,6 +272,49 @@ def sudo_set_admin_utils(
     )
 
     return response.is_success, response.error_message
+
+
+async def async_sudo_set_admin_utils(
+    substrate: "AsyncSubstrateInterface",
+    wallet: "Wallet",
+    call_function: str,
+    call_params: dict,
+    call_module: str = "AdminUtils",
+) -> tuple[bool, Optional[dict]]:
+    """
+    Wraps the call in sudo to set hyperparameter values using AdminUtils.
+
+    Parameters:
+        substrate: Substrate connection.
+        wallet: Wallet object with the keypair for signing.
+        call_function: The AdminUtils function to call.
+        call_params: Parameters for the AdminUtils function.
+        call_module: The AdminUtils module to call. Defaults to "AdminUtils".
+
+    Returns:
+        tuple: (success status, error details).
+    """
+    inner_call = await substrate.compose_call(
+        call_module=call_module,
+        call_function=call_function,
+        call_params=call_params,
+    )
+
+    sudo_call = await substrate.compose_call(
+        call_module="Sudo",
+        call_function="sudo",
+        call_params={"call": inner_call},
+    )
+    extrinsic = await substrate.create_signed_extrinsic(
+        call=sudo_call, keypair=wallet.coldkey
+    )
+    response: "AsyncExtrinsicReceipt" = await substrate.submit_extrinsic(
+        extrinsic,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    return await response.is_success, await response.error_message
 
 
 async def root_set_subtensor_hyperparameter_values(
