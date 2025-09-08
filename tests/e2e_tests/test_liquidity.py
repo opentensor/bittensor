@@ -73,7 +73,7 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
         enable=True,
     )
     assert success, message
-    assert message == "", "❌ Cannot enable user liquidity."
+    assert message == "Success", "❌ Cannot enable user liquidity."
 
     # Add steak to call add_liquidity
     assert subtensor.staking.add_stake(
@@ -105,7 +105,7 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
         wait_for_finalization=True,
     )
     assert success, message
-    assert message == "", "❌ Cannot add liquidity."
+    assert message == "Success", "❌ Cannot add liquidity."
 
     # Get liquidity
     liquidity_positions = subtensor.subnets.get_liquidity_list(
@@ -138,7 +138,7 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
         wait_for_finalization=True,
     )
     assert success, message
-    assert message == "", "❌ cannot modify liquidity position."
+    assert message == "Success", "❌ cannot modify liquidity position."
 
     liquidity_positions = subtensor.subnets.get_liquidity_list(
         wallet=alice_wallet, netuid=alice_subnet_netuid
@@ -169,7 +169,7 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
         wait_for_finalization=True,
     )
     assert success, message
-    assert message == "", "❌ cannot modify liquidity position."
+    assert message == "Success", "❌ cannot modify liquidity position."
 
     liquidity_positions = subtensor.subnets.get_liquidity_list(
         wallet=alice_wallet, netuid=alice_subnet_netuid
@@ -220,7 +220,7 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
         wait_for_finalization=True,
     )
     assert success, message
-    assert message == "", "❌ Cannot add liquidity."
+    assert message == "Success", "❌ Cannot add liquidity."
 
     liquidity_positions = subtensor.subnets.get_liquidity_list(
         wallet=alice_wallet, netuid=alice_subnet_netuid
@@ -284,7 +284,7 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
             wait_for_finalization=True,
         )
         assert success, message
-        assert message == "", "❌ Cannot remove liquidity."
+        assert message == "Success", "❌ Cannot remove liquidity."
 
     # Make sure all liquidity positions removed
     assert (
@@ -364,7 +364,7 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
         enable=True,
     )
     assert success, message
-    assert message == "", "❌ Cannot enable user liquidity."
+    assert message == "Success", "❌ Cannot enable user liquidity."
 
     # Add steak to call add_liquidity
     assert await async_subtensor.staking.add_stake(
@@ -398,7 +398,7 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
         wait_for_finalization=True,
     )
     assert success, message
-    assert message == "", "❌ Cannot add liquidity."
+    assert message == "Success", "❌ Cannot add liquidity."
 
     # Get liquidity
     liquidity_positions = await async_subtensor.subnets.get_liquidity_list(
@@ -431,7 +431,7 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
         wait_for_finalization=True,
     )
     assert success, message
-    assert message == "", "❌ cannot modify liquidity position."
+    assert message == "Success", "❌ cannot modify liquidity position."
 
     liquidity_positions = await async_subtensor.subnets.get_liquidity_list(
         wallet=alice_wallet, netuid=alice_subnet_netuid
@@ -462,7 +462,7 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
         wait_for_finalization=True,
     )
     assert success, message
-    assert message == "", "❌ cannot modify liquidity position."
+    assert message == "Success", "❌ cannot modify liquidity position."
 
     liquidity_positions = await async_subtensor.subnets.get_liquidity_list(
         wallet=alice_wallet, netuid=alice_subnet_netuid
@@ -515,7 +515,7 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
         wait_for_finalization=True,
     )
     assert success, message
-    assert message == "", "❌ Cannot add liquidity."
+    assert message == "Success", "❌ Cannot add liquidity."
 
     liquidity_positions = await async_subtensor.subnets.get_liquidity_list(
         wallet=alice_wallet, netuid=alice_subnet_netuid
@@ -581,7 +581,7 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
             wait_for_finalization=True,
         )
         assert success, message
-        assert message == "", "❌ Cannot remove liquidity."
+        assert message == "Success", "❌ Cannot remove liquidity."
 
     # Make sure all liquidity positions removed
     assert (
