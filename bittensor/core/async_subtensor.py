@@ -4264,7 +4264,7 @@ class AsyncSubtensor(SubtensorMixin):
                 return extrinsic_response
 
             if await response.is_success:
-                extrinsic_response.message = ""
+                extrinsic_response.message = "Success"
                 return extrinsic_response
 
             response_error_message = await response.error_message
