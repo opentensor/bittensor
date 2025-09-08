@@ -54,7 +54,7 @@ def test_identity(subtensor, alice_wallet, bob_wallet):
     identities = subtensor.delegates.get_delegate_identities()
     assert alice_wallet.coldkey.ss58_address not in identities
 
-    success, error = set_identity(
+    success, message = set_identity(
         subtensor=subtensor,
         wallet=alice_wallet,
         name="Alice",
@@ -62,8 +62,8 @@ def test_identity(subtensor, alice_wallet, bob_wallet):
         github_repo="https://github.com/opentensor/bittensor",
         description="Local Chain",
     )
-    assert error == ""
-    assert success is True
+    assert success is True, message
+    assert message == "Success"
 
     identity = subtensor.neurons.query_identity(alice_wallet.coldkeypub.ss58_address)
     assert identity == ChainIdentity(
@@ -118,7 +118,7 @@ async def test_identity_async(async_subtensor, alice_wallet, bob_wallet):
     identities = await async_subtensor.delegates.get_delegate_identities()
     assert alice_wallet.coldkey.ss58_address not in identities
 
-    success, error = await async_set_identity(
+    success, message = await async_set_identity(
         subtensor=async_subtensor,
         wallet=alice_wallet,
         name="Alice",
@@ -127,8 +127,8 @@ async def test_identity_async(async_subtensor, alice_wallet, bob_wallet):
         description="Local Chain",
     )
 
-    assert error == ""
-    assert success is True
+    assert success is True, message
+    assert message == "Success"
 
     identity = await async_subtensor.neurons.query_identity(
         alice_wallet.coldkeypub.ss58_address
@@ -825,7 +825,7 @@ def test_get_vote_data(subtensor, alice_wallet):
 
     assert proposals.records == []
 
-    success, error = propose(
+    success, message = propose(
         subtensor=subtensor,
         wallet=alice_wallet,
         proposal=subtensor.substrate.compose_call(
@@ -840,8 +840,8 @@ def test_get_vote_data(subtensor, alice_wallet):
         duration=1_000_000,
     )
 
-    assert error == ""
-    assert success is True
+    assert success is True, message
+    assert message == "Success"
 
     proposals = subtensor.queries.query_map(
         module="Triumvirate",
@@ -881,7 +881,7 @@ def test_get_vote_data(subtensor, alice_wallet):
         threshold=3,
     )
 
-    success, error = vote(
+    success, message = vote(
         subtensor=subtensor,
         wallet=alice_wallet,
         hotkey=alice_wallet.hotkey.ss58_address,
@@ -890,8 +890,8 @@ def test_get_vote_data(subtensor, alice_wallet):
         approve=True,
     )
 
-    assert error == ""
-    assert success is True
+    assert success is True, message
+    assert message == "Success"
 
     proposal = subtensor.chain.get_vote_data(
         proposal_hash=proposal_hash,
@@ -932,7 +932,7 @@ async def test_get_vote_data_async(async_subtensor, alice_wallet):
 
     assert proposals.records == []
 
-    success, error = await async_propose(
+    success, message = await async_propose(
         subtensor=async_subtensor,
         wallet=alice_wallet,
         proposal=await async_subtensor.substrate.compose_call(
@@ -947,8 +947,8 @@ async def test_get_vote_data_async(async_subtensor, alice_wallet):
         duration=1_000_000,
     )
 
-    assert error == ""
     assert success is True
+    assert message == "Success"
 
     proposals = await async_subtensor.queries.query_map(
         module="Triumvirate",
@@ -989,7 +989,7 @@ async def test_get_vote_data_async(async_subtensor, alice_wallet):
         threshold=3,
     )
 
-    success, error = await async_vote(
+    success, message = await async_vote(
         subtensor=async_subtensor,
         wallet=alice_wallet,
         hotkey=alice_wallet.hotkey.ss58_address,
@@ -998,8 +998,8 @@ async def test_get_vote_data_async(async_subtensor, alice_wallet):
         approve=True,
     )
 
-    assert error == ""
-    assert success is True
+    assert success is True, message
+    assert message == "Success"
 
     proposal = await async_subtensor.chain.get_vote_data(
         proposal_hash=proposal_hash,
