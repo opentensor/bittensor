@@ -30,7 +30,7 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
             local_chain,
             alice_wallet,
             call_function="sudo_set_admin_freeze_window",
-            call_params={"window": 0}
+            call_params={"window": 0},
         )[0]
         is True
     ), "Failed to set admin freeze window to 0"
