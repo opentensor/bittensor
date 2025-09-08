@@ -3,6 +3,7 @@ from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_hyperparameter_bool,
     sudo_set_hyperparameter_values,
+    sudo_set_admin_utils,
 )
 
 
@@ -28,6 +29,17 @@ def test_liquid_alpha(local_chain, subtensor, alice_wallet):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
+    # turn off admin freeze window limit for testing
+    assert (
+        sudo_set_admin_utils(
+            local_chain,
+            alice_wallet,
+            call_function="sudo_set_admin_freeze_window",
+            call_params={"window": 0},
+        )[0]
+        is True
+    ), "Failed to set admin freeze window to 0"
+
     u16_max = 65535
     netuid = 2
     logging.console.info("Testing test_liquid_alpha_enabled")
