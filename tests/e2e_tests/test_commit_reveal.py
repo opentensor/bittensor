@@ -174,7 +174,7 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
         # commit_block is the block when weights were committed on the chain (transaction block)
         expected_commit_block = subtensor.block + 1
         # Commit weights
-        success, message = subtensor.extrinsics.set_weights(
+        response = subtensor.extrinsics.set_weights(
             wallet=alice_wallet,
             netuid=alice_subnet_netuid,
             mechid=mechid,
@@ -187,11 +187,11 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
         )
 
         # Assert committing was a success
-        assert success is True, message
-        assert bool(re.match(r"reveal_round:\d+", message))
+        assert response.success is True, response.message
+        assert response.data.get("reveal_round") is not None
 
         # Parse expected reveal_round
-        expected_reveal_round = int(message.split(":")[1])
+        expected_reveal_round = response.data.get("reveal_round")
         logging.console.success(
             f"Successfully set weights: uids {weight_uids}, weights {weight_vals}, reveal_round: {expected_reveal_round}"
         )
@@ -425,7 +425,7 @@ async def test_commit_and_reveal_weights_cr4_async(
         # commit_block is the block when weights were committed on the chain (transaction block)
         expected_commit_block = await async_subtensor.block + 1
         # Commit weights
-        success, message = await async_subtensor.extrinsics.set_weights(
+        response = await async_subtensor.extrinsics.set_weights(
             wallet=alice_wallet,
             netuid=alice_subnet_netuid,
             mechid=mechid,
@@ -438,11 +438,11 @@ async def test_commit_and_reveal_weights_cr4_async(
         )
 
         # Assert committing was a success
-        assert success is True, message
-        assert bool(re.match(r"reveal_round:\d+", message))
+        assert response.success is True, response.message
+        assert response.data.get("reveal_round") is not None
 
         # Parse expected reveal_round
-        expected_reveal_round = int(message.split(":")[1])
+        expected_reveal_round = response.data.get("reveal_round")
         logging.console.success(
             f"Successfully set weights: uids {weight_uids}, weights {weight_vals}, reveal_round: {expected_reveal_round}"
         )
