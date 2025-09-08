@@ -57,7 +57,7 @@ async def test_incentive(subtensor, templates, alice_wallet, bob_wallet):
     assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
 
     # Register Bob as a neuron on the subnet
-    assert subtensor.subnets.burned_register(bob_wallet, alice_subnet_netuid), (
+    assert subtensor.subnets.burned_register(bob_wallet, alice_subnet_netuid).success, (
         "Unable to register Bob as a neuron"
     )
 
@@ -232,9 +232,9 @@ async def test_incentive_async(async_subtensor, templates, alice_wallet, bob_wal
     )
 
     # Register Bob as a neuron on the subnet
-    assert await async_subtensor.subnets.burned_register(
-        bob_wallet, alice_subnet_netuid
-    ), "Unable to register Bob as a neuron"
+    assert (
+        await async_subtensor.subnets.burned_register(bob_wallet, alice_subnet_netuid)
+    ).success, "Unable to register Bob as a neuron"
 
     # Assert two neurons are in network
     assert (

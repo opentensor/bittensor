@@ -52,7 +52,7 @@ def test_liquid_alpha(subtensor, alice_wallet):
     assert wait_to_start_call(subtensor, alice_wallet, netuid)
 
     # Register a neuron (Alice) to the subnet
-    assert subtensor.subnets.burned_register(alice_wallet, netuid), (
+    assert subtensor.subnets.burned_register(alice_wallet, netuid).success, (
         "Unable to register Alice as a neuron"
     )
 
@@ -234,9 +234,9 @@ async def test_liquid_alpha_async(async_subtensor, alice_wallet):
     assert await async_wait_to_start_call(async_subtensor, alice_wallet, netuid)
 
     # Register a neuron (Alice) to the subnet
-    assert await async_subtensor.subnets.burned_register(alice_wallet, netuid), (
-        "Unable to register Alice as a neuron"
-    )
+    assert (
+        await async_subtensor.subnets.burned_register(alice_wallet, netuid)
+    ).success, "Unable to register Alice as a neuron"
 
     # Stake to become to top neuron after the first epoch
     assert await async_subtensor.staking.add_stake(
