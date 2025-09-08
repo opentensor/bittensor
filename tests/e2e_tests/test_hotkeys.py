@@ -66,7 +66,7 @@ def test_hotkeys(subtensor, alice_wallet, dave_wallet):
     assert subtensor.subnets.burned_register(
         wallet=alice_wallet,
         netuid=dave_subnet_netuid,
-    )
+    ).success
 
     assert subtensor.wallets.does_hotkey_exist(hotkey) is True
     assert subtensor.wallets.get_hotkey_owner(hotkey) == coldkey
@@ -121,10 +121,12 @@ async def test_hotkeys_async(async_subtensor, alice_wallet, dave_wallet):
         is False
     )
 
-    assert await async_subtensor.subnets.burned_register(
-        wallet=alice_wallet,
-        netuid=dave_subnet_netuid,
-    )
+    assert (
+        await async_subtensor.subnets.burned_register(
+            wallet=alice_wallet,
+            netuid=dave_subnet_netuid,
+        )
+    ).success
 
     assert await async_subtensor.wallets.does_hotkey_exist(hotkey) is True
     assert await async_subtensor.wallets.get_hotkey_owner(hotkey) == coldkey
@@ -227,13 +229,13 @@ def test_children(subtensor, alice_wallet, bob_wallet, dave_wallet):
     assert subtensor.subnets.burned_register(
         wallet=alice_wallet,
         netuid=dave_subnet_netuid,
-    )
+    ).success
     logging.console.success(f"Alice registered on subnet {dave_subnet_netuid}")
 
     assert subtensor.subnets.burned_register(
         wallet=bob_wallet,
         netuid=dave_subnet_netuid,
-    )
+    ).success
     logging.console.success(f"Bob registered on subnet {dave_subnet_netuid}")
 
     success, children, error = subtensor.wallets.get_children(
@@ -550,16 +552,20 @@ async def test_children_async(async_subtensor, alice_wallet, bob_wallet, dave_wa
             raise_error=True,
         )
 
-    assert await async_subtensor.subnets.burned_register(
-        wallet=alice_wallet,
-        netuid=dave_subnet_netuid,
-    )
+    assert (
+        await async_subtensor.subnets.burned_register(
+            wallet=alice_wallet,
+            netuid=dave_subnet_netuid,
+        )
+    ).success
     logging.console.success(f"Alice registered on subnet {dave_subnet_netuid}")
 
-    assert await async_subtensor.subnets.burned_register(
-        wallet=bob_wallet,
-        netuid=dave_subnet_netuid,
-    )
+    assert (
+        await async_subtensor.subnets.burned_register(
+            wallet=bob_wallet,
+            netuid=dave_subnet_netuid,
+        )
+    ).success
     logging.console.success(f"Bob registered on subnet {dave_subnet_netuid}")
 
     success, children, error = await async_subtensor.wallets.get_children(
