@@ -1104,6 +1104,33 @@ class AsyncSubtensor(SubtensorMixin):
         )
         return return_val
 
+    async def get_admin_freeze_window(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> int:
+        """
+        Returns the number of blocks when dependent transactions will be frozen for execution.
+
+        Arguments:
+            block: The block number at which to retrieve the hyperparameter. Do not specify if using block_hash or
+                reuse_block.
+            block_hash: The hash of the blockchain block for the query. Do not specify if using block or reuse_block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+
+        Returns:
+            AdminFreezeWindow as integer. The number of blocks are frozen.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        return (
+            await self.substrate.query(
+                module="SubtensorModule",
+                storage_function="AdminFreezeWindow",
+                block_hash=block_hash,
+            )
+        ).value
+
     async def get_all_subnets_info(
         self,
         block: Optional[int] = None,
