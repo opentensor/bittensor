@@ -48,7 +48,7 @@ def test_set_reveal_commitment(subtensor, alice_wallet, bob_wallet):
     assert subtensor.subnets.burned_register(
         wallet=bob_wallet,
         netuid=alice_subnet_netuid,
-    ), "Bob's neuron was not register."
+    ).success, "Bob's neuron was not register."
 
     # Verify subnet 2 created successfully
     assert subtensor.subnets.subnet_exists(alice_subnet_netuid), (
@@ -162,9 +162,9 @@ async def test_set_reveal_commitment(async_subtensor, alice_wallet, bob_wallet):
     )
 
     # Register Bob's neuron
-    assert await async_subtensor.subnets.burned_register(
-        bob_wallet, alice_subnet_netuid
-    ), "Bob's neuron was not register."
+    assert (
+        await async_subtensor.subnets.burned_register(bob_wallet, alice_subnet_netuid)
+    ).success, "Bob's neuron was not register."
 
     # Verify subnet 2 created successfully
     assert await async_subtensor.subnets.subnet_exists(alice_subnet_netuid), (
