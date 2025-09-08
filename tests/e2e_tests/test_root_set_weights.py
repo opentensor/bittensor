@@ -68,7 +68,7 @@ async def test_root_reg_hyperparams(subtensor, templates, alice_wallet, bob_wall
     default_tempo = 10 if subtensor.chain.is_fast_blocks() else 360
 
     # Register Alice in root network (0)
-    assert subtensor.extrinsics.root_register(alice_wallet)
+    assert subtensor.extrinsics.root_register(alice_wallet).success
 
     # Assert Alice is successfully registered to root
     alice_root_neuron = subtensor.neurons.neurons(netuid=0)[0]
@@ -188,7 +188,7 @@ async def test_root_reg_hyperparams_async(
     default_tempo = 10 if await async_subtensor.chain.is_fast_blocks() else 360
 
     # Register Alice in root network (0)
-    assert await async_subtensor.extrinsics.root_register(alice_wallet)
+    assert (await async_subtensor.extrinsics.root_register(alice_wallet)).success
 
     # Assert Alice is successfully registered to root
     alice_root_neuron = (await async_subtensor.neurons.neurons(netuid=0))[0]
