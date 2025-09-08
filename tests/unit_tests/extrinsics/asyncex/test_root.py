@@ -1,8 +1,7 @@
 import pytest
 
-from bittensor.core.errors import SubstrateRequestException
 from bittensor.core.extrinsics.asyncex import root as async_root
-
+from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.balance import Balance
 
 
@@ -57,7 +56,7 @@ async def test_root_register_extrinsic_success(subtensor, fake_wallet, mocker):
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
-        return_value=(True, ""),
+        return_value=ExtrinsicResponse(True, "Success"),
     )
     mocked_query = mocker.patch.object(
         subtensor.substrate,
@@ -95,7 +94,8 @@ async def test_root_register_extrinsic_success(subtensor, fake_wallet, mocker):
         storage_function="Uids",
         params=[0, "fake_hotkey_address"],
     )
-    assert result is True
+    assert result.success is True
+    assert result.message == "Success"
 
 
 @pytest.mark.asyncio
@@ -122,7 +122,7 @@ async def test_root_register_extrinsic_insufficient_balance(
         wait_for_finalization=True,
     )
 
-    assert result is False
+    assert result.success is False
 
     subtensor.get_balance.assert_called_once_with(
         fake_wallet.coldkeypub.ss58_address,
@@ -161,7 +161,7 @@ async def test_root_register_extrinsic_unlock_failed(subtensor, fake_wallet, moc
 
     # Asserts
     mocked_unlock_key.assert_called_once_with(fake_wallet)
-    assert result is False
+    assert result.success is False
 
 
 @pytest.mark.asyncio
@@ -206,7 +206,7 @@ async def test_root_register_extrinsic_already_registered(
     mocked_is_hotkey_registered.assert_called_once_with(
         netuid=0, hotkey_ss58="fake_hotkey_address"
     )
-    assert result is True
+    assert result.success is True
 
 
 @pytest.mark.asyncio
@@ -241,7 +241,7 @@ async def test_root_register_extrinsic_transaction_failed(
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
-        return_value=(False, "Transaction failed"),
+        return_value=ExtrinsicResponse(False, "Transaction failed"),
     )
 
     # Call
@@ -259,7 +259,7 @@ async def test_root_register_extrinsic_transaction_failed(
     )
     mocked_compose_call.assert_called_once()
     mocked_sign_and_send_extrinsic.assert_called_once()
-    assert result is False
+    assert result.success is False
 
 
 @pytest.mark.asyncio
@@ -292,7 +292,7 @@ async def test_root_register_extrinsic_uid_not_found(subtensor, fake_wallet, moc
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
-        return_value=(True, ""),
+        return_value=ExtrinsicResponse(True, ""),
     )
     mocked_query = mocker.patch.object(
         subtensor.substrate,
@@ -320,4 +320,4 @@ async def test_root_register_extrinsic_uid_not_found(subtensor, fake_wallet, moc
         storage_function="Uids",
         params=[0, "fake_hotkey_address"],
     )
-    assert result is False
+    assert result.success is False
