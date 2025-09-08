@@ -241,7 +241,7 @@ def test_burned_register_on_root(mock_substrate, subtensor, fake_wallet, mocker)
     )
 
 
-def test_get_all_commitments(mock_substrate, subtensor, mocker):
+def test_get_all_commitments(mock_substrate, subtensor):
     mock_substrate.query_map.return_value = [
         (
             (tuple(bytearray(32)),),
@@ -582,7 +582,7 @@ def test_get_neuron_certificate(mock_substrate, subtensor):
     )
 
 
-def test_get_stake_for_coldkey(mock_substrate, subtensor, mocker):
+def test_get_stake_for_coldkey(mock_substrate, subtensor):
     mock_substrate.runtime_call.return_value.value = [
         {
             "coldkey": tuple(bytearray(32)),
@@ -688,14 +688,14 @@ def test_last_drand_round(mock_substrate, subtensor):
 
 
 @pytest.mark.parametrize(
-    "wait",
+    "wait,resp_message",
     (
-        True,
-        False,
+        [True, "Success"],
+        [False, "Not waiting for finalization or inclusion."],
     ),
 )
-def test_move_stake(mock_substrate, subtensor, fake_wallet, wait):
-    success = subtensor.move_stake(
+def test_move_stake(mock_substrate, subtensor, fake_wallet, wait, resp_message):
+    success, message = subtensor.move_stake(
         wallet=fake_wallet,
         origin_hotkey_ss58="origin_hotkey",
         origin_netuid=1,
@@ -707,6 +707,7 @@ def test_move_stake(mock_substrate, subtensor, fake_wallet, wait):
     )
 
     assert success is True
+    assert message == resp_message
 
     assert_submit_signed_extrinsic(
         mock_substrate,
@@ -728,7 +729,7 @@ def test_move_stake(mock_substrate, subtensor, fake_wallet, wait):
 def test_move_stake_insufficient_stake(mock_substrate, subtensor, fake_wallet, mocker):
     mocker.patch.object(subtensor, "get_stake", return_value=Balance(0))
 
-    success = subtensor.move_stake(
+    success, message = subtensor.move_stake(
         fake_wallet,
         origin_hotkey_ss58="origin_hotkey",
         origin_netuid=1,
@@ -738,6 +739,7 @@ def test_move_stake_insufficient_stake(mock_substrate, subtensor, fake_wallet, m
     )
 
     assert success is False
+    assert "Insufficient stake in origin hotkey" in message
 
     mock_substrate.submit_extrinsic.assert_not_called()
 
@@ -748,7 +750,7 @@ def test_move_stake_error(mock_substrate, subtensor, fake_wallet, mocker):
         is_success=False,
     )
 
-    success = subtensor.move_stake(
+    success, message = subtensor.move_stake(
         fake_wallet,
         origin_hotkey_ss58="origin_hotkey",
         origin_netuid=1,
@@ -758,6 +760,10 @@ def test_move_stake_error(mock_substrate, subtensor, fake_wallet, mocker):
     )
 
     assert success is False
+    assert (
+        message
+        == "Subtensor returned `UnknownError(UnknownType)` error. This means: `Unknown Description`."
+    )
 
     assert_submit_signed_extrinsic(
         mock_substrate,
@@ -779,16 +785,16 @@ def test_move_stake_error(mock_substrate, subtensor, fake_wallet, mocker):
 def test_move_stake_exception(mock_substrate, subtensor, fake_wallet):
     mock_substrate.submit_extrinsic.side_effect = RuntimeError
 
-    success = subtensor.move_stake(
-        fake_wallet,
-        origin_hotkey_ss58="origin_hotkey",
-        origin_netuid=1,
-        destination_hotkey_ss58="destination_hotkey",
-        destination_netuid=2,
-        amount=Balance(1),
-    )
-
-    assert success is False
+    with pytest.raises(RuntimeError) as exc:
+        subtensor.move_stake(
+            fake_wallet,
+            origin_hotkey_ss58="origin_hotkey",
+            origin_netuid=1,
+            destination_hotkey_ss58="destination_hotkey",
+            destination_netuid=2,
+            amount=Balance(1),
+            raise_error=True,
+        )
 
     assert_submit_signed_extrinsic(
         mock_substrate,
@@ -917,7 +923,7 @@ def test_neurons_lite(mock_substrate, subtensor, mock_neuron_info):
     )
 
 
-def test_set_children(mock_substrate, subtensor, fake_wallet, mocker):
+def test_set_children(mock_substrate, subtensor, fake_wallet):
     subtensor.set_children(
         fake_wallet,
         fake_wallet.hotkey.ss58_address,
@@ -1064,7 +1070,7 @@ def test_swap_stake(mock_substrate, subtensor, fake_wallet, mocker):
         return_value=fake_wallet.coldkeypub.ss58_address,
     )
 
-    result = subtensor.swap_stake(
+    success, message = subtensor.swap_stake(
         fake_wallet,
         fake_wallet.hotkey.ss58_address,
         origin_netuid=1,
@@ -1072,7 +1078,8 @@ def test_swap_stake(mock_substrate, subtensor, fake_wallet, mocker):
         amount=Balance(999),
     )
 
-    assert result is True
+    assert success is True
+    assert message == "Success"
 
     assert_submit_signed_extrinsic(
         mock_substrate,
@@ -1343,13 +1350,15 @@ def test_sign_and_send_extrinsic_raises_error(
 
 
 @pytest.mark.parametrize(
-    "wait",
+    "wait,response_message",
     (
-        True,
-        False,
+        [True, "Success"],
+        [False, "Not waiting for finalization or inclusion."],
     ),
 )
-def test_transfer_stake(mock_substrate, subtensor, fake_wallet, mocker, wait):
+def test_transfer_stake(
+    mock_substrate, subtensor, fake_wallet, mocker, wait, response_message
+):
     mocker.patch.object(
         subtensor,
         "get_hotkey_owner",
@@ -1357,7 +1366,7 @@ def test_transfer_stake(mock_substrate, subtensor, fake_wallet, mocker, wait):
         return_value=fake_wallet.coldkeypub.ss58_address,
     )
 
-    success = subtensor.transfer_stake(
+    success, message = subtensor.transfer_stake(
         fake_wallet,
         "dest",
         "hotkey_ss58",
@@ -1369,6 +1378,7 @@ def test_transfer_stake(mock_substrate, subtensor, fake_wallet, mocker, wait):
     )
 
     assert success is True
+    assert message == response_message
 
     assert_submit_signed_extrinsic(
         mock_substrate,
@@ -1384,57 +1394,6 @@ def test_transfer_stake(mock_substrate, subtensor, fake_wallet, mocker, wait):
         },
         wait_for_finalization=wait,
         wait_for_inclusion=wait,
-    )
-
-
-@pytest.mark.parametrize(
-    "side_effect",
-    (
-        (
-            unittest.mock.Mock(
-                error_message="ERROR",
-                is_success=False,
-            ),
-        ),
-        RuntimeError,
-    ),
-)
-def test_transfer_stake_error(
-    mock_substrate, subtensor, fake_wallet, mocker, side_effect
-):
-    mocker.patch.object(
-        subtensor,
-        "get_hotkey_owner",
-        autospec=True,
-        return_value=fake_wallet.coldkeypub.ss58_address,
-    )
-    mock_substrate.submit_extrinsic.return_value = side_effect
-
-    success = subtensor.transfer_stake(
-        fake_wallet,
-        "dest",
-        "hotkey_ss58",
-        origin_netuid=1,
-        destination_netuid=1,
-        amount=Balance(1),
-    )
-
-    assert success is False
-
-    assert_submit_signed_extrinsic(
-        mock_substrate,
-        fake_wallet.coldkey,
-        call_module="SubtensorModule",
-        call_function="transfer_stake",
-        call_params={
-            "destination_coldkey": "dest",
-            "hotkey": "hotkey_ss58",
-            "origin_netuid": 1,
-            "destination_netuid": 1,
-            "alpha_amount": 1,
-        },
-        wait_for_finalization=True,
-        wait_for_inclusion=True,
     )
 
 
@@ -1453,7 +1412,7 @@ def test_transfer_stake_insufficient_stake(
         "get_stake",
         return_value=Balance(0),
     ):
-        success = subtensor.transfer_stake(
+        success, message = subtensor.transfer_stake(
             fake_wallet,
             "dest",
             "hotkey_ss58",
@@ -1463,6 +1422,7 @@ def test_transfer_stake_insufficient_stake(
         )
 
         assert success is False
+        assert "Insufficient stake in origin hotkey" in message
 
     mock_substrate.submit_extrinsic.assert_not_called()
 
