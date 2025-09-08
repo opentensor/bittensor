@@ -282,6 +282,11 @@ class ExtrinsicResponse:
     This class is designed to give developers a consistent way to represent the outcome of an extrinsic call — whether
     it succeeded or failed — along with useful metadata for debugging, logging, or higher-level business logic.
 
+    The object also implements tuple-like behavior:
+      * Iteration yields ``(success, message)``.
+      * Indexing is supported: ``response[0] -> success``, ``response[1] -> message``.
+      * ``len(response)`` returns 2.
+
     Attributes:
         success: Indicates if the extrinsic execution was successful.
         message: A status or informational message returned from the execution (e.g., "Successfully registered subnet").
@@ -310,6 +315,11 @@ class ExtrinsicResponse:
         print(success, message)
 
         True Successfully registered subnet
+
+        print(response[0])
+        True
+        print(response[1])
+        'Successfully registered subnet'
     """
 
     success: bool = True
