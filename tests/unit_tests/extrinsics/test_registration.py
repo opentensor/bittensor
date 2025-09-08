@@ -1,6 +1,6 @@
 import pytest
 from bittensor_wallet import Wallet
-
+from bittensor.core.types import ExtrinsicResponse
 from bittensor.core.extrinsics import registration
 from bittensor.core.subtensor import Subtensor
 from bittensor.utils.registration import POWSolution
@@ -203,7 +203,7 @@ def test_burned_register_extrinsic(
     mocker.patch.object(
         mock_subtensor,
         "sign_and_send_extrinsic",
-        return_value=(recycle_success, "Mock error message"),
+        return_value=ExtrinsicResponse(recycle_success, "Mock error message"),
     )
     mocker.patch.object(
         mock_subtensor, "is_hotkey_registered", return_value=is_registered
@@ -214,7 +214,7 @@ def test_burned_register_extrinsic(
         subtensor=mock_subtensor, wallet=mock_wallet, netuid=123
     )
     # Assert
-    assert result == expected_result, f"Test failed for test_id: {test_id}"
+    assert result.success == expected_result, f"Test failed for test_id: {test_id}"
 
 
 def test_set_subnet_identity_extrinsic_is_success(mock_subtensor, mock_wallet, mocker):
