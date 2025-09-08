@@ -1159,12 +1159,10 @@ def test_register(mock_substrate, subtensor, fake_wallet, mocker):
         return_value=NeuronInfo.get_null_neuron(),
     )
 
-    result = subtensor.register(
-        fake_wallet,
+    assert subtensor.register(
+        wallet=fake_wallet,
         netuid=1,
-    )
-
-    assert result is True
+    ).success
 
     subtensor.get_neuron_for_pubkey_and_subnet.assert_called_once_with(
         hotkey_ss58=fake_wallet.hotkey.ss58_address,
