@@ -100,7 +100,7 @@ def test_commit_reveal_v3_extrinsic_success_with_torch(
 
     # Asserts
     assert success is True
-    assert message == "reveal_round:1"
+    assert message == "Success"
     mocked_convert_weights_and_uids_for_emit.assert_called_once_with(
         fake_uids, fake_weights
     )
@@ -170,7 +170,7 @@ def test_commit_reveal_v3_extrinsic_success_with_numpy(
 
     # Asserts
     assert success is True
-    assert message == "reveal_round:0"
+    assert message == "Success"
     mock_convert.assert_called_once_with(fake_uids, fake_weights)
     mock_encode_drand.assert_called_once()
     mocked_sign_and_send_extrinsic.assert_called_once_with(
