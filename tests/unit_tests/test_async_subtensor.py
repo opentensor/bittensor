@@ -1735,7 +1735,7 @@ async def test_sign_and_send_extrinsic_success_finalization(
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
-    assert result == (True, "")
+    assert result == (True, "Success")
 
 
 @pytest.mark.asyncio
