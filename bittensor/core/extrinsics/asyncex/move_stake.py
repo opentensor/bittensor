@@ -1,6 +1,8 @@
 import asyncio
 from typing import TYPE_CHECKING, Optional
 
+from bittensor.core.types import ExtrinsicResponse
+from bittensor.utils import get_function_name
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 
@@ -49,7 +51,7 @@ async def transfer_stake_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> bool:
+) -> ExtrinsicResponse:
     """
     Transfers stake from one coldkey to another in the Bittensor network.
 
@@ -69,7 +71,7 @@ async def transfer_stake_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        bool: True if the transfer was successful, False otherwise.
+        ExtrinsicResponse: The result object of the extrinsic execution.
     """
 
     amount.set_unit(netuid=origin_netuid)
@@ -85,71 +87,65 @@ async def transfer_stake_extrinsic(
         destination_netuid=destination_netuid,
     )
     if stake_in_origin < amount:
-        logging.error(
-            f":cross_mark: [red]Failed[/red]: Insufficient stake in origin hotkey: {hotkey_ss58}. "
-            f"Stake: {stake_in_origin}, amount: {amount}"
-        )
-        return False
+        message = f"Insufficient stake in origin hotkey: {hotkey_ss58}. Stake: {stake_in_origin}, amount: {amount}."
+        logging.error(f":cross_mark: [red]Failed[/red]: {message}")
+        return ExtrinsicResponse(False, message)
 
-    try:
+    logging.info(
+        f"Transferring stake from coldkey [blue]{wallet.coldkeypub.ss58_address}[/blue] to coldkey "
+        f"[blue]{destination_coldkey_ss58}[/blue]\n"
+        f"Amount: [green]{amount}[/green] from netuid [yellow]{origin_netuid}[/yellow] to netuid "
+        f"[yellow]{destination_netuid}[/yellow]"
+    )
+    call = await subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="transfer_stake",
+        call_params={
+            "destination_coldkey": destination_coldkey_ss58,
+            "hotkey": hotkey_ss58,
+            "origin_netuid": origin_netuid,
+            "destination_netuid": destination_netuid,
+            "alpha_amount": amount.rao,
+        },
+    )
+
+    response = await subtensor.sign_and_send_extrinsic(
+        call=call,
+        wallet=wallet,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+        period=period,
+        raise_error=raise_error,
+        calling_function=get_function_name(),
+    )
+
+    if response.success:
+        if not wait_for_finalization and not wait_for_inclusion:
+            return response
+
+        logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
+
+        # Get updated stakes
+        origin_stake, dest_stake = await _get_stake_in_origin_and_dest(
+            subtensor=subtensor,
+            origin_hotkey_ss58=hotkey_ss58,
+            destination_hotkey_ss58=hotkey_ss58,
+            origin_coldkey_ss58=wallet.coldkeypub.ss58_address,
+            destination_coldkey_ss58=destination_coldkey_ss58,
+            origin_netuid=origin_netuid,
+            destination_netuid=destination_netuid,
+        )
         logging.info(
-            f"Transferring stake from coldkey [blue]{wallet.coldkeypub.ss58_address}[/blue] to coldkey "
-            f"[blue]{destination_coldkey_ss58}[/blue]\n"
-            f"Amount: [green]{amount}[/green] from netuid [yellow]{origin_netuid}[/yellow] to netuid "
-            f"[yellow]{destination_netuid}[/yellow]"
+            f"Origin Stake: [blue]{stake_in_origin}[/blue] :arrow_right: [green]{origin_stake}[/green]"
         )
-        call = await subtensor.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="transfer_stake",
-            call_params={
-                "destination_coldkey": destination_coldkey_ss58,
-                "hotkey": hotkey_ss58,
-                "origin_netuid": origin_netuid,
-                "destination_netuid": destination_netuid,
-                "alpha_amount": amount.rao,
-            },
+        logging.info(
+            f"Destination Stake: [blue]{stake_in_destination}[/blue] :arrow_right: [green]{dest_stake}[/green]"
         )
 
-        success, message = await subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            period=period,
-            raise_error=raise_error,
-        )
+        return response
 
-        if success:
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True
-
-            logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
-
-            # Get updated stakes
-            origin_stake, dest_stake = await _get_stake_in_origin_and_dest(
-                subtensor=subtensor,
-                origin_hotkey_ss58=hotkey_ss58,
-                destination_hotkey_ss58=hotkey_ss58,
-                origin_coldkey_ss58=wallet.coldkeypub.ss58_address,
-                destination_coldkey_ss58=destination_coldkey_ss58,
-                origin_netuid=origin_netuid,
-                destination_netuid=destination_netuid,
-            )
-            logging.info(
-                f"Origin Stake: [blue]{stake_in_origin}[/blue] :arrow_right: [green]{origin_stake}[/green]"
-            )
-            logging.info(
-                f"Destination Stake: [blue]{stake_in_destination}[/blue] :arrow_right: [green]{dest_stake}[/green]"
-            )
-
-            return True
-        else:
-            logging.error(f":cross_mark: [red]Failed[/red]: {message}")
-            return False
-
-    except Exception as e:
-        logging.error(f":cross_mark: [red]Failed[/red]: {str(e)}")
-        return False
+    logging.error(f":cross_mark: [red]Failed[/red]: {response.message}")
+    return response
 
 
 async def swap_stake_extrinsic(
@@ -166,7 +162,7 @@ async def swap_stake_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> bool:
+) -> ExtrinsicResponse:
     """
     Swaps stake from one subnet to another for a given hotkey in the Bittensor network.
 
@@ -189,7 +185,7 @@ async def swap_stake_extrinsic(
 
 
     Returns:
-        success (bool): True if the swap was successful.
+        ExtrinsicResponse: The result object of the extrinsic execution.
     """
     amount.set_unit(netuid=origin_netuid)
 
@@ -203,102 +199,98 @@ async def swap_stake_extrinsic(
         origin_netuid=origin_netuid,
         destination_netuid=destination_netuid,
     )
+
     if stake_in_origin < amount:
+        message = f"Insufficient stake in origin hotkey: {hotkey_ss58}. Stake: {stake_in_origin}, amount: {amount}."
+        logging.error(f":cross_mark: [red]Failed[/red]: {message}")
+        return ExtrinsicResponse(False, message, extrinsic_function=get_function_name())
+
+    call_params = {
+        "hotkey": hotkey_ss58,
+        "origin_netuid": origin_netuid,
+        "destination_netuid": destination_netuid,
+        "alpha_amount": amount.rao,
+    }
+
+    if safe_swapping:
+        origin_pool, destination_pool = await asyncio.gather(
+            subtensor.subnet(netuid=origin_netuid),
+            subtensor.subnet(netuid=destination_netuid),
+        )
+        swap_rate_ratio = origin_pool.price.rao / destination_pool.price.rao
+        swap_rate_ratio_with_tolerance = swap_rate_ratio * (1 + rate_tolerance)
+
+        logging.info(
+            f"Swapping stake with safety for hotkey [blue]{hotkey_ss58}[/blue]\n"
+            f"Amount: [green]{amount}[/green] from netuid [green]{origin_netuid}[/green] to netuid "
+            f"[green]{destination_netuid}[/green]\n"
+            f"Current price ratio: [green]{swap_rate_ratio:.4f}[/green], "
+            f"Ratio with tolerance: [green]{swap_rate_ratio_with_tolerance:.4f}[/green]"
+        )
+        call_params.update(
+            {
+                "limit_price": swap_rate_ratio_with_tolerance,
+                "allow_partial": allow_partial_stake,
+            }
+        )
+        call_function = "swap_stake_limit"
+    else:
+        logging.info(
+            f"Swapping stake for hotkey [blue]{hotkey_ss58}[/blue]\n"
+            f"Amount: [green]{amount}[/green] from netuid [green]{origin_netuid}[/green] to netuid "
+            f"[green]{destination_netuid}[/green]"
+        )
+        call_function = "swap_stake"
+
+    call = await subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function=call_function,
+        call_params=call_params,
+    )
+
+    response = await subtensor.sign_and_send_extrinsic(
+        call=call,
+        wallet=wallet,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+        period=period,
+        raise_error=raise_error,
+        calling_function=get_function_name(),
+    )
+
+    if response.success:
+        if not wait_for_finalization and not wait_for_inclusion:
+            return response
+
+        logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
+
+        # Get updated stakes
+        origin_stake, dest_stake = await _get_stake_in_origin_and_dest(
+            subtensor,
+            origin_hotkey_ss58=hotkey_ss58,
+            destination_hotkey_ss58=hotkey_ss58,
+            origin_coldkey_ss58=wallet.coldkeypub.ss58_address,
+            destination_coldkey_ss58=wallet.coldkeypub.ss58_address,
+            origin_netuid=origin_netuid,
+            destination_netuid=destination_netuid,
+        )
+        logging.info(
+            f"Origin Stake: [blue]{stake_in_origin}[/blue] :arrow_right: [green]{origin_stake}[/green]"
+        )
+        logging.info(
+            f"Destination Stake: [blue]{stake_in_destination}[/blue] :arrow_right: [green]{dest_stake}[/green]"
+        )
+
+        return response
+
+    if safe_swapping and "Custom error: 8" in response.message:
         logging.error(
-            f":cross_mark: [red]Failed[/red]: Insufficient stake in origin hotkey: {hotkey_ss58}. "
-            f"Stake: {stake_in_origin}, amount: {amount}"
+            ":cross_mark: [red]Failed[/red]: Price ratio exceeded tolerance limit. Either increase price tolerance or enable partial staking."
         )
-        return False
+    else:
+        logging.error(f":cross_mark: [red]Failed[/red]: {response.message}")
 
-    try:
-        call_params = {
-            "hotkey": hotkey_ss58,
-            "origin_netuid": origin_netuid,
-            "destination_netuid": destination_netuid,
-            "alpha_amount": amount.rao,
-        }
-
-        if safe_swapping:
-            origin_pool, destination_pool = await asyncio.gather(
-                subtensor.subnet(netuid=origin_netuid),
-                subtensor.subnet(netuid=destination_netuid),
-            )
-            swap_rate_ratio = origin_pool.price.rao / destination_pool.price.rao
-            swap_rate_ratio_with_tolerance = swap_rate_ratio * (1 + rate_tolerance)
-
-            logging.info(
-                f"Swapping stake with safety for hotkey [blue]{hotkey_ss58}[/blue]\n"
-                f"Amount: [green]{amount}[/green] from netuid [green]{origin_netuid}[/green] to netuid "
-                f"[green]{destination_netuid}[/green]\n"
-                f"Current price ratio: [green]{swap_rate_ratio:.4f}[/green], "
-                f"Ratio with tolerance: [green]{swap_rate_ratio_with_tolerance:.4f}[/green]"
-            )
-            call_params.update(
-                {
-                    "limit_price": swap_rate_ratio_with_tolerance,
-                    "allow_partial": allow_partial_stake,
-                }
-            )
-            call_function = "swap_stake_limit"
-        else:
-            logging.info(
-                f"Swapping stake for hotkey [blue]{hotkey_ss58}[/blue]\n"
-                f"Amount: [green]{amount}[/green] from netuid [green]{origin_netuid}[/green] to netuid "
-                f"[green]{destination_netuid}[/green]"
-            )
-            call_function = "swap_stake"
-
-        call = await subtensor.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function=call_function,
-            call_params=call_params,
-        )
-
-        success, err_msg = await subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            period=period,
-            raise_error=raise_error,
-        )
-
-        if success:
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True
-
-            logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
-
-            # Get updated stakes
-            origin_stake, dest_stake = await _get_stake_in_origin_and_dest(
-                subtensor,
-                origin_hotkey_ss58=hotkey_ss58,
-                destination_hotkey_ss58=hotkey_ss58,
-                origin_coldkey_ss58=wallet.coldkeypub.ss58_address,
-                destination_coldkey_ss58=wallet.coldkeypub.ss58_address,
-                origin_netuid=origin_netuid,
-                destination_netuid=destination_netuid,
-            )
-            logging.info(
-                f"Origin Stake: [blue]{stake_in_origin}[/blue] :arrow_right: [green]{origin_stake}[/green]"
-            )
-            logging.info(
-                f"Destination Stake: [blue]{stake_in_destination}[/blue] :arrow_right: [green]{dest_stake}[/green]"
-            )
-
-            return True
-        else:
-            if safe_swapping and "Custom error: 8" in err_msg:
-                logging.error(
-                    ":cross_mark: [red]Failed[/red]: Price ratio exceeded tolerance limit. Either increase price tolerance or enable partial staking."
-                )
-            else:
-                logging.error(f":cross_mark: [red]Failed[/red]: {err_msg}")
-            return False
-
-    except Exception as e:
-        logging.error(f":cross_mark: [red]Failed[/red]: {str(e)}")
-        return False
+    return response
 
 
 async def move_stake_extrinsic(
@@ -314,7 +306,7 @@ async def move_stake_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> bool:
+) -> ExtrinsicResponse:
     """
     Moves stake from one hotkey to another within subnets in the Bittensor network.
 
@@ -335,13 +327,14 @@ async def move_stake_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        success: True if the move was successful. Otherwise, False.
+        ExtrinsicResponse: The result object of the extrinsic execution.
     """
     if not amount and not move_all_stake:
-        logging.error(
-            ":cross_mark: [red]Failed[/red]: Please specify an `amount` or `move_all_stake` argument to move stake."
+        message = (
+            "Please specify an `amount` or `move_all_stake` argument to move stake."
         )
-        return False
+        logging.error(f":cross_mark: [red]Failed[/red]: {message}")
+        return ExtrinsicResponse(False, message, extrinsic_function=get_function_name())
 
     # Check sufficient stake
     stake_in_origin, stake_in_destination = await _get_stake_in_origin_and_dest(
@@ -357,69 +350,63 @@ async def move_stake_extrinsic(
         amount = stake_in_origin
 
     elif stake_in_origin < amount:
-        logging.error(
-            f":cross_mark: [red]Failed[/red]: Insufficient stake in origin hotkey: {origin_hotkey_ss58}. "
-            f"Stake: {stake_in_origin}, amount: {amount}"
-        )
-        return False
+        message = f"Insufficient stake in origin hotkey: {origin_hotkey_ss58}. Stake: {stake_in_origin}, amount: {amount}."
+        logging.error(f":cross_mark: [red]Failed[/red]: {message}")
+        return ExtrinsicResponse(False, message, extrinsic_function=get_function_name())
 
     amount.set_unit(netuid=origin_netuid)
 
-    try:
+    logging.info(
+        f"Moving stake from hotkey [blue]{origin_hotkey_ss58}[/blue] to hotkey [blue]{destination_hotkey_ss58}[/blue]\n"
+        f"Amount: [green]{amount}[/green] from netuid [yellow]{origin_netuid}[/yellow] to netuid "
+        f"[yellow]{destination_netuid}[/yellow]"
+    )
+    call = await subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="move_stake",
+        call_params={
+            "origin_hotkey": origin_hotkey_ss58,
+            "origin_netuid": origin_netuid,
+            "destination_hotkey": destination_hotkey_ss58,
+            "destination_netuid": destination_netuid,
+            "alpha_amount": amount.rao,
+        },
+    )
+
+    response = await subtensor.sign_and_send_extrinsic(
+        call=call,
+        wallet=wallet,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+        period=period,
+        raise_error=raise_error,
+        calling_function=get_function_name(),
+    )
+
+    if response.success:
+        if not wait_for_finalization and not wait_for_inclusion:
+            return response
+
+        logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
+
+        # Get updated stakes
+        origin_stake, dest_stake = await _get_stake_in_origin_and_dest(
+            subtensor=subtensor,
+            origin_hotkey_ss58=origin_hotkey_ss58,
+            destination_hotkey_ss58=destination_hotkey_ss58,
+            origin_coldkey_ss58=wallet.coldkeypub.ss58_address,
+            destination_coldkey_ss58=wallet.coldkeypub.ss58_address,
+            origin_netuid=origin_netuid,
+            destination_netuid=destination_netuid,
+        )
         logging.info(
-            f"Moving stake from hotkey [blue]{origin_hotkey_ss58}[/blue] to hotkey [blue]{destination_hotkey_ss58}[/blue]\n"
-            f"Amount: [green]{amount}[/green] from netuid [yellow]{origin_netuid}[/yellow] to netuid "
-            f"[yellow]{destination_netuid}[/yellow]"
+            f"Origin Stake: [blue]{stake_in_origin}[/blue] :arrow_right: [green]{origin_stake}[/green]"
         )
-        call = await subtensor.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="move_stake",
-            call_params={
-                "origin_hotkey": origin_hotkey_ss58,
-                "origin_netuid": origin_netuid,
-                "destination_hotkey": destination_hotkey_ss58,
-                "destination_netuid": destination_netuid,
-                "alpha_amount": amount.rao,
-            },
+        logging.info(
+            f"Destination Stake: [blue]{stake_in_destination}[/blue] :arrow_right: [green]{dest_stake}[/green]"
         )
 
-        success, message = await subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            period=period,
-            raise_error=raise_error,
-        )
+        return response
 
-        if success:
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True
-
-            logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
-
-            # Get updated stakes
-            origin_stake, dest_stake = await _get_stake_in_origin_and_dest(
-                subtensor=subtensor,
-                origin_hotkey_ss58=origin_hotkey_ss58,
-                destination_hotkey_ss58=destination_hotkey_ss58,
-                origin_coldkey_ss58=wallet.coldkeypub.ss58_address,
-                destination_coldkey_ss58=wallet.coldkeypub.ss58_address,
-                origin_netuid=origin_netuid,
-                destination_netuid=destination_netuid,
-            )
-            logging.info(
-                f"Origin Stake: [blue]{stake_in_origin}[/blue] :arrow_right: [green]{origin_stake}[/green]"
-            )
-            logging.info(
-                f"Destination Stake: [blue]{stake_in_destination}[/blue] :arrow_right: [green]{dest_stake}[/green]"
-            )
-
-            return True
-        else:
-            logging.error(f":cross_mark: [red]Failed[/red]: {message}")
-            return False
-
-    except Exception as e:
-        logging.error(f":cross_mark: [red]Failed[/red]: {str(e)}")
-        return False
+    logging.error(f":cross_mark: [red]Failed[/red]: {response.message}")
+    return response
