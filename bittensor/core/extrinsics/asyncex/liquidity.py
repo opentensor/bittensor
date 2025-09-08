@@ -43,9 +43,7 @@ async def add_liquidity_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        Tuple[bool, str]:
-            - True and a success message if the extrinsic is successfully submitted or processed.
-            - False and an error message if the submission fails or the wallet cannot be unlocked.
+        ExtrinsicResponse: The result object of the extrinsic execution.
 
     Note: Adding is allowed even when user liquidity is enabled in specified subnet. Call
     `toggle_user_liquidity_extrinsic` to enable/disable user liquidity.
@@ -112,9 +110,7 @@ async def modify_liquidity_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        Tuple[bool, str]:
-            - True and a success message if the extrinsic is successfully submitted or processed.
-            - False and an error message if the submission fails or the wallet cannot be unlocked.
+        ExtrinsicResponse: The result object of the extrinsic execution.
 
     Note: Modifying is allowed even when user liquidity is enabled in specified subnet.
         Call `toggle_user_liquidity_extrinsic` to enable/disable user liquidity.
@@ -175,9 +171,7 @@ async def remove_liquidity_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        Tuple[bool, str]:
-            - True and a success message if the extrinsic is successfully submitted or processed.
-            - False and an error message if the submission fails or the wallet cannot be unlocked.
+        ExtrinsicResponse: The result object of the extrinsic execution.
 
     Note: Adding is allowed even when user liquidity is enabled in specified subnet. Call
     `toggle_user_liquidity_extrinsic` to enable/disable user liquidity.
@@ -235,9 +229,7 @@ async def toggle_user_liquidity_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        Tuple[bool, str]:
-            - True and a success message if the extrinsic is successfully submitted or processed.
-            - False and an error message if the submission fails or the wallet cannot be unlocked.
+        ExtrinsicResponse: The result object of the extrinsic execution.
     """
     if not (unlock := unlock_key(wallet)).success:
         logging.error(unlock.message)
