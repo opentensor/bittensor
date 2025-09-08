@@ -228,3 +228,4 @@ wait_for_finalization: bool = False,
 All extrinsics and related subtensor calls now return an object of class `bittensor.core.types.ExtrinsicResponse`
 Additional changes in extrinsics:
   - with `commit_reveal_extrinsic` or `subtensor.set_weights` (with `commit_reveal_enabled=True`), the response is the usual `ExtrinsicResponse` (`success` and `message` unchanged), plus field `data` holds the numeric `reveal_round`.
+  - in positive case, all extrinsics return `response.message = "Success"`
