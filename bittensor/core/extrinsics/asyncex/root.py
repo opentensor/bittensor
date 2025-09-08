@@ -1,7 +1,8 @@
 import asyncio
 from typing import Optional, TYPE_CHECKING
 
-from bittensor.utils import u16_normalized_float, unlock_key
+from bittensor.core.types import ExtrinsicResponse
+from bittensor.utils import u16_normalized_float, unlock_key, get_function_name
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 
@@ -41,7 +42,7 @@ async def root_register_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> bool:
+) -> ExtrinsicResponse:
     """
     Registers the neuron to the root network.
 
@@ -56,8 +57,14 @@ async def root_register_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        bool: True if the subnet registration was successful, False otherwise.
+        ExtrinsicResponse: The result object of the extrinsic execution.
     """
+    if not (unlock := unlock_key(wallet)).success:
+        logging.error(unlock.message)
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
+        )
+
     netuid = 0
     logging.info(
         f"Registering on netuid [blue]{netuid}[/blue] on network: [blue]{subtensor.network}[/blue]"
@@ -80,15 +87,9 @@ async def root_register_extrinsic(
     current_recycle = Balance.from_rao(int(recycle_call))
 
     if balance < current_recycle:
-        logging.error(
-            f"[red]Insufficient balance {balance} to register neuron. "
-            f"Current recycle is {current_recycle} TAO[/red]."
-        )
-        return False
-
-    if not (unlock := unlock_key(wallet)).success:
-        logging.error(unlock.message)
-        return False
+        message = f"Insufficient balance {balance} to register neuron. Current recycle is {current_recycle} TAO"
+        logging.error(f"[red]{message}[/red].")
+        return ExtrinsicResponse(False, message, extrinsic_function=get_function_name())
 
     logging.debug(
         f"Checking if hotkey ([blue]{wallet.hotkey_str}[/blue]) is registered on root."
@@ -97,10 +98,11 @@ async def root_register_extrinsic(
         netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
     )
     if is_registered:
-        logging.error(
-            ":white_heavy_check_mark: [green]Already registered on root network.[/green]"
+        message = "Already registered on root network."
+        logging.error(f":white_heavy_check_mark: [green]{message}[/green]")
+        return ExtrinsicResponse(
+            message=message, extrinsic_function=get_function_name()
         )
-        return True
 
     logging.info(":satellite: [magenta]Registering to root network...[/magenta]")
     call = await subtensor.substrate.compose_call(
@@ -108,7 +110,7 @@ async def root_register_extrinsic(
         call_function="root_register",
         call_params={"hotkey": wallet.hotkey.ss58_address},
     )
-    success, message = await subtensor.sign_and_send_extrinsic(
+    response = await subtensor.sign_and_send_extrinsic(
         call=call,
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
@@ -117,24 +119,25 @@ async def root_register_extrinsic(
         raise_error=raise_error,
     )
 
-    if not success:
-        logging.error(f":cross_mark: [red]Failed error:[/red] {message}")
+    if not response.success:
+        logging.error(f":cross_mark: [red]Failed error:[/red] {response.message}")
         await asyncio.sleep(0.5)
-        return False
+        return response
 
     # Successful registration, final check for neuron and pubkey
-    else:
-        uid = await subtensor.substrate.query(
-            module="SubtensorModule",
-            storage_function="Uids",
-            params=[netuid, wallet.hotkey.ss58_address],
+    uid = await subtensor.substrate.query(
+        module="SubtensorModule",
+        storage_function="Uids",
+        params=[netuid, wallet.hotkey.ss58_address],
+    )
+    if uid is not None:
+        response.data = {"uid": uid}
+        logging.info(
+            f":white_heavy_check_mark: [green]Registered with UID: {uid}[/green]."
         )
-        if uid is not None:
-            logging.info(
-                f":white_heavy_check_mark: [green]Registered with UID[/green] [blue]{uid}[/blue]."
-            )
-            return True
-        else:
-            # neuron not found, try again
-            logging.error(":cross_mark: [red]Unknown error. Neuron not found.[/red]")
-            return False
+        return response
+
+    # neuron not found, try again
+    message = "Unknown error. Neuron not found."
+    logging.error(f":cross_mark: [red]{message}[/red]")
+    return ExtrinsicResponse(False, message, extrinsic_function=get_function_name())
