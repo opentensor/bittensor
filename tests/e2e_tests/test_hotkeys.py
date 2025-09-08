@@ -165,11 +165,8 @@ def test_children(subtensor, alice_wallet, bob_wallet, dave_wallet):
     success, message = subtensor.extrinsics.root_set_pending_childkey_cooldown(
         wallet=alice_wallet, cooldown=ROOT_COOLDOWN
     )
-    assert success, f"Call `root_set_pending_childkey_cooldown` failed: {message}"
-    assert (
-        message
-        == "Success with `root_set_pending_childkey_cooldown_extrinsic` response."
-    )
+    assert success is True, message
+    assert message == "Success"
 
     assert subtensor.subnets.register_subnet(dave_wallet)
     assert subtensor.subnets.subnet_exists(dave_subnet_netuid), (
@@ -327,9 +324,8 @@ def test_children(subtensor, alice_wallet, bob_wallet, dave_wallet):
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
-
-    assert message == "Success with `set_children_extrinsic` response."
-    assert success is True
+    assert success is True, message
+    assert message == "Success"
 
     set_children_block = subtensor.block
 
@@ -413,7 +409,8 @@ def test_children(subtensor, alice_wallet, bob_wallet, dave_wallet):
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
-    assert success, message
+    assert success is True, message
+    assert message == "Success"
 
     set_children_block = subtensor.block
 
@@ -491,11 +488,8 @@ async def test_children_async(async_subtensor, alice_wallet, bob_wallet, dave_wa
     ) = await async_subtensor.extrinsics.root_set_pending_childkey_cooldown(
         wallet=alice_wallet, cooldown=ROOT_COOLDOWN
     )
-    assert success, f"Call `root_set_pending_childkey_cooldown` failed: {message}"
-    assert (
-        message
-        == "Success with `root_set_pending_childkey_cooldown_extrinsic` response."
-    )
+    assert success is True, message
+    assert message == "Success"
 
     assert await async_subtensor.subnets.register_subnet(dave_wallet)
     assert await async_subtensor.subnets.subnet_exists(dave_subnet_netuid), (
@@ -656,8 +650,8 @@ async def test_children_async(async_subtensor, alice_wallet, bob_wallet, dave_wa
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
-    assert message == "Success with `set_children_extrinsic` response."
-    assert success is True
+    assert success is True, message
+    assert message == "Success"
     logging.console.info(f"[orange]success: {success}, message: {message}[/orange]")
 
     set_children_block = await async_subtensor.chain.get_current_block()
@@ -741,8 +735,8 @@ async def test_children_async(async_subtensor, alice_wallet, bob_wallet, dave_wa
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
-    assert message == "Success with `set_children_extrinsic` response."
-    assert success is True
+    assert success is True, message
+    assert message == "Success"
     logging.console.info(f"[orange]success: {success}, message: {message}[/orange]")
 
     set_children_block = await async_subtensor.chain.get_current_block()
