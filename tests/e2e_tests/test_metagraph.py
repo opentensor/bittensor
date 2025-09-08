@@ -75,7 +75,7 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     assert len(metagraph.uids) == 1, "Metagraph doesn't have exactly 1 neuron"
 
     logging.console.info("Register Bob to the subnet")
-    assert subtensor.subnets.burned_register(bob_wallet, alice_subnet_netuid), (
+    assert subtensor.subnets.burned_register(bob_wallet, alice_subnet_netuid).success, (
         "Unable to register Bob as a neuron"
     )
 
@@ -115,9 +115,9 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     metagraph_pre_dave = subtensor.metagraphs.metagraph(netuid=alice_subnet_netuid)
 
     logging.console.info("Register Dave as a neuron")
-    assert subtensor.subnets.burned_register(dave_wallet, alice_subnet_netuid), (
-        "Unable to register Dave as a neuron"
-    )
+    assert subtensor.subnets.burned_register(
+        dave_wallet, alice_subnet_netuid
+    ).success, "Unable to register Dave as a neuron"
 
     metagraph.sync(subtensor=subtensor._subtensor)
 
@@ -238,9 +238,11 @@ async def test_metagraph_async(async_subtensor, alice_wallet, bob_wallet, dave_w
         assert len(metagraph.uids) == 1, "Metagraph doesn't have exactly 1 neuron"
 
         logging.console.info("Register Bob to the subnet")
-        assert await async_subtensor.subnets.burned_register(
-            bob_wallet, alice_subnet_netuid
-        ), "Unable to register Bob as a neuron"
+        assert (
+            await async_subtensor.subnets.burned_register(
+                bob_wallet, alice_subnet_netuid
+            )
+        ).success, "Unable to register Bob as a neuron"
 
         logging.console.info("Refresh the metagraph")
         await metagraph.sync(subtensor=async_subtensor._subtensor)
@@ -282,9 +284,11 @@ async def test_metagraph_async(async_subtensor, alice_wallet, bob_wallet, dave_w
         )
 
         logging.console.info("Register Dave as a neuron")
-        assert await async_subtensor.subnets.burned_register(
-            dave_wallet, alice_subnet_netuid
-        ), "Unable to register Dave as a neuron"
+        assert (
+            await async_subtensor.subnets.burned_register(
+                dave_wallet, alice_subnet_netuid
+            )
+        ).success, "Unable to register Dave as a neuron"
 
         await metagraph.sync(subtensor=async_subtensor._subtensor)
 
@@ -560,7 +564,7 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
     assert subtensor.subnets.burned_register(
         bob_wallet,
         netuid=alice_subnet_netuid,
-    )
+    ).success
 
     metagraph_info = subtensor.metagraphs.get_metagraph_info(netuid=alice_subnet_netuid)
 
@@ -815,10 +819,12 @@ async def test_metagraph_info_async(async_subtensor, alice_wallet, bob_wallet):
         async_subtensor, alice_wallet, alice_subnet_netuid
     )
 
-    assert await async_subtensor.subnets.burned_register(
-        bob_wallet,
-        netuid=alice_subnet_netuid,
-    )
+    assert (
+        await async_subtensor.subnets.burned_register(
+            bob_wallet,
+            netuid=alice_subnet_netuid,
+        )
+    ).success
 
     metagraph_info = await async_subtensor.metagraphs.get_metagraph_info(
         netuid=alice_subnet_netuid
@@ -995,7 +1001,7 @@ def test_metagraph_info_with_indexes(subtensor, alice_wallet, bob_wallet):
     assert subtensor.subnets.burned_register(
         wallet=bob_wallet,
         netuid=alice_subnet_netuid,
-    )
+    ).success
 
     fields = [
         SelectiveMetagraphIndex.Name,
@@ -1228,10 +1234,12 @@ async def test_metagraph_info_with_indexes_async(
         async_subtensor, alice_wallet, alice_subnet_netuid
     )
 
-    assert await async_subtensor.subnets.burned_register(
-        wallet=bob_wallet,
-        netuid=alice_subnet_netuid,
-    )
+    assert (
+        await async_subtensor.subnets.burned_register(
+            wallet=bob_wallet,
+            netuid=alice_subnet_netuid,
+        )
+    ).success
 
     fields = [
         SelectiveMetagraphIndex.Name,
