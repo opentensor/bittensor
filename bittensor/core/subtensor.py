@@ -3301,7 +3301,7 @@ class Subtensor(SubtensorMixin):
                 return extrinsic_response
 
             if response.is_success:
-                extrinsic_response.message = ""
+                extrinsic_response.message = "Success"
                 return extrinsic_response
 
             response_error_message = response.error_message
