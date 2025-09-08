@@ -16,7 +16,9 @@ def test_set_children_extrinsic(subtensor, mocker, fake_wallet):
 
     subtensor.substrate.compose_call = mocker.Mock()
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, "")
+        subtensor,
+        "sign_and_send_extrinsic",
+        return_value=ExtrinsicResponse(True, "Success"),
     )
 
     # Call
@@ -65,7 +67,9 @@ def test_root_set_pending_childkey_cooldown_extrinsic(subtensor, mocker, fake_wa
 
     subtensor.substrate.compose_call = mocker.Mock()
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, "")
+        subtensor,
+        "sign_and_send_extrinsic",
+        return_value=ExtrinsicResponse(True, "Success"),
     )
 
     # Call
