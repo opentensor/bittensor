@@ -349,3 +349,14 @@ class ExtrinsicResponse:
                 and self.extrinsic == other.extrinsic
             )
         return super().__eq__(other)
+
+    def __getitem__(self, index: int) -> Any:
+        if index == 0:
+            return self.success
+        elif index == 1:
+            return self.message
+        else:
+            raise IndexError("ExtrinsicResponse only supports indices 0 (success) and 1 (message).")
+
+    def __len__(self):
+        return 2
