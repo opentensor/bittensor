@@ -10,7 +10,8 @@ import time
 from typing import Optional, Union, TYPE_CHECKING
 
 from bittensor.core.extrinsics.utils import get_extrinsic_fee
-from bittensor.utils import unlock_key
+from bittensor.core.types import ExtrinsicResponse
+from bittensor.utils import unlock_key, get_function_name
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import create_pow, log_no_torch_error, torch
 
@@ -27,7 +28,7 @@ def burned_register_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> bool:
+) -> ExtrinsicResponse:
     """Registers the wallet to chain by recycling TAO.
 
     Parameters:
@@ -42,18 +43,24 @@ def burned_register_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        success: True if the extrinsic was successful. Otherwise, False.
+        ExtrinsicResponse: The result object of the extrinsic execution.
     """
     block = subtensor.get_current_block()
     if not subtensor.subnet_exists(netuid, block=block):
         logging.error(
             f":cross_mark: [red]Failed error:[/red] subnet [blue]{netuid}[/blue] does not exist."
         )
-        return False
+        return ExtrinsicResponse(
+            False,
+            f"Subnet #{netuid} does not exist",
+            extrinsic_function=get_function_name(),
+        )
 
     if not (unlock := unlock_key(wallet)).success:
         logging.error(unlock.message)
-        return False
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
+        )
 
     logging.info(
         f":satellite: [magenta]Checking Account on subnet[/magenta] [blue]{netuid}[/blue][magenta] ...[/magenta]"
@@ -65,12 +72,15 @@ def burned_register_extrinsic(
     old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address, block=block)
 
     if not neuron.is_null:
-        logging.info(":white_heavy_check_mark: [green]Already Registered[/green]")
+        message = "Already registered."
+        logging.info(f":white_heavy_check_mark: [green]{message}[/green]")
         logging.info(f"\t\tuid: [blue]{neuron.uid}[/blue]")
         logging.info(f"\t\tnetuid: [blue]{neuron.netuid}[/blue]")
         logging.info(f"\t\thotkey: [blue]{neuron.hotkey}[/blue]")
         logging.info(f"\t\tcoldkey: [blue]{neuron.coldkey}[/blue]")
-        return True
+        return ExtrinsicResponse(
+            message=message, extrinsic_function=get_function_name()
+        )
 
     recycle_amount = subtensor.recycle(netuid=netuid, block=block)
     logging.debug(":satellite: [magenta]Recycling TAO for Registration...[/magenta]")
@@ -89,19 +99,20 @@ def burned_register_extrinsic(
     logging.info(
         f"The registration fee for SN #[blue]{netuid}[/blue] is [blue]{fee}[/blue]."
     )
-    success, message = subtensor.sign_and_send_extrinsic(
+    response = subtensor.sign_and_send_extrinsic(
         call=call,
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
         period=period,
         raise_error=raise_error,
+        calling_function=get_function_name(),
     )
 
-    if not success:
-        logging.error(f":cross_mark: [red]Failed error:[/red] {message}")
+    if not response.success:
+        logging.error(f":cross_mark: [red]Failed error:[/red] {response.message}")
         time.sleep(0.5)
-        return False
+        return response
 
     # TODO: It is worth deleting everything below and simply returning the result without additional verification. This
     #  should be the responsibility of the user. We will also reduce the number of calls to the chain.
@@ -117,12 +128,16 @@ def burned_register_extrinsic(
         netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address, block=block
     )
     if is_registered:
-        logging.info(":white_heavy_check_mark: [green]Registered[/green]")
-        return True
+        message = "Registered"
+        logging.info(f":white_heavy_check_mark: [green]{message}[/green]")
+        return response
 
     # neuron not found, try again
-    logging.error(":cross_mark: [red]Unknown error. Neuron not found.[/red]")
-    return False
+    message = "Unknown error. Neuron not found."
+    logging.error(f":cross_mark: [red]{message}[/red]")
+    response.success = False
+    response.message = message
+    return response
 
 
 def register_subnet_extrinsic(
@@ -132,7 +147,7 @@ def register_subnet_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> bool:
+) -> ExtrinsicResponse:
     """
     Registers a new subnetwork on the Bittensor blockchain.
 
@@ -147,16 +162,15 @@ def register_subnet_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        bool: True if the subnet registration was successful, False otherwise.
+        ExtrinsicResponse: The result object of the extrinsic execution.
     """
     balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
     burn_cost = subtensor.get_subnet_burn_cost()
 
     if burn_cost > balance:
-        logging.error(
-            f"Insufficient balance {balance} to register subnet. Current burn cost is {burn_cost} TAO"
-        )
-        return False
+        message = f"Insufficient balance {balance} to register subnet. Current burn cost is {burn_cost} TAO."
+        logging.error(message)
+        return ExtrinsicResponse(False, message, extrinsic_function=get_function_name())
 
     call = subtensor.substrate.compose_call(
         call_module="SubtensorModule",
@@ -167,26 +181,27 @@ def register_subnet_extrinsic(
         },
     )
 
-    success, message = subtensor.sign_and_send_extrinsic(
+    response = subtensor.sign_and_send_extrinsic(
         call=call,
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
         period=period,
         raise_error=raise_error,
+        calling_function=get_function_name(),
     )
 
     if not wait_for_finalization and not wait_for_inclusion:
-        return True
+        return response
 
-    if success:
+    if response.success:
         logging.success(
             ":white_heavy_check_mark: [green]Successfully registered subnet[/green]"
         )
-        return True
+        return response
 
-    logging.error(f"Failed to register subnet: {message}")
-    return False
+    logging.error(f"Failed to register subnet: {response.message}")
+    return response
 
 
 def register_extrinsic(
@@ -205,7 +220,7 @@ def register_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> bool:
+) -> ExtrinsicResponse:
     """Registers a neuron on the Bittensor subnet with provided netuid using the provided wallet.
 
     Parameters:
@@ -228,16 +243,15 @@ def register_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        bool: True if the subnet registration was successful, False otherwise.
+        ExtrinsicResponse: The result object of the extrinsic execution.
     """
 
     logging.debug("[magenta]Checking subnet status... [/magenta]")
     block = subtensor.get_current_block()
     if not subtensor.subnet_exists(netuid, block=block):
-        logging.error(
-            f":cross_mark: [red]Failed error:[/red] subnet [blue]{netuid}[/blue] does not exist."
-        )
-        return False
+        message = f"Subnet #{netuid} does not exist."
+        logging.error(f":cross_mark: [red]Failed error:[/red] {message}")
+        return ExtrinsicResponse(False, message, extrinsic_function=get_function_name())
 
     logging.info(
         f":satellite: [magenta]Checking Account on subnet[/magenta] [blue]{netuid}[/blue] [magenta]...[/magenta]"
@@ -247,12 +261,13 @@ def register_extrinsic(
     )
 
     if not neuron.is_null:
-        logging.info(":white_heavy_check_mark: [green]Already Registered[/green]")
+        message = "Already registered."
+        logging.info(f":white_heavy_check_mark: [green]{message}[/green]")
         logging.info(f"\t\tuid: [blue]{neuron.uid}[/blue]")
         logging.info(f"\t\tnetuid: [blue]{neuron.netuid}[/blue]")
         logging.info(f"\t\thotkey: [blue]{neuron.hotkey}[/blue]")
         logging.info(f"\t\tcoldkey: [blue]{neuron.coldkey}[/blue]")
-        return True
+        return ExtrinsicResponse(True, message, extrinsic_function=get_function_name())
 
     logging.debug(
         f"Registration hotkey: <blue>{wallet.hotkey.ss58_address}</blue>, <green>Public</green> coldkey: "
@@ -261,7 +276,9 @@ def register_extrinsic(
 
     if not torch:
         log_no_torch_error()
-        return False
+        return ExtrinsicResponse(
+            False, "No torch installed.", extrinsic_function=get_function_name()
+        )
 
     # Attempt rolling registration.
     attempts = 1
@@ -273,7 +290,9 @@ def register_extrinsic(
         # Solve latest POW.
         if cuda:
             if not torch.cuda.is_available():
-                return False
+                return ExtrinsicResponse(
+                    False, "CUDA not available.", extrinsic_function=get_function_name()
+                )
 
             pow_result = create_pow(
                 subtensor=subtensor,
@@ -306,10 +325,11 @@ def register_extrinsic(
                 netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
             )
             if is_registered:
-                logging.error(
-                    f":white_heavy_check_mark: [green]Already registered on netuid:[/green] [blue]{netuid}[/blue]"
+                message = f"Already registered on netuid: {netuid}"
+                logging.info(f":white_heavy_check_mark: [green]{message}[/green]")
+                return ExtrinsicResponse(
+                    True, message, extrinsic_function=get_function_name()
                 )
-                return True
 
         # pow successful, proceed to submit pow to chain for registration
         else:
@@ -329,48 +349,45 @@ def register_extrinsic(
                         "coldkey": wallet.coldkeypub.ss58_address,
                     },
                 )
-                logging.debug(
-                    ":satellite: [magenta]Sending POW Register Extrinsic...[/magenta]"
-                )
-                success, message = subtensor.sign_and_send_extrinsic(
+                response = subtensor.sign_and_send_extrinsic(
                     call=call,
                     wallet=wallet,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                     period=period,
                     raise_error=raise_error,
+                    calling_function=get_function_name(),
                 )
 
-                if not success:
+                if not response.success:
                     # Look error here
                     # https://github.com/opentensor/subtensor/blob/development/pallets/subtensor/src/errors.rs
 
-                    if "HotKeyAlreadyRegisteredInSubNet" in message:
+                    if "HotKeyAlreadyRegisteredInSubNet" in response.message:
                         logging.info(
                             f":white_heavy_check_mark: [green]Already Registered on subnet:[/green] "
                             f"[blue]{netuid}[/blue]."
                         )
-                        return True
-                    logging.error(f":cross_mark: [red]Failed[/red]: {message}")
+                        return response
                     time.sleep(0.5)
 
                 # Successful registration, final check for neuron and pubkey
-                if success:
+                if response.success:
                     logging.info(":satellite: Checking Registration status...")
                     is_registered = subtensor.is_hotkey_registered(
                         netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
                     )
                     if is_registered:
                         logging.success(
-                            ":white_heavy_check_mark: [green]Registered[/green]"
+                            ":white_heavy_check_mark: [green]Registered.[/green]"
                         )
-                        return True
-                    else:
+                        return response
+
                         # neuron not found, try again
-                        logging.error(
-                            ":cross_mark: [red]Unknown error. Neuron not found.[/red]"
-                        )
-                        continue
+                    logging.error(
+                        ":cross_mark: [red]Unknown error. Neuron not found.[/red]"
+                    )
+                    continue
             else:
                 # Exited loop because pow is no longer valid.
                 logging.error("[red]POW is stale.[/red]")
@@ -385,8 +402,11 @@ def register_extrinsic(
             )
         else:
             # Failed to register after max attempts.
-            logging.error("[red]No more attempts.[/red]")
-            return False
+            message = "No more attempts."
+            logging.error(f"[red]{message}[/red]")
+            return ExtrinsicResponse(
+                False, message, extrinsic_function=get_function_name()
+            )
 
 
 def set_subnet_identity_extrinsic(
@@ -405,7 +425,7 @@ def set_subnet_identity_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """
     Set the identity information for a given subnet.
 
@@ -429,14 +449,14 @@ def set_subnet_identity_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        Tuple[bool, str]:
-            - True and a success message if the extrinsic is successfully submitted or processed.
-            - False and an error message if the submission fails or the wallet cannot be unlocked.
+        ExtrinsicResponse: The result object of the extrinsic execution.
     """
 
     if not (unlock := unlock_key(wallet)).success:
         logging.error(unlock.message)
-        return False, unlock.message
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
+        )
 
     call = subtensor.substrate.compose_call(
         call_module="SubtensorModule",
@@ -455,25 +475,26 @@ def set_subnet_identity_extrinsic(
         },
     )
 
-    success, message = subtensor.sign_and_send_extrinsic(
+    response = subtensor.sign_and_send_extrinsic(
         call=call,
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
         period=period,
         raise_error=raise_error,
+        calling_function=get_function_name(),
     )
 
     if not wait_for_finalization and not wait_for_inclusion:
-        return True, f"Identities for subnet {netuid} are sent to the chain."
+        return response
 
-    if success:
+    if response.success:
         logging.success(
             f":white_heavy_check_mark: [green]Identities for subnet[/green] [blue]{netuid}[/blue] [green]are set.[/green]"
         )
-        return True, f"Identities for subnet {netuid} are set."
-    else:
-        logging.error(
-            f":cross_mark: Failed to set identity for subnet [blue]{netuid}[/blue]: {message}"
-        )
-        return False, f"Failed to set identity for subnet {netuid}: {message}"
+        return response
+
+    message = f"Failed to set identity for subnet #{netuid}"
+    logging.error(f":cross_mark: {message}: {response.message}")
+    response.message = message
+    return response
