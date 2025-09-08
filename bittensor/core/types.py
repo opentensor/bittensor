@@ -356,7 +356,9 @@ class ExtrinsicResponse:
         elif index == 1:
             return self.message
         else:
-            raise IndexError("ExtrinsicResponse only supports indices 0 (success) and 1 (message).")
+            raise IndexError(
+                "ExtrinsicResponse only supports indices 0 (success) and 1 (message)."
+            )
 
     def __len__(self):
         return 2
