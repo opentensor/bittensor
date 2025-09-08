@@ -16,7 +16,12 @@ if TYPE_CHECKING:
     from bittensor import Wallet
     from bittensor.core.async_subtensor import AsyncSubtensor
     from bittensor.core.subtensor import Subtensor
-    from async_substrate_interface import AsyncSubstrateInterface, AsyncExtrinsicReceipt, SubstrateInterface, ExtrinsicReceipt
+    from async_substrate_interface import (
+        AsyncSubstrateInterface,
+        AsyncExtrinsicReceipt,
+        SubstrateInterface,
+        ExtrinsicReceipt,
+    )
 
 
 def get_dynamic_balance(rao: int, netuid: int = 0):

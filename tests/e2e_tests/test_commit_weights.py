@@ -33,7 +33,7 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
             local_chain,
             alice_wallet,
             call_function="sudo_set_admin_freeze_window",
-            call_params={"window": 0}
+            call_params={"window": 0},
         )[0]
         is True
     ), "Failed to set admin freeze window to 0"
@@ -184,7 +184,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
             local_chain,
             alice_wallet,
             call_function="sudo_set_admin_freeze_window",
-            call_params={"window": 0}
+            call_params={"window": 0},
         )[0]
         is True
     ), "Failed to set admin freeze window to 0"
