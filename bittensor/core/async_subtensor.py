@@ -4905,7 +4905,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ):
+    ) -> ExtrinsicResponse:
         """
         Registers a neuron on the Bittensor subnet with provided netuid using the provided wallet.
 
@@ -5349,7 +5349,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> tuple[bool, str]:
+    ) -> ExtrinsicResponse:
         """
         Sets the identity of a subnet for a specific wallet and network.
 

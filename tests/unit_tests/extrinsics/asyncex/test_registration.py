@@ -1,4 +1,5 @@
 import pytest
+from bittensor.core.types import ExtrinsicResponse
 
 from bittensor.core.extrinsics.asyncex import registration as async_registration
 
@@ -27,7 +28,7 @@ async def test_register_extrinsic_success(subtensor, fake_wallet, mocker):
     )
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=(True, None)
+        subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, "")
     )
     mocked_is_hotkey_registered = mocker.patch.object(
         subtensor, "is_hotkey_registered", return_value=True
@@ -60,11 +61,13 @@ async def test_register_extrinsic_success(subtensor, fake_wallet, mocker):
         wait_for_finalization=True,
         period=None,
         raise_error=False,
+        calling_function="register_extrinsic",
     )
     mocked_is_hotkey_registered.assert_called_once_with(
         netuid=1, hotkey_ss58="hotkey_ss58"
     )
-    assert result is True
+
+    assert result[0]
 
 
 @pytest.mark.asyncio
@@ -92,7 +95,7 @@ async def test_register_extrinsic_success_with_cuda(subtensor, fake_wallet, mock
     )
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=(True, None)
+        subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, "")
     )
     mocked_is_hotkey_registered = mocker.patch.object(
         subtensor, "is_hotkey_registered", return_value=True
@@ -126,11 +129,12 @@ async def test_register_extrinsic_success_with_cuda(subtensor, fake_wallet, mock
         wait_for_finalization=True,
         period=None,
         raise_error=False,
+        calling_function="register_extrinsic",
     )
     mocked_is_hotkey_registered.assert_called_once_with(
         netuid=1, hotkey_ss58="hotkey_ss58"
     )
-    assert result is True
+    assert result[0]
 
 
 @pytest.mark.asyncio
@@ -170,13 +174,18 @@ async def test_register_extrinsic_failed_with_cuda(subtensor, fake_wallet, mocke
         netuid=1,
         block_hash=subtensor.substrate.get_chain_head.return_value,
     )
-    assert result is False
+    assert result == ExtrinsicResponse(
+        False,
+        "CUDA not available.",
+        extrinsic_function="register_extrinsic",
+    )
 
 
 @pytest.mark.asyncio
 async def test_register_extrinsic_subnet_not_exists(subtensor, fake_wallet, mocker):
     """Tests registration when subnet does not exist."""
     # Preps
+    netuid = 14
     mocked_subnet_exists = mocker.patch.object(
         subtensor, "subnet_exists", return_value=False
     )
@@ -185,21 +194,26 @@ async def test_register_extrinsic_subnet_not_exists(subtensor, fake_wallet, mock
     result = await async_registration.register_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
-        netuid=1,
+        netuid=netuid,
     )
 
     # Asserts
     mocked_subnet_exists.assert_called_once_with(
-        1,
+        netuid,
         block_hash=subtensor.substrate.get_chain_head.return_value,
     )
-    assert result is False
+    assert result == ExtrinsicResponse(
+        False,
+        f"Subnet #{netuid} does not exist.",
+        extrinsic_function="register_extrinsic",
+    )
 
 
 @pytest.mark.asyncio
 async def test_register_extrinsic_already_registered(subtensor, fake_wallet, mocker):
     """Tests registration when the key is already registered."""
     # Preps
+    netuid = 14
     mocked_get_neuron = mocker.patch.object(
         subtensor,
         "get_neuron_for_pubkey_and_subnet",
@@ -207,19 +221,20 @@ async def test_register_extrinsic_already_registered(subtensor, fake_wallet, moc
     )
 
     # Call
-    result = await async_registration.register_extrinsic(
+    success, message = await async_registration.register_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
-        netuid=1,
+        netuid=netuid,
     )
 
     # Asserts
     mocked_get_neuron.assert_called_once_with(
         hotkey_ss58=fake_wallet.hotkey.ss58_address,
-        netuid=1,
+        netuid=netuid,
         block_hash=subtensor.substrate.get_chain_head.return_value,
     )
-    assert result is True
+    assert success is True
+    assert message == f"Already registered."
 
 
 @pytest.mark.asyncio
@@ -252,7 +267,9 @@ async def test_register_extrinsic_max_attempts_reached(subtensor, fake_wallet, m
     )
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=(False, "Test Error")
+        subtensor,
+        "sign_and_send_extrinsic",
+        return_value=ExtrinsicResponse(False, "Test Error"),
     )
 
     # Call
@@ -284,8 +301,10 @@ async def test_register_extrinsic_max_attempts_reached(subtensor, fake_wallet, m
         wait_for_finalization=True,
         period=None,
         raise_error=False,
+        calling_function="register_extrinsic",
     )
-    assert result is False
+    assert result[0] is False
+    assert result[1] == "No more attempts."
 
 
 @pytest.mark.asyncio
@@ -305,9 +324,7 @@ async def test_set_subnet_identity_extrinsic_is_success(subtensor, fake_wallet, 
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
 
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor,
-        "sign_and_send_extrinsic",
-        return_value=[True, ""],
+        subtensor, "sign_and_send_extrinsic"
     )
 
     # Call
@@ -349,9 +366,10 @@ async def test_set_subnet_identity_extrinsic_is_success(subtensor, fake_wallet, 
         wait_for_finalization=True,
         period=None,
         raise_error=False,
+        calling_function="set_subnet_identity_extrinsic",
     )
 
-    assert result == (True, "Identities for subnet 123 are set.")
+    assert result == mocked_sign_and_send_extrinsic.return_value
 
 
 @pytest.mark.asyncio
@@ -374,7 +392,6 @@ async def test_set_subnet_identity_extrinsic_is_failed(subtensor, fake_wallet, m
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
-        return_value=[False, fake_error_message],
     )
 
     # Call
@@ -418,9 +435,7 @@ async def test_set_subnet_identity_extrinsic_is_failed(subtensor, fake_wallet, m
         wait_for_finalization=True,
         period=None,
         raise_error=False,
+        calling_function="set_subnet_identity_extrinsic",
     )
 
-    assert result == (
-        False,
-        f"Failed to set identity for subnet {netuid}: {fake_error_message}",
-    )
+    assert result == mocked_sign_and_send_extrinsic.return_value
