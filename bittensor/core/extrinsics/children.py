@@ -89,7 +89,6 @@ def set_children_extrinsic(
         return response
 
     if response.success:
-        response.message = f"Success with {response.extrinsic_function} response."
         return response
 
     return response
@@ -154,7 +153,6 @@ def root_set_pending_childkey_cooldown_extrinsic(
         return response
 
     if response.success:
-        response.message = f"Success with {response.extrinsic_function} response."
         return response
 
     return response
