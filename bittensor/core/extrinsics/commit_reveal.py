@@ -107,13 +107,12 @@ def commit_reveal_extrinsic(
         calling_function=get_function_name(),
     )
 
-    if not response.success:
-        logging.error(response.message)
+    if response.success:
+        logging.success(
+            f"[green]Finalized![/green] Weights committed with reveal round [blue]{reveal_round}[/blue]."
+        )
+        response.data = {"reveal_round": reveal_round}
         return response
 
-    logging.success(
-        f"[green]Finalized![/green] Weights committed with reveal round [blue]{reveal_round}[/blue]."
-    )
-    response.message = f"reveal_round:{reveal_round}"
-    response.data = reveal_round
+    logging.error(response.message)
     return response
