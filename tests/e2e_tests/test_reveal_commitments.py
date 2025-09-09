@@ -59,27 +59,27 @@ def test_set_reveal_commitment(subtensor, alice_wallet, bob_wallet):
     message_alice = f"This is test message with time {time.time()} from Alice."
 
     response = subtensor.commitments.set_reveal_commitment(
-        alice_wallet,
-        alice_subnet_netuid,
-        message_alice,
-        BLOCKS_UNTIL_REVEAL,
-        BLOCK_TIME,
+        wallet=alice_wallet,
+        netuid=alice_subnet_netuid,
+        data=message_alice,
+        blocks_until_reveal=BLOCKS_UNTIL_REVEAL,
+        block_time=BLOCK_TIME,
     )
-    assert response[0] is True
+    assert response.success is True
 
     # Set commitment from Bob's hotkey
     message_bob = f"This is test message with time {time.time()} from Bob."
 
     response = subtensor.commitments.set_reveal_commitment(
-        bob_wallet,
-        alice_subnet_netuid,
-        message_bob,
-        BLOCKS_UNTIL_REVEAL,
+        wallet=bob_wallet,
+        netuid=alice_subnet_netuid,
+        data=message_bob,
+        blocks_until_reveal=BLOCKS_UNTIL_REVEAL,
         block_time=BLOCK_TIME,
     )
-    assert response[0] is True
+    assert response.success is True
 
-    target_reveal_round = response[1]
+    target_reveal_round = response.data.get("reveal_round")
 
     # Sometimes the chain doesn't update the repository right away and the commit doesn't appear in the expected
     # `last_drand_round`. In this case need to wait a bit.
@@ -124,7 +124,7 @@ def test_set_reveal_commitment(subtensor, alice_wallet, bob_wallet):
 
 
 @pytest.mark.asyncio
-async def test_set_reveal_commitment(async_subtensor, alice_wallet, bob_wallet):
+async def test_set_reveal_commitment_async(async_subtensor, alice_wallet, bob_wallet):
     """
     Tests the set/reveal commitments with TLE (time-locked encrypted commitments) mechanism.
 
@@ -181,7 +181,7 @@ async def test_set_reveal_commitment(async_subtensor, alice_wallet, bob_wallet):
         BLOCKS_UNTIL_REVEAL,
         BLOCK_TIME,
     )
-    assert response[0] is True
+    assert response.success is True
 
     # Set commitment from Bob's hotkey
     message_bob = f"This is test message with time {time.time()} from Bob."
@@ -193,9 +193,9 @@ async def test_set_reveal_commitment(async_subtensor, alice_wallet, bob_wallet):
         BLOCKS_UNTIL_REVEAL,
         block_time=BLOCK_TIME,
     )
-    assert response[0] is True
+    assert response.success is True
 
-    target_reveal_round = response[1]
+    target_reveal_round = response.data.get("reveal_round")
 
     # Sometimes the chain doesn't update the repository right away and the commit doesn't appear in the expected
     # `last_drand_round`. In this case need to wait a bit.
