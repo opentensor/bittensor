@@ -62,7 +62,7 @@ from bittensor.core.extrinsics.asyncex.registration import (
 from bittensor.core.extrinsics.asyncex.root import root_register_extrinsic
 from bittensor.core.extrinsics.asyncex.serving import (
     get_last_bonds_reset,
-    publish_metadata,
+    publish_metadata_extrinsic,
     get_metadata,
 )
 from bittensor.core.extrinsics.asyncex.serving import serve_axon_extrinsic
@@ -3946,60 +3946,6 @@ class AsyncSubtensor(SubtensorMixin):
         )
         return None if call is None else Balance.from_rao(int(call))
 
-    async def set_reveal_commitment(
-        self,
-        wallet,
-        netuid: int,
-        data: str,
-        blocks_until_reveal: int = 360,
-        block_time: Union[int, float] = 12,
-        period: Optional[int] = None,
-        raise_error: bool = False,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = True,
-    ) -> tuple[bool, int]:
-        """
-        Commits arbitrary data to the Bittensor network by publishing metadata.
-
-        Parameters:
-            wallet: The wallet associated with the neuron committing the data.
-            netuid: The unique identifier of the subnetwork.
-            data: The data to be committed to the network.
-            blocks_until_reveal: The number of blocks from now after which the data will be revealed. Then number of
-                blocks in one epoch.
-            block_time: The number of seconds between each block.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
-                can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
-            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
-            wait_for_finalization: Whether to wait for the finalization of the transaction.
-
-        Returns:
-            bool: `True` if the commitment was successful, `False` otherwise.
-
-        Note: A commitment can be set once per subnet epoch and is reset at the next epoch in the chain automatically.
-        """
-
-        encrypted, reveal_round = get_encrypted_commitment(
-            data, blocks_until_reveal, block_time
-        )
-
-        # increase reveal_round in return + 1 because we want to fetch data from the chain after that round was revealed
-        # and stored.
-        data_ = {"encrypted": encrypted, "reveal_round": reveal_round}
-        return await publish_metadata(
-            subtensor=self,
-            wallet=wallet,
-            netuid=netuid,
-            data_type="TimelockEncrypted",
-            data=data_,
-            period=period,
-            raise_error=raise_error,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        ), reveal_round
-
     async def subnet(
         self,
         netuid: int,
@@ -5056,6 +5002,39 @@ class AsyncSubtensor(SubtensorMixin):
 
         return response
 
+    async def root_register(
+        self,
+        wallet: "Wallet",
+        period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Register neuron by recycling some TAO.
+
+        Parameters:
+            wallet: The wallet associated with the neuron to be registered.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+        """
+
+        return await root_register_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
     async def root_set_pending_childkey_cooldown(
         self,
         wallet: "Wallet",
@@ -5086,39 +5065,6 @@ class AsyncSubtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             cooldown=cooldown,
-            period=period,
-            raise_error=raise_error,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
-
-    async def root_register(
-        self,
-        wallet: "Wallet",
-        period: Optional[int] = None,
-        raise_error: bool = False,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = True,
-    ) -> ExtrinsicResponse:
-        """
-        Register neuron by recycling some TAO.
-
-        Parameters:
-            wallet: The wallet associated with the neuron to be registered.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
-                can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
-            wait_for_inclusion: Waits for the transaction to be included in a block.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
-
-        Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
-        """
-
-        return await root_register_extrinsic(
-            subtensor=self,
-            wallet=wallet,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -5443,7 +5389,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> bool:
+    ) -> ExtrinsicResponse:
         """
         Registers an ``Axon`` serving endpoint on the Bittensor network for a specific neuron.
 
@@ -5487,7 +5433,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> bool:
+    ) -> ExtrinsicResponse:
         """
         Commits arbitrary data to the Bittensor network by publishing metadata.
 
@@ -5517,7 +5463,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Note: See <https://docs.learnbittensor.org/glossary#commit-reveal>
         """
-        return await publish_metadata(
+        return await publish_metadata_extrinsic(
             subtensor=self,
             wallet=wallet,
             netuid=netuid,
@@ -5528,6 +5474,62 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
+
+    async def set_reveal_commitment(
+        self,
+        wallet,
+        netuid: int,
+        data: str,
+        blocks_until_reveal: int = 360,
+        block_time: Union[int, float] = 12,
+        period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Commits arbitrary data to the Bittensor network by publishing metadata.
+
+        Parameters:
+            wallet: The wallet associated with the neuron committing the data.
+            netuid: The unique identifier of the subnetwork.
+            data: The data to be committed to the network.
+            blocks_until_reveal: The number of blocks from now after which the data will be revealed. Then number of
+                blocks in one epoch.
+            block_time: The number of seconds between each block.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Note: A commitment can be set once per subnet epoch and is reset at the next epoch in the chain automatically.
+        """
+
+        encrypted, reveal_round = get_encrypted_commitment(
+            data, blocks_until_reveal, block_time
+        )
+
+        # increase reveal_round in return + 1 because we want to fetch data from the chain after that round was revealed
+        # and stored.
+        data_ = {"encrypted": encrypted, "reveal_round": reveal_round}
+        response = await publish_metadata_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            data_type="TimelockEncrypted",
+            data=data_,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+        response.data = {"reveal_round": reveal_round}
+        return response
 
     async def start_call(
         self,

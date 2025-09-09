@@ -196,7 +196,7 @@ async def serve_axon_extrinsic(
     return response
 
 
-async def publish_metadata(
+async def publish_metadata_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
     netuid: int,
