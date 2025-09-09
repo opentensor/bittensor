@@ -145,7 +145,7 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
         netuid=alice_subnet_netuid,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=tao,
-    ), "Failed to add stake for Bob"
+    ).success, "Failed to add stake for Bob"
 
     logging.console.info("Assert stake is added after updating metagraph")
     metagraph.sync(subtensor=subtensor._subtensor)
@@ -313,12 +313,14 @@ async def test_metagraph_async(async_subtensor, alice_wallet, bob_wallet, dave_w
         alpha, _ = (
             await async_subtensor.subnets.subnet(alice_subnet_netuid)
         ).tao_to_alpha_with_slippage(tao)
-        assert await async_subtensor.staking.add_stake(
-            wallet=bob_wallet,
-            netuid=alice_subnet_netuid,
-            hotkey_ss58=bob_wallet.hotkey.ss58_address,
-            amount=tao,
-        ), "Failed to add stake for Bob"
+        assert (
+            await async_subtensor.staking.add_stake(
+                wallet=bob_wallet,
+                netuid=alice_subnet_netuid,
+                hotkey_ss58=bob_wallet.hotkey.ss58_address,
+                amount=tao,
+            )
+        ).success, "Failed to add stake for Bob"
 
         logging.console.info("Assert stake is added after updating metagraph")
         await metagraph.sync(subtensor=async_subtensor._subtensor)
