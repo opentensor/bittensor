@@ -2687,11 +2687,13 @@ async def test_set_children(subtensor, fake_wallet, mocker):
 async def test_set_delegate_take_equal(subtensor, fake_wallet, mocker):
     mocker.patch.object(subtensor, "get_delegate_take", return_value=0.18)
 
-    await subtensor.set_delegate_take(
-        fake_wallet,
-        fake_wallet.hotkey.ss58_address,
-        0.18,
-    )
+    assert (
+        await subtensor.set_delegate_take(
+            fake_wallet,
+            fake_wallet.hotkey.ss58_address,
+            0.18,
+        )
+    ).success
 
     subtensor.substrate.submit_extrinsic.assert_not_called()
 
@@ -2705,11 +2707,13 @@ async def test_set_delegate_take_increase(
     )
     mocker.patch.object(subtensor, "get_delegate_take", return_value=0.18)
 
-    await subtensor.set_delegate_take(
-        fake_wallet,
-        fake_wallet.hotkey.ss58_address,
-        0.2,
-    )
+    assert (
+        await subtensor.set_delegate_take(
+            fake_wallet,
+            fake_wallet.hotkey.ss58_address,
+            0.2,
+        )
+    ).success
 
     assert_submit_signed_extrinsic(
         mock_substrate,
@@ -2734,11 +2738,13 @@ async def test_set_delegate_take_decrease(
     )
     mocker.patch.object(subtensor, "get_delegate_take", return_value=0.18)
 
-    await subtensor.set_delegate_take(
-        fake_wallet,
-        fake_wallet.hotkey.ss58_address,
-        0.1,
-    )
+    assert (
+        await subtensor.set_delegate_take(
+            fake_wallet,
+            fake_wallet.hotkey.ss58_address,
+            0.1,
+        )
+    ).success
 
     assert_submit_signed_extrinsic(
         mock_substrate,
