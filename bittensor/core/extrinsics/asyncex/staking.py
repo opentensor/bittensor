@@ -2,9 +2,9 @@ import asyncio
 from typing import Optional, Sequence, TYPE_CHECKING
 
 from async_substrate_interface.errors import SubstrateRequestException
-
+from bittensor.core.types import ExtrinsicResponse
 from bittensor.core.extrinsics.utils import get_old_stakes
-from bittensor.utils import unlock_key, format_error_message
+from bittensor.utils import unlock_key, format_error_message, get_function_name
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 
@@ -26,7 +26,7 @@ async def add_stake_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> bool:
+) -> ExtrinsicResponse:
     """
     Adds a stake from the specified wallet to the neuron identified by the SS58 address of its hotkey in specified subnet.
     Staking is a fundamental process in the Bittensor network that enables neurons to participate actively and earn
@@ -49,7 +49,7 @@ async def add_stake_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        bool: True if the subnet registration was successful, False otherwise.
+        ExtrinsicResponse: The result object of the extrinsic execution.
 
     Raises:
         SubstrateRequestException: Raised if the extrinsic fails to be included in the block within the timeout.
@@ -58,7 +58,9 @@ async def add_stake_extrinsic(
     # Decrypt keys,
     if not (unlock := unlock_key(wallet)).success:
         logging.error(unlock.message)
-        return False
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
+        )
 
     logging.info(
         f":satellite: [magenta]Syncing with chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
@@ -86,11 +88,14 @@ async def add_stake_extrinsic(
 
     # Check enough to stake.
     if amount > old_balance:
-        logging.error(":cross_mark: [red]Not enough stake:[/red]")
+        message = "Not enough stake"
+        logging.error(f":cross_mark: [red]{message}:[/red]")
         logging.error(f"\t\tbalance:{old_balance}")
         logging.error(f"\t\tamount: {amount}")
         logging.error(f"\t\twallet: {wallet.name}")
-        return False
+        return ExtrinsicResponse(
+            False, f"{message}.", extrinsic_function=get_function_name()
+        )
 
     call_params = {
         "hotkey": hotkey_ss58,
@@ -137,7 +142,7 @@ async def add_stake_extrinsic(
         call_function=call_function,
         call_params=call_params,
     )
-    success, message = await subtensor.sign_and_send_extrinsic(
+    response = await subtensor.sign_and_send_extrinsic(
         call=call,
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
@@ -147,11 +152,12 @@ async def add_stake_extrinsic(
         use_nonce=True,
         period=period,
         raise_error=raise_error,
+        calling_function=get_function_name(),
     )
-    if success:  # If we successfully staked.
+    if response.success:  # If we successfully staked.
         # We only wait here if we expect finalization.
         if not wait_for_finalization and not wait_for_inclusion:
-            return True
+            return response
 
         logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
 
@@ -178,15 +184,15 @@ async def add_stake_extrinsic(
         logging.info(
             f"Stake: [blue]{old_stake}[/blue] :arrow_right: [green]{new_stake}[/green]"
         )
-        return True
+        return response
 
-    if safe_staking and "Custom error: 8" in message:
+    if safe_staking and "Custom error: 8" in response.message:
         logging.error(
             ":cross_mark: [red]Failed[/red]: Price exceeded tolerance limit. Either increase price tolerance or enable partial staking."
         )
     else:
-        logging.error(f":cross_mark: [red]Failed: {message}.[/red]")
-    return False
+        logging.error(f":cross_mark: [red]Failed: {response.message}.[/red]")
+    return response
 
 
 async def add_stake_multiple_extrinsic(
@@ -199,7 +205,7 @@ async def add_stake_multiple_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> bool:
+) -> ExtrinsicResponse:
     """
     Adds stake to each ``hotkey_ss58`` in the list, using each amount, from a common coldkey on subnet with
     corresponding netuid.
@@ -218,12 +224,14 @@ async def add_stake_multiple_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        bool: True if the subnet registration was successful, False otherwise.
+        ExtrinsicResponse: The result object of the extrinsic execution.
     """
     # Decrypt keys,
     if not (unlock := unlock_key(wallet)).success:
         logging.error(unlock.message)
-        return False
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
+        )
 
     assert all(
         [
@@ -234,7 +242,9 @@ async def add_stake_multiple_extrinsic(
     ), "The `netuids`, `hotkey_ss58s` and `amounts` must be lists."
 
     if len(hotkey_ss58s) == 0:
-        return True
+        return ExtrinsicResponse(
+            True, "Success", extrinsic_function=get_function_name()
+        )
 
     assert len(netuids) == len(hotkey_ss58s) == len(amounts), (
         "The number of items in `netuids`, `hotkey_ss58s` and `amounts` must be the same."
@@ -249,7 +259,9 @@ async def add_stake_multiple_extrinsic(
 
     if sum(amount.tao for amount in new_amounts) == 0:
         # Staking 0 tao
-        return True
+        return ExtrinsicResponse(
+            True, "Success", extrinsic_function=get_function_name()
+        )
 
     logging.info(
         f":satellite: [magenta]Syncing with chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
@@ -289,6 +301,7 @@ async def add_stake_multiple_extrinsic(
         ]
 
     successful_stakes = 0
+    response = ExtrinsicResponse(False, "", extrinsic_function=get_function_name())
     for idx, (hotkey_ss58, amount, old_stake, netuid) in enumerate(
         zip(hotkey_ss58s, new_amounts, old_stakes, netuids)
     ):
@@ -314,7 +327,7 @@ async def add_stake_multiple_extrinsic(
                     "netuid": netuid,
                 },
             )
-            success, message = await subtensor.sign_and_send_extrinsic(
+            response = await subtensor.sign_and_send_extrinsic(
                 call=call,
                 wallet=wallet,
                 wait_for_inclusion=wait_for_inclusion,
@@ -324,10 +337,11 @@ async def add_stake_multiple_extrinsic(
                 use_nonce=True,
                 period=period,
                 raise_error=raise_error,
+                calling_function=get_function_name(),
             )
 
             # If we successfully staked.
-            if success:
+            if response.success:
                 if not wait_for_finalization and not wait_for_inclusion:
                     old_balance -= amount
                     successful_stakes += 1
@@ -357,7 +371,7 @@ async def add_stake_multiple_extrinsic(
                 old_balance = new_balance
                 successful_stakes += 1
             else:
-                logging.error(f":cross_mark: [red]Failed: {message}.[/red]")
+                logging.error(f":cross_mark: [red]Failed: {response.message}.[/red]")
                 continue
 
         except SubstrateRequestException as error:
@@ -374,6 +388,6 @@ async def add_stake_multiple_extrinsic(
         logging.info(
             f"Balance: [blue]{initial_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
         )
-        return True
+        return response
 
-    return False
+    return response
