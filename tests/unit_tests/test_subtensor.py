@@ -1261,7 +1261,9 @@ def test_commit(subtensor, fake_wallet, mocker):
     # Preps
     fake_netuid = 1
     fake_data = "some data to network"
-    mocked_publish_metadata = mocker.patch.object(subtensor_module, "publish_metadata")
+    mocked_publish_metadata = mocker.patch.object(
+        subtensor_module, "publish_metadata_extrinsic"
+    )
 
     # Call
     result = subtensor.set_commitment(fake_wallet, fake_netuid, fake_data)
