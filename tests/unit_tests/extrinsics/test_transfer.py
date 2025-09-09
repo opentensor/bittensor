@@ -1,6 +1,7 @@
 import pytest
 from bittensor.core.extrinsics import transfer
 from bittensor.utils.balance import Balance
+from bittensor.core.types import ExtrinsicResponse
 
 
 def test_transfer_extrinsic_success(subtensor, fake_wallet, mocker):
@@ -36,7 +37,7 @@ def test_transfer_extrinsic_success(subtensor, fake_wallet, mocker):
     )
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=(True, "")
+        subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, "")
     )
 
     # Call
@@ -68,8 +69,9 @@ def test_transfer_extrinsic_success(subtensor, fake_wallet, mocker):
         wait_for_finalization=True,
         period=None,
         raise_error=False,
+        calling_function="transfer_extrinsic",
     )
-    assert result is True
+    assert result.success is True
 
 
 def test_transfer_extrinsic_call_successful_with_failed_response(
@@ -107,7 +109,7 @@ def test_transfer_extrinsic_call_successful_with_failed_response(
     )
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=(False, "")
+        subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(False, "")
     )
 
     # Call
@@ -139,8 +141,9 @@ def test_transfer_extrinsic_call_successful_with_failed_response(
         wait_for_finalization=True,
         period=None,
         raise_error=False,
+        calling_function="transfer_extrinsic",
     )
-    assert result is False
+    assert result.success is False
 
 
 def test_transfer_extrinsic_insufficient_balance(subtensor, fake_wallet, mocker):
@@ -194,7 +197,7 @@ def test_transfer_extrinsic_insufficient_balance(subtensor, fake_wallet, mocker)
     mocked_get_existential_deposit.assert_called_once_with(
         block=subtensor.substrate.get_block_number.return_value
     )
-    assert result is False
+    assert result.success is False
 
 
 def test_transfer_extrinsic_invalid_destination(subtensor, fake_wallet, mocker):
@@ -224,7 +227,7 @@ def test_transfer_extrinsic_invalid_destination(subtensor, fake_wallet, mocker):
 
     # Asserts
     mocked_is_valid_address.assert_called_once_with(fake_destination)
-    assert result is False
+    assert result.success is False
 
 
 def test_transfer_extrinsic_unlock_key_false(subtensor, fake_wallet, mocker):
@@ -233,12 +236,6 @@ def test_transfer_extrinsic_unlock_key_false(subtensor, fake_wallet, mocker):
     fake_wallet.coldkeypub.ss58_address = "fake_ss58_address"
     fake_destination = "invalid_address"
     fake_amount = Balance(15)
-
-    mocked_is_valid_address = mocker.patch.object(
-        transfer,
-        "is_valid_bittensor_address_or_public_key",
-        return_value=True,
-    )
 
     mocked_unlock_key = mocker.patch.object(
         transfer,
@@ -259,9 +256,8 @@ def test_transfer_extrinsic_unlock_key_false(subtensor, fake_wallet, mocker):
     )
 
     # Asserts
-    mocked_is_valid_address.assert_called_once_with(fake_destination)
     mocked_unlock_key.assert_called_once_with(fake_wallet)
-    assert result is False
+    assert result.success is False
 
 
 def test_transfer_extrinsic_keep_alive_false_and_transfer_all_true(
@@ -299,7 +295,7 @@ def test_transfer_extrinsic_keep_alive_false_and_transfer_all_true(
     )
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=(True, "")
+        subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, "")
     )
 
     # Call
@@ -319,4 +315,4 @@ def test_transfer_extrinsic_keep_alive_false_and_transfer_all_true(
     mocked_unlock_key.assert_called_once_with(fake_wallet)
     assert mocked_compose_call.call_count == 0
     assert mocked_sign_and_send_extrinsic.call_count == 0
-    assert result is False
+    assert result.success is False
