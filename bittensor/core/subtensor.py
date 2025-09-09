@@ -3971,7 +3971,7 @@ class Subtensor(SubtensorMixin):
         wait_for_finalization: bool = True,
         raise_error: bool = False,
         period: Optional[int] = None,
-    ) -> tuple[bool, str]:
+    ) -> ExtrinsicResponse:
         """
         Sets the delegate 'take' percentage for a neuron identified by its hotkey.
         The 'take' represents the percentage of rewards that the delegate claims from its nominators' stakes.
@@ -4010,8 +4010,9 @@ class Subtensor(SubtensorMixin):
         current_take_u16 = int(current_take * 0xFFFF)
 
         if current_take_u16 == take_u16:
-            logging.info(":white_heavy_check_mark: [green]Already Set[/green]")
-            return True, ""
+            message = f"The take for {hotkey_ss58} is already set to {take}"
+            logging.info(f":white_heavy_check_mark: [green]{message}[/green].")
+            return ExtrinsicResponse(True, message)
 
         logging.info(f"Updating {hotkey_ss58} take: current={current_take} new={take}")
 
@@ -4021,7 +4022,7 @@ class Subtensor(SubtensorMixin):
             else decrease_take_extrinsic
         )
 
-        success, message = extrinsic_call(
+        response = extrinsic_call(
             subtensor=self,
             wallet=wallet,
             hotkey_ss58=hotkey_ss58,
@@ -4032,10 +4033,10 @@ class Subtensor(SubtensorMixin):
             wait_for_inclusion=wait_for_inclusion,
         )
 
-        if success:
+        if response.success:
             logging.info(":white_heavy_check_mark: [green]Take Updated[/green]")
 
-        return success, message
+        return response
 
     def set_subnet_identity(
         self,
