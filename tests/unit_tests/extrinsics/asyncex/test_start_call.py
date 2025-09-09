@@ -13,7 +13,7 @@ async def test_start_call_extrinsics(subtensor, mocker, fake_wallet):
     substrate = subtensor.substrate.__aenter__.return_value
     substrate.compose_call = mocker.AsyncMock()
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=(True, "")
+        subtensor, "sign_and_send_extrinsic", return_value=(True, "Success")
     )
 
     # Call
@@ -37,6 +37,7 @@ async def test_start_call_extrinsics(subtensor, mocker, fake_wallet):
         wait_for_finalization=False,
         period=None,
         raise_error=False,
+        calling_function="start_call_extrinsic",
     )
 
     assert success is True
