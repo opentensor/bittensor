@@ -335,7 +335,7 @@ class ExtrinsicResponse:
 
     def __str__(self):
         return str(
-            f"ExtrinsicResponse:"
+            f"{self.__class__.__name__}:"
             f"\n\tsuccess: {self.success}"
             f"\n\tmessage: {self.message}"
             f"\n\terror: {self.error}"
