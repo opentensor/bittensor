@@ -287,7 +287,7 @@ async def register_extrinsic(
     if not torch:
         log_no_torch_error()
         return ExtrinsicResponse(
-            False, "No torch installed.", extrinsic_function=get_function_name()
+            False, "Torch is not installed.", extrinsic_function=get_function_name()
         )
 
     # Attempt rolling registration.
