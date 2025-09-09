@@ -197,6 +197,9 @@ wait_for_finalization: bool = False,
 - [x] alias `subtensor.set_commitment` removed
 - [x] `subtensor.comit` renamed to `subtensor.set_commitment`
 - [x] `.publish_metadata`, `subtensor.set_commitment` and `subtenor.set_reveal_commitment`
+    -  Changes in `.publish_metadata` and subtensor's related calls:
+      - `publish_metadata` renamed to `publish_metadata_extrinsic`
+      - The response `subtensor.set_reveal_commitment` contains the field `date={"encrypted": encrypted, "reveal_round": reveal_round}`
 - [x] `.add_stake_extrinsic` and `subtensor.add_stake`
     - Changes in `.add_stake_extrinsic` and `subtensor.add_stake`:
       - parameter `old_balance` removed from async version
