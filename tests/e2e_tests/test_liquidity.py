@@ -263,7 +263,7 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
         rate_tolerance=0.9,  # keep high rate tolerance to avoid flaky behavior
         wait_for_inclusion=True,
         wait_for_finalization=True,
-    )
+    ).success
 
     # Check that fees_alpha comes too after all unstake
     liquidity_position_first = subtensor.subnets.get_liquidity_list(
@@ -555,14 +555,16 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
     assert liquidity_position_first.fees_tao > Balance.from_tao(0)
 
     # Bob remove all stake from alice
-    assert await async_subtensor.extrinsics.unstake_all(
-        wallet=bob_wallet,
-        hotkey=alice_wallet.hotkey.ss58_address,
-        netuid=alice_subnet_netuid,
-        rate_tolerance=0.9,  # keep high rate tolerance to avoid flaky behavior
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
+    assert (
+        await async_subtensor.extrinsics.unstake_all(
+            wallet=bob_wallet,
+            hotkey=alice_wallet.hotkey.ss58_address,
+            netuid=alice_subnet_netuid,
+            rate_tolerance=0.9,  # keep high rate tolerance to avoid flaky behavior
+            wait_for_inclusion=True,
+            wait_for_finalization=True,
+        )
+    ).success
 
     # Check that fees_alpha comes too after all unstake
     liquidity_position_first = (

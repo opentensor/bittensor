@@ -492,7 +492,7 @@ def test_batch_operations(subtensor, alice_wallet, bob_wallet):
         amounts=[Balance.from_tao(100) for _ in netuids],
     )
 
-    assert success is True
+    assert success.success is True
 
     for netuid, old_stake in zip(netuids, stakes):
         stake = subtensor.staking.get_stake(
@@ -639,7 +639,7 @@ async def test_batch_operations_async(async_subtensor, alice_wallet, bob_wallet)
         amounts=[Balance.from_tao(100) for _ in netuids],
     )
 
-    assert success is True
+    assert success.success is True
 
     for netuid, old_stake in zip(netuids, stakes):
         stake = await async_subtensor.staking.get_stake(
@@ -1988,7 +1988,7 @@ def test_unstaking_with_limit(
                 hotkey=si.hotkey_ss58,
                 netuid=si.netuid,
                 rate_tolerance=rate_tolerance,
-            )[0]
+            ).success
 
         # Make sure both unstake were successful.
         bob_stakes = subtensor.staking.get_stake_info_for_coldkey(
@@ -2119,7 +2119,7 @@ async def test_unstaking_with_limit_async(
                     hotkey=si.hotkey_ss58,
                     rate_tolerance=rate_tolerance,
                 )
-            )[0]
+            ).success
 
         # Make sure both unstake were successful.
         bob_stakes = await async_subtensor.staking.get_stake_info_for_coldkey(
