@@ -356,7 +356,7 @@ def test_publish_metadata(
         ) as mocked_sign_and_send_extrinsic,
     ):
         # Act
-        result = serving.publish_metadata(
+        result = serving.publish_metadata_extrinsic(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
             netuid=net_uid,
@@ -375,5 +375,5 @@ def test_publish_metadata(
             wait_for_finalization=wait_for_finalization,
             period=None,
             raise_error=False,
-            calling_function="publish_metadata",
+            calling_function="publish_metadata_extrinsic",
         )
