@@ -2,7 +2,7 @@ import argparse
 import unittest.mock as mock
 import datetime
 from unittest.mock import MagicMock
-
+from bittensor.core.types import ExtrinsicResponse
 import pytest
 from bittensor_wallet import Wallet
 from async_substrate_interface import sync_substrate
@@ -25,6 +25,7 @@ from bittensor.utils import (
     determine_chain_endpoint_and_network,
 )
 from bittensor.utils.balance import Balance
+from bittensor.core.types import ExtrinsicResponse
 
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
@@ -1157,7 +1158,7 @@ def test_set_weights(subtensor, mocker, fake_wallet):
     fake_wait_for_finalization = False
     fake_max_retries = 5
 
-    expected_result = (True, None)
+    expected_result = ExtrinsicResponse(True, None)
 
     mocked_get_uid_for_hotkey_on_subnet = mocker.MagicMock()
     subtensor.get_uid_for_hotkey_on_subnet = mocked_get_uid_for_hotkey_on_subnet
@@ -1260,7 +1261,9 @@ def test_commit(subtensor, fake_wallet, mocker):
     # Preps
     fake_netuid = 1
     fake_data = "some data to network"
-    mocked_publish_metadata = mocker.patch.object(subtensor_module, "publish_metadata")
+    mocked_publish_metadata = mocker.patch.object(
+        subtensor_module, "publish_metadata_extrinsic"
+    )
 
     # Call
     result = subtensor.set_commitment(fake_wallet, fake_netuid, fake_data)
@@ -1837,7 +1840,7 @@ def test_commit_weights(subtensor, fake_wallet, mocker):
     wait_for_finalization = False
     max_retries = 5
 
-    expected_result = (True, None)
+    expected_result = ExtrinsicResponse(True, None)
     mocked_generate_weight_hash = mocker.patch.object(
         subtensor_module, "generate_weight_hash", return_value=expected_result
     )
@@ -1888,7 +1891,7 @@ def test_reveal_weights(subtensor, fake_wallet, mocker):
     uids = [1, 2, 3, 4]
     weights = [0.1, 0.2, 0.3, 0.4]
     salt = [4, 2, 2, 1]
-    expected_result = (True, None)
+    expected_result = ExtrinsicResponse(True, None)
     mocked_extrinsic = mocker.patch.object(
         subtensor_module, "reveal_weights_extrinsic", return_value=expected_result
     )
@@ -1929,11 +1932,13 @@ def test_reveal_weights_false(subtensor, fake_wallet, mocker):
     weights = [0.1, 0.2, 0.3, 0.4]
     salt = [4, 2, 2, 1]
 
-    expected_result = (
+    expected_result = ExtrinsicResponse(
         False,
         "No attempt made. Perhaps it is too soon to reveal weights!",
     )
-    mocked_extrinsic = mocker.patch.object(subtensor_module, "reveal_weights_extrinsic")
+    mocked_extrinsic = mocker.patch.object(
+        subtensor_module, "reveal_weights_extrinsic", return_value=expected_result
+    )
 
     # Call
     result = subtensor.reveal_weights(
@@ -1947,7 +1952,7 @@ def test_reveal_weights_false(subtensor, fake_wallet, mocker):
     )
 
     # Assertion
-    assert result == expected_result
+    assert result == mocked_extrinsic.return_value
     assert mocked_extrinsic.call_count == 5
 
 
@@ -3055,7 +3060,7 @@ def test_set_weights_with_commit_reveal_enabled(subtensor, fake_wallet, mocker):
     mocked_commit_reveal_v3_extrinsic = mocker.patch.object(
         subtensor_module, "commit_reveal_extrinsic"
     )
-    mocked_commit_reveal_v3_extrinsic.return_value = (
+    mocked_commit_reveal_v3_extrinsic.return_value = ExtrinsicResponse(
         True,
         "Weights committed successfully",
     )

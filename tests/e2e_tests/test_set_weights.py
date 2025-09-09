@@ -86,7 +86,7 @@ def test_set_weights_uses_next_nonce(subtensor, alice_wallet):
             netuid=netuid,
             hotkey_ss58=alice_wallet.hotkey.ss58_address,
             amount=Balance.from_tao(10_000),
-        )
+        ).success
 
     # Set weight hyperparameters per subnet
     for netuid in netuids:
@@ -245,12 +245,14 @@ async def test_set_weights_uses_next_nonce_async(async_subtensor, alice_wallet):
 
     # Stake to become to top neuron after the first epoch
     for netuid in netuids:
-        assert await async_subtensor.staking.add_stake(
-            wallet=alice_wallet,
-            netuid=netuid,
-            hotkey_ss58=alice_wallet.hotkey.ss58_address,
-            amount=Balance.from_tao(10_000),
-        )
+        assert (
+            await async_subtensor.staking.add_stake(
+                wallet=alice_wallet,
+                netuid=netuid,
+                hotkey_ss58=alice_wallet.hotkey.ss58_address,
+                amount=Balance.from_tao(10_000),
+            )
+        ).success
 
     # Set weight hyperparameters per subnet
     for netuid in netuids:

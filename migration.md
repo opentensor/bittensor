@@ -42,11 +42,12 @@
     ```
     </details>
   
-2. Unify extrinsic return values by introducing an ExtrinsicResponse class. Extrinsics currently return either a boolean or a tuple. 
+2. ✅ Unify extrinsic return values by introducing an ExtrinsicResponse class. Extrinsics currently return either a boolean or a tuple. 
 
     Purpose:
-    - Ease of processing
-    - This class should contain success, message, and optionally data and logs. (to save all logs during the extrinsic)
+    - Ease of processing.
+    - This class should contain success, message, and optionally data.
+    - Opportunity to expand the content of the extrinsic's response at any time upon community request or based on new technical requirements any time.
 
 3. ✅ Set `wait_for_inclusion` and `wait_for_finalization` to `True` by default in extrinsics and their related calls. Then we will guarantee the correct/expected extrinsic call response is consistent with the chain response. If the user changes those values, then it is the user's responsibility.
 4. ✅ Make the internal logic of extrinsics the same. There are extrinsics that are slightly different in implementation.
@@ -112,8 +113,8 @@ rename this variable in documentation.
 
 ## New features
 1. Add `bittensor.utils.hex_to_ss58` function. SDK still doesn't have it. (Probably inner import `from scalecodec import ss58_encode, ss58_decode`) 
-2. Implement Crowdloan logic.
-3. “Implement Sub-subnets / Metagraph Changes?” (implementation unsure) Maciej Kula idea, requires mode details.
+2. Implement Crowdloan logic. Issue: https://github.com/opentensor/bittensor/issues/3017
+3. Implement Sub-subnets logic. Subtensor PR https://github.com/opentensor/subtensor/pull/1984
 
 ## Testing
 1. When running tests via Docker, ensure no lingering processes occupy required ports before launch.
@@ -197,6 +198,9 @@ wait_for_finalization: bool = False,
 - [x] alias `subtensor.set_commitment` removed
 - [x] `subtensor.comit` renamed to `subtensor.set_commitment`
 - [x] `.publish_metadata`, `subtensor.set_commitment` and `subtenor.set_reveal_commitment`
+    -  Changes in `.publish_metadata` and subtensor's related calls:
+      - `publish_metadata` renamed to `publish_metadata_extrinsic`
+      - The response `subtensor.set_reveal_commitment` contains the field `date={"encrypted": encrypted, "reveal_round": reveal_round}`
 - [x] `.add_stake_extrinsic` and `subtensor.add_stake`
     - Changes in `.add_stake_extrinsic` and `subtensor.add_stake`:
       - parameter `old_balance` removed from async version
@@ -224,3 +228,9 @@ wait_for_finalization: bool = False,
 - [x] `.commit_weights_extrinsic` and `subtensor.commit_weights`
 - [x] `.reveal_weights_extrinsic` and `subtensor.reveal_weights`
 - [x] `.set_weights_extrinsic` and `subtensor.set_weights`
+
+All extrinsics and related subtensor calls now return an object of class `bittensor.core.types.ExtrinsicResponse`
+Additional changes in extrinsics:
+  - `commit_reveal_extrinsic` and `subtensor.set_weights` (with `commit_reveal_enabled=True`), the response is the usual `ExtrinsicResponse` (`success` and `message` unchanged), plus field `data` holds the `{"reveal_round": reveal_round}`.
+  - in positive case, all extrinsics return `response.message = "Success"`
+  - `root_register_extrinsic`, `subtensor.burned_register` (with netuid=0) and `subtensor.root_register` has response `ExtrinsicResponse`. In successful case `.data` holds the `{"uid": uid}` where is `uid` is uid of registered neuron.

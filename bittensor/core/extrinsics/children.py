@@ -1,5 +1,8 @@
 from typing import TYPE_CHECKING, Optional
-from bittensor.utils import float_to_u64, unlock_key
+
+from bittensor.core.types import ExtrinsicResponse
+from bittensor.utils import float_to_u64, unlock_key, get_function_name
+from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -16,7 +19,7 @@ def set_children_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-):
+) -> "ExtrinsicResponse":
     """
     Allows a coldkey to set children-keys.
 
@@ -34,9 +37,7 @@ def set_children_extrinsic(
         wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
 
     Returns:
-        Tuple[bool, str]:
-            - True and a success message if the extrinsic is successfully submitted or processed.
-            - False and an error message if the submission fails or the wallet cannot be unlocked.
+        ExtrinsicResponse: The result object of the extrinsic execution.
 
     Raises:
         DuplicateChild: There are duplicates in the list of children.
@@ -52,9 +53,11 @@ def set_children_extrinsic(
         bittensor_wallet.errors.PasswordError: Decryption failed or wrong password for decryption provided.
     """
     unlock = unlock_key(wallet, raise_error=raise_error)
-
     if not unlock.success:
-        return False, unlock.message
+        logging.error(unlock.message)
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
+        )
 
     call = subtensor.substrate.compose_call(
         call_module="SubtensorModule",
@@ -72,22 +75,23 @@ def set_children_extrinsic(
         },
     )
 
-    success, message = subtensor.sign_and_send_extrinsic(
+    response = subtensor.sign_and_send_extrinsic(
         call=call,
         wallet=wallet,
         period=period,
         raise_error=raise_error,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        calling_function=get_function_name(),
     )
 
     if not wait_for_finalization and not wait_for_inclusion:
-        return True, message
+        return response
 
-    if success:
-        return True, "Success with `set_children_extrinsic` response."
+    if response.success:
+        return response
 
-    return True, message
+    return response
 
 
 def root_set_pending_childkey_cooldown_extrinsic(
@@ -98,7 +102,7 @@ def root_set_pending_childkey_cooldown_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """
     Allows a root coldkey to set children-keys.
 
@@ -114,14 +118,14 @@ def root_set_pending_childkey_cooldown_extrinsic(
         wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
 
     Returns:
-    Tuple[bool, str]:
-        - True and a success message if the extrinsic is successfully submitted or processed.
-        - False and an error message if the submission fails or the wallet cannot be unlocked.
+        ExtrinsicResponse: The result object of the extrinsic execution.
     """
     unlock = unlock_key(wallet)
-
     if not unlock.success:
-        return False, unlock.message
+        logging.error(unlock.message)
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
+        )
 
     call = subtensor.substrate.compose_call(
         call_module="SubtensorModule",
@@ -135,22 +139,20 @@ def root_set_pending_childkey_cooldown_extrinsic(
         call_params={"call": call},
     )
 
-    success, message = subtensor.sign_and_send_extrinsic(
+    response = subtensor.sign_and_send_extrinsic(
         call=sudo_call,
         wallet=wallet,
         period=period,
         raise_error=raise_error,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        calling_function=get_function_name(),
     )
 
     if not wait_for_finalization and not wait_for_inclusion:
-        return True, message
+        return response
 
-    if success:
-        return (
-            True,
-            "Success with `root_set_pending_childkey_cooldown_extrinsic` response.",
-        )
+    if response.success:
+        return response
 
-    return True, message
+    return response

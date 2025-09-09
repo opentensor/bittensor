@@ -65,7 +65,7 @@ from bittensor.core.extrinsics.asyncex.registration import (
 from bittensor.core.extrinsics.asyncex.root import root_register_extrinsic
 from bittensor.core.extrinsics.asyncex.serving import (
     get_last_bonds_reset,
-    publish_metadata,
+    publish_metadata_extrinsic,
     get_metadata,
 )
 from bittensor.core.extrinsics.asyncex.serving import serve_axon_extrinsic
@@ -91,7 +91,7 @@ from bittensor.core.extrinsics.asyncex.weights import (
 )
 from bittensor.core.metagraph import AsyncMetagraph
 from bittensor.core.settings import version_as_int, TYPE_REGISTRY
-from bittensor.core.types import ParamWithTypes, SubtensorMixin
+from bittensor.core.types import ExtrinsicResponse, ParamWithTypes, SubtensorMixin
 from bittensor.utils import (
     Certificate,
     decode_hex_identity_dict,
@@ -3793,60 +3793,6 @@ class AsyncSubtensor(SubtensorMixin):
         )
         return None if call is None else Balance.from_rao(int(call))
 
-    async def set_reveal_commitment(
-        self,
-        wallet,
-        netuid: int,
-        data: str,
-        blocks_until_reveal: int = 360,
-        block_time: Union[int, float] = 12,
-        period: Optional[int] = None,
-        raise_error: bool = False,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = True,
-    ) -> tuple[bool, int]:
-        """
-        Commits arbitrary data to the Bittensor network by publishing metadata.
-
-        Parameters:
-            wallet: The wallet associated with the neuron committing the data.
-            netuid: The unique identifier of the subnetwork.
-            data: The data to be committed to the network.
-            blocks_until_reveal: The number of blocks from now after which the data will be revealed. Then number of
-                blocks in one epoch.
-            block_time: The number of seconds between each block.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
-                can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
-            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
-            wait_for_finalization: Whether to wait for the finalization of the transaction.
-
-        Returns:
-            bool: `True` if the commitment was successful, `False` otherwise.
-
-        Note: A commitment can be set once per subnet epoch and is reset at the next epoch in the chain automatically.
-        """
-
-        encrypted, reveal_round = get_encrypted_commitment(
-            data, blocks_until_reveal, block_time
-        )
-
-        # increase reveal_round in return + 1 because we want to fetch data from the chain after that round was revealed
-        # and stored.
-        data_ = {"encrypted": encrypted, "reveal_round": reveal_round}
-        return await publish_metadata(
-            subtensor=self,
-            wallet=wallet,
-            netuid=netuid,
-            data_type="TimelockEncrypted",
-            data=data_,
-            period=period,
-            raise_error=raise_error,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        ), reveal_round
-
     async def subnet(
         self,
         netuid: int,
@@ -4202,30 +4148,32 @@ class AsyncSubtensor(SubtensorMixin):
         period: Optional[int] = None,
         nonce_key: str = "hotkey",
         raise_error: bool = False,
-    ) -> tuple[bool, str]:
+        calling_function: Optional[str] = None,
+    ) -> ExtrinsicResponse:
         """
         Helper method to sign and submit an extrinsic call to chain.
 
-        Arguments:
+        Parameters:
             call: a prepared Call object
             wallet: the wallet whose coldkey will be used to sign the extrinsic
             wait_for_inclusion: whether to wait until the extrinsic call is included on the chain
             wait_for_finalization: whether to wait until the extrinsic call is finalized on the chain
             sign_with: the wallet's keypair to use for the signing. Options are "coldkey", "hotkey", "coldkeypub"
             use_nonce: unique identifier for the transaction related with hot/coldkey.
-            period: The number of blocks during which the transaction will remain valid after it's
-                submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
             nonce_key: the type on nonce to use. Options are "hotkey" or "coldkey".
-            nonce_key: the type on nonce to use. Options are "hotkey", "coldkey", or "coldkeypub".
-            raise_error: raises a relevant exception rather than returning ``False`` if unsuccessful.
+            raise_error: raises the relevant exception rather than returning `False` if unsuccessful.
+            calling_function: the name of the calling function.
 
         Returns:
-            (success, error message)
+            ExtrinsicResponse: The result object of the extrinsic execution.
 
         Raises:
             SubstrateRequestException: Substrate request exception.
         """
+        extrinsic_response = ExtrinsicResponse(extrinsic_function=calling_function)
         possible_keys = ("coldkey", "hotkey", "coldkeypub")
         if sign_with not in possible_keys:
             raise AttributeError(
@@ -4245,32 +4193,43 @@ class AsyncSubtensor(SubtensorMixin):
         if period is not None:
             extrinsic_data["era"] = {"period": period}
 
-        extrinsic = await self.substrate.create_signed_extrinsic(**extrinsic_data)
+        extrinsic_response.extrinsic = await self.substrate.create_signed_extrinsic(
+            **extrinsic_data
+        )
         try:
             response = await self.substrate.submit_extrinsic(
-                extrinsic,
+                extrinsic=extrinsic_response.extrinsic,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
-                message = "Not waiting for finalization or inclusion."
-                logging.debug(f"{message}. Extrinsic: {extrinsic}")
-                return True, message
+                extrinsic_response.message = (
+                    "Not waiting for finalization or inclusion."
+                )
+                return extrinsic_response
 
             if await response.is_success:
-                return True, ""
+                extrinsic_response.message = "Success"
+                return extrinsic_response
+
+            response_error_message = await response.error_message
 
             if raise_error:
-                raise ChainError.from_error(await response.error_message)
+                raise ChainError.from_error(response_error_message)
+            extrinsic_response.success = False
+            extrinsic_response.message = format_error_message(response_error_message)
+            extrinsic_response.error = response_error_message
+            return extrinsic_response
 
-            return False, format_error_message(await response.error_message)
-
-        except SubstrateRequestException as e:
+        except SubstrateRequestException as error:
             if raise_error:
                 raise
 
-            return False, format_error_message(e)
+            extrinsic_response.success = False
+            extrinsic_response.message = format_error_message(error)
+            extrinsic_response.error = error
+            return extrinsic_response
 
     # Extrinsics =======================================================================================================
 
@@ -4287,7 +4246,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> bool:
+    ) -> ExtrinsicResponse:
         """
         Adds a stake from the specified wallet to the neuron identified by the SS58 address of its hotkey in specified
         subnet. Staking is a fundamental process in the Bittensor network that enables neurons to participate actively
@@ -4313,7 +4272,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            bool: ``True`` if the staking is successful, ``False`` otherwise.
+            ExtrinsicResponse: The result object of the extrinsic execution.
 
         This function enables neurons to increase their stake in the network, enhancing their influence and potential.
         When safe_staking is enabled, it provides protection against price fluctuations during the time stake is
@@ -4347,7 +4306,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> tuple[bool, str]:
+    ) -> ExtrinsicResponse:
         """
         Adds liquidity to the specified price range.
 
@@ -4366,9 +4325,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            Tuple[bool, str]:
-                - True and a success message if the extrinsic is successfully submitted or processed.
-                - False and an error message if the submission fails or the wallet cannot be unlocked.
+            ExtrinsicResponse: The result object of the extrinsic execution.
 
         Note: Adding is allowed even when user liquidity is enabled in specified subnet. Call ``toggle_user_liquidity``
         method to enable/disable user liquidity.
@@ -4397,7 +4354,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> bool:
+    ) -> ExtrinsicResponse:
         """
         Adds stakes to multiple neurons identified by their hotkey SS58 addresses.
         This bulk operation allows for efficient staking across different neurons from a single wallet.
@@ -4415,7 +4372,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
 
         Returns:
-            bool: ``True`` if the staking is successful for all specified neurons, ``False`` otherwise.
+            ExtrinsicResponse: The result object of the extrinsic execution.
 
         This function is essential for managing stakes across multiple neurons, reflecting the dynamic and collaborative
         nature of the Bittensor network.
@@ -4440,7 +4397,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> bool:
+    ) -> ExtrinsicResponse:
         """
         Registers a neuron on the Bittensor network by recycling TAO. This method of registration involves recycling
         TAO tokens, allowing them to be re-mined by performing work on the network.
@@ -4456,7 +4413,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
 
         Returns:
-            bool: ``True`` if the registration is successful, False otherwise.
+            ExtrinsicResponse: The result object of the extrinsic execution.
         """
         async with self:
             if netuid == 0:
@@ -4492,7 +4449,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = True,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
-    ) -> tuple[bool, str]:
+    ) -> ExtrinsicResponse:
         """
         Commits a hash of the subnet validator's weight vector to the Bittensor blockchain using the provided wallet.
         This action serves as a commitment or snapshot of the validator's current weight distribution.
@@ -4513,9 +4470,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            tuple[bool, str]:
-                `True` if the weight commitment is successful, False otherwise.
-                `msg` is a string value describing the success or potential error.
+            ExtrinsicResponse: The result object of the extrinsic execution.
 
         This function allows subnet validators to create a tamper-proof record of their weight vector at a specific
         point in time, creating a foundation of transparency and accountability for the Bittensor network.
@@ -4524,8 +4479,9 @@ class AsyncSubtensor(SubtensorMixin):
             See also: <https://docs.learnbittensor.org/glossary#commit-reveal>,
         """
         retries = 0
-        success = False
-        message = "No attempt made. Perhaps it is too soon to commit weights!"
+        response = ExtrinsicResponse(
+            False, "No attempt made. Perhaps it is too soon to commit weights!"
+        )
 
         logging.info(
             f"Committing weights with params: "
@@ -4543,9 +4499,9 @@ class AsyncSubtensor(SubtensorMixin):
             version_key=version_key,
         )
 
-        while retries < max_retries and success is False:
+        while retries < max_retries and response.success is False:
             try:
-                success, message = await commit_weights_extrinsic(
+                response = await commit_weights_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
@@ -4555,13 +4511,12 @@ class AsyncSubtensor(SubtensorMixin):
                     period=period,
                     raise_error=raise_error,
                 )
-                if success:
-                    break
-            except Exception as e:
-                logging.error(f"Error committing weights: {e}")
-                retries += 1
+            except Exception as error:
+                response.error = error if not response.error else response.error
+                logging.error(f"Error committing weights: {error}")
+            retries += 1
 
-        return success, message
+        return response
 
     async def modify_liquidity(
         self,
@@ -4574,7 +4529,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> tuple[bool, str]:
+    ) -> ExtrinsicResponse:
         """Modifies liquidity in liquidity position by adding or removing liquidity from it.
 
         Parameters:
@@ -4591,9 +4546,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            Tuple[bool, str]:
-                - True and a success message if the extrinsic is successfully submitted or processed.
-                - False and an error message if the submission fails or the wallet cannot be unlocked.
+            ExtrinsicResponse: The result object of the extrinsic execution.
 
         Example:
             import bittensor as bt
@@ -4650,7 +4603,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> bool:
+    ) -> ExtrinsicResponse:
         """
         Moves stake to a different hotkey and/or subnet.
 
@@ -4670,7 +4623,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
 
         Returns:
-            success: True if the stake movement was successful.
+            ExtrinsicResponse: The result object of the extrinsic execution.
         """
         amount = check_and_convert_to_balance(amount)
         return await move_stake_extrinsic(
@@ -4704,7 +4657,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ):
+    ) -> ExtrinsicResponse:
         """
         Registers a neuron on the Bittensor subnet with provided netuid using the provided wallet.
 
@@ -4731,7 +4684,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Whether to wait for the finalization of the transaction.
 
         Returns:
-            bool: ``True`` if the registration is successful, False otherwise.
+            ExtrinsicResponse: The result object of the extrinsic execution.
 
         This function facilitates the entry of new neurons into the network, supporting the decentralized growth and
         scalability of the Bittensor ecosystem.
@@ -4761,7 +4714,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> bool:
+    ) -> ExtrinsicResponse:
         """
         Registers a new subnetwork on the Bittensor network.
 
@@ -4775,7 +4728,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            bool: True if the subnet registration was successful, False otherwise.
+            ExtrinsicResponse: The result object of the extrinsic execution.
         """
         return await register_subnet_extrinsic(
             subtensor=self,
@@ -4796,7 +4749,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> tuple[bool, str]:
+    ) -> ExtrinsicResponse:
         """Remove liquidity and credit balances back to wallet's hotkey stake.
 
         Parameters:
@@ -4812,9 +4765,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            Tuple[bool, str]:
-                - True and a success message if the extrinsic is successfully submitted or processed.
-                - False and an error message if the submission fails or the wallet cannot be unlocked.
+            ExtrinsicResponse: The result object of the extrinsic execution.
 
         Note:
             - Adding is allowed even when user liquidity is enabled in specified subnet. Call `toggle_user_liquidity`
@@ -4846,7 +4797,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = True,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
-    ) -> tuple[bool, str]:
+    ) -> ExtrinsicResponse:
         """
         Reveals the weight vector for a specific subnet on the Bittensor blockchain using the provided wallet.
         This action serves as a revelation of the subnet validator's previously committed weight distribution as part
@@ -4868,21 +4819,20 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            Tuple[bool, str]:
-                - True and a success message if the extrinsic is successfully submitted or processed.
-                - False and an error message if the submission fails or the wallet cannot be unlocked.
+            ExtrinsicResponse: The result object of the extrinsic execution.
 
         This function allows subnet validators to reveal their previously committed weight vector.
 
         See also: <https://docs.learnbittensor.org/glossary#commit-reveal>,
         """
         retries = 0
-        success = False
-        message = "No attempt made. Perhaps it is too soon to reveal weights!"
+        response = ExtrinsicResponse(
+            False, "No attempt made. Perhaps it is too soon to reveal weights!"
+        )
 
-        while retries < max_retries and success is False:
+        while retries < max_retries and response.success is False:
             try:
-                success, message = await reveal_weights_extrinsic(
+                response = await reveal_weights_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
@@ -4895,53 +4845,13 @@ class AsyncSubtensor(SubtensorMixin):
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                 )
-                if success:
-                    break
-            except Exception as e:
-                logging.error(f"Error revealing weights: {e}")
-                retries += 1
+            except Exception as error:
+                response.error = error if not response.error else response.error
+                logging.error(f"Error revealing weights: {error}")
+            retries += 1
 
-        return success, message
+        return response
 
-    async def root_set_pending_childkey_cooldown(
-        self,
-        wallet: "Wallet",
-        cooldown: int,
-        period: Optional[int] = None,
-        raise_error: bool = False,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = True,
-    ) -> tuple[bool, str]:
-        """Sets the pending childkey cooldown.
-
-        Parameters:
-            wallet: bittensor wallet instance.
-            cooldown: the number of blocks to setting pending childkey cooldown.
-            period: The number of blocks during which the transaction will remain valid after it's
-                submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
-            wait_for_inclusion: Waits for the transaction to be included in a block.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
-
-        Returns:
-            Tuple[bool, str]:
-                - True and a success message if the extrinsic is successfully submitted or processed.
-                - False and an error message if the submission fails or the wallet cannot be unlocked.
-
-        Note: This operation can only be successfully performed if your wallet has root privileges.
-        """
-        return await root_set_pending_childkey_cooldown_extrinsic(
-            subtensor=self,
-            wallet=wallet,
-            cooldown=cooldown,
-            period=period,
-            raise_error=raise_error,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
-
-    # TODO: remove `block_hash` argument
     async def root_register(
         self,
         wallet: "Wallet",
@@ -4949,7 +4859,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> bool:
+    ) -> ExtrinsicResponse:
         """
         Register neuron by recycling some TAO.
 
@@ -4963,12 +4873,48 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
 
         Returns:
-            bool: ``True`` if the registration is successful, False otherwise.
+            ExtrinsicResponse: The result object of the extrinsic execution.
         """
 
         return await root_register_extrinsic(
             subtensor=self,
             wallet=wallet,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+    async def root_set_pending_childkey_cooldown(
+        self,
+        wallet: "Wallet",
+        cooldown: int,
+        period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """Sets the pending childkey cooldown.
+
+        Parameters:
+            wallet: bittensor wallet instance.
+            cooldown: the number of blocks to setting pending childkey cooldown.
+            period: The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Note: This operation can only be successfully performed if your wallet has root privileges.
+        """
+        return await root_set_pending_childkey_cooldown_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            cooldown=cooldown,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -4985,7 +4931,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> tuple[bool, str]:
+    ) -> ExtrinsicResponse:
         """
         Allows a coldkey to set children-keys.
 
@@ -5002,9 +4948,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
 
         Returns:
-            Tuple[bool, str]:
-                - True and a success message if the extrinsic is successfully submitted or processed.
-                - False and an error message if the submission fails or the wallet cannot be unlocked.
+            ExtrinsicResponse: The result object of the extrinsic execution.
 
         Raises:
             DuplicateChild: There are duplicates in the list of children.
@@ -5040,7 +4984,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> tuple[bool, str]:
+    ) -> ExtrinsicResponse:
         """
         Sets the delegate 'take' percentage for a neuron identified by its hotkey.
         The 'take' represents the percentage of rewards that the delegate claims from its nominators' stakes.
@@ -5057,9 +5001,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
 
         Returns:
-            Tuple[bool, str]:
-                - True and a success message if the extrinsic is successfully submitted or processed.
-                - False and an error message if the submission fails or the wallet cannot be unlocked.
+            ExtrinsicResponse: The result object of the extrinsic execution.
 
         Raises:
             DelegateTakeTooHigh: Delegate take is too high.
@@ -5081,8 +5023,9 @@ class AsyncSubtensor(SubtensorMixin):
         current_take_u16 = int(current_take * 0xFFFF)
 
         if current_take_u16 == take_u16:
-            logging.info(":white_heavy_check_mark: [green]Already Set[/green]")
-            return True, ""
+            message = f"The take for {hotkey_ss58} is already set to {take}"
+            logging.info(f":white_heavy_check_mark: [green]{message}[/green].")
+            return ExtrinsicResponse(True, message)
 
         logging.info(f"Updating {hotkey_ss58} take: current={current_take} new={take}")
 
@@ -5092,7 +5035,7 @@ class AsyncSubtensor(SubtensorMixin):
             else decrease_take_extrinsic
         )
 
-        success, message = await extrinsic_call(
+        response = await extrinsic_call(
             subtensor=self,
             wallet=wallet,
             hotkey_ss58=hotkey_ss58,
@@ -5103,10 +5046,10 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_inclusion=wait_for_inclusion,
         )
 
-        if success:
+        if response.success:
             logging.info(":white_heavy_check_mark: [green]Take Updated[/green]")
 
-        return success, message
+        return response
 
     async def set_subnet_identity(
         self,
@@ -5117,7 +5060,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> tuple[bool, str]:
+    ) -> ExtrinsicResponse:
         """
         Sets the identity of a subnet for a specific wallet and network.
 
@@ -5134,9 +5077,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
 
         Returns:
-            Tuple[bool, str]:
-                - True and a success message if the extrinsic is successfully submitted or processed.
-                - False and an error message if the submission fails or the wallet cannot be unlocked.
+            ExtrinsicResponse: The result object of the extrinsic execution.
         """
         return await set_subnet_identity_extrinsic(
             subtensor=self,
@@ -5170,7 +5111,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = True,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ):
+    ) -> ExtrinsicResponse:
         """
         Sets the weight vector for a neuron acting as a validator, specifying the weights assigned to subnet miners
         based on their performance evaluation.
@@ -5197,9 +5138,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
 
         Returns:
-            Tuple[bool, str]:
-                - True and a success message if the extrinsic is successfully submitted or processed.
-                - False and an error message if the submission fails or the wallet cannot be unlocked.
+            ExtrinsicResponse: The result object of the extrinsic execution.
 
         This function is crucial in the Yuma Consensus mechanism, where each validator's weight vector contributes to
         the overall weight matrix used to calculate emissions and maintain network consensus.
@@ -5216,14 +5155,15 @@ class AsyncSubtensor(SubtensorMixin):
             return bslu > wrl
 
         retries = 0
-        success = False
-        message = "No attempt made. Perhaps it is too soon to set weights!"
+        response = ExtrinsicResponse(
+            False, "No attempt made. Perhaps it is too soon to set weights!"
+        )
         if (
             uid := await self.get_uid_for_hotkey_on_subnet(
                 wallet.hotkey.ss58_address, netuid
             )
         ) is None:
-            return (
+            return ExtrinsicResponse(
                 False,
                 f"Hotkey {wallet.hotkey.ss58_address} not registered in subnet {netuid}",
             )
@@ -5233,7 +5173,7 @@ class AsyncSubtensor(SubtensorMixin):
 
             while (
                 retries < max_retries
-                and success is False
+                and response.success is False
                 and await _blocks_weight_limit()
             ):
                 logging.info(
@@ -5241,7 +5181,7 @@ class AsyncSubtensor(SubtensorMixin):
                     f"Attempt [blue]{retries + 1}[blue] of [green]{max_retries}[/green]."
                 )
                 try:
-                    success, message = await commit_reveal_extrinsic(
+                    response = await commit_reveal_extrinsic(
                         subtensor=self,
                         wallet=wallet,
                         netuid=netuid,
@@ -5255,17 +5195,18 @@ class AsyncSubtensor(SubtensorMixin):
                         wait_for_inclusion=wait_for_inclusion,
                         wait_for_finalization=wait_for_finalization,
                     )
-                except Exception as e:
-                    logging.error(f"Error setting weights: {e}")
-                    retries += 1
+                except Exception as error:
+                    response.error = error if not response.error else response.error
+                    logging.error(f"Error setting weights: {error}")
+                retries += 1
 
-            return success, message
+            return response
         else:
             # go with classic `set weights extrinsic`
 
             while (
                 retries < max_retries
-                and success is False
+                and response.success is False
                 and await _blocks_weight_limit()
             ):
                 try:
@@ -5273,7 +5214,7 @@ class AsyncSubtensor(SubtensorMixin):
                         f"Setting weights for subnet #[blue]{netuid}[/blue]. "
                         f"Attempt [blue]{retries + 1}[/blue] of [green]{max_retries}[/green]."
                     )
-                    success, message = await set_weights_extrinsic(
+                    response = await set_weights_extrinsic(
                         subtensor=self,
                         wallet=wallet,
                         netuid=netuid,
@@ -5285,11 +5226,12 @@ class AsyncSubtensor(SubtensorMixin):
                         wait_for_inclusion=wait_for_inclusion,
                         wait_for_finalization=wait_for_finalization,
                     )
-                except Exception as e:
-                    logging.error(f"Error setting weights: {e}")
-                    retries += 1
+                except Exception as error:
+                    response.error = error if not response.error else response.error
+                    logging.error(f"Error setting weights: {error}")
+                retries += 1
 
-            return success, message
+            return response
 
     async def serve_axon(
         self,
@@ -5300,7 +5242,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> bool:
+    ) -> ExtrinsicResponse:
         """
         Registers an ``Axon`` serving endpoint on the Bittensor network for a specific neuron.
 
@@ -5319,7 +5261,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
 
         Returns:
-            bool: ``True`` if the Axon serve registration is successful, False otherwise.
+            ExtrinsicResponse: The result object of the extrinsic execution.
 
         By registering an Axon, the neuron becomes an active part of the network's distributed computing infrastructure,
         contributing to the collective intelligence of Bittensor.
@@ -5344,7 +5286,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> bool:
+    ) -> ExtrinsicResponse:
         """
         Commits arbitrary data to the Bittensor network by publishing metadata.
 
@@ -5363,7 +5305,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Whether to wait for the finalization of the transaction.
 
         Returns:
-            bool: `True` if the commitment was successful, `False` otherwise.
+            ExtrinsicResponse: The result object of the extrinsic execution.
 
         Example:
             # Commit some data to subnet 1
@@ -5374,7 +5316,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Note: See <https://docs.learnbittensor.org/glossary#commit-reveal>
         """
-        return await publish_metadata(
+        return await publish_metadata_extrinsic(
             subtensor=self,
             wallet=wallet,
             netuid=netuid,
@@ -5386,6 +5328,62 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization=wait_for_finalization,
         )
 
+    async def set_reveal_commitment(
+        self,
+        wallet,
+        netuid: int,
+        data: str,
+        blocks_until_reveal: int = 360,
+        block_time: Union[int, float] = 12,
+        period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Commits arbitrary data to the Bittensor network by publishing metadata.
+
+        Parameters:
+            wallet: The wallet associated with the neuron committing the data.
+            netuid: The unique identifier of the subnetwork.
+            data: The data to be committed to the network.
+            blocks_until_reveal: The number of blocks from now after which the data will be revealed. Then number of
+                blocks in one epoch.
+            block_time: The number of seconds between each block.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Note: A commitment can be set once per subnet epoch and is reset at the next epoch in the chain automatically.
+        """
+
+        encrypted, reveal_round = get_encrypted_commitment(
+            data, blocks_until_reveal, block_time
+        )
+
+        # increase reveal_round in return + 1 because we want to fetch data from the chain after that round was revealed
+        # and stored.
+        data_ = {"encrypted": encrypted, "reveal_round": reveal_round}
+        response = await publish_metadata_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            data_type="TimelockEncrypted",
+            data=data_,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+        response.data = {"reveal_round": reveal_round}
+        return response
+
     async def start_call(
         self,
         wallet: "Wallet",
@@ -5394,7 +5392,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-    ) -> tuple[bool, str]:
+    ) -> ExtrinsicResponse:
         """
         Submits a start_call extrinsic to the blockchain, to trigger the start call process for a subnet (used to start
         a new subnet's emission mechanism).
@@ -5410,9 +5408,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Whether to wait for the finalization of the transaction.
 
         Returns:
-            Tuple[bool, str]:
-                - True and a success message if the extrinsic is successfully submitted or processed.
-                - False and an error message if the submission fails or the wallet cannot be unlocked.
+            ExtrinsicResponse: The result object of the extrinsic execution.
         """
         return await start_call_extrinsic(
             subtensor=self,
@@ -5438,7 +5434,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> bool:
+    ) -> ExtrinsicResponse:
         """
         Moves stake between subnets while keeping the same coldkey-hotkey pair ownership.
         Like subnet hopping - same owner, same hotkey, just changing which subnet the stake is in.
@@ -5464,7 +5460,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Whether to wait for the finalization of the transaction.
 
         Returns:
-            success: True if the extrinsic was successful.
+            ExtrinsicResponse: The result object of the extrinsic execution.
 
         The price ratio for swap_stake in safe mode is calculated as: origin_subnet_price / destination_subnet_price
         When safe_staking is enabled, the swap will only execute if:
@@ -5499,7 +5495,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> tuple[bool, str]:
+    ) -> ExtrinsicResponse:
         """Allow to toggle user liquidity for specified subnet.
 
         Parameters:
@@ -5514,9 +5510,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            Tuple[bool, str]:
-                - True and a success message if the extrinsic is successfully submitted or processed.
-                - False and an error message if the submission fails or the wallet cannot be unlocked.
+            ExtrinsicResponse: The result object of the extrinsic execution.
 
         Note: The call can be executed successfully by the subnet owner only.
         """
@@ -5542,7 +5536,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-    ) -> bool:
+    ) -> ExtrinsicResponse:
         """
         Transfer token of amount to destination.
 
@@ -5560,7 +5554,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            `True` if the transferring was successful, otherwise `False`.
+            ExtrinsicResponse: The result object of the extrinsic execution.
         """
         if amount is not None:
             amount = check_and_convert_to_balance(amount)
@@ -5589,7 +5583,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> bool:
+    ) -> ExtrinsicResponse:
         """
         Transfers stake from one subnet to another while changing the coldkey owner.
 
@@ -5608,7 +5602,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            success: True if the transfer was successful.
+            ExtrinsicResponse: The result object of the extrinsic execution.
         """
         amount = check_and_convert_to_balance(amount)
         return await transfer_stake_extrinsic(
@@ -5638,7 +5632,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> bool:
+    ) -> ExtrinsicResponse:
         """
         Removes a specified amount of stake from a single hotkey account. This function is critical for adjusting
         individual neuron stakes within the Bittensor network.
@@ -5663,7 +5657,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            bool: `True` if the unstaking process is successful, False otherwise.
+            ExtrinsicResponse: The result object of the extrinsic execution.
 
         This function supports flexible stake management, allowing neurons to adjust their network participation and
         potential reward accruals.
@@ -5694,7 +5688,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> tuple[bool, str]:
+    ) -> ExtrinsicResponse:
         """Unstakes all TAO/Alpha associated with a hotkey from the specified subnets on the Bittensor network.
 
         Parameters:
@@ -5711,10 +5705,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            tuple[bool, str]:
-                A tuple containing:
-                - `True` and a success message if the unstake operation succeeded;
-                - `False` and an error message otherwise.
+            ExtrinsicResponse: The result object of the extrinsic execution.
 
         Example:
             # If you would like to unstake all stakes in all subnets safely, use default `rate_tolerance` or pass your
@@ -5782,7 +5773,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> bool:
+    ) -> ExtrinsicResponse:
         """
         Performs batch unstaking from multiple hotkey accounts, allowing a neuron to reduce its staked amounts
         efficiently. This function is useful for managing the distribution of stakes across multiple neurons.
@@ -5801,7 +5792,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            bool: `True` if the batch unstaking is successful, False otherwise.
+            ExtrinsicResponse: The result object of the extrinsic execution.
 
         This function allows for strategic reallocation or withdrawal of stakes, aligning with the dynamic stake
         management aspect of the Bittensor network.

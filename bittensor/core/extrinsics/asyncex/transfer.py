@@ -1,12 +1,13 @@
 import asyncio
 from typing import TYPE_CHECKING, Optional
-
+from bittensor.core.types import ExtrinsicResponse
 from bittensor.core.settings import NETWORK_EXPLORER_MAP
 from bittensor.utils import (
     get_explorer_url_for_network,
     get_transfer_fn_params,
     is_valid_bittensor_address_or_public_key,
     unlock_key,
+    get_function_name,
 )
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -27,7 +28,7 @@ async def transfer_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> bool:
+) -> ExtrinsicResponse:
     """Transfers funds from this wallet to the destination public key address.
 
     Parameters:
@@ -47,22 +48,23 @@ async def transfer_extrinsic(
     Returns:
         bool: True if the subnet registration was successful, False otherwise.
     """
-    if amount is None and not transfer_all:
-        logging.error("If not transferring all, `amount` must be specified.")
-        return False
-
-    # Validate destination address.
-    if not is_valid_bittensor_address_or_public_key(destination):
-        logging.error(
-            f":cross_mark: [red]Invalid destination SS58 address[/red]: {destination}"
-        )
-        return False
-
-    logging.info(f"Initiating transfer on network: {subtensor.network}")
     # Unlock wallet coldkey.
     if not (unlock := unlock_key(wallet)).success:
         logging.error(unlock.message)
-        return False
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
+        )
+
+    if amount is None and not transfer_all:
+        message = "If not transferring all, `amount` must be specified."
+        logging.error(message)
+        return ExtrinsicResponse(False, message, extrinsic_function=get_function_name())
+
+    # Validate destination address.
+    if not is_valid_bittensor_address_or_public_key(destination):
+        message = f"Invalid destination SS58 address: {destination}"
+        logging.error(f":cross_mark: [red]{message}[/red].")
+        return ExtrinsicResponse(False, message, extrinsic_function=get_function_name())
 
     # Check balance.
     logging.info(
@@ -87,14 +89,18 @@ async def transfer_extrinsic(
     # Check if we have enough balance.
     if transfer_all is True:
         if (account_balance - fee) < existential_deposit:
-            logging.error("Not enough balance to transfer")
-            return False
+            message = "Not enough balance to transfer."
+            logging.error(message)
+            return ExtrinsicResponse(
+                False, message, extrinsic_function=get_function_name()
+            )
     elif account_balance < (amount + fee + existential_deposit):
+        message = "Not enough balance."
         logging.error(":cross_mark: [red]Not enough balance[/red]")
         logging.error(f"\t\tBalance:\t[blue]{account_balance}[/blue]")
         logging.error(f"\t\tAmount:\t[blue]{amount}[/blue]")
         logging.error(f"\t\tFor fee:\t[blue]{fee}[/blue]")
-        return False
+        return ExtrinsicResponse(False, message, extrinsic_function=get_function_name())
 
     logging.info(":satellite: [magenta]Transferring...</magenta")
 
@@ -106,16 +112,17 @@ async def transfer_extrinsic(
         call_params=call_params,
     )
 
-    success, message = await subtensor.sign_and_send_extrinsic(
+    response = await subtensor.sign_and_send_extrinsic(
         call=call,
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
         period=period,
         raise_error=raise_error,
+        calling_function=get_function_name(),
     )
 
-    if success:
+    if response.success:
         block_hash = await subtensor.get_block_hash()
         logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
         logging.info(f"[green]Block Hash:[/green] [blue]{block_hash}[/blue]")
@@ -138,7 +145,7 @@ async def transfer_extrinsic(
         logging.info(
             f"Balance: [blue]{account_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
         )
-        return True
+        return response
 
-    logging.error(f":cross_mark: [red]Failed[/red]: {message}")
-    return False
+    logging.error(f":cross_mark: [red]Failed[/red]: {response.message}")
+    return response

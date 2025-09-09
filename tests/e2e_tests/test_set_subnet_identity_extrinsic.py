@@ -40,7 +40,7 @@ def test_set_subnet_identity_extrinsic_happy_pass(subtensor, alice_wallet):
             wallet=alice_wallet,
             netuid=netuid,
             subnet_identity=subnet_identity,
-        )[0]
+        ).success
         is True
     ), "Set subnet identity failed"
 
@@ -96,7 +96,7 @@ async def test_set_subnet_identity_extrinsic_happy_pass_async(
             netuid=netuid,
             subnet_identity=subnet_identity,
         )
-    )[0] is True, "Set subnet identity failed"
+    ).success is True, "Set subnet identity failed"
 
     # Check SubnetIdentity of the subnet
     assert (
@@ -112,14 +112,6 @@ def test_set_subnet_identity_extrinsic_failed(subtensor, alice_wallet, bob_walle
     Test case for verifying the behavior of the `set_subnet_identity_extrinsic` function in the
     scenario where the result of the function is expected to fail. It ensures proper handling
     and validation when attempting to set the subnet identity under specific conditions.
-
-    Args:
-        subtensor: The instance of the subtensor class under test.
-        alice_wallet: A mock or test wallet associated with Alice, used for creating a subnet.
-        bob_wallet: A mock or test wallet associated with Bob, used for setting the subnet identity.
-
-    Decorators:
-        @pytest.mark.asyncio: Marks this test as an asynchronous test.
     """
     logging.console.info(
         "Testing [blue]test_set_subnet_identity_extrinsic_failed[/blue]"
@@ -156,7 +148,7 @@ def test_set_subnet_identity_extrinsic_failed(subtensor, alice_wallet, bob_walle
             wallet=bob_wallet,
             netuid=netuid,
             subnet_identity=subnet_identity,
-        )[0]
+        ).success
         is False
     ), "Set subnet identity failed"
 
@@ -173,14 +165,6 @@ async def test_set_subnet_identity_extrinsic_failed_async(
     Async test case for verifying the behavior of the `set_subnet_identity_extrinsic` function in the
     scenario where the result of the function is expected to fail. It ensures proper handling
     and validation when attempting to set the subnet identity under specific conditions.
-
-    Args:
-        subtensor: The instance of the subtensor class under test.
-        alice_wallet: A mock or test wallet associated with Alice, used for creating a subnet.
-        bob_wallet: A mock or test wallet associated with Bob, used for setting the subnet identity.
-
-    Decorators:
-        @pytest.mark.asyncio: Marks this test as an asynchronous test.
     """
     logging.console.info(
         "Testing [blue]test_set_subnet_identity_extrinsic_failed[/blue]"
@@ -222,7 +206,7 @@ async def test_set_subnet_identity_extrinsic_failed_async(
             netuid=netuid,
             subnet_identity=subnet_identity,
         )
-    )[0] is False, "Set subnet identity failed"
+    ).success is False, "Set subnet identity failed"
 
     logging.console.success(
         "✅ Passed [blue]test_set_subnet_identity_extrinsic_failed[/blue]"

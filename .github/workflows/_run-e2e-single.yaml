@@ -41,8 +41,11 @@ jobs:
           path: |
             ~/.cache/uv
             .venv
-          key: uv-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
-          restore-keys: uv-${{ runner.os }}-py${{ matrix.python-version }}-
+          key: |
+            uv-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            uv-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
+            uv-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python-version }}-
 
       - name: Install dependencies
         run: uv sync --extra dev --dev

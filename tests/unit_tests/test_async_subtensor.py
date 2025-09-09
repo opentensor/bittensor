@@ -15,6 +15,7 @@ from bittensor.core.chain_data import (
     StakeInfo,
     SelectiveMetagraphIndex,
 )
+from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils import U64_MAX
 from bittensor.utils.balance import Balance
 from tests.helpers.helpers import assert_submit_signed_extrinsic
@@ -180,7 +181,7 @@ async def test_burned_register(mock_substrate, subtensor, fake_wallet, mocker):
         return_value=Balance(1),
     )
 
-    success = await subtensor.burned_register(
+    success, _ = await subtensor.burned_register(
         fake_wallet,
         netuid=1,
     )
@@ -223,7 +224,7 @@ async def test_burned_register_on_root(mock_substrate, subtensor, fake_wallet, m
         return_value=False,
     )
 
-    success = await subtensor.burned_register(
+    success, _ = await subtensor.burned_register(
         fake_wallet,
         netuid=0,
     )
@@ -1730,11 +1731,11 @@ async def test_sign_and_send_extrinsic_success_finalization(
         call=fake_call, keypair=fake_wallet.coldkey
     )
     mocked_submit_extrinsic.assert_called_once_with(
-        fake_extrinsic,
+        extrinsic=fake_extrinsic,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
-    assert result == (True, "")
+    assert result == (True, "Success")
 
 
 @pytest.mark.asyncio
@@ -1781,7 +1782,7 @@ async def test_sign_and_send_extrinsic_error_finalization(
         call=fake_call, keypair=fake_wallet.coldkey
     )
     mocked_submit_extrinsic.assert_called_once_with(
-        fake_extrinsic,
+        extrinsic=fake_extrinsic,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -1818,7 +1819,7 @@ async def test_sign_and_send_extrinsic_success_without_inclusion_finalization(
     )
     mocked_submit_extrinsic.assert_awaited_once()
     mocked_submit_extrinsic.assert_called_once_with(
-        fake_extrinsic,
+        extrinsic=fake_extrinsic,
         wait_for_inclusion=False,
         wait_for_finalization=False,
     )
@@ -2686,11 +2687,13 @@ async def test_set_children(subtensor, fake_wallet, mocker):
 async def test_set_delegate_take_equal(subtensor, fake_wallet, mocker):
     mocker.patch.object(subtensor, "get_delegate_take", return_value=0.18)
 
-    await subtensor.set_delegate_take(
-        fake_wallet,
-        fake_wallet.hotkey.ss58_address,
-        0.18,
-    )
+    assert (
+        await subtensor.set_delegate_take(
+            fake_wallet,
+            fake_wallet.hotkey.ss58_address,
+            0.18,
+        )
+    ).success
 
     subtensor.substrate.submit_extrinsic.assert_not_called()
 
@@ -2704,11 +2707,13 @@ async def test_set_delegate_take_increase(
     )
     mocker.patch.object(subtensor, "get_delegate_take", return_value=0.18)
 
-    await subtensor.set_delegate_take(
-        fake_wallet,
-        fake_wallet.hotkey.ss58_address,
-        0.2,
-    )
+    assert (
+        await subtensor.set_delegate_take(
+            fake_wallet,
+            fake_wallet.hotkey.ss58_address,
+            0.2,
+        )
+    ).success
 
     assert_submit_signed_extrinsic(
         mock_substrate,
@@ -2733,11 +2738,13 @@ async def test_set_delegate_take_decrease(
     )
     mocker.patch.object(subtensor, "get_delegate_take", return_value=0.18)
 
-    await subtensor.set_delegate_take(
-        fake_wallet,
-        fake_wallet.hotkey.ss58_address,
-        0.1,
-    )
+    assert (
+        await subtensor.set_delegate_take(
+            fake_wallet,
+            fake_wallet.hotkey.ss58_address,
+            0.1,
+        )
+    ).success
 
     assert_submit_signed_extrinsic(
         mock_substrate,
@@ -2773,7 +2780,9 @@ async def test_set_weights_success(subtensor, fake_wallet, mocker):
     mocked_weights_rate_limit = mocker.AsyncMock(return_value=1)
     subtensor.weights_rate_limit = mocked_weights_rate_limit
 
-    mocked_set_weights_extrinsic = mocker.AsyncMock(return_value=(True, "Success"))
+    mocked_set_weights_extrinsic = mocker.AsyncMock(
+        return_value=ExtrinsicResponse(True, "Success")
+    )
     mocker.patch.object(
         async_subtensor, "set_weights_extrinsic", mocked_set_weights_extrinsic
     )
@@ -2871,7 +2880,9 @@ async def test_commit_weights_success(subtensor, fake_wallet, mocker):
         async_subtensor, "generate_weight_hash", mocked_generate_weight_hash
     )
 
-    mocked_commit_weights_extrinsic = mocker.AsyncMock(return_value=(True, "Success"))
+    mocked_commit_weights_extrinsic = mocker.AsyncMock(
+        return_value=ExtrinsicResponse(True, "Success")
+    )
     mocker.patch.object(
         async_subtensor, "commit_weights_extrinsic", mocked_commit_weights_extrinsic
     )

@@ -142,7 +142,7 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
     assert wait_to_start_call(subtensor, alice_wallet, netuid)
 
     # Register Bob to the subnet
-    assert subtensor.subnets.burned_register(bob_wallet, netuid), (
+    assert subtensor.subnets.burned_register(bob_wallet, netuid).success, (
         "Unable to register Bob as a neuron"
     )
 
@@ -335,9 +335,9 @@ async def test_subtensor_extrinsics_async(
     assert await async_wait_to_start_call(async_subtensor, alice_wallet, netuid)
 
     # Register Bob to the subnet
-    assert await async_subtensor.subnets.burned_register(bob_wallet, netuid), (
-        "Unable to register Bob as a neuron"
-    )
+    assert (
+        await async_subtensor.subnets.burned_register(bob_wallet, netuid)
+    ).success, "Unable to register Bob as a neuron"
 
     # Verify Bob's UID on netuid 2 is 1
     assert (

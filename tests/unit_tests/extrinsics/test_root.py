@@ -1,6 +1,7 @@
 import pytest
-from bittensor.core.subtensor import Subtensor
 from bittensor.core.extrinsics import root
+from bittensor.core.subtensor import Subtensor
+from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.balance import Balance
 
 
@@ -69,7 +70,7 @@ def test_root_register_extrinsic(
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         mock_subtensor,
         "sign_and_send_extrinsic",
-        return_value=(registration_success, "Error registering"),
+        return_value=ExtrinsicResponse(registration_success, "Error registering"),
     )
     mocker.patch.object(
         mock_subtensor.substrate,
@@ -90,7 +91,7 @@ def test_root_register_extrinsic(
         wait_for_finalization=wait_for_finalization,
     )
     # Assert
-    assert result == expected_result
+    assert result.success == expected_result
 
     if not hotkey_registered[0]:
         mock_subtensor.substrate.compose_call.assert_called_once_with(
@@ -119,7 +120,7 @@ def test_root_register_extrinsic_insufficient_balance(
         return_value=Balance(0),
     )
 
-    success = root.root_register_extrinsic(
+    success, _ = root.root_register_extrinsic(
         subtensor=mock_subtensor,
         wallet=mock_wallet,
     )

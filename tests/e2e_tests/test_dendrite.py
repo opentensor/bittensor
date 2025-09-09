@@ -61,7 +61,7 @@ async def test_dendrite(subtensor, templates, alice_wallet, bob_wallet):
             netuid=alice_subnet_netuid,
             hotkey_ss58=alice_wallet.hotkey.ss58_address,
             amount=Balance.from_tao(1),
-        )
+        ).success
         # set tempo to 10 block for non-fast-runtime
         assert sudo_set_admin_utils(
             substrate=subtensor.substrate,
@@ -98,7 +98,7 @@ async def test_dendrite(subtensor, templates, alice_wallet, bob_wallet):
     assert status is True
 
     # Register Bob to the network
-    assert subtensor.subnets.burned_register(bob_wallet, alice_subnet_netuid), (
+    assert subtensor.subnets.burned_register(bob_wallet, alice_subnet_netuid).success, (
         "Unable to register Bob as a neuron"
     )
 
@@ -129,7 +129,7 @@ async def test_dendrite(subtensor, templates, alice_wallet, bob_wallet):
         netuid=alice_subnet_netuid,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=tao,
-    )
+    ).success
 
     # Refresh metagraph
     metagraph = subtensor.metagraphs.metagraph(alice_subnet_netuid)
@@ -203,14 +203,16 @@ async def test_dendrite_async(async_subtensor, templates, alice_wallet, bob_wall
 
     if not await async_subtensor.chain.is_fast_blocks():
         # Make sure Alice is Top Validator (for non-fast-runtime only)
-        assert await async_subtensor.staking.add_stake(
-            wallet=alice_wallet,
-            netuid=alice_subnet_netuid,
-            hotkey_ss58=alice_wallet.hotkey.ss58_address,
-            amount=Balance.from_tao(5),
-            wait_for_inclusion=False,
-            wait_for_finalization=False,
-        )
+        assert (
+            await async_subtensor.staking.add_stake(
+                wallet=alice_wallet,
+                netuid=alice_subnet_netuid,
+                hotkey_ss58=alice_wallet.hotkey.ss58_address,
+                amount=Balance.from_tao(5),
+                wait_for_inclusion=False,
+                wait_for_finalization=False,
+            )
+        ).success
         # set tempo to 10 block for non-fast-runtime
         assert await async_sudo_set_admin_utils(
             substrate=async_subtensor.substrate,
@@ -247,9 +249,9 @@ async def test_dendrite_async(async_subtensor, templates, alice_wallet, bob_wall
     assert status is True
 
     # Register Bob to the network
-    assert await async_subtensor.subnets.burned_register(
-        bob_wallet, alice_subnet_netuid
-    ), "Unable to register Bob as a neuron"
+    assert (
+        await async_subtensor.subnets.burned_register(bob_wallet, alice_subnet_netuid)
+    ).success, "Unable to register Bob as a neuron"
 
     metagraph = await async_subtensor.metagraphs.metagraph(alice_subnet_netuid)
 
@@ -273,14 +275,16 @@ async def test_dendrite_async(async_subtensor, templates, alice_wallet, bob_wall
         await async_subtensor.subnets.subnet(alice_subnet_netuid)
     ).tao_to_alpha_with_slippage(tao)
 
-    assert await async_subtensor.staking.add_stake(
-        wallet=bob_wallet,
-        netuid=alice_subnet_netuid,
-        hotkey_ss58=bob_wallet.hotkey.ss58_address,
-        amount=tao,
-        wait_for_inclusion=False,
-        wait_for_finalization=False,
-    )
+    assert (
+        await async_subtensor.staking.add_stake(
+            wallet=bob_wallet,
+            netuid=alice_subnet_netuid,
+            hotkey_ss58=bob_wallet.hotkey.ss58_address,
+            amount=tao,
+            wait_for_inclusion=False,
+            wait_for_finalization=False,
+        )
+    ).success
 
     # Refresh metagraph
     metagraph = await async_subtensor.metagraphs.metagraph(alice_subnet_netuid)

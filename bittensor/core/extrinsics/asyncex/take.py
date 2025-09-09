@@ -2,7 +2,9 @@ from typing import TYPE_CHECKING, Optional
 
 from bittensor_wallet.bittensor_wallet import Wallet
 
-from bittensor.utils import unlock_key
+from bittensor.core.types import ExtrinsicResponse
+from bittensor.utils import unlock_key, get_function_name
+from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
     from bittensor.core.async_subtensor import AsyncSubtensor
@@ -17,7 +19,7 @@ async def increase_take_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """Sets the delegate 'take' percentage for a neuron identified by its hotkey.
 
     Parameters:
@@ -39,9 +41,11 @@ async def increase_take_extrinsic(
     """
 
     unlock = unlock_key(wallet, raise_error=raise_error)
-
     if not unlock.success:
-        return False, unlock.message
+        logging.error(unlock.message)
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
+        )
 
     call = await subtensor.substrate.compose_call(
         call_module="SubtensorModule",
@@ -59,6 +63,7 @@ async def increase_take_extrinsic(
         wait_for_finalization=wait_for_finalization,
         period=period,
         raise_error=raise_error,
+        calling_function=get_function_name(),
     )
 
 
@@ -71,7 +76,7 @@ async def decrease_take_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """
     Sets the delegate 'take' percentage for a neuron identified by its hotkey.
 
@@ -93,9 +98,11 @@ async def decrease_take_extrinsic(
             - False and an error message if the submission fails or the wallet cannot be unlocked.
     """
     unlock = unlock_key(wallet, raise_error=raise_error)
-
     if not unlock.success:
-        return False, unlock.message
+        logging.error(unlock.message)
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
+        )
 
     call = await subtensor.substrate.compose_call(
         call_module="SubtensorModule",
@@ -113,4 +120,5 @@ async def decrease_take_extrinsic(
         raise_error=raise_error,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        calling_function=get_function_name(),
     )
