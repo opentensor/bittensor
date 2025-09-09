@@ -4595,7 +4595,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-    ) -> bool:
+    ) -> ExtrinsicResponse:
         """
         Transfer token of amount to destination.
 
