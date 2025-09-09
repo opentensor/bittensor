@@ -4450,7 +4450,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-    ) -> tuple[bool, str]:
+    ) -> ExtrinsicResponse:
         """
         Submits a start_call extrinsic to the blockchain, to trigger the start call process for a subnet (used to start
             a new subnet's emission mechanism).
