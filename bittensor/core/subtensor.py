@@ -4452,7 +4452,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> bool:
+    ) -> ExtrinsicResponse:
         """
         Removes a specified amount of stake from a single hotkey account. This function is critical for adjusting
         individual neuron stakes within the Bittensor network.
@@ -4509,7 +4509,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> tuple[bool, str]:
+    ) -> ExtrinsicResponse:
         """Unstakes all TAO/Alpha associated with a hotkey from the specified subnets on the Bittensor network.
 
         Parameters:
@@ -4593,7 +4593,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> bool:
+    ) -> ExtrinsicResponse:
         """
         Performs batch unstaking from multiple hotkey accounts, allowing a neuron to reduce its staked amounts
             efficiently. This function is useful for managing the distribution of stakes across multiple neurons.
