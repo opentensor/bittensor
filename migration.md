@@ -42,11 +42,12 @@
     ```
     </details>
   
-2. Unify extrinsic return values by introducing an ExtrinsicResponse class. Extrinsics currently return either a boolean or a tuple. 
+2. ✅ Unify extrinsic return values by introducing an ExtrinsicResponse class. Extrinsics currently return either a boolean or a tuple. 
 
     Purpose:
-    - Ease of processing
-    - This class should contain success, message, and optionally data and logs. (to save all logs during the extrinsic)
+    - Ease of processing.
+    - This class should contain success, message, and optionally data.
+    - Opportunity to expand the content of the extrinsic's response at any time upon community request or based on new technical requirements any time.
 
 3. ✅ Set `wait_for_inclusion` and `wait_for_finalization` to `True` by default in extrinsics and their related calls. Then we will guarantee the correct/expected extrinsic call response is consistent with the chain response. If the user changes those values, then it is the user's responsibility.
 4. ✅ Make the internal logic of extrinsics the same. There are extrinsics that are slightly different in implementation.
