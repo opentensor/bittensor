@@ -454,12 +454,12 @@ def test_delegates(subtensor, alice_wallet, bob_wallet):
         is True
     )
 
-    subtensor.staking.add_stake(
+    assert subtensor.staking.add_stake(
         wallet=bob_wallet,
         netuid=alice_subnet_netuid,
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(10_000),
-    )
+    ).success
 
     # let chain update validator_permits
     subtensor.wait_for_block(subtensor.block + set_tempo + 1)
@@ -623,12 +623,14 @@ async def test_delegates_async(async_subtensor, alice_wallet, bob_wallet):
         )
     )[0] is True
 
-    await async_subtensor.staking.add_stake(
-        wallet=bob_wallet,
-        netuid=alice_subnet_netuid,
-        hotkey_ss58=alice_wallet.hotkey.ss58_address,
-        amount=Balance.from_tao(10_000),
-    )
+    assert (
+        await async_subtensor.staking.add_stake(
+            wallet=bob_wallet,
+            netuid=alice_subnet_netuid,
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
+            amount=Balance.from_tao(10_000),
+        )
+    ).success
 
     # let chain update validator_permits
     await async_subtensor.wait_for_block(await async_subtensor.block + set_tempo + 1)
@@ -688,13 +690,12 @@ def test_nominator_min_required_stake(subtensor, alice_wallet, bob_wallet, dave_
         netuid=alice_subnet_netuid,
     ).success
 
-    success = subtensor.staking.add_stake(
+    assert subtensor.staking.add_stake(
         wallet=dave_wallet,
         netuid=alice_subnet_netuid,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(1000),
-    )
-    assert success is True
+    ).success
 
     stake = subtensor.staking.get_stake(
         coldkey_ss58=dave_wallet.coldkey.ss58_address,
@@ -775,13 +776,14 @@ async def test_nominator_min_required_stake_async(
         )
     ).success
 
-    success = await async_subtensor.staking.add_stake(
-        wallet=dave_wallet,
-        netuid=alice_subnet_netuid,
-        hotkey_ss58=bob_wallet.hotkey.ss58_address,
-        amount=Balance.from_tao(1000),
-    )
-    assert success is True
+    assert (
+        await async_subtensor.staking.add_stake(
+            wallet=dave_wallet,
+            netuid=alice_subnet_netuid,
+            hotkey_ss58=bob_wallet.hotkey.ss58_address,
+            amount=Balance.from_tao(1000),
+        )
+    ).success
 
     stake = await async_subtensor.staking.get_stake(
         coldkey_ss58=dave_wallet.coldkey.ss58_address,
