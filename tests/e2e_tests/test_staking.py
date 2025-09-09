@@ -205,7 +205,7 @@ async def test_single_operation_async(async_subtensor, alice_wallet, bob_wallet)
     alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
 
     # Register root as Alice - the subnet owner and validator
-    assert await async_subtensor.subnets.register_subnet(alice_wallet).success
+    assert (await async_subtensor.subnets.register_subnet(alice_wallet)).success
 
     # Verify subnet <netuid> created successfully
     assert await async_subtensor.subnets.subnet_exists(alice_subnet_netuid), (
