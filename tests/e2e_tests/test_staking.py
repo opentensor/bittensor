@@ -169,7 +169,7 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
     logging.console.info(f"Alice stake before unstake: {stake}")
 
     # unstale all to check in later
-    success = subtensor.staking.unstake(
+    response = subtensor.staking.unstake(
         wallet=alice_wallet,
         netuid=alice_subnet_netuid,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
@@ -177,7 +177,7 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
         period=16,
     )
 
-    assert success is True
+    assert response.success is True
 
     stake = subtensor.staking.get_stake(
         coldkey_ss58=alice_wallet.coldkey.ss58_address,
@@ -799,7 +799,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet, eve_wallet)
 
     # Test Unstaking Scenarios
     # 1. Strict params - should fail
-    success = subtensor.staking.unstake(
+    response = subtensor.staking.unstake(
         wallet=alice_wallet,
         netuid=alice_subnet_netuid,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
@@ -808,7 +808,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet, eve_wallet)
         rate_tolerance=0.005,  # 0.5%
         allow_partial_stake=False,
     )
-    assert success is False, "Unstake should fail."
+    assert response.success is False
 
     current_stake = subtensor.staking.get_stake(
         coldkey_ss58=alice_wallet.coldkey.ss58_address,
@@ -824,7 +824,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet, eve_wallet)
     )
 
     # 2. Partial allowed - should succeed partially
-    success = subtensor.staking.unstake(
+    response = subtensor.staking.unstake(
         wallet=alice_wallet,
         netuid=alice_subnet_netuid,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
@@ -833,7 +833,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet, eve_wallet)
         rate_tolerance=0.005,  # 0.5%
         allow_partial_stake=True,
     )
-    assert success is True
+    assert response.success is True
 
     partial_unstake = subtensor.staking.get_stake(
         coldkey_ss58=alice_wallet.coldkey.ss58_address,
@@ -846,7 +846,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet, eve_wallet)
     )
 
     # 3. Higher threshold - should succeed fully
-    success = subtensor.staking.unstake(
+    response = subtensor.staking.unstake(
         wallet=alice_wallet,
         netuid=alice_subnet_netuid,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
@@ -855,7 +855,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet, eve_wallet)
         rate_tolerance=0.3,  # 30%
         allow_partial_stake=False,
     )
-    assert success is True, "Unstake should succeed"
+    assert response.success is True, "Unstake should succeed"
     logging.console.success("✅ Test [green]test_safe_staking_scenarios[/green] passed")
 
 
@@ -994,7 +994,7 @@ async def test_safe_staking_scenarios_async(
 
     # Test Unstaking Scenarios
     # 1. Strict params - should fail
-    success = await async_subtensor.staking.unstake(
+    response = await async_subtensor.staking.unstake(
         wallet=alice_wallet,
         netuid=alice_subnet_netuid,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
@@ -1003,7 +1003,7 @@ async def test_safe_staking_scenarios_async(
         rate_tolerance=0.005,  # 0.5%
         allow_partial_stake=False,
     )
-    assert success is False, "Unstake should fail."
+    assert response.success is False, "Unstake should fail."
 
     current_stake = await async_subtensor.staking.get_stake(
         coldkey_ss58=alice_wallet.coldkey.ss58_address,
@@ -1019,7 +1019,7 @@ async def test_safe_staking_scenarios_async(
     )
 
     # 2. Partial allowed - should succeed partially
-    success = await async_subtensor.staking.unstake(
+    response = await async_subtensor.staking.unstake(
         wallet=alice_wallet,
         netuid=alice_subnet_netuid,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
@@ -1028,7 +1028,7 @@ async def test_safe_staking_scenarios_async(
         rate_tolerance=0.005,  # 0.5%
         allow_partial_stake=True,
     )
-    assert success is True
+    assert response.success is True
 
     partial_unstake = await async_subtensor.staking.get_stake(
         coldkey_ss58=alice_wallet.coldkey.ss58_address,
@@ -1041,7 +1041,7 @@ async def test_safe_staking_scenarios_async(
     )
 
     # 3. Higher threshold - should succeed fully
-    success = await async_subtensor.staking.unstake(
+    response = await async_subtensor.staking.unstake(
         wallet=alice_wallet,
         netuid=alice_subnet_netuid,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
@@ -1050,7 +1050,7 @@ async def test_safe_staking_scenarios_async(
         rate_tolerance=0.3,  # 30%
         allow_partial_stake=False,
     )
-    assert success is True, "Unstake should succeed"
+    assert response.success is True, "Unstake should succeed"
     logging.console.success(
         "✅ Test [green]test_safe_staking_scenarios_async[/green] passed"
     )
