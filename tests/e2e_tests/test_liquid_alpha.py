@@ -76,7 +76,7 @@ def test_liquid_alpha(subtensor, alice_wallet):
         netuid=netuid,
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(10_000),
-    ), "Unable to stake to Alice neuron"
+    ).success, "Unable to stake to Alice neuron"
 
     # Assert liquid alpha is disabled
     assert (
@@ -264,12 +264,14 @@ async def test_liquid_alpha_async(async_subtensor, alice_wallet):
     ).success, "Unable to register Alice as a neuron"
 
     # Stake to become to top neuron after the first epoch
-    assert await async_subtensor.staking.add_stake(
-        wallet=alice_wallet,
-        netuid=netuid,
-        hotkey_ss58=alice_wallet.hotkey.ss58_address,
-        amount=Balance.from_tao(10_000),
-    ), "Unable to stake to Alice neuron"
+    assert (
+        await async_subtensor.staking.add_stake(
+            wallet=alice_wallet,
+            netuid=netuid,
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
+            amount=Balance.from_tao(10_000),
+        )
+    ).success, "Unable to stake to Alice neuron"
 
     # Assert liquid alpha is disabled
     assert (
