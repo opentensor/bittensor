@@ -204,12 +204,12 @@ def test_change_take(subtensor, alice_wallet, bob_wallet):
             raise_error=True,
         )
 
-    subtensor.delegates.set_delegate_take(
+    assert subtensor.delegates.set_delegate_take(
         alice_wallet,
         alice_wallet.hotkey.ss58_address,
         0.1,
         raise_error=True,
-    )
+    ).success
 
     take = subtensor.delegates.get_delegate_take(alice_wallet.hotkey.ss58_address)
     assert take == 0.09999237048905166
@@ -234,12 +234,12 @@ def test_change_take(subtensor, alice_wallet, bob_wallet):
         },
     )
 
-    subtensor.delegates.set_delegate_take(
+    assert subtensor.delegates.set_delegate_take(
         wallet=alice_wallet,
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
         take=0.15,
         raise_error=True,
-    )
+    ).success
 
     take = subtensor.delegates.get_delegate_take(alice_wallet.hotkey.ss58_address)
     assert take == 0.14999618524452582
@@ -294,12 +294,14 @@ async def test_change_take_async(async_subtensor, alice_wallet, bob_wallet):
             raise_error=True,
         )
 
-    await async_subtensor.delegates.set_delegate_take(
-        alice_wallet,
-        alice_wallet.hotkey.ss58_address,
-        0.1,
-        raise_error=True,
-    )
+    assert (
+        await async_subtensor.delegates.set_delegate_take(
+            alice_wallet,
+            alice_wallet.hotkey.ss58_address,
+            0.1,
+            raise_error=True,
+        )
+    ).success
 
     take = await async_subtensor.delegates.get_delegate_take(
         alice_wallet.hotkey.ss58_address
@@ -328,12 +330,14 @@ async def test_change_take_async(async_subtensor, alice_wallet, bob_wallet):
         },
     )
 
-    await async_subtensor.delegates.set_delegate_take(
-        wallet=alice_wallet,
-        hotkey_ss58=alice_wallet.hotkey.ss58_address,
-        take=0.15,
-        raise_error=True,
-    )
+    assert (
+        await async_subtensor.delegates.set_delegate_take(
+            wallet=alice_wallet,
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
+            take=0.15,
+            raise_error=True,
+        )
+    ).success
 
     take = await async_subtensor.delegates.get_delegate_take(
         alice_wallet.hotkey.ss58_address
