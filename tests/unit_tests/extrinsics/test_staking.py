@@ -1,6 +1,8 @@
+import pytest
+
 from bittensor.core.extrinsics import staking
 from bittensor.utils.balance import Balance
-import pytest
+from bittensor.core.types import ExtrinsicResponse
 
 
 def test_add_stake_extrinsic(mocker):
@@ -11,7 +13,7 @@ def test_add_stake_extrinsic(mocker):
             "get_balance.return_value": Balance(10),
             "get_existential_deposit.return_value": Balance(1),
             "get_hotkey_owner.return_value": "hotkey_owner",
-            "sign_and_send_extrinsic.return_value": (True, ""),
+            "sign_and_send_extrinsic.return_value": ExtrinsicResponse(True, "Success"),
         }
     )
     fake_wallet_ = mocker.Mock(
@@ -37,7 +39,7 @@ def test_add_stake_extrinsic(mocker):
     )
 
     # Asserts
-    assert result is True
+    assert result.success is True
 
     fake_subtensor.substrate.compose_call.assert_called_once_with(
         call_module="SubtensorModule",
@@ -54,6 +56,7 @@ def test_add_stake_extrinsic(mocker):
         use_nonce=True,
         period=None,
         raise_error=False,
+        calling_function="add_stake_extrinsic",
     )
 
 
@@ -63,7 +66,7 @@ def test_add_stake_multiple_extrinsic(mocker):
     fake_subtensor = mocker.Mock(
         **{
             "get_balance.return_value": Balance(10.0),
-            "sign_and_send_extrinsic.return_value": (True, ""),
+            "sign_and_send_extrinsic.return_value": ExtrinsicResponse(True, ""),
             "substrate.query_multi.return_value": [
                 (
                     mocker.Mock(
@@ -111,7 +114,7 @@ def test_add_stake_multiple_extrinsic(mocker):
     )
 
     # Asserts
-    assert result is True
+    assert result.success is True
     assert fake_subtensor.substrate.compose_call.call_count == 2
     assert fake_subtensor.sign_and_send_extrinsic.call_count == 2
 
@@ -143,6 +146,7 @@ def test_add_stake_multiple_extrinsic(mocker):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        calling_function="add_stake_multiple_extrinsic",
     )
 
 

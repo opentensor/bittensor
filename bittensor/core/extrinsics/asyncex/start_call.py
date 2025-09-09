@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Optional
 
-from bittensor.utils import unlock_key
+from bittensor.core.types import ExtrinsicResponse
+from bittensor.utils import unlock_key, get_function_name
 from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
@@ -16,7 +17,7 @@ async def start_call_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """
     Submits a start_call extrinsic to the blockchain, to trigger the start call process for a subnet (used to start a
     new subnet's emission mechanism).
@@ -33,13 +34,13 @@ async def start_call_extrinsic(
         wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
     Returns:
-        Tuple[bool, str]:
-            - True and a success message if the extrinsic is successfully submitted or processed.
-            - False and an error message if the submission fails or the wallet cannot be unlocked.
+        ExtrinsicResponse: The result object of the extrinsic execution.
     """
     if not (unlock := unlock_key(wallet)).success:
         logging.error(unlock.message)
-        return False, unlock.message
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
+        )
 
     async with subtensor.substrate as substrate:
         start_call = await substrate.compose_call(
@@ -48,19 +49,14 @@ async def start_call_extrinsic(
             call_params={"netuid": netuid},
         )
 
-        success, message = await subtensor.sign_and_send_extrinsic(
+        response = await subtensor.sign_and_send_extrinsic(
             call=start_call,
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             period=period,
             raise_error=raise_error,
+            calling_function=get_function_name(),
         )
 
-        if not wait_for_finalization and not wait_for_inclusion:
-            return True, message
-
-        if success:
-            return True, "Success with `start_call` response."
-
-        return True, message
+        return response
