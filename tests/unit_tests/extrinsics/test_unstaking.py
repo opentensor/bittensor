@@ -1,4 +1,5 @@
 from bittensor.core.extrinsics import unstaking
+from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.balance import Balance
 
 
@@ -11,7 +12,7 @@ def test_unstake_extrinsic(fake_wallet, mocker):
         **{
             "get_hotkey_owner.return_value": "hotkey_owner",
             "get_stake_for_coldkey_and_hotkey.return_value": Balance(10.0),
-            "sign_and_send_extrinsic.return_value": (True, ""),
+            "sign_and_send_extrinsic.return_value": ExtrinsicResponse(True, ""),
             "get_stake.return_value": Balance(10.0),
             "substrate": fake_substrate,
         }
@@ -35,7 +36,7 @@ def test_unstake_extrinsic(fake_wallet, mocker):
     )
 
     # Asserts
-    assert result is True
+    assert result.success is True
 
     fake_subtensor.substrate.compose_call.assert_called_once_with(
         call_module="SubtensorModule",
@@ -56,6 +57,7 @@ def test_unstake_extrinsic(fake_wallet, mocker):
         use_nonce=True,
         period=None,
         raise_error=False,
+        calling_function="unstake_extrinsic",
     )
 
 
@@ -64,7 +66,7 @@ def test_unstake_all_extrinsic(fake_wallet, mocker):
     fake_subtensor = mocker.Mock(
         **{
             "subnet.return_value": mocker.Mock(price=100),
-            "sign_and_send_extrinsic.return_value": (True, ""),
+            "sign_and_send_extrinsic.return_value": ExtrinsicResponse(True, ""),
         }
     )
 
@@ -102,6 +104,7 @@ def test_unstake_all_extrinsic(fake_wallet, mocker):
         use_nonce=True,
         period=None,
         raise_error=False,
+        calling_function="unstake_all_extrinsic",
     )
 
 
@@ -115,7 +118,7 @@ def test_unstake_multiple_extrinsic(fake_wallet, mocker):
         **{
             "get_hotkey_owner.return_value": "hotkey_owner",
             "get_stake_for_coldkey_and_hotkey.return_value": [Balance(10.0)],
-            "sign_and_send_extrinsic.return_value": (True, ""),
+            "sign_and_send_extrinsic.return_value": ExtrinsicResponse(True, ""),
             "tx_rate_limit.return_value": 0,
             "substrate": fake_substrate,
         }
@@ -142,7 +145,7 @@ def test_unstake_multiple_extrinsic(fake_wallet, mocker):
     )
 
     # Asserts
-    assert result is True
+    assert result.success is True
     assert fake_subtensor.substrate.compose_call.call_count == 1
     assert fake_subtensor.sign_and_send_extrinsic.call_count == 1
 
@@ -174,4 +177,5 @@ def test_unstake_multiple_extrinsic(fake_wallet, mocker):
         use_nonce=True,
         period=None,
         raise_error=False,
+        calling_function="unstake_multiple_extrinsic",
     )
