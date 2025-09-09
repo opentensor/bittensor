@@ -4400,7 +4400,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> bool:
+    ) -> ExtrinsicResponse:
         """
         Adds a stake from the specified wallet to the neuron identified by the SS58 address of its hotkey in specified
         subnet. Staking is a fundamental process in the Bittensor network that enables neurons to participate actively
@@ -4508,7 +4508,7 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> bool:
+    ) -> ExtrinsicResponse:
         """
         Adds stakes to multiple neurons identified by their hotkey SS58 addresses.
         This bulk operation allows for efficient staking across different neurons from a single wallet.
