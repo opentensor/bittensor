@@ -2,7 +2,8 @@ from typing import TYPE_CHECKING, Optional
 
 from bittensor_wallet.bittensor_wallet import Wallet
 
-from bittensor.utils import unlock_key
+from bittensor.core.types import ExtrinsicResponse
+from bittensor.utils import unlock_key, get_function_name
 from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
@@ -18,7 +19,7 @@ def increase_take_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """Sets the delegate 'take' percentage for a neuron identified by its hotkey.
 
     Parameters:
@@ -41,7 +42,9 @@ def increase_take_extrinsic(
     unlock = unlock_key(wallet, raise_error=raise_error)
     if not unlock.success:
         logging.error(unlock.message)
-        return False, unlock.message
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
+        )
 
     call = subtensor.substrate.compose_call(
         call_module="SubtensorModule",
@@ -59,6 +62,7 @@ def increase_take_extrinsic(
         wait_for_finalization=wait_for_finalization,
         period=period,
         raise_error=raise_error,
+        calling_function=get_function_name(),
     )
 
 
@@ -71,7 +75,7 @@ def decrease_take_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """
     Sets the delegate `take` percentage for a neuron identified by its hotkey.
 
@@ -95,7 +99,9 @@ def decrease_take_extrinsic(
     unlock = unlock_key(wallet, raise_error=raise_error)
     if not unlock.success:
         logging.error(unlock.message)
-        return False, unlock.message
+        return ExtrinsicResponse(
+            False, unlock.message, extrinsic_function=get_function_name()
+        )
 
     call = subtensor.substrate.compose_call(
         call_module="SubtensorModule",
@@ -113,4 +119,5 @@ def decrease_take_extrinsic(
         raise_error=raise_error,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        calling_function=get_function_name(),
     )
