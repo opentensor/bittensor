@@ -38,11 +38,14 @@ jobs:
       - name: Cache uv and venv
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.cache/uv
-            .venv
-          key: uv-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
-          restore-keys: uv-${{ runner.os }}-py${{ matrix.python-version }}-
+          path: ~/.cache/uv
+          key: >
+            uvwheels-${{ runner.os }}-${{ runner.arch }}
+            -py${{ steps.setup-python.outputs.python-version }}
+            -${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            uvwheels-${{ runner.os }}-${{ runner.arch }}-py${{ steps.setup-python.outputs.python-version }}-
+            uvwheels-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install dependencies
         run: uv sync --extra dev --dev
