@@ -92,7 +92,7 @@ async def test_root_reg_hyperparams(subtensor, templates, alice_wallet, bob_wall
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(1),
         period=16,
-    ), "Unable to stake from Bob to Alice"
+    ).success, "Unable to stake from Bob to Alice"
 
     async with templates.validator(alice_wallet, netuid):
         await asyncio.sleep(5)  # Wait a bit for chain to process data
@@ -209,13 +209,15 @@ async def test_root_reg_hyperparams_async(
     )
     assert await async_subtensor.subnets.tempo(netuid=netuid) == default_tempo
 
-    assert await async_subtensor.staking.add_stake(
-        wallet=bob_wallet,
-        netuid=netuid,
-        hotkey_ss58=alice_wallet.hotkey.ss58_address,
-        amount=Balance.from_tao(1),
-        period=16,
-    ), "Unable to stake from Bob to Alice"
+    assert (
+        await async_subtensor.staking.add_stake(
+            wallet=bob_wallet,
+            netuid=netuid,
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
+            amount=Balance.from_tao(1),
+            period=16,
+        )
+    ).success, "Unable to stake from Bob to Alice"
 
     async with templates.validator(alice_wallet, netuid):
         await asyncio.sleep(5)  # Wait a bit for chain to process data
