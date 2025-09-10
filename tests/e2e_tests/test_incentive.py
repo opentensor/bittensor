@@ -9,8 +9,6 @@ from tests.e2e_tests.utils.chain_interactions import (
 )
 from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 
-DURATION_OF_START_CALL = 10
-
 
 @pytest.mark.asyncio
 async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wallet):
@@ -25,6 +23,17 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
+
+    # turn off admin freeze window limit for testing
+    assert (
+        sudo_set_admin_utils(
+            local_chain,
+            alice_wallet,
+            call_function="sudo_set_admin_freeze_window",
+            call_params={"window": 0},
+        )[0]
+        is True
+    ), "Failed to set admin freeze window to 0"
 
     print("Testing test_incentive")
     alice_subnet_netuid = subtensor.get_total_subnets()  # 2
