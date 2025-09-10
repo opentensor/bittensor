@@ -137,9 +137,9 @@ def process_stake_data(stake_data: list) -> dict:
 
 def decode_metadata(metadata: dict) -> str:
     commitment = metadata["info"]["fields"][0][0]
-    bytes_tuple_ = commitment[next(iter(commitment.keys()))]
-    bytes_tuple = bytes_tuple_[0] if len(bytes_tuple_) > 0 else bytes_tuple_
-    return bytes(bytes_tuple).decode()
+    raw_bytes = next(iter(commitment.values()))
+    byte_tuple = raw_bytes[0] if raw_bytes else raw_bytes
+    return bytes(byte_tuple).decode("utf-8", errors="ignore")
 
 
 def decode_block(data: bytes) -> int:
@@ -168,6 +168,7 @@ def decode_revealed_commitment(encoded_data) -> tuple[int, str]:
 
     def scale_decode_offset(data: bytes) -> int:
         """Decodes the scale offset from a given byte data sequence."""
+        print(">>> data", data)
         first_byte = data[0]
         mode = first_byte & 0b11
         if mode == 0:
