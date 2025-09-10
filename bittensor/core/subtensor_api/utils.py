@@ -25,6 +25,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.filter_netuids_by_registered_hotkeys = (
         subtensor._subtensor.filter_netuids_by_registered_hotkeys
     )
+    subtensor.get_admin_freeze_window = subtensor._subtensor.get_admin_freeze_window
     subtensor.get_all_commitments = subtensor._subtensor.get_all_commitments
     subtensor.get_all_metagraphs_info = subtensor._subtensor.get_all_metagraphs_info
     subtensor.get_all_neuron_certificates = (
