@@ -7,6 +7,7 @@ from tests.e2e_tests.utils.chain_interactions import (
     async_sudo_set_hyperparameter_values,
     sudo_set_hyperparameter_bool,
     sudo_set_hyperparameter_values,
+    sudo_set_admin_utils,
 )
 from tests.e2e_tests.utils.e2e_test_utils import (
     async_wait_to_start_call,
@@ -37,6 +38,17 @@ def test_liquid_alpha(subtensor, alice_wallet):
         AssertionError: If any of the checks or verifications fail
     """
     logging.console.info("Testing [blue]test_liquid_alpha[/blue]")
+
+    # turn off admin freeze window limit for testing
+    assert (
+        sudo_set_admin_utils(
+            substrate=subtensor.substrate,
+            wallet=alice_wallet,
+            call_function="sudo_set_admin_freeze_window",
+            call_params={"window": 0},
+        )[0]
+        is True
+    ), "Failed to set admin freeze window to 0"
 
     u16_max = 65535
     netuid = 2

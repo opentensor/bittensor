@@ -14,8 +14,6 @@ from tests.e2e_tests.utils.e2e_test_utils import (
     wait_to_start_call,
 )
 
-DURATION_OF_START_CALL = 10
-
 
 @pytest.mark.asyncio
 async def test_incentive(subtensor, templates, alice_wallet, bob_wallet):
@@ -30,9 +28,19 @@ async def test_incentive(subtensor, templates, alice_wallet, bob_wallet):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-
     logging.console.info("Testing [blue]test_incentive[/blue]")
     alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
+
+    # turn off admin freeze window limit for testing
+    assert (
+        sudo_set_admin_utils(
+            subtensor.substrate,
+            alice_wallet,
+            call_function="sudo_set_admin_freeze_window",
+            call_params={"window": 0},
+        )[0]
+        is True
+    ), "Failed to set admin freeze window to 0"
 
     # Register root as Alice - the subnet owner and validator
     assert subtensor.subnets.register_subnet(alice_wallet), "Subnet wasn't created"

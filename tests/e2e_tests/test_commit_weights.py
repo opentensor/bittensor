@@ -32,6 +32,17 @@ async def test_commit_and_reveal_weights_legacy(subtensor, alice_wallet):
     """
     logging.console.info("Testing test_commit_and_reveal_weights")
 
+    # turn off admin freeze window limit for testing
+    assert (
+        sudo_set_admin_utils(
+            local_chain,
+            alice_wallet,
+            call_function="sudo_set_admin_freeze_window",
+            call_params={"window": 0},
+        )[0]
+        is True
+    ), "Failed to set admin freeze window to 0"
+
     netuid = subtensor.subnets.get_total_subnets()  # 2
     set_tempo = 100 if subtensor.chain.is_fast_blocks() else 10
 
@@ -337,6 +348,17 @@ async def test_commit_weights_uses_next_nonce(subtensor, alice_wallet):
         AssertionError: If any of the checks or verifications fail
     """
     logging.console.info("Testing test_commit_and_reveal_weights")
+
+    # turn off admin freeze window limit for testing
+    assert (
+        sudo_set_admin_utils(
+            local_chain,
+            alice_wallet,
+            call_function="sudo_set_admin_freeze_window",
+            call_params={"window": 0},
+        )[0]
+        is True
+    ), "Failed to set admin freeze window to 0"
 
     subnet_tempo = 50 if subtensor.chain.is_fast_blocks() else 10
     netuid = subtensor.subnets.get_total_subnets()  # 2

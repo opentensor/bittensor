@@ -672,7 +672,19 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet, eve_wallet)
     2. Succeeds with strict threshold (0.5%) and partial staking allowed
     3. Succeeds with lenient threshold (10% and 30%) and no partial staking
     """
+
     logging.console.info("Testing [blue]test_safe_staking_scenarios[/blue]")
+
+    # turn off admin freeze window limit for testing
+    assert (
+        sudo_set_admin_utils(
+            substrate=subtensor.substrate,
+            wallet=alice_wallet,
+            call_function="sudo_set_admin_freeze_window",
+            call_params={"window": 0},
+        )[0]
+        is True
+    ), "Failed to set admin freeze window to 0"
 
     alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
     # Register root as Alice - the subnet owner and validator
