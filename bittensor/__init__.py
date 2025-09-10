@@ -3,6 +3,8 @@ import warnings
 from .core.settings import __version__, version_split, DEFAULTS, DEFAULT_NETWORK
 from .utils.btlogging import logging
 from .utils.easy_imports import *
+from .utils.runtime_browser import runtime_browser as runtime
+from .utils.runtime_async_browser import runtime_async_browser as async_runtime
 
 
 def __getattr__(name):
