@@ -7,6 +7,7 @@ class Chain:
     """Class for managing chain state operations."""
 
     def __init__(self, subtensor: Union["_Subtensor", "_AsyncSubtensor"]):
+        self.get_admin_freeze_window = subtensor.get_admin_freeze_window
         self.get_block_hash = subtensor.get_block_hash
         self.get_current_block = subtensor.get_current_block
         self.get_delegate_identities = subtensor.get_delegate_identities
