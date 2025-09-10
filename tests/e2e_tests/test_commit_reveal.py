@@ -31,6 +31,18 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
+
+    # turn off admin freeze window limit for testing
+    assert (
+        sudo_set_admin_utils(
+            local_chain,
+            alice_wallet,
+            call_function="sudo_set_admin_freeze_window",
+            call_params={"window": 0},
+        )[0]
+        is True
+    ), "Failed to set admin freeze window to 0"
+
     logging.console.info("Testing `test_commit_and_reveal_weights_cr4`")
 
     # 12 for non-fast-block, 0.25 for fast block
@@ -249,6 +261,18 @@ async def test_async_commit_and_reveal_weights_cr4(
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
+
+    # turn off admin freeze window limit for testing
+    assert (
+        sudo_set_admin_utils(
+            local_chain,
+            alice_wallet,
+            call_function="sudo_set_admin_freeze_window",
+            call_params={"window": 0},
+        )[0]
+        is True
+    ), "Failed to set admin freeze window to 0"
+
     logging.console.info("Testing `test_commit_and_reveal_weights_cr4`")
 
     async with async_subtensor:

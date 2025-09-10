@@ -28,6 +28,17 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
         AssertionError: If any of the checks or verifications fail
     """
 
+    # turn off admin freeze window limit for testing
+    assert (
+        sudo_set_admin_utils(
+            local_chain,
+            alice_wallet,
+            call_function="sudo_set_admin_freeze_window",
+            call_params={"window": 0},
+        )[0]
+        is True
+    ), "Failed to set admin freeze window to 0"
+
     netuids = [2, 3]
     subnet_tempo = 50
     BLOCK_TIME = 0.25  # 12 for non-fast-block, 0.25 for fast block

@@ -630,6 +630,23 @@ class Subtensor(SubtensorMixin):
         )
         return return_val
 
+    def get_admin_freeze_window(self, block: Optional[int] = None) -> int:
+        """
+        Returns the number of blocks when dependent transactions will be frozen for execution.
+
+        Arguments:
+            block: The block number for which the children are to be retrieved.
+
+        Returns:
+            AdminFreezeWindow as integer. The number of blocks are frozen.
+        """
+
+        return self.substrate.query(
+            module="SubtensorModule",
+            storage_function="AdminFreezeWindow",
+            block_hash=self.determine_block_hash(block),
+        ).value
+
     def get_all_subnets_info(self, block: Optional[int] = None) -> list["SubnetInfo"]:
         """
         Retrieves detailed information about all subnets within the Bittensor network. This function provides
