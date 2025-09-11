@@ -3363,7 +3363,7 @@ def test_get_metagraph_info_all_fields(subtensor, mocker):
 
     # Call
     result = subtensor.get_metagraph_info(
-        netuid=netuid, field_indices=[f for f in range(73)]
+        netuid=netuid, field_indices=[f for f in range(len(SelectiveMetagraphIndex))]
     )
 
     # Asserts
