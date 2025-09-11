@@ -168,7 +168,6 @@ def decode_revealed_commitment(encoded_data) -> tuple[int, str]:
 
     def scale_decode_offset(data: bytes) -> int:
         """Decodes the scale offset from a given byte data sequence."""
-        print(">>> data", data)
         first_byte = data[0]
         mode = first_byte & 0b11
         if mode == 0:
