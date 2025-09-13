@@ -1906,7 +1906,7 @@ class Subtensor(SubtensorMixin):
         """
         Retrieves metagraph information for the specified sub-subnet (netuid, subuid).
 
-        Arguments:
+        Parameters:
             netuid: Subnet identifier.
             subuid: Sub-subnet identifier.
             block: The blockchain block number for the query.
@@ -1939,7 +1939,7 @@ class Subtensor(SubtensorMixin):
         """
         Retrieves selective metagraph information for the specified sub-subnet (netuid, subuid).
 
-        Arguments:
+        Parameters:
             netuid: Subnet identifier.
             subuid: Sub-subnet identifier.
             field_indices: A list of SelectiveMetagraphIndex or int values specifying which fields to retrieve.
@@ -1971,7 +1971,15 @@ class Subtensor(SubtensorMixin):
         netuid: int,
         block: Optional[int] = None,
     ) -> int:
-        """Returns number of subnets"""
+        """Retrieves the number of sub-subnets for provided subnet.
+
+        Parameters:
+            netuid: Subnet identifier.
+            block: The blockchain block number for the query.
+
+        Returns:
+            The number of sub-subnets for provided subnet.
+        """
         block_hash = self.determine_block_hash(block)
         query = self.substrate.query(
             module="SubtensorModule",
@@ -2587,7 +2595,7 @@ class Subtensor(SubtensorMixin):
         for the given subnet. During this window, admin ops are prohibited to avoid interference
         with validator weight submissions.
 
-        Args:
+        Parameters:
             netuid (int): The unique identifier of the subnet.
             block (Optional[int]): The blockchain block number for the query.
 

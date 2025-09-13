@@ -230,7 +230,7 @@ async def reveal_sub_weights_extrinsic(
     """
     Reveals the weights for a specific sub subnet on the Bittensor blockchain using the provided wallet.
 
-    Args:
+    Parameters:
         subtensor: AsyncSubtensor instance.
         wallet: Bittensor Wallet instance.
         netuid: The unique identifier of the subnet.
@@ -314,7 +314,7 @@ async def set_sub_weights_extrinsic(
     """
     Sets the passed weights in the chain for hotkeys in the sub-subnet of the passed subnet.
 
-    Args:
+    Parameters:
         subtensor: AsyncSubtensor instance.
         wallet: Bittensor Wallet instance.
         netuid: The unique identifier of the subnet.
