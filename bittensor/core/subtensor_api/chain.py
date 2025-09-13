@@ -15,6 +15,7 @@ class Chain:
         self.get_minimum_required_stake = subtensor.get_minimum_required_stake
         self.get_vote_data = subtensor.get_vote_data
         self.get_timestamp = subtensor.get_timestamp
+        self.is_in_admin_freeze_window = subtensor.is_in_admin_freeze_window
         self.is_fast_blocks = subtensor.is_fast_blocks
         self.last_drand_round = subtensor.last_drand_round
         self.state_call = subtensor.state_call

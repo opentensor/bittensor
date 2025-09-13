@@ -1,13 +1,21 @@
-from abc import ABC
 import argparse
-from typing import TypedDict, Optional
+from abc import ABC
+from typing import TypedDict, Optional, Union
 
+import numpy as np
+from numpy.typing import NDArray
+
+from bittensor.core import settings
+from bittensor.core.chain_data import NeuronInfo, NeuronInfoLite
+from bittensor.core.config import Config
+from bittensor.utils import determine_chain_endpoint_and_network
 from bittensor.utils import networking, Certificate
 from bittensor.utils.btlogging import logging
-from bittensor.core import settings
-from bittensor.core.config import Config
-from bittensor.core.chain_data import NeuronInfo, NeuronInfoLite
-from bittensor.utils import determine_chain_endpoint_and_network
+
+# Type annotations for UIDs and weights.
+UIDs = Union[NDArray[np.int64], list[Union[int]]]
+Weights = Union[NDArray[np.float32], list[Union[int, float]]]
+Salt = Union[NDArray[np.int64], list[int]]
 
 
 class SubtensorMixin(ABC):

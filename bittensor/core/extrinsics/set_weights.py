@@ -77,6 +77,7 @@ def _do_set_weights(
     return success, message
 
 
+# TODO: deprecate in SDKv10
 def set_weights_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",

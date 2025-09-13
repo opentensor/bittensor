@@ -73,7 +73,7 @@ def _do_commit_reveal_v3(
     )
 
 
-# TODO: rename this extrinsic to `commit_reveal_extrinsic` in SDK.v10
+# TODO: deprecate in SDKv10
 def commit_reveal_v3_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",

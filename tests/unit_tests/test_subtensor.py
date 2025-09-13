@@ -1170,7 +1170,7 @@ def test_set_weights(subtensor, mocker, fake_wallet):
     subtensor.weights_rate_limit = mocked_weights_rate_limit
 
     mocked_set_weights_extrinsic = mocker.patch.object(
-        subtensor_module, "set_weights_extrinsic", return_value=expected_result
+        subtensor_module, "set_sub_weights_extrinsic", return_value=expected_result
     )
 
     # Call
@@ -1203,6 +1203,7 @@ def test_set_weights(subtensor, mocker, fake_wallet):
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
         period=8,
+        subuid=0,
     )
     assert result == expected_result
 
@@ -1952,11 +1953,8 @@ def test_commit_weights(subtensor, fake_wallet, mocker):
     max_retries = 5
 
     expected_result = (True, None)
-    mocked_generate_weight_hash = mocker.patch.object(
-        subtensor_module, "generate_weight_hash", return_value=expected_result
-    )
     mocked_commit_weights_extrinsic = mocker.patch.object(
-        subtensor_module, "commit_weights_extrinsic", return_value=expected_result
+        subtensor_module, "commit_sub_weights_extrinsic", return_value=expected_result
     )
 
     # Call
@@ -1973,23 +1971,17 @@ def test_commit_weights(subtensor, fake_wallet, mocker):
     )
 
     # Asserts
-    mocked_generate_weight_hash.assert_called_once_with(
-        address=fake_wallet.hotkey.ss58_address,
-        netuid=netuid,
-        uids=list(uids),
-        values=list(weights),
-        salt=list(salt),
-        version_key=settings.version_as_int,
-    )
-
     mocked_commit_weights_extrinsic.assert_called_once_with(
         subtensor=subtensor,
         wallet=fake_wallet,
         netuid=netuid,
-        commit_hash=mocked_generate_weight_hash.return_value,
+        salt=salt,
+        uids=uids,
+        weights=weights,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
         period=16,
+        subuid=0,
     )
     assert result == expected_result
 
@@ -2003,7 +1995,7 @@ def test_reveal_weights(subtensor, fake_wallet, mocker):
     salt = [4, 2, 2, 1]
     expected_result = (True, None)
     mocked_extrinsic = mocker.patch.object(
-        subtensor_module, "reveal_weights_extrinsic", return_value=expected_result
+        subtensor_module, "reveal_sub_weights_extrinsic", return_value=expected_result
     )
 
     # Call
@@ -2030,6 +2022,7 @@ def test_reveal_weights(subtensor, fake_wallet, mocker):
         wait_for_inclusion=False,
         wait_for_finalization=False,
         period=16,
+        subuid=0,
     )
 
 
@@ -2045,7 +2038,9 @@ def test_reveal_weights_false(subtensor, fake_wallet, mocker):
         False,
         "No attempt made. Perhaps it is too soon to reveal weights!",
     )
-    mocked_extrinsic = mocker.patch.object(subtensor_module, "reveal_weights_extrinsic")
+    mocked_extrinsic = mocker.patch.object(
+        subtensor_module, "reveal_sub_weights_extrinsic"
+    )
 
     # Call
     result = subtensor.reveal_weights(
@@ -3150,10 +3145,10 @@ def test_set_weights_with_commit_reveal_enabled(subtensor, fake_wallet, mocker):
     mocked_commit_reveal_enabled = mocker.patch.object(
         subtensor, "commit_reveal_enabled", return_value=True
     )
-    mocked_commit_reveal_v3_extrinsic = mocker.patch.object(
-        subtensor_module, "commit_reveal_v3_extrinsic"
+    mocked_commit_timelocked_sub_weights_extrinsic = mocker.patch.object(
+        subtensor_module, "commit_timelocked_sub_weights_extrinsic"
     )
-    mocked_commit_reveal_v3_extrinsic.return_value = (
+    mocked_commit_timelocked_sub_weights_extrinsic.return_value = (
         True,
         "Weights committed successfully",
     )
@@ -3172,7 +3167,7 @@ def test_set_weights_with_commit_reveal_enabled(subtensor, fake_wallet, mocker):
 
     # Asserts
     mocked_commit_reveal_enabled.assert_called_once_with(netuid=fake_netuid)
-    mocked_commit_reveal_v3_extrinsic.assert_called_once_with(
+    mocked_commit_timelocked_sub_weights_extrinsic.assert_called_once_with(
         subtensor=subtensor,
         wallet=fake_wallet,
         netuid=fake_netuid,
@@ -3183,8 +3178,10 @@ def test_set_weights_with_commit_reveal_enabled(subtensor, fake_wallet, mocker):
         wait_for_finalization=fake_wait_for_finalization,
         block_time=12.0,
         period=8,
+        commit_reveal_version=4,
+        subuid=0,
     )
-    assert result == mocked_commit_reveal_v3_extrinsic.return_value
+    assert result == mocked_commit_timelocked_sub_weights_extrinsic.return_value
 
 
 def test_connection_limit(mocker):

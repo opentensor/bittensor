@@ -643,6 +643,7 @@ def test_generate_weight_hash(mocker):
     result = weight_utils.generate_weight_hash(
         address=fake_address,
         netuid=fake_netuid,
+        subuid=0,
         uids=fake_uids,
         values=fake_values,
         version_key=fake_version_key,

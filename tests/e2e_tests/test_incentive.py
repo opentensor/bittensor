@@ -5,7 +5,6 @@ import pytest
 from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_admin_utils,
-    wait_epoch,
 )
 from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 
@@ -71,7 +70,9 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     )
 
     # Wait for the first epoch to pass
-    await wait_epoch(subtensor, alice_subnet_netuid)
+    subtensor.wait_for_block(
+        subtensor.subnets.get_next_epoch_start_block(alice_subnet_netuid) + 1
+    )
 
     # Get current miner/validator stats
     alice_neuron = subtensor.neurons(netuid=alice_subnet_netuid)[0]

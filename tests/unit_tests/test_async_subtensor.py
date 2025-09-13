@@ -1,6 +1,6 @@
 import datetime
 import unittest.mock as mock
-
+import numpy as np
 import pytest
 from async_substrate_interface.types import ScaleObj
 from bittensor_wallet import Wallet
@@ -2773,7 +2773,7 @@ async def test_set_weights_success(subtensor, fake_wallet, mocker):
 
     mocked_set_weights_extrinsic = mocker.AsyncMock(return_value=(True, "Success"))
     mocker.patch.object(
-        async_subtensor, "set_weights_extrinsic", mocked_set_weights_extrinsic
+        async_subtensor, "set_sub_weights_extrinsic", mocked_set_weights_extrinsic
     )
 
     # Call
@@ -2803,6 +2803,7 @@ async def test_set_weights_success(subtensor, fake_wallet, mocker):
         wait_for_inclusion=False,
         weights=fake_weights,
         period=8,
+        subuid=0,
     )
     mocked_weights_rate_limit.assert_called_once_with(fake_netuid)
     assert result is True
@@ -2832,7 +2833,7 @@ async def test_set_weights_with_exception(subtensor, fake_wallet, mocker):
         side_effect=Exception("Test exception")
     )
     mocker.patch.object(
-        async_subtensor, "set_weights_extrinsic", mocked_set_weights_extrinsic
+        async_subtensor, "set_sub_weights_extrinsic", mocked_set_weights_extrinsic
     )
 
     # Call
@@ -2865,10 +2866,10 @@ async def test_root_set_weights_success(subtensor, fake_wallet, mocker):
         async_subtensor, "set_root_weights_extrinsic", mocked_set_root_weights_extrinsic
     )
 
-    mocked_np_array_netuids = mocker.Mock(autospec=async_subtensor.np.ndarray)
-    mocked_np_array_weights = mocker.Mock(autospec=async_subtensor.np.ndarray)
+    mocked_np_array_netuids = mocker.Mock(autospec=np.ndarray)
+    mocked_np_array_weights = mocker.Mock(autospec=np.ndarray)
     mocker.patch.object(
-        async_subtensor.np,
+        np,
         "array",
         side_effect=[mocked_np_array_netuids, mocked_np_array_weights],
     )
@@ -2905,14 +2906,9 @@ async def test_commit_weights_success(subtensor, fake_wallet, mocker):
     fake_weights = [100, 200, 300]
     max_retries = 3
 
-    mocked_generate_weight_hash = mocker.Mock(return_value="fake_commit_hash")
-    mocker.patch.object(
-        async_subtensor, "generate_weight_hash", mocked_generate_weight_hash
-    )
-
     mocked_commit_weights_extrinsic = mocker.AsyncMock(return_value=(True, "Success"))
     mocker.patch.object(
-        async_subtensor, "commit_weights_extrinsic", mocked_commit_weights_extrinsic
+        async_subtensor, "commit_sub_weights_extrinsic", mocked_commit_weights_extrinsic
     )
 
     # Call
@@ -2926,22 +2922,17 @@ async def test_commit_weights_success(subtensor, fake_wallet, mocker):
     )
 
     # Asserts
-    mocked_generate_weight_hash.assert_called_once_with(
-        address=fake_wallet.hotkey.ss58_address,
-        netuid=fake_netuid,
-        uids=fake_uids,
-        values=fake_weights,
-        salt=fake_salt,
-        version_key=async_subtensor.version_as_int,
-    )
     mocked_commit_weights_extrinsic.assert_called_once_with(
         subtensor=subtensor,
         wallet=fake_wallet,
         netuid=fake_netuid,
-        commit_hash="fake_commit_hash",
+        salt=fake_salt,
+        uids=fake_uids,
+        weights=fake_weights,
         wait_for_inclusion=False,
         wait_for_finalization=False,
         period=16,
+        subuid=0,
     )
     assert result is True
     assert message == "Success"
@@ -2957,16 +2948,11 @@ async def test_commit_weights_with_exception(subtensor, fake_wallet, mocker):
     fake_weights = [100, 200, 300]
     max_retries = 1
 
-    mocked_generate_weight_hash = mocker.Mock(return_value="fake_commit_hash")
-    mocker.patch.object(
-        async_subtensor, "generate_weight_hash", mocked_generate_weight_hash
-    )
-
     mocked_commit_weights_extrinsic = mocker.AsyncMock(
         side_effect=Exception("Test exception")
     )
     mocker.patch.object(
-        async_subtensor, "commit_weights_extrinsic", mocked_commit_weights_extrinsic
+        async_subtensor, "commit_sub_weights_extrinsic", mocked_commit_weights_extrinsic
     )
 
     # Call

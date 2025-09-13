@@ -1,11 +1,14 @@
 from typing import TYPE_CHECKING, Optional
 
+from bittensor.utils import unlock_key
 from bittensor.utils.balance import Balance
+from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
     from scalecodec import GenericCall
     from bittensor_wallet import Keypair
     from bittensor.core.async_subtensor import AsyncSubtensor
+    from bittensor_wallet import Wallet
 
 
 async def get_extrinsic_fee(
@@ -32,3 +35,75 @@ async def get_extrinsic_fee(
     return Balance.from_rao(amount=payment_info["partial_fee"]).set_unit(
         netuid=netuid or 0
     )
+
+
+async def sudo_call_extrinsic(
+    subtensor: "AsyncSubtensor",
+    wallet: "Wallet",
+    call_function: str,
+    call_params: dict,
+    call_module: str = "AdminUtils",
+    sign_with: str = "coldkey",
+    use_nonce: bool = False,
+    nonce_key: str = "hotkey",
+    period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
+) -> tuple[bool, str]:
+    """Execute a sudo call extrinsic.
+
+    Parameters:
+        subtensor: AsyncSubtensor instance.
+        wallet: The wallet instance.
+        call_function: The call function to execute.
+        call_params: The call parameters.
+        call_module: The call module.
+        sign_with: The keypair to sign the extrinsic with.
+        use_nonce: Whether to use a nonce.
+        nonce_key: The key to use for the nonce.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+    Returns:
+        tuple[bool, str]:
+            `True` if the extrinsic executed successfully, `False` otherwise.
+            `message` is a string value describing the success or potential error.
+    """
+    try:
+        unlock = unlock_key(wallet, raise_error=raise_error)
+        if not unlock.success:
+            logging.error(unlock.message)
+            return False, unlock.message
+        sudo_call = await subtensor.substrate.compose_call(
+            call_module="Sudo",
+            call_function="sudo",
+            call_params={
+                "call": subtensor.substrate.compose_call(
+                    call_module=call_module,
+                    call_function=call_function,
+                    call_params=call_params,
+                )
+            },
+        )
+        return await subtensor.sign_and_send_extrinsic(
+            call=sudo_call,
+            wallet=wallet,
+            sign_with=sign_with,
+            use_nonce=use_nonce,
+            nonce_key=nonce_key,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+    except Exception as error:
+        if raise_error:
+            raise error
+
+        return False, str(error)

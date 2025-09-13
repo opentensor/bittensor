@@ -104,8 +104,8 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
 
     # Commit weights
     success, message = subtensor.commit_weights(
-        alice_wallet,
-        netuid,
+        wallet=alice_wallet,
+        netuid=netuid,
         salt=salt,
         uids=weight_uids,
         weights=weight_vals,
@@ -204,8 +204,8 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
 
     # weights sensitive to epoch changes
     assert sudo_set_admin_utils(
-        local_chain,
-        alice_wallet,
+        substrate=local_chain,
+        wallet=alice_wallet,
         call_function="sudo_set_tempo",
         call_params={
             "netuid": netuid,
@@ -215,11 +215,11 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
 
     # Enable commit_reveal on the subnet
     assert sudo_set_hyperparameter_bool(
-        local_chain,
-        alice_wallet,
-        "sudo_set_commit_reveal_weights_enabled",
-        True,
-        netuid,
+        substrate=local_chain,
+        wallet=alice_wallet,
+        call_function="sudo_set_commit_reveal_weights_enabled",
+        value=True,
+        netuid=netuid,
     ), "Unable to enable commit reveal on the subnet"
 
     assert subtensor.commit_reveal_enabled(netuid), "Failed to enable commit/reveal"
