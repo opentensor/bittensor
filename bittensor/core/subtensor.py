@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Iterable, Optional, Union, cast
 
-import numpy as np
 import scalecodec
 from async_substrate_interface.errors import SubstrateRequestException
 from async_substrate_interface.substrate_addons import RetrySyncSubstrate
@@ -11,7 +10,6 @@ from async_substrate_interface.sync_substrate import SubstrateInterface
 from async_substrate_interface.types import ScaleObj
 from async_substrate_interface.utils.storage import StorageKey
 from bittensor_drand import get_encrypted_commitment
-from numpy.typing import NDArray
 
 from bittensor.core.async_subtensor import ProposalVoteData
 from bittensor.core.axon import Axon
@@ -43,11 +41,6 @@ from bittensor.core.extrinsics.children import (
     set_children_extrinsic,
     root_set_pending_childkey_cooldown_extrinsic,
 )
-from bittensor.core.extrinsics.commit_reveal import commit_reveal_v3_extrinsic
-from bittensor.core.extrinsics.commit_weights import (
-    commit_weights_extrinsic,
-    reveal_weights_extrinsic,
-)
 from bittensor.core.extrinsics.liquidity import (
     add_liquidity_extrinsic,
     modify_liquidity_extrinsic,
@@ -75,12 +68,17 @@ from bittensor.core.extrinsics.serving import (
     get_metadata,
     serve_axon_extrinsic,
 )
-from bittensor.core.extrinsics.set_weights import set_weights_extrinsic
 from bittensor.core.extrinsics.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
 )
 from bittensor.core.extrinsics.start_call import start_call_extrinsic
+from bittensor.core.extrinsics.sub_subnet import (
+    commit_sub_weights_extrinsic,
+    commit_timelocked_sub_weights_extrinsic,
+    reveal_sub_weights_extrinsic,
+    set_sub_weights_extrinsic,
+)
 from bittensor.core.extrinsics.take import (
     decrease_take_extrinsic,
     increase_take_extrinsic,
@@ -97,13 +95,18 @@ from bittensor.core.settings import (
     SS58_FORMAT,
     TYPE_REGISTRY,
 )
-from bittensor.core.types import ParamWithTypes, SubtensorMixin
+from bittensor.core.types import (
+    ParamWithTypes,
+    Salt,
+    SubtensorMixin,
+    UIDs,
+    Weights,
+)
 from bittensor.utils import (
     Certificate,
     decode_hex_identity_dict,
     format_error_message,
     is_valid_ss58_address,
-    torch,
     u16_normalized_float,
     u64_normalized_float,
     deprecated_message,
@@ -124,7 +127,6 @@ from bittensor.utils.liquidity import (
     LiquidityPosition,
 )
 from bittensor.utils.weight_utils import (
-    generate_weight_hash,
     convert_uids_and_weights,
     U16_MAX,
 )
@@ -1871,6 +1873,114 @@ class Subtensor(SubtensorMixin):
         """
         return self.get_stake_operations_fee(amount=amount, netuid=netuid, block=block)
 
+    def get_sub_all_metagraphs(
+        self,
+        block: Optional[int] = None,
+    ) -> Optional[list["MetagraphInfo"]]:
+        """
+        Retrieves all sub metagraphs for all sub-subnets.
+
+        Parameters:
+            block: The blockchain block number for the query.
+
+        Returns:
+            The list of metagraphs for all subnets with all sub-subnets if found, `None` otherwise.
+        """
+        block_hash = self.determine_block_hash(block)
+        query = self.substrate.runtime_call(
+            api="SubnetInfoRuntimeApi",
+            method="get_all_submetagraphs",
+            block_hash=block_hash,
+        )
+        if query.value is None:
+            return None
+
+        return MetagraphInfo.from_dict(query.value)
+
+    def get_sub_metagraph_info(
+        self,
+        netuid: int,
+        subuid: int,
+        block: Optional[int] = None,
+    ) -> Optional["MetagraphInfo"]:
+        """
+        Retrieves metagraph information for the specified sub-subnet (netuid, subuid).
+
+        Arguments:
+            netuid: Subnet identifier.
+            subuid: Sub-subnet identifier.
+            block: The blockchain block number for the query.
+
+        Returns:
+            A MetagraphInfo object containing the requested sub-subnet data, or None if the sub-subnet with the given
+            netuid does not exist.
+        """
+        block_hash = self.determine_block_hash(block)
+
+        query = self.substrate.runtime_call(
+            "SubnetInfoRuntimeApi",
+            "get_submetagraph",
+            params=[netuid, subuid],
+            block_hash=block_hash,
+        )
+        if query.value is None:
+            logging.error(f"Sub-subnet #{netuid}.{subuid} does not exist.")
+            return None
+
+        return MetagraphInfo.from_dict(query.value)
+
+    def get_sub_selective_metagraph(
+        self,
+        netuid: int,
+        subuid: int,
+        field_indices: Union[list[SelectiveMetagraphIndex], list[int]],
+        block: Optional[int] = None,
+    ) -> Optional["MetagraphInfo"]:
+        """
+        Retrieves selective metagraph information for the specified sub-subnet (netuid, subuid).
+
+        Arguments:
+            netuid: Subnet identifier.
+            subuid: Sub-subnet identifier.
+            field_indices: A list of SelectiveMetagraphIndex or int values specifying which fields to retrieve.
+            block: The blockchain block number for the query.
+
+        Returns:
+            A MetagraphInfo object containing the requested sub-subnet data, or None if the sub-subnet with the does not
+            exist.
+        """
+        block_hash = self.determine_block_hash(block=block)
+        indexes = [
+            f.value if isinstance(f, SelectiveMetagraphIndex) else f
+            for f in field_indices
+        ]
+        query = self.substrate.runtime_call(
+            "SubnetInfoRuntimeApi",
+            "get_selective_submetagraph",
+            params=[netuid, subuid, indexes if 0 in indexes else [0] + indexes],
+            block_hash=block_hash,
+        )
+        if query.value is None:
+            logging.error(f"Subnet #{netuid}.{subuid} does not exist.")
+            return None
+
+        return MetagraphInfo.from_dict(query.value)
+
+    def get_sub_subnet_count(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+    ) -> int:
+        """Returns number of subnets"""
+        block_hash = self.determine_block_hash(block)
+        query = self.substrate.query(
+            module="SubtensorModule",
+            storage_function="SubsubnetCountCurrent",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+        return query.value if query is not None and hasattr(query, "value") else 1
+
     def get_subnet_info(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional["SubnetInfo"]:
@@ -2051,7 +2161,7 @@ class Subtensor(SubtensorMixin):
         self,
         coldkey_ss58: str,
         hotkey_ss58: str,
-        netuids: Optional[list[int]] = None,
+        netuids: Optional[UIDs] = None,
         block: Optional[int] = None,
     ) -> dict[int, StakeInfo]:
         """
@@ -2100,13 +2210,13 @@ class Subtensor(SubtensorMixin):
         result = self.query_runtime_api(
             runtime_api="StakeInfoRuntimeApi",
             method="get_stake_info_for_coldkey",
-            params=[coldkey_ss58],  # type: ignore
+            params=[coldkey_ss58],
             block=block,
         )
 
         if result is None:
             return []
-        stakes = StakeInfo.list_from_dicts(result)  # type: ignore
+        stakes: list[StakeInfo] = StakeInfo.list_from_dicts(result)
         return [stake for stake in stakes if stake.stake > 0]
 
     get_stake_info_for_coldkey = get_stake_for_coldkey
@@ -2244,7 +2354,7 @@ class Subtensor(SubtensorMixin):
             ),
         )
 
-    def get_subnets(self, block: Optional[int] = None) -> list[int]:
+    def get_subnets(self, block: Optional[int] = None) -> UIDs:
         """
         Retrieves the list of all subnet unique identifiers (netuids) currently present in the Bittensor network.
 
@@ -2466,6 +2576,38 @@ class Subtensor(SubtensorMixin):
             param_name="ImmunityPeriod", netuid=netuid, block=block
         )
         return None if call is None else int(call)
+
+    def is_in_admin_freeze_window(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+    ) -> bool:
+        """
+        Returns True if the current block is within the terminal freeze window of the tempo
+        for the given subnet. During this window, admin ops are prohibited to avoid interference
+        with validator weight submissions.
+
+        Args:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query.
+
+        Returns:
+            bool: True if in freeze window, else False.
+        """
+        tempo = self.tempo(netuid, block=block)
+        # SN0 doesn't have admin_freeze_window
+        if tempo == 0:
+            return False
+
+        next_epoch_start_block = self.get_next_epoch_start_block(
+            netuid=netuid, block=block
+        )
+
+        if next_epoch_start_block is not None:
+            remaining = next_epoch_start_block - self.block
+            window = self.get_admin_freeze_window(block=block)
+            return remaining < window
+        return False
 
     def is_fast_blocks(self):
         """Returns True if the node is running with fast blocks. False if not."""
@@ -3268,7 +3410,7 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         hotkey_ss58s: list[str],
-        netuids: list[int],
+        netuids: UIDs,
         amounts: Optional[list[Balance]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -3355,34 +3497,34 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         netuid: int,
-        salt: list[int],
-        uids: Union[NDArray[np.int64], list],
-        weights: Union[NDArray[np.int64], list],
+        salt: Salt,
+        uids: UIDs,
+        weights: Weights,
         version_key: int = version_as_int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         max_retries: int = 5,
         period: Optional[int] = 16,
+        subuid: int = 0,
     ) -> tuple[bool, str]:
         """
         Commits a hash of the neuron's weights to the Bittensor blockchain using the provided wallet.
         This action serves as a commitment or snapshot of the neuron's current weight distribution.
 
-        Arguments:
-            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the weights.
-            netuid (int): The unique identifier of the subnet.
-            salt (list[int]): list of randomly generated integers as salt to generated weighted hash.
-            uids (np.ndarray): NumPy array of neuron UIDs for which weights are being committed.
-            weights (np.ndarray): NumPy array of weight values corresponding to each UID.
-            version_key (int): Version key for compatibility with the network. Default is ``int representation of
-                a Bittensor version.``.
-            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
-            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
-                ``False``.
-            max_retries (int): The number of maximum attempts to commit weights. Default is ``5``.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
-                submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction.
+        Parameters:
+            wallet: The wallet associated with the neuron committing the weights.
+            netuid: The unique identifier of the subnet.
+            salt: list of randomly generated integers as salt to generated weighted hash.
+            uids: Array/list of neuron UIDs for which weights are being committed.
+            weights: Array/list of weight values corresponding to each UID.
+            version_key: Version key for compatibility with the network.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            max_retries: The number of maximum attempts to commit weights.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            subuid: The sub-subnet unique identifier.
 
         Returns:
             tuple[bool, str]:
@@ -3402,23 +3544,16 @@ class Subtensor(SubtensorMixin):
             f"version_key=[blue]{version_key}[/blue]"
         )
 
-        # Generate the hash of the weights
-        commit_hash = generate_weight_hash(
-            address=wallet.hotkey.ss58_address,
-            netuid=netuid,
-            uids=list(uids),
-            values=list(weights),
-            salt=salt,
-            version_key=version_key,
-        )
-
         while retries < max_retries and success is False:
             try:
-                success, message = commit_weights_extrinsic(
+                success, message = commit_sub_weights_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
-                    commit_hash=commit_hash,
+                    subuid=subuid,
+                    uids=uids,
+                    weights=weights,
+                    salt=salt,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                     period=period,
@@ -3695,41 +3830,44 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         netuid: int,
-        uids: Union[NDArray[np.int64], list],
-        weights: Union[NDArray[np.int64], list],
-        salt: Union[NDArray[np.int64], list],
+        uids: UIDs,
+        weights: Weights,
+        salt: Salt,
         version_key: int = version_as_int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         max_retries: int = 5,
         period: Optional[int] = 16,
+        subuid: int = 0,
     ) -> tuple[bool, str]:
         """
         Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
         This action serves as a revelation of the neuron's previously committed weight distribution.
 
-        Args:
-            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron revealing the weights.
-            netuid (int): The unique identifier of the subnet.
-            uids (np.ndarray): NumPy array of neuron UIDs for which weights are being revealed.
-            weights (np.ndarray): NumPy array of weight values corresponding to each UID.
-            salt (np.ndarray): NumPy array of salt values corresponding to the hash function.
-            version_key (int): Version key for compatibility with the network. Default is ``int representation of
-                the Bittensor version``.
-            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
-            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
-                ``False``.
-            max_retries (int): The number of maximum attempts to reveal weights. Default is ``5``.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
-                submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction.
+        Parameters:
+            wallet: Bittensor Wallet instance.
+            netuid: The unique identifier of the subnet.
+            uids: NumPy array of neuron UIDs for which weights are being revealed.
+            weights: NumPy array of weight values corresponding to each UID.
+            salt: NumPy array of salt values corresponding to the hash function.
+            version_key: Version key for compatibility with the network.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            max_retries: The number of maximum attempts to reveal weights.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            subuid: The sub-subnet unique identifier.
 
         Returns:
-            tuple[bool, str]: ``True`` if the weight revelation is successful, False otherwise. And `msg`, a string
-                value describing the success or potential error.
+            tuple[bool, str]:
+                `True` if the extrinsic executed successfully, `False` otherwise.
+                `message` is a string value describing the success or potential error.
 
-        This function allows neurons to reveal their previously committed weight distribution, ensuring transparency
-            and accountability within the Bittensor network.
+        This function allows neurons to reveal their previously committed weight distribution, ensuring transparency and
+        accountability within the Bittensor network.
+
+        See also: <https://docs.learnbittensor.org/glossary#commit-reveal>,
         """
         retries = 0
         success = False
@@ -3737,13 +3875,14 @@ class Subtensor(SubtensorMixin):
 
         while retries < max_retries and success is False:
             try:
-                success, message = reveal_weights_extrinsic(
+                success, message = reveal_sub_weights_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
-                    uids=list(uids),
-                    weights=list(weights),
-                    salt=list(salt),
+                    subuid=subuid,
+                    uids=uids,
+                    weights=weights,
+                    salt=salt,
                     version_key=version_key,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
@@ -3826,7 +3965,7 @@ class Subtensor(SubtensorMixin):
     def root_set_weights(
         self,
         wallet: "Wallet",
-        netuids: list[int],
+        netuids: UIDs,
         weights: list[float],
         version_key: int = 0,
         wait_for_inclusion: bool = False,
@@ -4041,42 +4180,48 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         netuid: int,
-        uids: Union[NDArray[np.int64], "torch.LongTensor", list],
-        weights: Union[NDArray[np.float32], "torch.FloatTensor", list],
+        uids: UIDs,
+        weights: Weights,
         version_key: int = version_as_int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         max_retries: int = 5,
         block_time: float = 12.0,
         period: Optional[int] = 8,
+        subuid: int = 0,
+        commit_reveal_version: int = 4,
     ) -> tuple[bool, str]:
         """
         Sets the interneuronal weights for the specified neuron. This process involves specifying the influence or
             trust a neuron places on other neurons in the network, which is a fundamental aspect of Bittensor's
             decentralized learning architecture.
 
-        Arguments:
+        Parameters:
             wallet: The wallet associated with the neuron setting the weights.
             netuid: The unique identifier of the subnet.
             uids: The list of neuron UIDs that the weights are being set for.
             weights: The corresponding weights to be set for each UID.
-            version_key: Version key for compatibility with the network.  Default is int representation of a Bittensor
-                version.
-            wait_for_inclusion: Waits for the transaction to be included in a block. Default is ``False``.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Default is ``False``.
-            max_retries: The number of maximum attempts to set weights. Default is ``5``.
-            block_time: The number of seconds for block duration. Default is 12.0 seconds.
-            period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
-                submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction. Default is 8.
+            version_key: Version key for compatibility with the network.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            max_retries: The number of maximum attempts to set weights.
+            block_time: The number of seconds for block duration.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            subuid: The sub-subnet unique identifier.
+            commit_reveal_version: The version of the commit-reveal in the chain.
 
         Returns:
             tuple:
                 `True` if the setting of weights is successful, `False` otherwise.
                 `msg` is a string value describing the success or potential error.
 
-        This function is crucial in shaping the network's collective intelligence, where each neuron's learning and
-            contribution are influenced by the weights it sets towards others.
+        This function is crucial in the Yuma Consensus mechanism, where each validator's weight vector contributes to
+        the overall weight matrix used to calculate emissions and maintain network consensus.
+
+        Notes:
+            See <https://docs.learnbittensor.org/glossary#yuma-consensus>
         """
 
         def _blocks_weight_limit() -> bool:
@@ -4096,17 +4241,18 @@ class Subtensor(SubtensorMixin):
             )
 
         if self.commit_reveal_enabled(netuid=netuid):
-            # go with `commit reveal v3` extrinsic
+            # go with `commit_timelocked_sub_weights_extrinsic` extrinsic
 
             while retries < max_retries and success is False and _blocks_weight_limit():
                 logging.info(
                     f"Committing weights for subnet [blue]{netuid}[/blue]. "
                     f"Attempt [blue]{retries + 1}[blue] of [green]{max_retries}[/green]."
                 )
-                success, message = commit_reveal_v3_extrinsic(
+                success, message = commit_timelocked_sub_weights_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
+                    subuid=subuid,
                     uids=uids,
                     weights=weights,
                     version_key=version_key,
@@ -4114,11 +4260,12 @@ class Subtensor(SubtensorMixin):
                     wait_for_finalization=wait_for_finalization,
                     block_time=block_time,
                     period=period,
+                    commit_reveal_version=commit_reveal_version,
                 )
                 retries += 1
             return success, message
         else:
-            # go with classic `set_weights_extrinsic`
+            # go with `set_sub_weights_extrinsic`
 
             while retries < max_retries and success is False and _blocks_weight_limit():
                 try:
@@ -4126,10 +4273,11 @@ class Subtensor(SubtensorMixin):
                         f"Setting weights for subnet [blue]{netuid}[/blue]. "
                         f"Attempt [blue]{retries + 1}[/blue] of [green]{max_retries}[/green]."
                     )
-                    success, message = set_weights_extrinsic(
+                    success, message = set_sub_weights_extrinsic(
                         subtensor=self,
                         wallet=wallet,
                         netuid=netuid,
+                        subuid=subuid,
                         uids=uids,
                         weights=weights,
                         version_key=version_key,
@@ -4560,7 +4708,7 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         hotkey_ss58s: list[str],
-        netuids: list[int],
+        netuids: UIDs,
         amounts: Optional[list[Balance]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
