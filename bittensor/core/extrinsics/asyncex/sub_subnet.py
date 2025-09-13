@@ -1,11 +1,10 @@
 from typing import TYPE_CHECKING, Optional, Union
 
-import numpy as np
 from bittensor_drand import get_encrypted_commit
-from numpy.typing import NDArray
 
 from bittensor.core.settings import version_as_int
-from bittensor.utils import unlock_key, get_sub_subnet_storage_index, torch
+from bittensor.core.types import Salt, UIDs, Weights
+from bittensor.utils import unlock_key, get_sub_subnet_storage_index
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import (
     convert_and_normalize_weights_and_uids,
@@ -22,9 +21,9 @@ async def commit_sub_weights_extrinsic(
     wallet: "Wallet",
     netuid: int,
     subuid: int,
-    uids: Union[NDArray[np.int64], list],
-    weights: Union[NDArray[np.int64], list],
-    salt: list[int],
+    uids: UIDs,
+    weights: Weights,
+    salt: Salt,
     version_key: int = version_as_int,
     period: Optional[int] = None,
     raise_error: bool = False,
@@ -112,8 +111,8 @@ async def commit_timelocked_sub_weights_extrinsic(
     wallet: "Wallet",
     netuid: int,
     subuid: int,
-    uids: Union[NDArray[np.int64], "torch.LongTensor", list[Union[int, float]]],
-    weights: Union[NDArray[np.float32], "torch.FloatTensor", list[Union[int, float]]],
+    uids: UIDs,
+    weights: Weights,
     block_time: Union[int, float],
     commit_reveal_version: int = 4,
     version_key: int = version_as_int,
@@ -219,9 +218,9 @@ async def reveal_sub_weights_extrinsic(
     wallet: "Wallet",
     netuid: int,
     subuid: int,
-    uids: Union[NDArray[np.int64], list[int]],
-    weights: Union[NDArray[np.float32], list[int]],
-    salt: list[int],
+    uids: UIDs,
+    weights: Weights,
+    salt: Salt,
     version_key: int,
     period: Optional[int] = None,
     raise_error: bool = False,
@@ -257,6 +256,8 @@ async def reveal_sub_weights_extrinsic(
         if not unlock.success:
             logging.error(unlock.message)
             return False, unlock.message
+
+        uids, weights = convert_and_normalize_weights_and_uids(uids, weights)
 
         call = await subtensor.substrate.compose_call(
             call_module="SubtensorModule",
@@ -302,8 +303,8 @@ async def set_sub_weights_extrinsic(
     wallet: "Wallet",
     netuid: int,
     subuid: int,
-    uids: Union[NDArray[np.int64], "torch.LongTensor", list[Union[int, float]]],
-    weights: Union[NDArray[np.float32], "torch.FloatTensor", list[Union[int, float]]],
+    uids: UIDs,
+    weights: Weights,
     version_key: int,
     period: Optional[int] = None,
     raise_error: bool = False,
