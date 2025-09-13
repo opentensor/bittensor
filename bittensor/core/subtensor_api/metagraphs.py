@@ -9,4 +9,7 @@ class Metagraphs:
     def __init__(self, subtensor: Union["_Subtensor", "_AsyncSubtensor"]):
         self.get_metagraph_info = subtensor.get_metagraph_info
         self.get_all_metagraphs_info = subtensor.get_all_metagraphs_info
+        self.get_sub_all_metagraphs = subtensor.get_sub_all_metagraphs
+        self.get_sub_metagraph_info = subtensor.get_sub_metagraph_info
+        self.get_sub_selective_metagraph = subtensor.get_sub_selective_metagraph
         self.metagraph = subtensor.metagraph

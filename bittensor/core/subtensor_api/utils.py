@@ -92,6 +92,12 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.get_stake_movement_fee = subtensor._subtensor.get_stake_movement_fee
     subtensor.get_stake_operations_fee = subtensor._subtensor.get_stake_operations_fee
     subtensor.get_stake_weight = subtensor._subtensor.get_stake_weight
+    subtensor.get_sub_all_metagraphs = subtensor._subtensor.get_sub_all_metagraphs
+    subtensor.get_sub_metagraph_info = subtensor._subtensor.get_sub_metagraph_info
+    subtensor.get_sub_selective_metagraph = (
+        subtensor._subtensor.get_sub_selective_metagraph
+    )
+    subtensor.get_sub_subnet_count = subtensor._subtensor.get_sub_subnet_count
     subtensor.get_subnet_burn_cost = subtensor._subtensor.get_subnet_burn_cost
     subtensor.get_subnet_hyperparameters = (
         subtensor._subtensor.get_subnet_hyperparameters
@@ -126,6 +132,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.is_hotkey_registered_on_subnet = (
         subtensor._subtensor.is_hotkey_registered_on_subnet
     )
+    subtensor.is_in_admin_freeze_window = subtensor._subtensor.is_in_admin_freeze_window
     subtensor.is_subnet_active = subtensor._subtensor.is_subnet_active
     subtensor.last_drand_round = subtensor._subtensor.last_drand_round
     subtensor.log_verbose = subtensor._subtensor.log_verbose
