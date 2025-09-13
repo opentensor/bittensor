@@ -181,6 +181,9 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
         f"Successfully set weights: uids {weight_uids}, weights {weight_vals}, reveal_round: {expected_reveal_round}"
     )
 
+    # let chain to update
+    subtensor.wait_for_block(subtensor.block + 1)
+
     # Fetch current commits pending on the chain
     commits_on_chain = subtensor.commitments.get_timelocked_weight_commits(
         netuid=alice_subnet_netuid
