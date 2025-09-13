@@ -25,7 +25,12 @@ if TYPE_CHECKING:
     from bittensor.utils.balance import Balance
 
 BT_DOCS_LINK = "https://docs.bittensor.com"
+RAOPERTAO = 1e9
+U16_MAX = 65535
+U64_MAX = 18446744073709551615
+GLOBAL_MAX_SUBNET_COUNT = 4096
 
+UnlockStatus = namedtuple("UnlockStatus", ["success", "message"])
 
 # redundant aliases
 logging = logging
@@ -38,11 +43,37 @@ ss58_decode = ss58_decode
 hex_to_bytes = hex_to_bytes
 
 
-RAOPERTAO = 1e9
-U16_MAX = 65535
-U64_MAX = 18446744073709551615
+def get_sub_subnet_storage_index(netuid: int, subuid: int) -> int:
+    """Computes the storage index for a given netuid and subuid pair.
 
-UnlockStatus = namedtuple("UnlockStatus", ["success", "message"])
+    Parameters:
+        netuid: The netuid of the subnet.
+        subuid: The subuid of the subnet.
+
+    Returns:
+        Storage index number for the subnet and subuid.
+    """
+    return subuid * GLOBAL_MAX_SUBNET_COUNT + netuid
+
+
+def get_netuid_and_subuid_by_storage_index(storage_index: int) -> tuple[int, int]:
+    """Returns the netuid and subuid from the storage index.
+
+    Chain APIs (e.g., SubMetagraph response) returns netuid which is storage index that encodes both the netuid and
+    subuid. This function reverses the encoding to extract these components.
+
+    Parameters:
+        storage_index: The storage index of the subnet.
+
+    Returns:
+        tuple[int, int]:
+            - netuid subnet identifier.
+            - subuid identifier.
+    """
+    return (
+        storage_index % GLOBAL_MAX_SUBNET_COUNT,
+        storage_index // GLOBAL_MAX_SUBNET_COUNT,
+    )
 
 
 class Certificate(str):
