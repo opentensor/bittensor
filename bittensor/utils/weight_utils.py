@@ -402,7 +402,7 @@ def generate_weight_hash(
     """
     Generate a valid commit hash from the provided weights.
 
-    Args:
+    Parameters:
         address: The account identifier. Wallet ss58_address.
         netuid: The subnet unique identifier.
         subuid: The sub-subnet unique identifier.

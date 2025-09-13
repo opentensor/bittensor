@@ -2705,7 +2705,7 @@ class AsyncSubtensor(SubtensorMixin):
         """
         Retrieves metagraph information for the specified sub-subnet (netuid, subuid).
 
-        Arguments:
+        Parameters:
             netuid: Subnet identifier.
             subuid: Sub-subnet identifier.
             block: The blockchain block number for the query.
@@ -2741,7 +2741,7 @@ class AsyncSubtensor(SubtensorMixin):
         """
         Retrieves selective metagraph information for the specified sub-subnet (netuid, subuid).
 
-        Arguments:
+        Parameters:
             netuid: Subnet identifier.
             subuid: Sub-subnet identifier.
             field_indices: A list of SelectiveMetagraphIndex or int values specifying which fields to retrieve.
@@ -2777,7 +2777,17 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> int:
-        """Returns number of subnets"""
+        """Retrieves the number of sub-subnets for provided subnet.
+
+        Parameters:
+            netuid: Subnet identifier.
+            block: The blockchain block number for the query.
+            block_hash: The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block.
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            The number of sub-subnets for provided subnet.
+        """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self.substrate.query(
             module="SubtensorModule",
@@ -3544,7 +3554,7 @@ class AsyncSubtensor(SubtensorMixin):
         for the given subnet. During this window, admin ops are prohibited to avoid interference
         with validator weight submissions.
 
-        Args:
+        Parameters:
             netuid (int): The unique identifier of the subnet.
             block (Optional[int]): The blockchain block number for the query.
             block_hash: The blockchain block_hash representation of the block id.
