@@ -108,6 +108,7 @@ from bittensor.utils import (
     u16_normalized_float,
     u64_normalized_float,
     get_transfer_fn_params,
+    get_sub_subnet_storage_index,
 )
 from bittensor.utils import deprecated_message
 from bittensor.utils.balance import (
@@ -4290,6 +4291,7 @@ class AsyncSubtensor(SubtensorMixin):
     async def weights(
         self,
         netuid: int,
+        subuid: int = 0,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
@@ -4301,6 +4303,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Arguments:
             netuid: The network UID of the subnet to query.
+            subuid: Sub-subnet identifier.
             block: Block number for synchronization, or `None` for the latest block.
             block_hash: The hash of the blockchain block for the query.
             reuse_block: reuse the last-used blockchain block hash.
@@ -4311,12 +4314,13 @@ class AsyncSubtensor(SubtensorMixin):
         The weight distribution is a key factor in the network's consensus algorithm and the ranking of neurons,
         influencing their influence and reward allocation within the subnet.
         """
+        storage_index = get_sub_subnet_storage_index(netuid, subuid)
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         # TODO look into seeing if we can speed this up with storage query
         w_map_encoded = await self.substrate.query_map(
             module="SubtensorModule",
             storage_function="Weights",
-            params=[netuid],
+            params=[storage_index],
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )

@@ -111,6 +111,7 @@ from bittensor.utils import (
     u64_normalized_float,
     deprecated_message,
     get_transfer_fn_params,
+    get_sub_subnet_storage_index,
 )
 from bittensor.utils.balance import (
     Balance,
@@ -3119,7 +3120,7 @@ class Subtensor(SubtensorMixin):
         return True
 
     def weights(
-        self, netuid: int, block: Optional[int] = None
+        self, netuid: int, subuid: int = 0, block: Optional[int] = None
     ) -> list[tuple[int, list[tuple[int, int]]]]:
         """
         Retrieves the weight distribution set by neurons within a specific subnet of the Bittensor network.
@@ -3128,6 +3129,7 @@ class Subtensor(SubtensorMixin):
 
         Arguments:
             netuid (int): The network UID of the subnet to query.
+            subuid: Sub-subnet identifier.
             block (Optional[int]): Block number for synchronization, or ``None`` for the latest block.
 
         Returns:
@@ -3136,10 +3138,11 @@ class Subtensor(SubtensorMixin):
         The weight distribution is a key factor in the network's consensus algorithm and the ranking of neurons,
             influencing their influence and reward allocation within the subnet.
         """
+        storage_index = get_sub_subnet_storage_index(netuid, subuid)
         w_map_encoded = self.substrate.query_map(
             module="SubtensorModule",
             storage_function="Weights",
-            params=[netuid],
+            params=[storage_index],
             block_hash=self.determine_block_hash(block),
         )
         w_map = [(uid, w.value or []) for uid, w in w_map_encoded]
