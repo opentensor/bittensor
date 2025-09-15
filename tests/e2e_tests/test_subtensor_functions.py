@@ -1,7 +1,8 @@
 import asyncio
+import time
 
 import pytest
-
+from bittensor.core.extrinsics.utils import get_extrinsic_fee
 from bittensor.utils.balance import Balance
 from tests.e2e_tests.utils.chain_interactions import (
     wait_epoch,
@@ -67,6 +68,17 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
     assert subtensor.register_subnet(alice_wallet, True, True), (
         "Unable to register the subnet"
     )
+
+    # TODO: in SDKv10 replace this logic with using `ExtrinsicResponse.extrinsic_fee`
+    call = subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="register_network",
+        call_params={
+            "hotkey": alice_wallet.hotkey.ss58_address,
+            "mechid": 1,
+        },
+    )
+    register_fee = get_extrinsic_fee(call, alice_wallet.hotkey, subtensor)
 
     # Subnet burn cost is increased immediately after a subnet is registered
     post_subnet_creation_cost = subtensor.get_subnet_burn_cost()
