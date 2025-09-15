@@ -1892,10 +1892,10 @@ class Subtensor(SubtensorMixin):
             method="get_all_submetagraphs",
             block_hash=block_hash,
         )
-        if query.value is None:
+        if query is None or query.value is None:
             return None
 
-        return MetagraphInfo.from_dict(query.value)
+        return MetagraphInfo.list_from_dicts(query.value)
 
     def get_sub_metagraph_info(
         self,
@@ -1918,13 +1918,13 @@ class Subtensor(SubtensorMixin):
         block_hash = self.determine_block_hash(block)
 
         query = self.substrate.runtime_call(
-            "SubnetInfoRuntimeApi",
-            "get_submetagraph",
+            api="SubnetInfoRuntimeApi",
+            method="get_submetagraph",
             params=[netuid, subuid],
             block_hash=block_hash,
         )
-        if query.value is None:
-            logging.error(f"Sub-subnet #{netuid}.{subuid} does not exist.")
+        if query is None or query.value is None:
+            logging.error(f"Sub-subnet {netuid}.{subuid} does not exist.")
             return None
 
         return MetagraphInfo.from_dict(query.value)
@@ -1955,13 +1955,13 @@ class Subtensor(SubtensorMixin):
             for f in field_indices
         ]
         query = self.substrate.runtime_call(
-            "SubnetInfoRuntimeApi",
-            "get_selective_submetagraph",
+            api="SubnetInfoRuntimeApi",
+            method="get_selective_submetagraph",
             params=[netuid, subuid, indexes if 0 in indexes else [0] + indexes],
             block_hash=block_hash,
         )
-        if query.value is None:
-            logging.error(f"Subnet #{netuid}.{subuid} does not exist.")
+        if query is None or query.value is None:
+            logging.error(f"Sub-subnet {netuid}.{subuid} does not exist.")
             return None
 
         return MetagraphInfo.from_dict(query.value)
@@ -2602,9 +2602,8 @@ class Subtensor(SubtensorMixin):
         Returns:
             bool: True if in freeze window, else False.
         """
-        tempo = self.tempo(netuid, block=block)
         # SN0 doesn't have admin_freeze_window
-        if tempo == 0:
+        if netuid == 0:
             return False
 
         next_epoch_start_block = self.get_next_epoch_start_block(
