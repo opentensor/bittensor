@@ -4307,7 +4307,7 @@ def test_get_stake_weight(subtensor, mocker):
 def test_get_timelocked_weight_commits(subtensor, mocker):
     """Verify that `get_timelocked_weight_commits` method calls proper methods and returns the correct value."""
     # Preps
-    netuid = mocker.Mock()
+    netuid = 14
 
     mock_determine_block_hash = mocker.patch.object(
         subtensor,
