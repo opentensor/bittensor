@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Union
-
 from bittensor.core import settings
 from bittensor.core.chain_data.axon_info import AxonInfo
 from bittensor.core.chain_data.chain_identity import ChainIdentity
@@ -14,6 +13,26 @@ from bittensor.utils import (
     u16_normalized_float as u16tf,
 )
 from bittensor.utils.balance import Balance, fixed_to_float
+
+
+SELECTIVE_METAGRAPH_COMMITMENTS_OFFSET = 14
+
+
+def get_selective_metagraph_commitments(
+    decoded: dict,
+) -> Optional[tuple[tuple[str, str]]]:
+    """Returns a tuple of hotkeys and commitments from decoded chain data if provided, else None."""
+    if commitments := decoded.get("commitments"):
+        result = []
+        for commitment in commitments:
+            account_id_bytes, commitment_bytes = commitment
+            hotkey = decode_account_id(account_id_bytes)
+            commitment = bytes(
+                commitment_bytes[SELECTIVE_METAGRAPH_COMMITMENTS_OFFSET:]
+            ).decode("utf-8", errors="ignore")
+            result.append((hotkey, commitment))
+        return tuple(result)
+    return None
 
 
 # to balance with unit (shortcut)
@@ -150,7 +169,10 @@ class MetagraphInfo(InfoBase):
     ]  # List of dividend payout in alpha via subnet.
 
     # List of validators
-    validators: list[str]
+    validators: Optional[list[str]]
+
+    commitments: Optional[tuple[tuple[str, str]]]
+
     subuid: int = 0
 
     @classmethod
@@ -380,6 +402,7 @@ class MetagraphInfo(InfoBase):
             validators=[v for v in decoded["validators"]]
             if decoded.get("validators") is not None
             else None,
+            commitments=get_selective_metagraph_commitments(decoded),
         )
 
 
@@ -513,6 +536,7 @@ class SelectiveMetagraphIndex(Enum):
     TaoDividendsPerHotkey = 70
     AlphaDividendsPerHotkey = 71
     Validators = 72
+    Commitments = 73
 
     @staticmethod
     def all_indices() -> list[int]:
