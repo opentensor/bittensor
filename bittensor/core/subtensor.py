@@ -1363,6 +1363,7 @@ class Subtensor(SubtensorMixin):
 
         return Balance.from_rao(getattr(result, "value", 0))
 
+    # TODO: metagraph_info and selective_metagraph_info logic should be separated in SDKv10 (2 methods)
     def get_metagraph_info(
         self,
         netuid: int,
@@ -2087,14 +2088,15 @@ class Subtensor(SubtensorMixin):
         return prices
 
     def get_timelocked_weight_commits(
-        self, netuid: int, block: Optional[int] = None
+        self, netuid: int, subuid: int = 0, block: Optional[int] = None
     ) -> list[tuple[str, int, str, int]]:
         """
         Retrieves CRv4 weight commit information for a specific subnet.
 
-        Arguments:
-            netuid (int): The unique identifier of the subnet.
-            block (Optional[int]): The blockchain block number for the query. Default is ``None``.
+        Parameters:
+            netuid: Subnet identifier.
+            subuid: Sub-subnet identifier.
+            block: The blockchain block number for the query. Default is ``None``.
 
         Returns:
             A list of commit details, where each item contains:
@@ -2105,10 +2107,11 @@ class Subtensor(SubtensorMixin):
 
             The list may be empty if there are no commits found.
         """
+        storage_index = get_sub_subnet_storage_index(netuid, subuid)
         result = self.substrate.query_map(
             module="SubtensorModule",
             storage_function="TimelockedWeightCommits",
-            params=[netuid],
+            params=[storage_index],
             block_hash=self.determine_block_hash(block=block),
         )
 
