@@ -83,7 +83,7 @@ async def sudo_call_extrinsic(
             call_module="Sudo",
             call_function="sudo",
             call_params={
-                "call": subtensor.substrate.compose_call(
+                "call": await subtensor.substrate.compose_call(
                     call_module=call_module,
                     call_function=call_function,
                     call_params=call_params,
