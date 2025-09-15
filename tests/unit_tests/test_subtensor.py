@@ -4330,3 +4330,242 @@ def test_get_timelocked_weight_commits(subtensor, mocker):
         block_hash=mock_determine_block_hash.return_value,
     )
     assert result == []
+
+
+def test_get_sub_all_metagraphs_returns_none(subtensor, mocker):
+    """Verify that `get_sub_all_metagraphs` method returns None."""
+    # Preps
+    mocker.patch.object(subtensor.substrate, "runtime_call", return_value=None)
+    mocked_metagraph_info_list_from_dicts = mocker.patch(
+        "bittensor.core.chain_data.metagraph_info.MetagraphInfo.list_from_dicts"
+    )
+
+    # Call
+    result = subtensor.get_sub_all_metagraphs()
+
+    # Asserts
+    subtensor.substrate.runtime_call.assert_called_once_with(
+        api="SubnetInfoRuntimeApi", method="get_all_submetagraphs", block_hash=None
+    )
+    mocked_metagraph_info_list_from_dicts.assert_not_called()
+    assert result is None
+
+
+def test_get_sub_all_metagraphs_happy_path(subtensor, mocker):
+    """Verify that `get_sub_all_metagraphs` method processed the data correctly."""
+    # Preps
+    mocked_result = mocker.MagicMock()
+    mocker.patch.object(subtensor.substrate, "runtime_call", return_value=mocked_result)
+    mocked_metagraph_info_list_from_dicts = mocker.patch(
+        "bittensor.core.chain_data.metagraph_info.MetagraphInfo.list_from_dicts"
+    )
+
+    # Call
+    result = subtensor.get_sub_all_metagraphs()
+
+    # Asserts
+    subtensor.substrate.runtime_call.assert_called_once_with(
+        api="SubnetInfoRuntimeApi", method="get_all_submetagraphs", block_hash=None
+    )
+    mocked_metagraph_info_list_from_dicts.assert_called_once_with(mocked_result.value)
+    assert result == mocked_metagraph_info_list_from_dicts.return_value
+
+
+def test_get_sub_metagraph_info_returns_none(subtensor, mocker):
+    """Verify that `get_sub_metagraph_info` method returns None."""
+    # Preps
+    netuid = 14
+    subuid = 5
+
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_result = None
+    mocker.patch.object(subtensor.substrate, "runtime_call", return_value=mocked_result)
+    mocked_metagraph_info_from_dict = mocker.patch(
+        "bittensor.core.chain_data.metagraph_info.MetagraphInfo.from_dict"
+    )
+
+    # Call
+    result = subtensor.get_sub_metagraph_info(netuid=netuid, subuid=subuid)
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once()
+    subtensor.substrate.runtime_call.assert_called_once_with(
+        api="SubnetInfoRuntimeApi",
+        method="get_submetagraph",
+        params=[netuid, subuid],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    assert result is mocked_result
+    mocked_metagraph_info_from_dict.assert_not_called()
+
+
+def test_get_sub_metagraph_info_happy_path(subtensor, mocker):
+    """Verify that `get_sub_metagraph_info` method processed the data correctly."""
+    # Preps
+    netuid = 14
+    subuid = 5
+
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_result = mocker.MagicMock()
+    mocker.patch.object(subtensor.substrate, "runtime_call", return_value=mocked_result)
+    mocked_metagraph_info_from_dict = mocker.patch(
+        "bittensor.core.chain_data.metagraph_info.MetagraphInfo.from_dict"
+    )
+
+    # Call
+    result = subtensor.get_sub_metagraph_info(netuid=netuid, subuid=subuid)
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once()
+    subtensor.substrate.runtime_call.assert_called_once_with(
+        api="SubnetInfoRuntimeApi",
+        method="get_submetagraph",
+        params=[netuid, subuid],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    mocked_metagraph_info_from_dict.assert_called_once_with(mocked_result.value)
+    assert result is mocked_metagraph_info_from_dict.return_value
+
+
+def test_get_sub_selective_metagraph_returns_none(subtensor, mocker):
+    """Verify that `get_sub_selective_metagraph` method returns None."""
+    # Preps
+    netuid = 14
+    subuid = 5
+    field_indices = [0, 1, 73]
+
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_result = None
+    mocker.patch.object(subtensor.substrate, "runtime_call", return_value=mocked_result)
+    mocked_metagraph_info_from_dict = mocker.patch(
+        "bittensor.core.chain_data.metagraph_info.MetagraphInfo.from_dict"
+    )
+
+    # Call
+    result = subtensor.get_sub_selective_metagraph(
+        netuid=netuid, subuid=subuid, field_indices=field_indices
+    )
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once()
+    subtensor.substrate.runtime_call.assert_called_once_with(
+        api="SubnetInfoRuntimeApi",
+        method="get_selective_submetagraph",
+        params=[netuid, subuid, field_indices],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    assert result is mocked_result
+    mocked_metagraph_info_from_dict.assert_not_called()
+
+
+def test_get_sub_selective_metagraph_happy_path(subtensor, mocker):
+    """Verify that `get_sub_selective_metagraph` method processed the data correctly."""
+    # Preps
+    netuid = 14
+    subuid = 5
+    field_indices = [0, 1, 73]
+
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_result = mocker.MagicMock()
+    mocker.patch.object(subtensor.substrate, "runtime_call", return_value=mocked_result)
+    mocked_metagraph_info_from_dict = mocker.patch(
+        "bittensor.core.chain_data.metagraph_info.MetagraphInfo.from_dict"
+    )
+
+    # Call
+    result = subtensor.get_sub_selective_metagraph(
+        netuid=netuid, subuid=subuid, field_indices=field_indices
+    )
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once()
+    subtensor.substrate.runtime_call.assert_called_once_with(
+        api="SubnetInfoRuntimeApi",
+        method="get_selective_submetagraph",
+        params=[netuid, subuid, field_indices],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    mocked_metagraph_info_from_dict.assert_called_once_with(mocked_result.value)
+    assert result is mocked_metagraph_info_from_dict.return_value
+
+
+def test_get_sub_subnet_count(subtensor, mocker):
+    """Verify that `get_sub_subnet_count` method processed the data correctly."""
+    # Preps
+    netuid = 14
+
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_result = mocker.MagicMock()
+    mocker.patch.object(subtensor.substrate, "runtime_call", return_value=mocked_result)
+    mocked_query = mocker.patch.object(subtensor.substrate, "query")
+
+    # Call
+    result = subtensor.get_sub_subnet_count(netuid=netuid)
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once()
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="SubsubnetCountCurrent",
+        params=[netuid],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    assert result is mocked_query.return_value.value
+
+
+def test_is_in_admin_freeze_window_root_net(subtensor, mocker):
+    """Verify that root net has no admin freeze window."""
+    # Preps
+    netuid = 0
+    mocked_get_next_epoch_start_block = mocker.patch.object(
+        subtensor, "get_next_epoch_start_block"
+    )
+
+    # Call
+    result = subtensor.is_in_admin_freeze_window(netuid=netuid)
+
+    # Asserts
+    mocked_get_next_epoch_start_block.assert_not_called()
+    assert result is False
+
+
+@pytest.mark.parametrize(
+    "block, next_esb, expected_result",
+    (
+        [89, 100, False],
+        [90, 100, False],
+        [91, 100, True],
+    ),
+)
+def test_is_in_admin_freeze_window(subtensor, mocker, block, next_esb, expected_result):
+    """Verify that `is_in_admin_freeze_window` method processed the data correctly."""
+    # Preps
+    netuid = 14
+    mocker.patch.object(subtensor, "get_current_block", return_value=block)
+    mocker.patch.object(subtensor, "get_next_epoch_start_block", return_value=next_esb)
+    mocker.patch.object(subtensor, "get_admin_freeze_window", return_value=10)
+
+    # Call
+
+    result = subtensor.is_in_admin_freeze_window(netuid=netuid)
+
+    # Asserts
+    assert result is expected_result
+
+
+def test_get_admin_freeze_window(subtensor, mocker):
+    """Verify that `get_admin_freeze_window` calls proper methods."""
+    # Preps
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query = mocker.patch.object(subtensor.substrate, "query")
+
+    # Call
+    result = subtensor.get_admin_freeze_window()
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="AdminFreezeWindow",
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    assert result == mocked_query.return_value.value

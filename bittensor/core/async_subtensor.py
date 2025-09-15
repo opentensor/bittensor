@@ -2689,10 +2689,10 @@ class AsyncSubtensor(SubtensorMixin):
             method="get_all_submetagraphs",
             block_hash=block_hash,
         )
-        if query.value is None:
+        if query is None or query.value is None:
             return None
 
-        return MetagraphInfo.from_dict(query.value)
+        return MetagraphInfo.list_from_dicts(query.value)
 
     async def get_sub_metagraph_info(
         self,
@@ -2723,8 +2723,8 @@ class AsyncSubtensor(SubtensorMixin):
             params=[netuid, subuid],
             block_hash=block_hash,
         )
-        if query.value is None:
-            logging.error(f"Sub-subnet #{netuid}.{subuid} does not exist.")
+        if query is None or query.value is None:
+            logging.error(f"Sub-subnet {netuid}.{subuid} does not exist.")
             return None
 
         return MetagraphInfo.from_dict(query.value)
@@ -2764,8 +2764,8 @@ class AsyncSubtensor(SubtensorMixin):
             params=[netuid, subuid, indexes if 0 in indexes else [0] + indexes],
             block_hash=block_hash,
         )
-        if query.value is None:
-            logging.error(f"Subnet #{netuid}.{subuid} does not exist.")
+        if query is None or query.value is None:
+            logging.error(f"Sub-subnet {netuid}.{subuid} does not exist.")
             return None
 
         return MetagraphInfo.from_dict(query.value)
@@ -3563,13 +3563,11 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             bool: True if in freeze window, else False.
         """
-        tempo, next_epoch_start_block, window = await asyncio.gather(
-            self.tempo(
-                netuid=netuid,
-                block=block,
-                block_hash=block_hash,
-                reuse_block=reuse_block,
-            ),
+        # SN0 doesn't have admin_freeze_window
+        if netuid == 0:
+            return False
+
+        next_epoch_start_block, window = await asyncio.gather(
             self.get_next_epoch_start_block(
                 netuid=netuid,
                 block=block,
@@ -3580,9 +3578,6 @@ class AsyncSubtensor(SubtensorMixin):
                 block=block, block_hash=block_hash, reuse_block=reuse_block
             ),
         )
-        # SN0 doesn't have admin_freeze_window
-        if tempo == 0:
-            return False
 
         if next_epoch_start_block is not None:
             remaining = next_epoch_start_block - await self.block
