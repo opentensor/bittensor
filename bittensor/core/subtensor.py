@@ -956,8 +956,8 @@ class Subtensor(SubtensorMixin):
         metadata = cast(dict, get_metadata(self, netuid, hotkey, block))
         try:
             return decode_metadata(metadata)
-
-        except TypeError:
+        except Exception as error:
+            logging.error(error)
             return ""
 
     def get_last_commitment_bonds_reset_block(
@@ -998,7 +998,12 @@ class Subtensor(SubtensorMixin):
         )
         result = {}
         for id_, value in query:
-            result[decode_account_id(id_[0])] = decode_metadata(value)
+            try:
+                result[decode_account_id(id_[0])] = decode_metadata(value)
+            except Exception as error:
+                logging.error(
+                    f"Error decoding [red]{id_}[/red] and [red]{value}[/red]: {error}"
+                )
         return result
 
     def get_revealed_commitment_by_hotkey(
