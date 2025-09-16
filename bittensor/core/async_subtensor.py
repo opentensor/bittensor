@@ -900,6 +900,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
+        subuid: int = 0,
     ) -> list[tuple[int, list[tuple[int, int]]]]:
         """Retrieves the bond distribution set by subnet validators within a specific subnet.
 
@@ -907,11 +908,12 @@ class AsyncSubtensor(SubtensorMixin):
         bonding mechanism is integral to the Yuma Consensus' design intent of incentivizing high-quality performance
         by subnet miners, and honest evaluation by subnet validators.
 
-        Arguments:
-            netuid: The unique identifier of the subnet.
+        Parameters:
+            netuid: Subnet identifier.
             block: The block number for this query. Do not specify if using block_hash or reuse_block.
             block_hash: The hash of the block for the query. Do not specify if using reuse_block or block.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            subuid: Sub-subnet identifier.
 
         Returns:
             List of tuples mapping each neuron's UID to its bonds with other neurons.
@@ -924,11 +926,12 @@ class AsyncSubtensor(SubtensorMixin):
             - See <https://docs.learnbittensor.org/glossary#validator-miner-bonds>
             - See <https://docs.learnbittensor.org/glossary#yuma-consensus>
         """
+        storage_index = get_sub_subnet_storage_index(netuid, subuid)
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         b_map_encoded = await self.substrate.query_map(
             module="SubtensorModule",
             storage_function="Bonds",
-            params=[netuid],
+            params=[storage_index],
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
@@ -1730,6 +1733,7 @@ class AsyncSubtensor(SubtensorMixin):
             result[hotkey_ss58_address] = commitment_message
         return result
 
+    # TODO: deprecated in SDKv10
     async def get_current_weight_commit_info(
         self,
         netuid: int,
@@ -1770,6 +1774,7 @@ class AsyncSubtensor(SubtensorMixin):
         commits = result.records[0][1] if result.records else []
         return [WeightCommitInfo.from_vec_u8(commit) for commit in commits]
 
+    # TODO: deprecated in SDKv10
     async def get_current_weight_commit_info_v2(
         self,
         netuid: int,
@@ -2916,24 +2921,24 @@ class AsyncSubtensor(SubtensorMixin):
         prices.update({0: Balance.from_tao(1)})
         return prices
 
+    # TODO: update order in SDKv10
     async def get_timelocked_weight_commits(
         self,
         netuid: int,
-        subuid: int = 0,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
+        subuid: int = 0,
     ) -> list[tuple[str, int, str, int]]:
         """
         Retrieves CRv4 weight commit information for a specific subnet.
 
         Parameters:
             netuid: Subnet identifier.
-            subuid: Sub-subnet identifier.
             block (Optional[int]): The blockchain block number for the query. Default is ``None``.
-            block_hash: The hash of the block to retrieve the stake from. Do not specify if using block
-                or reuse_block
+            block_hash: The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block.
             reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+            subuid: Sub-subnet identifier.
 
         Returns:
             A list of commit details, where each item contains:
@@ -4297,13 +4302,14 @@ class AsyncSubtensor(SubtensorMixin):
         )
         return True
 
+    # TODO: update order in SDKv10
     async def weights(
         self,
         netuid: int,
-        subuid: int = 0,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
+        subuid: int = 0,
     ) -> list[tuple[int, list[tuple[int, int]]]]:
         """
         Retrieves the weight distribution set by neurons within a specific subnet of the Bittensor network.
@@ -4785,7 +4791,7 @@ class AsyncSubtensor(SubtensorMixin):
                     break
             except Exception as e:
                 logging.error(f"Error committing weights: {e}")
-                retries += 1
+            retries += 1
 
         return success, message
 
@@ -5114,7 +5120,7 @@ class AsyncSubtensor(SubtensorMixin):
                     break
             except Exception as e:
                 logging.error(f"Error revealing weights: {e}")
-                retries += 1
+            retries += 1
 
         return success, message
 
