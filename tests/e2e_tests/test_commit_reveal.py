@@ -1,9 +1,18 @@
+import asyncio
 import re
 import time
-import asyncio
+
 import numpy as np
 import pytest
 
+from bittensor.core.extrinsics.asyncex.sudo import (
+    sudo_set_sub_subnet_count_extrinsic as async_sudo_set_sub_subnet_count_extrinsic,
+    sudo_set_admin_freez_window as async_sudo_set_admin_freez_window,
+)
+from bittensor.core.extrinsics.sudo import (
+    sudo_set_sub_subnet_count_extrinsic,
+    sudo_set_admin_freez_window,
+)
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
@@ -13,15 +22,8 @@ from tests.e2e_tests.utils.chain_interactions import (
     wait_interval,
     next_tempo,
 )
-from bittensor.core.extrinsics.sudo import (
-    sudo_set_sub_subnet_count_extrinsic,
-    sudo_set_admin_freez_window,
-)
 
-from bittensor.core.extrinsics.asyncex.sudo import (
-    sudo_set_sub_subnet_count_extrinsic as async_sudo_set_sub_subnet_count_extrinsic,
-    sudo_set_admin_freez_window as async_sudo_set_admin_freez_window,
-)
+TESTED_SUB_SUBNETS = 3
 
 
 # @pytest.mark.parametrize("local_chain", [True], indirect=True)
@@ -50,8 +52,6 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
     BLOCK_TIME, TEMPO_TO_SET = (
         (0.25, 100) if subtensor.chain.is_fast_blocks() else (12.0, 20)
     )
-
-    TESTED_SUB_SUBNETS = 3
 
     logging.console.info(f"Using block time: {BLOCK_TIME}")
 
@@ -300,8 +300,6 @@ async def test_async_commit_and_reveal_weights_cr4(
     BLOCK_TIME, TEMPO_TO_SET = (
         (0.25, 100) if (await async_subtensor.chain.is_fast_blocks()) else (12.0, 20)
     )
-
-    TESTED_SUB_SUBNETS = 3
 
     logging.console.info(f"Using block time: {BLOCK_TIME}")
 
