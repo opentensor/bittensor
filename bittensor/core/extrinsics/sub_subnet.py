@@ -59,11 +59,11 @@ def commit_sub_weights_extrinsic(
             logging.error(unlock.message)
             return False, unlock.message
 
+        storage_index = get_sub_subnet_storage_index(netuid=netuid, subuid=subuid)
         # Generate the hash of the weights
         commit_hash = generate_weight_hash(
             address=wallet.hotkey.ss58_address,
-            netuid=netuid,
-            subuid=subuid,
+            netuid=storage_index,
             uids=list(uids),
             values=list(weights),
             salt=salt,

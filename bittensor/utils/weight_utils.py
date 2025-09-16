@@ -389,7 +389,6 @@ def process_weights(
     return non_zero_weight_uids, normalized_weights
 
 
-# TODO: In SDKv10 move subuid parameter after netuid and remove default value. Add changes to migration guide.
 def generate_weight_hash(
     address: str,
     netuid: int,
@@ -397,7 +396,6 @@ def generate_weight_hash(
     values: list[int],
     version_key: int,
     salt: list[int],
-    subuid: int = 0,
 ) -> str:
     """
     Generate a valid commit hash from the provided weights.
@@ -405,7 +403,6 @@ def generate_weight_hash(
     Parameters:
         address: The account identifier. Wallet ss58_address.
         netuid: The subnet unique identifier.
-        subuid: The sub-subnet unique identifier.
         uids: The list of UIDs.
         salt: The salt to add to hash.
         values: The list of weight values.
@@ -419,10 +416,6 @@ def generate_weight_hash(
     # Encode data using SCALE codec
     wallet_address = ScaleBytes(Keypair(ss58_address=address).public_key)
     netuid = ScaleBytes(netuid.to_bytes(2, "little"))
-
-    # If subuid is 0, then subuid is not included in the hash
-    # for backwards compatibility with old commit hashes on sub-subnets 0
-    subuid = b"" if subuid == 0 else ScaleBytes(subuid.to_bytes(2, "little"))
 
     vec_uids = Vec(data=None, sub_type="U16")
     vec_uids.value = [U16(ScaleBytes(uid.to_bytes(2, "little"))) for uid in uids]
@@ -440,7 +433,7 @@ def generate_weight_hash(
     vec_salt.value = [U16(ScaleBytes(salts.to_bytes(2, "little"))) for salts in salt]
     salt = ScaleBytes(vec_salt.encode().data)
 
-    data = wallet_address + netuid + subuid + uids + values + salt + version_key
+    data = wallet_address + netuid + uids + values + salt + version_key
 
     # Generate Blake2b hash of the data tuple
     blake2b_hash = hashlib.blake2b(data.data, digest_size=32)
