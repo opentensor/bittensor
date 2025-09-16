@@ -1,7 +1,9 @@
 import asyncio
+import time
 
 import pytest
 from bittensor.utils.btlogging import logging
+from bittensor.core.extrinsics.utils import get_extrinsic_fee
 from bittensor.utils.balance import Balance
 from tests.e2e_tests.utils.chain_interactions import (
     async_wait_epoch,
@@ -72,6 +74,17 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
         "Unable to register the subnet"
     )
 
+    # TODO: in SDKv10 replace this logic with using `ExtrinsicResponse.extrinsic_fee`
+    call = subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="register_network",
+        call_params={
+            "hotkey": alice_wallet.hotkey.ss58_address,
+            "mechid": 1,
+        },
+    )
+    register_fee = get_extrinsic_fee(call, alice_wallet.hotkey, subtensor)
+
     # Subnet burn cost is increased immediately after a subnet is registered
     post_subnet_creation_cost = subtensor.subnets.get_subnet_burn_cost()
 
@@ -81,12 +94,11 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
     ), "Burn cost did not change after subnet creation"
 
     # Assert amount is deducted once a subnetwork is registered by Alice
-    alice_balance_post_sn = subtensor.wallets.get_balance(
-        alice_wallet.coldkeypub.ss58_address
-    )
-    assert alice_balance_post_sn + pre_subnet_creation_cost == initial_alice_balance, (
-        "Balance is the same even after registering a subnet"
-    )
+    alice_balance_post_sn = subtensor.get_balance(alice_wallet.coldkeypub.ss58_address)
+    assert (
+        alice_balance_post_sn + pre_subnet_creation_cost + register_fee
+        == initial_alice_balance
+    ), "Balance is the same even after registering a subnet"
 
     # Subnet 2 is added after registration
     assert subtensor.subnets.get_subnets() == [0, 1, 2]

@@ -34,8 +34,8 @@ async def test_incentive(subtensor, templates, alice_wallet, bob_wallet):
     # turn off admin freeze window limit for testing
     assert (
         sudo_set_admin_utils(
-            subtensor.substrate,
-            alice_wallet,
+            substrate=subtensor.substrate,
+            wallet=alice_wallet,
             call_function="sudo_set_admin_freeze_window",
             call_params={"window": 0},
         )[0]
@@ -75,7 +75,13 @@ async def test_incentive(subtensor, templates, alice_wallet, bob_wallet):
     )
 
     # Wait for the first epoch to pass
-    await wait_epoch(subtensor, alice_subnet_netuid)
+    next_epoch_start_block = subtensor.subnets.get_next_epoch_start_block(
+        netuid=alice_subnet_netuid
+    )
+    subtensor.wait_for_block(next_epoch_start_block + 1)
+
+    while subtensor.neurons(netuid=alice_subnet_netuid)[0].validator_permit is False:
+        await asyncio.sleep(0.25)
 
     # Get current miner/validator stats
     alice_neuron = subtensor.neurons.neurons(netuid=alice_subnet_netuid)[0]

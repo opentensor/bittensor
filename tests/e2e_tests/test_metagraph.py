@@ -472,6 +472,7 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
             ("5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM", Balance(0).set_unit(1))
         ],
         validators=None,
+        commitments=None,
     )
 
     assert metagraph_info == expected_metagraph_info
@@ -553,6 +554,7 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
             tao_dividends_per_hotkey=[],
             alpha_dividends_per_hotkey=[],
             validators=None,
+            commitments=None,
         ),
         metagraph_info,
     ]
@@ -993,6 +995,7 @@ def test_metagraph_info_with_indexes(subtensor, alice_wallet, bob_wallet):
         tao_dividends_per_hotkey=None,
         alpha_dividends_per_hotkey=None,
         validators=None,
+        commitments=None,
     )
 
     assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
@@ -1109,6 +1112,7 @@ def test_metagraph_info_with_indexes(subtensor, alice_wallet, bob_wallet):
         tao_dividends_per_hotkey=None,
         alpha_dividends_per_hotkey=None,
         validators=None,
+        commitments=None,
     )
 
     logging.console.info("✅ Passed [blue]test_metagraph_info_with_indexes[/blue]")
