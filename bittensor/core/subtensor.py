@@ -505,7 +505,10 @@ class Subtensor(SubtensorMixin):
         return None if not call else (self.get_current_block() - int(call[uid]))
 
     def bonds(
-        self, netuid: int, block: Optional[int] = None
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        subuid: int = 0,
     ) -> list[tuple[int, list[tuple[int, int]]]]:
         """
         Retrieves the bond distribution set by neurons within a specific subnet of the Bittensor network.
@@ -513,9 +516,10 @@ class Subtensor(SubtensorMixin):
             and perceived value. This bonding mechanism is integral to the network's market-based approach to
             measuring and rewarding machine intelligence.
 
-        Args:
-            netuid: The network UID of the subnet to query.
+        Parameters:
+            netuid: Subnet identifier.
             block: the block number for this query.
+            subuid: Sub-subnet identifier.
 
         Returns:
             List of tuples mapping each neuron's UID to its bonds with other neurons.
@@ -524,10 +528,11 @@ class Subtensor(SubtensorMixin):
             subnet. It reflects how neurons recognize and invest in each other's intelligence and contributions,
             supporting diverse and niche systems within the Bittensor ecosystem.
         """
+        storage_index = get_sub_subnet_storage_index(netuid, subuid)
         b_map_encoded = self.substrate.query_map(
             module="SubtensorModule",
             storage_function="Bonds",
-            params=[netuid],
+            params=[storage_index],
             block_hash=self.determine_block_hash(block),
         )
         b_map = []
@@ -1105,6 +1110,7 @@ class Subtensor(SubtensorMixin):
             result[hotkey_ss58_address] = commitment_message
         return result
 
+    # TODO: deprecated in SDKv10
     def get_current_weight_commit_info(
         self, netuid: int, block: Optional[int] = None
     ) -> list[tuple[str, str, int]]:
@@ -1138,6 +1144,7 @@ class Subtensor(SubtensorMixin):
         commits = result.records[0][1] if result.records else []
         return [WeightCommitInfo.from_vec_u8(commit) for commit in commits]
 
+    # TODO: deprecated in SDKv10
     def get_current_weight_commit_info_v2(
         self, netuid: int, block: Optional[int] = None
     ) -> list[tuple[str, int, str, int]]:
@@ -2087,8 +2094,12 @@ class Subtensor(SubtensorMixin):
         prices.update({0: Balance.from_tao(1)})
         return prices
 
+    # TODO: update order in SDKv10
     def get_timelocked_weight_commits(
-        self, netuid: int, subuid: int = 0, block: Optional[int] = None
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        subuid: int = 0,
     ) -> list[tuple[str, int, str, int]]:
         """
         Retrieves CRv4 weight commit information for a specific subnet.
@@ -3127,8 +3138,12 @@ class Subtensor(SubtensorMixin):
         )
         return True
 
+    # TODO: update order in SDKv10
     def weights(
-        self, netuid: int, subuid: int = 0, block: Optional[int] = None
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        subuid: int = 0,
     ) -> list[tuple[int, list[tuple[int, int]]]]:
         """
         Retrieves the weight distribution set by neurons within a specific subnet of the Bittensor network.
@@ -3580,7 +3595,7 @@ class Subtensor(SubtensorMixin):
                     break
             except Exception as e:
                 logging.error(f"Error committing weights: {e}")
-                retries += 1
+            retries += 1
 
         return success, message
 
@@ -3910,7 +3925,7 @@ class Subtensor(SubtensorMixin):
                     break
             except Exception as e:
                 logging.error(f"Error revealing weights: {e}")
-                retries += 1
+            retries += 1
 
         return success, message
 
