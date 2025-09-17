@@ -1,6 +1,8 @@
 from typing import Optional, TYPE_CHECKING
 
 from bittensor.core.extrinsics.asyncex.utils import sudo_call_extrinsic
+from bittensor.core.types import Weights as MaybeSplit
+from bittensor.utils.weight_utils import convert_maybe_split_to_u16
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -97,7 +99,7 @@ async def sudo_set_sub_subnet_emission_split(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
     netuid: int,
-    maybe_split: list[int],
+    maybe_split: MaybeSplit,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
@@ -130,7 +132,10 @@ async def sudo_set_sub_subnet_emission_split(
         share[i] = maybe_split[i] / sum(maybe_split)
     """
     call_function = "sudo_set_subsubnet_emission_split"
-    call_params = {"netuid": netuid, "maybe_split": maybe_split}
+    call_params = {
+        "netuid": netuid,
+        "maybe_split": convert_maybe_split_to_u16(maybe_split),
+    }
     return await sudo_call_extrinsic(
         subtensor=subtensor,
         wallet=wallet,

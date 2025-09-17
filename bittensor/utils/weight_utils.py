@@ -8,6 +8,7 @@ import numpy as np
 from bittensor_wallet import Keypair
 from numpy.typing import NDArray
 from scalecodec import U16, ScaleBytes, Vec
+from bittensor.core.types import Weights as MaybeSplit
 
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import legacy_torch_api_compat, torch, use_torch
@@ -481,3 +482,42 @@ def convert_and_normalize_weights_and_uids(
 
     # Reformat and normalize and return
     return convert_weights_and_uids_for_emit(*convert_uids_and_weights(uids, weights))
+
+
+def convert_maybe_split_to_u16(maybe_split: MaybeSplit) -> list[int]:
+    # Convert np.ndarray to list
+    if isinstance(maybe_split, np.ndarray):
+        maybe_split = maybe_split.tolist()
+
+    # Ensure we now work with list of numbers
+    if not isinstance(maybe_split, list) or not maybe_split:
+        raise ValueError("maybe_split must be a non-empty list or array of numbers.")
+
+    # Ensure all elements are valid numbers
+    try:
+        values = [float(x) for x in maybe_split]
+    except Exception:
+        raise ValueError("maybe_split must contain numeric values (int or float).")
+
+    if any(x < 0 for x in values):
+        raise ValueError("maybe_split cannot contain negative values.")
+
+    total = sum(values)
+    if total <= 0:
+        raise ValueError("maybe_split must sum to a positive value.")
+
+    # Normalize to sum = 1.0
+    normalized = [x / total for x in values]
+
+    # Scale to u16 and round
+    u16_vals = [round(val * U16_MAX) for val in normalized]
+
+    # Fix rounding error
+    diff = sum(u16_vals) - U16_MAX
+    if diff != 0:
+        max_idx = u16_vals.index(max(u16_vals))
+        u16_vals[max_idx] -= diff
+
+    assert sum(u16_vals) == U16_MAX, "Final split must sum to U16_MAX (65535)."
+
+    return u16_vals
