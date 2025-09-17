@@ -4371,6 +4371,42 @@ def test_get_sub_all_metagraphs_happy_path(subtensor, mocker):
     assert result == mocked_metagraph_info_list_from_dicts.return_value
 
 
+@pytest.mark.parametrize(
+    "query_return, expected_result",
+    (
+        ["value", [10, 90]],
+        [None, None],
+    ),
+)
+def test_get_sub_subnets_emission_split(
+    subtensor, mocker, query_return, expected_result
+):
+    """Verify that get_sub_subnets_emission_split calls the correct methods."""
+    # Preps
+    netuid = mocker.Mock()
+    query_return = (
+        mocker.Mock(value=[6553, 58982]) if query_return == "value" else query_return
+    )
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query = mocker.patch.object(
+        subtensor.substrate, "query", return_value=query_return
+    )
+
+    # Call
+
+    result = subtensor.get_sub_subnets_emission_split(netuid)
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once()
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="SubsubnetEmissionSplit",
+        params=[netuid],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    assert result == expected_result
+
+
 def test_get_sub_metagraph_info_returns_none(subtensor, mocker):
     """Verify that `get_sub_metagraph_info` method returns None."""
     # Preps
