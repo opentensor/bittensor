@@ -1917,10 +1917,10 @@ def test_reveal_weights(subtensor, fake_wallet, mocker):
         version_key=version_as_int,
         weights=weights,
         salt=salt,
+        period=16,
+        raise_error=False,
         wait_for_inclusion=False,
         wait_for_finalization=False,
-        period=16,
-        raise_error=True,
         mechid=0,
     )
 

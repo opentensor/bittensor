@@ -1,10 +1,13 @@
 import asyncio
-import time
 
 import pytest
-from bittensor.utils.btlogging import logging
+
+from bittensor.core.extrinsics.asyncex.utils import (
+    get_extrinsic_fee as get_extrinsic_fee_async,
+)
 from bittensor.core.extrinsics.utils import get_extrinsic_fee
 from bittensor.utils.balance import Balance
+from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.chain_interactions import (
     async_wait_epoch,
     wait_epoch,
@@ -63,7 +66,7 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
     # Assert correct balance is fetched for Alice
     alice_balance = subtensor.wallets.get_balance(alice_wallet.coldkeypub.ss58_address)
     assert alice_balance == initial_alice_balance, (
-        "Balance for Alice wallet doesn't match with pre-def value"
+        "Balance for Alice wallet doesn't match with pre-def value."
     )
 
     # Subnet burn cost is initially lower before we register a subnet
@@ -71,7 +74,7 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
 
     # Register subnet
     assert subtensor.subnets.register_subnet(alice_wallet), (
-        "Unable to register the subnet"
+        "Unable to register the subnet."
     )
 
     # Subnet burn cost is increased immediately after a subnet is registered
@@ -86,7 +89,7 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
             "mechid": 1,
         },
     )
-    register_fee = get_extrinsic_fee(call, alice_wallet.hotkey, subtensor)
+    register_fee = get_extrinsic_fee(subtensor, call, alice_wallet.hotkey)
 
     # Assert that the burn cost changed after registering a subnet
     assert Balance.from_tao(pre_subnet_creation_cost) < Balance.from_tao(
@@ -98,7 +101,7 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
         alice_wallet.coldkeypub.ss58_address
     )
     assert alice_balance_post_sn + pre_subnet_creation_cost + register_fee == initial_alice_balance, (
-        "Balance is the same even after registering a subnet"
+        "Balance is the same even after registering a subnet."
     )
 
     # Subnet 2 is added after registration
@@ -276,21 +279,35 @@ async def test_subtensor_extrinsics_async(
         "Unable to register the subnet"
     )
 
+    # TODO: in SDKv10 replace this logic with using `ExtrinsicResponse.extrinsic_fee`
+    call = await async_subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="register_network",
+        call_params={
+            "hotkey": alice_wallet.hotkey.ss58_address,
+            "mechid": 1,
+        },
+    )
+    register_fee = await get_extrinsic_fee_async(
+        async_subtensor, call, alice_wallet.hotkey
+    )
+
     # Subnet burn cost is increased immediately after a subnet is registered
     post_subnet_creation_cost = await async_subtensor.subnets.get_subnet_burn_cost()
 
     # Assert that the burn cost changed after registering a subnet
     assert Balance.from_tao(pre_subnet_creation_cost) < Balance.from_tao(
         post_subnet_creation_cost
-    ), "Burn cost did not change after subnet creation"
+    ), "Burn cost did not change after subnet creation."
 
     # Assert amount is deducted once a subnetwork is registered by Alice
     alice_balance_post_sn = await async_subtensor.wallets.get_balance(
         alice_wallet.coldkeypub.ss58_address
     )
-    assert alice_balance_post_sn + pre_subnet_creation_cost == initial_alice_balance, (
-        "Balance is the same even after registering a subnet"
-    )
+    assert (
+        alice_balance_post_sn + pre_subnet_creation_cost + register_fee
+        == initial_alice_balance
+    ), "Balance is the same even after registering a subnet."
 
     # Subnet 2 is added after registration
     assert await async_subtensor.subnets.get_subnets() == [0, 1, 2]
@@ -301,7 +318,7 @@ async def test_subtensor_extrinsics_async(
 
     # Default subnetwork difficulty
     assert await async_subtensor.subnets.difficulty(netuid) == 10_000_000, (
-        "Couldn't fetch correct subnet difficulty"
+        "Couldn't fetch correct subnet difficulty."
     )
 
     # Verify Alice is registered to netuid 2 and Bob isn't registered to any
@@ -309,29 +326,29 @@ async def test_subtensor_extrinsics_async(
         hotkey_ss58=alice_wallet.hotkey.ss58_address
     ) == [
         netuid,
-    ], "Alice is not registered to netuid 2 as expected"
+    ], "Alice is not registered to netuid 2 as expected."
     assert (
         await async_subtensor.wallets.get_netuids_for_hotkey(
             hotkey_ss58=bob_wallet.hotkey.ss58_address
         )
         == []
-    ), "Bob is unexpectedly registered to some netuid"
+    ), "Bob is unexpectedly registered to some netuid."
 
     # Verify Alice's hotkey is registered to any subnet (currently netuid = 2)
     assert await async_subtensor.wallets.is_hotkey_registered_any(
         hotkey_ss58=alice_wallet.hotkey.ss58_address
-    ), "Alice's hotkey is not registered to any subnet"
+    ), "Alice's hotkey is not registered to any subnet."
     assert not await async_subtensor.wallets.is_hotkey_registered_any(
         hotkey_ss58=bob_wallet.hotkey.ss58_address
-    ), "Bob's hotkey is unexpectedly registered to a subnet"
+    ), "Bob's hotkey is unexpectedly registered to a subnet."
 
     # Verify netuid = 2 only has Alice registered and not Bob
     assert await async_subtensor.wallets.is_hotkey_registered_on_subnet(
         netuid=netuid, hotkey_ss58=alice_wallet.hotkey.ss58_address
-    ), "Alice's hotkey is not registered on netuid 1"
+    ), f"Alice's hotkey is not registered on netuid {netuid}"
     assert not await async_subtensor.wallets.is_hotkey_registered_on_subnet(
         netuid=netuid, hotkey_ss58=bob_wallet.hotkey.ss58_address
-    ), "Bob's hotkey is unexpectedly registered on netuid 1"
+    ), f"Bob's hotkey is unexpectedly registered on netuid {netuid}"
 
     # Verify Alice's UID on netuid 2 is 0
     assert (
@@ -339,7 +356,7 @@ async def test_subtensor_extrinsics_async(
             hotkey_ss58=alice_wallet.hotkey.ss58_address, netuid=netuid
         )
         == 0
-    ), "UID for Alice's hotkey on netuid 2 is not 0 as expected"
+    ), "UID for Alice's hotkey on netuid 2 is not 0 as expected."
 
     bob_balance = await async_subtensor.wallets.get_balance(
         bob_wallet.coldkeypub.ss58_address
@@ -350,7 +367,7 @@ async def test_subtensor_extrinsics_async(
     # Register Bob to the subnet
     assert (
         await async_subtensor.subnets.burned_register(bob_wallet, netuid)
-    ).success, "Unable to register Bob as a neuron"
+    ).success, "Unable to register Bob as a neuron."
 
     # Verify Bob's UID on netuid 2 is 1
     assert (
@@ -358,7 +375,7 @@ async def test_subtensor_extrinsics_async(
             hotkey_ss58=bob_wallet.hotkey.ss58_address, netuid=netuid
         )
         == 1
-    ), "UID for Bob's hotkey on netuid 2 is not 1 as expected"
+    ), "UID for Bob's hotkey on netuid 2 is not 1 as expected."
 
     # Fetch recycle_amount to register to the subnet
     recycle_amount = await async_subtensor.subnets.recycle(netuid)
