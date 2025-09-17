@@ -49,9 +49,9 @@ def get_old_stakes(
 
 
 def get_extrinsic_fee(
+    subtensor: "Subtensor",
     call: "GenericCall",
     keypair: "Keypair",
-    subtensor: "Subtensor",
     netuid: Optional[int] = None,
 ):
     """
