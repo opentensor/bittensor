@@ -1,8 +1,7 @@
 import unittest.mock
 
-import pytest
-
 import async_substrate_interface.errors
+import pytest
 
 from bittensor.core.chain_data.axon_info import AxonInfo
 from bittensor.core.chain_data.chain_identity import ChainIdentity
@@ -15,7 +14,6 @@ from bittensor.core.chain_data.stake_info import StakeInfo
 from bittensor.utils import U16_MAX, U64_MAX
 from bittensor.utils.balance import Balance
 from tests.helpers.helpers import assert_submit_signed_extrinsic
-from bittensor.core.extrinsics import move_stake
 
 
 @pytest.fixture
@@ -1302,8 +1300,8 @@ def test_sign_and_send_extrinsic(mock_substrate, subtensor, fake_wallet, mocker)
     call = mocker.Mock()
 
     subtensor.sign_and_send_extrinsic(
-        call,
-        fake_wallet,
+        call=call,
+        wallet=fake_wallet,
         use_nonce=True,
         period=10,
     )
