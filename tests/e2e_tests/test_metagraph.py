@@ -2,10 +2,11 @@ import os.path
 import re
 import shutil
 import time
+
 import pytest
 
-from bittensor.core.chain_data.metagraph_info import MetagraphInfo
 from bittensor.core.chain_data import SelectiveMetagraphIndex
+from bittensor.core.chain_data.metagraph_info import MetagraphInfo
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.e2e_test_utils import (
@@ -730,6 +731,7 @@ async def test_metagraph_info_async(async_subtensor, alice_wallet, bob_wallet):
             ("5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM", Balance(0).set_unit(1))
         ],
         validators=None,
+        commitments=None,
     )
 
     assert metagraph_info == expected_metagraph_info
@@ -811,6 +813,7 @@ async def test_metagraph_info_async(async_subtensor, alice_wallet, bob_wallet):
             tao_dividends_per_hotkey=[],
             alpha_dividends_per_hotkey=[],
             validators=None,
+            commitments=None,
         ),
         metagraph_info,
     ]
@@ -1230,6 +1233,7 @@ async def test_metagraph_info_with_indexes_async(
         tao_dividends_per_hotkey=None,
         alpha_dividends_per_hotkey=None,
         validators=None,
+        commitments=None,
     )
 
     assert await async_wait_to_start_call(
