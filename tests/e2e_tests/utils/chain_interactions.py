@@ -384,7 +384,7 @@ async def async_sudo_set_admin_utils(
         call=sudo_call, keypair=wallet.coldkey
     )
     response: "AsyncExtrinsicReceipt" = await substrate.submit_extrinsic(
-        extrinsic,
+        extrinsic=extrinsic,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -407,7 +407,7 @@ def root_set_subtensor_hyperparameter_values(
     extrinsic = substrate.create_signed_extrinsic(call=call, keypair=wallet.coldkey)
 
     response: "ExtrinsicReceipt" = substrate.submit_extrinsic(
-        extrinsic,
+        extrinsic=extrinsic,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -427,7 +427,7 @@ def set_identity(
     additional="",
 ):
     return subtensor.sign_and_send_extrinsic(
-        subtensor.substrate.compose_call(
+        call=subtensor.substrate.compose_call(
             call_module="SubtensorModule",
             call_function="set_identity",
             call_params={
@@ -440,7 +440,7 @@ def set_identity(
                 "additional": additional,
             },
         ),
-        wallet,
+        wallet=wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -458,7 +458,7 @@ async def async_set_identity(
     additional="",
 ):
     return await subtensor.sign_and_send_extrinsic(
-        await subtensor.substrate.compose_call(
+        call=await subtensor.substrate.compose_call(
             call_module="SubtensorModule",
             call_function="set_identity",
             call_params={
@@ -471,7 +471,7 @@ async def async_set_identity(
                 "additional": additional,
             },
         ),
-        wallet,
+        wallet=wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -479,7 +479,7 @@ async def async_set_identity(
 
 def propose(subtensor, wallet, proposal, duration):
     return subtensor.sign_and_send_extrinsic(
-        subtensor.substrate.compose_call(
+        call=subtensor.substrate.compose_call(
             call_module="Triumvirate",
             call_function="propose",
             call_params={
@@ -488,7 +488,7 @@ def propose(subtensor, wallet, proposal, duration):
                 "duration": duration,
             },
         ),
-        wallet,
+        wallet=wallet,
         wait_for_finalization=True,
         wait_for_inclusion=True,
     )
@@ -525,7 +525,7 @@ def vote(
     approve,
 ):
     return subtensor.sign_and_send_extrinsic(
-        subtensor.substrate.compose_call(
+        call=subtensor.substrate.compose_call(
             call_module="SubtensorModule",
             call_function="vote",
             call_params={
@@ -535,7 +535,7 @@ def vote(
                 "proposal": proposal,
             },
         ),
-        wallet,
+        wallet=wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
