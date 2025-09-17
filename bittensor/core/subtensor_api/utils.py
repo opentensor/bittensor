@@ -93,6 +93,9 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.get_stake_operations_fee = subtensor._subtensor.get_stake_operations_fee
     subtensor.get_stake_weight = subtensor._subtensor.get_stake_weight
     subtensor.get_sub_all_metagraphs = subtensor._subtensor.get_sub_all_metagraphs
+    subtensor.get_sub_subnets_emission_split = (
+        subtensor._subtensor.get_sub_subnets_emission_split
+    )
     subtensor.get_sub_metagraph_info = subtensor._subtensor.get_sub_metagraph_info
     subtensor.get_sub_selective_metagraph = (
         subtensor._subtensor.get_sub_selective_metagraph
