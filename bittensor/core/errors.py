@@ -159,7 +159,7 @@ class NotDelegateError(StakeError):
     """
 
 
-class SubNetworkDoesNotExist(ChainTransactionError):
+class MechanismDoesNotExist(ChainTransactionError):
     """
     The subnet does not exist.
     """

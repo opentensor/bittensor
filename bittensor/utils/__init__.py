@@ -43,32 +43,32 @@ ss58_decode = ss58_decode
 hex_to_bytes = hex_to_bytes
 
 
-def get_sub_subnet_storage_index(netuid: int, subuid: int) -> int:
-    """Computes the storage index for a given netuid and subuid pair.
+def get_mechid_storage_index(netuid: int, mechid: int) -> int:
+    """Computes the storage index for a given netuid and mechid pair.
 
     Parameters:
         netuid: The netuid of the subnet.
-        subuid: The subuid of the subnet.
+        mechid: The mechid of the subnet.
 
     Returns:
-        Storage index number for the subnet and subuid.
+        Storage index number for the subnet and mechanism id.
     """
-    return subuid * GLOBAL_MAX_SUBNET_COUNT + netuid
+    return mechid * GLOBAL_MAX_SUBNET_COUNT + netuid
 
 
-def get_netuid_and_subuid_by_storage_index(storage_index: int) -> tuple[int, int]:
-    """Returns the netuid and subuid from the storage index.
+def get_netuid_and_mechid_by_storage_index(storage_index: int) -> tuple[int, int]:
+    """Returns the netuid and mechid from the storage index.
 
     Chain APIs (e.g., SubMetagraph response) returns netuid which is storage index that encodes both the netuid and
-    subuid. This function reverses the encoding to extract these components.
+    mechid. This function reverses the encoding to extract these components.
 
     Parameters:
         storage_index: The storage index of the subnet.
 
     Returns:
         tuple[int, int]:
-            - netuid subnet identifier.
-            - subuid identifier.
+            - netuid - subnet identifier.
+            - mechid - mechanism identifier.
     """
     return (
         storage_index % GLOBAL_MAX_SUBNET_COUNT,

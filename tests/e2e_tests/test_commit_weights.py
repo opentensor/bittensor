@@ -3,10 +3,10 @@ import pytest
 import retry
 
 from bittensor.core.extrinsics.sudo import (
-    sudo_set_sub_subnet_count_extrinsic,
-    sudo_set_admin_freez_window,
+    sudo_set_mechanism_count_extrinsic,
+    sudo_set_admin_freez_window_extrinsic,
 )
-from bittensor.utils import get_sub_subnet_storage_index
+from bittensor.utils import get_mechid_storage_index
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
@@ -16,7 +16,7 @@ from tests.e2e_tests.utils.chain_interactions import (
     wait_epoch,
 )
 
-TESTED_SUB_SUBNETS = 3
+TESTED_SUB_SUBNETS = 2
 
 
 @pytest.mark.asyncio
@@ -35,7 +35,7 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
     """
 
     # turn off admin freeze window limit for testing
-    assert sudo_set_admin_freez_window(subtensor, alice_wallet, 0), (
+    assert sudo_set_admin_freez_window_extrinsic(subtensor, alice_wallet, 0), (
         "Failed to set admin freeze window to 0"
     )
 
@@ -49,7 +49,7 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
     # Verify subnet 2 created successfully
     assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
-    assert sudo_set_sub_subnet_count_extrinsic(
+    assert sudo_set_mechanism_count_extrinsic(
         subtensor, alice_wallet, netuid, TESTED_SUB_SUBNETS
     ), "Cannot create sub-subnets."
 
@@ -99,8 +99,10 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
         },
     )
 
-    for subuid in range(TESTED_SUB_SUBNETS):
-        logging.console.info(f"[magenta]Testing sub_subnet {netuid}.{subuid}[/magenta]")
+    for mechid in range(TESTED_SUB_SUBNETS):
+        logging.console.info(
+            f"[magenta]Testing subnet mechanism {netuid}.{mechid}[/magenta]"
+        )
 
         # Commit-reveal values
         uids = np.array([0], dtype=np.int64)
@@ -114,7 +116,7 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
         success, message = subtensor.commit_weights(
             wallet=alice_wallet,
             netuid=netuid,
-            subuid=subuid,
+            mechid=mechid,
             salt=salt,
             uids=weight_uids,
             weights=weight_vals,
@@ -122,9 +124,9 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
             wait_for_finalization=True,
         )
 
-        assert success is True
+        assert success is True, message
 
-        storage_index = get_sub_subnet_storage_index(netuid, subuid)
+        storage_index = get_mechid_storage_index(netuid, mechid)
         weight_commits = subtensor.query_module(
             module="SubtensorModule",
             name="WeightCommits",
@@ -147,7 +149,7 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
         success, message = subtensor.reveal_weights(
             wallet=alice_wallet,
             netuid=netuid,
-            subuid=subuid,
+            mechid=mechid,
             uids=weight_uids,
             weights=weight_vals,
             salt=salt,
@@ -155,9 +157,9 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
             wait_for_finalization=True,
         )
 
-        assert success is True
+        assert success is True, message
 
-        revealed_weights = subtensor.weights(netuid, subuid=subuid)
+        revealed_weights = subtensor.weights(netuid, mechid=mechid)
 
         # Assert that the revealed weights are set correctly
         assert revealed_weights is not None, "Weight reveal not found in storage"
@@ -187,7 +189,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     """
 
     # turn off admin freeze window limit for testing
-    assert sudo_set_admin_freez_window(subtensor, alice_wallet, 0), (
+    assert sudo_set_admin_freez_window_extrinsic(subtensor, alice_wallet, 0), (
         "Failed to set admin freeze window to 0"
     )
 

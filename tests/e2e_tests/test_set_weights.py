@@ -3,8 +3,8 @@ import pytest
 import retry
 
 from bittensor.core.extrinsics.sudo import (
-    sudo_set_sub_subnet_count_extrinsic,
-    sudo_set_admin_freez_window,
+    sudo_set_mechanism_count_extrinsic,
+    sudo_set_admin_freez_window_extrinsic,
 )
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -32,7 +32,7 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
         AssertionError: If any of the checks or verifications fail
     """
     # turn off admin freeze window limit for testing
-    assert sudo_set_admin_freez_window(
+    assert sudo_set_admin_freez_window_extrinsic(
         subtensor=subtensor,
         wallet=alice_wallet,
         window=0,
@@ -85,11 +85,11 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
                 "tempo": subnet_tempo,
             },
         )
-        assert sudo_set_sub_subnet_count_extrinsic(
+        assert sudo_set_mechanism_count_extrinsic(
             subtensor=subtensor,
             wallet=alice_wallet,
             netuid=netuid,
-            sub_count=2,
+            mech_count=2,
         )
 
     # make sure 2 epochs are passed
@@ -154,11 +154,11 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
     # 3 time doing call if nonce wasn't updated, then raise error
     @retry.retry(exceptions=Exception, tries=3, delay=1)
     @execute_and_wait_for_next_nonce(subtensor=subtensor, wallet=alice_wallet)
-    def set_weights(netuid_, subuid_):
+    def set_weights(netuid_, mechid_):
         success, message = subtensor.set_weights(
             wallet=alice_wallet,
             netuid=netuid_,
-            subuid=subuid_,
+            mechid=mechid_,
             uids=weight_uids,
             weights=weight_vals,
             wait_for_inclusion=True,
@@ -173,24 +173,24 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
         f"{subtensor.substrate.get_account_next_index(alice_wallet.hotkey.ss58_address)}[/orange]"
     )
 
-    for subuid in range(TESTED_SUB_SUBNETS):
+    for mechid in range(TESTED_SUB_SUBNETS):
         # Set weights for each subnet
         for netuid in netuids:
-            set_weights(netuid, subuid)
+            set_weights(netuid, mechid)
 
         for netuid in netuids:
             # Query the Weights storage map for all three subnets
             weights = subtensor.subnets.weights(
                 netuid=netuid,
-                subuid=subuid,
+                mechid=mechid,
             )
             alice_weights = weights[0][1]
             logging.console.info(
-                f"Weights for sub-subnet {netuid}.{subuid}: {alice_weights}"
+                f"Weights for subnet mechanism {netuid}.{mechid}: {alice_weights}"
             )
 
             assert alice_weights is not None, (
-                f"Weights not found for sub-subnet {netuid}.{subuid}"
+                f"Weights not found for subnet mechanism {netuid}.{mechid}"
             )
             assert alice_weights == list(zip(weight_uids, weight_vals)), (
                 f"Weights do not match for subnet {netuid}"

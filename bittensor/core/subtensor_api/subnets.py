@@ -25,11 +25,11 @@ class Subnets:
             subtensor.get_neuron_for_pubkey_and_subnet
         )
         self.get_next_epoch_start_block = subtensor.get_next_epoch_start_block
-        self.get_sub_all_metagraphs = subtensor.get_sub_all_metagraphs
-        self.get_sub_subnets_emission_split = subtensor.get_sub_subnets_emission_split
-        self.get_sub_metagraph_info = subtensor.get_sub_metagraph_info
-        self.get_sub_selective_metagraph = subtensor.get_sub_selective_metagraph
-        self.get_sub_subnet_count = subtensor.get_sub_subnet_count
+        self.get_all_mechagraphs = subtensor.get_all_mechagraphs_info
+        self.get_mechanism_emission_split = subtensor.get_mechanism_emission_split
+        self.get_mechagraph_info = subtensor.get_mechagraph_info
+        self.get_selective_mechagraph_info = subtensor.get_selective_mechagraph_info
+        self.get_mechanism_count = subtensor.get_mechanism_count
         self.get_subnet_burn_cost = subtensor.get_subnet_burn_cost
         self.get_subnet_hyperparameters = subtensor.get_subnet_hyperparameters
         self.get_subnet_info = subtensor.get_subnet_info

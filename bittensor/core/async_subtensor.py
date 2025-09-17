@@ -75,11 +75,11 @@ from bittensor.core.extrinsics.asyncex.staking import (
     add_stake_multiple_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.start_call import start_call_extrinsic
-from bittensor.core.extrinsics.asyncex.sub_subnet import (
-    commit_sub_weights_extrinsic,
-    commit_timelocked_sub_weights_extrinsic,
-    reveal_sub_weights_extrinsic,
-    set_sub_weights_extrinsic,
+from bittensor.core.extrinsics.asyncex.mechanism import (
+    commit_mechanism_weights_extrinsic,
+    commit_timelocked_mechanism_weights_extrinsic,
+    reveal_mechanism_weights_extrinsic,
+    set_mechanism_weights_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.take import (
     decrease_take_extrinsic,
@@ -108,7 +108,7 @@ from bittensor.utils import (
     u16_normalized_float,
     u64_normalized_float,
     get_transfer_fn_params,
-    get_sub_subnet_storage_index,
+    get_mechid_storage_index,
 )
 from bittensor.utils import deprecated_message
 from bittensor.utils.balance import (
@@ -900,7 +900,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-        subuid: int = 0,
+        mechid: int = 0,
     ) -> list[tuple[int, list[tuple[int, int]]]]:
         """Retrieves the bond distribution set by subnet validators within a specific subnet.
 
@@ -913,7 +913,7 @@ class AsyncSubtensor(SubtensorMixin):
             block: The block number for this query. Do not specify if using block_hash or reuse_block.
             block_hash: The hash of the block for the query. Do not specify if using reuse_block or block.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
-            subuid: Sub-subnet identifier.
+            mechid: Subnet mechanism identifier.
 
         Returns:
             List of tuples mapping each neuron's UID to its bonds with other neurons.
@@ -926,7 +926,7 @@ class AsyncSubtensor(SubtensorMixin):
             - See <https://docs.learnbittensor.org/glossary#validator-miner-bonds>
             - See <https://docs.learnbittensor.org/glossary#yuma-consensus>
         """
-        storage_index = get_sub_subnet_storage_index(netuid, subuid)
+        storage_index = get_mechid_storage_index(netuid, mechid)
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         b_map_encoded = await self.substrate.query_map(
             module="SubtensorModule",
@@ -2678,14 +2678,14 @@ class AsyncSubtensor(SubtensorMixin):
             amount=amount, netuid=netuid, block=block
         )
 
-    async def get_sub_all_metagraphs(
+    async def get_all_mechagraphs_info(
         self,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[list["MetagraphInfo"]]:
         """
-        Retrieves all sub metagraphs for all sub-subnets.
+        Retrieves all metagraphs for all subnet mechanisms.
 
         Parameters:
             block: The blockchain block number for the query.
@@ -2693,12 +2693,12 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
 
         Returns:
-            The list of metagraphs for all subnets with all sub-subnets if found, `None` otherwise.
+            The list of metagraphs for all subnet mechanisms if found, `None` otherwise.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self.substrate.runtime_call(
             api="SubnetInfoRuntimeApi",
-            method="get_all_submetagraphs",
+            method="get_all_mechagraphs_info",
             block_hash=block_hash,
         )
         if query is None or query.value is None:
@@ -2706,14 +2706,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         return MetagraphInfo.list_from_dicts(query.value)
 
-    async def get_sub_subnets_emission_split(
+    async def get_mechanism_emission_split(
         self,
         netuid: int,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[list[int]]:
-        """Returns the emission percentages allocated to each sub-subnet.
+        """Returns the emission percentages allocated to each subnet mechanism.
 
         Parameters:
             netuid: The unique identifier of the subnet.
@@ -2722,13 +2722,13 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
 
         Returns:
-            A list of integers representing the percentage of emission allocated to each sub-subnet (rounded to whole
-            numbers). Returns None if emission is evenly split or if the data is unavailable.
+            A list of integers representing the percentage of emission allocated to each subnet mechanism (rounded to
+            whole numbers). Returns None if emission is evenly split or if the data is unavailable.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query(
             module="SubtensorModule",
-            storage_function="SubsubnetEmissionSplit",
+            storage_function="MechanismEmissionSplit",
             params=[netuid],
             block_hash=block_hash,
         )
@@ -2737,64 +2737,62 @@ class AsyncSubtensor(SubtensorMixin):
 
         return [round(i / sum(result.value) * 100) for i in result.value]
 
-    async def get_sub_metagraph_info(
+    async def get_mechagraph_info(
         self,
         netuid: int,
-        subuid: int,
+        mechid: int,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional["MetagraphInfo"]:
         """
-        Retrieves metagraph information for the specified sub-subnet (netuid, subuid).
+        Retrieves metagraph information for the specified subnet mechanism (netuid, mechid).
 
         Parameters:
             netuid: Subnet identifier.
-            subuid: Sub-subnet identifier.
+            mechid: Subnet mechanism identifier.
             block: The blockchain block number for the query.
             block_hash: The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block.
             reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
 
         Returns:
-            A MetagraphInfo object containing the requested sub-subnet data, or None if the sub-subnet with the given
-            netuid does not exist.
+            A MetagraphInfo object containing the requested mechanism data, or None if the mechanism does not exist.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self.substrate.runtime_call(
             api="SubnetInfoRuntimeApi",
-            method="get_submetagraph",
-            params=[netuid, subuid],
+            method="get_mechagraph",
+            params=[netuid, mechid],
             block_hash=block_hash,
         )
         if query is None or query.value is None:
-            logging.error(f"Sub-subnet {netuid}.{subuid} does not exist.")
+            logging.error(f"Subnet mechanism {netuid}.{mechid} does not exist.")
             return None
 
         return MetagraphInfo.from_dict(query.value)
 
-    async def get_sub_selective_metagraph(
+    async def get_selective_mechagraph_info(
         self,
         netuid: int,
-        subuid: int,
+        mechid: int,
         field_indices: Union[list[SelectiveMetagraphIndex], list[int]],
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional["MetagraphInfo"]:
         """
-        Retrieves selective metagraph information for the specified sub-subnet (netuid, subuid).
+        Retrieves selective metagraph information for the specified subnet mechanism (netuid, mechid).
 
         Parameters:
             netuid: Subnet identifier.
-            subuid: Sub-subnet identifier.
+            mechid: Subnet mechanism identifier.
             field_indices: A list of SelectiveMetagraphIndex or int values specifying which fields to retrieve.
             block: The blockchain block number for the query.
             block_hash: The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block.
             reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
 
         Returns:
-            A MetagraphInfo object containing the requested sub-subnet data, or None if the sub-subnet with the does not
-            exist.
+            A MetagraphInfo object containing the requested mechanism data, or None if the mechanism does not exist.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         indexes = [
@@ -2803,24 +2801,24 @@ class AsyncSubtensor(SubtensorMixin):
         ]
         query = await self.substrate.runtime_call(
             api="SubnetInfoRuntimeApi",
-            method="get_selective_submetagraph",
-            params=[netuid, subuid, indexes if 0 in indexes else [0] + indexes],
+            method="get_selective_mechagraph",
+            params=[netuid, mechid, indexes if 0 in indexes else [0] + indexes],
             block_hash=block_hash,
         )
         if query is None or query.value is None:
-            logging.error(f"Sub-subnet {netuid}.{subuid} does not exist.")
+            logging.error(f"Subnet mechanism {netuid}.{mechid} does not exist.")
             return None
 
         return MetagraphInfo.from_dict(query.value)
 
-    async def get_sub_subnet_count(
+    async def get_mechanism_count(
         self,
         netuid: int,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> int:
-        """Retrieves the number of sub-subnets for provided subnet.
+        """Retrieves the number of mechanisms for the given subnet.
 
         Parameters:
             netuid: Subnet identifier.
@@ -2829,12 +2827,12 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
 
         Returns:
-            The number of sub-subnets for provided subnet.
+            The number of mechanisms for the given subnet.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self.substrate.query(
             module="SubtensorModule",
-            storage_function="SubsubnetCountCurrent",
+            storage_function="MechanismCountCurrent",
             params=[netuid],
             block_hash=block_hash,
         )
@@ -2959,7 +2957,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-        subuid: int = 0,
+        mechid: int = 0,
     ) -> list[tuple[str, int, str, int]]:
         """
         Retrieves CRv4 weight commit information for a specific subnet.
@@ -2969,7 +2967,7 @@ class AsyncSubtensor(SubtensorMixin):
             block (Optional[int]): The blockchain block number for the query. Default is ``None``.
             block_hash: The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block.
             reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
-            subuid: Sub-subnet identifier.
+            mechid: Subnet mechanism identifier.
 
         Returns:
             A list of commit details, where each item contains:
@@ -2980,7 +2978,7 @@ class AsyncSubtensor(SubtensorMixin):
 
             The list may be empty if there are no commits found.
         """
-        storage_index = get_sub_subnet_storage_index(netuid, subuid)
+        storage_index = get_mechid_storage_index(netuid, mechid)
         block_hash = await self.determine_block_hash(
             block=block, block_hash=block_hash, reuse_block=reuse_block
         )
@@ -4340,7 +4338,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-        subuid: int = 0,
+        mechid: int = 0,
     ) -> list[tuple[int, list[tuple[int, int]]]]:
         """
         Retrieves the weight distribution set by neurons within a specific subnet of the Bittensor network.
@@ -4349,10 +4347,10 @@ class AsyncSubtensor(SubtensorMixin):
 
         Arguments:
             netuid: The network UID of the subnet to query.
-            subuid: Sub-subnet identifier.
             block: Block number for synchronization, or `None` for the latest block.
             block_hash: The hash of the blockchain block for the query.
             reuse_block: reuse the last-used blockchain block hash.
+            mechid: Subnet mechanism identifier.
 
         Returns:
             A list of tuples mapping each neuron's UID to its assigned weights.
@@ -4360,7 +4358,7 @@ class AsyncSubtensor(SubtensorMixin):
         The weight distribution is a key factor in the network's consensus algorithm and the ranking of neurons,
         influencing their influence and reward allocation within the subnet.
         """
-        storage_index = get_sub_subnet_storage_index(netuid, subuid)
+        storage_index = get_mechid_storage_index(netuid, mechid)
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         # TODO look into seeing if we can speed this up with storage query
         w_map_encoded = await self.substrate.query_map(
@@ -4761,7 +4759,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = False,
         max_retries: int = 5,
         period: Optional[int] = 16,
-        subuid: int = 0,
+        mechid: int = 0,
     ) -> tuple[bool, str]:
         """
         Commits a hash of the subnet validator's weight vector to the Bittensor blockchain using the provided wallet.
@@ -4781,7 +4779,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
-            subuid: The sub-subnet unique identifier.
+            mechid: The subnet mechanism unique identifier.
 
         Returns:
             tuple[bool, str]:
@@ -4806,11 +4804,11 @@ class AsyncSubtensor(SubtensorMixin):
 
         while retries < max_retries and success is False:
             try:
-                success, message = await commit_sub_weights_extrinsic(
+                success, message = await commit_mechanism_weights_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
-                    subuid=subuid,
+                    mechid=mechid,
                     uids=uids,
                     weights=weights,
                     salt=salt,
@@ -5097,7 +5095,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = False,
         max_retries: int = 5,
         period: Optional[int] = None,
-        subuid: int = 0,
+        mechid: int = 0,
     ) -> tuple[bool, str]:
         """
         Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
@@ -5116,7 +5114,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
-            subuid: The sub-subnet unique identifier.
+            mechid: The subnet mechanism unique identifier.
 
         Returns:
             tuple[bool, str]:
@@ -5134,11 +5132,11 @@ class AsyncSubtensor(SubtensorMixin):
 
         while retries < max_retries and success is False:
             try:
-                success, message = await reveal_sub_weights_extrinsic(
+                success, message = await reveal_mechanism_weights_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
-                    subuid=subuid,
+                    mechid=mechid,
                     uids=uids,
                     weights=weights,
                     salt=salt,
@@ -5302,7 +5300,7 @@ class AsyncSubtensor(SubtensorMixin):
             NotEnoughStakeToSetChildkeys: Parent key doesn't have minimum own stake.
             ProportionOverflow: The sum of the proportions does exceed uint64.
             RegistrationNotPermittedOnRootSubnet: Attempting to register a child on the root network.
-            SubNetworkDoesNotExist: Attempting to register to a non-existent network.
+            MechanismDoesNotExist: Attempting to register to a non-existent network.
             TooManyChildren: Too many children in request.
             TxRateLimitExceeded: Hotkey hit the rate limit.
             bittensor_wallet.errors.KeyFileError: Failed to decode keyfile data.
@@ -5462,7 +5460,7 @@ class AsyncSubtensor(SubtensorMixin):
         max_retries: int = 5,
         block_time: float = 12.0,
         period: Optional[int] = 8,
-        subuid: int = 0,
+        mechid: int = 0,
         commit_reveal_version: int = 4,
     ):
         """
@@ -5486,7 +5484,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
-            subuid: The sub-subnet unique identifier.
+            mechid: The subnet mechanism unique identifier.
             commit_reveal_version: The version of the commit-reveal in the chain.
 
         Returns:
@@ -5522,7 +5520,7 @@ class AsyncSubtensor(SubtensorMixin):
             )
 
         if await self.commit_reveal_enabled(netuid=netuid):
-            # go with `commit_timelocked_sub_weights_extrinsic` extrinsic
+            # go with `commit_timelocked_mechanism_weights_extrinsic` extrinsic
 
             while (
                 retries < max_retries
@@ -5532,11 +5530,11 @@ class AsyncSubtensor(SubtensorMixin):
                 logging.info(
                     f"Committing weights for subnet #{netuid}. Attempt {retries + 1} of {max_retries}."
                 )
-                success, message = await commit_timelocked_sub_weights_extrinsic(
+                success, message = await commit_timelocked_mechanism_weights_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
-                    subuid=subuid,
+                    mechid=mechid,
                     uids=uids,
                     weights=weights,
                     version_key=version_key,
@@ -5549,7 +5547,7 @@ class AsyncSubtensor(SubtensorMixin):
                 retries += 1
             return success, message
         else:
-            # go with `set_sub_weights_extrinsic`
+            # go with `set_mechanism_weights_extrinsic`
 
             while (
                 retries < max_retries
@@ -5561,11 +5559,11 @@ class AsyncSubtensor(SubtensorMixin):
                         f"Setting weights for subnet #[blue]{netuid}[/blue]. "
                         f"Attempt [blue]{retries + 1}[/blue] of [green]{max_retries}[/green]."
                     )
-                    success, message = await set_sub_weights_extrinsic(
+                    success, message = await set_mechanism_weights_extrinsic(
                         subtensor=self,
                         wallet=wallet,
                         netuid=netuid,
-                        subuid=subuid,
+                        mechid=mechid,
                         uids=uids,
                         weights=weights,
                         version_key=version_key,

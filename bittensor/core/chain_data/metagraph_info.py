@@ -8,7 +8,7 @@ from bittensor.core.chain_data.info_base import InfoBase
 from bittensor.core.chain_data.subnet_identity import SubnetIdentity
 from bittensor.core.chain_data.utils import decode_account_id
 from bittensor.utils import (
-    get_netuid_and_subuid_by_storage_index,
+    get_netuid_and_mechid_by_storage_index,
     u64_normalized_float as u64tf,
     u16_normalized_float as u16tf,
 )
@@ -173,13 +173,13 @@ class MetagraphInfo(InfoBase):
 
     commitments: Optional[tuple[tuple[str, str]]]
 
-    subuid: int = 0
+    mechid: int = 0
 
     @classmethod
     def _from_dict(cls, decoded: dict) -> "MetagraphInfo":
         """Returns a MetagraphInfo object from decoded chain data."""
         # Subnet index
-        _netuid, _subuid = get_netuid_and_subuid_by_storage_index(decoded["netuid"])
+        _netuid, _mechid = get_netuid_and_mechid_by_storage_index(decoded["netuid"])
 
         # Name and symbol
         if name := decoded.get("name"):
@@ -203,7 +203,7 @@ class MetagraphInfo(InfoBase):
         return cls(
             # Subnet index
             netuid=_netuid,
-            subuid=_subuid,
+            mechid=_mechid,
             # Name and symbol
             name=decoded["name"],
             symbol=decoded["symbol"],

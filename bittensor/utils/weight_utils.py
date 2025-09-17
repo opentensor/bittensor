@@ -411,8 +411,6 @@ def generate_weight_hash(
 
     Returns:
         str: The generated commit hash.
-
-    Use `subuid=0` if subnet doesn't have sub-subnets. Actually, means subnet has only one sub-subnet with index 0.
     """
     # Encode data using SCALE codec
     wallet_address = ScaleBytes(Keypair(ss58_address=address).public_key)
