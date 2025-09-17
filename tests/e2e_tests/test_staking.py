@@ -1,5 +1,6 @@
-import pytest
 import asyncio
+
+import pytest
 
 from bittensor import logging
 from bittensor.core.chain_data.stake_info import StakeInfo
@@ -696,7 +697,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet, eve_wallet)
     )
 
     # Change the tempo of the subnet
-    TEMPO_TO_SET = 100 if subtensor.chain.is_fast_blocks() else 20
+    TEMPO_TO_SET = 50 if subtensor.chain.is_fast_blocks() else 20
     assert (
         sudo_set_admin_utils(
             substrate=subtensor.substrate,
@@ -873,6 +874,16 @@ async def test_safe_staking_scenarios_async(
     """
     logging.console.info("Testing [blue]test_safe_staking_scenarios_async[/blue]")
 
+    # turn off admin freeze window limit for testing
+    assert (
+        await async_sudo_set_admin_utils(
+            substrate=async_subtensor.substrate,
+            wallet=alice_wallet,
+            call_function="sudo_set_admin_freeze_window",
+            call_params={"window": 0},
+        )
+    )[0] is True, "Failed to set admin freeze window to 0"
+
     alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
     # Register root as Alice - the subnet owner and validator
     assert await async_subtensor.extrinsics.register_subnet(alice_wallet)
@@ -883,7 +894,7 @@ async def test_safe_staking_scenarios_async(
     )
 
     # Change the tempo of the subnet
-    TEMPO_TO_SET = 100 if await async_subtensor.chain.is_fast_blocks() else 20
+    TEMPO_TO_SET = 50 if await async_subtensor.chain.is_fast_blocks() else 20
     assert (
         await async_sudo_set_admin_utils(
             substrate=async_subtensor.substrate,

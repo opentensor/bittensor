@@ -77,6 +77,8 @@ async def test_incentive(subtensor, templates, alice_wallet, bob_wallet):
     subtensor.wait_for_block(
         subtensor.subnets.get_next_epoch_start_block(alice_subnet_netuid) + 1
     )
+    subtensor.wait_for_block(next_epoch_start_block + 1)
+
     # Get current miner/validator stats
     alice_neuron = subtensor.neurons.neurons(netuid=alice_subnet_netuid)[0]
 
@@ -213,6 +215,16 @@ async def test_incentive_async(async_subtensor, templates, alice_wallet, bob_wal
     logging.console.info("Testing [blue]test_incentive[/blue]")
     alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
 
+    # turn off admin freeze window limit for testing
+    assert (
+        await async_sudo_set_admin_utils(
+            substrate=async_subtensor.substrate,
+            wallet=alice_wallet,
+            call_function="sudo_set_admin_freeze_window",
+            call_params={"window": 0},
+        )
+    )[0] is True, "Failed to set admin freeze window to 0"
+
     # Register root as Alice - the subnet owner and validator
     assert await async_subtensor.subnets.register_subnet(alice_wallet), (
         "Subnet wasn't created"
@@ -250,7 +262,10 @@ async def test_incentive_async(async_subtensor, templates, alice_wallet, bob_wal
     ), "Alice & Bob not registered in the subnet"
 
     # Wait for the first epoch to pass
-    await async_wait_epoch(async_subtensor, alice_subnet_netuid)
+    next_epoch_start_block = await async_subtensor.subnets.get_next_epoch_start_block(
+        netuid=alice_subnet_netuid
+    )
+    await async_subtensor.wait_for_block(next_epoch_start_block + 1)
 
     # Get current miner/validator stats
     alice_neuron = (await async_subtensor.neurons.neurons(netuid=alice_subnet_netuid))[
