@@ -4295,13 +4295,13 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         call: "GenericCall",
         wallet: "Wallet",
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
         sign_with: str = "coldkey",
         use_nonce: bool = False,
-        period: Optional[int] = None,
         nonce_key: str = "hotkey",
+        period: Optional[int] = None,
         raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
         calling_function: Optional[str] = None,
     ) -> ExtrinsicResponse:
         """
@@ -4310,15 +4310,15 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             call: a prepared Call object
             wallet: the wallet whose coldkey will be used to sign the extrinsic
-            wait_for_inclusion: whether to wait until the extrinsic call is included on the chain
-            wait_for_finalization: whether to wait until the extrinsic call is finalized on the chain
             sign_with: the wallet's keypair to use for the signing. Options are "coldkey", "hotkey", "coldkeypub"
             use_nonce: unique identifier for the transaction related with hot/coldkey.
+            nonce_key: the type on nonce to use. Options are "hotkey" or "coldkey".
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
-            nonce_key: the type on nonce to use. Options are "hotkey" or "coldkey".
             raise_error: raises the relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: whether to wait until the extrinsic call is included on the chain
+            wait_for_finalization: whether to wait until the extrinsic call is finalized on the chain
             calling_function: the name of the calling function.
 
         Returns:
@@ -4941,11 +4941,9 @@ class AsyncSubtensor(SubtensorMixin):
         salt: Salt,
         version_key: int = version_as_int,
         period: Optional[int] = 16,
-        raise_error: bool = True,
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = False,
-        max_retries: int = 5,
-        mechid: int = 0,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
     ) -> ExtrinsicResponse:
         """
         Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
