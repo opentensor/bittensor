@@ -1,6 +1,9 @@
+import time
+
 import numpy as np
 import pytest
 import retry
+
 
 from bittensor.core.extrinsics.sudo import (
     sudo_set_mechanism_count_extrinsic,
@@ -227,6 +230,16 @@ async def test_set_weights_uses_next_nonce_async(async_subtensor, alice_wallet):
         AssertionError: If any of the checks or verifications fail
     """
     logging.console.info("Testing [blue]test_set_weights_uses_next_nonce_async[/blue]")
+
+    # turn off admin freeze window limit for testing
+    assert (
+        await async_sudo_set_admin_utils(
+            substrate=async_subtensor.substrate,
+            wallet=alice_wallet,
+            call_function="sudo_set_admin_freeze_window",
+            call_params={"window": 0},
+        )
+    )[0] is True, "Failed to set admin freeze window to 0"
 
     netuids = [2, 3]
     subnet_tempo = 50

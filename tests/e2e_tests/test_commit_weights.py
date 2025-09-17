@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 import retry
 import time
+import asyncio
 
 from bittensor.core.extrinsics.sudo import (
     sudo_set_mechanism_count_extrinsic,
@@ -18,6 +19,10 @@ from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_hyperparameter_bool,
     execute_and_wait_for_next_nonce,
     wait_epoch,
+)
+from tests.e2e_tests.utils.e2e_test_utils import (
+    async_wait_to_start_call,
+    wait_to_start_call,
 )
 
 TESTED_SUB_SUBNETS = 2
@@ -59,6 +64,10 @@ async def test_commit_and_reveal_weights_legacy(subtensor, alice_wallet):
         subtensor, alice_wallet, netuid, TESTED_SUB_SUBNETS
     ), "Cannot create sub-subnets."
 
+    assert wait_to_start_call(subtensor, alice_wallet, netuid), (
+        "Subnet isn't active yet."
+    )
+
     # Enable commit_reveal on the subnet
     assert sudo_set_hyperparameter_bool(
         substrate=subtensor.substrate,
@@ -86,9 +95,8 @@ async def test_commit_and_reveal_weights_legacy(subtensor, alice_wallet):
         substrate=subtensor.substrate,
         wallet=alice_wallet,
         call_function="sudo_set_weights_set_rate_limit",
-        call_params={"netuid": netuid, "weights_set_rate_limit": "0"},
+        call_params={"netuid": netuid, "weights_set_rate_limit": 0},
     )
-
     assert error is None
     assert status is True
 
@@ -123,7 +131,7 @@ async def test_commit_and_reveal_weights_legacy(subtensor, alice_wallet):
         )
 
         # Commit weights
-        success, message = subtensor.extrinsics.commit_weights(
+        response = subtensor.extrinsics.commit_weights(
             wallet=alice_wallet,
             netuid=netuid,
             mechid=mechid,
@@ -134,7 +142,8 @@ async def test_commit_and_reveal_weights_legacy(subtensor, alice_wallet):
             wait_for_finalization=True,
         )
 
-        assert success is True, message
+        assert response.success, response.message
+        logging.console.info(f"block: {subtensor.block} response: {response}")
 
         storage_index = get_mechid_storage_index(netuid, mechid)
         weight_commits = subtensor.queries.query_module(
@@ -142,6 +151,8 @@ async def test_commit_and_reveal_weights_legacy(subtensor, alice_wallet):
             name="WeightCommits",
             params=[storage_index, alice_wallet.hotkey.ss58_address],
         )
+        logging.console.info(f"weight_commits: {weight_commits}")
+
         # Assert that the committed weights are set correctly
         assert weight_commits is not None, "Weight commit not found in storage"
         commit_hash, commit_block, reveal_block, expire_block = weight_commits[0]
@@ -153,7 +164,7 @@ async def test_commit_and_reveal_weights_legacy(subtensor, alice_wallet):
         )
 
         # Wait until the reveal block range
-        await wait_epoch(subtensor, netuid)
+        subtensor.wait_for_block(subtensor.subnets.get_next_epoch_start_block(netuid) + 1)
 
         # Reveal weights
         success, message = subtensor.extrinsics.reveal_weights(
@@ -198,8 +209,18 @@ async def test_commit_and_reveal_weights_legacy_async(async_subtensor, alice_wal
     """
     logging.console.info("Testing test_commit_and_reveal_weights_async")
 
+    # turn off admin freeze window limit for testing
+    assert (
+        await async_sudo_set_admin_utils(
+            substrate=async_subtensor.substrate,
+            wallet=alice_wallet,
+            call_function="sudo_set_admin_freeze_window",
+            call_params={"window": 0},
+        )
+    )[0] is True, "Failed to set admin freeze window to 0"
+
     netuid = await async_subtensor.subnets.get_total_subnets()  # 2
-    set_tempo = 100 if await async_subtensor.chain.is_fast_blocks() else 10
+    set_tempo = 50 if await async_subtensor.chain.is_fast_blocks() else 10
 
     # Register root as Alice
     assert await async_subtensor.subnets.register_subnet(alice_wallet), (
@@ -209,6 +230,10 @@ async def test_commit_and_reveal_weights_legacy_async(async_subtensor, alice_wal
     # Verify subnet 2 created successfully
     assert await async_subtensor.subnets.subnet_exists(netuid), (
         "Subnet wasn't created successfully"
+    )
+
+    assert async_wait_to_start_call(async_subtensor, alice_wallet, netuid), (
+        "Subnet isn't active yet."
     )
 
     # Enable commit_reveal on the subnet
@@ -237,9 +262,8 @@ async def test_commit_and_reveal_weights_legacy_async(async_subtensor, alice_wal
         substrate=async_subtensor.substrate,
         wallet=alice_wallet,
         call_function="sudo_set_weights_set_rate_limit",
-        call_params={"netuid": netuid, "weights_set_rate_limit": "0"},
+        call_params={"netuid": netuid, "weights_set_rate_limit": 0},
     )
-
     assert error is None
     assert status is True
 
@@ -277,7 +301,6 @@ async def test_commit_and_reveal_weights_legacy_async(async_subtensor, alice_wal
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
-
     assert success is True
 
     weight_commits = await async_subtensor.queries.query_module(
@@ -285,6 +308,8 @@ async def test_commit_and_reveal_weights_legacy_async(async_subtensor, alice_wal
         name="WeightCommits",
         params=[netuid, alice_wallet.hotkey.ss58_address],
     )
+    logging.console.info(f"weight_commits: {weight_commits}")
+
     # Assert that the committed weights are set correctly
     assert weight_commits is not None, "Weight commit not found in storage"
     commit_hash, commit_block, reveal_block, expire_block = weight_commits[0]
@@ -296,12 +321,13 @@ async def test_commit_and_reveal_weights_legacy_async(async_subtensor, alice_wal
     )
 
     # Wait until the reveal block range
-    await async_wait_epoch(async_subtensor, netuid)
+    # await async_wait_epoch(async_subtensor, netuid)
+    # await async_subtensor.wait_for_block(await async_subtensor.subnets.get_next_epoch_start_block(netuid) + 1)
 
     # Reveal weights
     success, message = await async_subtensor.extrinsics.reveal_weights(
-        alice_wallet,
-        netuid,
+        wallet=alice_wallet,
+        netuid=netuid,
         uids=weight_uids,
         weights=weight_vals,
         salt=salt,
@@ -309,7 +335,7 @@ async def test_commit_and_reveal_weights_legacy_async(async_subtensor, alice_wal
         wait_for_finalization=True,
     )
 
-    assert success is True
+    assert success is True, message
 
     # Query the Weights storage map
     revealed_weights = await async_subtensor.queries.query_module(
@@ -333,13 +359,13 @@ async def test_commit_and_reveal_weights_legacy_async(async_subtensor, alice_wal
 #   temporarily banned`.`
 def get_weights_and_salt(counter: int):
     # Commit-reveal values
-    salt_ = [18, 179, 107, counter, 165, 211, 141, 197]
     uids_ = np.array([0], dtype=np.int64)
-    weights_ = np.array([counter / 10], dtype=np.float32)
+    weights_ = np.array([(counter + 1) / 10], dtype=np.float32)
     weight_uids_, weight_vals_ = convert_weights_and_uids_for_emit(
         uids=uids_, weights=weights_
     )
-    return salt_, weight_uids_, weight_vals_
+    salt_ = [18, 179, 107, counter, 165, 211, 141, 197]
+    return weight_uids_, weight_vals_, salt_
 
 
 @pytest.mark.asyncio
@@ -380,7 +406,7 @@ async def test_commit_weights_uses_next_nonce(subtensor, alice_wallet):
 
     # weights sensitive to epoch changes
     assert sudo_set_admin_utils(
-        substrate=local_chain,
+        substrate=subtensor.substrate,
         wallet=alice_wallet,
         call_function="sudo_set_tempo",
         call_params={
@@ -455,6 +481,9 @@ async def test_commit_weights_uses_next_nonce(subtensor, alice_wallet):
     for call in range(AMOUNT_OF_COMMIT_WEIGHTS):
         weight_uids, weight_vals, salt = get_weights_and_salt(call)
 
+        logging.console.info(
+            f"Sending commit with uids: {weight_uids}, weight: {weight_vals}"
+        )
         send_commit(salt, weight_uids, weight_vals)
 
         # let's wait for 3 (12 fast blocks) seconds between transactions, next block for non-fast-blocks
@@ -510,6 +539,15 @@ async def test_commit_weights_uses_next_nonce_async(async_subtensor, alice_walle
         AssertionError: If any of the checks or verifications fail
     """
     logging.console.info("Testing test_commit_and_reveal_weights")
+
+    assert (
+        await async_sudo_set_admin_utils(
+            substrate=async_subtensor.substrate,
+            wallet=alice_wallet,
+            call_function="sudo_set_admin_freeze_window",
+            call_params={"window": 0},
+        )
+    )[0] is True, "Failed to set admin freeze window to 0"
 
     subnet_tempo = 50 if await async_subtensor.chain.is_fast_blocks() else 10
     netuid = await async_subtensor.subnets.get_total_subnets()  # 2
@@ -640,6 +678,9 @@ async def test_commit_weights_uses_next_nonce_async(async_subtensor, alice_walle
     for call in range(AMOUNT_OF_COMMIT_WEIGHTS):
         weight_uids, weight_vals, salt = get_weights_and_salt(call)
 
+        logging.console.info(
+            f"Sending commit with uids: {weight_uids}, weight: {weight_vals}"
+        )
         await send_commit(salt, weight_uids, weight_vals)
 
         # let's wait for 3 (12 fast blocks) seconds between transactions, next block for non-fast-blocks
@@ -658,6 +699,7 @@ async def test_commit_weights_uses_next_nonce_async(async_subtensor, alice_walle
     # Wait a few blocks
     waiting_block = (
         (await async_subtensor.block + await async_subtensor.subnets.tempo(netuid) * 2)
+        + 12
         if await async_subtensor.chain.is_fast_blocks()
         else None
     )
