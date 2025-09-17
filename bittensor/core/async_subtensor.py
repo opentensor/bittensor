@@ -2706,6 +2706,37 @@ class AsyncSubtensor(SubtensorMixin):
 
         return MetagraphInfo.list_from_dicts(query.value)
 
+    async def get_sub_subnets_emission_split(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional[list[int]]:
+        """Returns the emission percentages allocated to each sub-subnet.
+
+        Parameters:
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query.
+            block_hash: The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block.
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            A list of integers representing the percentage of emission allocated to each sub-subnet (rounded to whole
+            numbers). Returns None if emission is evenly split or if the data is unavailable.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        result = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="SubsubnetEmissionSplit",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+        if result is None or not hasattr(result, "value"):
+            return None
+
+        return [round(i / sum(result.value) * 100) for i in result.value]
+
     async def get_sub_metagraph_info(
         self,
         netuid: int,
