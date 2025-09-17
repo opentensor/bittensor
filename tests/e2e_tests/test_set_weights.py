@@ -1,7 +1,9 @@
+import time
+
 import numpy as np
 import pytest
 import retry
-import time
+
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
@@ -37,8 +39,8 @@ def test_set_weights_uses_next_nonce(subtensor, alice_wallet):
     # turn off admin freeze window limit for testing
     assert (
         sudo_set_admin_utils(
-            local_chain,
-            alice_wallet,
+            substrate=subtensor.substrate,
+            wallet=alice_wallet,
             call_function="sudo_set_admin_freeze_window",
             call_params={"window": 0},
         )[0]
@@ -208,6 +210,16 @@ async def test_set_weights_uses_next_nonce_async(async_subtensor, alice_wallet):
         AssertionError: If any of the checks or verifications fail
     """
     logging.console.info("Testing [blue]test_set_weights_uses_next_nonce_async[/blue]")
+
+    # turn off admin freeze window limit for testing
+    assert (
+        await async_sudo_set_admin_utils(
+            substrate=async_subtensor.substrate,
+            wallet=alice_wallet,
+            call_function="sudo_set_admin_freeze_window",
+            call_params={"window": 0},
+        )
+    )[0] is True, "Failed to set admin freeze window to 0"
 
     netuids = [2, 3]
     subnet_tempo = 50
