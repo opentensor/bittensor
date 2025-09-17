@@ -234,3 +234,4 @@ Additional changes in extrinsics:
   - `commit_reveal_extrinsic` and `subtensor.set_weights` (with `commit_reveal_enabled=True`), the response is the usual `ExtrinsicResponse` (`success` and `message` unchanged), plus field `data` holds the `{"reveal_round": reveal_round}`.
   - in positive case, all extrinsics return `response.message = "Success"`
   - `root_register_extrinsic`, `subtensor.burned_register` (with netuid=0) and `subtensor.root_register` has response `ExtrinsicResponse`. In successful case `.data` holds the `{"uid": uid}` where is `uid` is uid of registered neuron.
+  - `subtensor.sign_and_send_extrinsic` has updated arguments order. The list of arguments is the same.
