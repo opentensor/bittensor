@@ -125,7 +125,9 @@ def reveal_weights_extrinsic(
     This function provides a user-friendly interface for revealing weights on the Bittensor blockchain, ensuring proper
         error handling and user interaction when required.
     """
-    if not (unlock := unlock_key(wallet, unlock_type="hotkey")).success:
+    if not (
+        unlock := unlock_key(wallet, unlock_type="hotkey", raise_error=raise_error)
+    ).success:
         logging.error(unlock.message)
         return ExtrinsicResponse(
             False, unlock.message, extrinsic_function=get_function_name()
@@ -146,13 +148,13 @@ def reveal_weights_extrinsic(
     response = subtensor.sign_and_send_extrinsic(
         call=call,
         wallet=wallet,
+        sign_with="hotkey",
+        use_nonce=True,
+        nonce_key="hotkey",
+        period=period,
+        raise_error=raise_error,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
-        use_nonce=True,
-        period=period,
-        sign_with="hotkey",
-        nonce_key="hotkey",
-        raise_error=raise_error,
         calling_function=get_function_name(),
     )
 
