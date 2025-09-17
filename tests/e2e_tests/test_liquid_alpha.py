@@ -5,6 +5,7 @@ from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.chain_interactions import (
     async_sudo_set_hyperparameter_bool,
     async_sudo_set_hyperparameter_values,
+    async_sudo_set_admin_utils,
     sudo_set_hyperparameter_bool,
     sudo_set_hyperparameter_values,
     sudo_set_admin_utils,
@@ -55,7 +56,7 @@ def test_liquid_alpha(subtensor, alice_wallet):
 
     # Register root as Alice
     assert subtensor.subnets.register_subnet(alice_wallet), (
-        "Unable to register the subnet"
+        "Unable to register the subnet."
     )
 
     # Verify subnet created successfully
@@ -67,7 +68,7 @@ def test_liquid_alpha(subtensor, alice_wallet):
 
     # Register a neuron (Alice) to the subnet
     assert subtensor.subnets.burned_register(alice_wallet, netuid).success, (
-        "Unable to register Alice as a neuron"
+        "Unable to register Alice as a neuron."
     )
 
     # Stake to become to top neuron after the first epoch
@@ -76,7 +77,7 @@ def test_liquid_alpha(subtensor, alice_wallet):
         netuid=netuid,
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(10_000),
-    ).success, "Unable to stake to Alice neuron"
+    ).success, "Unable to stake to Alice neuron."
 
     # Assert liquid alpha is disabled
     assert (
@@ -118,12 +119,12 @@ def test_liquid_alpha(subtensor, alice_wallet):
         wallet=alice_wallet,
         call_function="sudo_set_alpha_values",
         call_params=call_params,
-    ), "Unable to set alpha_values"
+    ), "Unable to set alpha_values."
     assert subtensor.subnets.get_subnet_hyperparameters(netuid).alpha_high == 54099, (
         "Failed to set alpha high"
     )
     assert subtensor.subnets.get_subnet_hyperparameters(netuid).alpha_low == 26001, (
-        "Failed to set alpha low"
+        "Failed to set alpha low."
     )
 
     # Testing alpha high upper and lower bounds
@@ -132,14 +133,14 @@ def test_liquid_alpha(subtensor, alice_wallet):
     alpha_high_too_low = 87
 
     # Test needs to wait for the amount of tempo in the chain equal to OwnerHyperparamRateLimit
-    owner_hyperparam_ratelimit = subtensor.substrate.query(
-        module="SubtensorModule", storage_function="OwnerHyperparamRateLimit"
+    owner_hyperparam_ratelimit = subtensor.queries.query_subtensor(
+        "OwnerHyperparamRateLimit"
     ).value
     logging.console.info(
         f"OwnerHyperparamRateLimit is {owner_hyperparam_ratelimit} tempo(s)."
     )
     subtensor.wait_for_block(
-        subtensor.block + subtensor.tempo(netuid) * owner_hyperparam_ratelimit
+        subtensor.block + subtensor.subnets.tempo(netuid) * owner_hyperparam_ratelimit
     )
 
     call_params = liquid_alpha_call_params(netuid, f"6553, {alpha_high_too_low}")
@@ -245,23 +246,35 @@ async def test_liquid_alpha_async(async_subtensor, alice_wallet):
     """
     logging.console.info("Testing [blue]test_liquid_alpha_async[/blue]")
 
+    # turn off admin freeze window limit for testing
+    assert (
+        await async_sudo_set_admin_utils(
+            substrate=async_subtensor.substrate,
+            wallet=alice_wallet,
+            call_function="sudo_set_admin_freeze_window",
+            call_params={"window": 0},
+        )
+    )[0] is True, "Failed to set admin freeze window to 0"
+
     u16_max = 65535
     netuid = 2
 
     # Register root as Alice
     assert await async_subtensor.subnets.register_subnet(alice_wallet), (
-        "Unable to register the subnet"
+        "Unable to register the subnet."
     )
 
     # Verify subnet created successfully
-    assert await async_subtensor.subnets.subnet_exists(netuid)
+    assert await async_subtensor.subnets.subnet_exists(netuid), "Subnet does not exist."
 
-    assert await async_wait_to_start_call(async_subtensor, alice_wallet, netuid)
+    assert await async_wait_to_start_call(async_subtensor, alice_wallet, netuid), (
+        "Subnet failed to start."
+    )
 
     # Register a neuron (Alice) to the subnet
     assert (
         await async_subtensor.subnets.burned_register(alice_wallet, netuid)
-    ).success, "Unable to register Alice as a neuron"
+    ).success, "Unable to register Alice as a neuron."
 
     # Stake to become to top neuron after the first epoch
     assert (
@@ -324,6 +337,18 @@ async def test_liquid_alpha_async(async_subtensor, alice_wallet):
 
     # 1. Test setting Alpha_high too low
     alpha_high_too_low = 87
+
+    # Test needs to wait for the amount of tempo in the chain equal to OwnerHyperparamRateLimit
+    owner_hyperparam_ratelimit = (
+        await async_subtensor.queries.query_subtensor("OwnerHyperparamRateLimit")
+    ).value
+    logging.console.info(
+        f"OwnerHyperparamRateLimit is {owner_hyperparam_ratelimit} tempo(s)."
+    )
+    await async_subtensor.wait_for_block(
+        await async_subtensor.block
+        + await async_subtensor.subnets.tempo(netuid) * owner_hyperparam_ratelimit
+    )
 
     call_params = liquid_alpha_call_params(netuid, f"6553, {alpha_high_too_low}")
     result, error_message = await async_sudo_set_hyperparameter_values(
