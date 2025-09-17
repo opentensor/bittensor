@@ -757,7 +757,7 @@ async def test_children_async(async_subtensor, alice_wallet, bob_wallet, dave_wa
         f"[orange]block: {await async_subtensor.block}, cooldown: {cooldown}[/orange]"
     )
 
-    await async_subtensor.wait_for_block(cooldown)
+    await async_subtensor.wait_for_block(cooldown + 1)
 
     success, children, error = await async_subtensor.wallets.get_children(
         hotkey=alice_wallet.hotkey.ss58_address,
