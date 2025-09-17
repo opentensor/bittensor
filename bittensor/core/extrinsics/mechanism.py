@@ -4,7 +4,7 @@ from bittensor_drand import get_encrypted_commit
 
 from bittensor.core.settings import version_as_int
 from bittensor.core.types import Salt, UIDs, Weights
-from bittensor.utils import unlock_key, get_sub_subnet_storage_index
+from bittensor.utils import unlock_key, get_mechid_storage_index
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import (
     convert_and_normalize_weights_and_uids,
@@ -16,11 +16,11 @@ if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
 
 
-def commit_sub_weights_extrinsic(
+def commit_mechanism_weights_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     netuid: int,
-    subuid: int,
+    mechid: int,
     uids: UIDs,
     weights: Weights,
     salt: Salt,
@@ -36,7 +36,7 @@ def commit_sub_weights_extrinsic(
         subtensor: Subtensor instance.
         wallet: Bittensor Wallet instance.
         netuid: The subnet unique identifier.
-        subuid: The sub-subnet unique identifier.
+        mechid: The subnet mechanism unique identifier.
         uids: NumPy array of neuron UIDs for which weights are being committed.
         weights: NumPy array of weight values corresponding to each UID.
         salt: list of randomly generated integers as salt to generated weighted hash.
@@ -59,7 +59,7 @@ def commit_sub_weights_extrinsic(
             logging.error(unlock.message)
             return False, unlock.message
 
-        storage_index = get_sub_subnet_storage_index(netuid=netuid, subuid=subuid)
+        storage_index = get_mechid_storage_index(netuid=netuid, mechid=mechid)
         # Generate the hash of the weights
         commit_hash = generate_weight_hash(
             address=wallet.hotkey.ss58_address,
@@ -72,10 +72,10 @@ def commit_sub_weights_extrinsic(
 
         call = subtensor.substrate.compose_call(
             call_module="SubtensorModule",
-            call_function="commit_sub_weights",
+            call_function="commit_mechanism_weights",
             call_params={
                 "netuid": netuid,
-                "subid": subuid,
+                "mecid": mechid,
                 "commit_hash": commit_hash,
             },
         )
@@ -106,11 +106,11 @@ def commit_sub_weights_extrinsic(
         return False, str(error)
 
 
-def commit_timelocked_sub_weights_extrinsic(
+def commit_timelocked_mechanism_weights_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     netuid: int,
-    subuid: int,
+    mechid: int,
     uids: UIDs,
     weights: Weights,
     block_time: Union[int, float],
@@ -127,7 +127,7 @@ def commit_timelocked_sub_weights_extrinsic(
         subtensor: Subtensor instance.
         wallet: Bittensor Wallet instance.
         netuid: The unique identifier of the subnet.
-        subuid: The sub-subnet unique identifier.
+        mechid: The sub-subnet unique identifier.
         uids: The list of neuron UIDs that the weights are being set for.
         weights: The corresponding weights to be set for each UID.
         block_time: The number of seconds for block duration.
@@ -160,7 +160,7 @@ def commit_timelocked_sub_weights_extrinsic(
         tempo = subnet_hyperparameters.tempo
         subnet_reveal_period_epochs = subnet_hyperparameters.commit_reveal_period
 
-        storage_index = get_sub_subnet_storage_index(netuid=netuid, subuid=subuid)
+        storage_index = get_mechid_storage_index(netuid=netuid, mechid=mechid)
 
         # Encrypt `commit_hash` with t-lock and `get reveal_round`
         commit_for_reveal, reveal_round = get_encrypted_commit(
@@ -177,10 +177,10 @@ def commit_timelocked_sub_weights_extrinsic(
 
         call = subtensor.substrate.compose_call(
             call_module="SubtensorModule",
-            call_function="commit_timelocked_sub_weights",
+            call_function="commit_timelocked_mechanism_weights",
             call_params={
                 "netuid": netuid,
-                "subid": subuid,
+                "mecid": mechid,
                 "commit": commit_for_reveal,
                 "reveal_round": reveal_round,
                 "commit_reveal_version": commit_reveal_version,
@@ -213,11 +213,11 @@ def commit_timelocked_sub_weights_extrinsic(
         return False, str(error)
 
 
-def reveal_sub_weights_extrinsic(
+def reveal_mechanism_weights_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     netuid: int,
-    subuid: int,
+    mechid: int,
     uids: UIDs,
     weights: Weights,
     salt: Salt,
@@ -234,7 +234,7 @@ def reveal_sub_weights_extrinsic(
         subtensor: Subtensor instance.
         wallet: Bittensor Wallet instance.
         netuid: The unique identifier of the subnet.
-        subuid: The sub-subnet unique identifier.
+        mechid: The subnet mechanism unique identifier.
         uids: List of neuron UIDs for which weights are being revealed.
         weights: List of weight values corresponding to each UID.
         salt: List of salt values corresponding to the hash function.
@@ -261,10 +261,10 @@ def reveal_sub_weights_extrinsic(
 
         call = subtensor.substrate.compose_call(
             call_module="SubtensorModule",
-            call_function="reveal_sub_weights",
+            call_function="reveal_mechanism_weights",
             call_params={
                 "netuid": netuid,
-                "subid": subuid,
+                "mecid": mechid,
                 "uids": uids,
                 "values": weights,
                 "salt": salt,
@@ -298,11 +298,11 @@ def reveal_sub_weights_extrinsic(
         return False, str(error)
 
 
-def set_sub_weights_extrinsic(
+def set_mechanism_weights_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     netuid: int,
-    subuid: int,
+    mechid: int,
     uids: UIDs,
     weights: Weights,
     version_key: int,
@@ -318,7 +318,7 @@ def set_sub_weights_extrinsic(
         subtensor: Subtensor instance.
         wallet: Bittensor Wallet instance.
         netuid: The unique identifier of the subnet.
-        subuid: The sub-subnet unique identifier.
+        mechid: The subnet mechanism unique identifier.
         uids: List of neuron UIDs for which weights are being revealed.
         weights: List of weight values corresponding to each UID.
         version_key: Version key for compatibility with the network.
@@ -345,10 +345,10 @@ def set_sub_weights_extrinsic(
 
         call = subtensor.substrate.compose_call(
             call_module="SubtensorModule",
-            call_function="set_sub_weights",
+            call_function="set_mechanism_weights",
             call_params={
                 "netuid": netuid,
-                "subid": subuid,
+                "mecid": mechid,
                 "dests": uids,
                 "weights": weights,
                 "version_key": version_key,

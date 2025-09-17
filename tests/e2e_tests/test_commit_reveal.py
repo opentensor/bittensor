@@ -6,12 +6,12 @@ import numpy as np
 import pytest
 
 from bittensor.core.extrinsics.asyncex.sudo import (
-    sudo_set_sub_subnet_count_extrinsic as async_sudo_set_sub_subnet_count_extrinsic,
-    sudo_set_admin_freez_window as async_sudo_set_admin_freez_window,
+    sudo_set_mechanism_count_extrinsic as async_sudo_set_mechanism_count_extrinsic,
+    sudo_set_admin_freez_window_extrinsic as async_sudo_set_admin_freez_window_extrinsic,
 )
 from bittensor.core.extrinsics.sudo import (
-    sudo_set_sub_subnet_count_extrinsic,
-    sudo_set_admin_freez_window,
+    sudo_set_mechanism_count_extrinsic,
+    sudo_set_admin_freez_window_extrinsic,
 )
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
@@ -23,7 +23,7 @@ from tests.e2e_tests.utils.chain_interactions import (
     next_tempo,
 )
 
-TESTED_SUB_SUBNETS = 3
+TESTED_SUB_SUBNETS = 2
 
 
 # @pytest.mark.parametrize("local_chain", [True], indirect=True)
@@ -46,7 +46,7 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
     logging.console.info("Testing `test_commit_and_reveal_weights_cr4`")
 
     # turn off admin freeze window limit for testing
-    assert sudo_set_admin_freez_window(subtensor, alice_wallet, 0)
+    assert sudo_set_admin_freez_window_extrinsic(subtensor, alice_wallet, 0)
 
     # 12 for non-fast-block, 0.25 for fast block
     BLOCK_TIME, TEMPO_TO_SET = (
@@ -67,7 +67,7 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
         f"SN #{alice_subnet_netuid} wasn't created successfully"
     )
 
-    assert sudo_set_sub_subnet_count_extrinsic(
+    assert sudo_set_mechanism_count_extrinsic(
         subtensor, alice_wallet, alice_subnet_netuid, TESTED_SUB_SUBNETS
     ), "Cannot create sub-subnets."
 
@@ -164,9 +164,9 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
         f"Post first wait_interval (to ensure window isn't too low): {current_block}, next tempo: {upcoming_tempo}, drand: {latest_drand_round}"
     )
 
-    for subuid in range(TESTED_SUB_SUBNETS):
+    for mechid in range(TESTED_SUB_SUBNETS):
         logging.console.info(
-            f"[magenta]Testing sub-subnet: {alice_subnet_netuid}.{subuid}[/magenta]"
+            f"[magenta]Testing subnet mechanism: {alice_subnet_netuid}.{mechid}[/magenta]"
         )
 
         # commit_block is the block when weights were committed on the chain (transaction block)
@@ -175,7 +175,7 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
         success, message = subtensor.extrinsics.set_weights(
             wallet=alice_wallet,
             netuid=alice_subnet_netuid,
-            subuid=subuid,
+            mechid=mechid,
             uids=weight_uids,
             weights=weight_vals,
             wait_for_inclusion=True,
@@ -199,7 +199,7 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
 
         # Fetch current commits pending on the chain
         commits_on_chain = subtensor.commitments.get_timelocked_weight_commits(
-            netuid=alice_subnet_netuid, subuid=subuid
+            netuid=alice_subnet_netuid, mechid=mechid
         )
         address, commit_block, commit, reveal_round = commits_on_chain[0]
 
@@ -215,7 +215,7 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
         ]
 
         # Ensure no weights are available as of now
-        assert subtensor.weights(netuid=alice_subnet_netuid, subuid=subuid) == []
+        assert subtensor.weights(netuid=alice_subnet_netuid, mechid=mechid) == []
         logging.console.success("No weights are available before next epoch.")
 
         # 5 is safety drand offset
@@ -241,7 +241,7 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
 
         # Fetch weights on the chain as they should be revealed now
         subnet_weights = subtensor.subnets.weights(
-            netuid=alice_subnet_netuid, subuid=subuid
+            netuid=alice_subnet_netuid, mechid=mechid
         )
         assert subnet_weights != [], "Weights are not available yet."
 
@@ -259,7 +259,7 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
         # Now that the commit has been revealed, there shouldn't be any pending commits
         assert (
             subtensor.commitments.get_timelocked_weight_commits(
-                netuid=alice_subnet_netuid, subuid=subuid
+                netuid=alice_subnet_netuid, mechid=mechid
             )
             == []
         )
@@ -294,7 +294,9 @@ async def test_async_commit_and_reveal_weights_cr4(
     logging.console.info("Testing `test_commit_and_reveal_weights_cr4`")
 
     # turn off admin freeze window limit for testing
-    assert await async_sudo_set_admin_freez_window(async_subtensor, alice_wallet, 0)
+    assert await async_sudo_set_admin_freez_window_extrinsic(
+        async_subtensor, alice_wallet, 0
+    )
 
     # 12 for non-fast-block, 0.25 for fast block
     BLOCK_TIME, TEMPO_TO_SET = (
@@ -315,7 +317,7 @@ async def test_async_commit_and_reveal_weights_cr4(
         f"SN #{alice_subnet_netuid} wasn't created successfully"
     )
 
-    assert await async_sudo_set_sub_subnet_count_extrinsic(
+    assert await async_sudo_set_mechanism_count_extrinsic(
         async_subtensor, alice_wallet, alice_subnet_netuid, TESTED_SUB_SUBNETS
     ), "Cannot create sub-subnets."
 
@@ -413,9 +415,9 @@ async def test_async_commit_and_reveal_weights_cr4(
         f"Post first wait_interval (to ensure window isn't too low): {current_block}, next tempo: {upcoming_tempo}, drand: {latest_drand_round}"
     )
 
-    for subuid in range(TESTED_SUB_SUBNETS):
+    for mechid in range(TESTED_SUB_SUBNETS):
         logging.console.info(
-            f"[magenta]Testing sub-subnet: {alice_subnet_netuid}.{subuid}[/magenta]"
+            f"[magenta]Testing subnet mechanism: {alice_subnet_netuid}.{mechid}[/magenta]"
         )
 
         # commit_block is the block when weights were committed on the chain (transaction block)
@@ -424,7 +426,7 @@ async def test_async_commit_and_reveal_weights_cr4(
         success, message = await async_subtensor.extrinsics.set_weights(
             wallet=alice_wallet,
             netuid=alice_subnet_netuid,
-            subuid=subuid,
+            mechid=mechid,
             uids=weight_uids,
             weights=weight_vals,
             wait_for_inclusion=True,
@@ -444,11 +446,11 @@ async def test_async_commit_and_reveal_weights_cr4(
         )
 
         # Fetch current commits pending on the chain
-        await async_subtensor.wait_for_block(await async_subtensor.block + subuid)
+        await async_subtensor.wait_for_block(await async_subtensor.block + 12)
 
         commits_on_chain = (
             await async_subtensor.commitments.get_timelocked_weight_commits(
-                netuid=alice_subnet_netuid, subuid=subuid
+                netuid=alice_subnet_netuid, mechid=mechid
             )
         )
         address, commit_block, commit, reveal_round = commits_on_chain[0]
@@ -462,7 +464,7 @@ async def test_async_commit_and_reveal_weights_cr4(
 
         # Ensure no weights are available as of now
         assert (
-            await async_subtensor.weights(netuid=alice_subnet_netuid, subuid=subuid)
+            await async_subtensor.weights(netuid=alice_subnet_netuid, mechid=mechid)
             == []
         )
         logging.console.success("No weights are available before next epoch.")
@@ -493,7 +495,7 @@ async def test_async_commit_and_reveal_weights_cr4(
 
         # Fetch weights on the chain as they should be revealed now
         subnet_weights = await async_subtensor.subnets.weights(
-            netuid=alice_subnet_netuid, subuid=subuid
+            netuid=alice_subnet_netuid, mechid=mechid
         )
         assert subnet_weights != [], "Weights are not available yet."
 
@@ -511,7 +513,7 @@ async def test_async_commit_and_reveal_weights_cr4(
         # Now that the commit has been revealed, there shouldn't be any pending commits
         assert (
             await async_subtensor.commitments.get_timelocked_weight_commits(
-                netuid=alice_subnet_netuid, subuid=subuid
+                netuid=alice_subnet_netuid, mechid=mechid
             )
             == []
         )

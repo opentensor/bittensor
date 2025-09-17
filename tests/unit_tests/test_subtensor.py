@@ -1170,7 +1170,9 @@ def test_set_weights(subtensor, mocker, fake_wallet):
     subtensor.weights_rate_limit = mocked_weights_rate_limit
 
     mocked_set_weights_extrinsic = mocker.patch.object(
-        subtensor_module, "set_sub_weights_extrinsic", return_value=expected_result
+        subtensor_module,
+        "set_mechanism_weights_extrinsic",
+        return_value=expected_result,
     )
 
     # Call
@@ -1203,7 +1205,7 @@ def test_set_weights(subtensor, mocker, fake_wallet):
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
         period=8,
-        subuid=0,
+        mechid=0,
     )
     assert result == expected_result
 
@@ -1954,7 +1956,9 @@ def test_commit_weights(subtensor, fake_wallet, mocker):
 
     expected_result = (True, None)
     mocked_commit_weights_extrinsic = mocker.patch.object(
-        subtensor_module, "commit_sub_weights_extrinsic", return_value=expected_result
+        subtensor_module,
+        "commit_mechanism_weights_extrinsic",
+        return_value=expected_result,
     )
 
     # Call
@@ -1981,7 +1985,7 @@ def test_commit_weights(subtensor, fake_wallet, mocker):
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
         period=16,
-        subuid=0,
+        mechid=0,
     )
     assert result == expected_result
 
@@ -1995,7 +1999,9 @@ def test_reveal_weights(subtensor, fake_wallet, mocker):
     salt = [4, 2, 2, 1]
     expected_result = (True, None)
     mocked_extrinsic = mocker.patch.object(
-        subtensor_module, "reveal_sub_weights_extrinsic", return_value=expected_result
+        subtensor_module,
+        "reveal_mechanism_weights_extrinsic",
+        return_value=expected_result,
     )
 
     # Call
@@ -2022,7 +2028,7 @@ def test_reveal_weights(subtensor, fake_wallet, mocker):
         wait_for_inclusion=False,
         wait_for_finalization=False,
         period=16,
-        subuid=0,
+        mechid=0,
     )
 
 
@@ -2039,7 +2045,7 @@ def test_reveal_weights_false(subtensor, fake_wallet, mocker):
         "No attempt made. Perhaps it is too soon to reveal weights!",
     )
     mocked_extrinsic = mocker.patch.object(
-        subtensor_module, "reveal_sub_weights_extrinsic"
+        subtensor_module, "reveal_mechanism_weights_extrinsic"
     )
 
     # Call
@@ -3145,10 +3151,10 @@ def test_set_weights_with_commit_reveal_enabled(subtensor, fake_wallet, mocker):
     mocked_commit_reveal_enabled = mocker.patch.object(
         subtensor, "commit_reveal_enabled", return_value=True
     )
-    mocked_commit_timelocked_sub_weights_extrinsic = mocker.patch.object(
-        subtensor_module, "commit_timelocked_sub_weights_extrinsic"
+    mocked_commit_timelocked_mechanism_weights_extrinsic = mocker.patch.object(
+        subtensor_module, "commit_timelocked_mechanism_weights_extrinsic"
     )
-    mocked_commit_timelocked_sub_weights_extrinsic.return_value = (
+    mocked_commit_timelocked_mechanism_weights_extrinsic.return_value = (
         True,
         "Weights committed successfully",
     )
@@ -3167,7 +3173,7 @@ def test_set_weights_with_commit_reveal_enabled(subtensor, fake_wallet, mocker):
 
     # Asserts
     mocked_commit_reveal_enabled.assert_called_once_with(netuid=fake_netuid)
-    mocked_commit_timelocked_sub_weights_extrinsic.assert_called_once_with(
+    mocked_commit_timelocked_mechanism_weights_extrinsic.assert_called_once_with(
         subtensor=subtensor,
         wallet=fake_wallet,
         netuid=fake_netuid,
@@ -3179,9 +3185,9 @@ def test_set_weights_with_commit_reveal_enabled(subtensor, fake_wallet, mocker):
         block_time=12.0,
         period=8,
         commit_reveal_version=4,
-        subuid=0,
+        mechid=0,
     )
-    assert result == mocked_commit_timelocked_sub_weights_extrinsic.return_value
+    assert result == mocked_commit_timelocked_mechanism_weights_extrinsic.return_value
 
 
 def test_connection_limit(mocker):
@@ -4332,8 +4338,8 @@ def test_get_timelocked_weight_commits(subtensor, mocker):
     assert result == []
 
 
-def test_get_sub_all_metagraphs_returns_none(subtensor, mocker):
-    """Verify that `get_sub_all_metagraphs` method returns None."""
+def test_get_all_mechagraphs_info_returns_none(subtensor, mocker):
+    """Verify that `get_all_mechagraphs_info` method returns None."""
     # Preps
     mocker.patch.object(subtensor.substrate, "runtime_call", return_value=None)
     mocked_metagraph_info_list_from_dicts = mocker.patch(
@@ -4341,18 +4347,18 @@ def test_get_sub_all_metagraphs_returns_none(subtensor, mocker):
     )
 
     # Call
-    result = subtensor.get_sub_all_metagraphs()
+    result = subtensor.get_all_mechagraphs_info()
 
     # Asserts
     subtensor.substrate.runtime_call.assert_called_once_with(
-        api="SubnetInfoRuntimeApi", method="get_all_submetagraphs", block_hash=None
+        api="SubnetInfoRuntimeApi", method="get_all_mechagraphs_info", block_hash=None
     )
     mocked_metagraph_info_list_from_dicts.assert_not_called()
     assert result is None
 
 
-def test_get_sub_all_metagraphs_happy_path(subtensor, mocker):
-    """Verify that `get_sub_all_metagraphs` method processed the data correctly."""
+def test_get_all_mechagraphs_info_happy_path(subtensor, mocker):
+    """Verify that `get_all_mechagraphs_info` method processed the data correctly."""
     # Preps
     mocked_result = mocker.MagicMock()
     mocker.patch.object(subtensor.substrate, "runtime_call", return_value=mocked_result)
@@ -4361,11 +4367,11 @@ def test_get_sub_all_metagraphs_happy_path(subtensor, mocker):
     )
 
     # Call
-    result = subtensor.get_sub_all_metagraphs()
+    result = subtensor.get_all_mechagraphs_info()
 
     # Asserts
     subtensor.substrate.runtime_call.assert_called_once_with(
-        api="SubnetInfoRuntimeApi", method="get_all_submetagraphs", block_hash=None
+        api="SubnetInfoRuntimeApi", method="get_all_mechagraphs_info", block_hash=None
     )
     mocked_metagraph_info_list_from_dicts.assert_called_once_with(mocked_result.value)
     assert result == mocked_metagraph_info_list_from_dicts.return_value
@@ -4378,10 +4384,8 @@ def test_get_sub_all_metagraphs_happy_path(subtensor, mocker):
         [None, None],
     ),
 )
-def test_get_sub_subnets_emission_split(
-    subtensor, mocker, query_return, expected_result
-):
-    """Verify that get_sub_subnets_emission_split calls the correct methods."""
+def test_get_mechanism_emission_split(subtensor, mocker, query_return, expected_result):
+    """Verify that get_mechanism_emission_split calls the correct methods."""
     # Preps
     netuid = mocker.Mock()
     query_return = (
@@ -4394,24 +4398,24 @@ def test_get_sub_subnets_emission_split(
 
     # Call
 
-    result = subtensor.get_sub_subnets_emission_split(netuid)
+    result = subtensor.get_mechanism_emission_split(netuid)
 
     # Asserts
     mocked_determine_block_hash.assert_called_once()
     mocked_query.assert_called_once_with(
         module="SubtensorModule",
-        storage_function="SubsubnetEmissionSplit",
+        storage_function="MechanismEmissionSplit",
         params=[netuid],
         block_hash=mocked_determine_block_hash.return_value,
     )
     assert result == expected_result
 
 
-def test_get_sub_metagraph_info_returns_none(subtensor, mocker):
-    """Verify that `get_sub_metagraph_info` method returns None."""
+def test_get_mechagraph_info_returns_none(subtensor, mocker):
+    """Verify that `get_mechagraph_info` method returns None."""
     # Preps
     netuid = 14
-    subuid = 5
+    mechid = 5
 
     mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
     mocked_result = None
@@ -4421,25 +4425,25 @@ def test_get_sub_metagraph_info_returns_none(subtensor, mocker):
     )
 
     # Call
-    result = subtensor.get_sub_metagraph_info(netuid=netuid, subuid=subuid)
+    result = subtensor.get_mechagraph_info(netuid=netuid, mechid=mechid)
 
     # Asserts
     mocked_determine_block_hash.assert_called_once()
     subtensor.substrate.runtime_call.assert_called_once_with(
         api="SubnetInfoRuntimeApi",
-        method="get_submetagraph",
-        params=[netuid, subuid],
+        method="get_mechagraph",
+        params=[netuid, mechid],
         block_hash=mocked_determine_block_hash.return_value,
     )
     assert result is mocked_result
     mocked_metagraph_info_from_dict.assert_not_called()
 
 
-def test_get_sub_metagraph_info_happy_path(subtensor, mocker):
-    """Verify that `get_sub_metagraph_info` method processed the data correctly."""
+def test_get_mechagraph_info_happy_path(subtensor, mocker):
+    """Verify that `get_mechagraph_info` method processed the data correctly."""
     # Preps
     netuid = 14
-    subuid = 5
+    mechid = 5
 
     mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
     mocked_result = mocker.MagicMock()
@@ -4449,25 +4453,25 @@ def test_get_sub_metagraph_info_happy_path(subtensor, mocker):
     )
 
     # Call
-    result = subtensor.get_sub_metagraph_info(netuid=netuid, subuid=subuid)
+    result = subtensor.get_mechagraph_info(netuid=netuid, mechid=mechid)
 
     # Asserts
     mocked_determine_block_hash.assert_called_once()
     subtensor.substrate.runtime_call.assert_called_once_with(
         api="SubnetInfoRuntimeApi",
-        method="get_submetagraph",
-        params=[netuid, subuid],
+        method="get_mechagraph",
+        params=[netuid, mechid],
         block_hash=mocked_determine_block_hash.return_value,
     )
     mocked_metagraph_info_from_dict.assert_called_once_with(mocked_result.value)
     assert result is mocked_metagraph_info_from_dict.return_value
 
 
-def test_get_sub_selective_metagraph_returns_none(subtensor, mocker):
-    """Verify that `get_sub_selective_metagraph` method returns None."""
+def test_get_selective_mechagraph_info_returns_none(subtensor, mocker):
+    """Verify that `get_selective_mechagraph_info` method returns None."""
     # Preps
     netuid = 14
-    subuid = 5
+    mechid = 5
     field_indices = [0, 1, 73]
 
     mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
@@ -4478,27 +4482,27 @@ def test_get_sub_selective_metagraph_returns_none(subtensor, mocker):
     )
 
     # Call
-    result = subtensor.get_sub_selective_metagraph(
-        netuid=netuid, subuid=subuid, field_indices=field_indices
+    result = subtensor.get_selective_mechagraph_info(
+        netuid=netuid, mechid=mechid, field_indices=field_indices
     )
 
     # Asserts
     mocked_determine_block_hash.assert_called_once()
     subtensor.substrate.runtime_call.assert_called_once_with(
         api="SubnetInfoRuntimeApi",
-        method="get_selective_submetagraph",
-        params=[netuid, subuid, field_indices],
+        method="get_selective_mechagraph",
+        params=[netuid, mechid, field_indices],
         block_hash=mocked_determine_block_hash.return_value,
     )
     assert result is mocked_result
     mocked_metagraph_info_from_dict.assert_not_called()
 
 
-def test_get_sub_selective_metagraph_happy_path(subtensor, mocker):
-    """Verify that `get_sub_selective_metagraph` method processed the data correctly."""
+def test_get_selective_mechagraph_info_happy_path(subtensor, mocker):
+    """Verify that `get_selective_mechagraph_info` method processed the data correctly."""
     # Preps
     netuid = 14
-    subuid = 5
+    mechid = 5
     field_indices = [0, 1, 73]
 
     mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
@@ -4509,24 +4513,24 @@ def test_get_sub_selective_metagraph_happy_path(subtensor, mocker):
     )
 
     # Call
-    result = subtensor.get_sub_selective_metagraph(
-        netuid=netuid, subuid=subuid, field_indices=field_indices
+    result = subtensor.get_selective_mechagraph_info(
+        netuid=netuid, mechid=mechid, field_indices=field_indices
     )
 
     # Asserts
     mocked_determine_block_hash.assert_called_once()
     subtensor.substrate.runtime_call.assert_called_once_with(
         api="SubnetInfoRuntimeApi",
-        method="get_selective_submetagraph",
-        params=[netuid, subuid, field_indices],
+        method="get_selective_mechagraph",
+        params=[netuid, mechid, field_indices],
         block_hash=mocked_determine_block_hash.return_value,
     )
     mocked_metagraph_info_from_dict.assert_called_once_with(mocked_result.value)
     assert result is mocked_metagraph_info_from_dict.return_value
 
 
-def test_get_sub_subnet_count(subtensor, mocker):
-    """Verify that `get_sub_subnet_count` method processed the data correctly."""
+def test_get_mechanism_count(subtensor, mocker):
+    """Verify that `get_mechanism_count` method processed the data correctly."""
     # Preps
     netuid = 14
 
@@ -4536,13 +4540,13 @@ def test_get_sub_subnet_count(subtensor, mocker):
     mocked_query = mocker.patch.object(subtensor.substrate, "query")
 
     # Call
-    result = subtensor.get_sub_subnet_count(netuid=netuid)
+    result = subtensor.get_mechanism_count(netuid=netuid)
 
     # Asserts
     mocked_determine_block_hash.assert_called_once()
     mocked_query.assert_called_once_with(
         module="SubtensorModule",
-        storage_function="SubsubnetCountCurrent",
+        storage_function="MechanismCountCurrent",
         params=[netuid],
         block_hash=mocked_determine_block_hash.return_value,
     )

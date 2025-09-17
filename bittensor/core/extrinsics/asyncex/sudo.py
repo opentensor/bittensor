@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from bittensor.core.async_subtensor import AsyncSubtensor
 
 
-async def sudo_set_admin_freez_window(
+async def sudo_set_admin_freez_window_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
     window: int,
@@ -51,24 +51,24 @@ async def sudo_set_admin_freez_window(
     )
 
 
-async def sudo_set_sub_subnet_count_extrinsic(
+async def sudo_set_mechanism_count_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
     netuid: int,
-    sub_count: int,
+    mech_count: int,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
 ) -> tuple[bool, str]:
     """
-    Sets the number of sub-subnets in the subnet.
+    Sets the number of subnet mechanisms.
 
     Parameters:
-        subtensor: AsyncSubtensor instance.
+        subtensor: Subtensor instance.
         wallet: Bittensor Wallet instance.
         netuid: The subnet unique identifier.
-        sub_count: The amount of sub-subnets in the subnet to be set.
+        mech_count: The amount of subnet mechanism to be set.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
@@ -81,8 +81,8 @@ async def sudo_set_sub_subnet_count_extrinsic(
             `True` if the extrinsic executed successfully, `False` otherwise.
             `message` is a string value describing the success or potential error.
     """
-    call_function = "sudo_set_subsubnet_count"
-    call_params = {"netuid": netuid, "subsub_count": sub_count}
+    call_function = "sudo_set_mechanism_count"
+    call_params = {"netuid": netuid, "mechanism_count": mech_count}
     return await sudo_call_extrinsic(
         subtensor=subtensor,
         wallet=wallet,
@@ -95,7 +95,7 @@ async def sudo_set_sub_subnet_count_extrinsic(
     )
 
 
-async def sudo_set_sub_subnet_emission_split(
+async def sudo_set_mechanism_emission_split_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
     netuid: int,
@@ -106,13 +106,13 @@ async def sudo_set_sub_subnet_emission_split(
     wait_for_finalization: bool = True,
 ) -> tuple[bool, str]:
     """
-    Sets the emission split between sub-subnets in a provided subnet.
+    Sets the emission split between mechanisms in a provided subnet.
 
     Parameters:
         subtensor: AsyncSubtensor instance.
         wallet: Bittensor Wallet instance.
         netuid: The subnet unique identifier.
-        maybe_split: List of emission weights (positive integers) for each sub-subnet.
+        maybe_split: List of emission weights (positive integers) for each subnet mechanism.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
@@ -126,12 +126,12 @@ async def sudo_set_sub_subnet_emission_split(
             `message` is a string value describing the success or potential error.
 
     Note:
-        The `maybe_split` list defines the relative emission share for each sub-subnet.
-        Its length must match the number of active sub-subnets in the subnet. For example, [3, 1, 1] distributes
-        emissions in a 3:1:1 ratio across sub-subnets 0, 1, and 2. Each sub-subnet's emission share is calculated as:
-        share[i] = maybe_split[i] / sum(maybe_split)
+        The `maybe_split` list defines the relative emission share for each subnet mechanism.
+        Its length must match the number of active mechanisms in the subnet or be shorter, but not equal to zero. For
+        example, [3, 1, 1] distributes emissions in a 3:1:1 ratio across subnet mechanisms 0, 1, and 2. Each mechanism's
+        emission share is calculated as: share[i] = maybe_split[i] / sum(maybe_split)
     """
-    call_function = "sudo_set_subsubnet_emission_split"
+    call_function = "sudo_set_mechanism_emission_split"
     call_params = {
         "netuid": netuid,
         "maybe_split": convert_maybe_split_to_u16(maybe_split),
