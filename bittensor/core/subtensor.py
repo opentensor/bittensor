@@ -1433,7 +1433,7 @@ class Subtensor(SubtensorMixin):
             params=[netuid, mechid, indexes if 0 in indexes else [0] + indexes],
             block_hash=block_hash,
         )
-        if query is None or not hasattr(query, "value"):
+        if query is None or not hasattr(query, "value") or query.value is None:
             logging.error(
                 f"Subnet mechanism {netuid}.{mechid if mechid else 0} does not exist."
             )
