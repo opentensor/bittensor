@@ -3151,6 +3151,7 @@ async def test_get_metagraph_info_all_fields(subtensor, mocker):
     """Test get_metagraph_info with all fields (default behavior)."""
     # Preps
     netuid = 1
+    default_mechid = 0
     mock_value = {"mock": "data"}
 
     mock_runtime_call = mocker.patch.object(
@@ -3170,9 +3171,9 @@ async def test_get_metagraph_info_all_fields(subtensor, mocker):
     # Asserts
     assert result == "parsed_metagraph"
     mock_runtime_call.assert_awaited_once_with(
-        "SubnetInfoRuntimeApi",
-        "get_selective_metagraph",
-        params=[netuid, SelectiveMetagraphIndex.all_indices()],
+        api="SubnetInfoRuntimeApi",
+        method="get_selective_mechagraph",
+        params=[netuid, default_mechid, SelectiveMetagraphIndex.all_indices()],
         block_hash=await subtensor.determine_block_hash(None),
     )
     mock_from_dict.assert_called_once_with(mock_value)
@@ -3183,6 +3184,7 @@ async def test_get_metagraph_info_specific_fields(subtensor, mocker):
     """Test get_metagraph_info with specific fields."""
     # Preps
     netuid = 1
+    default_mechid = 0
     mock_value = {"mock": "data"}
     fields = [SelectiveMetagraphIndex.Name, 5]
 
@@ -3201,10 +3203,11 @@ async def test_get_metagraph_info_specific_fields(subtensor, mocker):
     # Asserts
     assert result == "parsed_metagraph"
     mock_runtime_call.assert_awaited_once_with(
-        "SubnetInfoRuntimeApi",
-        "get_selective_metagraph",
+        api="SubnetInfoRuntimeApi",
+        method="get_selective_mechagraph",
         params=[
             netuid,
+            default_mechid,
             [0]
             + [
                 f.value if isinstance(f, SelectiveMetagraphIndex) else f for f in fields
@@ -3215,34 +3218,15 @@ async def test_get_metagraph_info_specific_fields(subtensor, mocker):
     mock_from_dict.assert_called_once_with(mock_value)
 
 
-@pytest.mark.parametrize(
-    "wrong_fields",
-    [
-        [
-            "invalid",
-        ],
-        [SelectiveMetagraphIndex.Active, 1, "f"],
-        [1, 2, 3, "f"],
-    ],
-)
-@pytest.mark.asyncio
-async def test_get_metagraph_info_invalid_field_indices(subtensor, wrong_fields):
-    """Test get_metagraph_info raises ValueError on invalid field_indices."""
-    with pytest.raises(
-        ValueError,
-        match="`field_indices` must be a list of SelectiveMetagraphIndex enums or ints.",
-    ):
-        await subtensor.get_metagraph_info(netuid=1, field_indices=wrong_fields)
-
-
 @pytest.mark.asyncio
 async def test_get_metagraph_info_subnet_not_exist(subtensor, mocker):
     """Test get_metagraph_info returns None when subnet doesn't exist."""
     netuid = 1
+    default_mechid = 0
     mocker.patch.object(
         subtensor.substrate,
         "runtime_call",
-        return_value=mocker.AsyncMock(value=None),
+        return_value=None,
     )
 
     mocked_logger = mocker.Mock()
@@ -3251,7 +3235,9 @@ async def test_get_metagraph_info_subnet_not_exist(subtensor, mocker):
     result = await subtensor.get_metagraph_info(netuid=netuid)
 
     assert result is None
-    mocked_logger.assert_called_once_with(f"Subnet {netuid} does not exist.")
+    mocked_logger.assert_called_once_with(
+        f"Subnet mechanism {netuid}.{default_mechid} does not exist."
+    )
 
 
 @pytest.mark.asyncio
@@ -4143,47 +4129,6 @@ async def test_get_timelocked_weight_commits(subtensor, mocker):
     assert result == []
 
 
-@pytest.mark.asyncio
-async def test_get_all_mechagraphs_returns_none(subtensor, mocker):
-    """Verify that `get_all_mechagraphs_info` method returns None."""
-    # Preps
-    mocker.patch.object(subtensor.substrate, "runtime_call", return_value=None)
-    mocked_metagraph_info_list_from_dicts = mocker.patch(
-        "bittensor.core.chain_data.metagraph_info.MetagraphInfo.list_from_dicts"
-    )
-
-    # Call
-    result = await subtensor.get_all_mechagraphs_info()
-
-    # Asserts
-    subtensor.substrate.runtime_call.assert_awaited_once_with(
-        api="SubnetInfoRuntimeApi", method="get_all_mechagraphs", block_hash=None
-    )
-    mocked_metagraph_info_list_from_dicts.assert_not_called()
-    assert result is None
-
-
-@pytest.mark.asyncio
-async def test_get_all_mechagraphs_happy_path(subtensor, mocker):
-    """Verify that `get_all_mechagraphs_info` method processed the data correctly."""
-    # Preps
-    mocked_result = mocker.MagicMock()
-    mocker.patch.object(subtensor.substrate, "runtime_call", return_value=mocked_result)
-    mocked_metagraph_info_list_from_dicts = mocker.patch(
-        "bittensor.core.chain_data.metagraph_info.MetagraphInfo.list_from_dicts"
-    )
-
-    # Call
-    result = await subtensor.get_all_mechagraphs_info()
-
-    # Asserts
-    subtensor.substrate.runtime_call.assert_awaited_once_with(
-        api="SubnetInfoRuntimeApi", method="get_all_mechagraphs", block_hash=None
-    )
-    mocked_metagraph_info_list_from_dicts.assert_called_once_with(mocked_result.value)
-    assert result == mocked_metagraph_info_list_from_dicts.return_value
-
-
 @pytest.mark.parametrize(
     "query_return, expected_result",
     (
@@ -4219,128 +4164,6 @@ async def test_get_mechanism_emission_split(
         block_hash=mocked_determine_block_hash.return_value,
     )
     assert result == expected_result
-
-
-@pytest.mark.asyncio
-async def test_get_mechagraph_info_returns_none(subtensor, mocker):
-    """Verify that `get_mechagraph_info` method returns None."""
-    # Preps
-    netuid = 14
-    mechid = 5
-
-    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
-    mocked_result = None
-    mocker.patch.object(subtensor.substrate, "runtime_call", return_value=mocked_result)
-    mocked_metagraph_info_from_dict = mocker.patch(
-        "bittensor.core.chain_data.metagraph_info.MetagraphInfo.from_dict"
-    )
-
-    # Call
-    result = await subtensor.get_mechagraph_info(netuid=netuid, mechid=mechid)
-
-    # Asserts
-    mocked_determine_block_hash.assert_called_once()
-    subtensor.substrate.runtime_call.assert_awaited_once_with(
-        api="SubnetInfoRuntimeApi",
-        method="get_mechagraph",
-        params=[netuid, mechid],
-        block_hash=mocked_determine_block_hash.return_value,
-    )
-    assert result is mocked_result
-    mocked_metagraph_info_from_dict.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_get_mechagraph_info_happy_path(subtensor, mocker):
-    """Verify that `get_mechagraph_info` method processed the data correctly."""
-    # Preps
-    netuid = 14
-    mechid = 5
-
-    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
-    mocked_result = mocker.MagicMock()
-    mocker.patch.object(subtensor.substrate, "runtime_call", return_value=mocked_result)
-    mocked_metagraph_info_from_dict = mocker.patch(
-        "bittensor.core.chain_data.metagraph_info.MetagraphInfo.from_dict"
-    )
-
-    # Call
-    result = await subtensor.get_mechagraph_info(netuid=netuid, mechid=mechid)
-
-    # Asserts
-    mocked_determine_block_hash.assert_called_once()
-    subtensor.substrate.runtime_call.assert_awaited_once_with(
-        api="SubnetInfoRuntimeApi",
-        method="get_mechagraph",
-        params=[netuid, mechid],
-        block_hash=mocked_determine_block_hash.return_value,
-    )
-    mocked_metagraph_info_from_dict.assert_called_once_with(mocked_result.value)
-    assert result is mocked_metagraph_info_from_dict.return_value
-
-
-@pytest.mark.asyncio
-async def test_get_selective_mechagraph_info_returns_none(subtensor, mocker):
-    """Verify that `get_selective_mechagraph_info` method returns None."""
-    # Preps
-    netuid = 14
-    mechid = 5
-    field_indices = [0, 1, 73]
-
-    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
-    mocked_result = None
-    mocker.patch.object(subtensor.substrate, "runtime_call", return_value=mocked_result)
-    mocked_metagraph_info_from_dict = mocker.patch(
-        "bittensor.core.chain_data.metagraph_info.MetagraphInfo.from_dict"
-    )
-
-    # Call
-    result = await subtensor.get_selective_mechagraph_info(
-        netuid=netuid, mechid=mechid, field_indices=field_indices
-    )
-
-    # Asserts
-    mocked_determine_block_hash.assert_called_once()
-    subtensor.substrate.runtime_call.assert_awaited_once_with(
-        api="SubnetInfoRuntimeApi",
-        method="get_selective_mechagraph",
-        params=[netuid, mechid, field_indices],
-        block_hash=mocked_determine_block_hash.return_value,
-    )
-    assert result is mocked_result
-    mocked_metagraph_info_from_dict.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_get_selective_mechagraph_info_happy_path(subtensor, mocker):
-    """Verify that `get_selective_mechagraph_info` method processed the data correctly."""
-    # Preps
-    netuid = 14
-    mechid = 5
-    field_indices = [0, 1, 73]
-
-    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
-    mocked_result = mocker.MagicMock()
-    mocker.patch.object(subtensor.substrate, "runtime_call", return_value=mocked_result)
-    mocked_metagraph_info_from_dict = mocker.patch(
-        "bittensor.core.chain_data.metagraph_info.MetagraphInfo.from_dict"
-    )
-
-    # Call
-    result = await subtensor.get_selective_mechagraph_info(
-        netuid=netuid, mechid=mechid, field_indices=field_indices
-    )
-
-    # Asserts
-    mocked_determine_block_hash.assert_called_once()
-    subtensor.substrate.runtime_call.assert_awaited_once_with(
-        api="SubnetInfoRuntimeApi",
-        method="get_selective_mechagraph",
-        params=[netuid, mechid, field_indices],
-        block_hash=mocked_determine_block_hash.return_value,
-    )
-    mocked_metagraph_info_from_dict.assert_called_once_with(mocked_result.value)
-    assert result is mocked_metagraph_info_from_dict.return_value
 
 
 @pytest.mark.asyncio
