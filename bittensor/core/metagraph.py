@@ -283,6 +283,11 @@ class MetagraphMixin(ABC):
     pool: MetagraphInfoPool
     emissions: MetagraphInfoEmissions
 
+    # Mechanisms related fields
+    mechid: int
+    mechanisms_emissions_split: list[int]
+    mechanism_count: int
+
     @property
     def TS(self) -> Tensor:
         """
@@ -525,6 +530,7 @@ class MetagraphMixin(ABC):
         lite: bool = True,
         sync: bool = True,
         subtensor: Optional[Union["AsyncSubtensor", "Subtensor"]] = None,
+        mechid: int = 0,
     ):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the
@@ -532,17 +538,17 @@ class MetagraphMixin(ABC):
         in representing the state of the Bittensor network.
 
         Args:
-            netuid (int): The unique identifier for the network, distinguishing this instance of the metagraph within
+            netuid: The unique identifier for the network, distinguishing this instance of the metagraph within
                 potentially multiple network configurations.
-            network (str): The name of the network, which can indicate specific configurations or versions of the
-                Bittensor network.
-            lite (bool): A flag indicating whether to use a lite version of the metagraph. The lite version may contain
-                less detailed information but can be quicker to initialize and sync.
-            sync (bool): A flag indicating whether to synchronize the metagraph with the network upon initialization.
+            network: The name of the network, which can indicate specific configurations or versions of the Bittensor
+                network.
+            lite: A flag indicating whether to use a lite version of the metagraph. The lite version may contain less
+                detailed information but can be quicker to initialize and sync.
+            sync: A flag indicating whether to synchronize the metagraph with the network upon initialization.
                 Synchronization involves updating the metagraph's parameters to reflect the current state of the network.
 
         Example:
-            Initializing a metagraph object for the Bittensor network with a specific network UID::
+            Initializing a metagraph object for the Bittensor network with a specific network UID:
 
                 metagraph = Metagraph(netuid=123, network="finney", lite=True, sync=True)
         """
@@ -550,6 +556,7 @@ class MetagraphMixin(ABC):
         self.subtensor = subtensor
         self.should_sync = sync
         self.netuid = netuid
+        self.mechid = mechid
         self.network, self.chain_endpoint = determine_chain_endpoint_and_network(
             network
         )
@@ -1033,31 +1040,32 @@ class TorchMetagraph(MetagraphMixin, BaseClass):
         lite: bool = True,
         sync: bool = True,
         subtensor: Optional[Union["AsyncSubtensor", "Subtensor"]] = None,
+        mechid: int = 0,
     ):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the
         provided arguments. This class requires Torch to be installed. This method is the entry point for creating a
         metagraph object, which is a central component in representing the state of the Bittensor network.
 
-        Args:
-            netuid (int): The unique identifier for the network, distinguishing this instance of the metagraph within
-                potentially multiple network configurations.
-            network (str): The name of the network, which can indicate specific configurations or versions of the
-                Bittensor network.
-            lite (bool): A flag indicating whether to use a lite version of the metagraph. The lite version may contain
-                less detailed information but can be quicker to initialize and sync.
-            sync (bool): A flag indicating whether to synchronize the metagraph with the network upon initialization.
+        Parameters:
+            netuid: Subnet unique identifier.
+            network: The name of the network, which can indicate specific configurations or versions of the Bittensor
+            network.
+            lite: A flag indicating whether to use a lite version of the metagraph. The lite version may contain less
+                detailed information but can be quicker to initialize and sync.
+            sync: A flag indicating whether to synchronize the metagraph with the network upon initialization.
                 Synchronization involves updating the metagraph's parameters to reflect the current state of the network.
+            mechid: Subnet mechanism unique identifier.
 
         Example:
-            Initializing a metagraph object for the Bittensor network with a specific network UID::
+            Initializing a metagraph object for the Bittensor network with a specific network UID:
 
                 from bittensor.core.metagraph import Metagraph
 
                 metagraph = Metagraph(netuid=123, network="finney", lite=True, sync=True)
         """
         BaseClass.__init__(self)
-        MetagraphMixin.__init__(self, netuid, network, lite, sync, subtensor)
+        MetagraphMixin.__init__(self, netuid, network, lite, sync, subtensor, mechid)
         self._dtype_registry = {
             "int64": torch.int64,
             "float32": torch.float32,
@@ -1198,21 +1206,22 @@ class NonTorchMetagraph(MetagraphMixin):
         lite: bool = True,
         sync: bool = True,
         subtensor: Optional[Union["AsyncSubtensor", "Subtensor"]] = None,
+        mechid: int = 0,
     ):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the
         provided arguments. This class doesn't require installed Torch. This method is the entry point for creating a
         metagraph object, which is a central component in representing the state of the Bittensor network.
 
-        Args:
-            netuid (int): The unique identifier for the network, distinguishing this instance of the metagraph within
-                potentially multiple network configurations.
-            network (str): The name of the network, which can indicate specific configurations or versions of the
-                Bittensor network.
-            lite (bool): A flag indicating whether to use a lite version of the metagraph. The lite version may contain
-                less detailed information but can be quicker to initialize and sync.
-            sync (bool): A flag indicating whether to synchronize the metagraph with the network upon initialization.
+        Parameters:
+            netuid: Subnet unique identifier.
+            network: The name of the network, which can indicate specific configurations or versions of the Bittensor
+            network.
+            lite: A flag indicating whether to use a lite version of the metagraph. The lite version may contain less
+                detailed information but can be quicker to initialize and sync.
+            sync: A flag indicating whether to synchronize the metagraph with the network upon initialization.
                 Synchronization involves updating the metagraph's parameters to reflect the current state of the network.
+            mechid: Subnet mechanism unique identifier.
 
         Example:
             Initializing a metagraph object for the Bittensor network with a specific network UID::
@@ -1221,7 +1230,7 @@ class NonTorchMetagraph(MetagraphMixin):
 
                 metagraph = Metagraph(netuid=123, network="finney", lite=True, sync=True)
         """
-        MetagraphMixin.__init__(self, netuid, network, lite, sync, subtensor)
+        MetagraphMixin.__init__(self, netuid, network, lite, sync, subtensor, mechid)
 
         self.netuid = netuid
         self.network, self.chain_endpoint = determine_chain_endpoint_and_network(
@@ -1335,8 +1344,9 @@ class AsyncMetagraph(NumpyOrTorch):
         lite: bool = True,
         sync: bool = True,
         subtensor: Optional["AsyncSubtensor"] = None,
+        mechid: int = 0,
     ):
-        super().__init__(netuid, network, lite, sync, subtensor)
+        super().__init__(netuid, network, lite, sync, subtensor, mechid)
 
     async def __aenter__(self):
         if self.should_sync:
@@ -1429,7 +1439,7 @@ class AsyncMetagraph(NumpyOrTorch):
         await self._get_all_stakes_from_chain(block=block)
 
         # apply MetagraphInfo data to instance
-        await self._apply_metagraph_info(block=block)
+        await self._apply_extra_info(block=block)
 
     async def _initialize_subtensor(
         self, subtensor: "AsyncSubtensor"
@@ -1639,13 +1649,19 @@ class AsyncMetagraph(NumpyOrTorch):
         except (SubstrateRequestException, AttributeError) as e:
             logging.debug(e)
 
-    async def _apply_metagraph_info(self, block: int):
+    async def _apply_extra_info(self, block: int):
         """Retrieves metagraph information for a specific subnet and applies it using a mixin."""
         metagraph_info = await self.subtensor.get_metagraph_info(
-            self.netuid, block=block
+            netuid=self.netuid, mechid=self.mechid, block=block
         )
         if metagraph_info:
             self._apply_metagraph_info_mixin(metagraph_info=metagraph_info)
+        self.mechanism_count = await self.subtensor.get_mechanism_count(
+            netuid=self.netuid, block=block
+        )
+        self.emissions_split = await self.subtensor.get_mechanism_emission_split(
+            netuid=self.netuid, block=block
+        )
 
 
 class Metagraph(NumpyOrTorch):
@@ -1656,8 +1672,9 @@ class Metagraph(NumpyOrTorch):
         lite: bool = True,
         sync: bool = True,
         subtensor: Optional["Subtensor"] = None,
+        mechid: int = 0,
     ):
-        super().__init__(netuid, network, lite, sync, subtensor)
+        super().__init__(netuid, network, lite, sync, subtensor, mechid)
         if self.should_sync:
             self.sync()
 
@@ -1746,7 +1763,7 @@ class Metagraph(NumpyOrTorch):
         self._get_all_stakes_from_chain(block=block)
 
         # apply MetagraphInfo data to instance
-        self._apply_metagraph_info(block=block)
+        self._apply_extra_info(block=block)
 
     def _initialize_subtensor(self, subtensor: "Subtensor") -> "Subtensor":
         """
@@ -1947,11 +1964,19 @@ class Metagraph(NumpyOrTorch):
         except (SubstrateRequestException, AttributeError) as e:
             logging.debug(e)
 
-    def _apply_metagraph_info(self, block: int):
+    def _apply_extra_info(self, block: int):
         """Retrieves metagraph information for a specific subnet and applies it using a mixin."""
-        metagraph_info = self.subtensor.get_metagraph_info(self.netuid, block=block)
+        metagraph_info = self.subtensor.get_metagraph_info(
+            netuid=self.netuid, mechid=self.mechid, block=block
+        )
         if metagraph_info:
             self._apply_metagraph_info_mixin(metagraph_info=metagraph_info)
+        self.mechanism_count = self.subtensor.get_mechanism_count(
+            netuid=self.netuid, block=block
+        )
+        self.emissions_split = self.subtensor.get_mechanism_emission_split(
+            netuid=self.netuid, block=block
+        )
 
 
 async def async_metagraph(
