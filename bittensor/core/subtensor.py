@@ -2717,6 +2717,7 @@ class Subtensor(SubtensorMixin):
         )
         return None if call is None else u16_normalized_float(int(call))
 
+    # TODO: update parameters order in SDKv10
     def metagraph(
         self,
         netuid: int,
