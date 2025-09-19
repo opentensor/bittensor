@@ -5210,7 +5210,7 @@ class AsyncSubtensor(SubtensorMixin):
             NotEnoughStakeToSetChildkeys: Parent key doesn't have minimum own stake.
             ProportionOverflow: The sum of the proportions does exceed uint64.
             RegistrationNotPermittedOnRootSubnet: Attempting to register a child on the root network.
-            MechanismDoesNotExist: Attempting to register to a non-existent network.
+            SubNetworkDoesNotExist: Attempting to register to a non-existent network.
             TooManyChildren: Too many children in request.
             TxRateLimitExceeded: Hotkey hit the rate limit.
             bittensor_wallet.errors.KeyFileError: Failed to decode keyfile data.
