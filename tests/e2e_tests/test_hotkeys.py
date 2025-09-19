@@ -12,7 +12,7 @@ from bittensor.core.errors import (
     NonAssociatedColdKey,
 )
 from bittensor.core.extrinsics.sudo import (
-    sudo_set_admin_freez_window_extrinsic,
+    sudo_set_admin_freeze_window_extrinsic,
 )
 from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.chain_interactions import sudo_set_admin_utils
@@ -89,7 +89,7 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
     """
 
     # turn off admin freeze window limit for testing
-    assert sudo_set_admin_freez_window_extrinsic(subtensor, alice_wallet, 0)
+    assert sudo_set_admin_freeze_window_extrinsic(subtensor, alice_wallet, 0)
 
     dave_subnet_netuid = subtensor.get_total_subnets()  # 2
     set_tempo = 10  # affect to non-fast-blocks mode

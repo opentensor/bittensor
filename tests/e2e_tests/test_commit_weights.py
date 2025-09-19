@@ -4,7 +4,7 @@ import retry
 
 from bittensor.core.extrinsics.sudo import (
     sudo_set_mechanism_count_extrinsic,
-    sudo_set_admin_freez_window_extrinsic,
+    sudo_set_admin_freeze_window_extrinsic,
 )
 from bittensor.utils import get_mechid_storage_index
 from bittensor.utils.btlogging import logging
@@ -35,7 +35,7 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
     """
 
     # turn off admin freeze window limit for testing
-    assert sudo_set_admin_freez_window_extrinsic(subtensor, alice_wallet, 0), (
+    assert sudo_set_admin_freeze_window_extrinsic(subtensor, alice_wallet, 0), (
         "Failed to set admin freeze window to 0"
     )
 
@@ -189,7 +189,7 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     """
 
     # turn off admin freeze window limit for testing
-    assert sudo_set_admin_freez_window_extrinsic(subtensor, alice_wallet, 0), (
+    assert sudo_set_admin_freeze_window_extrinsic(subtensor, alice_wallet, 0), (
         "Failed to set admin freeze window to 0"
     )
 
