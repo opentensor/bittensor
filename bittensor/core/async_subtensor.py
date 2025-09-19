@@ -2073,6 +2073,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         return Balance.from_rao(getattr(result, "value", 0))
 
+    # TODO: update parameters order in SDKv10, rename `field_indices` to `selected_indices`
     async def get_metagraph_info(
         self,
         netuid: int,
@@ -2080,6 +2081,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
+        mechid: int = 0,
     ) -> Optional[MetagraphInfo]:
         """
         Retrieves full or partial metagraph information for the specified subnet (netuid).
@@ -2090,23 +2092,33 @@ class AsyncSubtensor(SubtensorMixin):
 
         Arguments:
             netuid: The unique identifier of the subnet to query.
-            field_indices: An optional list of SelectiveMetagraphIndex or int values specifying which fields to
-                retrieve. If not provided, all available fields will be returned.
-            block: the block number at which to retrieve the hyperparameter. Do not specify if using block_hash or
-                reuse_block
-            block_hash: The hash of blockchain block number for the query. Do not specify if using
-                block or reuse_block
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            field_indices: Optional list of SelectiveMetagraphIndex or int values specifying which fields to retrieve.
+                If not provided, all available fields will be returned.
+            block: The blockchain block number for the query.
+            block_hash: The hash of the blockchain block number at which to perform the query.
+            reuse_block: Whether to reuse the last-used block hash when retrieving info.
+            mechid: Subnet mechanism unique identifier.
 
         Returns:
-            Optional[MetagraphInfo]: A MetagraphInfo object containing the requested subnet data, or None if the subnet
-                with the given netuid does not exist.
+            MetagraphInfo object with the requested subnet mechanism data, None if the subnet mechanism does not exist.
 
         Example:
-            meta_info = await subtensor.get_metagraph_info(netuid=2)
+            # Retrieve all fields from the metagraph from subnet 2 mechanism 0
+            meta_info = subtensor.get_metagraph_info(netuid=2)
 
-            partial_meta_info = await subtensor.get_metagraph_info(
+            # Retrieve all fields from the metagraph from subnet 2 mechanism 1
+            meta_info = subtensor.get_metagraph_info(netuid=2, mechid=1)
+
+            # Retrieve selective data from the metagraph from subnet 2 mechanism 0
+            partial_meta_info = subtensor.get_metagraph_info(
                 netuid=2,
+                field_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
+            )
+
+            # Retrieve selective data from the metagraph from subnet 2 mechanism 1
+            partial_meta_info = subtensor.get_metagraph_info(
+                netuid=2,
+                mechid=1,
                 field_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
             )
 
@@ -2119,57 +2131,48 @@ class AsyncSubtensor(SubtensorMixin):
         if not block_hash and reuse_block:
             block_hash = self.substrate.last_block_hash
 
-        if field_indices:
-            if isinstance(field_indices, list) and all(
-                isinstance(f, (SelectiveMetagraphIndex, int)) for f in field_indices
-            ):
-                indexes = [
-                    f.value if isinstance(f, SelectiveMetagraphIndex) else f
-                    for f in field_indices
-                ]
-            else:
-                raise ValueError(
-                    "`field_indices` must be a list of SelectiveMetagraphIndex enums or ints."
-                )
+        indexes = (
+            [
+                f.value if isinstance(f, SelectiveMetagraphIndex) else f
+                for f in field_indices
+            ]
+            if field_indices is not None
+            else [f for f in range(len(SelectiveMetagraphIndex))]
+        )
 
-            query = await self.substrate.runtime_call(
-                "SubnetInfoRuntimeApi",
-                "get_selective_metagraph",
-                params=[netuid, indexes if 0 in indexes else [0] + indexes],
-                block_hash=block_hash,
+        query = await self.substrate.runtime_call(
+            api="SubnetInfoRuntimeApi",
+            method="get_selective_mechagraph",
+            params=[netuid, mechid, indexes if 0 in indexes else [0] + indexes],
+            block_hash=block_hash,
+        )
+        if query is None or not hasattr(query, "value"):
+            logging.error(
+                f"Subnet mechanism {netuid}.{mechid if mechid else 0} does not exist."
             )
-        else:
-            query = await self.substrate.runtime_call(
-                "SubnetInfoRuntimeApi",
-                "get_metagraph",
-                params=[netuid],
-                block_hash=block_hash,
-            )
-
-        if query.value is None:
-            logging.error(f"Subnet {netuid} does not exist.")
             return None
 
         return MetagraphInfo.from_dict(query.value)
 
+    # TODO: update parameters order in SDKv10
     async def get_all_metagraphs_info(
         self,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> list[MetagraphInfo]:
+        all_mechanisms: bool = False,
+    ) -> Optional[list[MetagraphInfo]]:
         """
         Retrieves a list of MetagraphInfo objects for all subnets
 
-        Arguments:
-            block: the block number at which to retrieve the hyperparameter. Do not specify if using block_hash or
-                reuse_block
-            block_hash: The hash of blockchain block number for the query. Do not specify if using
-                block or reuse_block
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+        Parameters:
+            block: The blockchain block number for the query.
+            block_hash: The hash of the blockchain block number at which to perform the query.
+            reuse_block: Whether to reuse the last-used block hash when retrieving info.
+            all_mechanisms: If True then returns all mechanisms, otherwise only those with index 0 for all subnets.
 
         Returns:
-            MetagraphInfo dataclass
+            List of MetagraphInfo objects for all existing subnets.
 
         Notes:
             See also: See <https://docs.learnbittensor.org/glossary#metagraph>
@@ -2177,12 +2180,16 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not block_hash and reuse_block:
             block_hash = self.substrate.last_block_hash
+        method = "get_all_mechagraphs" if all_mechanisms else "get_all_metagraphs"
         query = await self.substrate.runtime_call(
-            "SubnetInfoRuntimeApi",
-            "get_all_metagraphs",
+            api="SubnetInfoRuntimeApi",
+            method=method,
             block_hash=block_hash,
         )
-        return MetagraphInfo.list_from_dicts(query.decode())
+        if query is None or not hasattr(query, "value"):
+            return None
+
+        return MetagraphInfo.list_from_dicts(query.value)
 
     async def get_netuids_for_hotkey(
         self,
@@ -2678,34 +2685,6 @@ class AsyncSubtensor(SubtensorMixin):
             amount=amount, netuid=netuid, block=block
         )
 
-    async def get_all_mechagraphs_info(
-        self,
-        block: Optional[int] = None,
-        block_hash: Optional[str] = None,
-        reuse_block: bool = False,
-    ) -> Optional[list["MetagraphInfo"]]:
-        """
-        Retrieves all metagraphs for all subnet mechanisms.
-
-        Parameters:
-            block: The blockchain block number for the query.
-            block_hash: The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block.
-            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
-
-        Returns:
-            The list of metagraphs for all subnet mechanisms if found, `None` otherwise.
-        """
-        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        query = await self.substrate.runtime_call(
-            api="SubnetInfoRuntimeApi",
-            method="get_all_mechagraphs",
-            block_hash=block_hash,
-        )
-        if query is None or query.value is None:
-            return None
-
-        return MetagraphInfo.list_from_dicts(query.value)
-
     async def get_mechanism_emission_split(
         self,
         netuid: int,
@@ -2736,80 +2715,6 @@ class AsyncSubtensor(SubtensorMixin):
             return None
 
         return [round(i / sum(result.value) * 100) for i in result.value]
-
-    async def get_mechagraph_info(
-        self,
-        netuid: int,
-        mechid: int,
-        block: Optional[int] = None,
-        block_hash: Optional[str] = None,
-        reuse_block: bool = False,
-    ) -> Optional["MetagraphInfo"]:
-        """
-        Retrieves metagraph information for the specified subnet mechanism (netuid, mechid).
-
-        Parameters:
-            netuid: Subnet identifier.
-            mechid: Subnet mechanism identifier.
-            block: The blockchain block number for the query.
-            block_hash: The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block.
-            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
-
-        Returns:
-            A MetagraphInfo object containing the requested mechanism data, or None if the mechanism does not exist.
-        """
-        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        query = await self.substrate.runtime_call(
-            api="SubnetInfoRuntimeApi",
-            method="get_mechagraph",
-            params=[netuid, mechid],
-            block_hash=block_hash,
-        )
-        if query is None or query.value is None:
-            logging.error(f"Subnet mechanism {netuid}.{mechid} does not exist.")
-            return None
-
-        return MetagraphInfo.from_dict(query.value)
-
-    async def get_selective_mechagraph_info(
-        self,
-        netuid: int,
-        mechid: int,
-        field_indices: Union[list[SelectiveMetagraphIndex], list[int]],
-        block: Optional[int] = None,
-        block_hash: Optional[str] = None,
-        reuse_block: bool = False,
-    ) -> Optional["MetagraphInfo"]:
-        """
-        Retrieves selective metagraph information for the specified subnet mechanism (netuid, mechid).
-
-        Parameters:
-            netuid: Subnet identifier.
-            mechid: Subnet mechanism identifier.
-            field_indices: A list of SelectiveMetagraphIndex or int values specifying which fields to retrieve.
-            block: The blockchain block number for the query.
-            block_hash: The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block.
-            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
-
-        Returns:
-            A MetagraphInfo object containing the requested mechanism data, or None if the mechanism does not exist.
-        """
-        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        indexes = [
-            f.value if isinstance(f, SelectiveMetagraphIndex) else f
-            for f in field_indices
-        ]
-        query = await self.substrate.runtime_call(
-            api="SubnetInfoRuntimeApi",
-            method="get_selective_mechagraph",
-            params=[netuid, mechid, indexes if 0 in indexes else [0] + indexes],
-            block_hash=block_hash,
-        )
-        if query is None or query.value is None:
-            logging.error(f"Subnet mechanism {netuid}.{mechid} does not exist.")
-            return None
-
-        return MetagraphInfo.from_dict(query.value)
 
     async def get_mechanism_count(
         self,
@@ -3820,21 +3725,24 @@ class AsyncSubtensor(SubtensorMixin):
         return None if call is None else u16_normalized_float(int(call))
 
     async def metagraph(
-        self, netuid: int, lite: bool = True, block: Optional[int] = None
+        self,
+        netuid: int,
+        lite: bool = True,
+        block: Optional[int] = None,
+        mechid: int = 0,
     ) -> "AsyncMetagraph":
         """
-        Returns a synced metagraph for a specified subnet within the Bittensor network. The metagraph represents the
-        network's structure, including neuron connections and interactions.
+        Returns a synced metagraph for a specified subnet within the Bittensor network.
+        The metagraph represents the network's structure, including neuron connections and interactions.
 
-        Arguments:
+        Parameters:
             netuid: The network UID of the subnet to query.
-            lite: If true, returns a metagraph using a lightweight sync (no weights, no bonds). Default is
-                ``True``.
+            lite: If true, returns a metagraph using a lightweight sync (no weights, no bonds).
             block: Block number for synchronization, or `None` for the latest block.
+            mechid: Subnet mechanism identifier.
 
         Returns:
-            bittensor.core.metagraph.Metagraph: The metagraph representing the subnet's structure and neuron
-                relationships.
+            The metagraph representing the subnet's structure and neuron relationships.
 
         The metagraph is an essential tool for understanding the topology and dynamics of the Bittensor network's
         decentralized architecture, particularly in relation to neuron interconnectivity and consensus processes.
@@ -3845,6 +3753,7 @@ class AsyncSubtensor(SubtensorMixin):
             lite=lite,
             sync=False,
             subtensor=self,
+            mechid=mechid,
         )
         await metagraph.sync(block=block, lite=lite, subtensor=self)
 

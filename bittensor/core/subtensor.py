@@ -47,6 +47,12 @@ from bittensor.core.extrinsics.liquidity import (
     remove_liquidity_extrinsic,
     toggle_user_liquidity_extrinsic,
 )
+from bittensor.core.extrinsics.mechanism import (
+    commit_mechanism_weights_extrinsic,
+    commit_timelocked_mechanism_weights_extrinsic,
+    reveal_mechanism_weights_extrinsic,
+    set_mechanism_weights_extrinsic,
+)
 from bittensor.core.extrinsics.move_stake import (
     transfer_stake_extrinsic,
     swap_stake_extrinsic,
@@ -73,12 +79,6 @@ from bittensor.core.extrinsics.staking import (
     add_stake_multiple_extrinsic,
 )
 from bittensor.core.extrinsics.start_call import start_call_extrinsic
-from bittensor.core.extrinsics.mechanism import (
-    commit_mechanism_weights_extrinsic,
-    commit_timelocked_mechanism_weights_extrinsic,
-    reveal_mechanism_weights_extrinsic,
-    set_mechanism_weights_extrinsic,
-)
 from bittensor.core.extrinsics.take import (
     decrease_take_extrinsic,
     increase_take_extrinsic,
@@ -1370,89 +1370,106 @@ class Subtensor(SubtensorMixin):
 
         return Balance.from_rao(getattr(result, "value", 0))
 
-    # TODO: metagraph_info and selective_metagraph_info logic should be separated in SDKv10 (2 methods)
+    # TODO: update parameters order in SDKv10, rename `field_indices` to `selected_indices`
     def get_metagraph_info(
         self,
         netuid: int,
         field_indices: Optional[Union[list[SelectiveMetagraphIndex], list[int]]] = None,
         block: Optional[int] = None,
+        mechid: int = 0,
     ) -> Optional[MetagraphInfo]:
         """
-        Retrieves full or partial metagraph information for the specified subnet (netuid).
+        Retrieves full or partial metagraph information for the specified subnet mechanism (netuid, mechid).
 
         Arguments:
-            netuid: The NetUID of the subnet to query.
-            field_indices: An optional list of SelectiveMetagraphIndex or int values specifying which fields to retrieve.
+            netuid: Subnet unique identifier.
+            field_indices: Optional list of SelectiveMetagraphIndex or int values specifying which fields to retrieve.
                 If not provided, all available fields will be returned.
-            block: The block number at which to query the data. If not specified, the current block or one determined
-                via reuse_block or block_hash will be used.
+            block: The block number at which to query the data.
+            mechid: Subnet mechanism unique identifier.
 
         Returns:
-            Optional[MetagraphInfo]: A MetagraphInfo object containing the requested subnet data, or None if the subnet
-                with the given netuid does not exist.
+            MetagraphInfo object with the requested subnet mechanism data, None if the subnet mechanism does not exist.
 
         Example:
+            # Retrieve all fields from the metagraph from subnet 2 mechanism 0
             meta_info = subtensor.get_metagraph_info(netuid=2)
 
+            # Retrieve all fields from the metagraph from subnet 2 mechanism 1
+            meta_info = subtensor.get_metagraph_info(netuid=2, mechid=1)
+
+            # Retrieve selective data from the metagraph from subnet 2 mechanism 0
             partial_meta_info = subtensor.get_metagraph_info(
                 netuid=2,
                 field_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
             )
+
+            # Retrieve selective data from the metagraph from subnet 2 mechanism 1
+            partial_meta_info = subtensor.get_metagraph_info(
+                netuid=2,
+                mechid=1,
+                field_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
+            )
+
+        Notes:
+            See also:
+            - <https://docs.learnbittensor.org/glossary#metagraph>
+            - <https://docs.learnbittensor.org/glossary#emission>
         """
-        block_hash = self.determine_block_hash(block)
+        block_hash = self.determine_block_hash(block=block)
 
-        if field_indices:
-            if isinstance(field_indices, list) and all(
-                isinstance(f, (SelectiveMetagraphIndex, int)) for f in field_indices
-            ):
-                indexes = [
-                    f.value if isinstance(f, SelectiveMetagraphIndex) else f
-                    for f in field_indices
-                ]
-            else:
-                raise ValueError(
-                    "`field_indices` must be a list of SelectiveMetagraphIndex enums or ints."
-                )
+        indexes = (
+            [
+                f.value if isinstance(f, SelectiveMetagraphIndex) else f
+                for f in field_indices
+            ]
+            if field_indices is not None
+            else [f for f in range(len(SelectiveMetagraphIndex))]
+        )
 
-            query = self.substrate.runtime_call(
-                "SubnetInfoRuntimeApi",
-                "get_selective_metagraph",
-                params=[netuid, indexes if 0 in indexes else [0] + indexes],
-                block_hash=block_hash,
+        query = self.substrate.runtime_call(
+            api="SubnetInfoRuntimeApi",
+            method="get_selective_mechagraph",
+            params=[netuid, mechid, indexes if 0 in indexes else [0] + indexes],
+            block_hash=block_hash,
+        )
+        if query is None or not hasattr(query, "value"):
+            logging.error(
+                f"Subnet mechanism {netuid}.{mechid if mechid else 0} does not exist."
             )
-        else:
-            query = self.substrate.runtime_call(
-                "SubnetInfoRuntimeApi",
-                "get_metagraph",
-                params=[netuid],
-                block_hash=block_hash,
-            )
-
-        if query.value is None:
-            logging.error(f"Subnet {netuid} does not exist.")
             return None
 
         return MetagraphInfo.from_dict(query.value)
 
+    # TODO: update parameters order in SDKv10
     def get_all_metagraphs_info(
-        self, block: Optional[int] = None
-    ) -> list[MetagraphInfo]:
+        self,
+        block: Optional[int] = None,
+        all_mechanisms: bool = False,
+    ) -> Optional[list[MetagraphInfo]]:
         """
         Retrieves a list of MetagraphInfo objects for all subnets
 
-        Arguments:
-            block: the block number at which to retrieve the hyperparameter. Do not specify if using block_hash or
-                reuse_block
+        Parameters:
+            block: The blockchain block number for the query.
+            all_mechanisms: If True then returns all mechanisms, otherwise only those with index 0 for all subnets.
 
         Returns:
-            MetagraphInfo dataclass
+            List of MetagraphInfo objects for all existing subnets.
+
+        Notes:
+            See also: See <https://docs.learnbittensor.org/glossary#metagraph>
         """
         block_hash = self.determine_block_hash(block)
+        method = "get_all_mechagraphs" if all_mechanisms else "get_all_metagraphs"
         query = self.substrate.runtime_call(
-            "SubnetInfoRuntimeApi",
-            "get_all_metagraphs",
+            api="SubnetInfoRuntimeApi",
+            method=method,
             block_hash=block_hash,
         )
+        if query is None or not hasattr(query, "value"):
+            return None
+
         return MetagraphInfo.list_from_dicts(query.value)
 
     def get_netuids_for_hotkey(
@@ -1887,30 +1904,6 @@ class Subtensor(SubtensorMixin):
         """
         return self.get_stake_operations_fee(amount=amount, netuid=netuid, block=block)
 
-    def get_all_mechagraphs_info(
-        self,
-        block: Optional[int] = None,
-    ) -> Optional[list["MetagraphInfo"]]:
-        """
-        Retrieves all metagraphs for all subnet mechanisms.
-
-        Parameters:
-            block: The blockchain block number for the query.
-
-        Returns:
-            The list of metagraphs for all subnet mechanisms if found, `None` otherwise.
-        """
-        block_hash = self.determine_block_hash(block)
-        query = self.substrate.runtime_call(
-            api="SubnetInfoRuntimeApi",
-            method="get_all_mechagraphs",
-            block_hash=block_hash,
-        )
-        if query is None or query.value is None:
-            return None
-
-        return MetagraphInfo.list_from_dicts(query.value)
-
     def get_mechanism_emission_split(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[list[int]]:
@@ -1935,73 +1928,6 @@ class Subtensor(SubtensorMixin):
             return None
 
         return [round(i / sum(result.value) * 100) for i in result.value]
-
-    def get_mechagraph_info(
-        self,
-        netuid: int,
-        mechid: int,
-        block: Optional[int] = None,
-    ) -> Optional["MetagraphInfo"]:
-        """
-        Retrieves metagraph information for the specified subnet mechanism (netuid, mechid).
-
-        Parameters:
-            netuid: Subnet identifier.
-            mechid: Subnet mechanism identifier.
-            block: The blockchain block number for the query.
-
-        Returns:
-            A MetagraphInfo object containing the requested mechanism data, or None if the mechanism does not exist.
-        """
-        block_hash = self.determine_block_hash(block)
-
-        query = self.substrate.runtime_call(
-            api="SubnetInfoRuntimeApi",
-            method="get_mechagraph",
-            params=[netuid, mechid],
-            block_hash=block_hash,
-        )
-        if query is None or query.value is None:
-            logging.error(f"Subnet mechanism {netuid}.{mechid} does not exist.")
-            return None
-
-        return MetagraphInfo.from_dict(query.value)
-
-    def get_selective_mechagraph_info(
-        self,
-        netuid: int,
-        mechid: int,
-        field_indices: Union[list[SelectiveMetagraphIndex], list[int]],
-        block: Optional[int] = None,
-    ) -> Optional["MetagraphInfo"]:
-        """
-        Retrieves selective metagraph information for the specified subnet mechanism (netuid, mechid).
-
-        Parameters:
-            netuid: Subnet identifier.
-            mechid: Subnet mechanism identifier.
-            field_indices: A list of SelectiveMetagraphIndex or int values specifying which fields to retrieve.
-            block: The blockchain block number for the query.
-
-        Returns:
-            A MetagraphInfo object containing the requested mechanism data, or None if the mechanism does not exist.
-        """
-        block_hash = self.determine_block_hash(block=block)
-        indexes = [
-            f.value if isinstance(f, SelectiveMetagraphIndex) else f
-            for f in field_indices
-        ]
-        query = self.substrate.runtime_call(
-            api="SubnetInfoRuntimeApi",
-            method="get_selective_mechagraph",
-            params=[netuid, mechid, indexes if 0 in indexes else [0] + indexes],
-            block_hash=block_hash,
-        )
-        if query is None or query.value is None:
-            logging.error(f"Subnet mechanism {netuid}.{mechid} does not exist.")
-            return None
-
-        return MetagraphInfo.from_dict(query.value)
 
     def get_mechanism_count(
         self,
@@ -2792,14 +2718,35 @@ class Subtensor(SubtensorMixin):
         return None if call is None else u16_normalized_float(int(call))
 
     def metagraph(
-        self, netuid: int, lite: bool = True, block: Optional[int] = None
+        self,
+        netuid: int,
+        lite: bool = True,
+        block: Optional[int] = None,
+        mechid: int = 0,
     ) -> "Metagraph":
+        """
+        Returns a synced metagraph for a specified subnet within the Bittensor network.
+        The metagraph represents the network's structure, including neuron connections and interactions.
+
+        Parameters:
+            netuid: The network UID of the subnet to query.
+            lite: If true, returns a metagraph using a lightweight sync (no weights, no bonds).
+            block: Block number for synchronization, or `None` for the latest block.
+            mechid: Subnet mechanism identifier.
+
+        Returns:
+            The metagraph representing the subnet's structure and neuron relationships.
+
+        The metagraph is an essential tool for understanding the topology and dynamics of the Bittensor network's
+        decentralized architecture, particularly in relation to neuron interconnectivity and consensus processes.
+        """
         metagraph = Metagraph(
             network=self.chain_endpoint,
             netuid=netuid,
             lite=lite,
             sync=False,
             subtensor=self,
+            mechid=mechid,
         )
         metagraph.sync(block=block, lite=lite, subtensor=self)
 
