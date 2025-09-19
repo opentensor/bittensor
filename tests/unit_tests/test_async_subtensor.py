@@ -4157,7 +4157,7 @@ async def test_get_all_mechagraphs_returns_none(subtensor, mocker):
 
     # Asserts
     subtensor.substrate.runtime_call.assert_awaited_once_with(
-        api="SubnetInfoRuntimeApi", method="get_all_mechagraphs_info", block_hash=None
+        api="SubnetInfoRuntimeApi", method="get_all_mechagraphs", block_hash=None
     )
     mocked_metagraph_info_list_from_dicts.assert_not_called()
     assert result is None
@@ -4178,7 +4178,7 @@ async def test_get_all_mechagraphs_happy_path(subtensor, mocker):
 
     # Asserts
     subtensor.substrate.runtime_call.assert_awaited_once_with(
-        api="SubnetInfoRuntimeApi", method="get_all_mechagraphs_info", block_hash=None
+        api="SubnetInfoRuntimeApi", method="get_all_mechagraphs", block_hash=None
     )
     mocked_metagraph_info_list_from_dicts.assert_called_once_with(mocked_result.value)
     assert result == mocked_metagraph_info_list_from_dicts.return_value
