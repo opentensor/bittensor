@@ -25,7 +25,7 @@ from bittensor_wallet.keyfile import (
     decrypt_keyfile_data,
     Keyfile,
 )
-from bittensor_wallet.wallet import display_mnemonic_msg, Wallet
+from bittensor_wallet.wallet import Wallet
 
 from bittensor.core import settings, timelock
 from bittensor.core.async_subtensor import AsyncSubtensor
@@ -86,7 +86,7 @@ from bittensor.core.errors import (
     RegistrationNotPermittedOnRootSubnet,
     RunException,
     StakeError,
-    MechanismDoesNotExist,
+    SubnetNotExists,
     SynapseDendriteNoneException,
     SynapseParsingError,
     TooManyChildren,
@@ -194,7 +194,6 @@ __all__ = [
     "get_coldkey_password_from_environment",
     "decrypt_keyfile_data",
     "Keyfile",
-    "display_mnemonic_msg",
     "Wallet",
     "settings",
     "timelock",
@@ -253,7 +252,7 @@ __all__ = [
     "RegistrationNotPermittedOnRootSubnet",
     "RunException",
     "StakeError",
-    "MechanismDoesNotExist",
+    "SubnetNotExists",
     "SynapseDendriteNoneException",
     "SynapseParsingError",
     "TooManyChildren",

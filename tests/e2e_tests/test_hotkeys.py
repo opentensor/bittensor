@@ -3,7 +3,7 @@ import pytest
 from bittensor.core.errors import (
     NotEnoughStakeToSetChildkeys,
     RegistrationNotPermittedOnRootSubnet,
-    MechanismDoesNotExist,
+    SubnetNotExists,
     InvalidChild,
     TooManyChildren,
     ProportionOverflow,
@@ -151,7 +151,7 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
             raise_error=True,
         )
 
-    with pytest.raises(MechanismDoesNotExist):
+    with pytest.raises(SubnetNotExists):
         subtensor.set_children(
             alice_wallet,
             alice_wallet.hotkey.ss58_address,
