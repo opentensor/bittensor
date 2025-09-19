@@ -400,7 +400,7 @@ class MetagraphInfo(InfoBase):
                 else None
             ),
             validators=[v for v in decoded["validators"]]
-            if decoded.get("validators") is not None
+            if decoded.get("validators")
             else None,
             commitments=get_selective_metagraph_commitments(decoded),
         )
