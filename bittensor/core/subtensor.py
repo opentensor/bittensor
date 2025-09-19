@@ -1903,7 +1903,7 @@ class Subtensor(SubtensorMixin):
         block_hash = self.determine_block_hash(block)
         query = self.substrate.runtime_call(
             api="SubnetInfoRuntimeApi",
-            method="get_all_mechagraphs_info",
+            method="get_all_mechagraphs",
             block_hash=block_hash,
         )
         if query is None or query.value is None:

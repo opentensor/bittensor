@@ -2698,7 +2698,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self.substrate.runtime_call(
             api="SubnetInfoRuntimeApi",
-            method="get_all_mechagraphs_info",
+            method="get_all_mechagraphs",
             block_hash=block_hash,
         )
         if query is None or query.value is None:
