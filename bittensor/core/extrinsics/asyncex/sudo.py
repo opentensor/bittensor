@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from bittensor.core.async_subtensor import AsyncSubtensor
 
 
-async def sudo_set_admin_freez_window_extrinsic(
+async def sudo_set_admin_freeze_window_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
     window: int,

@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
 
 
-def sudo_set_admin_freez_window_extrinsic(
+def sudo_set_admin_freeze_window_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     window: int,

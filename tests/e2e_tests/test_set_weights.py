@@ -4,7 +4,7 @@ import retry
 
 from bittensor.core.extrinsics.sudo import (
     sudo_set_mechanism_count_extrinsic,
-    sudo_set_admin_freez_window_extrinsic,
+    sudo_set_admin_freeze_window_extrinsic,
 )
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -32,7 +32,7 @@ async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet)
         AssertionError: If any of the checks or verifications fail
     """
     # turn off admin freeze window limit for testing
-    assert sudo_set_admin_freez_window_extrinsic(
+    assert sudo_set_admin_freeze_window_extrinsic(
         subtensor=subtensor,
         wallet=alice_wallet,
         window=0,

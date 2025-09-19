@@ -7,11 +7,11 @@ import pytest
 
 from bittensor.core.extrinsics.asyncex.sudo import (
     sudo_set_mechanism_count_extrinsic as async_sudo_set_mechanism_count_extrinsic,
-    sudo_set_admin_freez_window_extrinsic as async_sudo_set_admin_freez_window_extrinsic,
+    sudo_set_admin_freeze_window_extrinsic as async_sudo_set_admin_freeze_window_extrinsic,
 )
 from bittensor.core.extrinsics.sudo import (
     sudo_set_mechanism_count_extrinsic,
-    sudo_set_admin_freez_window_extrinsic,
+    sudo_set_admin_freeze_window_extrinsic,
 )
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
@@ -46,7 +46,7 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
     logging.console.info("Testing `test_commit_and_reveal_weights_cr4`")
 
     # turn off admin freeze window limit for testing
-    assert sudo_set_admin_freez_window_extrinsic(subtensor, alice_wallet, 0)
+    assert sudo_set_admin_freeze_window_extrinsic(subtensor, alice_wallet, 0)
 
     # 12 for non-fast-block, 0.25 for fast block
     BLOCK_TIME, TEMPO_TO_SET = (
@@ -294,7 +294,7 @@ async def test_async_commit_and_reveal_weights_cr4(
     logging.console.info("Testing `test_commit_and_reveal_weights_cr4`")
 
     # turn off admin freeze window limit for testing
-    assert await async_sudo_set_admin_freez_window_extrinsic(
+    assert await async_sudo_set_admin_freeze_window_extrinsic(
         async_subtensor, alice_wallet, 0
     )
 
