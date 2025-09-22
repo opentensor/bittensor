@@ -4151,3 +4151,78 @@ async def test_get_timelocked_weight_commits(subtensor, mocker):
         block_hash=mock_determine_block_hash.return_value,
     )
     assert result == []
+
+
+@pytest.mark.asyncio
+async def test_get_auto_stakes(subtensor, mocker):
+    """Tests that `get_auto_stakes` calls proper methods and returns the correct value."""
+    # Preps
+    fake_coldkey = mocker.Mock()
+    mock_determine_block_hash = mocker.patch.object(
+        subtensor,
+        "determine_block_hash",
+    )
+    fake_hk_1 = mocker.Mock()
+    fake_hk_2 = mocker.Mock()
+
+    dest_value_1 = mocker.Mock(value=[fake_hk_1])
+    dest_value_2 = mocker.Mock(value=[fake_hk_2])
+
+    mock_result = mocker.MagicMock()
+    mock_result.__aiter__.return_value = iter([(0, dest_value_1), (1, dest_value_2)])
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate, "query_map", return_value=mock_result
+    )
+
+    mocked_decode_account_id = mocker.patch.object(
+        async_subtensor,
+        "decode_account_id",
+        side_effect=[fake_hk_1, fake_hk_2],
+    )
+
+    # Call
+    result = await subtensor.get_auto_stakes(coldkey_ss58=fake_coldkey)
+
+    # Asserts
+    mock_determine_block_hash.assert_awaited_once()
+    mocked_query_map.assert_awaited_once_with(
+        module="SubtensorModule",
+        storage_function="AutoStakeDestination",
+        params=[fake_coldkey],
+        block_hash=mock_determine_block_hash.return_value,
+    )
+    mocked_decode_account_id.assert_has_calls(
+        [mocker.call(dest_value_1.value[0]), mocker.call(dest_value_2.value[0])]
+    )
+    assert result == {0: fake_hk_1, 1: fake_hk_2}
+
+
+@pytest.mark.asyncio
+async def test_set_auto_stake(subtensor, mocker):
+    """Tests that `set_auto_stake` calls proper methods and returns the correct value."""
+    # Preps
+    wallet = mocker.Mock()
+    netuid = mocker.Mock()
+    hotkey = mocker.Mock()
+    mocked_extrinsic = mocker.patch.object(async_subtensor, "set_auto_stake_extrinsic")
+
+    # Call
+    result = await subtensor.set_auto_stake(
+        wallet=wallet,
+        netuid=netuid,
+        hotkey_ss58=hotkey,
+    )
+
+    # Asserts
+    mocked_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        netuid=netuid,
+        hotkey_ss58=hotkey,
+        period=None,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    assert result == mocked_extrinsic.return_value
