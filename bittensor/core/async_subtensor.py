@@ -2146,7 +2146,7 @@ class AsyncSubtensor(SubtensorMixin):
             params=[netuid, mechid, indexes if 0 in indexes else [0] + indexes],
             block_hash=block_hash,
         )
-        if getattr(query, "value", None") is None:
+        if getattr(query, "value", None) is None:
             logging.error(
                 f"Subnet mechanism {netuid}.{mechid if mechid else 0} does not exist."
             )
@@ -5210,7 +5210,7 @@ class AsyncSubtensor(SubtensorMixin):
             NotEnoughStakeToSetChildkeys: Parent key doesn't have minimum own stake.
             ProportionOverflow: The sum of the proportions does exceed uint64.
             RegistrationNotPermittedOnRootSubnet: Attempting to register a child on the root network.
-            SubNetworkDoesNotExist: Attempting to register to a non-existent network.
+            SubnetNotExists: Attempting to register to a non-existent network.
             TooManyChildren: Too many children in request.
             TxRateLimitExceeded: Hotkey hit the rate limit.
             bittensor_wallet.errors.KeyFileError: Failed to decode keyfile data.
