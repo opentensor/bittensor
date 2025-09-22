@@ -35,6 +35,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
         subtensor._subtensor.get_all_revealed_commitments
     )
     subtensor.get_all_subnets_info = subtensor._subtensor.get_all_subnets_info
+    subtensor.get_auto_stakes = subtensor._subtensor.get_auto_stakes
     subtensor.get_balance = subtensor._subtensor.get_balance
     subtensor.get_balances = subtensor._subtensor.get_balances
     subtensor.get_block_hash = subtensor._subtensor.get_block_hash
@@ -156,6 +157,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     )
     subtensor.root_set_weights = subtensor._subtensor.root_set_weights
     subtensor.serve_axon = subtensor._subtensor.serve_axon
+    subtensor.set_auto_stake = subtensor._subtensor.set_auto_stake
     subtensor.set_children = subtensor._subtensor.set_children
     subtensor.set_commitment = subtensor._subtensor.set_commitment
     subtensor.set_delegate_take = subtensor._subtensor.set_delegate_take
