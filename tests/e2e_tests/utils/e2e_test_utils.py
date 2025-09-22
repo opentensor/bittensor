@@ -94,7 +94,7 @@ class Templates:
 
         async def __aenter__(self):
             env = os.environ.copy()
-            env["BT_LOGGING_INFO"] = "1"
+            env["BT_LOGGING_DEBUG"] = "1"
             self.process = await asyncio.create_subprocess_exec(
                 sys.executable,
                 f"{self.dir}/miner.py",
@@ -157,7 +157,7 @@ class Templates:
 
         async def __aenter__(self):
             env = os.environ.copy()
-            env["BT_LOGGING_INFO"] = "1"
+            env["BT_LOGGING_DEBUG"] = "1"
             self.process = await asyncio.create_subprocess_exec(
                 sys.executable,
                 f"{self.dir}/validator.py",
@@ -235,7 +235,7 @@ def wait_to_start_call(
     in_blocks: int = 10,
 ):
     """Waits for a certain number of blocks before making a start call."""
-    if subtensor.is_fast_blocks() is False:
+    if subtensor.chain.is_fast_blocks() is False:
         in_blocks = 5
     bittensor.logging.console.info(
         f"Waiting for [blue]{in_blocks}[/blue] blocks before [red]start call[/red]. "

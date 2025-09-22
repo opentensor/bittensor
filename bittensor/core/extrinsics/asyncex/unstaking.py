@@ -2,8 +2,10 @@ import asyncio
 from typing import Optional, TYPE_CHECKING
 
 from async_substrate_interface.errors import SubstrateRequestException
+
 from bittensor.core.extrinsics.asyncex.utils import get_extrinsic_fee
 from bittensor.core.extrinsics.utils import get_old_stakes
+from bittensor.core.types import UIDs
 from bittensor.utils import unlock_key, format_error_message
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -275,7 +277,7 @@ async def unstake_multiple_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
     hotkey_ss58s: list[str],
-    netuids: list[int],
+    netuids: UIDs,
     amounts: Optional[list[Balance]] = None,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
