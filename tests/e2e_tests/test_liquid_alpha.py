@@ -119,7 +119,7 @@ def test_liquid_alpha(local_chain, subtensor, alice_wallet):
     # Test needs to wait for the amount of tempo in the chain equal to OwnerHyperparamRateLimit
     owner_hyperparam_ratelimit = subtensor.substrate.query(
         module="SubtensorModule", storage_function="OwnerHyperparamRateLimit"
-    )
+    ).value
     logging.console.info(
         f"OwnerHyperparamRateLimit is {owner_hyperparam_ratelimit} tempo(s)."
     )
