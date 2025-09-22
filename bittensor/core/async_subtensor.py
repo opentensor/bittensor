@@ -70,6 +70,7 @@ from bittensor.core.extrinsics.asyncex.serving import serve_axon_extrinsic
 from bittensor.core.extrinsics.asyncex.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
+    set_auto_stake_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.start_call import start_call_extrinsic
 from bittensor.core.extrinsics.asyncex.take import (
@@ -1194,6 +1195,42 @@ class AsyncSubtensor(SubtensorMixin):
             )
 
         return SubnetInfo.list_from_dicts(result)
+
+    async def get_auto_stakes(
+        self,
+        coldkey_ss58: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> dict[int, str]:
+        """Retries the auto stakes for a given wallet across all subnets.
+
+        Parameters:
+            coldkey_ss58: Coldkey ss58 address.
+            block: The block number for the query.
+            block_hash: The block hash for the query.
+            reuse_block: Whether to reuse the last-used block hash.
+
+        Returns:
+            dict[int, str]:
+                - netuid: The unique identifier of the subnet.
+                - hotkey: The hotkey of the wallet.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query = await self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function="AutoStakeDestination",
+            params=[coldkey_ss58],
+            block_hash=block_hash,
+        )
+
+        pairs = {}
+        async for netuid, destination in query:
+            hotkey_ss58 = decode_account_id(destination.value[0])
+            if hotkey_ss58:
+                pairs[int(netuid)] = hotkey_ss58
+
+        return pairs
 
     async def get_balance(
         self,
@@ -5047,6 +5084,46 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization=wait_for_finalization,
             wait_for_inclusion=wait_for_inclusion,
             period=period,
+        )
+
+    async def set_auto_stake(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        hotkey_ss58: str,
+        period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> tuple[bool, str]:
+        """Sets the coldkey to automatically stake to the hotkey within specific subnet mechanism.
+
+        Parameters:
+            wallet: Bittensor Wallet instance.
+            netuid: The subnet unique identifier.
+            hotkey_ss58: The SS58 address of the validator's hotkey to which the miner automatically stakes all rewards
+                received from the specified subnet immediately upon receipt.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+        Returns:
+            tuple[bool, str]:
+                `True` if the extrinsic executed successfully, `False` otherwise.
+                `message` is a string value describing the success or potential error.
+        """
+        return await set_auto_stake_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            hotkey_ss58=hotkey_ss58,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
         )
 
     async def set_children(
