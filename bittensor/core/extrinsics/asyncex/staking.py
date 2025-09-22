@@ -425,3 +425,71 @@ async def add_stake_multiple_extrinsic(
         return True
 
     return False
+
+
+async def set_auto_stake_extrinsic(
+    subtensor: "AsyncSubtensor",
+    wallet: "Wallet",
+    netuid: int,
+    hotkey_ss58: str,
+    period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
+) -> tuple[bool, str]:
+    """Sets the coldkey to automatically stake to the hotkey within specific subnet mechanism.
+
+    Parameters:
+        subtensor: AsyncSubtensor instance.
+        wallet: Bittensor Wallet instance.
+        netuid: The subnet unique identifier.
+        hotkey_ss58: The SS58 address of the validator's hotkey to which the miner automatically stakes all rewards
+            received from the specified subnet immediately upon receipt.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+    Returns:
+        tuple[bool, str]:
+            `True` if the extrinsic executed successfully, `False` otherwise.
+            `message` is a string value describing the success or potential error.
+    """
+    try:
+        unlock = unlock_key(wallet, raise_error=raise_error)
+        if not unlock.success:
+            logging.error(unlock.message)
+            return False, unlock.message
+
+        call = await subtensor.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="set_coldkey_auto_stake_hotkey",
+            call_params={
+                "netuid": netuid,
+                "hotkey": hotkey_ss58,
+            },
+        )
+        success, message = await subtensor.sign_and_send_extrinsic(
+            call=call,
+            wallet=wallet,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+        if success:
+            logging.debug(message)
+            return True, message
+
+        logging.error(message)
+        return False, message
+
+    except Exception as error:
+        if raise_error:
+            raise error
+        logging.error(str(error))
+
+        return False, str(error)
