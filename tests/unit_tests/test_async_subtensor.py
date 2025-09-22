@@ -1,6 +1,6 @@
 import datetime
 import unittest.mock as mock
-
+import numpy as np
 import pytest
 from async_substrate_interface.types import ScaleObj
 from bittensor_wallet import Wallet
@@ -2773,7 +2773,7 @@ async def test_set_weights_success(subtensor, fake_wallet, mocker):
 
     mocked_set_weights_extrinsic = mocker.AsyncMock(return_value=(True, "Success"))
     mocker.patch.object(
-        async_subtensor, "set_weights_extrinsic", mocked_set_weights_extrinsic
+        async_subtensor, "set_mechanism_weights_extrinsic", mocked_set_weights_extrinsic
     )
 
     # Call
@@ -2803,6 +2803,7 @@ async def test_set_weights_success(subtensor, fake_wallet, mocker):
         wait_for_inclusion=False,
         weights=fake_weights,
         period=8,
+        mechid=0,
     )
     mocked_weights_rate_limit.assert_called_once_with(fake_netuid)
     assert result is True
@@ -2832,7 +2833,7 @@ async def test_set_weights_with_exception(subtensor, fake_wallet, mocker):
         side_effect=Exception("Test exception")
     )
     mocker.patch.object(
-        async_subtensor, "set_weights_extrinsic", mocked_set_weights_extrinsic
+        async_subtensor, "set_mechanism_weights_extrinsic", mocked_set_weights_extrinsic
     )
 
     # Call
@@ -2865,10 +2866,10 @@ async def test_root_set_weights_success(subtensor, fake_wallet, mocker):
         async_subtensor, "set_root_weights_extrinsic", mocked_set_root_weights_extrinsic
     )
 
-    mocked_np_array_netuids = mocker.Mock(autospec=async_subtensor.np.ndarray)
-    mocked_np_array_weights = mocker.Mock(autospec=async_subtensor.np.ndarray)
+    mocked_np_array_netuids = mocker.Mock(autospec=np.ndarray)
+    mocked_np_array_weights = mocker.Mock(autospec=np.ndarray)
     mocker.patch.object(
-        async_subtensor.np,
+        np,
         "array",
         side_effect=[mocked_np_array_netuids, mocked_np_array_weights],
     )
@@ -2905,14 +2906,11 @@ async def test_commit_weights_success(subtensor, fake_wallet, mocker):
     fake_weights = [100, 200, 300]
     max_retries = 3
 
-    mocked_generate_weight_hash = mocker.Mock(return_value="fake_commit_hash")
-    mocker.patch.object(
-        async_subtensor, "generate_weight_hash", mocked_generate_weight_hash
-    )
-
     mocked_commit_weights_extrinsic = mocker.AsyncMock(return_value=(True, "Success"))
     mocker.patch.object(
-        async_subtensor, "commit_weights_extrinsic", mocked_commit_weights_extrinsic
+        async_subtensor,
+        "commit_mechanism_weights_extrinsic",
+        mocked_commit_weights_extrinsic,
     )
 
     # Call
@@ -2926,22 +2924,17 @@ async def test_commit_weights_success(subtensor, fake_wallet, mocker):
     )
 
     # Asserts
-    mocked_generate_weight_hash.assert_called_once_with(
-        address=fake_wallet.hotkey.ss58_address,
-        netuid=fake_netuid,
-        uids=fake_uids,
-        values=fake_weights,
-        salt=fake_salt,
-        version_key=async_subtensor.version_as_int,
-    )
     mocked_commit_weights_extrinsic.assert_called_once_with(
         subtensor=subtensor,
         wallet=fake_wallet,
         netuid=fake_netuid,
-        commit_hash="fake_commit_hash",
+        salt=fake_salt,
+        uids=fake_uids,
+        weights=fake_weights,
         wait_for_inclusion=False,
         wait_for_finalization=False,
         period=16,
+        mechid=0,
     )
     assert result is True
     assert message == "Success"
@@ -2957,16 +2950,13 @@ async def test_commit_weights_with_exception(subtensor, fake_wallet, mocker):
     fake_weights = [100, 200, 300]
     max_retries = 1
 
-    mocked_generate_weight_hash = mocker.Mock(return_value="fake_commit_hash")
-    mocker.patch.object(
-        async_subtensor, "generate_weight_hash", mocked_generate_weight_hash
-    )
-
     mocked_commit_weights_extrinsic = mocker.AsyncMock(
         side_effect=Exception("Test exception")
     )
     mocker.patch.object(
-        async_subtensor, "commit_weights_extrinsic", mocked_commit_weights_extrinsic
+        async_subtensor,
+        "commit_mechanism_weights_extrinsic",
+        mocked_commit_weights_extrinsic,
     )
 
     # Call
@@ -3161,6 +3151,7 @@ async def test_get_metagraph_info_all_fields(subtensor, mocker):
     """Test get_metagraph_info with all fields (default behavior)."""
     # Preps
     netuid = 1
+    default_mechid = 0
     mock_value = {"mock": "data"}
 
     mock_runtime_call = mocker.patch.object(
@@ -3180,9 +3171,9 @@ async def test_get_metagraph_info_all_fields(subtensor, mocker):
     # Asserts
     assert result == "parsed_metagraph"
     mock_runtime_call.assert_awaited_once_with(
-        "SubnetInfoRuntimeApi",
-        "get_selective_metagraph",
-        params=[netuid, SelectiveMetagraphIndex.all_indices()],
+        api="SubnetInfoRuntimeApi",
+        method="get_selective_mechagraph",
+        params=[netuid, default_mechid, SelectiveMetagraphIndex.all_indices()],
         block_hash=await subtensor.determine_block_hash(None),
     )
     mock_from_dict.assert_called_once_with(mock_value)
@@ -3193,6 +3184,7 @@ async def test_get_metagraph_info_specific_fields(subtensor, mocker):
     """Test get_metagraph_info with specific fields."""
     # Preps
     netuid = 1
+    default_mechid = 0
     mock_value = {"mock": "data"}
     fields = [SelectiveMetagraphIndex.Name, 5]
 
@@ -3211,10 +3203,11 @@ async def test_get_metagraph_info_specific_fields(subtensor, mocker):
     # Asserts
     assert result == "parsed_metagraph"
     mock_runtime_call.assert_awaited_once_with(
-        "SubnetInfoRuntimeApi",
-        "get_selective_metagraph",
+        api="SubnetInfoRuntimeApi",
+        method="get_selective_mechagraph",
         params=[
             netuid,
+            default_mechid,
             [0]
             + [
                 f.value if isinstance(f, SelectiveMetagraphIndex) else f for f in fields
@@ -3225,34 +3218,15 @@ async def test_get_metagraph_info_specific_fields(subtensor, mocker):
     mock_from_dict.assert_called_once_with(mock_value)
 
 
-@pytest.mark.parametrize(
-    "wrong_fields",
-    [
-        [
-            "invalid",
-        ],
-        [SelectiveMetagraphIndex.Active, 1, "f"],
-        [1, 2, 3, "f"],
-    ],
-)
-@pytest.mark.asyncio
-async def test_get_metagraph_info_invalid_field_indices(subtensor, wrong_fields):
-    """Test get_metagraph_info raises ValueError on invalid field_indices."""
-    with pytest.raises(
-        ValueError,
-        match="`field_indices` must be a list of SelectiveMetagraphIndex enums or ints.",
-    ):
-        await subtensor.get_metagraph_info(netuid=1, field_indices=wrong_fields)
-
-
 @pytest.mark.asyncio
 async def test_get_metagraph_info_subnet_not_exist(subtensor, mocker):
     """Test get_metagraph_info returns None when subnet doesn't exist."""
     netuid = 1
+    default_mechid = 0
     mocker.patch.object(
         subtensor.substrate,
         "runtime_call",
-        return_value=mocker.AsyncMock(value=None),
+        return_value=None,
     )
 
     mocked_logger = mocker.Mock()
@@ -3261,7 +3235,9 @@ async def test_get_metagraph_info_subnet_not_exist(subtensor, mocker):
     result = await subtensor.get_metagraph_info(netuid=netuid)
 
     assert result is None
-    mocked_logger.assert_called_once_with(f"Subnet {netuid} does not exist.")
+    mocked_logger.assert_called_once_with(
+        f"Subnet mechanism {netuid}.{default_mechid} does not exist."
+    )
 
 
 @pytest.mark.asyncio
@@ -4126,7 +4102,7 @@ async def test_get_stake_weight(subtensor, mocker):
 async def test_get_timelocked_weight_commits(subtensor, mocker):
     """Verify that `get_timelocked_weight_commits` method calls proper methods and returns the correct value."""
     # Preps
-    netuid = mocker.Mock()
+    netuid = 14
 
     mock_determine_block_hash = mocker.patch.object(
         subtensor,
@@ -4151,3 +4127,128 @@ async def test_get_timelocked_weight_commits(subtensor, mocker):
         block_hash=mock_determine_block_hash.return_value,
     )
     assert result == []
+
+
+@pytest.mark.parametrize(
+    "query_return, expected_result",
+    (
+        ["value", [10, 90]],
+        [None, None],
+    ),
+)
+@pytest.mark.asyncio
+async def test_get_mechanism_emission_split(
+    subtensor, mocker, query_return, expected_result
+):
+    """Verify that get_mechanism_emission_split calls the correct methods."""
+    # Preps
+    netuid = mocker.Mock()
+    query_return = (
+        mocker.Mock(value=[6553, 58982]) if query_return == "value" else query_return
+    )
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query = mocker.patch.object(
+        subtensor.substrate, "query", return_value=query_return
+    )
+
+    # Call
+
+    result = await subtensor.get_mechanism_emission_split(netuid)
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once()
+    mocked_query.assert_awaited_once_with(
+        module="SubtensorModule",
+        storage_function="MechanismEmissionSplit",
+        params=[netuid],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    assert result == expected_result
+
+
+@pytest.mark.asyncio
+async def test_get_mechanism_count(subtensor, mocker):
+    """Verify that `get_mechanism_count` method processed the data correctly."""
+    # Preps
+    netuid = 14
+
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_result = mocker.MagicMock()
+    mocker.patch.object(subtensor.substrate, "runtime_call", return_value=mocked_result)
+    mocked_query = mocker.patch.object(subtensor.substrate, "query")
+
+    # Call
+    result = await subtensor.get_mechanism_count(netuid=netuid)
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once()
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="MechanismCountCurrent",
+        params=[netuid],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    assert result is mocked_query.return_value.value
+
+
+@pytest.mark.asyncio
+async def test_is_in_admin_freeze_window_root_net(subtensor, mocker):
+    """Verify that root net has no admin freeze window."""
+    # Preps
+    netuid = 0
+    mocked_get_next_epoch_start_block = mocker.patch.object(
+        subtensor, "get_next_epoch_start_block"
+    )
+
+    # Call
+    result = await subtensor.is_in_admin_freeze_window(netuid=netuid)
+
+    # Asserts
+    mocked_get_next_epoch_start_block.assert_not_called()
+    assert result is False
+
+
+@pytest.mark.parametrize(
+    "block, next_esb, expected_result",
+    (
+        [89, 100, False],
+        [90, 100, False],
+        [91, 100, True],
+    ),
+)
+@pytest.mark.asyncio
+async def test_is_in_admin_freeze_window(
+    subtensor, mocker, block, next_esb, expected_result
+):
+    """Verify that `is_in_admin_freeze_window` method processed the data correctly."""
+    # Preps
+    netuid = 14
+    mocker.patch.object(subtensor, "get_current_block", return_value=block)
+    mocker.patch.object(subtensor, "get_next_epoch_start_block", return_value=next_esb)
+    mocker.patch.object(subtensor, "get_admin_freeze_window", return_value=10)
+
+    # Call
+
+    result = await subtensor.is_in_admin_freeze_window(netuid=netuid)
+
+    # Asserts
+    assert result is expected_result
+
+
+@pytest.mark.asyncio
+async def test_get_admin_freeze_window(subtensor, mocker):
+    """Verify that `get_admin_freeze_window` calls proper methods."""
+    # Preps
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query = mocker.patch.object(subtensor.substrate, "query")
+
+    # Call
+    result = await subtensor.get_admin_freeze_window()
+
+    # Asserts
+    mocked_query.assert_awaited_once_with(
+        module="SubtensorModule",
+        storage_function="AdminFreezeWindow",
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    assert result == mocked_query.return_value.value

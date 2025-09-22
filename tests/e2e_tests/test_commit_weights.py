@@ -2,6 +2,11 @@ import numpy as np
 import pytest
 import retry
 
+from bittensor.core.extrinsics.sudo import (
+    sudo_set_mechanism_count_extrinsic,
+    sudo_set_admin_freeze_window_extrinsic,
+)
+from bittensor.utils import get_mechid_storage_index
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
@@ -10,6 +15,8 @@ from tests.e2e_tests.utils.chain_interactions import (
     execute_and_wait_for_next_nonce,
     wait_epoch,
 )
+
+TESTED_SUB_SUBNETS = 2
 
 
 @pytest.mark.asyncio
@@ -28,18 +35,12 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
     """
 
     # turn off admin freeze window limit for testing
-    assert (
-        sudo_set_admin_utils(
-            local_chain,
-            alice_wallet,
-            call_function="sudo_set_admin_freeze_window",
-            call_params={"window": 0},
-        )[0]
-        is True
-    ), "Failed to set admin freeze window to 0"
+    assert sudo_set_admin_freeze_window_extrinsic(subtensor, alice_wallet, 0), (
+        "Failed to set admin freeze window to 0"
+    )
 
     netuid = subtensor.get_total_subnets()  # 2
-    set_tempo = 100 if subtensor.is_fast_blocks() else 10
+    set_tempo = 50 if subtensor.is_fast_blocks() else 20
     print("Testing test_commit_and_reveal_weights")
 
     # Register root as Alice
@@ -47,6 +48,10 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
 
     # Verify subnet 2 created successfully
     assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
+
+    assert sudo_set_mechanism_count_extrinsic(
+        subtensor, alice_wallet, netuid, TESTED_SUB_SUBNETS
+    ), "Cannot create sub-subnets."
 
     # Enable commit_reveal on the subnet
     assert sudo_set_hyperparameter_bool(
@@ -94,71 +99,76 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
         },
     )
 
-    # Commit-reveal values
-    uids = np.array([0], dtype=np.int64)
-    weights = np.array([0.1], dtype=np.float32)
-    salt = [18, 179, 107, 0, 165, 211, 141, 197]
-    weight_uids, weight_vals = convert_weights_and_uids_for_emit(
-        uids=uids, weights=weights
-    )
+    for mechid in range(TESTED_SUB_SUBNETS):
+        logging.console.info(
+            f"[magenta]Testing subnet mechanism {netuid}.{mechid}[/magenta]"
+        )
 
-    # Commit weights
-    success, message = subtensor.commit_weights(
-        alice_wallet,
-        netuid,
-        salt=salt,
-        uids=weight_uids,
-        weights=weight_vals,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
+        # Commit-reveal values
+        uids = np.array([0], dtype=np.int64)
+        weights = np.array([0.1], dtype=np.float32)
+        salt = [18, 179, 107, 0, 165, 211, 141, 197]
+        weight_uids, weight_vals = convert_weights_and_uids_for_emit(
+            uids=uids, weights=weights
+        )
 
-    assert success is True
+        # Commit weights
+        success, message = subtensor.commit_weights(
+            wallet=alice_wallet,
+            netuid=netuid,
+            mechid=mechid,
+            salt=salt,
+            uids=weight_uids,
+            weights=weight_vals,
+            wait_for_inclusion=True,
+            wait_for_finalization=True,
+        )
 
-    weight_commits = subtensor.query_module(
-        module="SubtensorModule",
-        name="WeightCommits",
-        params=[netuid, alice_wallet.hotkey.ss58_address],
-    )
-    # Assert that the committed weights are set correctly
-    assert weight_commits is not None, "Weight commit not found in storage"
-    commit_hash, commit_block, reveal_block, expire_block = weight_commits[0]
-    assert commit_block > 0, f"Invalid block number: {commit_block}"
+        assert success is True, message
 
-    # Query the WeightCommitRevealInterval storage map
-    assert subtensor.get_subnet_reveal_period_epochs(netuid) > 0, (
-        "Invalid RevealPeriodEpochs"
-    )
+        storage_index = get_mechid_storage_index(netuid, mechid)
+        weight_commits = subtensor.query_module(
+            module="SubtensorModule",
+            name="WeightCommits",
+            params=[storage_index, alice_wallet.hotkey.ss58_address],
+        )
+        # Assert that the committed weights are set correctly
+        assert weight_commits is not None, "Weight commit not found in storage"
+        commit_hash, commit_block, reveal_block, expire_block = weight_commits[0]
+        assert commit_block > 0, f"Invalid block number: {commit_block}"
 
-    # Wait until the reveal block range
-    await wait_epoch(subtensor, netuid)
+        # Query the WeightCommitRevealInterval storage map
+        assert subtensor.get_subnet_reveal_period_epochs(netuid) > 0, (
+            "Invalid RevealPeriodEpochs"
+        )
 
-    # Reveal weights
-    success, message = subtensor.reveal_weights(
-        alice_wallet,
-        netuid,
-        uids=weight_uids,
-        weights=weight_vals,
-        salt=salt,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
+        # Wait until the reveal block range
+        await wait_epoch(subtensor, netuid)
 
-    assert success is True
+        # Reveal weights
+        success, message = subtensor.reveal_weights(
+            wallet=alice_wallet,
+            netuid=netuid,
+            mechid=mechid,
+            uids=weight_uids,
+            weights=weight_vals,
+            salt=salt,
+            wait_for_inclusion=True,
+            wait_for_finalization=True,
+        )
 
-    # Query the Weights storage map
-    revealed_weights = subtensor.query_module(
-        module="SubtensorModule",
-        name="Weights",
-        params=[netuid, 0],  # netuid and uid
-    )
+        assert success is True, message
 
-    # Assert that the revealed weights are set correctly
-    assert revealed_weights is not None, "Weight reveal not found in storage"
+        revealed_weights = subtensor.weights(netuid, mechid=mechid)
 
-    assert weight_vals[0] == revealed_weights[0][1], (
-        f"Incorrect revealed weights. Expected: {weights[0]}, Actual: {revealed_weights[0][1]}"
-    )
+        # Assert that the revealed weights are set correctly
+        assert revealed_weights is not None, "Weight reveal not found in storage"
+
+        alice_weights = revealed_weights[0][1]
+        assert weight_vals[0] == alice_weights[0][1], (
+            f"Incorrect revealed weights. Expected: {weights[0]}, Actual: {revealed_weights[0][1]}"
+        )
+
     print("✅ Passed test_commit_and_reveal_weights")
 
 
@@ -179,17 +189,11 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     """
 
     # turn off admin freeze window limit for testing
-    assert (
-        sudo_set_admin_utils(
-            local_chain,
-            alice_wallet,
-            call_function="sudo_set_admin_freeze_window",
-            call_params={"window": 0},
-        )[0]
-        is True
-    ), "Failed to set admin freeze window to 0"
+    assert sudo_set_admin_freeze_window_extrinsic(subtensor, alice_wallet, 0), (
+        "Failed to set admin freeze window to 0"
+    )
 
-    subnet_tempo = 50 if subtensor.is_fast_blocks() else 10
+    subnet_tempo = 50 if subtensor.is_fast_blocks() else 20
     netuid = subtensor.get_total_subnets()  # 2
 
     # Wait for 2 tempos to pass as CR3 only reveals weights after 2 tempos
@@ -204,8 +208,8 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
 
     # weights sensitive to epoch changes
     assert sudo_set_admin_utils(
-        local_chain,
-        alice_wallet,
+        substrate=local_chain,
+        wallet=alice_wallet,
         call_function="sudo_set_tempo",
         call_params={
             "netuid": netuid,
@@ -215,11 +219,11 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
 
     # Enable commit_reveal on the subnet
     assert sudo_set_hyperparameter_bool(
-        local_chain,
-        alice_wallet,
-        "sudo_set_commit_reveal_weights_enabled",
-        True,
-        netuid,
+        substrate=local_chain,
+        wallet=alice_wallet,
+        call_function="sudo_set_commit_reveal_weights_enabled",
+        value=True,
+        netuid=netuid,
     ), "Unable to enable commit reveal on the subnet"
 
     assert subtensor.commit_reveal_enabled(netuid), "Failed to enable commit/reveal"
