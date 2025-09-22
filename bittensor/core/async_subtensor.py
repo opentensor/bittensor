@@ -2741,7 +2741,7 @@ class AsyncSubtensor(SubtensorMixin):
             params=[netuid],
             block_hash=block_hash,
         )
-        return query.value if query is not None and hasattr(query, "value") else 1
+        return getattr(query, "value", 1)
 
     async def get_subnet_info(
         self,
