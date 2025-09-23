@@ -2733,7 +2733,7 @@ class AsyncSubtensor(SubtensorMixin):
             api="SwapRuntimeApi",
             method="current_alpha_price",
             params=[netuid],
-            block_hash=block_hash
+            block_hash=block_hash,
         )
         price_rao = call.value
         return Balance.from_rao(price_rao)
