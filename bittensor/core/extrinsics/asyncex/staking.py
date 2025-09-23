@@ -40,9 +40,9 @@ async def add_stake_extrinsic(
         netuid: The unique identifier of the subnet to which the neuron belongs.
         hotkey_ss58: The `ss58` address of the hotkey account to stake to default to the wallet's hotkey.
         amount: Amount to stake as Bittensor balance in TAO always.
-        safe_staking: If True, enables price safety checks. Default is ``False``.
-        allow_partial_stake: If True, allows partial unstaking if price tolerance exceeded. Default is ``False``.
-        rate_tolerance: Maximum allowed price increase percentage (0.005 = 0.5%). Default is ``0.005``.
+        safe_staking: If True, enables price safety checks.
+        allow_partial_stake: If True, allows partial unstaking if price tolerance exceeded.
+        rate_tolerance: Maximum allowed price increase percentage (0.005 = 0.5%).
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.

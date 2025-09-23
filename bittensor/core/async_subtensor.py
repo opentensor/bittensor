@@ -573,7 +573,7 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             module: The name of the module from which to query the map storage (e.g., "SubtensorModule", "System").
             name: The specific storage function within the module to query (e.g., "Bonds", "Weights").
-            params: Parameters to be passed to the query. Defaults to ``None``.
+            params: Parameters to be passed to the query.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
             block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
@@ -1647,7 +1647,7 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             netuid: The unique identifier of the subnetwork.
             uid: The neuron uid to retrieve the commitment from.
-            block: The block number to retrieve the commitment from. Default is ``None``.
+            block: The block number to retrieve the commitment from.
 
         Returns:
             A tuple of reveal block and commitment message.
@@ -2840,7 +2840,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             netuid: Subnet identifier.
-            block (Optional[int]): The blockchain block number for the query. Default is ``None``.
+            block (Optional[int]): The blockchain block number for the query.
             block_hash: The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block.
             reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
             mechid: Subnet mechanism identifier.
@@ -4413,10 +4413,9 @@ class AsyncSubtensor(SubtensorMixin):
             hotkey_ss58: The `ss58` address of the hotkey account to stake to default to the wallet's hotkey.
             amount: The amount of TAO to stake.
             safe_staking: If true, enables price safety checks to protect against fluctuating prices. The stake will
-                only execute if the price change doesn't exceed the rate tolerance. Default is ``False``.
+                only execute if the price change doesn't exceed the rate tolerance.
             allow_partial_stake: If true and safe_staking is enabled, allows partial staking when the full amount would
                 exceed the price tolerance. If false, the entire stake fails if it would exceed the tolerance.
-                Default is ``False``.
             rate_tolerance: The maximum allowed price change ratio when staking. For example, 0.005 = 0.5% maximum price
                 increase. Only used when safe_staking is True.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
@@ -5736,8 +5735,8 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: Source wallet for the transfer.
             destination: Destination address for the transfer.
             amount: Number of tokens to transfer. `None` is transferring all.
-            transfer_all: Flag to transfer all tokens. Default is `False`.
-            keep_alive: Flag to keep the connection alive. Default is `True`.
+            transfer_all: Flag to transfer all tokens.
+            keep_alive: Flag to keep the connection alive.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -5888,7 +5887,7 @@ class AsyncSubtensor(SubtensorMixin):
             hotkey: The SS58 address of the hotkey to unstake from.
             netuid: The unique identifier of the subnet.
             rate_tolerance: The maximum allowed price change ratio when unstaking. For example, 0.005 = 0.5% maximum
-                price decrease. If not passed (None), then unstaking goes without price limit. Default is 0.005.
+                price decrease. If not passed (None), then unstaking goes without price limit.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -5975,7 +5974,7 @@ class AsyncSubtensor(SubtensorMixin):
             netuids: Subnets unique IDs.
             hotkey_ss58s: A list of hotkey `SS58` addresses to unstake from.
             amounts: The amounts of TAO to unstake from each hotkey. If not provided, unstakes all.
-            unstake_all: If true, unstakes all tokens. Default is `False`. If `True` amounts are ignored.
+            unstake_all: If true, unstakes all tokens. If `True` amounts are ignored.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.

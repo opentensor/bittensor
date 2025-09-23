@@ -74,7 +74,7 @@ def encrypt(
     Parameters:
         data: Any bytes data to be encrypted.
         n_blocks: Number of blocks to encrypt.
-        block_time: Time in seconds for each block. Default is `12.0` seconds.
+        block_time: Time in seconds for each block.
 
     Returns:
         tuple: A tuple containing the encrypted data and reveal TimeLock reveal round.
@@ -111,7 +111,7 @@ def decrypt(
     Parameters:
         encrypted_data: Encrypted data to be decrypted.
         no_errors: If True, no errors will be raised during decryption.
-        return_str: convert decrypted data to string if `True`. Default is `False`.
+        return_str: convert decrypted data to string if `True`.
 
     Returns:
         decrypted_data: Decrypted data, when reveled round is reached.
@@ -147,7 +147,7 @@ def wait_reveal_and_decrypt(
         encrypted_data: Encrypted data to be decrypted.
         reveal_round: Reveal round to wait for. If None, will be parsed from encrypted data.
         no_errors: If True, no errors will be raised during decryption.
-        return_str: convert decrypted data to string if `True`. Default is `False`.
+        return_str: convert decrypted data to string if `True`.
 
     Raises:
         struct.error: If failed to parse reveal round from encrypted data.
