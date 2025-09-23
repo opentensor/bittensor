@@ -64,147 +64,99 @@ class ChainTransactionError(ChainError):
 
 
 class DelegateTakeTooHigh(ChainTransactionError):
-    """
-    Delegate take is too high.
-    """
+    """Delegate take is too high."""
 
 
 class DelegateTakeTooLow(ChainTransactionError):
-    """
-    Delegate take is too low.
-    """
+    """Delegate take is too low."""
 
 
 class DuplicateChild(ChainTransactionError):
-    """
-    Duplicate child when setting children.
-    """
+    """Duplicate child when setting children."""
 
 
 class HotKeyAccountNotExists(ChainTransactionError):
-    """
-    The hotkey does not exist.
-    """
+    """The hotkey does not exist."""
 
 
 class IdentityError(ChainTransactionError):
-    """
-    Error raised when an identity transaction fails.
-    """
+    """Error raised when an identity transaction fails."""
 
 
 class InvalidChild(ChainTransactionError):
-    """
-    Attempting to set an invalid child for a hotkey on a network.
-    """
+    """Attempting to set an invalid child for a hotkey on a network."""
 
 
 class MetadataError(ChainTransactionError):
-    """
-    Error raised when metadata commitment transaction fails.
-    """
+    """Error raised when metadata commitment transaction fails."""
 
 
 class NominationError(ChainTransactionError):
-    """
-    Error raised when a nomination transaction fails.
-    """
+    """Error raised when a nomination transaction fails."""
 
 
 class NonAssociatedColdKey(ChainTransactionError):
-    """
-    Request to stake, unstake or subscribe is made by a coldkey that is not associated with the hotkey account.
-    """
+    """Request to stake, unstake or subscribe is made by a coldkey that is not associated with the hotkey account."""
 
 
 class NotEnoughStakeToSetChildkeys(ChainTransactionError):
-    """
-    The parent hotkey doesn't have enough own stake to set childkeys.
-    """
+    """The parent hotkey doesn't have enough own stake to set childkeys."""
 
 
 class NotRegisteredError(ChainTransactionError):
-    """
-    Error raised when a neuron is not registered, and the transaction requires it to be.
-    """
+    """Error raised when a neuron is not registered, and the transaction requires it to be."""
 
 
 class ProportionOverflow(ChainTransactionError):
-    """
-    Proportion overflow when setting children.
-    """
+    """Proportion overflow when setting children."""
 
 
 class RegistrationError(ChainTransactionError):
-    """
-    Error raised when a neuron registration transaction fails.
-    """
+    """Error raised when a neuron registration transaction fails."""
 
 
 class RegistrationNotPermittedOnRootSubnet(ChainTransactionError):
-    """
-    Operation is not permitted on the root subnet.
-    """
+    """Operation is not permitted on the root subnet."""
 
 
 class StakeError(ChainTransactionError):
-    """
-    Error raised when a stake transaction fails.
-    """
+    """Error raised when a stake transaction fails."""
 
 
 class NotDelegateError(StakeError):
-    """
-    Error raised when a hotkey you are trying to stake to is not a delegate.
-    """
+    """Error raised when a hotkey you are trying to stake to is not a delegate."""
 
 
 class SubnetNotExists(ChainTransactionError):
-    """
-    The subnet does not exist.
-    """
+    """The subnet does not exist."""
 
 
 class TakeError(ChainTransactionError):
-    """
-    Error raised when an increase / decrease take transaction fails.
-    """
+    """Error raised when an increase / decrease take transaction fails."""
 
 
 class TransferError(ChainTransactionError):
-    """
-    Error raised when a transfer transaction fails.
-    """
+    """Error raised when a transfer transaction fails."""
 
 
 class TooManyChildren(ChainTransactionError):
-    """
-    Too many children MAX 5.
-    """
+    """Too many children MAX 5."""
 
 
 class TxRateLimitExceeded(ChainTransactionError):
-    """
-    Default transaction rate limit exceeded.
-    """
+    """Default transaction rate limit exceeded."""
 
 
 class DelegateTxRateLimitExceeded(TxRateLimitExceeded):
-    """
-    A transactor exceeded the rate limit for delegate transaction.
-    """
+    """A transactor exceeded the rate limit for delegate transaction."""
 
 
 class UnstakeError(ChainTransactionError):
-    """
-    Error raised when an unstake transaction fails.
-    """
+    """Error raised when an unstake transaction fails."""
 
 
 class ChainQueryError(ChainError):
-    """
-    Error for any chain query related errors.
-    """
+    """Error for any chain query related errors."""
 
 
 class InvalidRequestNameError(Exception):

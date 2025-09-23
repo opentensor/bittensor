@@ -9,39 +9,39 @@ class SubnetHyperparameters(InfoBase):
     This class represents the hyperparameters for a subnet.
 
     Attributes:
-        rho (int): The rate of decay of some value.
-        kappa (int): A constant multiplier used in calculations.
-        immunity_period (int): The period during which immunity is active.
-        min_allowed_weights (int): Minimum allowed weights.
-        max_weight_limit (float): Maximum weight limit.
-        tempo (int): The tempo or rate of operation.
-        min_difficulty (int): Minimum difficulty for some operations.
-        max_difficulty (int): Maximum difficulty for some operations.
-        weights_version (int): The version number of the weights used.
-        weights_rate_limit (int): Rate limit for processing weights.
-        adjustment_interval (int): Interval at which adjustments are made.
-        activity_cutoff (int): Activity cutoff threshold.
-        registration_allowed (bool): Indicates if registration is allowed.
-        target_regs_per_interval (int): Target number of registrations per interval.
-        min_burn (int): Minimum burn value.
-        max_burn (int): Maximum burn value.
-        bonds_moving_avg (int): Moving average of bonds.
-        max_regs_per_block (int): Maximum number of registrations per block.
-        serving_rate_limit (int): Limit on the rate of service.
-        max_validators (int): Maximum number of validators.
-        adjustment_alpha (int): Alpha value for adjustments.
-        difficulty (int): Difficulty level.
-        commit_reveal_period (int): Interval for commit-reveal weights.
-        commit_reveal_weights_enabled (bool): Flag indicating if commit-reveal weights are enabled.
-        alpha_high (int): High value of alpha.
-        alpha_low (int): Low value of alpha.
-        liquid_alpha_enabled (bool): Flag indicating if liquid alpha is enabled.
-        alpha_sigmoid_steepness (float):
-        yuma_version (int): Version of yuma.
-        subnet_is_active (bool): Indicates if subnet is active after START CALL.
-        transfers_enabled (bool): Flag indicating if transfers are enabled.
-        bonds_reset_enabled (bool): Flag indicating if bonds are reset enabled.
-        user_liquidity_enabled (bool): Flag indicating if user liquidity is enabled.
+        rho: The rate of decay of some value.
+        kappa: A constant multiplier used in calculations.
+        immunity_period: The period during which immunity is active.
+        min_allowed_weights: Minimum allowed weights.
+        max_weight_limit: Maximum weight limit.
+        tempo: The tempo or rate of operation.
+        min_difficulty: Minimum difficulty for some operations.
+        max_difficulty: Maximum difficulty for some operations.
+        weights_version: The version number of the weights used.
+        weights_rate_limit: Rate limit for processing weights.
+        adjustment_interval: Interval at which adjustments are made.
+        activity_cutoff: Activity cutoff threshold.
+        registration_allowed: Indicates if registration is allowed.
+        target_regs_per_interval: Target number of registrations per interval.
+        min_burn: Minimum burn value.
+        max_burn: Maximum burn value.
+        bonds_moving_avg: Moving average of bonds.
+        max_regs_per_block: Maximum number of registrations per block.
+        serving_rate_limit: Limit on the rate of service.
+        max_validators: Maximum number of validators.
+        adjustment_alpha: Alpha value for adjustments.
+        difficulty: Difficulty level.
+        commit_reveal_period: Interval for commit-reveal weights.
+        commit_reveal_weights_enabled: Flag indicating if commit-reveal weights are enabled.
+        alpha_high: High value of alpha.
+        alpha_low: Low value of alpha.
+        liquid_alpha_enabled: Flag indicating if liquid alpha is enabled.
+        alpha_sigmoid_steepness: Sigmoid steepness parameter for converting miner-validator alignment into alpha.
+        yuma_version: Version of yuma.
+        subnet_is_active: Indicates if subnet is active after START CALL.
+        transfers_enabled: Flag indicating if transfers are enabled.
+        bonds_reset_enabled: Flag indicating if bonds are reset enabled.
+        user_liquidity_enabled: Flag indicating if user liquidity is enabled.
     """
 
     rho: int

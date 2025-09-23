@@ -16,11 +16,11 @@ class ExternalIPNotFound(Exception):
 def int_to_ip(int_val: int) -> str:
     """Maps an integer to a unique ip-string
 
-    Arguments:
-        int_val (int): The integer representation of an ip. Must be in the range (0, 3.4028237e+38).
+    Parameters:
+        int_val: The integer representation of an ip. Must be in the range (0, 3.4028237e+38).
 
     Returns:
-        str_val (str): The string representation of an ip. Of form *.*.*.* for ipv4 or *::*:*:*:* for ipv6
+        str_val: The string representation of an ip. Of form *.*.*.* for ipv4 or *::*:*:*:* for ipv6
     """
     return str(netaddr.IPAddress(int_val))
 
@@ -28,11 +28,11 @@ def int_to_ip(int_val: int) -> str:
 def ip_to_int(str_val: str) -> int:
     """Maps an ip-string to a unique integer.
 
-    Arguments:
-        str_val (str): The string representation of an ip. Of form *.*.*.* for ipv4 or *::*:*:*:* for ipv6
+    Parameters:
+        str_val: The string representation of an ip. Of form *.*.*.* for ipv4 or *::*:*:*:* for ipv6
 
     Returns:
-        int_val (int): The integer representation of an ip. Must be in the range (0, 3.4028237e+38).
+        int_val: The integer representation of an ip. Must be in the range (0, 3.4028237e+38).
     """
     return int(netaddr.IPAddress(str_val))
 
@@ -40,11 +40,11 @@ def ip_to_int(str_val: str) -> int:
 def ip_version(str_val: str) -> int:
     """Returns the ip version (IPV4 or IPV6).
 
-    Arguments:
-        str_val (str): The string representation of an ip. Of form *.*.*.* for ipv4 or *::*:*:*:* for ipv6
+    Parameters:
+        str_val: The string representation of an ip. Of form *.*.*.* for ipv4 or *::*:*:*:* for ipv6
 
     Returns:
-        int_val (int): The ip version (Either 4 or 6 for IPv4/IPv6)
+        int_val: The ip version (Either 4 or 6 for IPv4/IPv6)
     """
     return int(netaddr.IPAddress(str_val).version)
 
@@ -124,12 +124,11 @@ def get_formatted_ws_endpoint_url(endpoint_url: Optional[str]) -> Optional[str]:
     """
     Returns a formatted websocket endpoint url.
 
-    Arguments:
-        endpoint_url (Optional[str]): The endpoint url to format.
+    Parameters:
+        endpoint_url: The endpoint url to format.
 
     Returns:
-        formatted_endpoint_url (Optional[str]): The formatted endpoint url. In the form of ws://<endpoint_url> or
-            wss://<endpoint_url>
+        formatted_endpoint_url: The formatted endpoint url. In the form of ws://<endpoint_url> or wss://<endpoint_url>
 
     Note: The port (or lack thereof) is left unchanged.
     """

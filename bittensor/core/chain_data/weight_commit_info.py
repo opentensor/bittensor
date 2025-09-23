@@ -25,8 +25,8 @@ class WeightCommitInfo:
         """
         Creates a WeightCommitInfo instance
 
-        Args:
-            data (tuple): Tuple containing ((AccountId,), (commit_data,), round_number)
+        Parameters:
+            data: Tuple containing ((AccountId,), (commit_data,), round_number)
 
         Returns:
             WeightCommitInfo: A new instance with the decoded data
@@ -48,8 +48,8 @@ class WeightCommitInfo:
         """
         Creates a WeightCommitInfo instance
 
-        Args:
-            data (tuple): Tuple containing ((AccountId,), (commit_block, ) (commit_data,), round_number)
+        Parameters:
+            data: Tuple containing ((AccountId,), (commit_block, ) (commit_data,), round_number)
 
         Returns:
             WeightCommitInfo: A new instance with the decoded data

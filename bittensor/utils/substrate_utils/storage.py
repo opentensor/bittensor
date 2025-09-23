@@ -56,7 +56,7 @@ class StorageKey:
         """
         Create a StorageKey instance providing raw storage key bytes
 
-        Args:
+        Parameters:
             data: bytes representation of the storage key
             runtime_config: RuntimeConfigurationObject
             metadata: GenericMetadataVersioned
@@ -105,7 +105,7 @@ class StorageKey:
         """
         Create a StorageKey instance providing storage function details
 
-        Args:
+        Parameters:
             pallet: name of pallet
             storage_function: name of storage function
             params: Optional list of parameters in case of a Mapped storage function
