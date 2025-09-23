@@ -160,7 +160,7 @@ def test_children(subtensor, alice_wallet, bob_wallet, dave_wallet):
     # turn off admin freeze window limit for testing
     assert sudo_set_admin_freeze_window_extrinsic(subtensor, alice_wallet, 0)
 
-    dave_subnet_netuid = subtensor.get_total_subnets()  # 2
+    dave_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
     set_tempo = 10  # affect to non-fast-blocks mode
 
     # Set cooldown
@@ -218,7 +218,7 @@ def test_children(subtensor, alice_wallet, bob_wallet, dave_wallet):
         )
 
     with pytest.raises(SubnetNotExists):
-        subtensor.set_children(
+        subtensor.extrinsics.set_children(
             alice_wallet,
             alice_wallet.hotkey.ss58_address,
             netuid=3,

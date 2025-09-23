@@ -1208,7 +1208,7 @@ def test_set_weights(subtensor, mocker, fake_wallet):
         wait_for_finalization=fake_wait_for_finalization,
         period=8,
         mechid=0,
-        raise_error=True,
+        raise_error=False,
     )
     assert result == expected_result
 
@@ -1933,10 +1933,6 @@ def test_reveal_weights_false(subtensor, fake_wallet, mocker):
     weights = [0.1, 0.2, 0.3, 0.4]
     salt = [4, 2, 2, 1]
 
-    expected_result = ExtrinsicResponse(
-        False,
-        "No attempt made. Perhaps it is too soon to reveal weights!",
-    )
     mocked_extrinsic = mocker.patch.object(
         subtensor_module, "reveal_mechanism_weights_extrinsic"
     )
@@ -1954,7 +1950,7 @@ def test_reveal_weights_false(subtensor, fake_wallet, mocker):
 
     # Assertion
     assert result == mocked_extrinsic.return_value
-    assert mocked_extrinsic.call_count == 5
+    assert mocked_extrinsic.call_count == 1
 
 
 def test_get_subnet_burn_cost_success(subtensor, mocker):
@@ -3061,9 +3057,11 @@ def test_set_weights_with_commit_reveal_enabled(subtensor, fake_wallet, mocker):
     mocked_commit_timelocked_mechanism_weights_extrinsic = mocker.patch.object(
         subtensor_module, "commit_timelocked_mechanism_weights_extrinsic"
     )
-    mocked_commit_timelocked_mechanism_weights_extrinsic.return_value = ExtrinsicResponse(
-        True,
-        "Weights committed successfully",
+    mocked_commit_timelocked_mechanism_weights_extrinsic.return_value = (
+        ExtrinsicResponse(
+            True,
+            "Weights committed successfully",
+        )
     )
     mocker.patch.object(subtensor, "blocks_since_last_update", return_value=181)
     mocker.patch.object(subtensor, "weights_rate_limit", return_value=180)
