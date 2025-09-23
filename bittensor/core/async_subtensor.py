@@ -1663,85 +1663,6 @@ class AsyncSubtensor(SubtensorMixin):
             result[hotkey_ss58_address] = commitment_message
         return result
 
-    # TODO: remove in SDKv10
-    async def get_current_weight_commit_info(
-        self,
-        netuid: int,
-        block: Optional[int] = None,
-        block_hash: Optional[str] = None,
-        reuse_block: bool = False,
-    ) -> list[tuple[str, str, int]]:
-        """
-        Retrieves CRV3 weight commit information for a specific subnet.
-
-        Parameters:
-            netuid: The unique identifier of the subnet.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
-
-        Returns:
-            A list of commit details, where each item contains:
-                - ss58_address: The address of the committer.
-                - commit_message: The commit message.
-                - reveal_round: The round when the commitment was revealed.
-
-            The list may be empty if there are no commits found.
-        """
-        deprecated_message(
-            message="The method `get_current_weight_commit_info` is deprecated and will be removed in version 10.0.0. "
-            "Use `get_current_weight_commit_info_v2` instead."
-        )
-        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        result = await self.substrate.query_map(
-            module="SubtensorModule",
-            storage_function="CRV3WeightCommits",
-            params=[netuid],
-            block_hash=block_hash,
-            reuse_block_hash=reuse_block,
-        )
-
-        commits = result.records[0][1] if result.records else []
-        return [WeightCommitInfo.from_vec_u8(commit) for commit in commits]
-
-    # TODO: remove in SDKv10
-    async def get_current_weight_commit_info_v2(
-        self,
-        netuid: int,
-        block: Optional[int] = None,
-        block_hash: Optional[str] = None,
-        reuse_block: bool = False,
-    ) -> list[tuple[str, int, str, int]]:
-        """
-        Retrieves CRV3 weight commit information for a specific subnet.
-
-        Parameters:
-            netuid: The unique identifier of the subnet.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
-
-        Returns:
-            A list of commit details, where each item contains:
-                - ss58_address: The address of the committer.
-                - commit_block: The block number when the commitment was made.
-                - commit_message: The commit message.
-                - reveal_round: The round when the commitment was revealed.
-
-            The list may be empty if there are no commits found.
-        """
-        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        result = await self.substrate.query_map(
-            module="SubtensorModule",
-            storage_function="CRV3WeightCommitsV2",
-            params=[netuid],
-            block_hash=block_hash,
-            reuse_block_hash=reuse_block,
-        )
-
-        commits = result.records[0][1] if result.records else []
-        return [WeightCommitInfo.from_vec_u8_v2(commit) for commit in commits]
-
     async def get_delegate_by_hotkey(
         self,
         hotkey_ss58: str,
@@ -2589,13 +2510,11 @@ class AsyncSubtensor(SubtensorMixin):
 
         return Balance.from_rao(int(stake)).set_unit(netuid=netuid)
 
-    # TODO: remove unused parameters in SDK.v10
+    # TODO: update related with fee calculation
     async def get_stake_add_fee(
         self,
         amount: Balance,
         netuid: int,
-        coldkey_ss58: str,
-        hotkey_ss58: str,
         block: Optional[int] = None,
     ) -> Balance:
         """
@@ -2604,8 +2523,6 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             amount: Amount of stake to add in TAO
             netuid: Netuid of subnet
-            coldkey_ss58: SS58 address of source coldkey
-            hotkey_ss58: SS58 address of destination hotkey
             block: Block number at which to perform the calculation
 
         Returns:
@@ -2822,13 +2739,11 @@ class AsyncSubtensor(SubtensorMixin):
         commits = result.records[0][1] if result.records else []
         return [WeightCommitInfo.from_vec_u8_v2(commit) for commit in commits]
 
-    # TODO: remove unused parameters in SDK.v10
+    # TODO: update related with fee calculation
     async def get_unstake_fee(
         self,
         amount: Balance,
         netuid: int,
-        coldkey_ss58: str,
-        hotkey_ss58: str,
         block: Optional[int] = None,
     ) -> Balance:
         """
@@ -2837,8 +2752,6 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             amount: Amount of stake to unstake in TAO
             netuid: Netuid of subnet
-            coldkey_ss58: SS58 address of source coldkey
-            hotkey_ss58: SS58 address of destination hotkey
             block: Block number at which to perform the calculation
 
         Returns:
@@ -2848,16 +2761,11 @@ class AsyncSubtensor(SubtensorMixin):
             amount=amount, netuid=netuid, block=block
         )
 
-    # TODO: remove unused parameters in SDK.v10
+    # TODO: update related with fee calculation
     async def get_stake_movement_fee(
         self,
         amount: Balance,
         origin_netuid: int,
-        origin_hotkey_ss58: str,
-        origin_coldkey_ss58: str,
-        destination_netuid: int,
-        destination_hotkey_ss58: str,
-        destination_coldkey_ss58: str,
         block: Optional[int] = None,
     ) -> Balance:
         """
@@ -2866,11 +2774,6 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             amount: Amount of stake to move in TAO
             origin_netuid: Netuid of source subnet
-            origin_hotkey_ss58: SS58 address of source hotkey
-            origin_coldkey_ss58: SS58 address of source coldkey
-            destination_netuid: Netuid of destination subnet
-            destination_hotkey_ss58: SS58 address of destination hotkey
-            destination_coldkey_ss58: SS58 address of destination coldkey
             block: Block number at which to perform the calculation
 
         Returns:
@@ -3200,6 +3103,7 @@ class AsyncSubtensor(SubtensorMixin):
         )
         return getattr(result, "value", None)
 
+    # TODO: update related with fee calculation
     async def get_transfer_fee(
         self, wallet: "Wallet", dest: str, value: Balance, keep_alive: bool = True
     ) -> Balance:
