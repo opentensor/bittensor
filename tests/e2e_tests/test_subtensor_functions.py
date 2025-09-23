@@ -100,9 +100,10 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
     alice_balance_post_sn = subtensor.wallets.get_balance(
         alice_wallet.coldkeypub.ss58_address
     )
-    assert alice_balance_post_sn + pre_subnet_creation_cost + register_fee == initial_alice_balance, (
-        "Balance is the same even after registering a subnet."
-    )
+    assert (
+        alice_balance_post_sn + pre_subnet_creation_cost + register_fee
+        == initial_alice_balance
+    ), "Balance is the same even after registering a subnet."
 
     # Subnet 2 is added after registration
     assert subtensor.subnets.get_subnets() == [0, 1, 2]

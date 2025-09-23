@@ -1,10 +1,15 @@
 from typing import TYPE_CHECKING, Optional, Union
-
+from bittensor.core.types import ExtrinsicResponse
 from bittensor_drand import get_encrypted_commit
 
 from bittensor.core.settings import version_as_int
 from bittensor.core.types import Salt, UIDs, Weights
-from bittensor.utils import unlock_key, get_mechid_storage_index
+from bittensor.utils import (
+    unlock_key,
+    get_mechid_storage_index,
+    get_function_name,
+    format_error_message,
+)
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import (
     convert_and_normalize_weights_and_uids,
@@ -29,7 +34,7 @@ def commit_mechanism_weights_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """Commits the weights for a specific sub subnet on the Bittensor blockchain using the provided wallet.
 
     Parameters:
@@ -49,9 +54,7 @@ def commit_mechanism_weights_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        tuple[bool, str]:
-            `True` if the extrinsic executed successfully, `False` otherwise.
-            `message` is a string value describing the success or potential error.
+        ExtrinsicResponse: The result object of the extrinsic execution.
     """
     try:
         signing_keypair = "hotkey"
@@ -60,7 +63,9 @@ def commit_mechanism_weights_extrinsic(
         )
         if not unlock.success:
             logging.error(unlock.message)
-            return False, unlock.message
+            return ExtrinsicResponse(
+                False, unlock.message, extrinsic_function=get_function_name()
+            )
 
         storage_index = get_mechid_storage_index(netuid=netuid, mechid=mechid)
         # Generate the hash of the weights
@@ -82,7 +87,7 @@ def commit_mechanism_weights_extrinsic(
                 "commit_hash": commit_hash,
             },
         )
-        success, message = subtensor.sign_and_send_extrinsic(
+        response = subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
@@ -94,19 +99,24 @@ def commit_mechanism_weights_extrinsic(
             raise_error=raise_error,
         )
 
-        if success:
-            logging.debug(message)
-            return True, message
+        if response.success:
+            logging.debug(response.message)
+            return response
 
-        logging.error(message)
-        return False, message
+        logging.error(response.message)
+        return response
 
     except Exception as error:
         if raise_error:
             raise error
-        logging.error(str(error))
 
-        return False, str(error)
+        logging.error(str(error))
+        return ExtrinsicResponse(
+            success=False,
+            message=format_error_message(error),
+            error=error,
+            extrinsic_function=get_function_name(),
+        )
 
 
 def commit_timelocked_mechanism_weights_extrinsic(
@@ -123,7 +133,7 @@ def commit_timelocked_mechanism_weights_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """Commits the weights for a specific sub subnet on the Bittensor blockchain using the provided wallet.
 
     Parameters:
@@ -144,9 +154,7 @@ def commit_timelocked_mechanism_weights_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        tuple[bool, str]:
-            `True` if the extrinsic executed successfully, `False` otherwise.
-            `message` is a string value describing the success or potential error.
+        ExtrinsicResponse: The result object of the extrinsic execution.
     """
     try:
         signing_keypair = "hotkey"
@@ -155,7 +163,9 @@ def commit_timelocked_mechanism_weights_extrinsic(
         )
         if not unlock.success:
             logging.error(unlock.message)
-            return False, unlock.message
+            return ExtrinsicResponse(
+                False, unlock.message, extrinsic_function=get_function_name()
+            )
 
         uids, weights = convert_and_normalize_weights_and_uids(uids, weights)
 
@@ -192,7 +202,7 @@ def commit_timelocked_mechanism_weights_extrinsic(
                 "commit_reveal_version": commit_reveal_version,
             },
         )
-        success, message = subtensor.sign_and_send_extrinsic(
+        response = subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
@@ -204,19 +214,28 @@ def commit_timelocked_mechanism_weights_extrinsic(
             raise_error=raise_error,
         )
 
-        if success:
-            logging.debug(message)
-            return True, f"reveal_round:{reveal_round}"
+        if response.success:
+            logging.debug(response.message)
+            response.data = {
+                "commit_for_reveal": commit_for_reveal,
+                "reveal_round": reveal_round,
+            }
+            return response
 
-        logging.error(message)
-        return False, message
+        logging.error(response.message)
+        return response
 
     except Exception as error:
         if raise_error:
             raise error
-        logging.error(str(error))
 
-        return False, str(error)
+        logging.error(str(error))
+        return ExtrinsicResponse(
+            success=False,
+            message=format_error_message(error),
+            error=error,
+            extrinsic_function=get_function_name(),
+        )
 
 
 def reveal_mechanism_weights_extrinsic(
@@ -232,7 +251,7 @@ def reveal_mechanism_weights_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """
     Reveals the weights for a specific sub subnet on the Bittensor blockchain using the provided wallet.
 
@@ -253,9 +272,7 @@ def reveal_mechanism_weights_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        tuple[bool, str]:
-            `True` if the extrinsic executed successfully, `False` otherwise.
-            `message` is a string value describing the success or potential error.
+        ExtrinsicResponse: The result object of the extrinsic execution.
     """
     try:
         signing_keypair = "hotkey"
@@ -264,7 +281,9 @@ def reveal_mechanism_weights_extrinsic(
         )
         if not unlock.success:
             logging.error(unlock.message)
-            return False, unlock.message
+            return ExtrinsicResponse(
+                False, unlock.message, extrinsic_function=get_function_name()
+            )
 
         uids, weights = convert_and_normalize_weights_and_uids(uids, weights)
 
@@ -280,7 +299,7 @@ def reveal_mechanism_weights_extrinsic(
                 "version_key": version_key,
             },
         )
-        success, message = subtensor.sign_and_send_extrinsic(
+        response = subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
@@ -292,19 +311,24 @@ def reveal_mechanism_weights_extrinsic(
             raise_error=raise_error,
         )
 
-        if success:
-            logging.debug(message)
-            return True, message
+        if response.success:
+            logging.debug(response.message)
+            return response
 
-        logging.error(message)
-        return False, message
+        logging.error(response.message)
+        return response
 
     except Exception as error:
         if raise_error:
             raise error
-        logging.error(str(error))
 
-        return False, str(error)
+        logging.error(str(error))
+        return ExtrinsicResponse(
+            success=False,
+            message=format_error_message(error),
+            error=error,
+            extrinsic_function=get_function_name(),
+        )
 
 
 def set_mechanism_weights_extrinsic(
@@ -319,7 +343,7 @@ def set_mechanism_weights_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """
     Sets the passed weights in the chain for hotkeys in the sub-subnet of the passed subnet.
 
@@ -339,9 +363,7 @@ def set_mechanism_weights_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        tuple[bool, str]:
-            `True` if the extrinsic executed successfully, `False` otherwise.
-            `message` is a string value describing the success or potential error.
+        ExtrinsicResponse: The result object of the extrinsic execution.
     """
     try:
         signing_keypair = "hotkey"
@@ -350,7 +372,9 @@ def set_mechanism_weights_extrinsic(
         )
         if not unlock.success:
             logging.error(unlock.message)
-            return False, unlock.message
+            return ExtrinsicResponse(
+                False, unlock.message, extrinsic_function=get_function_name()
+            )
 
         # Convert, reformat and normalize.
         uids, weights = convert_and_normalize_weights_and_uids(uids, weights)
@@ -366,7 +390,7 @@ def set_mechanism_weights_extrinsic(
                 "version_key": version_key,
             },
         )
-        success, message = subtensor.sign_and_send_extrinsic(
+        response = subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
@@ -378,16 +402,21 @@ def set_mechanism_weights_extrinsic(
             raise_error=raise_error,
         )
 
-        if success:
+        if response.success:
             logging.debug("Successfully set weights and Finalized.")
-            return True, message
+            return response
 
-        logging.error(message)
-        return False, message
+        logging.error(response.message)
+        return response
 
     except Exception as error:
         if raise_error:
             raise error
-        logging.error(str(error))
 
-        return False, str(error)
+        logging.error(str(error))
+        return ExtrinsicResponse(
+            success=False,
+            message=format_error_message(error),
+            error=error,
+            extrinsic_function=get_function_name(),
+        )
