@@ -123,7 +123,6 @@ from bittensor.utils.liquidity import (
     LiquidityPosition,
 )
 from bittensor.utils.weight_utils import (
-    convert_uids_and_weights,
     U16_MAX,
 )
 
@@ -4660,6 +4659,7 @@ class AsyncSubtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            mechid: The subnet mechanism unique identifier.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -4976,11 +4976,13 @@ class AsyncSubtensor(SubtensorMixin):
         uids: UIDs,
         weights: Weights,
         salt: Salt,
+        max_retries: int = 5,
         version_key: int = version_as_int,
         period: Optional[int] = 16,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        mechid: int = 0,
     ) -> ExtrinsicResponse:
         """
         Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
@@ -4992,13 +4994,14 @@ class AsyncSubtensor(SubtensorMixin):
             uids: NumPy array of neuron UIDs for which weights are being revealed.
             weights: NumPy array of weight values corresponding to each UID.
             salt: NumPy array of salt values corresponding to the hash function.
-            version_key: Version key for compatibility with the network.
-            wait_for_inclusion: Waits for the transaction to be included in a block.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
             max_retries: The number of maximum attempts to reveal weights.
+            version_key: Version key for compatibility with the network.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
             mechid: The subnet mechanism unique identifier.
 
         Returns:
@@ -5362,6 +5365,7 @@ class AsyncSubtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            mechid: The subnet mechanism unique identifier.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
