@@ -1,6 +1,6 @@
 """
-This module defines the `DynamicInfo` data class and associated methods for handling and decoding
-dynamic information in the Bittensor network.
+This module defines the `DynamicInfo` data class and associated methods for handling and decoding dynamic information in
+the Bittensor network.
 """
 
 from dataclasses import dataclass
@@ -148,7 +148,7 @@ class DynamicInfo(InfoBase):
         """
         Returns an estimate of how much Alpha would a staker receive if they stake their tao using the current pool state.
 
-        Arguments:
+        Parameters:
             tao: Amount of TAO to stake.
             percentage: percentage
 
@@ -203,7 +203,7 @@ class DynamicInfo(InfoBase):
         """
         Returns an estimate of how much TAO would a staker receive if they unstake their alpha using the current pool state.
 
-        Args:
+        Parameters:
             alpha: Amount of Alpha to stake.
             percentage: percentage
 

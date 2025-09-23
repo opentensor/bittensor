@@ -32,11 +32,11 @@ def legacy_torch_api_compat(func):
     """
     Convert function operating on numpy Input&Output to legacy torch Input&Output API if `use_torch()` is True.
 
-    Args:
-        func (function): Function with numpy Input/Output to be decorated.
+    Parameters:
+        func: Function with numpy Input/Output to be decorated.
 
     Returns:
-        decorated (function): Decorated function.
+        decorated: Decorated function.
     """
 
     @functools.wraps(func)
@@ -115,9 +115,9 @@ def _create_seal_hash(block_and_hotkey_hash_bytes: bytes, nonce: int) -> bytes:
     block and hotkey hash bytes. The result is then hashed using SHA-256 followed by the Keccak-256 algorithm to produce
     the final seal hash.
 
-    Args:
-        block_and_hotkey_hash_bytes (bytes): The combined hash bytes of the block and hotkey.
-        nonce (int): The nonce value used for hashing.
+    Parameters:
+        block_and_hotkey_hash_bytes: The combined hash bytes of the block and hotkey.
+        nonce: The nonce value used for hashing.
 
     Returns:
         The resulting seal hash.
@@ -185,28 +185,28 @@ class _SolverBase(mp.Process):
     """
     A process that solves the registration PoW problem.
 
-    Args:
-        proc_num (int): The number of the process being created.
-        num_proc (int): The total number of processes running.
-        update_interval (int): The number of nonces to try to solve before checking for a new block.
-        finished_queue (multiprocessing.Queue): The queue to put the process number when a process finishes each
-            update_interval. Used for calculating the average time per update_interval across all processes.
-        solution_queue (multiprocessing.Queue): The queue to put the solution the process has found during the pow solve.
-        stopEvent (multiprocessing.Event): The event to set by the main process when all the solver processes should
-            stop. The solver process will check for the event after each update_interval. The solver process will stop
-            when the event is set. Used to stop the solver processes when a solution is found.
-        curr_block (multiprocessing.Array): The array containing this process's current block hash. The main process
-            will set the array to the new block hash when a new block is finalized in the network. The solver process
-            will get the new block hash from this array when newBlockEvent is set.
-        curr_block_num (multiprocessing.Value): The value containing this process's current block number. The main
-            process will set the value to the new block number when a new block is finalized in the network. The
-            solver process will get the new block number from this value when newBlockEvent is set.
-        curr_diff (multiprocessing.Array): The array containing this process's current difficulty. The main process will
-            set the array to the new difficulty when a new block is finalized in the network. The solver process will
-            get the new difficulty from this array when newBlockEvent is set.
-        check_block (multiprocessing.Lock): The lock to prevent this process from getting the new block data while the
-            main process is updating the data.
-        limit (int): The limit of the pow solve for a valid solution.
+    Parameters:
+        proc_num: The number of the process being created.
+        num_proc: The total number of processes running.
+        update_interval: The number of nonces to try to solve before checking for a new block.
+        finished_queue: The queue to put the process number when a process finishes each update_interval. Used for
+            calculating the average time per update_interval across all processes.
+        solution_queue: The queue to put the solution the process has found during the pow solve.
+        stopEvent: The event to set by the main process when all the solver processes should stop. The solver process
+            will check for the event after each update_interval. The solver process will stop when the event is set.
+            Used to stop the solver processes when a solution is found.
+        curr_block: The array containing this process's current block hash. The main process will set the array to the
+            new block hash when a new block is finalized in the network. The solver process will get the new block hash
+            from this array when newBlockEvent is set.
+        curr_block_num: The value containing this process's current block number. The main process will set the value to
+            the new block number when a new block is finalized in the network. The solver process will get the new block
+            number from this value when newBlockEvent is set.
+        curr_diff: The array containing this process's current difficulty. The main process will set the array to the
+            new difficulty when a new block is finalized in the network. The solver process will get the new difficulty
+            from this array when newBlockEvent is set.
+        check_block: The lock to prevent this process from getting the new block data while the main process is updating
+            the data.
+        limit: The limit of the pow solve for a valid solution.
     """
 
     proc_num: int
@@ -471,7 +471,7 @@ def update_curr_block(
     This function updates the current block and its difficulty in a thread-safe manner. It sets the current block
     number, hashes the block with the hotkey, updates the current block bytes, and packs the difficulty.
 
-    Arguments:
+    Parameters:
         curr_diff: Shared array to store the current difficulty.
         curr_block: Shared array to store the current block data.
         curr_block_num: Shared value to store the current block number.
@@ -609,22 +609,21 @@ def _solve_for_difficulty_fast(
     """
     Solves the POW for registration using multiprocessing.
 
-    Args:
-        subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance.
-        wallet (bittensor_wallet.Wallet): wallet to use for registration.
-        netuid (int): The netuid of the subnet to register to.
-        output_in_place (bool): If true, prints the status in place. Otherwise, prints the status on a new line.
-        num_processes (int): Number of processes to use.
-        update_interval (int): Number of nonces to solve before updating block information.
-        n_samples (int): The number of samples of the hash_rate to keep for the EWMA.
-        alpha_ (float): The alpha for the EWMA for the hash_rate calculation.
-        log_verbose (bool): If true, prints more verbose logging of the registration metrics.
+    Parameters:
+        subtensor: Subtensor instance.
+        wallet: wallet to use for registration.
+        netuid: The netuid of the subnet to register to.
+        output_in_place: If true, prints the status in place. Otherwise, prints the status on a new line.
+        num_processes: Number of processes to use.
+        update_interval: Number of nonces to solve before updating block information.
+        n_samples: The number of samples of the hash_rate to keep for the EWMA.
+        alpha_: The alpha for the EWMA for the hash_rate calculation.
+        log_verbose: If true, prints more verbose logging of the registration metrics.
 
-    Note: The hash rate is calculated as an exponentially weighted moving average in order to make the measure more
-        robust.
-    Note: We can also modify the update interval to do smaller blocks of work, while still updating the block
-        information after a different number of nonces, to increase the transparency of the process while still
-        keeping the speed.
+    Note:
+        The hash rate is calculated as an exponentially weighted moving average in order to make the measure more robust.
+        We can also modify the update interval to do smaller blocks of work, while still updating the block information
+        after a different number of nonces, to increase the transparency of the process while still keeping the speed.
     """
     if num_processes is None:
         # get the number of allowed processes for this process
@@ -800,15 +799,15 @@ def _get_block_with_retry(subtensor: "Subtensor", netuid: int) -> tuple[int, int
     """
     Gets the current block number, difficulty, and block hash from the substrate node.
 
-    Args:
-        subtensor (bittensor.core.subtensor.Subtensor): The subtensor instance.
-        netuid (int): The netuid of the network to get the block number, difficulty, and block hash from.
+    Parameters:
+        subtensor: The subtensor instance.
+        netuid: The netuid of the network to get the block number, difficulty, and block hash from.
 
     Returns:
         tuple[int, int, bytes]
-        block_number (int): The current block number.
-        difficulty (int): The current difficulty of the subnet.
-        block_hash (bytes): The current block hash.
+            - block_number: The current block number.
+            - difficulty: The current difficulty of the subnet.
+            - block_hash: The current block hash.
 
     Raises:
         Exception: If the block hash is None.
@@ -842,21 +841,21 @@ def _check_for_newest_block_and_update(
     """
     Checks for a new block and updates the current block information if a new block is found.
 
-    Args:
-        subtensor (bittensor.core.subtensor.Subtensor): The subtensor object to use for getting the current block.
-        netuid (int): The netuid to use for retrieving the difficulty.
-        old_block_number (int): The old block number to check against.
-        hotkey_bytes (bytes): The bytes of the hotkey's pubkey.
-        curr_diff (multiprocessing.Array): The current difficulty as a multiprocessing array.
-        curr_block (multiprocessing.Array): Where the current block is stored as a multiprocessing array.
-        curr_block_num (multiprocessing.Value): Where the current block number is stored as a multiprocessing value.
-        update_curr_block_ (typing.Callable): A function that updates the current block.
-        check_block (multiprocessing.Lock): A mp lock that is used to check for a new block.
-        solvers (list[bittensor.utils.registration.Solver]): A list of solvers to update the current block for.
-        curr_stats (bittensor.utils.registration.RegistrationStatistics): The current registration statistics to update.
+    Parameters:
+        subtensor: Subtensor instance.
+        netuid: The netuid to use for retrieving the difficulty.
+        old_block_number: The old block number to check against.
+        hotkey_bytes: The bytes of the hotkey's pubkey.
+        curr_diff: The current difficulty as a multiprocessing array.
+        curr_block: Where the current block is stored as a multiprocessing array.
+        curr_block_num: Where the current block number is stored as a multiprocessing value.
+        update_curr_block_: A function that updates the current block.
+        check_block: A mp lock that is used to check for a new block.
+        solvers: A list of solvers to update the current block for.
+        curr_stats: The current registration statistics to update.
 
     Returns:
-        (int) The current block number.
+        The current block number.
     """
     block_number = subtensor.get_current_block()
     if block_number != old_block_number:
@@ -905,20 +904,20 @@ def _solve_for_difficulty_fast_cuda(
     """
     Solves the registration fast using CUDA.
 
-    Args:
-        subtensor (bittensor.core.subtensor.Subtensor): The subtensor node to grab blocks.
-        wallet (bittensor_wallet.Wallet): The wallet to register.
-        netuid (int): The netuid of the subnet to register to.
-        output_in_place (bool) If true, prints the output in place, otherwise prints to new lines.
-        update_interval (int): The number of nonces to try before checking for more blocks.
-        tpb (int): The number of threads per block. CUDA param that should match the GPU capability
-        dev_id (Union[list[int], int]): The CUDA device IDs to execute the registration on, either a single device or a
-            list of devices.
-        n_samples (int): The number of samples of the hash_rate to keep for the EWMA.
-        alpha_ (float): The alpha for the EWMA for the hash_rate calculation.
-        log_verbose (bool): If true, prints more verbose logging of the registration metrics.
+    Parameters:
+        subtensor: Subtensor instance.
+        wallet: Bittensor Wallet instance.
+        netuid: The netuid of the subnet to register to.
+        output_in_place: If true, prints the output in place, otherwise prints to new lines.
+        update_interval: The number of nonces to try before checking for more blocks.
+        tpb: The number of threads per block. CUDA param that should match the GPU capability
+        dev_id: The CUDA device IDs to execute the registration on, either a single device or a list of devices.
+        n_samples: The number of samples of the hash_rate to keep for the EWMA.
+        alpha_: The alpha for the EWMA for the hash_rate calculation.
+        log_verbose: If true, prints more verbose logging of the registration metrics.
 
-    Note: The hash rate is calculated as an exponentially weighted moving average in order to make the measure more robust.
+    Note:
+        The hash rate is calculated as an exponentially weighted moving average in order to make the measure more robust.
     """
     if isinstance(dev_id, int):
         dev_id = [dev_id]
@@ -1131,25 +1130,23 @@ def create_pow(
     """
     Creates a proof of work for the given subtensor and wallet.
 
-    Args:
-        subtensor (bittensor.core.subtensor.Subtensor): The subtensor to create a proof of work for.
-        wallet (bittensor_wallet.Wallet): The wallet to create a proof of work for.
-        netuid (int): The netuid for the subnet to create a proof of work for.
-        output_in_place (bool): If true, prints the progress of the proof of work to the console in-place. Meaning the
-            progress is printed on the same lines. Default is ``True``.
-        cuda (bool): If true, uses CUDA to solve the proof of work. Default is ``False``.
-        dev_id (Union[List[int], int]): The CUDA device id(s) to use. If cuda is true and dev_id is a list, then
-            multiple CUDA devices will be used to solve the proof of work. Default is ``0``.
-        tpb (int): The number of threads per block to use when solving the proof of work. Should be a multiple of 32.
-            Default is ``256``.
-        num_processes (Optional[int]): The number of processes to use when solving the proof of work. If None, then the
-            number of processes is equal to the number of CPU cores. Default is None.
-        update_interval (Optional[int]): The number of nonces to run before checking for a new block. Default is ``None``.
-        log_verbose (bool): If true, prints the progress of the proof of work more verbosely. Default is ``False``.
+    Parameters:
+        subtensor: The Subtensor instance.
+        wallet: The Bittensor Wallet instance.
+        netuid: The netuid for the subnet to create a proof of work for.
+        output_in_place: If true, prints the progress of the proof of work to the console in-place. Meaning the progress
+            is printed on the same lines.
+        cuda: If true, uses CUDA to solve the proof of work.
+        dev_id: The CUDA device id(s) to use. If cuda is true and dev_id is a list, then multiple CUDA devices will be
+            used to solve the proof of work.
+        tpb: The number of threads per block to use when solving the proof of work. Should be a multiple of 32.
+        num_processes: The number of processes to use when solving the proof of work. If None, then the number of
+            processes is equal to the number of CPU cores.
+        update_interval: The number of nonces to run before checking for a new block.
+        log_verbose: If true, prints the progress of the proof of work more verbosely.
 
     Returns:
-        Optional[Dict[str, Any]]: The proof of work solution or None if the wallet is already registered or there is a
-            different error.
+        The proof of work solution or None if the wallet is already registered or there is a different error.
 
     Raises:
        ValueError: If the subnet does not exist.

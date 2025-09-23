@@ -14,9 +14,9 @@ class ScheduledColdkeySwapInfo(InfoBase):
     The `ScheduledColdkeySwapInfo` class is a dataclass representing information about scheduled cold key swaps.
 
     Attributes:
-        old_coldkey (str): The old cold key before the swap.
-        new_coldkey (str): The new cold key after the swap.
-        arbitration_block (int): The block number at which the arbitration of the swap will take place.
+        old_coldkey: The old cold key before the swap.
+        new_coldkey: The new cold key after the swap.
+        arbitration_block: The block number at which the arbitration of the swap will take place.
     """
 
     old_coldkey: str

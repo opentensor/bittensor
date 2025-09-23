@@ -43,14 +43,14 @@ def from_scale_encoding(
     """
     Decodes input_ data from SCALE encoding based on the specified type name and modifiers.
 
-    Args:
-        input_ (Union[List[int], bytes, ScaleBytes]): The input_ data to decode.
-        type_name (ChainDataType): The type of data being decoded.
-        is_vec (bool): Whether the data is a vector of the specified type. Default is ``False``.
-        is_option (bool): Whether the data is an optional value of the specified type. Default is ``False``.
+    Parameters:
+        input_: The input_ data to decode.
+        type_name: The type of data being decoded.
+        is_vec: Whether the data is a vector of the specified type.
+        is_option: Whether the data is an optional value of the specified type.
 
     Returns:
-        Optional[dict]: The decoded data as a dictionary, or ``None`` if the decoding fails.
+        The decoded data as a dictionary, or ``None`` if the decoding fails.
     """
     type_string = type_name.name
     if type_name == ChainDataType.DelegatedInfo:
@@ -70,12 +70,12 @@ def from_scale_encoding_using_type_string(
     """
     Decodes SCALE encoded data to a dictionary based on the provided type string.
 
-    Args:
-        input_ (Union[List[int], bytes, ScaleBytes]): The SCALE encoded input data.
-        type_string (str): The type string defining the structure of the data.
+    Parameters:
+        input_: The SCALE encoded input data.
+        type_string: The type string defining the structure of the data.
 
     Returns:
-        Optional[dict]: The decoded data as a dictionary, or ``None`` if the decoding fails.
+        The decoded data as a dictionary, or ``None`` if the decoding fails.
 
     Raises:
         TypeError: If the input_ is not a list[int], bytes, or ScaleBytes.
@@ -105,8 +105,8 @@ def decode_account_id(account_id_bytes: Union[bytes, str]) -> str:
     """
     Decodes an AccountId from bytes to a Base64 string using SS58 encoding.
 
-    Args:
-        account_id_bytes (bytes): The AccountId in bytes that needs to be decoded.
+    Parameters:
+        account_id_bytes: The AccountId in bytes that needs to be decoded.
 
     Returns:
         str: The decoded AccountId as a Base64 string.
@@ -122,8 +122,8 @@ def process_stake_data(stake_data: list) -> dict:
     """
     Processes stake data to decode account IDs and convert stakes from rao to Balance objects.
 
-    Args:
-        stake_data (list): A list of tuples where each tuple contains an account ID in bytes and a stake in rao.
+    Parameters:
+        stake_data: A list of tuples where each tuple contains an account ID in bytes and a stake in rao.
 
     Returns:
         dict: A dictionary with account IDs as keys and their corresponding Balance objects as values.
@@ -146,8 +146,8 @@ def decode_block(data: bytes) -> int:
     """
     Decode the block data from the given input if it is not None.
 
-    Arguments:
-        data (bytes): The block data to decode.
+    Parameters:
+        data: The block data to decode.
 
     Returns:
         int: The decoded block.
@@ -159,11 +159,11 @@ def decode_revealed_commitment(encoded_data) -> tuple[int, str]:
     """
     Decode the revealed commitment data from the given input if it is not None.
 
-    Arguments:
-        encoded_data (tuple[bytes, int]): A tuple containing the revealed message and the block number.
+    Parameters:
+        encoded_data: A tuple containing the revealed message and the block number.
 
     Returns:
-        tuple[int, str]: A tuple containing the revealed block number and decoded commitment message.
+        A tuple containing the revealed block number and decoded commitment message.
     """
 
     def scale_decode_offset(data: bytes) -> int:

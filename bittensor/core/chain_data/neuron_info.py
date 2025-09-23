@@ -18,29 +18,29 @@ class NeuronInfo(InfoBase):
     """Represents the metadata of a neuron including keys, UID, stake, rankings, and other attributes.
 
     Attributes:
-        hotkey (str): The hotkey associated with the neuron.
-        coldkey (str): The coldkey associated with the neuron.
-        uid (int): The unique identifier for the neuron.
-        netuid (int): The network unique identifier for the neuron.
-        active (int): The active status of the neuron.
-        stake (Balance): The balance staked to this neuron.
-        stake_dict (dict[str, Balance]): A dictionary mapping coldkey to the amount staked.
-        total_stake (Balance): The total amount of stake.
-        rank (float): The rank score of the neuron.
-        emission (float): The emission rate.
-        incentive (float): The incentive value.
-        consensus (float): The consensus score.
-        trust (float): The trust score.
-        validator_trust (float): The validation trust score.
-        dividends (float): The dividends value.
-        last_update (int): The timestamp of the last update.
-        validator_permit (bool): Validator permit status.
-        weights (list[tuple[int]]): List of weights associated with the neuron.
-        bonds (list[list[int]]): List of bonds associated with the neuron.
-        pruning_score (int): The pruning score of the neuron.
-        prometheus_info (Optional[PrometheusInfo]): Information related to Prometheus.
-        axon_info (Optional[AxonInfo]): Information related to Axon.
-        is_null (bool): Indicator if this is a null neuron.
+        hotkey: The hotkey associated with the neuron.
+        coldkey: The coldkey associated with the neuron.
+        uid: The unique identifier for the neuron.
+        netuid: The network unique identifier for the neuron.
+        active: The active status of the neuron.
+        stake: The balance staked to this neuron.
+        stake_dict: A dictionary mapping coldkey to the amount staked.
+        total_stake: The total amount of stake.
+        rank: The rank score of the neuron.
+        emission: The emission rate.
+        incentive: The incentive value.
+        consensus: The consensus score.
+        trust: The trust score.
+        validator_trust: The validation trust score.
+        dividends: The dividends value.
+        last_update: The timestamp of the last update.
+        validator_permit: Validator permit status.
+        weights: List of weights associated with the neuron.
+        bonds: List of bonds associated with the neuron.
+        pruning_score: The pruning score of the neuron.
+        prometheus_info: Information related to Prometheus.
+        axon_info: Information related to Axon.
+        is_null: Indicator if this is a null neuron.
     """
 
     hotkey: str
@@ -78,15 +78,15 @@ class NeuronInfo(InfoBase):
         """
         Creates an instance of NeuronInfo from NeuronInfoLite and dictionaries of weights and bonds.
 
-        Args:
-            neuron_lite (NeuronInfoLite): A lite version of the neuron containing basic attributes.
-            weights_as_dict (dict[int, list[tuple[int, int]]]): A dictionary where the key is the UID and the value is
-                a list of weight tuples associated with the neuron.
-            bonds_as_dict (dict[int, list[tuple[int, int]]]): A dictionary where the key is the UID and the value is a
-                list of bond tuples associated with the neuron.
+        Parameters:
+            neuron_lite: A lite version of the neuron containing basic attributes.
+            weights_as_dict: A dictionary where the key is the UID and the value is a list of weight tuples associated
+                with the neuron.
+            bonds_as_dict: A dictionary where the key is the UID and the value is a list of bond tuples associated with
+                the neuron.
 
         Returns:
-            NeuronInfo: An instance of NeuronInfo populated with the provided weights and bonds.
+            An instance of NeuronInfo populated with the provided weights and bonds.
         """
         n_dict = neuron_lite.__dict__
         n_dict["weights"] = weights_as_dict.get(neuron_lite.uid, [])
