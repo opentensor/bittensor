@@ -81,7 +81,7 @@ def check_version(timeout: int = 15):
     Raises a VersionCheckError if the version check fails.
 
     Parameters:
-        timeout: The timeout for the request to PyPI in seconds. Default is ``15``.
+        timeout: The timeout for the request to PyPI in seconds.
     """
 
     try:

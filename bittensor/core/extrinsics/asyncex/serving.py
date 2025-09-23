@@ -144,7 +144,6 @@ async def serve_axon_extrinsic(
         netuid (int): The ``netuid`` being served on.
         axon (bittensor.core.axon.Axon): Axon to serve.
         certificate (bittensor.utils.Certificate): Certificate to use for TLS. If ``None``, no TLS will be used.
-            Defaults to ``None``.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
@@ -220,7 +219,7 @@ async def publish_metadata_extrinsic(
             algorithm used for the data.
         data: The actual metadata content to be published. This should be formatted or hashed
             according to the ``type`` specified. (Note: max ``str`` length is 128 bytes for ``'Raw0-128'``.)
-        reset_bonds: If `True`, the function will reset the bonds for the neuron. Defaults to `False`.
+        reset_bonds: If `True`, the function will reset the bonds for the neuron.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
