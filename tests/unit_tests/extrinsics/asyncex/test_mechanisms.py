@@ -1,5 +1,6 @@
 import pytest
 from bittensor.core.extrinsics.asyncex import mechanism
+from bittensor.core.types import ExtrinsicResponse
 
 
 @pytest.mark.asyncio
@@ -23,7 +24,7 @@ async def test_commit_mechanism_weights_extrinsic(mocker, subtensor, fake_wallet
     mocked_generate_weight_hash = mocker.patch.object(mechanism, "generate_weight_hash")
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=(True, "")
+        subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, "")
     )
 
     # Call
@@ -113,7 +114,7 @@ async def test_commit_timelocked_mechanism_weights_extrinsic(
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
-        return_value=(
+        return_value=ExtrinsicResponse(
             True,
             f"reveal_round:{mocked_get_encrypted_commit.return_value[1]}",
         ),
@@ -196,7 +197,7 @@ async def test_reveal_mechanism_weights_extrinsic(mocker, subtensor, fake_wallet
     )
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=(True, "")
+        subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, "")
     )
 
     # Call
@@ -265,7 +266,7 @@ async def test_mechanism_sub_weights_extrinsic(mocker, subtensor, fake_wallet):
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
-        return_value=(
+        return_value=ExtrinsicResponse(
             True,
             "",
         ),
