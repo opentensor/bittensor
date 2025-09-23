@@ -4,6 +4,7 @@ from typing import Optional, Sequence, TYPE_CHECKING
 from async_substrate_interface.errors import SubstrateRequestException
 
 from bittensor.core.extrinsics.utils import get_old_stakes
+from bittensor.core.types import UIDs
 from bittensor.utils import unlock_key, format_error_message
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -219,7 +220,7 @@ async def add_stake_multiple_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
     hotkey_ss58s: list[str],
-    netuids: list[int],
+    netuids: UIDs,
     old_balance: Optional[Balance] = None,
     amounts: Optional[list[Balance]] = None,
     wait_for_inclusion: bool = True,
