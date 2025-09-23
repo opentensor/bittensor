@@ -4004,8 +4004,6 @@ def test_get_stake_add_fee(subtensor, mocker):
     result = subtensor.get_stake_add_fee(
         amount=amount,
         netuid=netuid,
-        coldkey_ss58=mocker.Mock(),
-        hotkey_ss58=mocker.Mock(),
     )
 
     # Asserts
@@ -4028,8 +4026,6 @@ def test_get_unstake_fee(subtensor, mocker):
     result = subtensor.get_unstake_fee(
         amount=amount,
         netuid=netuid,
-        coldkey_ss58=mocker.Mock(),
-        hotkey_ss58=mocker.Mock(),
     )
 
     # Asserts
@@ -4052,11 +4048,6 @@ def test_get_stake_movement_fee(subtensor, mocker):
     result = subtensor.get_stake_movement_fee(
         amount=amount,
         origin_netuid=netuid,
-        origin_hotkey_ss58=mocker.Mock(),
-        origin_coldkey_ss58=mocker.Mock(),
-        destination_netuid=mocker.Mock(),
-        destination_hotkey_ss58=mocker.Mock(),
-        destination_coldkey_ss58=mocker.Mock(),
     )
 
     # Asserts

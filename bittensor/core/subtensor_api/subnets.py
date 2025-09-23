@@ -19,7 +19,6 @@ class Subnets:
         self.get_parents = subtensor.get_parents
         self.get_children = subtensor.get_children
         self.get_children_pending = subtensor.get_children_pending
-        self.get_current_weight_commit_info = subtensor.get_current_weight_commit_info
         self.get_hyperparameter = subtensor.get_hyperparameter
         self.get_liquidity_list = subtensor.get_liquidity_list
         self.get_neuron_for_pubkey_and_subnet = (
