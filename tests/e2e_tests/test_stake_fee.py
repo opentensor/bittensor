@@ -31,8 +31,6 @@ def test_stake_fee_api(subtensor, alice_wallet, bob_wallet):
     stake_fee_0 = subtensor.staking.get_stake_add_fee(
         amount=stake_amount,
         netuid=netuid,
-        coldkey_ss58=alice_wallet.coldkeypub.ss58_address,
-        hotkey_ss58=alice_wallet.hotkey.ss58_address,
     )
     assert isinstance(stake_fee_0, Balance), "Stake fee should be a Balance object."
     assert stake_fee_0 == min_stake_fee, (
@@ -43,8 +41,6 @@ def test_stake_fee_api(subtensor, alice_wallet, bob_wallet):
     unstake_fee_root = subtensor.staking.get_unstake_fee(
         amount=stake_amount,
         netuid=root_netuid,
-        coldkey_ss58=alice_wallet.coldkeypub.ss58_address,
-        hotkey_ss58=bob_wallet.hotkey.ss58_address,
     )
     assert isinstance(unstake_fee_root, Balance), (
         "Stake fee should be a Balance object."
@@ -58,41 +54,21 @@ def test_stake_fee_api(subtensor, alice_wallet, bob_wallet):
         # Move from root to non-root
         {
             "origin_netuid": root_netuid,
-            "origin_hotkey": alice_wallet.hotkey.ss58_address,
-            "origin_coldkey": alice_wallet.coldkeypub.ss58_address,
-            "dest_netuid": netuid,
-            "dest_hotkey": alice_wallet.hotkey.ss58_address,
-            "dest_coldkey": alice_wallet.coldkeypub.ss58_address,
             "stake_fee": min_stake_fee,
         },
         # Move between hotkeys on root
         {
             "origin_netuid": root_netuid,
-            "origin_hotkey": alice_wallet.hotkey.ss58_address,
-            "origin_coldkey": alice_wallet.coldkeypub.ss58_address,
-            "dest_netuid": root_netuid,
-            "dest_hotkey": bob_wallet.hotkey.ss58_address,
-            "dest_coldkey": alice_wallet.coldkeypub.ss58_address,
             "stake_fee": 0,
         },
         # Move between coldkeys on root
         {
             "origin_netuid": root_netuid,
-            "origin_hotkey": bob_wallet.hotkey.ss58_address,
-            "origin_coldkey": alice_wallet.coldkeypub.ss58_address,
-            "dest_netuid": root_netuid,
-            "dest_hotkey": bob_wallet.hotkey.ss58_address,
-            "dest_coldkey": bob_wallet.coldkeypub.ss58_address,
             "stake_fee": 0,
         },
         # Move between coldkeys on non-root
         {
             "origin_netuid": netuid,
-            "origin_hotkey": bob_wallet.hotkey.ss58_address,
-            "origin_coldkey": alice_wallet.coldkeypub.ss58_address,
-            "dest_netuid": netuid,
-            "dest_hotkey": bob_wallet.hotkey.ss58_address,
-            "dest_coldkey": bob_wallet.coldkeypub.ss58_address,
             "stake_fee": min_stake_fee,
         },
     ]
@@ -101,11 +77,6 @@ def test_stake_fee_api(subtensor, alice_wallet, bob_wallet):
         stake_fee = subtensor.staking.get_stake_movement_fee(
             amount=stake_amount,
             origin_netuid=scenario["origin_netuid"],
-            origin_hotkey_ss58=scenario["origin_hotkey"],
-            origin_coldkey_ss58=scenario["origin_coldkey"],
-            destination_netuid=scenario["dest_netuid"],
-            destination_hotkey_ss58=scenario["dest_hotkey"],
-            destination_coldkey_ss58=scenario["dest_coldkey"],
         )
         assert isinstance(stake_fee, Balance), "Stake fee should be a Balance object"
         assert stake_fee >= scenario["stake_fee"], (
@@ -124,11 +95,6 @@ def test_stake_fee_api(subtensor, alice_wallet, bob_wallet):
     stake_fee = subtensor.staking.get_stake_movement_fee(
         amount=stake_amount,
         origin_netuid=netuid,
-        origin_hotkey_ss58=bob_wallet.hotkey.ss58_address,
-        origin_coldkey_ss58=alice_wallet.coldkeypub.ss58_address,
-        destination_netuid=netuid2,
-        destination_hotkey_ss58=bob_wallet.hotkey.ss58_address,
-        destination_coldkey_ss58=alice_wallet.coldkeypub.ss58_address,
     )
     assert isinstance(stake_fee, Balance), "Stake fee should be a Balance object"
     assert stake_fee >= min_stake_fee, (
@@ -168,8 +134,6 @@ async def test_stake_fee_api_async(async_subtensor, alice_wallet, bob_wallet):
     stake_fee_0 = await async_subtensor.staking.get_stake_add_fee(
         amount=stake_amount,
         netuid=netuid,
-        coldkey_ss58=alice_wallet.coldkeypub.ss58_address,
-        hotkey_ss58=alice_wallet.hotkey.ss58_address,
     )
     assert isinstance(stake_fee_0, Balance), "Stake fee should be a Balance object."
     assert stake_fee_0 == min_stake_fee, (
@@ -180,8 +144,6 @@ async def test_stake_fee_api_async(async_subtensor, alice_wallet, bob_wallet):
     unstake_fee_root = await async_subtensor.staking.get_unstake_fee(
         amount=stake_amount,
         netuid=root_netuid,
-        coldkey_ss58=alice_wallet.coldkeypub.ss58_address,
-        hotkey_ss58=bob_wallet.hotkey.ss58_address,
     )
     assert isinstance(unstake_fee_root, Balance), (
         "Stake fee should be a Balance object."
@@ -195,41 +157,21 @@ async def test_stake_fee_api_async(async_subtensor, alice_wallet, bob_wallet):
         # Move from root to non-root
         {
             "origin_netuid": root_netuid,
-            "origin_hotkey": alice_wallet.hotkey.ss58_address,
-            "origin_coldkey": alice_wallet.coldkeypub.ss58_address,
-            "dest_netuid": netuid,
-            "dest_hotkey": alice_wallet.hotkey.ss58_address,
-            "dest_coldkey": alice_wallet.coldkeypub.ss58_address,
             "stake_fee": min_stake_fee,
         },
         # Move between hotkeys on root
         {
             "origin_netuid": root_netuid,
-            "origin_hotkey": alice_wallet.hotkey.ss58_address,
-            "origin_coldkey": alice_wallet.coldkeypub.ss58_address,
-            "dest_netuid": root_netuid,
-            "dest_hotkey": bob_wallet.hotkey.ss58_address,
-            "dest_coldkey": alice_wallet.coldkeypub.ss58_address,
             "stake_fee": 0,
         },
         # Move between coldkeys on root
         {
             "origin_netuid": root_netuid,
-            "origin_hotkey": bob_wallet.hotkey.ss58_address,
-            "origin_coldkey": alice_wallet.coldkeypub.ss58_address,
-            "dest_netuid": root_netuid,
-            "dest_hotkey": bob_wallet.hotkey.ss58_address,
-            "dest_coldkey": bob_wallet.coldkeypub.ss58_address,
             "stake_fee": 0,
         },
         # Move between coldkeys on non-root
         {
             "origin_netuid": netuid,
-            "origin_hotkey": bob_wallet.hotkey.ss58_address,
-            "origin_coldkey": alice_wallet.coldkeypub.ss58_address,
-            "dest_netuid": netuid,
-            "dest_hotkey": bob_wallet.hotkey.ss58_address,
-            "dest_coldkey": bob_wallet.coldkeypub.ss58_address,
             "stake_fee": min_stake_fee,
         },
     ]
@@ -238,11 +180,6 @@ async def test_stake_fee_api_async(async_subtensor, alice_wallet, bob_wallet):
         stake_fee = await async_subtensor.staking.get_stake_movement_fee(
             amount=stake_amount,
             origin_netuid=scenario["origin_netuid"],
-            origin_hotkey_ss58=scenario["origin_hotkey"],
-            origin_coldkey_ss58=scenario["origin_coldkey"],
-            destination_netuid=scenario["dest_netuid"],
-            destination_hotkey_ss58=scenario["dest_hotkey"],
-            destination_coldkey_ss58=scenario["dest_coldkey"],
         )
         assert isinstance(stake_fee, Balance), "Stake fee should be a Balance object"
         assert stake_fee >= scenario["stake_fee"], (
@@ -261,11 +198,6 @@ async def test_stake_fee_api_async(async_subtensor, alice_wallet, bob_wallet):
     stake_fee = await async_subtensor.staking.get_stake_movement_fee(
         amount=stake_amount,
         origin_netuid=netuid,
-        origin_hotkey_ss58=bob_wallet.hotkey.ss58_address,
-        origin_coldkey_ss58=alice_wallet.coldkeypub.ss58_address,
-        destination_netuid=netuid2,
-        destination_hotkey_ss58=bob_wallet.hotkey.ss58_address,
-        destination_coldkey_ss58=alice_wallet.coldkeypub.ss58_address,
     )
     assert isinstance(stake_fee, Balance), "Stake fee should be a Balance object"
     assert stake_fee >= min_stake_fee, (
