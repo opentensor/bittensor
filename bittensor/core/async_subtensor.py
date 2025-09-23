@@ -71,12 +71,6 @@ from bittensor.core.extrinsics.asyncex.staking import (
     add_stake_multiple_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.start_call import start_call_extrinsic
-from bittensor.core.extrinsics.asyncex.mechanism import (
-    commit_mechanism_weights_extrinsic,
-    commit_timelocked_mechanism_weights_extrinsic,
-    reveal_mechanism_weights_extrinsic,
-    set_mechanism_weights_extrinsic,
-)
 from bittensor.core.extrinsics.asyncex.take import (
     decrease_take_extrinsic,
     increase_take_extrinsic,
@@ -87,9 +81,15 @@ from bittensor.core.extrinsics.asyncex.unstaking import (
     unstake_extrinsic,
     unstake_multiple_extrinsic,
 )
+from bittensor.core.extrinsics.asyncex.weights import (
+    commit_timelocked_weights_extrinsic,
+    commit_weights_extrinsic,
+    reveal_weights_extrinsic,
+    set_weights_extrinsic,
+)
 from bittensor.core.metagraph import AsyncMetagraph
 from bittensor.core.settings import version_as_int, TYPE_REGISTRY
-from bittensor.core.types import ExtrinsicResponse, ParamWithTypes, SubtensorMixin
+from bittensor.core.types import ExtrinsicResponse
 from bittensor.core.types import (
     ParamWithTypes,
     Salt,
@@ -4646,7 +4646,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         while retries < max_retries and response.success is False:
             try:
-                response = await commit_mechanism_weights_extrinsic(
+                response = await commit_weights_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
@@ -4982,7 +4982,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         while retries < max_retries and response.success is False:
             try:
-                response = await reveal_mechanism_weights_extrinsic(
+                response = await reveal_weights_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
@@ -5333,7 +5333,7 @@ class AsyncSubtensor(SubtensorMixin):
                     f"Committing weights for subnet [blue]{netuid}[/blue]. "
                     f"Attempt [blue]{retries + 1}[blue] of [green]{max_retries}[/green]."
                 )
-                response = await commit_timelocked_mechanism_weights_extrinsic(
+                response = await commit_timelocked_weights_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
@@ -5363,7 +5363,7 @@ class AsyncSubtensor(SubtensorMixin):
                         f"Setting weights for subnet #[blue]{netuid}[/blue]. "
                         f"Attempt [blue]{retries + 1}[/blue] of [green]{max_retries}[/green]."
                     )
-                    response = await set_mechanism_weights_extrinsic(
+                    response = await set_weights_extrinsic(
                         subtensor=self,
                         wallet=wallet,
                         netuid=netuid,
