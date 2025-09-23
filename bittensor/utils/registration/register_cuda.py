@@ -15,8 +15,8 @@ def _hex_bytes_to_u8_list(hex_bytes: bytes) -> list[int]:
     Convert a sequence of bytes in hexadecimal format to a list of
     unsigned 8-bit integers.
 
-    Args:
-        hex_bytes (bytes): A sequence of bytes in hexadecimal format.
+    Parameters:
+        hex_bytes: A sequence of bytes in hexadecimal format.
 
     Returns:
         A list of unsigned 8-bit integers.
@@ -54,18 +54,17 @@ def solve_cuda(
     """
     Solves the PoW problem using CUDA.
 
-    Args:
-        nonce_start (numpy.int64):  Starting nonce.
-        update_interval (numpy.int64): Number of nonces to solve before updating block information.
-        tpb (int): Threads per block.
-        block_and_hotkey_hash_bytes (bytes): Keccak(Bytes of the block hash + bytes of the hotkey) 64 bytes.
-        difficulty (int): Difficulty of the PoW problem.
-        limit (int): Upper limit of the nonce.
-        dev_id (int): The CUDA device ID. Defaults to ``0``.
+    Parameters:
+        nonce_start:  Starting nonce.
+        update_interval: Number of nonces to solve before updating block information.
+        tpb: Threads per block.
+        block_and_hotkey_hash_bytes: Keccak(Bytes of the block hash + bytes of the hotkey) 64 bytes.
+        difficulty: Difficulty of the PoW problem.
+        limit: Upper limit of the nonce.
+        dev_id: The CUDA device ID. Defaults to ``0``.
 
     Returns:
-        (Union[tuple[Any, bytes], tuple[int, bytes], tuple[Any, None]]): Tuple of the nonce and the seal corresponding
-            to the solution. Returns -1 for nonce if no solution is found.
+        Tuple of the nonce and the seal corresponding to the solution. Returns -1 for nonce if no solution is found.
     """
 
     try:

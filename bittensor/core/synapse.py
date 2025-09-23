@@ -22,9 +22,9 @@ def get_size(obj: Any, seen: Optional[set] = None) -> int:
 
     This function traverses every item of a given object and sums their sizes to compute the total size.
 
-    Args:
-        obj (Any): The object to get the size of.
-        seen (Optional[set]): Set of object ids that have been calculated.
+    Parameters:
+        obj: The object to get the size of.
+        seen: Set of object ids that have been calculated.
 
     Returns:
         int: The total size of the object.
@@ -55,11 +55,11 @@ def cast_int(raw: str) -> int:
 
     This function attempts to convert a string to an integer. If the string is ``None``, it simply returns ``None``.
 
-    Args:
-        raw (str): The string to convert.
+    Parameters:
+        raw: The string to convert.
 
     Returns:
-        int or None: The converted integer, or ``None`` if the input was ``None``.
+        The converted integer, or ``None`` if the input was ``None``.
 
     """
     return int(raw) if raw is not None else raw
@@ -71,11 +71,11 @@ def cast_float(raw: str) -> Optional[float]:
 
     This function attempts to convert a string to a float. If the string is ``None``, it simply returns ``None``.
 
-    Args:
-        raw (str): The string to convert.
+    Parameters:
+        raw: The string to convert.
 
     Returns:
-        float or None: The converted float, or ``None`` if the input was ``None``.
+        The converted float, or ``None`` if the input was ``None``.
 
     """
     return float(raw) if raw is not None else raw
@@ -97,24 +97,24 @@ class TerminalInfo(BaseModel):
     designed to be used natively within Synapses, so that you will not need to call this directly, but rather
     is used as a helper class for Synapses.
 
-    Args:
-        status_code (int): HTTP status code indicating the result of a network request. Essential for identifying the
-            outcome of network interactions.
-        status_message (str): Descriptive message associated with the status code, providing additional context about
-            the request's result.
-        process_time (float): Time taken by the terminal to process the call, important for performance monitoring and
+    Parameters:
+        status_code: HTTP status code indicating the result of a network request. Essential for identifying the outcome
+            of network interactions.
+        status_message: Descriptive message associated with the status code, providing additional context about the
+            request's result.
+        process_time: Time taken by the terminal to process the call, important for performance monitoring and
             optimization.
-        ip (str): IP address of the terminal, crucial for network routing and data transmission.
-        port (int): Network port used by the terminal, key for establishing network connections.
-        version (int): Bittensor version running on the terminal, ensuring compatibility between different nodes in the
+        ip: IP address of the terminal, crucial for network routing and data transmission.
+        port: Network port used by the terminal, key for establishing network connections.
+        version: Bittensor version running on the terminal, ensuring compatibility between different nodes in the
             network.
-        nonce (int): Unique, monotonically increasing number for each terminal, aiding in identifying and ordering
-            network interactions.
-        uuid (str): Unique identifier for the terminal, fundamental for network security and identification.
-        hotkey (str): Encoded hotkey string of the terminal wallet, important for transaction and identity verification
-            in the network.
-        signature (str): Digital signature verifying the tuple of nonce, axon_hotkey, dendrite_hotkey, and uuid,
-            critical for ensuring data authenticity and security.
+        nonce: Unique, monotonically increasing number for each terminal, aiding in identifying and ordering network
+            interactions.
+        uuid: Unique identifier for the terminal, fundamental for network security and identification.
+        hotkey: Encoded hotkey string of the terminal wallet, important for transaction and identity verification in the
+            network.
+        signature: Digital signature verifying the tuple of nonce, axon_hotkey, dendrite_hotkey, and uuid, critical for
+            ensuring data authenticity and security.
 
     Usage::
 
@@ -343,15 +343,15 @@ class Synapse(BaseModel):
         print(synapse.axon.status_code)
         synapse.axon.status_code = 408 # Timeout
 
-    Args:
-        name (str): HTTP route name, set on :func:`axon.attach`.
-        timeout (float): Total query length, set by the dendrite terminal.
-        total_size (int): Total size of request body in bytes.
-        header_size (int): Size of request header in bytes.
-        dendrite (:func:`TerminalInfo`): Information about the dendrite terminal.
-        axon (:func:`TerminalInfo`): Information about the axon terminal.
-        computed_body_hash (str): Computed hash of the request body.
-        required_hash_fields (list[str]): Fields required to compute the body hash.
+    Parameters:
+        name: HTTP route name, set on :func:`axon.attach`.
+        timeout: Total query length, set by the dendrite terminal.
+        total_size: Total size of request body in bytes.
+        header_size: Size of request header in bytes.
+        dendrite: Information about the dendrite terminal.
+        axon: Information about the axon terminal.
+        computed_body_hash: Computed hash of the request body.
+        required_hash_fields: Fields required to compute the body hash.
 
     Methods:
         deserialize: Custom deserialization logic for subclasses.
@@ -732,17 +732,21 @@ class Synapse(BaseModel):
         Interprets and transforms a given dictionary of headers into a structured dictionary, facilitating the
         reconstruction of Synapse objects.
 
-        This method is essential for parsing network-transmitted
-        data back into a Synapse instance, ensuring data consistency and integrity.
+        This method is essential for parsing network-transmitted data back into a Synapse instance, ensuring data
+        consistency and integrity.
+
+        Parameters:
+            headers: The headers dictionary to parse.
+
+        Returns:
+            A structured dictionary representing the inputs for constructing a Synapse instance.
 
         Process:
-
-        1. Separates headers into categories based on prefixes (``axon``, ``dendrite``, etc.).
-        2. Decodes and deserializes ``input_obj`` headers into their original objects.
-        3. Assigns simple fields directly from the headers to the input dictionary.
+            1. Separates headers into categories based on prefixes (``axon``, ``dendrite``, etc.).
+            2. Decodes and deserializes ``input_obj`` headers into their original objects.
+            3. Assigns simple fields directly from the headers to the input dictionary.
 
         Example::
-
             received_headers = {
                 'bt_header_axon_address': '127.0.0.1',
                 'bt_header_dendrite_port': '8080',
@@ -753,13 +757,7 @@ class Synapse(BaseModel):
 
         Note:
             This is handled automatically when calling :func:`Synapse.from_headers(headers)` and does not need to be
-                called directly.
-
-        Args:
-            headers (dict): The headers dictionary to parse.
-
-        Returns:
-            dict: A structured dictionary representing the inputs for constructing a Synapse instance.
+            called directly.
         """
 
         # Initialize the input dictionary with empty sub-dictionaries for 'axon' and 'dendrite'
@@ -826,9 +824,15 @@ class Synapse(BaseModel):
         Constructs a new Synapse instance from a given headers dictionary, enabling the re-creation of the Synapse's
         state as it was prior to network transmission.
 
-        This method is a key part of the
-        deserialization process in the Bittensor network, allowing nodes to accurately reconstruct Synapse
-        objects from received data.
+        This method is a key part of the deserialization process in the Bittensor network, allowing nodes to accurately
+        reconstruct Synapse objects from received data.
+
+        Parameters:
+            headers: The dictionary of headers containing serialized Synapse information.
+
+        Returns:
+            A new instance of Synapse, reconstructed from the parsed header information, replicating the original
+                instance's state.
 
         Example::
 
@@ -839,13 +843,6 @@ class Synapse(BaseModel):
             }
             synapse = Synapse.from_headers(received_headers)
             # synapse is a new Synapse instance reconstructed from the received headers
-
-        Args:
-            headers (dict): The dictionary of headers containing serialized Synapse information.
-
-        Returns:
-            bittensor.core.synapse.Synapse: A new instance of Synapse, reconstructed from the parsed header information,
-                replicating the original instance's state.
         """
 
         # Get the inputs dictionary from the headers

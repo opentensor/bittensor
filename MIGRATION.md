@@ -211,3 +211,12 @@ Removing deprecated extrinsics and replacing them with consistent ones:
 - `set_weights_extrinsic`(without mechanisms support) + related tests
 - `bittensor.core.extrinsics.mechanism.reveal_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.weights.reveal_weights_extrinsic`
 - `bittensor.core.extrinsics.asyncex.mechanism.reveal_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.asyncex.weights.reveal_weights_extrinsic`
+
+
+### Subtensor changes
+- method `all_subnets` has renamed parameter from `block_number` to `block`.
+- method `query_subtensor` has updated parameters order.
+- method `query_module` has updated parameters order.
+- method `query_map_subtensor` has updated parameters order.
+- method `query_map` has updated parameters order.
+- 

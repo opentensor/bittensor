@@ -32,10 +32,9 @@ async def _get_block_with_retry(
     """
     Gets the current block number, difficulty, and block hash from the substrate node.
 
-    Args:
-        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The subtensor object to use to get the block number,
-            difficulty, and block hash.
-        netuid (int): The netuid of the network to get the block number, difficulty, and block hash from.
+    Parameters:
+        subtensor: The subtensor object to use to get the block number, difficulty, and block hash.
+        netuid: The netuid of the network to get the block number, difficulty, and block hash from.
 
     Returns:
         The current block number, difficulty of the subnet, block hash
@@ -82,18 +81,18 @@ async def _check_for_newest_block_and_update(
     """
     Check for the newest block and update block-related information and states across solvers if a new block is detected.
 
-    Args:
-        subtensor (AsyncSubtensor): The subtensor instance interface.
-        netuid (int): The network UID for the blockchain.
-        old_block_number (int): The previously known block number.
-        hotkey_bytes (bytes): The bytes representation of the hotkey.
-        curr_diff (Array): The current difficulty level.
-        curr_block (Array): The current block information.
-        curr_block_num (Value): The current block number.
-        update_curr_block_ (Callable): Function to update current block information.
-        check_block (Lock): Lock object for synchronizing block checking.
-        solvers (list[Solver]): List of solvers to notify of new blocks.
-        curr_stats (RegistrationStatistics): Current registration statistics to update.
+    Parameters:
+        subtensor: The subtensor instance interface.
+        netuid: The network UID for the blockchain.
+        old_block_number: The previously known block number.
+        hotkey_bytes: The bytes representation of the hotkey.
+        curr_diff: The current difficulty level.
+        curr_block: The current block information.
+        curr_block_num: The current block number.
+        update_curr_block_: Function to update current block information.
+        check_block: Lock object for synchronizing block checking.
+        solvers: List of solvers to notify of new blocks.
+        curr_stats: Current registration statistics to update.
 
     Returns:
         int: The updated block number which is the same as the new block
@@ -359,19 +358,17 @@ async def _solve_for_difficulty_fast_cuda(
     """
     Solves the registration fast using CUDA
 
-    Args:
-        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The subtensor object to use to get the block number,
-            difficulty, and block hash.
-        wallet (bittensor_wallet.Wallet): The wallet to register
-        netuid (int): The netuid of the subnet to register to.
-        output_in_place (bool): If true, prints the output in place, otherwise prints to new lines
-        update_interval (int): The number of nonces to try before checking for more blocks
-        tpb (int): The number of threads per block. CUDA param that should match the GPU capability
-        dev_id (Union[list[int], int]): The CUDA device IDs to execute the registration on, either a single device or a
-            list of devices
-        n_samples (int): The number of samples of the hash_rate to keep for the EWMA
-        alpha_ (float): The alpha for the EWMA for the hash_rate calculation
-        log_verbose (bool): If true, prints more verbose logging of the registration metrics.
+    Parameters:
+        subtensor: The subtensor object to use to get the block number, difficulty, and block hash.
+        wallet: The wallet to register
+        netuid: The netuid of the subnet to register to.
+        output_in_place: If true, prints the output in place, otherwise prints to new lines
+        update_interval: The number of nonces to try before checking for more blocks
+        tpb: The number of threads per block. CUDA param that should match the GPU capability
+        dev_id: The CUDA device IDs to execute the registration on, either a single device or a list of devices
+        n_samples: The number of samples of the hash_rate to keep for the EWMA
+        alpha_: The alpha for the EWMA for the hash_rate calculation
+        log_verbose: If true, prints more verbose logging of the registration metrics.
 
     Note:
         The hash rate is calculated as an exponentially weighted moving average in order to make the measure more robust.
@@ -428,22 +425,21 @@ async def _solve_for_difficulty_fast(
     """
     Solves the POW for registration using multiprocessing.
 
-    Args:
-        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The subtensor object to use to get the block number,
-            difficulty, and block hash.
-        wallet (bittensor_wallet.Wallet): wallet to use for registration.
-        netuid (int): The netuid of the subnet to register to.
-        output_in_place (bool): If true, prints the status in place. Otherwise, prints the status on a new line.
-        num_processes (Optional[int]): Number of processes to use.
-        update_interval (Optional[int]): Number of nonces to solve before updating block information.
-        n_samples (int): The number of samples of the hash_rate to keep for the EWMA
-        alpha_ (float): The alpha for the EWMA for the hash_rate calculation
-        log_verbose (bool): If true, prints more verbose logging of the registration metrics.
+    Parameters:
+        subtensor: The subtensor object to use to get the block number, difficulty, and block hash.
+        wallet: wallet to use for registration.
+        netuid: The netuid of the subnet to register to.
+        output_in_place: If true, prints the status in place. Otherwise, prints the status on a new line.
+        num_processes: Number of processes to use.
+        update_interval: Number of nonces to solve before updating block information.
+        n_samples: The number of samples of the hash_rate to keep for the EWMA
+        alpha_: The alpha for the EWMA for the hash_rate calculation
+        log_verbose: If true, prints more verbose logging of the registration metrics.
 
     Notes:
         The hash rate is calculated as an exponentially weighted moving average in order to make the measure more robust.
         We can also modify the update interval to do smaller blocks of work, while still updating the block information
-            after a different number of nonces, to increase the transparency of the process while still keeping the speed.
+        after a different number of nonces, to increase the transparency of the process while still keeping the speed.
     """
     if not num_processes:
         # get the number of allowed processes for this process
@@ -490,20 +486,20 @@ async def create_pow_async(
     """
     Creates a proof of work for the given subtensor and wallet.
 
-    Args:
-        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The subtensor instance.
-        wallet (bittensor_wallet.Wallet): The wallet to create a proof of work for.
-        netuid (int): The netuid for the subnet to create a proof of work for.
-        output_in_place (bool): If true, prints the progress of the proof of work to the console in-place. Meaning the
-            progress is printed on the same lines.
-        cuda (bool): If true, uses CUDA to solve the proof of work.
-        dev_id (Union[list[int], int]): The CUDA device id(s) to use. If cuda is true and dev_id is a list, then
-            multiple CUDA devices will be used to solve the proof of work.
-        tpb (int): The number of threads per block to use when solving the proof of work. Should be a multiple of 32.
-        num_processes (int): The number of processes to use when solving the proof of work. If None, then the number of
+    Parameters:
+        subtensor: The subtensor instance.
+        wallet: The wallet to create a proof of work for.
+        netuid: The netuid for the subnet to create a proof of work for.
+        output_in_place: If true, prints the progress of the proof of work to the console in-place. Meaning the progress
+            is printed on the same lines.
+        cuda: If true, uses CUDA to solve the proof of work.
+        dev_id: The CUDA device id(s) to use. If cuda is true and dev_id is a list, then multiple CUDA devices will be
+            used to solve the proof of work.
+        tpb: The number of threads per block to use when solving the proof of work. Should be a multiple of 32.
+        num_processes: The number of processes to use when solving the proof of work. If None, then the number of
             processes is equal to the number of CPU cores.
-        update_interval (int): The number of nonces to run before checking for a new block.
-        log_verbose (bool): If true, prints the progress of the proof of work more verbosely.
+        update_interval: The number of nonces to run before checking for a new block.
+        log_verbose: If true, prints the progress of the proof of work more verbosely.
 
     Returns:
         The proof of work solution or None if the wallet is already registered or there is a different error.

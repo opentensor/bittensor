@@ -21,16 +21,16 @@ if TYPE_CHECKING:
 class SubtensorApi:
     """Subtensor API class.
 
-    Arguments:
-        network: The network to connect to. Defaults to `None` -> "finney".
-        config: Bittensor configuration object. Defaults to `None`.
+    Parameters:
+        network: The network to connect to.
+        config: Bittensor configuration object.
         legacy_methods: If `True`, all methods from the Subtensor class will be added to the root level of this class.
-        fallback_endpoints: List of fallback endpoints to use if default or provided network is not available. Defaults to `None`.
-        retry_forever: Whether to retry forever on connection errors. Defaults to `False`.
+        fallback_endpoints: List of fallback endpoints to use if default or provided network is not available.
+        retry_forever: Whether to retry forever on connection errors.
         log_verbose: Enables or disables verbose logging.
         mock: Whether this is a mock instance. Mainly just for use in testing.
         archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in cases
-            where you are requesting a block that is too old for your current (presumably lite) node. Defaults to `None`
+            where you are requesting a block that is too old for your current (presumably lite) node.
         websocket_shutdown_timer: Amount of time, in seconds, to wait after the last response from the chain to close
             the connection. Only applicable to AsyncSubtensor.
 
