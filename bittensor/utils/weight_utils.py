@@ -281,7 +281,7 @@ def process_weights(
         num_neurons: The number of neurons in the network.
         min_allowed_weights: Subnet hyperparam Minimum number of allowed weights.
         max_weight_limit: Subnet hyperparam Maximum weight limit.
-        exclude_quantile: Quantile threshold for excluding lower weights. Defaults to ``0``.
+        exclude_quantile: Quantile threshold for excluding lower weights.
 
     Returns:
         Tuple containing the array of user IDs and the corresponding normalized weights. The data type of the return

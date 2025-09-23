@@ -101,7 +101,7 @@ async def modify_liquidity_extrinsic(
         netuid: The UID of the target subnet for which the call is being initiated.
         position_id: The id of the position record in the pool.
         liquidity_delta: The amount of liquidity to be added or removed (add if positive or remove if negative).
-        hotkey: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used. Defaults to `None`.
+        hotkey: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
@@ -162,7 +162,7 @@ async def remove_liquidity_extrinsic(
         wallet: The wallet used to sign the extrinsic (must be unlocked).
         netuid: The UID of the target subnet for which the call is being initiated.
         position_id: The id of the position record in the pool.
-        hotkey: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used. Defaults to `None`.
+        hotkey: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
