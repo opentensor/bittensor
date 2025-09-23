@@ -2815,7 +2815,7 @@ async def test_set_weights_success(subtensor, fake_wallet, mocker):
         weights=fake_weights,
         period=8,
         mechid=0,
-        raise_error=True,
+        raise_error=False,
     )
     mocked_weights_rate_limit.assert_called_once_with(fake_netuid)
     assert result is True
@@ -2876,7 +2876,9 @@ async def test_commit_weights_success(subtensor, fake_wallet, mocker):
     fake_weights = [100, 200, 300]
     max_retries = 3
 
-    mocked_commit_weights_extrinsic = mocker.AsyncMock(return_value=ExtrinsicResponse(True, "Success"))
+    mocked_commit_weights_extrinsic = mocker.AsyncMock(
+        return_value=ExtrinsicResponse(True, "Success")
+    )
     mocker.patch.object(
         async_subtensor,
         "commit_mechanism_weights_extrinsic",
