@@ -108,7 +108,6 @@ from bittensor.utils import (
     is_valid_ss58_address,
     u16_normalized_float,
     u64_normalized_float,
-    deprecated_message,
     get_transfer_fn_params,
     get_mechid_storage_index,
 )

@@ -108,7 +108,6 @@ from bittensor.utils import (
     get_transfer_fn_params,
     get_mechid_storage_index,
 )
-from bittensor.utils import deprecated_message
 from bittensor.utils.balance import (
     Balance,
     fixed_to_float,
