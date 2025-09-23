@@ -1115,6 +1115,7 @@ def test_metagraph_info_with_indexes(subtensor, alice_wallet, bob_wallet):
         tao_dividends_per_hotkey=None,
         alpha_dividends_per_hotkey=None,
         validators=None,
+        commitments=None,
     )
 
     logging.console.info("✅ Passed [blue]test_metagraph_info_with_indexes[/blue]")
@@ -1371,7 +1372,7 @@ def test_blocks(subtensor):
     """
     logging.console.info("Testing [blue]test_blocks[/blue]")
 
-    get_current_block = subtensor.get_current_block()
+    get_current_block = subtensor.chain.get_current_block()
     block = subtensor.block
 
     # Several random tests fell during the block finalization period. Fast blocks of 0.25 seconds (very fast)
@@ -1403,5 +1404,5 @@ async def test_blocks_async(subtensor):
     assert re.match("0x[a-z0-9]{64}", block_hash)
 
     subtensor.wait_for_block(block + 10)
-    assert subtensor.get_current_block() in [block + 10, block + 11]
+    assert subtensor.chain.get_current_block() in [block + 10, block + 11]
     logging.console.info("✅ Passed [blue]test_blocks_async[/blue]")

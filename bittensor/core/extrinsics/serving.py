@@ -269,7 +269,7 @@ def publish_metadata_extrinsic(
 
 def get_metadata(
     subtensor: "Subtensor", netuid: int, hotkey: str, block: Optional[int] = None
-) -> bytes:
+) -> Union[str, dict]:
     """Fetches metadata from the blockchain for a given hotkey and netuid."""
     commit_data = subtensor.substrate.query(
         module="Commitments",
