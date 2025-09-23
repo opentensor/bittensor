@@ -1986,7 +1986,7 @@ class Subtensor(SubtensorMixin):
     ) -> Balance:
         """Gets the current Alpha price in TAO for all subnets.
 
-        Arguments:
+        Parameters:
             netuid: The unique identifier of the subnet.
             block: The blockchain block number for the query.
 
@@ -1998,16 +1998,13 @@ class Subtensor(SubtensorMixin):
             return Balance.from_tao(1)
 
         block_hash = self.determine_block_hash(block=block)
-        current_sqrt_price = self.substrate.query(
-            module="Swap",
-            storage_function="AlphaSqrtPrice",
+        price_rao = self.substrate.runtime_call(
+            api="SwapRuntimeApi",
+            method="current_alpha_price",
             params=[netuid],
             block_hash=block_hash,
-        )
-
-        current_sqrt_price = fixed_to_float(current_sqrt_price)
-        current_price = current_sqrt_price * current_sqrt_price
-        return Balance.from_rao(int(current_price * 1e9))
+        ).value
+        return Balance.from_rao(price_rao)
 
     def get_subnet_prices(
         self,
