@@ -628,7 +628,7 @@ class Axon:
 
         Parameters:
             parser: Argument parser to which the arguments will be added.
-            prefix: Prefix to add to the argument names. Defaults to None.
+            prefix: Prefix to add to the argument names.
 
         Note:
             Environment variables are used to define default values for the arguments.
@@ -1020,7 +1020,7 @@ def log_and_handle_error(
     Parameters:
         synapse: The synapse object to be updated with error information.
         exception: The exception that was raised and needs to be logged and handled.
-        status_code: The HTTP status code to be set on the synapse object. Defaults to None.
+        status_code: The HTTP status code to be set on the synapse object.
         start_time: The timestamp marking the start of the processing, used to calculate process time.
 
     Returns:
