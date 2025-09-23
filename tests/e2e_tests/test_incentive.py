@@ -77,7 +77,6 @@ async def test_incentive(subtensor, templates, alice_wallet, bob_wallet):
     subtensor.wait_for_block(
         subtensor.subnets.get_next_epoch_start_block(alice_subnet_netuid) + 1
     )
-    subtensor.wait_for_block(next_epoch_start_block + 1)
 
     # Get current miner/validator stats
     alice_neuron = subtensor.neurons.neurons(netuid=alice_subnet_netuid)[0]
