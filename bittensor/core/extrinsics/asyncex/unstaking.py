@@ -202,7 +202,7 @@ async def unstake_all_extrinsic(
         hotkey: The SS58 address of the hotkey to unstake from.
         netuid: The unique identifier of the subnet.
         rate_tolerance: The maximum allowed price change ratio when unstaking. For example, 0.005 = 0.5% maximum
-            price decrease. If not passed (None), then unstaking goes without price limit. Default is `0.005`.
+            price decrease. If not passed (None), then unstaking goes without price limit.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
@@ -272,7 +272,7 @@ async def unstake_multiple_extrinsic(
         netuids: List of subnets unique IDs to unstake from.
         hotkey_ss58s: List of hotkeys to unstake from.
         amounts: List of amounts to unstake. If ``None``, unstake all.
-        unstake_all: If true, unstakes all tokens. Default is ``False``.
+        unstake_all: If true, unstakes all tokens.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
