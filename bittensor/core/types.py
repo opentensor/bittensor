@@ -74,11 +74,10 @@ class SubtensorMixin(ABC):
             4. Default chain endpoint.
             5. Default network.
 
-        Arguments:
-            network (Optional[str]): The name of the Subtensor network. If None, the network and endpoint will be
-                determined from the `config` object.
-            config (bittensor.core.config.Config): The configuration object containing the network and chain endpoint
-                settings.
+        Parameters:
+            network: The name of the Subtensor network. If None, the network and endpoint will be determined from the
+                `config` object.
+            config: The configuration object containing the network and chain endpoint settings.
 
         Returns:
             tuple: A tuple containing the formatted WebSocket endpoint URL and the evaluated network name.
@@ -121,10 +120,9 @@ class SubtensorMixin(ABC):
         """
         Adds command-line arguments to the provided ArgumentParser for configuring the Subtensor settings.
 
-        Arguments:
-            parser (argparse.ArgumentParser): The ArgumentParser object to which the Subtensor arguments will be added.
-            prefix (Optional[str]): An optional prefix for the argument names. If provided, the prefix is prepended to
-                each argument name.
+        Parameters:
+            parser: The ArgumentParser object to which the Subtensor arguments will be added.
+            prefix: An optional prefix for the argument names. If provided, the prefix is prepended to each argument name.
 
         Arguments added:
             --subtensor.network: The Subtensor network flag. Possible values are 'finney', 'test', 'archive', and
