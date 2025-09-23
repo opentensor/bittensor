@@ -1,76 +1,9 @@
-import pytest
-from bittensor.core.extrinsics import mechanism
+from bittensor.core.extrinsics import weights as weights_module
 from bittensor.core.types import ExtrinsicResponse
 
 
-def test_commit_mechanism_weights_extrinsic(mocker, subtensor, fake_wallet):
-    """Test successful `commit_mechanism_weights_extrinsic` extrinsic."""
-    # Preps
-    fake_wallet.hotkey.ss58_address = "hotkey"
-
-    netuid = mocker.Mock()
-    mechid = mocker.Mock()
-    uids = []
-    weights = []
-    salt = []
-
-    mocked_get_sub_subnet_storage_index = mocker.patch.object(
-        mechanism, "get_mechid_storage_index"
-    )
-    mocked_generate_weight_hash = mocker.patch.object(mechanism, "generate_weight_hash")
-    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
-    mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, "")
-    )
-
-    # Call
-    result = mechanism.commit_mechanism_weights_extrinsic(
-        subtensor=subtensor,
-        wallet=fake_wallet,
-        netuid=netuid,
-        mechid=mechid,
-        uids=uids,
-        weights=weights,
-        salt=salt,
-    )
-
-    # Asserts
-    mocked_get_sub_subnet_storage_index.assert_called_once_with(
-        netuid=netuid, mechid=mechid
-    )
-    mocked_generate_weight_hash.assert_called_once_with(
-        address=fake_wallet.hotkey.ss58_address,
-        netuid=mocked_get_sub_subnet_storage_index.return_value,
-        uids=list(uids),
-        values=list(weights),
-        salt=salt,
-        version_key=mechanism.version_as_int,
-    )
-    mocked_compose_call.assert_called_once_with(
-        call_module="SubtensorModule",
-        call_function="commit_mechanism_weights",
-        call_params={
-            "netuid": netuid,
-            "mecid": mechid,
-            "commit_hash": mocked_generate_weight_hash.return_value,
-        },
-    )
-    mocked_sign_and_send_extrinsic.assert_called_once_with(
-        wallet=fake_wallet,
-        call=mocked_compose_call.return_value,
-        nonce_key="hotkey",
-        sign_with="hotkey",
-        use_nonce=True,
-        period=None,
-        raise_error=False,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
-    assert result == mocked_sign_and_send_extrinsic.return_value
-
-
-def test_commit_timelocked_mechanism_weights_extrinsic(mocker, subtensor, fake_wallet):
-    """Test successful `commit_mechanism_weights_extrinsic` extrinsic."""
+def test_commit_timelocked_weights_extrinsic(mocker, subtensor, fake_wallet):
+    """Test successful `commit_timelocked_weights_extrinsic` extrinsic."""
     # Preps
     fake_wallet.hotkey.ss58_address = "hotkey"
 
@@ -81,7 +14,7 @@ def test_commit_timelocked_mechanism_weights_extrinsic(mocker, subtensor, fake_w
     block_time = mocker.Mock()
 
     mocked_convert_and_normalize_weights_and_uids = mocker.patch.object(
-        mechanism,
+        weights_module,
         "convert_and_normalize_weights_and_uids",
         return_value=(uids, weights),
     )
@@ -90,10 +23,10 @@ def test_commit_timelocked_mechanism_weights_extrinsic(mocker, subtensor, fake_w
         subtensor, "get_subnet_hyperparameters"
     )
     mocked_get_sub_subnet_storage_index = mocker.patch.object(
-        mechanism, "get_mechid_storage_index"
+        weights_module, "get_mechid_storage_index"
     )
     mocked_get_encrypted_commit = mocker.patch.object(
-        mechanism,
+        weights_module,
         "get_encrypted_commit",
         return_value=(mocker.Mock(), mocker.Mock()),
     )
@@ -108,7 +41,7 @@ def test_commit_timelocked_mechanism_weights_extrinsic(mocker, subtensor, fake_w
     )
 
     # Call
-    result = mechanism.commit_timelocked_mechanism_weights_extrinsic(
+    result = weights_module.commit_timelocked_weights_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
         netuid=netuid,
@@ -127,7 +60,7 @@ def test_commit_timelocked_mechanism_weights_extrinsic(mocker, subtensor, fake_w
         uids=uids,
         weights=weights,
         subnet_reveal_period_epochs=mocked_get_subnet_hyperparameters.return_value.commit_reveal_period,
-        version_key=mechanism.version_as_int,
+        version_key=weights_module.version_as_int,
         tempo=mocked_get_subnet_hyperparameters.return_value.tempo,
         netuid=mocked_get_sub_subnet_storage_index.return_value,
         current_block=mocked_get_current_block.return_value,
@@ -159,8 +92,8 @@ def test_commit_timelocked_mechanism_weights_extrinsic(mocker, subtensor, fake_w
     assert result == mocked_sign_and_send_extrinsic.return_value
 
 
-def test_reveal_mechanism_weights_extrinsic(mocker, subtensor, fake_wallet):
-    """Test successful `reveal_mechanism_weights_extrinsic` extrinsic."""
+def test_commit_weights_extrinsic(mocker, subtensor, fake_wallet):
+    """Test successful `commit_weights_extrinsic` extrinsic."""
     # Preps
     fake_wallet.hotkey.ss58_address = "hotkey"
 
@@ -170,10 +103,11 @@ def test_reveal_mechanism_weights_extrinsic(mocker, subtensor, fake_wallet):
     weights = []
     salt = []
 
-    mocked_convert_and_normalize_weights_and_uids = mocker.patch.object(
-        mechanism,
-        "convert_and_normalize_weights_and_uids",
-        return_value=(uids, weights),
+    mocked_get_sub_subnet_storage_index = mocker.patch.object(
+        weights_module, "get_mechid_storage_index"
+    )
+    mocked_generate_weight_hash = mocker.patch.object(
+        weights_module, "generate_weight_hash"
     )
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
@@ -181,7 +115,7 @@ def test_reveal_mechanism_weights_extrinsic(mocker, subtensor, fake_wallet):
     )
 
     # Call
-    result = mechanism.reveal_mechanism_weights_extrinsic(
+    result = weights_module.commit_weights_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
         netuid=netuid,
@@ -189,21 +123,27 @@ def test_reveal_mechanism_weights_extrinsic(mocker, subtensor, fake_wallet):
         uids=uids,
         weights=weights,
         salt=salt,
-        version_key=mechanism.version_as_int,
     )
 
     # Asserts
-    mocked_convert_and_normalize_weights_and_uids.assert_called_once_with(uids, weights)
+    mocked_get_sub_subnet_storage_index.assert_called_once_with(
+        netuid=netuid, mechid=mechid
+    )
+    mocked_generate_weight_hash.assert_called_once_with(
+        address=fake_wallet.hotkey.ss58_address,
+        netuid=mocked_get_sub_subnet_storage_index.return_value,
+        uids=list(uids),
+        values=list(weights),
+        salt=salt,
+        version_key=weights_module.version_as_int,
+    )
     mocked_compose_call.assert_called_once_with(
         call_module="SubtensorModule",
-        call_function="reveal_mechanism_weights",
+        call_function="commit_mechanism_weights",
         call_params={
             "netuid": netuid,
             "mecid": mechid,
-            "uids": mocked_convert_and_normalize_weights_and_uids.return_value[0],
-            "values": mocked_convert_and_normalize_weights_and_uids.return_value[0],
-            "salt": salt,
-            "version_key": mechanism.version_as_int,
+            "commit_hash": mocked_generate_weight_hash.return_value,
         },
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
@@ -220,8 +160,69 @@ def test_reveal_mechanism_weights_extrinsic(mocker, subtensor, fake_wallet):
     assert result == mocked_sign_and_send_extrinsic.return_value
 
 
-def test_mechanism_sub_weights_extrinsic(mocker, subtensor, fake_wallet):
-    """Verify that the `set_mechanism_weights_extrinsic` function works as expected."""
+def test_reveal_weights_extrinsic(mocker, subtensor, fake_wallet):
+    """Test successful `reveal_weights_extrinsic` extrinsic."""
+    # Preps
+    fake_wallet.hotkey.ss58_address = "hotkey"
+
+    netuid = mocker.Mock()
+    mechid = mocker.Mock()
+    uids = []
+    weights = []
+    salt = []
+
+    mocked_convert_and_normalize_weights_and_uids = mocker.patch.object(
+        weights_module,
+        "convert_and_normalize_weights_and_uids",
+        return_value=(uids, weights),
+    )
+    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+    mocked_sign_and_send_extrinsic = mocker.patch.object(
+        subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, "")
+    )
+
+    # Call
+    result = weights_module.reveal_weights_extrinsic(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=netuid,
+        mechid=mechid,
+        uids=uids,
+        weights=weights,
+        salt=salt,
+        version_key=weights_module.version_as_int,
+    )
+
+    # Asserts
+    mocked_convert_and_normalize_weights_and_uids.assert_called_once_with(uids, weights)
+    mocked_compose_call.assert_called_once_with(
+        call_module="SubtensorModule",
+        call_function="reveal_mechanism_weights",
+        call_params={
+            "netuid": netuid,
+            "mecid": mechid,
+            "uids": mocked_convert_and_normalize_weights_and_uids.return_value[0],
+            "values": mocked_convert_and_normalize_weights_and_uids.return_value[0],
+            "salt": salt,
+            "version_key": weights_module.version_as_int,
+        },
+    )
+    mocked_sign_and_send_extrinsic.assert_called_once_with(
+        wallet=fake_wallet,
+        call=mocked_compose_call.return_value,
+        nonce_key="hotkey",
+        sign_with="hotkey",
+        use_nonce=True,
+        period=None,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert result == mocked_sign_and_send_extrinsic.return_value
+
+
+def test_set_weights_extrinsic(mocker, subtensor, fake_wallet):
+    """Verify that the `set_weights_extrinsic` function works as expected."""
     # Preps
     fake_wallet.hotkey.ss58_address = "hotkey"
 
@@ -231,7 +232,7 @@ def test_mechanism_sub_weights_extrinsic(mocker, subtensor, fake_wallet):
     weights = []
 
     mocked_convert_and_normalize_weights_and_uids = mocker.patch.object(
-        mechanism,
+        weights_module,
         "convert_and_normalize_weights_and_uids",
         return_value=(uids, weights),
     )
@@ -246,14 +247,14 @@ def test_mechanism_sub_weights_extrinsic(mocker, subtensor, fake_wallet):
     )
 
     # Call
-    result = mechanism.set_mechanism_weights_extrinsic(
+    result = weights_module.set_weights_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
         netuid=netuid,
         mechid=mechid,
         uids=uids,
         weights=weights,
-        version_key=mechanism.version_as_int,
+        version_key=weights_module.version_as_int,
     )
 
     # Asserts
@@ -266,7 +267,7 @@ def test_mechanism_sub_weights_extrinsic(mocker, subtensor, fake_wallet):
             "mecid": mechid,
             "dests": uids,
             "weights": weights,
-            "version_key": mechanism.version_as_int,
+            "version_key": weights_module.version_as_int,
         },
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(

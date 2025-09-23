@@ -131,6 +131,9 @@ async def test_dendrite(subtensor, templates, alice_wallet, bob_wallet):
         amount=tao,
     ).success
 
+    # Waiting to give the chain a chance to update its state
+    subtensor.wait_for_block()
+
     # Refresh metagraph
     metagraph = subtensor.metagraphs.metagraph(alice_subnet_netuid)
     bob_neuron = metagraph.neurons[1]
@@ -285,6 +288,9 @@ async def test_dendrite_async(async_subtensor, templates, alice_wallet, bob_wall
             wait_for_finalization=False,
         )
     ).success
+
+    # Waiting to give the chain a chance to update its state
+    await async_subtensor.wait_for_block()
 
     # Refresh metagraph
     metagraph = await async_subtensor.metagraphs.metagraph(alice_subnet_netuid)

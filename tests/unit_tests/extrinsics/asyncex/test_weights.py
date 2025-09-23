@@ -1,338 +1,291 @@
 import pytest
-from bittensor.core import async_subtensor
-from bittensor.core.extrinsics.asyncex import weights as async_weights
+
+from bittensor.core.extrinsics.asyncex import weights as weights_module
 from bittensor.core.settings import version_as_int
 from bittensor.core.types import ExtrinsicResponse
 
 
 @pytest.mark.asyncio
-async def test_set_weights_extrinsic_success_with_finalization(
-    subtensor, fake_wallet, mocker
-):
-    """Tests set_weights_extrinsic when weights are successfully set with finalization."""
+async def test_commit_weights_extrinsic(mocker, subtensor, fake_wallet):
+    """Test successful `commit_weights_extrinsic` extrinsic."""
     # Preps
-    fake_netuid = 1
-    fake_uids = mocker.Mock()
-    fake_weights = mocker.Mock()
+    fake_wallet.hotkey.ss58_address = "hotkey"
 
-    mocked_convert_types = mocker.patch.object(
-        async_weights,
-        "convert_uids_and_weights",
-        return_value=(mocker.Mock(), mocker.Mock()),
-    )
-    mocker_converter_normalize = mocker.patch.object(
-        async_weights,
-        "convert_and_normalize_weights_and_uids",
-        return_value=(mocker.Mock(), mocker.Mock()),
-    )
+    netuid = mocker.Mock()
+    mechid = mocker.Mock()
+    uids = []
+    weights = []
+    salt = []
 
+    mocked_get_mechanism_storage_index = mocker.patch.object(
+        weights_module, "get_mechid_storage_index"
+    )
+    mocked_generate_weight_hash = mocker.patch.object(
+        weights_module, "generate_weight_hash"
+    )
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, "")
     )
 
     # Call
-    result, message = await async_weights.set_weights_extrinsic(
+    result = await weights_module.commit_weights_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
-        netuid=fake_netuid,
-        uids=fake_uids,
-        weights=fake_weights,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
+        netuid=netuid,
+        mechid=mechid,
+        uids=uids,
+        weights=weights,
+        salt=salt,
     )
 
     # Asserts
-    mocked_convert_types.assert_called_once_with(fake_uids, fake_weights)
-    mocker_converter_normalize.assert_called_once_with(
-        mocked_convert_types.return_value[0], mocked_convert_types.return_value[1]
+    mocked_get_mechanism_storage_index.assert_called_once_with(
+        netuid=netuid, mechid=mechid
+    )
+    mocked_generate_weight_hash.assert_called_once_with(
+        address=fake_wallet.hotkey.ss58_address,
+        netuid=mocked_get_mechanism_storage_index.return_value,
+        uids=list(uids),
+        values=list(weights),
+        salt=salt,
+        version_key=weights_module.version_as_int,
     )
     mocked_compose_call.assert_awaited_once_with(
         call_module="SubtensorModule",
-        call_function="set_weights",
+        call_function="commit_mechanism_weights",
         call_params={
-            "dests": mocker_converter_normalize.return_value[0],
-            "weights": mocker_converter_normalize.return_value[1],
-            "netuid": fake_netuid,
-            "version_key": version_as_int,
+            "netuid": netuid,
+            "mecid": mechid,
+            "commit_hash": mocked_generate_weight_hash.return_value,
         },
     )
-    mocked_sign_and_send_extrinsic.assert_called_once_with(
-        call=mocked_compose_call.return_value,
+    mocked_sign_and_send_extrinsic.assert_awaited_once_with(
         wallet=fake_wallet,
-        wait_for_finalization=True,
-        wait_for_inclusion=True,
-        period=8,
-        use_nonce=True,
+        call=mocked_compose_call.return_value,
         nonce_key="hotkey",
         sign_with="hotkey",
+        use_nonce=True,
+        period=None,
         raise_error=False,
-        calling_function="set_weights_extrinsic",
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
     )
-    assert result is True
-    assert message == ""
+    assert result == mocked_sign_and_send_extrinsic.return_value
 
 
 @pytest.mark.asyncio
-async def test_set_weights_extrinsic_no_waiting(subtensor, fake_wallet, mocker):
-    """Tests set_weights_extrinsic when no waiting for inclusion or finalization."""
+async def test_commit_timelocked_weights_extrinsic(mocker, subtensor, fake_wallet):
+    """Test successful `commit_timelocked_weights_extrinsic` extrinsic."""
     # Preps
-    fake_netuid = 1
-    fake_uids = [1, 2, 3]
-    fake_weights = [0.1, 0.2, 0.7]
+    fake_wallet.hotkey.ss58_address = "hotkey"
 
-    mocked_convert_types = mocker.patch.object(
-        async_weights,
-        "convert_uids_and_weights",
-        return_value=(mocker.Mock(), mocker.Mock()),
-    )
-    mocker_converter_normalize = mocker.patch.object(
-        async_weights,
+    netuid = mocker.Mock()
+    mechid = mocker.Mock()
+    uids = []
+    weights = []
+    block_time = mocker.Mock()
+
+    mocked_convert_and_normalize_weights_and_uids = mocker.patch.object(
+        weights_module,
         "convert_and_normalize_weights_and_uids",
+        return_value=(uids, weights),
+    )
+    mocked_get_current_block = mocker.patch.object(subtensor, "get_current_block")
+    mocked_get_subnet_hyperparameters = mocker.patch.object(
+        subtensor, "get_subnet_hyperparameters"
+    )
+    mocked_get_mechanism_storage_index = mocker.patch.object(
+        weights_module, "get_mechid_storage_index"
+    )
+    mocked_get_encrypted_commit = mocker.patch.object(
+        weights_module,
+        "get_encrypted_commit",
         return_value=(mocker.Mock(), mocker.Mock()),
     )
-
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
         return_value=ExtrinsicResponse(
-            True, "Not waiting for finalization or inclusion."
+            True,
+            f"reveal_round:{mocked_get_encrypted_commit.return_value[1]}",
         ),
     )
 
     # Call
-    result, message = await async_weights.set_weights_extrinsic(
+    result = await weights_module.commit_timelocked_weights_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
-        netuid=fake_netuid,
-        uids=fake_uids,
-        weights=fake_weights,
-        wait_for_inclusion=False,
-        wait_for_finalization=False,
+        netuid=netuid,
+        mechid=mechid,
+        uids=uids,
+        weights=weights,
+        block_time=block_time,
     )
 
     # Asserts
-    mocked_convert_types.assert_called_once_with(fake_uids, fake_weights)
-    mocker_converter_normalize.assert_called_once_with(
-        mocked_convert_types.return_value[0], mocked_convert_types.return_value[1]
+    mocked_convert_and_normalize_weights_and_uids.assert_called_once_with(uids, weights)
+    mocked_get_mechanism_storage_index.assert_called_once_with(
+        netuid=netuid, mechid=mechid
+    )
+    mocked_get_encrypted_commit.assert_called_once_with(
+        uids=uids,
+        weights=weights,
+        subnet_reveal_period_epochs=mocked_get_subnet_hyperparameters.return_value.commit_reveal_period,
+        version_key=weights_module.version_as_int,
+        tempo=mocked_get_subnet_hyperparameters.return_value.tempo,
+        netuid=mocked_get_mechanism_storage_index.return_value,
+        current_block=mocked_get_current_block.return_value,
+        block_time=block_time,
+        hotkey=fake_wallet.hotkey.public_key,
     )
     mocked_compose_call.assert_awaited_once_with(
         call_module="SubtensorModule",
-        call_function="set_weights",
+        call_function="commit_timelocked_mechanism_weights",
         call_params={
-            "dests": mocker_converter_normalize.return_value[0],
-            "weights": mocker_converter_normalize.return_value[1],
-            "netuid": fake_netuid,
-            "version_key": version_as_int,
+            "netuid": netuid,
+            "mecid": mechid,
+            "commit": mocked_get_encrypted_commit.return_value[0],
+            "reveal_round": mocked_get_encrypted_commit.return_value[1],
+            "commit_reveal_version": 4,
         },
     )
-    mocked_sign_and_send_extrinsic.assert_called_once_with(
-        call=mocked_compose_call.return_value,
+    mocked_sign_and_send_extrinsic.assert_awaited_once_with(
         wallet=fake_wallet,
-        wait_for_finalization=False,
-        wait_for_inclusion=False,
-        period=8,
-        use_nonce=True,
+        call=mocked_compose_call.return_value,
         nonce_key="hotkey",
         sign_with="hotkey",
+        use_nonce=True,
+        period=None,
         raise_error=False,
-        calling_function="set_weights_extrinsic",
-    )
-    assert result is True
-    assert message == "Not waiting for finalization or inclusion."
-
-
-@pytest.mark.asyncio
-async def test_set_weights_extrinsic_failure(subtensor, fake_wallet, mocker):
-    """Tests set_weights_extrinsic when setting weights fails."""
-    # Preps
-    fake_netuid = 1
-    fake_uids = [1, 2, 3]
-    fake_weights = [0.1, 0.2, 0.7]
-
-    mocked_convert_types = mocker.patch.object(
-        async_weights,
-        "convert_uids_and_weights",
-        return_value=(mocker.Mock(), mocker.Mock()),
-    )
-    mocker_converter_normalize = mocker.patch.object(
-        async_weights,
-        "convert_and_normalize_weights_and_uids",
-        return_value=(mocker.Mock(), mocker.Mock()),
-    )
-
-    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
-    mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor,
-        "sign_and_send_extrinsic",
-        return_value=ExtrinsicResponse(False, "Test error message"),
-    )
-
-    # Call
-    result, message = await async_weights.set_weights_extrinsic(
-        subtensor=subtensor,
-        wallet=fake_wallet,
-        netuid=fake_netuid,
-        uids=fake_uids,
-        weights=fake_weights,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
-
-    # Asserts
-    mocked_convert_types.assert_called_once_with(fake_uids, fake_weights)
-    mocker_converter_normalize.assert_called_once_with(
-        mocked_convert_types.return_value[0], mocked_convert_types.return_value[1]
-    )
-    mocked_compose_call.assert_awaited_once_with(
-        call_module="SubtensorModule",
-        call_function="set_weights",
-        call_params={
-            "dests": mocker_converter_normalize.return_value[0],
-            "weights": mocker_converter_normalize.return_value[1],
-            "netuid": fake_netuid,
-            "version_key": version_as_int,
-        },
-    )
-    mocked_sign_and_send_extrinsic.assert_called_once_with(
-        call=mocked_compose_call.return_value,
-        wallet=fake_wallet,
-        wait_for_finalization=True,
-        wait_for_inclusion=True,
-        period=8,
-        use_nonce=True,
-        nonce_key="hotkey",
-        sign_with="hotkey",
-        raise_error=False,
-        calling_function="set_weights_extrinsic",
-    )
-    assert result is False
-    assert message == "Test error message"
+    assert result == mocked_sign_and_send_extrinsic.return_value
 
 
 @pytest.mark.asyncio
-async def test_set_weights_extrinsic_exception(subtensor, fake_wallet, mocker):
-    """Tests set_weights_extrinsic when an exception is raised."""
+async def test_reveal_weights_extrinsic(mocker, subtensor, fake_wallet):
+    """Test successful `reveal_weights_extrinsic` extrinsic."""
     # Preps
-    fake_netuid = 1
-    fake_uids = [1, 2, 3]
-    fake_weights = [0.1, 0.2, 0.7]
+    fake_wallet.hotkey.ss58_address = "hotkey"
 
-    mocker.patch.object(
-        async_weights,
-        "convert_uids_and_weights",
-        return_value=(mocker.Mock(), mocker.Mock()),
-    )
-    mocker.patch.object(
-        async_weights,
+    netuid = mocker.Mock()
+    mechid = mocker.Mock()
+    uids = []
+    weights = []
+    salt = []
+
+    mocked_convert_and_normalize_weights_and_uids = mocker.patch.object(
+        weights_module,
         "convert_and_normalize_weights_and_uids",
-        return_value=(mocker.Mock(), mocker.Mock()),
+        return_value=(uids, weights),
     )
-
-    mocker.patch.object(subtensor.substrate, "compose_call")
-    mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", side_effect=Exception("Unexpected error")
-    )
-
-    # Call
-    with pytest.raises(Exception):
-        await async_weights.set_weights_extrinsic(
-            subtensor=subtensor,
-            wallet=fake_wallet,
-            netuid=fake_netuid,
-            uids=fake_uids,
-            weights=fake_weights,
-            wait_for_inclusion=True,
-            wait_for_finalization=True,
-        )
-
-
-@pytest.mark.asyncio
-async def test_commit_weights_extrinsic_success(subtensor, fake_wallet, mocker):
-    """Tests commit_weights_extrinsic when the commit is successful."""
-    # Preps
-    fake_netuid = 1
-    fake_commit_hash = "test_hash"
-
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, "")
     )
 
     # Call
-    result, message = await async_weights.commit_weights_extrinsic(
+    result = await weights_module.reveal_weights_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
-        netuid=fake_netuid,
-        commit_hash=fake_commit_hash,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
+        netuid=netuid,
+        mechid=mechid,
+        uids=uids,
+        weights=weights,
+        salt=salt,
+        version_key=weights_module.version_as_int,
     )
 
     # Asserts
-    mocked_compose_call.assert_called_once_with(
+    mocked_convert_and_normalize_weights_and_uids.assert_called_once_with(uids, weights)
+    mocked_compose_call.assert_awaited_once_with(
         call_module="SubtensorModule",
-        call_function="commit_weights",
-        call_params={"netuid": fake_netuid, "commit_hash": fake_commit_hash},
+        call_function="reveal_mechanism_weights",
+        call_params={
+            "netuid": netuid,
+            "mecid": mechid,
+            "uids": mocked_convert_and_normalize_weights_and_uids.return_value[0],
+            "values": mocked_convert_and_normalize_weights_and_uids.return_value[0],
+            "salt": salt,
+            "version_key": weights_module.version_as_int,
+        },
     )
-    mocked_sign_and_send_extrinsic.assert_called_once_with(
-        call=mocked_compose_call.return_value,
+    mocked_sign_and_send_extrinsic.assert_awaited_once_with(
         wallet=fake_wallet,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
+        call=mocked_compose_call.return_value,
+        nonce_key="hotkey",
+        sign_with="hotkey",
         use_nonce=True,
         period=None,
         raise_error=False,
-        nonce_key="hotkey",
-        sign_with="hotkey",
-        calling_function="commit_weights_extrinsic",
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
     )
-    assert result is True
-    assert message == ""
+    assert result == mocked_sign_and_send_extrinsic.return_value
 
 
 @pytest.mark.asyncio
-async def test_commit_weights_extrinsic_failure(subtensor, fake_wallet, mocker):
-    """Tests commit_weights_extrinsic when the commit fails."""
+async def test_set_weights_extrinsic(mocker, subtensor, fake_wallet):
+    """Verify that the `set_weights_extrinsic` function works as expected."""
     # Preps
-    fake_netuid = 1
-    fake_commit_hash = "test_hash"
+    fake_wallet.hotkey.ss58_address = "hotkey"
 
+    netuid = mocker.Mock()
+    mechid = mocker.Mock()
+    uids = []
+    weights = []
+
+    mocked_convert_and_normalize_weights_and_uids = mocker.patch.object(
+        weights_module,
+        "convert_and_normalize_weights_and_uids",
+        return_value=(uids, weights),
+    )
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
-        return_value=ExtrinsicResponse(False, "Commit failed."),
+        return_value=ExtrinsicResponse(
+            True,
+            "",
+        ),
     )
 
     # Call
-    result, message = await async_weights.commit_weights_extrinsic(
+    result = await weights_module.set_weights_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
-        netuid=fake_netuid,
-        commit_hash=fake_commit_hash,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
+        netuid=netuid,
+        mechid=mechid,
+        uids=uids,
+        weights=weights,
+        version_key=weights_module.version_as_int,
     )
 
     # Asserts
-    mocked_compose_call.assert_called_once_with(
+    mocked_convert_and_normalize_weights_and_uids.assert_called_once_with(uids, weights)
+    mocked_compose_call.assert_awaited_once_with(
         call_module="SubtensorModule",
-        call_function="commit_weights",
-        call_params={"netuid": fake_netuid, "commit_hash": fake_commit_hash},
+        call_function="set_mechanism_weights",
+        call_params={
+            "netuid": netuid,
+            "mecid": mechid,
+            "dests": uids,
+            "weights": weights,
+            "version_key": weights_module.version_as_int,
+        },
     )
-    mocked_sign_and_send_extrinsic.assert_called_once_with(
-        call=mocked_compose_call.return_value,
+    mocked_sign_and_send_extrinsic.assert_awaited_once_with(
         wallet=fake_wallet,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
+        call=mocked_compose_call.return_value,
+        nonce_key="hotkey",
+        sign_with="hotkey",
         use_nonce=True,
         period=None,
         raise_error=False,
-        nonce_key="hotkey",
-        sign_with="hotkey",
-        calling_function="commit_weights_extrinsic",
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
     )
-    assert result is False
-    assert message == "Commit failed."
+    assert result == mocked_sign_and_send_extrinsic.return_value
