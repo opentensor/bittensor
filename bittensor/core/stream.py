@@ -61,11 +61,10 @@ class StreamingSynapse(Synapse, ABC):
             """
             Initializes the BTStreamingResponse with the given token streamer model.
 
-            Args:
-                model (bittensor.core.stream.BTStreamingResponseModel): A BTStreamingResponseModel instance containing
-                    the token streamer callable, which is responsible for generating the content of the response.
-                synapse (bittensor.core.stream.StreamingSynapse): The response Synapse to be used to update the response
-                    headers etc.
+            Parameters:
+                model: A BTStreamingResponseModel instance containing the token streamer callable, which is responsible
+                    for generating the content of the response.
+                synapse: The response Synapse to be used to update the response headers etc.
                 **kwargs: Additional keyword arguments passed to the parent StreamingResponse class.
             """
             super().__init__(content=iter(()), **kwargs)
@@ -80,8 +79,8 @@ class StreamingSynapse(Synapse, ABC):
             content type for event-streaming. It then calls the token streamer to generate the content and sends the
             response body to the client.
 
-            Args:
-                send (starlette.types.Send): A callable to send the response, provided by the ASGI server.
+            Parameters:
+                send: A callable to send the response, provided by the ASGI server.
             """
             headers = [(b"content-type", b"text/event-stream")] + self.raw_headers
 
@@ -101,11 +100,10 @@ class StreamingSynapse(Synapse, ABC):
             This method is part of the ASGI interface and is called by the ASGI server to handle the request and send
             the response. It delegates to the :func:`stream_response` method to perform the actual streaming process.
 
-            Args:
-                scope (starlette.types.Scope): The scope of the request, containing information about the client,
-                    server, and request itself.
-                receive (starlette.types.Receive): A callable to receive the request, provided by the ASGI server.
-                send (starlette.types.Send): A callable to send the response, provided by the ASGI server.
+            Parameters:
+                scope: The scope of the request, containing information about the client, server, and request itself.
+                receive: A callable to receive the request, provided by the ASGI server.
+                send: A callable to send the response, provided by the ASGI server.
             """
             await self.stream_response(send)
 
@@ -113,12 +111,12 @@ class StreamingSynapse(Synapse, ABC):
     async def process_streaming_response(self, response: "ClientResponse"):
         """
         Abstract method that must be implemented by the subclass.
-        This method should provide logic to handle the streaming response, such as parsing and accumulating data.
-        It is called as the response is being streamed from the network, and should be implemented to handle the
-        specific streaming data format and requirements of the subclass.
+        This method should provide logic to handle the streaming response, such as parsing and accumulating data. It is
+        called as the response is being streamed from the network, and should be implemented to handle the specific
+        streaming data format and requirements of the subclass.
 
-        Args:
-            response (aiohttp.ClientResponse): The response object to be processed, typically containing chunks of data.
+        Parameters:
+            The response object to be processed, typically containing chunks of data.
         """
         ...
 
@@ -130,8 +128,8 @@ class StreamingSynapse(Synapse, ABC):
         It is called after the response has been processed and is responsible for retrieving structured data that can be
         used by the application.
 
-        Args:
-            response (aiohttp.ClientResponse): The response object from which to extract JSON data.
+        Parameters:
+            The response object from which to extract JSON data.
         """
 
     def create_streaming_response(
@@ -143,13 +141,12 @@ class StreamingSynapse(Synapse, ABC):
         The token streamer should be implemented to generate the content of the response according to the specific
         requirements of the subclass.
 
-        Args:
-            token_streamer (Callable[[starlette.types.Send], Awaitable[None]]): A callable that takes a send function
-                and returns an awaitable. It's responsible for generating the content of the response.
+        Parameters:
+            token_streamer: A callable that takes a send function and returns an awaitable. It's responsible for
+                generating the content of the response.
 
         Returns:
-            BTStreamingResponse (bittensor.core.stream.StreamingSynapse.BTStreamingResponse): The streaming response
-            object, ready to be sent to the client.
+            The streaming response object, ready to be sent to the client.
         """
         model_instance = BTStreamingResponseModel(token_streamer=token_streamer)
 

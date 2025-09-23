@@ -20,7 +20,7 @@ async def get_extrinsic_fee(
     """
     Get extrinsic fee for a given extrinsic call and keypair for a given SN's netuid.
 
-    Arguments:
+    Parameters:
         subtensor: The Subtensor instance.
         netuid: The SN's netuid.
         call: The extrinsic call.

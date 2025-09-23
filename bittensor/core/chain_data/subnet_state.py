@@ -1,6 +1,6 @@
 """
-This module defines the `SubnetState` data class and associated methods for handling and decoding
-subnetwork states in the Bittensor network.
+This module defines the `SubnetState` data class and associated methods for handling and decoding subnetwork states in
+the Bittensor network.
 """
 
 from dataclasses import dataclass
