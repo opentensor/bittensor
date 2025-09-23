@@ -59,11 +59,11 @@ def cast_dtype(raw: Union[None, np.dtype, "torch.dtype", str]) -> Optional[str]:
     """
     Casts the raw value to a string representing the `numpy data type <https://numpy.org/doc/stable/user/basics.types.html>`_, or the `torch data type <https://pytorch.org/docs/stable/tensor_attributes.html>`_ if using torch.
 
-    Args:
-        raw (Union[None, numpy.dtype, torch.dtype, str]): The raw value to cast.
+    Parameters:
+        raw: The raw value to cast.
 
     Returns:
-        str: The string representing the numpy/torch data type.
+        The string representing the numpy/torch data type.
 
     Raises:
         Exception: If the raw value is of an invalid type.
@@ -91,11 +91,11 @@ def cast_shape(raw: Union[None, list[int], str]) -> Optional[Union[str, list]]:
     """
     Casts the raw value to a string representing the tensor shape.
 
-    Args:
-        raw (Union[None, list[int], str]): The raw value to cast.
+    Parameters:
+        raw: The raw value to cast.
 
     Returns:
-        str: The string representing the tensor shape.
+        The string representing the tensor shape.
 
     Raises:
         Exception: If the raw value is of an invalid type or if the list elements are not of type int.
@@ -127,10 +127,10 @@ class Tensor(BaseModel):
     """
     Represents a Tensor object.
 
-    Args:
-        buffer (Optional[str]): Tensor buffer data.
-        dtype (str): Tensor data type.
-        shape (list[int]): Tensor shape.
+    Parameters:
+        buffer: Tensor buffer data.
+        dtype: Tensor data type.
+        shape: Tensor shape.
     """
 
     model_config = ConfigDict(validate_assignment=True)
@@ -178,11 +178,11 @@ class Tensor(BaseModel):
         """
         Serializes the given tensor.
 
-        Args:
-            tensor_ (np.array or torch.Tensor): The tensor to serialize.
+        Parameters:
+            tensor_: The tensor to serialize.
 
         Returns:
-            :func:`Tensor`: The serialized tensor.
+            The serialized tensor.
 
         Raises:
             Exception: If the serialization process encounters an error.

@@ -31,7 +31,7 @@ class LiquidityPosition:
     ) -> tuple[Balance, Balance]:
         """Convert a position to token amounts.
 
-        Arguments:
+        Parameters:
             current_subnet_price: current subnet price in Alpha.
 
         Returns:
