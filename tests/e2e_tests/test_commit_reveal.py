@@ -217,7 +217,9 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
         ]
 
         # Ensure no weights are available as of now
-        assert subtensor.subnets.weights(netuid=alice_subnet_netuid, mechid=mechid) == []
+        assert (
+            subtensor.subnets.weights(netuid=alice_subnet_netuid, mechid=mechid) == []
+        )
         logging.console.success("No weights are available before next epoch.")
 
         # 5 is safety drand offset
@@ -326,7 +328,7 @@ async def test_commit_and_reveal_weights_cr4_async(
     logging.console.success(f"SN #{alice_subnet_netuid} is registered.")
 
     # Enable commit_reveal on the subnet
-    assert sudo_set_hyperparameter_bool(
+    assert await async_sudo_set_hyperparameter_bool(
         substrate=async_subtensor.substrate,
         wallet=alice_wallet,
         call_function="sudo_set_commit_reveal_weights_enabled",
@@ -362,7 +364,10 @@ async def test_commit_and_reveal_weights_cr4_async(
             netuid=alice_subnet_netuid
         )
     ).weights_rate_limit == 0, "Failed to set weights_rate_limit"
-    assert await async_subtensor.subnets.weights_rate_limit(netuid=alice_subnet_netuid) == 0
+    assert (
+        await async_subtensor.subnets.weights_rate_limit(netuid=alice_subnet_netuid)
+        == 0
+    )
     logging.console.success("sudo_set_weights_set_rate_limit executed: set to 0")
 
     # Change the tempo of the subnet
@@ -466,7 +471,9 @@ async def test_commit_and_reveal_weights_cr4_async(
 
         # Ensure no weights are available as of now
         assert (
-            await async_subtensor.subnets.weights(netuid=alice_subnet_netuid, mechid=mechid)
+            await async_subtensor.subnets.weights(
+                netuid=alice_subnet_netuid, mechid=mechid
+            )
             == []
         )
         logging.console.success("No weights are available before next epoch.")
