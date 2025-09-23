@@ -164,7 +164,9 @@ async def test_commit_and_reveal_weights_legacy(subtensor, alice_wallet):
         )
 
         # Wait until the reveal block range
-        subtensor.wait_for_block(subtensor.subnets.get_next_epoch_start_block(netuid) + 1)
+        subtensor.wait_for_block(
+            subtensor.subnets.get_next_epoch_start_block(netuid) + 1
+        )
 
         # Reveal weights
         success, message = subtensor.extrinsics.reveal_weights(
@@ -180,7 +182,7 @@ async def test_commit_and_reveal_weights_legacy(subtensor, alice_wallet):
 
         assert success is True, message
 
-        revealed_weights = subtensor.weights(netuid, mechid=mechid)
+        revealed_weights = subtensor.subnets.weights(netuid, mechid=mechid)
 
         # Assert that the revealed weights are set correctly
         assert revealed_weights is not None, "Weight reveal not found in storage"
