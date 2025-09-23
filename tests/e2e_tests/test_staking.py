@@ -675,7 +675,6 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet, eve_wallet)
     """
     logging.console.info("Testing [blue]test_safe_staking_scenarios[/blue]")
 
-
     # turn off admin freeze window limit for testing
     assert (
         sudo_set_admin_utils(

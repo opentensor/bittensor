@@ -11,7 +11,11 @@ from numpy.typing import NDArray
 from bittensor.core import settings
 from bittensor.core.chain_data import NeuronInfo, NeuronInfoLite
 from bittensor.core.config import Config
-from bittensor.utils import determine_chain_endpoint_and_network, networking, Certificate
+from bittensor.utils import (
+    determine_chain_endpoint_and_network,
+    networking,
+    Certificate,
+)
 from bittensor.utils.btlogging import logging
 
 # Type annotations for UIDs and weights.
