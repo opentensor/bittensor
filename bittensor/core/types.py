@@ -325,9 +325,9 @@ class ExtrinsicResponse:
     success: bool = True
     message: str = None
     error: Optional[Exception] = None
-    data: Optional[Any] = None
     extrinsic_function: Optional[str] = None
     extrinsic: Optional[GenericExtrinsic] = None
+    data: Optional[Any] = None
 
     def __iter__(self):
         yield self.success
