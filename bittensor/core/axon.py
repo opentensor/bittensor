@@ -100,9 +100,9 @@ class FastAPIThreadedServer(uvicorn.Server):
         # do something
         self.fast_server.stop()
 
-    Args:
-        should_exit (bool): Flag to indicate whether the server should stop running.
-        is_running (bool): Flag to indicate whether the server is currently running.
+    Parameters:
+        should_exit: Flag to indicate whether the server should stop running.
+        is_running: Flag to indicate whether the server is currently running.
 
     The server overrides the default signal handlers to prevent interference with the main application flow and provides
     methods to start and stop the server in a controlled manner.
@@ -274,17 +274,17 @@ class Axon:
             subtensor = ...
         ).start()
 
-    Args:
-        wallet (Optional[bittensor_wallet.Wallet]): Wallet with hotkey and coldkeypub.
-        config (Optional[bittensor.core.config.Config]): Configuration parameters for the axon.
-        port (Optional[int]): Port for server binding.
-        ip (Optional[str]): Binding IP address.
-        external_ip (Optional[str]): External IP address to broadcast.
-        external_port (Optional[int]): External port to broadcast.
-        max_workers (Optional[int]): Number of active threads for request handling.
+    Parameters:
+        wallet: Wallet with hotkey and coldkeypub.
+        config: Configuration parameters for the axon.
+        port: Port for server binding.
+        ip: Binding IP address.
+        external_ip: External IP address to broadcast.
+        external_port: External port to broadcast.
+        max_workers: Number of active threads for request handling.
 
     Returns:
-        bittensor.core.axon.Axon: An instance of the axon class configured as per the provided arguments.
+        An instance of the axon class configured as per the provided arguments.
 
     Note:
         This class is a core part of Bittensor's decentralized network for machine intelligence,
@@ -325,15 +325,15 @@ class Axon:
     ):
         """Creates a new bittensor.Axon object from passed arguments.
 
-        Args:
-            config (:obj:`Optional[bittensor.core.config.Config]`): bittensor.Axon.config()
-            wallet (:obj:`Optional[bittensor_wallet.Wallet]`): bittensor wallet with hotkey and coldkeypub.
-            port (:type:`Optional[int]`): Binding port.
-            ip (:type:`Optional[str]`): Binding ip.
-            external_ip (:type:`Optional[str]`): The external ip of the server to broadcast to the network.
-            external_port (:type:`Optional[int]`): The external port of the server to broadcast to the network.
-            max_workers (:type:`Optional[int]`): Used to create the threadpool if not passed, specifies the number of
-                active threads servicing requests.
+        Parameters:
+            config: Bittensor.Axon.config()
+            wallet: Bittensor Wallet with hotkey and coldkeypub.
+            port: Binding port.
+            ip: Binding ip.
+            external_ip: The external ip of the server to broadcast to the network.
+            external_port: The external port of the server to broadcast to the network.
+            max_workers: Used to create the threadpool if not passed, specifies the number of active threads servicing
+                requests.
         """
         # Build and check config.
         if config is None:
@@ -444,18 +444,14 @@ class Axon:
         blacklisting, and prioritizing requests. It's a key part of customizing the server's behavior
         and ensuring efficient and secure handling of requests within the Bittensor network.
 
-        Args:
-            forward_fn (Callable): Function to be called when the API endpoint is accessed. It should have at least one
-                argument.
-            blacklist_fn (Optional[Callable]): Function to filter out undesired requests. It should take the same
-                arguments as :func:`forward_fn` and return a boolean value. Defaults to ``None``, meaning no blacklist
-                filter will be used.
-            priority_fn (Optional[Callable]): Function to rank requests based on their priority. It should take the same
-                arguments as :func:`forward_fn` and return a numerical value representing the request's priority.
-                Defaults to ``None``, meaning no priority sorting will be applied.
-            verify_fn (Optional[Callable]): Function to verify requests. It should take the same arguments as
-                :func:`forward_fn` and return a boolean value. If ``None``, :func:`self.default_verify` function will be
-                used.
+        Parameters:
+            forward_fn: Function to be called when the API endpoint is accessed. It should have at least one argument.
+            blacklist_fn: Function to filter out undesired requests. It should take the same arguments as
+                :func:`forward_fn` and return a boolean value.
+            priority_fn: Function to rank requests based on their priority. It should take the same arguments as
+                :func:`forward_fn` and return a numerical value representing the request's priority.
+            verify_fn: Function to verify requests. It should take the same arguments as :func:`forward_fn` and return a
+                boolean value. If ``None``, :func:`self.default_verify` function will be used.
 
         Note:
             The methods :func:`forward_fn`, :func:`blacklist_fn`, :func:`priority_fn`, and :func:`verify_fn` should be
@@ -468,7 +464,7 @@ class Axon:
             AssertionError: If :func:`verify_fn` does not have the signature: ``verify( synapse: YourSynapse ) -> None``.
 
         Returns:
-            self: Returns the instance of the AxonServer class for potential method chaining.
+            Returns the instance of the AxonServer class for potential method chaining.
 
         Example Usage::
 
@@ -630,9 +626,9 @@ class Axon:
         """
         Adds AxonServer-specific command-line arguments to the argument parser.
 
-        Args:
-            parser (argparse.ArgumentParser): Argument parser to which the arguments will be added.
-            prefix (Optional[str]): Prefix to add to the argument names. Defaults to None.
+        Parameters:
+            parser: Argument parser to which the arguments will be added.
+            prefix: Prefix to add to the argument names.
 
         Note:
             Environment variables are used to define default values for the arguments.
@@ -678,7 +674,7 @@ class Axon:
             # Exception handling for re-parsing arguments
             pass
 
-    async def verify_body_integrity(self, request: "Request"):
+    async def verify_body_integrity(self, request: "Request") -> dict:
         """
         The ``verify_body_integrity`` method in the Bittensor framework is a key security function within the
         Axon server's middleware. It is responsible for ensuring the integrity of the body of incoming HTTP
@@ -689,12 +685,12 @@ class Axon:
         that the incoming request payload has not been altered or tampered with during transmission, establishing
         a level of trust and security between the sender and receiver in the network.
 
-        Args:
-            request (Request): The incoming FastAPI request object containing both headers and the request body.
+        Parameters:
+            request: The incoming FastAPI request object containing both headers and the request body.
 
         Returns:
-            dict: Returns the parsed body of the request as a dictionary if all the hash comparisons match, indicating
-                that the body is intact and has not been tampered with.
+            Returns the parsed body of the request as a dictionary if all the hash comparisons match, indicating that
+                the body is intact and has not been tampered with.
 
         Raises:
             JSONResponse: Raises a JSONResponse with a 400 status code if any of the hash comparisons fail, indicating
@@ -741,8 +737,8 @@ class Axon:
         """
         This method checks the configuration for the axon's port and wallet.
 
-        Args:
-            config (bittensor.core.config.Config): The config object holding axon settings.
+        Parameters:
+            config: The config object holding axon settings.
 
         Raises:
             AssertionError: If the axon or external ports are not in range [1024, 65535]
@@ -842,19 +838,19 @@ class Axon:
         certificate: Optional[Certificate] = None,
     ) -> "Axon":
         """
-        Serves the Axon on the specified subtensor connection using the configured wallet. This method
-        registers the Axon with a specific subnet within the Bittensor network, identified by the ``netuid``.
-        It links the Axon to the broader network, allowing it to participate in the decentralized exchange
-        of information.
+        Serves the Axon on the specified subtensor connection using the configured wallet. This method registers the
+        Axon with a specific subnet within the Bittensor network, identified by the ``netuid``. It links the Axon to the
+        broader network, allowing it to participate in the decentralized exchange of information.
 
-        Args:
-            netuid (int): The unique identifier of the subnet to register on. This ID is essential for the Axon to
+        Parameters:
+            netuid: The unique identifier of the subnet to register on. This ID is essential for the Axon to
                 correctly position itself within the Bittensor network topology.
-            subtensor (Optional[bittensor.core.subtensor.Subtensor]): The subtensor connection to use for serving. If
-                not provided, a new connection is established based on default configurations.
+            subtensor: The subtensor connection to use for serving. If not provided, a new connection is established
+                based on default configurations.
+            certificate: Neuron certificate.
 
         Returns:
-            bittensor.core.axon.Axon: The Axon instance that is now actively serving on the specified subtensor.
+            The Axon instance that is now actively serving on the specified subtensor.
 
         Example::
 
@@ -876,11 +872,11 @@ class Axon:
 
         It ensures that the message was not tampered with and was sent by the expected sender.
 
-        The :func:`default_verify` method in the Bittensor framework is a critical security function within the
-        Axon server. It is designed to authenticate incoming messages by verifying their digital
-        signatures. This verification ensures the integrity of the message and confirms that it was
-        indeed sent by the claimed sender. The method plays a pivotal role in maintaining the trustworthiness
-        and reliability of the communication within the Bittensor network.
+        The :func:`default_verify` method in the Bittensor framework is a critical security function within the Axon
+        server. It is designed to authenticate incoming messages by verifying their digital signatures. This
+        verification ensures the integrity of the message and confirms that it was indeed sent by the claimed sender.
+        The method plays a pivotal role in maintaining the trustworthiness and reliability of the communication within
+        the Bittensor network.
 
         Key Features
             Security Assurance
@@ -909,8 +905,8 @@ class Axon:
                 cornerstone of modern cryptographic security, ensuring that only entities with the correct
                 cryptographic keys can participate in secure communication.
 
-        Args:
-            synapse(bittensor.core.synapse.Synapse): bittensor request synapse.
+        Parameters:
+            synapse: bittensor request synapse.
 
         Raises:
             Exception: If the ``receiver_hotkey`` doesn't match with ``self.receiver_hotkey``.
@@ -992,9 +988,8 @@ class Axon:
 def create_error_response(synapse: "Synapse") -> "JSONResponse":
     """Creates an error response based on the provided synapse object.
 
-    Args:
-        synapse (bittensor.core.synapse.Synapse): The synapse object containing details about the request and the
-            associated axon.
+    Parameters:
+        synapse: The synapse object containing details about the request and the associated axon.
 
     Returns:
         JSONResponse: A JSON response with a status code and content indicating the error message.
@@ -1022,15 +1017,14 @@ def log_and_handle_error(
     """
     Logs the error and updates the synapse object with the appropriate error details.
 
-    Args:
-        synapse (bittensor.core.synapse.Synapse): The synapse object to be updated with error information.
-        exception (Exception): The exception that was raised and needs to be logged and handled.
-        status_code (Optional[int]): The HTTP status code to be set on the synapse object. Defaults to None.
-        start_time (Optional[float]): The timestamp marking the start of the processing, used to calculate process time.
-            Defaults to None.
+    Parameters:
+        synapse: The synapse object to be updated with error information.
+        exception: The exception that was raised and needs to be logged and handled.
+        status_code: The HTTP status code to be set on the synapse object.
+        start_time: The timestamp marking the start of the processing, used to calculate process time.
 
     Returns:
-        Synapse: The updated synapse object with error details.
+        The updated synapse object with error details.
     """
     if isinstance(exception, SynapseException):
         synapse = exception.synapse or synapse
@@ -1086,31 +1080,30 @@ class AxonMiddleware(BaseHTTPMiddleware):
     """
     The `AxonMiddleware` class is a key component in the Axon server, responsible for processing all incoming requests.
 
-    It handles the essential tasks of verifying requests, executing blacklist checks,
-    running priority functions, and managing the logging of messages and errors. Additionally, the class
-    is responsible for updating the headers of the response and executing the requested functions.
+    It handles the essential tasks of verifying requests, executing blacklist checks, running priority functions, and
+    managing the logging of messages and errors. Additionally, the class is responsible for updating the headers of the
+    response and executing the requested functions.
 
-    This middleware acts as an intermediary layer in request handling, ensuring that each request is
-    processed according to the defined rules and protocols of the Bittensor network. It plays a pivotal
-    role in maintaining the integrity and security of the network communication.
+    This middleware acts as an intermediary layer in request handling, ensuring that each request is processed according
+    to the defined rules and protocols of the Bittensor network. It plays a pivotal role in maintaining the integrity
+    and security of the network communication.
 
-    Args:
-        app (FastAPI): An instance of the FastAPI application to which this middleware is attached.
-        axon (bittensor.core.axon.Axon): The Axon instance that will process the requests.
+    Parameters:
+        app: An instance of the FastAPI application to which this middleware is attached.
+        axon: The Axon instance that will process the requests.
 
-    The middleware operates by intercepting incoming requests, performing necessary preprocessing
-    (like verification and priority assessment), executing the request through the Axon's endpoints, and
-    then handling any postprocessing steps such as response header updating and logging.
+    The middleware operates by intercepting incoming requests, performing necessary preprocessing (like verification and
+    priority assessment), executing the request through the Axon's endpoints, and then handling any postprocessing steps
+    such as response header updating and logging.
     """
 
     def __init__(self, app: "AxonMiddleware", axon: "Axon"):
         """
         Initialize the AxonMiddleware class.
 
-        Args:
-            app (bittensor.core.axon.AxonMiddleware): An instance of the application where the middleware processor is
-                used.
-            axon (bittensor.core.axon.Axon): The axon instance used to process the requests.
+        Parameters:
+            app: An instance of the application where the middleware processor is used.
+            axon: The axon instance used to process the requests.
         """
         super().__init__(app)
         self.axon = axon
@@ -1119,13 +1112,12 @@ class AxonMiddleware(BaseHTTPMiddleware):
         self, request: "Request", call_next: "RequestResponseEndpoint"
     ) -> Response:
         """
-        Asynchronously processes incoming HTTP requests and returns the corresponding responses. This
-        method acts as the central processing unit of the AxonMiddleware, handling each step in the
-        request lifecycle.
+        Asynchronously processes incoming HTTP requests and returns the corresponding responses. This method acts as the
+        central processing unit of the AxonMiddleware, handling each step in the request lifecycle.
 
-        Args:
-            request (Request): The incoming HTTP request to be processed.
-            call_next (RequestResponseEndpoint): A callable that processes the request and returns a response.
+        Parameters:
+            request: The incoming HTTP request to be processed.
+            call_next: A callable that processes the request and returns a response.
 
         Returns:
             Response: The HTTP response generated after processing the request.
@@ -1220,15 +1212,15 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
     async def preprocess(self, request: "Request") -> "Synapse":
         """
-        Performs the initial processing of the incoming request. This method is responsible for
-        extracting relevant information from the request and setting up the Synapse object, which
-        represents the state and context of the request within the Axon server.
+        Performs the initial processing of the incoming request. This method is responsible for extracting relevant
+        information from the request and setting up the Synapse object, which represents the state and context of the
+        request within the Axon server.
 
-        Args:
-            request (Request): The incoming request to be preprocessed.
+        Parameters:
+            request: The incoming request to be preprocessed.
 
         Returns:
-            bittensor.core.synapse.Synapse: The Synapse object representing the preprocessed state of the request.
+            The Synapse object representing the preprocessed state of the request.
 
         The preprocessing involves:
 
@@ -1288,11 +1280,11 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
     async def verify(self, synapse: "Synapse"):
         """
-        Verifies the authenticity and integrity of the request. This method ensures that the incoming
-        request meets the predefined security and validation criteria.
+        Verifies the authenticity and integrity of the request. This method ensures that the incoming request meets the
+        predefined security and validation criteria.
 
-        Args:
-            synapse (bittensor.core.synapse.Synapse): The Synapse object representing the request.
+        Parameters:
+            synapse: The Synapse object representing the request.
 
         Raises:
             Exception: If the verification process fails due to unmet criteria or security concerns.
@@ -1345,13 +1337,12 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
     async def blacklist(self, synapse: "Synapse"):
         """
-        Checks if the request should be blacklisted. This method ensures that requests from disallowed
-        sources or with malicious intent are blocked from processing. This can be extremely useful for
-        preventing spam or other forms of abuse. The blacklist is a list of keys or identifiers that
-        are prohibited from accessing certain resources.
+        Checks if the request should be blacklisted. This method ensures that requests from disallowed sources or with
+        malicious intent are blocked from processing. This can be extremely useful for preventing spam or other forms of
+        abuse. The blacklist is a list of keys or identifiers that are prohibited from accessing certain resources.
 
-        Args:
-            synapse (bittensor.core.synapse.Synapse): The Synapse object representing the request.
+        Parameters:
+            synapse: The Synapse object representing the request.
 
         Raises:
             Exception: If the request is found in the blacklist.
@@ -1404,8 +1395,8 @@ class AxonMiddleware(BaseHTTPMiddleware):
         Executes the priority function for the request. This method assesses and assigns a priority
         level to the request, determining its urgency and importance in the processing queue.
 
-        Args:
-            synapse (bittensor.core.synapse.Synapse): The Synapse object representing the request.
+        Parameters:
+            synapse: The Synapse object representing the request.
 
         Raises:
             Exception: If the priority assessment process encounters issues, such as timeouts.
@@ -1424,13 +1415,12 @@ class AxonMiddleware(BaseHTTPMiddleware):
             Submits the given priority function to the specified executor for asynchronous execution.
             The function will run in the provided executor and return the priority value along with the result.
 
-            Args:
-                executor (bittensor.core.threadpool.PriorityThreadPoolExecutor): The executor in which the priority
-                    function will be run.
-                priority (float): The priority function to be executed.
+            Parameters:
+                executor: The executor in which the priority function will be run.
+                priority: The priority function to be executed.
 
             Returns:
-                tuple: A tuple containing the priority value and the result of the priority function execution.
+                A tuple containing the priority value and the result of the priority function execution.
             """
             loop = asyncio.get_running_loop()
             future = loop.run_in_executor(executor, lambda: priority)
@@ -1475,10 +1465,10 @@ class AxonMiddleware(BaseHTTPMiddleware):
         Executes the requested function as part of the request processing pipeline. This method calls
         the next function in the middleware chain to process the request and generate a response.
 
-        Args:
-            synapse (bittensor.core.synapse.Synapse): The Synapse object representing the request.
-            call_next (RequestResponseEndpoint): The next function in the middleware chain to process requests.
-            request (Request): The original HTTP request.
+        Parameters:
+            synapse: The Synapse object representing the request.
+            call_next: The next function in the middleware chain to process requests.
+            request: The original HTTP request.
 
         Returns:
             Response: The HTTP response generated by processing the request.
@@ -1513,9 +1503,9 @@ class AxonMiddleware(BaseHTTPMiddleware):
         """
         Converts the Synapse object into a JSON response with HTTP headers.
 
-        Args:
-            synapse (bittensor.core.synapse.Synapse): The Synapse object representing the request.
-            start_time (float): The timestamp when the request processing started.
+        Parameters:
+            synapse: The Synapse object representing the request.
+            start_time: The timestamp when the request processing started.
             response_override: Instead of serializing the synapse, mutate the provided response object. This is only
                 really useful for StreamingSynapse responses.
 

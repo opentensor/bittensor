@@ -60,8 +60,8 @@ class Balance:
         Initialize a Balance object. If balance is an int, it's assumed to be in rao.
         If balance is a float, it's assumed to be in tao.
 
-        Args:
-            balance: The initial balance, in either rao (if an int) or tao (if a float).
+        Parameters:
+            The initial balance, in either rao (if an int) or tao (if a float).
         """
         if isinstance(balance, int):
             self.rao = balance
@@ -276,9 +276,10 @@ class Balance:
     def from_float(amount: float, netuid: int = 0) -> "Balance":
         """
         Given tao, return :func:`Balance` object with rao(``int``) and tao(``float``), where rao = int(tao*pow(10,9))
-        Args:
-            amount (float): The amount in tao.
-            netuid (int): The subnet uid for set currency unit. Defaults to `0`.
+
+        Parameters:
+            amount: The amount in tao.
+            netuid: The subnet uid for set currency unit.
 
         Returns:
             A Balance object representing the given amount.
@@ -291,9 +292,9 @@ class Balance:
         """
         Given tao, return Balance object with rao(``int``) and tao(``float``), where rao = int(tao*pow(10,9))
 
-        Args:
-            amount (float): The amount in tao.
-            netuid (int): The subnet uid for set currency unit. Defaults to `0`.
+        Parameters:
+            amount: The amount in tao.
+            netuid: The subnet uid for set currency unit.
 
         Returns:
             A Balance object representing the given amount.
@@ -306,9 +307,9 @@ class Balance:
         """
         Given rao, return Balance object with rao(``int``) and tao(``float``), where rao = int(tao*pow(10,9))
 
-        Args:
-            amount (int): The amount in rao.
-            netuid (int): The subnet uid for set currency unit. Defaults to `0`.
+        Parameters:
+            amount: The amount in rao.
+            netuid: The subnet uid for set currency unit.
 
         Returns:
             A Balance object representing the given amount.
