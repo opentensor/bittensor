@@ -26,14 +26,14 @@ def get_old_stakes(
     netuids associated with the wallet's coldkey. If no match is found for a particular hotkey and netuid combination,
     a default balance of zero is returned.
 
-    Args:
+    Parameters:
         wallet: The wallet containing the coldkey to compare with stake data.
         hotkey_ss58s: List of hotkey SS58 addresses for which stakes are retrieved.
         netuids: List of network unique identifiers (netuids) corresponding to the hotkeys.
         all_stakes: A collection of all staking information to search through.
 
     Returns:
-        list[Balance]: A list of Balances, each representing the stake for a given hotkey and netuid.
+        A list of Balances, each representing the stake for a given hotkey and netuid.
     """
     stake_lookup = {
         (stake.hotkey_ss58, stake.coldkey_ss58, stake.netuid): stake.stake
@@ -57,7 +57,7 @@ def get_extrinsic_fee(
     """
     Get extrinsic fee for a given extrinsic call and keypair for a given SN's netuid.
 
-    Arguments:
+    Parameters:
         subtensor: The Subtensor instance.
         call: The extrinsic call.
         keypair: The keypair associated with the extrinsic.

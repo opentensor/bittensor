@@ -179,11 +179,11 @@ class LoggingMachine(StateMachine, Logger):
     def _extract_logging_config(self, config: "Config") -> dict:
         """Extract btlogging's config from bittensor config
 
-        Args:
-            config (bittensor.core.config.Config): Bittensor config instance.
+        Parameters:
+            config: Bittensor config instance.
 
         Returns:
-            (dict): btlogging's config from Bittensor config or Bittensor config.
+            Dict represented btlogging's config from Bittensor config or Bittensor config.
         """
         # This is to handle nature of DefaultMunch
         if getattr(config, "logging", None):
@@ -214,8 +214,8 @@ class LoggingMachine(StateMachine, Logger):
     def set_config(self, config: "Config"):
         """Set config after initialization, if desired.
 
-        Args:
-            config (bittensor.core.config.Config): Bittensor config instance.
+        Parameters:
+            config: Bittensor config instance.
         """
         self._config = self._extract_logging_config(config)
         if self._config.logging_dir and self._config.record_log:
@@ -281,27 +281,25 @@ class LoggingMachine(StateMachine, Logger):
 
     def register_primary_logger(self, name: str):
         """
-        Register a logger as primary logger
+        Register a logger as primary logger.
 
-        This adds a logger to the _primary_loggers set to ensure
-        it doesn't get disabled when disabling third-party loggers.
-        A queue handler is also associated with it.
+        This adds a logger to the _primary_loggers set to ensure it doesn't get disabled when disabling third-party
+        loggers. A queue handler is also associated with it.
 
-        Args:
-            name (str): the name for primary logger.
+        Parameters:
+            name: the name for primary logger.
         """
         self._primary_loggers.add(name)
         self._initialize_bt_logger(name)
 
     def deregister_primary_logger(self, name: str):
         """
-        De-registers a primary logger
+        De-registers a primary logger.
 
-        This function removes the logger from the _primary_loggers
-        set and deinitializes its queue handler
+        This function removes the logger from the _primary_loggers set and deinitializes its queue handler
 
-        Args:
-            name (str): the name of primary logger.
+        Parameters:
+            name: the name of primary logger.
         """
         self._primary_loggers.remove(name)
         self._deinitialize_bt_logger(name)

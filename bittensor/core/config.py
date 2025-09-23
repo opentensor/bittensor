@@ -20,7 +20,7 @@ import argparse
 import os
 import sys
 from copy import deepcopy
-from typing import Any, TypeVar, Type, Optional
+from typing import Any, Optional, Self
 
 import yaml
 from munch import DefaultMunch
@@ -236,13 +236,10 @@ class Config(DefaultMunch):
                 pass
 
 
-T = TypeVar("T", bound="DefaultConfig")
-
-
 class DefaultConfig(Config):
     """A Config with a set of default values."""
 
     @classmethod
-    def default(cls: Type[T]) -> T:
+    def default(cls: Self) -> Self:
         """Get default config."""
         raise NotImplementedError("Function default is not implemented.")
