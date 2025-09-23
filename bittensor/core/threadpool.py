@@ -135,9 +135,8 @@ class PriorityThreadPoolExecutor(_base.Executor):
     ):
         """Initializes a new `ThreadPoolExecutor <https://docs.python.org/3/library/concurrent.futures.html#threadpoolexecutor>`_ instance.
 
-        Args:
-            max_workers: The maximum number of threads that can be used to
-                execute the given calls.
+        Parameters:
+            max_workers: The maximum number of threads that can be used to execute the given calls.
             thread_name_prefix: An optional name prefix to give our threads.
             initializer: An callable used to initialize worker threads.
             initargs: A tuple of arguments to pass to the initializer.

@@ -17,13 +17,13 @@ async def _get_limits(subtensor: "AsyncSubtensor") -> tuple[int, float]:
 
     These values are fetched asynchronously using `asyncio.gather` to run both requests concurrently.
 
-    Args:
-        subtensor (AsyncSubtensor): The AsyncSubtensor object used to interface with the network's substrate node.
+    Parameters:
+        subtensor: The AsyncSubtensor instance.
 
     Returns:
-        tuple[int, float]: A tuple containing:
-            - `min_allowed_weights` (int): The minimum allowed weights.
-            - `max_weight_limit` (float): The maximum weight limit, normalized to a float value.
+        tuple[int, float]:
+            - `min_allowed_weights`: The minimum allowed weights.
+            - `max_weight_limit`: The maximum weight limit, normalized to a float value.
     """
     # Get weight restrictions.
     maw, mwl = await asyncio.gather(
@@ -46,7 +46,7 @@ async def root_register_extrinsic(
     """
     Registers the neuron to the root network.
 
-    Arguments:
+    Parameters:
         subtensor: Subtensor instance to interact with the blockchain.
         wallet: Bittensor Wallet instance.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the

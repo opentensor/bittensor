@@ -101,12 +101,12 @@ class AxonInfo(InfoBase):
         """
         Creates an `AxonInfo` object from its string representation using JSON.
 
-        Args:
-            json_string (str): The JSON string representation of the AxonInfo object.
+        Parameters:
+            json_string: The JSON string representation of the AxonInfo object.
 
         Returns:
-            AxonInfo: An instance of AxonInfo created from the JSON string. If decoding fails, returns a default
-                `AxonInfo` object with default values.
+            An instance of AxonInfo created from the JSON string. If decoding fails, returns a default AxonInfo` object
+                with default values.
 
         Raises:
             json.JSONDecodeError: If there is an error in decoding the JSON string.
@@ -129,11 +129,11 @@ class AxonInfo(InfoBase):
         """
         Converts a dictionary to an `AxonInfo` object.
 
-        Args:
-            neuron_info (dict): A dictionary containing the neuron information.
+        Parameters:
+            neuron_info: A dictionary containing the neuron information.
 
         Returns:
-            instance (AxonInfo): An instance of AxonInfo created from the dictionary.
+            An instance of AxonInfo created from the dictionary.
         """
         return cls(
             version=neuron_info["axon_info"]["version"],
