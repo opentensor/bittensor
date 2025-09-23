@@ -321,7 +321,7 @@ def sudo_set_admin_utils(
         wallet: Wallet object with the keypair for signing.
         call_function: The AdminUtils function to call.
         call_params: Parameters for the AdminUtils function.
-        call_module: The AdminUtils module to call. Defaults to "AdminUtils".
+        call_module: The AdminUtils module to call.
 
     Returns:
         tuple: (success status, error details).
@@ -364,7 +364,7 @@ async def async_sudo_set_admin_utils(
         wallet: Wallet object with the keypair for signing.
         call_function: The AdminUtils function to call.
         call_params: Parameters for the AdminUtils function.
-        call_module: The AdminUtils module to call. Defaults to "AdminUtils".
+        call_module: The AdminUtils module to call.
 
     Returns:
         tuple: (success status, error details).

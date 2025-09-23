@@ -361,8 +361,8 @@ class DendriteMixin:
 
         Parameters:
             axons: The list of target Axon information.
-            synapse: The Synapse object. Defaults to :func:`Synapse()`.
-            timeout: The request timeout duration in seconds. Defaults to ``12.0`` seconds.
+            synapse: The Synapse object.
+            timeout: The request timeout duration in seconds.
 
         Returns:
             If a single target axon is provided, returns the response from that axon. If multiple target axons are
@@ -694,7 +694,7 @@ class DendriteMixin:
         Parameters:
             target_axon_info: The target axon information.
             synapse: The synapse object to be preprocessed.
-            timeout: The request timeout duration in seconds. Defaults to ``12.0`` seconds.
+            timeout: The request timeout duration in seconds.
 
         Returns:
             The preprocessed synapse.

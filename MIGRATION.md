@@ -49,7 +49,7 @@ rename this variable in documentation.
 
 3. Move `bittensor.utils.get_transfer_fn_params` to `bittensor.core.extrinsics.utils`.
 
-4. Common refactoring (improve type annotations, etc)
+4. ✅ Common refactoring (improve type annotations, etc)
 
 5. Rename `non-/fast-blocks` to `non-/fast-runtime` in related places to be consistent with subtensor repo. Related with testing, subtensor scripts, documentation.
 
@@ -57,11 +57,13 @@ rename this variable in documentation.
 `hotkey`, `coldkey`, `hotkeypub`, and `coldkeypub` are keypairs
 `hotkey_ss58`, `coldkey_ss58`, `hotkeypub_ss58`, and `coldkeypub_ss58` are SS58 addresses of keypair.
 
-7. Replace `Arguments` with `Parameters`. Matches Python rules. Improve docstrings for writing MСP server.
+7. ✅ Replace `Arguments` with `Parameters`. Matches Python rules. Improve docstrings for writing MСP server.
 
-8. Remove all type annotations for parameters in docstrings.
+8. ✅ Remove all type annotations for parameters in docstrings.
 
 9. Remove all logic related to CRv3 as it will be removed from the chain next week.
+   - [x] CRv3 extrinsics
+   - [ ] CRv3 logic related subtensor's calls
 
 10. Revise `bittensor/utils/easy_imports.py` module to remove deprecated backwards compatibility objects. Use this module as a functionality for exporting existing objects to the package root to keep __init__.py minimal and simple.
 
@@ -69,7 +71,7 @@ rename this variable in documentation.
 
 12. Find and process all `TODOs` across the entire code base. If in doubt, discuss each one with the team separately. SDK has 29 TODOs.
 13. ✅ The SDK is dropping support for `Python 3.9` starting with this release.
-14. Remove `Default is` and `Default to` in docstrings bc parameters enough.
+14. ✅ Remove `Default is` and `Default to` in docstrings bc parameters enough.
 15. camfairchild: TODO, but we should have a grab_metadata if we don't already. Maybe don't decode, but can have a call that removes the Raw prefix, and another just doing grab_metadata_raw (no decoding)
 
 ## New features
@@ -83,13 +85,13 @@ rename this variable in documentation.
 2. Improve failed test reporting from GH Actions to the Docker channel (e.g., clearer messages, formatting).
 
 3. Write a configurable test harness class for tests that will accept arguments and immediately:
-create a subnet
-activate a subnet (if the argument is passed as True)
-register neurons (use wallets as arguments)
-set the necessary hyperparameters (tempo, etc. if the argument are passed)
-Will greatly simplify tests.
+   - create a subnet
+   - activate a subnet (if the argument is passed as True)
+   - register neurons (use wallets as arguments)
+   - set the necessary hyperparameters (tempo, etc. if the argument are passed)
+   Will greatly simplify tests.
 
-4. Add an async test versions. This will help us greatly improve the asynchronous implementation of Subtensors and Extrinsics.
+4. ✅ Add an async test versions. This will help us greatly improve the asynchronous implementation of Subtensors and Extrinsics.
 
 
 ## Implementation
@@ -98,13 +100,13 @@ To implement the above changes and prepare for the v10 release, the following st
 
 - [x] Create a new branch named SDKv10.~~
 All breaking changes and refactors should be targeted into this branch to isolate them from staging and maintain backward compatibility during development.
-- [ ] Add a `migration.md` document at the root of the repository and use it as a check list. This file will serve as a changelog and technical reference.
+- [ ] Add a `MIGRATION.md` document at the root of the repository and use it as a check list. This file will serve as a changelog and technical reference.
 It must include:
   - [ ] All change categories (Extrinsics, Subtensor, Metagraph, etc.)
   - [ ] Per-PR breakdown of what was added, removed, renamed, or refactored.
   - [ ] Justifications and migration notes for users (if API behavior changed).
 
-- [ ] Based on the final `migration.md`, develop migration documentation for the community. 
+- [ ] Based on the final `MIGRATION.md`, develop migration documentation for the community. 
 - [ ] Once complete, merge SDKv10 into staging and release version 10.
 
 
@@ -219,4 +221,3 @@ Removing deprecated extrinsics and replacing them with consistent ones:
 - method `query_module` has updated parameters order.
 - method `query_map_subtensor` has updated parameters order.
 - method `query_map` has updated parameters order.
-- 

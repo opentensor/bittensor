@@ -61,7 +61,7 @@ def solve_cuda(
         block_and_hotkey_hash_bytes: Keccak(Bytes of the block hash + bytes of the hotkey) 64 bytes.
         difficulty: Difficulty of the PoW problem.
         limit: Upper limit of the nonce.
-        dev_id: The CUDA device ID. Defaults to ``0``.
+        dev_id: The CUDA device ID.
 
     Returns:
         Tuple of the nonce and the seal corresponding to the solution. Returns -1 for nonce if no solution is found.
