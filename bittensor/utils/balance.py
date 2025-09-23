@@ -279,7 +279,7 @@ class Balance:
 
         Parameters:
             amount: The amount in tao.
-            netuid: The subnet uid for set currency unit. Defaults to `0`.
+            netuid: The subnet uid for set currency unit.
 
         Returns:
             A Balance object representing the given amount.
