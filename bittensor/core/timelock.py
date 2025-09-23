@@ -71,7 +71,7 @@ def encrypt(
 ) -> tuple[bytes, int]:
     """Encrypts data using TimeLock Encryption
 
-    Arguments:
+    Parameters:
         data: Any bytes data to be encrypted.
         n_blocks: Number of blocks to encrypt.
         block_time: Time in seconds for each block. Default is `12.0` seconds.
@@ -108,7 +108,7 @@ def decrypt(
 ) -> Optional[Union[bytes, str]]:
     """Decrypts encrypted data using TimeLock Decryption
 
-    Arguments:
+    Parameters:
         encrypted_data: Encrypted data to be decrypted.
         no_errors: If True, no errors will be raised during decryption.
         return_str: convert decrypted data to string if `True`. Default is `False`.
@@ -143,7 +143,7 @@ def wait_reveal_and_decrypt(
     """
     Waits for reveal round and decrypts data using TimeLock Decryption.
 
-    Arguments:
+    Parameters:
         encrypted_data: Encrypted data to be decrypted.
         reveal_round: Reveal round to wait for. If None, will be parsed from encrypted data.
         no_errors: If True, no errors will be raised during decryption.

@@ -11,9 +11,9 @@ class StakeInfo(InfoBase):
     Dataclass for representing stake information linked to hotkey and coldkey pairs.
 
     Attributes:
-        hotkey_ss58 (str): The SS58 encoded hotkey address.
-        coldkey_ss58 (str): The SS58 encoded coldkey address.
-        stake (Balance): The stake associated with the hotkey-coldkey pair, represented as a Balance object.
+        hotkey_ss58: The SS58 encoded hotkey address.
+        coldkey_ss58: The SS58 encoded coldkey address.
+        stake: The stake associated with the hotkey-coldkey pair, represented as a Balance object.
     """
 
     hotkey_ss58: str  # Hotkey address

@@ -135,13 +135,12 @@ def _get_explorer_root_url_by_network_from_map(
     """
     Returns the explorer root url for the given network name from the given network map.
 
-    Args:
-        network(str): The network to get the explorer url for.
-        network_map(dict[str, str]): The network map to get the explorer url from.
+    Parameters:
+        network: The network to get the explorer url for.
+        network_map: The network map to get the explorer url from.
 
     Returns:
-        The explorer url for the given network.
-        Or None if the network is not in the network map.
+        The explorer url for the given network. Or None if the network is not in the network map.
     """
     explorer_urls: Optional[dict[str, str]] = {}
     for entity_nm, entity_network_map in network_map.items():
@@ -157,14 +156,13 @@ def get_explorer_url_for_network(
     """
     Returns the explorer url for the given block hash and network.
 
-    Args:
-        network(str): The network to get the explorer url for.
-        block_hash(str): The block hash to get the explorer url for.
-        network_map(dict[str, dict[str, str]]): The network maps to get the explorer urls from.
+    Parameters:
+        network: The network to get the explorer url for.
+        block_hash: The block hash to get the explorer url for.
+        network_map: The network maps to get the explorer urls from.
 
     Returns:
-        The explorer url for the given block hash and network.
-        Or None if the network is not known.
+        The explorer url for the given block hash and network. Or None if the network is not known.
     """
 
     explorer_urls: Optional[dict[str, str]] = {}
@@ -226,12 +224,12 @@ def format_error_message(error_message: Union[dict, Exception]) -> str:
     """
     Formats an error message from the Subtensor error information for use in extrinsics.
 
-    Args:
+    Parameters:
         error_message: A dictionary containing the error information from Subtensor, or a SubstrateRequestException
-                       containing dictionary literal args.
+            containing dictionary literal args.
 
     Returns:
-        str: A formatted error message string.
+        A formatted error message string.
     """
     err_name = "UnknownError"
     err_type = "UnknownType"
@@ -310,8 +308,8 @@ def is_valid_ss58_address(address: str) -> bool:
     """
     Checks if the given address is a valid ss58 address.
 
-    Args:
-        address(str): The address to check.
+    Parameters:
+        address: The address to check.
 
     Returns:
         True if the address is a valid ss58 address for Bittensor, False otherwise.
@@ -330,8 +328,8 @@ def _is_valid_ed25519_pubkey(public_key: Union[str, bytes]) -> bool:
     """
     Checks if the given public_key is a valid ed25519 key.
 
-    Args:
-        public_key(Union[str, bytes]): The public_key to check.
+    Parameters:
+        public_key: The public_key to check.
 
     Returns:
         True if the public_key is a valid ed25519 key, False otherwise.
@@ -360,8 +358,8 @@ def is_valid_bittensor_address_or_public_key(address: Union[str, bytes]) -> bool
     """
     Checks if the given address is a valid destination address.
 
-    Args:
-        address(Union[str, bytes]): The address to check.
+    Parameters:
+        address: The address to check.
 
     Returns:
         True if the address is a valid destination address, False otherwise.
@@ -403,9 +401,9 @@ def unlock_key(
     """
     Attempts to decrypt a wallet's coldkey or hotkey
 
-    Args:
-        wallet: a Wallet object
-        unlock_type: the key type, 'coldkey' or 'hotkey'
+    Parameters:
+        wallet: Bittensor Wallet instance.
+        unlock_type: the key type, 'coldkey' or 'hotkey'.
         raise_error: if False, will return (False, error msg), if True will raise the otherwise-caught exception.
 
     Returns:
@@ -445,13 +443,12 @@ def determine_chain_endpoint_and_network(
 ) -> tuple[Optional[str], Optional[str]]:
     """Determines the chain endpoint and network from the passed network or chain_endpoint.
 
-    Arguments:
-        network (str): The network flag. The choices are: ``finney`` (main network), ``archive`` (archive network
-            +300 blocks), ``local`` (local running network), ``test`` (test network).
+    Parameters:
+        network: The network flag. The choices are: ``finney`` (main network), ``archive`` (archive network +300 blocks),
+             ``local`` (local running network), ``test`` (test network).
 
     Returns:
-        tuple[Optional[str], Optional[str]]: The network and chain endpoint flag. If passed, overrides the
-            ``network`` argument.
+        The network and chain endpoint flag. If passed, overrides the ``network`` argument.
     """
 
     if network is None:
@@ -486,9 +483,9 @@ def get_transfer_fn_params(
 ) -> tuple[str, dict[str, Union[str, int, bool]]]:
     """
     Helper function to get the transfer call function and call params, depending on the value and keep_alive flag
-        provided
+    provided.
 
-    Args:
+    Parameters:
         amount: the amount of Tao to transfer. `None` if transferring all.
         destination: the destination SS58 of the transfer
         keep_alive: whether to enforce a retention of the existential deposit in the account after transfer.

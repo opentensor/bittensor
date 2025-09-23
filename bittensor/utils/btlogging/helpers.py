@@ -13,7 +13,7 @@ def all_loggers() -> Generator["logging.Logger", None, None]:
     placeholders and other types that are not instances of `Logger`.
 
     Yields:
-        logger (logging.Logger): An active logger instance.
+        logger: An active logger instance.
     """
     for logger in logging.root.manager.loggerDict.values():
         if isinstance(logger, logging.PlaceHolder):
@@ -38,7 +38,7 @@ def all_logger_names() -> Generator[str, None, None]:
     `Logger` instances. It skips placeholders and other types that are not instances of `Logger`.
 
     Yields:
-        name (str): The name of an active logger.
+        The name of an active logger.
     """
     for name, logger in logging.root.manager.loggerDict.items():
         if isinstance(logger, logging.PlaceHolder):
@@ -62,7 +62,7 @@ def get_max_logger_name_length() -> int:
     This function iterates through all active logger names and determines the length of the longest name.
 
     Returns:
-        max_length (int): The length of the longest logger name.
+        The length of the longest logger name.
     """
     max_length = 0
     for name in all_logger_names():
