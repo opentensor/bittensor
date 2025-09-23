@@ -22,7 +22,6 @@ U32_MAX = 4294967295
 U16_MAX = 65535
 
 
-# Uses in `bittensor.utils.weight_utils.process_weights_for_netuid`
 @legacy_torch_api_compat
 def normalize_max_weight(
     x: Union[NDArray[np.float32], "torch.FloatTensor"], limit: float = 0.1
@@ -71,7 +70,6 @@ def normalize_max_weight(
         return y
 
 
-# Metagraph uses this function.
 def convert_weight_uids_and_vals_to_tensor(
     n: int, uids: list[int], weights: list[int]
 ) -> Union[NDArray[np.float32], "torch.FloatTensor"]:
@@ -102,7 +100,6 @@ def convert_weight_uids_and_vals_to_tensor(
     return row_weights
 
 
-# Metagraph uses this function.
 def convert_root_weight_uids_and_vals_to_tensor(
     n: int, uids: list[int], weights: list[int], subnets: list[int]
 ) -> Union[NDArray[np.float32], "torch.FloatTensor"]:
@@ -164,7 +161,6 @@ def convert_bond_uids_and_vals_to_tensor(
     return row_bonds
 
 
-# This is used by the community via `bittensor.api.extrinsics.set_weights.set_weights_extrinsic`
 def convert_weights_and_uids_for_emit(
     uids: Union[NDArray[np.int64], "torch.LongTensor"],
     weights: Union[NDArray[np.float32], "torch.FloatTensor"],
