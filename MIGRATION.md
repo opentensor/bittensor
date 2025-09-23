@@ -2,45 +2,6 @@
 
 ## Extrinsics and related
 1. ✅ Standardize parameter order across all extrinsics and related calls. Pass extrinsic-specific arguments first (e.g., wallet, hotkey, netuid, amount), followed by optional general flags (e.g., wait_for_inclusion, wait_for_finalization)
-    <details>
-        <summary>Example</summary>
-
-    ```py
-    def swap_stake_extrinsic(
-        subtensor: "Subtensor",
-        wallet: "Wallet",
-        hotkey_ss58: str,
-        origin_netuid: int,
-        destination_netuid: int,
-        amount: Optional[Balance] = None,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-        safe_staking: bool = False,
-        allow_partial_stake: bool = False,
-        rate_tolerance: float = 0.005,
-        period: Optional[int] = None,
-        raise_error: bool = True,
-    ) -> bool:
-    ```
-    it will be 
-    ```py
-    def swap_stake_extrinsic(
-        subtensor: "Subtensor",
-        wallet: "Wallet",
-        hotkey_ss58: str,
-        origin_netuid: int,
-        destination_netuid: int,
-        amount: Optional[Balance] = None,
-        rate_tolerance: float = 0.005,
-        allow_partial_stake: bool = False,
-        safe_swapping: bool = False,
-        period: Optional[int] = None,
-        raise_error: bool = True,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-    ) -> bool:
-    ```
-    </details>
   
 2. ✅ Unify extrinsic return values by introducing an ExtrinsicResponse class. Extrinsics currently return either a boolean or a tuple. 
 
@@ -150,7 +111,6 @@ It must include:
 # Migration guide
 
 - [x] `._do_commit_reveal_v3` logic is included in the main code `.commit_reveal_v3_extrinsic`
-- [x] `.commit_reveal_v3_extrinsic` renamed to `.commit_reveal_extrinsic`
 - [x] `revecommit_reveal_version` parameter with default value `4` added to `revecommit_reveal_version`
 - [x] `._do_commit_weights` logic is included in the main code `.commit_weights_extrinsic`
 - [x] `._do_reveal_weights` logic is included in the main code `.reveal_weights_extrinsic`
@@ -171,11 +131,10 @@ These parameters will now exist in all extrinsics and related calls (default val
 ```py
 period: Optional[int] = None,
 raise_error: bool = False,
-wait_for_inclusion: bool = False,
-wait_for_finalization: bool = False,
+wait_for_inclusion: bool = True,
+wait_for_finalization: bool = True,
 ``` 
 - [x] `.set_children_extrinsic` and `.root_set_pending_childkey_cooldown_extrinsic`. `subtensor.set_children` and `subtensor.root_set_pending_childkey_cooldown` methods.
-- [x] `.commit_reveal_extrinsic` and `subtensor.set_weights`
 - [x] `.add_liquidity_extrinsic` and `subtensor.add_liquidity`
 - [x] `.modify_liquidity_extrinsic` and `subtensor.modify_liquidity`
 - [x] `.remove_liquidity_extrinsic` and `subtensor.remove_liquidity`
@@ -231,7 +190,24 @@ wait_for_finalization: bool = False,
 
 All extrinsics and related subtensor calls now return an object of class `bittensor.core.types.ExtrinsicResponse`
 Additional changes in extrinsics:
-  - `commit_reveal_extrinsic` and `subtensor.set_weights` (with `commit_reveal_enabled=True`), the response is the usual `ExtrinsicResponse` (`success` and `message` unchanged), plus field `data` holds the `{"reveal_round": reveal_round}`.
+  - `commit_timelocked_mechanism_weights_extrinsic` and `subtensor.set_weights` (with `commit_reveal_enabled=True`), the response is the usual `ExtrinsicResponse` (`success` and `message` unchanged), plus field `data` holds the `{"reveal_round": reveal_round}`.
   - in positive case, all extrinsics return `response.message = "Success"`
   - `root_register_extrinsic`, `subtensor.burned_register` (with netuid=0) and `subtensor.root_register` has response `ExtrinsicResponse`. In successful case `.data` holds the `{"uid": uid}` where is `uid` is uid of registered neuron.
   - `subtensor.sign_and_send_extrinsic` has updated arguments order. The list of arguments is the same.
+
+Removing deprecated extrinsics and replacing them with consistent ones:
+- `commit_reveal_extrinsic` (without mechanisms support) + related tests
+- `bittensor.core.extrinsics.mechanism.commit_timelocked_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.weights.commit_timelocked_weights_extrinsic`
+- `bittensor.core.extrinsics.asyncex.mechanism.commit_timelocked_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.asyncex.weights.commit_timelocked_weights_extrinsic`
+
+- `commit_weights_extrinsic`(without mechanisms support) + related tests
+- `bittensor.core.extrinsics.mechanism.commit_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.weights.commit_weights_extrinsic`
+- `bittensor.core.extrinsics.asyncex.mechanism.commit_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.asyncex.weights.commit_weights_extrinsic`
+
+- `reveal_weights_extrinsic`(without mechanisms support) + related tests
+- `bittensor.core.extrinsics.mechanism.reveal_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.weights.reveal_weights_extrinsic`
+- `bittensor.core.extrinsics.asyncex.mechanism.reveal_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.asyncex.weights.reveal_weights_extrinsic`
+
+- `set_weights_extrinsic`(without mechanisms support) + related tests
+- `bittensor.core.extrinsics.mechanism.reveal_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.weights.reveal_weights_extrinsic`
+- `bittensor.core.extrinsics.asyncex.mechanism.reveal_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.asyncex.weights.reveal_weights_extrinsic`
