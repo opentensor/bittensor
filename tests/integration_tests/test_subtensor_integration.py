@@ -114,7 +114,7 @@ async def test_get_block_hash(mocker):
 async def test_subnetwork_n(mocker):
     subtensor = await prepare_test(mocker, "subnetwork_n")
     result = subtensor.subnetwork_n(1)
-    assert result == 94
+    assert result == 1024
 
 
 @pytest.mark.asyncio
