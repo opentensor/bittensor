@@ -40,3 +40,54 @@ before this makes it into the codebase:
  - the websocket logger will include the id of the request: these should be stripped away, as they are dynamically
     created in SubstrateInterface, and then attached to the next response by FakeWebsocket
 """
+
+import logging
+
+from async_substrate_interface.sync_substrate import (
+    raw_websocket_logger,
+    SubstrateInterface,
+)
+from bittensor.core.subtensor import Subtensor
+
+from bittensor.core.settings import LATENT_LITE_ENTRYPOINT
+
+RAW_WS_LOG = "/tmp/bittensor-raw-ws.log"
+OUTPUT_DIR = "/tmp/bittensor-ws-output.txt"
+
+
+def main(seed: str, method: str, *args, **kwargs):
+    """
+    Runs the given method on Subtensor, processes the websocket data that occurred during that method's execution,
+    attaches it with the "seed" arg as a key to a new tmp file ("/tmp/bittensor-ws-output.txt")
+
+    This data should then be manually added to the `bittensor/tests/helpers/integration_websocket_data.py` file
+
+    While we could automate this, I think it could potentially cause users to accidentally run and then submit this as
+    part of a PR.
+
+    """
+    raw_websocket_logger.setLevel(logging.DEBUG)
+    handler = logging.FileHandler(RAW_WS_LOG)
+    handler.setLevel(logging.DEBUG)
+    raw_websocket_logger.addHandler(handler)
+
+    # we're essentially throwing away Subtensor's underlying Substrate connection, because there's no way to
+    # initialize it with `_log_raw_websockets=True` from Subtensor (nor should there be)
+    subtensor = Subtensor(LATENT_LITE_ENTRYPOINT)
+    subtensor.substrate.close()
+    subtensor.substrate = SubstrateInterface(
+        LATENT_LITE_ENTRYPOINT,
+        chain_name="Bittensor",
+        ss58_format=42,
+        _log_raw_websockets=True,
+    )
+
+    executor = getattr(subtensor, method)
+    result = executor(*args, **kwargs)
+    print(result)
+
+    subtensor.close()
+    raw_websocket_logger.removeHandler(handler)
+
+    with open(RAW_WS_LOG, "r") as f:
+        all_ws_data = f.readlines()
