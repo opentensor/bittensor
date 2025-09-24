@@ -8,9 +8,7 @@ be used to gather this data. It is imperative that this script only uses the Sub
 sent/received data from an asynchronous manner will be significantly more difficult to parse (though it's doable by
 checking IDs if we ever would absolutely need to.
 
-I'm writing the following parts before adding any code, and is mostly just my train of thought, and should be removed
-before this makes it into the codebase:
-
+Notes:
  - received websocket responses begin with `WEBSOCKET_RECEIVE> `
  - sent websocket begin with `WEBSOCKET_SEND> `
  - both are stringified JSON
@@ -41,7 +39,14 @@ before this makes it into the codebase:
     created in SubstrateInterface, and then attached to the next response by FakeWebsocket
 """
 
+import os
+
+# Not really necessary, but doesn't hurt to have
+os.environ["SUBSTRATE_CACHE_METHOD_SIZE"] = "0"
+os.environ["SUBSTRATE_RUNTIME_CACHE_SIZE"] = "0"
+
 import logging
+import json
 
 from async_substrate_interface.sync_substrate import (
     raw_websocket_logger,
@@ -53,6 +58,8 @@ from bittensor.core.settings import LATENT_LITE_ENTRYPOINT
 
 RAW_WS_LOG = "/tmp/bittensor-raw-ws.log"
 OUTPUT_DIR = "/tmp/bittensor-ws-output.txt"
+OUTPUT_METADATA = "/tmp/integration_websocket_metadata.txt"
+OUTPUT_METADATA_V15 = "/tmp/integration_websocket_at_version.txt"
 
 
 def main(seed: str, method: str, *args, **kwargs):
@@ -61,6 +68,9 @@ def main(seed: str, method: str, *args, **kwargs):
     attaches it with the "seed" arg as a key to a new tmp file ("/tmp/bittensor-ws-output.txt")
 
     This data should then be manually added to the `bittensor/tests/helpers/integration_websocket_data.py` file
+
+    The metadata and metadataV15 are dumped to the same `/tmp` dir, but with their respective txt names, as exist in
+    `bittensor/tests/helpers/`: `integration_websocket_metadata.txt` and `integration_websocket_at_version.txt`
 
     While we could automate this, I think it could potentially cause users to accidentally run and then submit this as
     part of a PR.
@@ -91,3 +101,64 @@ def main(seed: str, method: str, *args, **kwargs):
 
     with open(RAW_WS_LOG, "r") as f:
         all_ws_data = f.readlines()
+
+    metadata = None
+    metadataV15 = None
+
+    output_dict = {seed: {}}
+    output_dict_at_seed = output_dict[seed]
+    upcoming_metadata = False
+    upcoming_metadataV15 = False
+
+    for l in all_ws_data:
+        if l.startswith("WEBSOCKET_SEND> "):
+            data = json.loads(l[len("WEBSOCKET_SEND> ") :])
+            del data["jsonrpc"]
+            del data["id"]
+            send_method = data["method"]
+            if send_method == "state_getMetadata":
+                upcoming_metadata = True
+                continue
+            send_params = json.dumps(data["params"])
+            if (
+                send_method == "state_call"
+                and "Metadata_metadata_at_version" in send_params
+            ):
+                upcoming_metadataV15 = True
+                continue
+            if send_method in output_dict_at_seed.keys():
+                output_dict_at_seed[send_method][send_params] = {}
+            else:
+                output_dict_at_seed[send_method] = {send_params: {}}
+        elif l.startswith("WEBSOCKET_RECEIVE> "):
+            data = json.loads(l[len("WEBSOCKET_RECEIVE> ") :])
+            if upcoming_metadata:
+                upcoming_metadata = False
+                metadata = data["result"]
+                continue
+            elif upcoming_metadataV15:
+                upcoming_metadataV15 = False
+                metadataV15 = data["result"]
+                continue
+            del data["id"]
+            del data["jsonrpc"]
+            try:
+                output_dict_at_seed[send_method][send_params] = data
+            except (NameError, KeyError):
+                raise KeyError(
+                    f"Attempting to add a received value before its keys have been added: {l}"
+                )
+
+    with open(OUTPUT_DIR, "w+") as f:
+        f.write(str(output_dict))
+    if metadata is not None:
+        with open(OUTPUT_METADATA, "w+") as f:
+            f.write(metadata)
+    if metadataV15 is not None:
+        with open(OUTPUT_METADATA_V15, "w+") as f:
+            f.write(metadataV15)
+
+
+if __name__ == "__main__":
+    # Example usage
+    main("subnetwork_n", "subnetwork_n", 1)
