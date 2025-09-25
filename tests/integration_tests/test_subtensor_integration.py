@@ -55,9 +55,9 @@ async def test_get_all_subnets_info(mocker):
 async def test_get_netuids_for_hotkey(mocker):
     subtensor = await prepare_test(mocker, "get_netuids_for_hotkey")
     result = subtensor.get_netuids_for_hotkey(
-        "5DkzsviNQr4ZePXMmEfNPDcE7cQ9cVyepmQbgUw6YT3odcwh"
+        "5Cf4LPRv6tiyuFsfLRQaFYEEn3zJRGi4bAE9DwbbKmbCSHpV"
     )
-    assert result == [23]
+    assert result == [14]
 
 
 @pytest.mark.asyncio
