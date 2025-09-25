@@ -1,5 +1,23 @@
 # Changelog
 
+## 9.11.0 /2025-09-25
+
+## What's Changed
+* Fix broken links in CONTRIBUTING.md by @Gimzou in https://github.com/opentensor/bittensor/pull/3041
+* Fix after `Rate limit hyperparams setting` by @basfroman in https://github.com/opentensor/bittensor/pull/3052
+* Fix SubtensorApi unit tests by @basfroman in https://github.com/opentensor/bittensor/pull/3054
+* add commitments data into metagraph by @basfroman in https://github.com/opentensor/bittensor/pull/3055
+* add getting OwnerHyperparamRateLimit in e2e test by @basfroman in https://github.com/opentensor/bittensor/pull/3059
+* update make file by @basfroman in https://github.com/opentensor/bittensor/pull/3058
+* `Subnet Mechanism` logic by @basfroman in https://github.com/opentensor/bittensor/pull/3056
+* let do less calculations on `get_subnet_price` by @basfroman in https://github.com/opentensor/bittensor/pull/3063
+* deps: update munch to prevent deprecation warning by @Arthurdw in https://github.com/opentensor/bittensor/pull/3061
+
+## New Contributors
+* @Gimzou made their first contribution in https://github.com/opentensor/bittensor/pull/3041
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.10.1...v9.11.0
+
 ## 9.10.1 /2025-09-05
 
 ## What's Changed
