@@ -189,4 +189,5 @@ if __name__ == "__main__":
     #     "is_hotkey_registered",
     #     "5Cf4LPRv6tiyuFsfLRQaFYEEn3zJRGi4bAE9DwbbKmbCSHpV",
     # )
-    main("blocks_since_last_update", "blocks_since_last_update", 1, 0)
+    # main("blocks_since_last_update", "blocks_since_last_update", 1, 0)
+    main("get_block_hash", "get_block_hash", 6522038)

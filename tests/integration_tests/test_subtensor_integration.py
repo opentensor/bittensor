@@ -104,9 +104,9 @@ async def test_blocks_since_last_update(mocker):
 @pytest.mark.asyncio
 async def test_get_block_hash(mocker):
     subtensor = await prepare_test(mocker, "get_block_hash")
-    result = subtensor.get_block_hash(3234677)
+    result = subtensor.get_block_hash(6522038)
     assert (
-        result == "0xe89482ae7892ab5633f294179245f4058a99781e15f21da31eb625169da5d409"
+        result == "0x4f0bbe5e96a78ca4cc1df9a7e757d335165d6d71c545cf6eb4794986424bcd29"
     )
 
 

@@ -90,7 +90,6 @@ WEBSOCKET_RESPONSES = {
             },
         },
     },
-
     "bonds": {
         "chain_getHead": {
             "[]": {
@@ -3051,13 +3050,70 @@ WEBSOCKET_RESPONSES = {
         "system_chain": {"[]": {"jsonrpc": "2.0", "result": "Bittensor"}},
     },
     "get_block_hash": {
-        "chain_getBlockHash": {
-            "[3234677]": {
-                "jsonrpc": "2.0",
-                "result": "0xe89482ae7892ab5633f294179245f4058a99781e15f21da31eb625169da5d409",
+        "chain_getHead": {
+            "[]": {
+                "result": "0x3effc3f7c4d0c71353ad256b5c80371be83a84dba4e368d49de5abbf16fb741e"
             }
         },
-        "system_chain": {"[]": {"jsonrpc": "2.0", "result": "Bittensor"}},
+        "chain_getHeader": {
+            '["0x3effc3f7c4d0c71353ad256b5c80371be83a84dba4e368d49de5abbf16fb741e"]': {
+                "result": {
+                    "parentHash": "0x3657152ee2f8c7e2e9d694e791093b8ca099efb524b31aea5c4df9e68930c9b3",
+                    "number": "0x638585",
+                    "stateRoot": "0x5b01555394a899947fab5616ce575312620e4abf715b6297699bde7bcf7e811a",
+                    "extrinsicsRoot": "0x9d6f97d9b17612f874b0ae163d79b8c659247a66539969f8e63f94b525949be7",
+                    "digest": {
+                        "logs": [
+                            "0x0661757261200575bc0800000000",
+                            "0x0466726f6e8801a1282c834528eeafe859e92e67ab60b994684518526c8bf17a888e1a8395e6f900",
+                            "0x05617572610101b27d170ad7bbb5c2a94a2b48e30a0650de607ca058302f2d139d19f11b931b15da2137611ef5b8d9131180f47638b127115db26f0f74cead874093038d9d0782",
+                        ]
+                    },
+                }
+            }
+        },
+        "state_getRuntimeVersion": {
+            '["0x3657152ee2f8c7e2e9d694e791093b8ca099efb524b31aea5c4df9e68930c9b3"]': {
+                "result": {
+                    "specName": "node-subtensor",
+                    "implName": "node-subtensor",
+                    "authoringVersion": 1,
+                    "specVersion": 315,
+                    "implVersion": 1,
+                    "apis": [
+                        ["0xdf6acb689907609b", 5],
+                        ["0x37e397fc7c91f5e4", 2],
+                        ["0x40fe3ad401f8959a", 6],
+                        ["0xfbc577b9d747efd6", 1],
+                        ["0xd2bc9897eed08f15", 3],
+                        ["0xf78b278be53f454c", 2],
+                        ["0xdd718d5cc53262d4", 1],
+                        ["0xab3c0572291feb8b", 1],
+                        ["0xed99c5acb25eedf5", 3],
+                        ["0xbc9d89904f5b923f", 1],
+                        ["0x37c8bb1350a9a2a8", 4],
+                        ["0xf3ff14d5ab527059", 3],
+                        ["0x582211f65bb14b89", 5],
+                        ["0xe65b00e46cedd0aa", 2],
+                        ["0x42e62be4a39e5b60", 1],
+                        ["0x806df4ccaa9ed485", 1],
+                        ["0x8375104b299b74c5", 1],
+                        ["0x5d1fbfbe852f2807", 1],
+                        ["0xc6886e2f8e598b0a", 1],
+                        ["0xcbca25e39f142387", 2],
+                        ["0xa8b093e6508d9e9c", 1],
+                    ],
+                    "transactionVersion": 1,
+                    "systemVersion": 1,
+                    "stateVersion": 1,
+                }
+            }
+        },
+        "chain_getBlockHash": {
+            "[6522038]": {
+                "result": "0x4f0bbe5e96a78ca4cc1df9a7e757d335165d6d71c545cf6eb4794986424bcd29"
+            }
+        },
     },
     "get_commitment": {
         "chain_getHead": {
