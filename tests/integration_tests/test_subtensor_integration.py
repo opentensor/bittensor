@@ -121,10 +121,10 @@ async def test_subnetwork_n(mocker):
 async def test_get_neuron_for_pubkey_and_subnet(mocker):
     subtensor = await prepare_test(mocker, "get_neuron_for_pubkey_and_subnet")
     result = subtensor.get_neuron_for_pubkey_and_subnet(
-        "5EU2xVWC7qffsUNGtvakp5WCj7WGJMPkwG1dsm3qnU2Kqvee", 1
+        "5Cf4LPRv6tiyuFsfLRQaFYEEn3zJRGi4bAE9DwbbKmbCSHpV", 14
     )
     assert isinstance(result, NeuronInfo)
-    assert result.hotkey == "5EU2xVWC7qffsUNGtvakp5WCj7WGJMPkwG1dsm3qnU2Kqvee"
+    assert result.hotkey == "5Cf4LPRv6tiyuFsfLRQaFYEEn3zJRGi4bAE9DwbbKmbCSHpV"
     assert isinstance(result.total_stake, Balance)
     assert isinstance(result.axon_info, AxonInfo)
     assert result.is_null is False
