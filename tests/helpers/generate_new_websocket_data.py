@@ -163,6 +163,7 @@ def main(seed: str, method: str, *args, **kwargs):
     if metadataV15 is not None:
         with open(OUTPUT_METADATA_V15, "w+") as f:
             f.write(metadataV15)
+    # ruff format the output info to make it easier to copy/paste into the file
     subprocess.run(["ruff", "format", OUTPUT_DIR])
 
 
@@ -177,9 +178,14 @@ if __name__ == "__main__":
     #     "5Cf4LPRv6tiyuFsfLRQaFYEEn3zJRGi4bAE9DwbbKmbCSHpV",
     # )
     # main("get_current_block", "get_current_block")
+    # main(
+    #     "is_hotkey_registered_on_subnet",
+    #     "is_hotkey_registered_on_subnet",
+    #     "5Cf4LPRv6tiyuFsfLRQaFYEEn3zJRGi4bAE9DwbbKmbCSHpV",
+    #     14,
+    # )
     main(
-        "is_hotkey_registered_on_subnet",
-        "is_hotkey_registered_on_subnet",
+        "is_hotkey_registered",
+        "is_hotkey_registered",
         "5Cf4LPRv6tiyuFsfLRQaFYEEn3zJRGi4bAE9DwbbKmbCSHpV",
-        14,
     )
