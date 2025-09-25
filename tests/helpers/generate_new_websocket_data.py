@@ -79,8 +79,10 @@ def main(seed: str, method: str, *args, **kwargs):
     part of a PR.
 
     """
-    os.remove(RAW_WS_LOG)
-    os.remove(OUTPUT_DIR)
+    if os.path.isfile(RAW_WS_LOG):
+        os.remove(RAW_WS_LOG)
+    if os.path.isfile(OUTPUT_DIR):
+        os.remove(OUTPUT_DIR)
 
     raw_websocket_logger.setLevel(logging.DEBUG)
     handler = logging.FileHandler(RAW_WS_LOG)
@@ -170,9 +172,9 @@ if __name__ == "__main__":
     # main("subnetwork_n", "subnetwork_n", 1)
     # main("get_all_subnets_info", "get_all_subnets_info")
     # main("metagraph", "metagraph", 1)
-    # main(
-    #     "get_netuids_for_hotkey",
-    #     "get_netuids_for_hotkey",
-    #     "5Cf4LPRv6tiyuFsfLRQaFYEEn3zJRGi4bAE9DwbbKmbCSHpV",
-    # )
-    main("get_current_block", "get_current_block")
+    main(
+        "get_netuids_for_hotkey",
+        "get_netuids_for_hotkey",
+        "5Cf4LPRv6tiyuFsfLRQaFYEEn3zJRGi4bAE9DwbbKmbCSHpV",
+    )
+    # main("get_current_block", "get_current_block")
