@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bittensor"
-version = "9.10.1"
+version = "9.11.0"
 description = "Bittensor"
 readme = "README.md"
 authors = [
@@ -13,14 +13,13 @@ authors = [
 license = { file = "LICENSE" }
 requires-python = ">=3.9,<3.14"
 dependencies = [
-
     "wheel",
     "setuptools~=70.0.0",
     "aiohttp~=3.9",
     "asyncstdlib~=3.13.0",
     "colorama~=0.4.6",
     "fastapi~=0.110.1",
-    "munch~=2.5.0",
+    "munch>=4.0.0",
     "numpy>=2.0.1,<3.0.0",
     "msgpack-numpy-opentensor~=0.5.0",
     "nest_asyncio==1.6.0",
@@ -36,7 +35,7 @@ dependencies = [
     "uvicorn",
     "bittensor-drand>=1.0.0,<2.0.0",
     "bittensor-wallet>=4.0.0,<5.0",
-    "async-substrate-interface>=1.5.1"
+    "async-substrate-interface>=1.5.4"
 ]
 
 [project.optional-dependencies]
@@ -66,7 +65,7 @@ torch = [
     "torch>=1.13.1,<3.0"
 ]
 cli = [
-    "bittensor-cli>=9.0.2"
+    "bittensor-cli>=9.11.2"
 ]
 
 

@@ -290,6 +290,7 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
             ("5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM", Balance(0).set_unit(1))
         ],
         validators=None,
+        commitments=None,
     )
 
     assert metagraph_info == expected_metagraph_info
@@ -371,6 +372,7 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
             tao_dividends_per_hotkey=[],
             alpha_dividends_per_hotkey=[],
             validators=None,
+            commitments=None,
         ),
         metagraph_info,
     ]
@@ -552,6 +554,7 @@ def test_metagraph_info_with_indexes(subtensor, alice_wallet, bob_wallet):
         tao_dividends_per_hotkey=None,
         alpha_dividends_per_hotkey=None,
         validators=None,
+        commitments=None,
     )
 
     assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
@@ -670,6 +673,7 @@ def test_metagraph_info_with_indexes(subtensor, alice_wallet, bob_wallet):
         tao_dividends_per_hotkey=None,
         alpha_dividends_per_hotkey=None,
         validators=None,
+        commitments=None,
     )
 
 
@@ -681,9 +685,11 @@ def test_blocks(subtensor):
     - Wait for block
     """
 
-    block = subtensor.get_current_block()
+    get_current_block = subtensor.get_current_block()
+    block = subtensor.block
 
-    assert block == subtensor.block
+    # Several random tests fell during the block finalization period. Fast blocks of 0.25 seconds (very fast)
+    assert get_current_block in [block, block + 1]
 
     block_hash = subtensor.get_block_hash(block)
 
@@ -691,4 +697,4 @@ def test_blocks(subtensor):
 
     subtensor.wait_for_block(block + 10)
 
-    assert subtensor.get_current_block() == block + 10
+    assert subtensor.get_current_block() in [block + 10, block + 11]
