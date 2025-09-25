@@ -184,8 +184,9 @@ if __name__ == "__main__":
     #     "5Cf4LPRv6tiyuFsfLRQaFYEEn3zJRGi4bAE9DwbbKmbCSHpV",
     #     14,
     # )
-    main(
-        "is_hotkey_registered",
-        "is_hotkey_registered",
-        "5Cf4LPRv6tiyuFsfLRQaFYEEn3zJRGi4bAE9DwbbKmbCSHpV",
-    )
+    # main(
+    #     "is_hotkey_registered",
+    #     "is_hotkey_registered",
+    #     "5Cf4LPRv6tiyuFsfLRQaFYEEn3zJRGi4bAE9DwbbKmbCSHpV",
+    # )
+    main("blocks_since_last_update", "blocks_since_last_update", 1, 0)

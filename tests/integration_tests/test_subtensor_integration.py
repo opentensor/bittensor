@@ -98,7 +98,7 @@ async def test_is_hotkey_registered(mocker):
 async def test_blocks_since_last_update(mocker):
     subtensor = await prepare_test(mocker, "blocks_since_last_update")
     result = subtensor.blocks_since_last_update(1, 0)
-    assert result == 3264146
+    assert result == 3978699
 
 
 @pytest.mark.asyncio
