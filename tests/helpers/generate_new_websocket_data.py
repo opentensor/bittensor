@@ -161,4 +161,6 @@ def main(seed: str, method: str, *args, **kwargs):
 
 if __name__ == "__main__":
     # Example usage
-    main("subnetwork_n", "subnetwork_n", 1)
+    # main("subnetwork_n", "subnetwork_n", 1)
+    # main("get_all_subnets_info", "get_all_subnets_info")
+    main("metagraph", "metagraph", 1)
