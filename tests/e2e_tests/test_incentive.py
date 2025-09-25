@@ -5,15 +5,12 @@ import pytest
 from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_admin_utils,
-    wait_epoch,
 )
 from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 
-DURATION_OF_START_CALL = 10
-
 
 @pytest.mark.asyncio
-async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wallet):
+async def test_incentive(subtensor, templates, alice_wallet, bob_wallet):
     """
     Test the incentive mechanism and interaction of miners/validators
 
@@ -25,9 +22,19 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
+    logging.console.info("Testing [blue]test_incentive[/blue]")
+    alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
 
-    print("Testing test_incentive")
-    alice_subnet_netuid = subtensor.get_total_subnets()  # 2
+    # turn off admin freeze window limit for testing
+    assert (
+        sudo_set_admin_utils(
+            substrate=subtensor.substrate,
+            wallet=alice_wallet,
+            call_function="sudo_set_admin_freeze_window",
+            call_params={"window": 0},
+        )[0]
+        is True
+    ), "Failed to set admin freeze window to 0"
 
     # Register root as Alice - the subnet owner and validator
     assert subtensor.register_subnet(alice_wallet, True, True), "Subnet wasn't created"
@@ -39,8 +46,8 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
 
     # Disable commit_reveal on the subnet to check proper behavior
     status, error = sudo_set_admin_utils(
-        local_chain,
-        alice_wallet,
+        substrate=subtensor.substrate,
+        wallet=alice_wallet,
         call_function="sudo_set_commit_reveal_weights_enabled",
         call_params={
             "netuid": alice_subnet_netuid,
@@ -62,8 +69,9 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     )
 
     # Wait for the first epoch to pass
-    await wait_epoch(subtensor, alice_subnet_netuid)
-
+    subtensor.wait_for_block(
+        subtensor.subnets.get_next_epoch_start_block(alice_subnet_netuid) + 1
+    )
     # Get current miner/validator stats
     alice_neuron = subtensor.neurons(netuid=alice_subnet_netuid)[0]
 
@@ -84,8 +92,8 @@ async def test_incentive(local_chain, subtensor, templates, alice_wallet, bob_wa
     # update weights_set_rate_limit for fast-blocks
     tempo = subtensor.tempo(alice_subnet_netuid)
     status, error = sudo_set_admin_utils(
-        local_chain,
-        alice_wallet,
+        substrate=subtensor.substrate,
+        wallet=alice_wallet,
         call_function="sudo_set_weights_set_rate_limit",
         call_params={
             "netuid": alice_subnet_netuid,

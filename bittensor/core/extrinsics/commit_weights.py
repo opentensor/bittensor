@@ -61,6 +61,7 @@ def _do_commit_weights(
     )
 
 
+# TODO: deprecate in SDKv10
 def commit_weights_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
@@ -175,6 +176,7 @@ def _do_reveal_weights(
     )
 
 
+# TODO: deprecate in SDKv10
 def reveal_weights_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
