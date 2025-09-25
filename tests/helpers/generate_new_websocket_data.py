@@ -47,7 +47,7 @@ os.environ["SUBSTRATE_RUNTIME_CACHE_SIZE"] = "0"
 
 import logging
 import json
-from pprint import PrettyPrinter
+import subprocess
 
 from async_substrate_interface.sync_substrate import (
     raw_websocket_logger,
@@ -61,8 +61,6 @@ RAW_WS_LOG = "/tmp/bittensor-raw-ws.log"
 OUTPUT_DIR = "/tmp/bittensor-ws-output.txt"
 OUTPUT_METADATA = "/tmp/integration_websocket_metadata.txt"
 OUTPUT_METADATA_V15 = "/tmp/integration_websocket_at_version.txt"
-
-pformat = PrettyPrinter(indent=4).pformat
 
 
 def main(seed: str, method: str, *args, **kwargs):
@@ -158,13 +156,14 @@ def main(seed: str, method: str, *args, **kwargs):
                 )
 
     with open(OUTPUT_DIR, "w+") as f:
-        f.write(pformat(output_dict))
+        f.write(str(output_dict))
     if metadata is not None:
         with open(OUTPUT_METADATA, "w+") as f:
             f.write(metadata)
     if metadataV15 is not None:
         with open(OUTPUT_METADATA_V15, "w+") as f:
             f.write(metadataV15)
+    subprocess.run(["ruff", "format", OUTPUT_DIR])
 
 
 if __name__ == "__main__":
@@ -172,9 +171,15 @@ if __name__ == "__main__":
     # main("subnetwork_n", "subnetwork_n", 1)
     # main("get_all_subnets_info", "get_all_subnets_info")
     # main("metagraph", "metagraph", 1)
-    main(
-        "get_netuids_for_hotkey",
-        "get_netuids_for_hotkey",
-        "5Cf4LPRv6tiyuFsfLRQaFYEEn3zJRGi4bAE9DwbbKmbCSHpV",
-    )
+    # main(
+    #     "get_netuids_for_hotkey",
+    #     "get_netuids_for_hotkey",
+    #     "5Cf4LPRv6tiyuFsfLRQaFYEEn3zJRGi4bAE9DwbbKmbCSHpV",
+    # )
     # main("get_current_block", "get_current_block")
+    main(
+        "is_hotkey_registered_on_subnet",
+        "is_hotkey_registered_on_subnet",
+        "5Cf4LPRv6tiyuFsfLRQaFYEEn3zJRGi4bAE9DwbbKmbCSHpV",
+        14,
+    )
