@@ -3523,25 +3523,80 @@ WEBSOCKET_RESPONSES = {
         "system_chain": {"[]": {"jsonrpc": "2.0", "result": "Bittensor"}},
     },
     "get_current_block": {
+        "chain_getHead": {
+            "[]": {
+                "result": "0x4f0bbe5e96a78ca4cc1df9a7e757d335165d6d71c545cf6eb4794986424bcd29"
+            }
+        },
         "chain_getHeader": {
-            "[null]": {
-                "jsonrpc": "2.0",
+            '["0x4f0bbe5e96a78ca4cc1df9a7e757d335165d6d71c545cf6eb4794986424bcd29"]': {
                 "result": {
                     "digest": {
                         "logs": [
-                            "0x0661757261209c489a0800000000",
-                            "0x0466726f6e8801b81937c0aed82aace40c1860c8f8be871ed90466eb702dcd50fef49a70ca8dcf00",
-                            "0x056175726101016a8bbee0a2b31058eff0df90b3b194cc7824e735e09b957136291639ff36c2047102e48742ac2ac14fe1634b652bba055b00383b06cea6482c56755b74c3c88b",
+                            "0x0661757261203674bc0800000000",
+                            "0x0466726f6e8801946fa3fa214a5e85241f020044853841cda36d5e04597e49ed1b7174a1f2b47c00",
+                            "0x05617572610101aca624edd0c53110e885823d76adf96d66f297158b04ad4c13d19367ae3a9d619f756309e1d044c5a454dc5b7e7fedd395577a972b2eabef5fb5e8a2de558f86",
                         ]
                     },
-                    "extrinsicsRoot": "0x42acc4ffcaba39f003a14f13e2dc69e5b93198724a019515f31e22baf0b240f7",
-                    "number": "0x31ce8f",
-                    "parentHash": "0xe9729c54c0e59c611198b560a7a93e52154100187d04dfc09d1dc1a6572d4006",
-                    "stateRoot": "0x319de5cb67bbf31e93a7db2e75b9bca48ce8d0b91d5156ce2c738eb178700d98",
-                },
+                    "extrinsicsRoot": "0x6ae8a9f8ea9b21652797f0c7bdfc91e9755fb2d01a521e620694f0d01f69e876",
+                    "number": "0x6384b6",
+                    "parentHash": "0x16d6a8ce481588511e0cd1f6d6366dbcbad672cb1c943ddf2498366873f1d7a6",
+                    "stateRoot": "0x1bd7c16a62504168bde9032e53fcfb8f3c0a86b5d104f3c073f8693d39d3766b",
+                }
+            },
+            "[null]": {
+                "result": {
+                    "digest": {
+                        "logs": [
+                            "0x0661757261203674bc0800000000",
+                            "0x0466726f6e8801946fa3fa214a5e85241f020044853841cda36d5e04597e49ed1b7174a1f2b47c00",
+                            "0x05617572610101aca624edd0c53110e885823d76adf96d66f297158b04ad4c13d19367ae3a9d619f756309e1d044c5a454dc5b7e7fedd395577a972b2eabef5fb5e8a2de558f86",
+                        ]
+                    },
+                    "extrinsicsRoot": "0x6ae8a9f8ea9b21652797f0c7bdfc91e9755fb2d01a521e620694f0d01f69e876",
+                    "number": "0x6384b6",
+                    "parentHash": "0x16d6a8ce481588511e0cd1f6d6366dbcbad672cb1c943ddf2498366873f1d7a6",
+                    "stateRoot": "0x1bd7c16a62504168bde9032e53fcfb8f3c0a86b5d104f3c073f8693d39d3766b",
+                }
+            },
+        },
+        "state_getRuntimeVersion": {
+            '["0x16d6a8ce481588511e0cd1f6d6366dbcbad672cb1c943ddf2498366873f1d7a6"]': {
+                "result": {
+                    "apis": [
+                        ["0xdf6acb689907609b", 5],
+                        ["0x37e397fc7c91f5e4", 2],
+                        ["0x40fe3ad401f8959a", 6],
+                        ["0xfbc577b9d747efd6", 1],
+                        ["0xd2bc9897eed08f15", 3],
+                        ["0xf78b278be53f454c", 2],
+                        ["0xdd718d5cc53262d4", 1],
+                        ["0xab3c0572291feb8b", 1],
+                        ["0xed99c5acb25eedf5", 3],
+                        ["0xbc9d89904f5b923f", 1],
+                        ["0x37c8bb1350a9a2a8", 4],
+                        ["0xf3ff14d5ab527059", 3],
+                        ["0x582211f65bb14b89", 5],
+                        ["0xe65b00e46cedd0aa", 2],
+                        ["0x42e62be4a39e5b60", 1],
+                        ["0x806df4ccaa9ed485", 1],
+                        ["0x8375104b299b74c5", 1],
+                        ["0x5d1fbfbe852f2807", 1],
+                        ["0xc6886e2f8e598b0a", 1],
+                        ["0xcbca25e39f142387", 2],
+                        ["0xa8b093e6508d9e9c", 1],
+                    ],
+                    "authoringVersion": 1,
+                    "implName": "node-subtensor",
+                    "implVersion": 1,
+                    "specName": "node-subtensor",
+                    "specVersion": 315,
+                    "stateVersion": 1,
+                    "systemVersion": 1,
+                    "transactionVersion": 1,
+                }
             }
         },
-        "system_chain": {"[]": {"jsonrpc": "2.0", "result": "Bittensor"}},
     },
     "get_delegate_by_hotkey": {
         "delegateInfo_getDelegate": {

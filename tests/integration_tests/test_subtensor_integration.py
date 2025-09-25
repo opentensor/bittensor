@@ -64,7 +64,7 @@ async def test_get_netuids_for_hotkey(mocker):
 async def test_get_current_block(mocker):
     subtensor = await prepare_test(mocker, "get_current_block")
     result = subtensor.get_current_block()
-    assert result == 3264143
+    assert result == 6522038
 
 
 @pytest.mark.asyncio

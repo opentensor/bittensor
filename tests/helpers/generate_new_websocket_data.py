@@ -79,6 +79,9 @@ def main(seed: str, method: str, *args, **kwargs):
     part of a PR.
 
     """
+    os.remove(RAW_WS_LOG)
+    os.remove(OUTPUT_DIR)
+
     raw_websocket_logger.setLevel(logging.DEBUG)
     handler = logging.FileHandler(RAW_WS_LOG)
     handler.setLevel(logging.DEBUG)
