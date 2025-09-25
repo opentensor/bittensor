@@ -89,7 +89,7 @@ async def test_is_hotkey_registered_on_subnet(mocker):
 async def test_is_hotkey_registered(mocker):
     subtensor = await prepare_test(mocker, "is_hotkey_registered")
     result = subtensor.is_hotkey_registered(
-        "5DkzsviNQr4ZePXMmEfNPDcE7cQ9cVyepmQbgUw6YT3odcwh"
+        "5Cf4LPRv6tiyuFsfLRQaFYEEn3zJRGi4bAE9DwbbKmbCSHpV"
     )
     assert result is True
 
