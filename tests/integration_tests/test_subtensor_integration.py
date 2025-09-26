@@ -29,7 +29,6 @@ async def prepare_test(mocker, seed, **subtensor_args):
     return subtensor
 
 
-# TODO: Improve integration tests workflow (https://github.com/opentensor/bittensor/issues/2435#issuecomment-2825858004)
 @pytest.mark.asyncio
 async def test_get_all_subnets_info(mocker):
     subtensor = await prepare_test(mocker, "get_all_subnets_info")
