@@ -72,109 +72,107 @@ def main(seed: str, method: str, *args, **kwargs):
     Runs the given method on Subtensor, processes the websocket data that occurred during that method's execution,
     attaches it with the "seed" arg as a key to a new tmp file ("/tmp/bittensor-ws-output.txt")
 
-    This data should then be manually added to the `bittensor/tests/helpers/integration_websocket_data.py` file
+    Existing keys within `integration_websocket_data.py` are updated automatically. New items should be manually
+    copy-pasted in, as we may want to arrange them in some certain way.
 
     The metadata and metadataV15 are dumped to the same `/tmp` dir, but with their respective txt names, as exist in
     `bittensor/tests/helpers/`: `integration_websocket_metadata.txt` and `integration_websocket_at_version.txt`
 
-    While we could automate this, I think it could potentially cause users to accidentally run and then submit this as
-    part of a PR.
-
     """
-    # if os.path.isfile(RAW_WS_LOG):
-    #     os.remove(RAW_WS_LOG)
-    # if os.path.isfile(OUTPUT_DIR):
-    #     os.remove(OUTPUT_DIR)
-    #
-    # raw_websocket_logger.setLevel(logging.DEBUG)
-    # handler = logging.FileHandler(RAW_WS_LOG)
-    # handler.setLevel(logging.DEBUG)
-    # raw_websocket_logger.addHandler(handler)
-    #
-    # # we're essentially throwing away Subtensor's underlying Substrate connection, because there's no way to
-    # # initialize it with `_log_raw_websockets=True` from Subtensor (nor should there be)
-    # subtensor = Subtensor(LATENT_LITE_ENTRYPOINT)
-    # subtensor.substrate.close()
-    # subtensor.substrate = SubstrateInterface(
-    #     LATENT_LITE_ENTRYPOINT,
-    #     chain_name="Bittensor",
-    #     ss58_format=42,
-    #     _log_raw_websockets=True,
-    # )
-    #
-    # executor = getattr(subtensor, method)
-    # result = executor(*args, **kwargs)
-    # print(result)
-    #
-    # subtensor.close()
-    # raw_websocket_logger.removeHandler(handler)
-    #
-    # with open(RAW_WS_LOG, "r") as f:
-    #     all_ws_data = f.readlines()
-    #
-    # metadata = None
-    # metadataV15 = None
-    #
-    # output_dict = {seed: {}}
-    # output_dict_at_seed = output_dict[seed]
-    # upcoming_metadata = False
-    # upcoming_metadataV15 = False
-    #
-    # for l in all_ws_data:
-    #     if l.startswith("WEBSOCKET_SEND> "):
-    #         data = json.loads(l[len("WEBSOCKET_SEND> ") :])
-    #         del data["jsonrpc"]
-    #         del data["id"]
-    #         send_method = data["method"]
-    #         if send_method == "state_getMetadata":
-    #             upcoming_metadata = True
-    #             continue
-    #         send_params = json.dumps(data["params"])
-    #         if (
-    #             send_method == "state_call"
-    #             and "Metadata_metadata_at_version" in send_params
-    #         ):
-    #             upcoming_metadataV15 = True
-    #             continue
-    #         if send_method in output_dict_at_seed.keys():
-    #             output_dict_at_seed[send_method][send_params] = {}
-    #         else:
-    #             output_dict_at_seed[send_method] = {send_params: {}}
-    #     elif l.startswith("WEBSOCKET_RECEIVE> "):
-    #         data = json.loads(l[len("WEBSOCKET_RECEIVE> ") :])
-    #         if upcoming_metadata:
-    #             upcoming_metadata = False
-    #             metadata = data["result"]
-    #             continue
-    #         elif upcoming_metadataV15:
-    #             upcoming_metadataV15 = False
-    #             metadataV15 = data["result"]
-    #             continue
-    #         del data["id"]
-    #         del data["jsonrpc"]
-    #         try:
-    #             output_dict_at_seed[send_method][send_params] = data
-    #         except (NameError, KeyError):
-    #             raise KeyError(
-    #                 f"Attempting to add a received value before its keys have been added: {l}"
-    #             )
-    #
-    # with open(OUTPUT_DIR, "w+") as f:
-    #     f.write(str(output_dict))
-    # subprocess.run(["ruff", "format", OUTPUT_DIR])
-    # if metadata is not None:
-    #     with open(OUTPUT_METADATA, "w+") as f:
-    #         f.write(metadata)
-    # if metadataV15 is not None:
-    #     with open(OUTPUT_METADATA_V15, "w+") as f:
-    #         f.write(metadataV15)
+    if os.path.isfile(RAW_WS_LOG):
+        os.remove(RAW_WS_LOG)
+    if os.path.isfile(OUTPUT_DIR):
+        os.remove(OUTPUT_DIR)
+
+    raw_websocket_logger.setLevel(logging.DEBUG)
+    handler = logging.FileHandler(RAW_WS_LOG)
+    handler.setLevel(logging.DEBUG)
+    raw_websocket_logger.addHandler(handler)
+
+    # we're essentially throwing away Subtensor's underlying Substrate connection, because there's no way to
+    # initialize it with `_log_raw_websockets=True` from Subtensor (nor should there be)
+    subtensor = Subtensor(LATENT_LITE_ENTRYPOINT)
+    subtensor.substrate.close()
+    subtensor.substrate = SubstrateInterface(
+        LATENT_LITE_ENTRYPOINT,
+        chain_name="Bittensor",
+        ss58_format=42,
+        _log_raw_websockets=True,
+    )
+
+    executor = getattr(subtensor, method)
+    result = executor(*args, **kwargs)
+    print(result)
+
+    subtensor.close()
+    raw_websocket_logger.removeHandler(handler)
+
+    with open(RAW_WS_LOG, "r") as f:
+        all_ws_data = f.readlines()
+
+    metadata = None
+    metadataV15 = None
+
+    output_dict = {seed: {}}
+    output_dict_at_seed = output_dict[seed]
+    upcoming_metadata = False
+    upcoming_metadataV15 = False
+
+    for l in all_ws_data:
+        if l.startswith("WEBSOCKET_SEND> "):
+            data = json.loads(l[len("WEBSOCKET_SEND> ") :])
+            del data["jsonrpc"]
+            del data["id"]
+            send_method = data["method"]
+            if send_method == "state_getMetadata":
+                upcoming_metadata = True
+                continue
+            send_params = json.dumps(data["params"])
+            if (
+                send_method == "state_call"
+                and "Metadata_metadata_at_version" in send_params
+            ):
+                upcoming_metadataV15 = True
+                continue
+            if send_method in output_dict_at_seed.keys():
+                output_dict_at_seed[send_method][send_params] = {}
+            else:
+                output_dict_at_seed[send_method] = {send_params: {}}
+        elif l.startswith("WEBSOCKET_RECEIVE> "):
+            data = json.loads(l[len("WEBSOCKET_RECEIVE> ") :])
+            if upcoming_metadata:
+                upcoming_metadata = False
+                metadata = data["result"]
+                continue
+            elif upcoming_metadataV15:
+                upcoming_metadataV15 = False
+                metadataV15 = data["result"]
+                continue
+            del data["id"]
+            del data["jsonrpc"]
+            try:
+                output_dict_at_seed[send_method][send_params] = data
+            except (NameError, KeyError):
+                raise KeyError(
+                    f"Attempting to add a received value before its keys have been added: {l}"
+                )
+
+    with open(OUTPUT_DIR, "w+") as f:
+        f.write(str(output_dict))
+    subprocess.run(["ruff", "format", OUTPUT_DIR])
+    if metadata is not None:
+        with open(OUTPUT_METADATA, "w+") as f:
+            f.write(metadata)
+    if metadataV15 is not None:
+        with open(OUTPUT_METADATA_V15, "w+") as f:
+            f.write(metadataV15)
 
     with open(INTEGRATION_WS_DATA, "r") as f:
         all_integration_ws_data = f.readlines()
     waiting = False
     start_idx = 0
     end_idx = 0
-    sought_line = f'    "{seed}": ' + '{\n'
+    sought_line = f'    "{seed}": ' + "{\n"
     for line_idx, line in enumerate(all_integration_ws_data):
         if waiting:
             if line == "    },\n":
@@ -185,10 +183,13 @@ def main(seed: str, method: str, *args, **kwargs):
             waiting = True
             start_idx = line_idx
     if start_idx == 0 or end_idx == 0:
-        print("Unable to parse integration ws data.")
+        print(
+            f"Unable to find seed {seed} in current `websocket_integration_data.py` file. You should manually add this"
+            f"new seed key."
+        )
         return
     first_part = all_integration_ws_data[:start_idx]
-    last_part = all_integration_ws_data[end_idx:]
+    last_part = all_integration_ws_data[end_idx + 1 :]
     with open(OUTPUT_DIR, "r") as f:
         formatted_output = f.readlines()
     foutput_len = len(formatted_output)
@@ -196,14 +197,12 @@ def main(seed: str, method: str, *args, **kwargs):
     for line_idx, line in enumerate(formatted_output):
         if line_idx == 0 and line.startswith("{"):
             line = line[1:]
-        elif line_idx == foutput_len-1:
-            line = line.replace("}", "},")
-            print(line)
+        elif line_idx == foutput_len - 1:
+            line = line.replace("}", ",")
         insertion_data.append(line)
     with open(INTEGRATION_WS_DATA, "w") as f:
-        f.writelines(first_part+insertion_data+last_part)
+        f.writelines(first_part + insertion_data + last_part)
     subprocess.run(["ruff", "format", INTEGRATION_WS_DATA])
-
 
 
 if __name__ == "__main__":
