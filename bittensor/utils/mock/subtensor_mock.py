@@ -1,3 +1,7 @@
+import base58
+import time
+import bittensor.core.subtensor as subtensor_module
+
 from collections.abc import Mapping
 from dataclasses import dataclass
 from hashlib import sha256
@@ -9,18 +13,20 @@ from unittest.mock import MagicMock, patch
 from async_substrate_interface import SubstrateInterface
 from bittensor_wallet import Wallet
 
-import bittensor.core.subtensor as subtensor_module
 from bittensor.core.chain_data import (
     NeuronInfo,
     NeuronInfoLite,
     PrometheusInfo,
     AxonInfo,
+    MetagraphInfo,
+    SelectiveMetagraphIndex,
 )
 from bittensor.core.errors import ChainQueryError
 from bittensor.core.subtensor import Subtensor
 from bittensor.core.types import AxonServeCallParams, PrometheusServeCallParams
 from bittensor.utils import RAOPERTAO, u16_normalized_float
-from bittensor.utils.balance import Balance
+from bittensor.utils.balance import Balance, UNITS
+
 
 # Mock Testing Constant
 __GLOBAL_MOCK_STATE__ = {}
@@ -242,6 +248,7 @@ class MockSubtensor(Subtensor):
                     "Commits": {},
                     "AdjustmentAlpha": {},
                     "BondsMovingAverage": {},
+                    "NetworkRegisteredAt": {},
                 },
             }
 
@@ -349,6 +356,8 @@ class MockSubtensor(Subtensor):
 
             subtensor_state["BondsMovingAverage"][netuid] = {}
             subtensor_state["BondsMovingAverage"][netuid][0] = 1000
+
+            subtensor_state["NetworkRegisteredAt"][netuid] = time.time()
         else:
             raise Exception("Subnet already exists")
 
@@ -389,6 +398,9 @@ class MockSubtensor(Subtensor):
                 subtensor_state["SubnetworkN"][netuid][self.block_number] = (
                     subnetwork_n + 1
                 )
+                if uid == 0:
+                    subtensor_state["SubnetOwner"][netuid] = {}
+                    subtensor_state["SubnetOwner"][netuid][hotkey] = coldkey
 
             subtensor_state["Stake"][hotkey] = {}
             subtensor_state["Stake"][hotkey][coldkey] = {}
@@ -784,6 +796,11 @@ class MockSubtensor(Subtensor):
                 block_number -= 1
 
             return None
+        
+    @staticmethod
+    def _get_min_block_number(storage: dict[BlockNumber, Any]) -> int:
+        return min(storage.keys())
+    
 
     def _get_axon_info(
         self, netuid: int, hotkey: str, block: Optional[int] = None
@@ -1073,3 +1090,163 @@ class MockSubtensor(Subtensor):
         wait_for_finalization: bool = True,
     ) -> tuple[bool, Optional[str]]:
         return True, None
+
+    def get_metagraph_info(
+        self,
+        netuid: int,
+        field_indices: Optional[Union[list[SelectiveMetagraphIndex], list[int]]] = None,
+        block: Optional[int] = None,
+    ) -> Optional[MetagraphInfo]:        
+        """
+        Mocks the get_metagraph_info method to return the state of the subnet.
+        """
+
+        subtensor_state = self.chain_state["SubtensorModule"]
+        if netuid not in subtensor_state["NetworksAdded"]:
+            raise Exception("Subnet does not exist")
+        subnetwork_n = self._get_most_recent_storage(
+            subtensor_state["SubnetworkN"][netuid]
+        )
+        if subnetwork_n == 0:
+            raise Exception("Subnet is empty")
+        
+        subnet_owner_hotkey = next(iter(subtensor_state["SubnetOwner"][netuid]))
+        subnet_owner_coldkey = subtensor_state["SubnetOwner"][netuid][subnet_owner_hotkey]
+        
+        neurons: list[NeuronInfo] = [
+            self._neuron_subnet_exists(uid, netuid, self.block_number) for uid in range(0, subnetwork_n)
+        ]
+
+        megagraph_info_dict = {
+            "netuid": netuid,
+            "name": f"subnet_{netuid}".encode(),
+            "symbol": UNITS[netuid].encode(),
+            "network_registered_at": subtensor_state["NetworkRegisteredAt"][netuid],
+            "owner_hotkey": self._convert_key(subnet_owner_hotkey),
+            "owner_coldkey": self._convert_key(subnet_owner_coldkey),
+            "block": self.block_number,
+            "tempo": subtensor_state["Tempo"][netuid][self.block_number],
+            "last_step": 1,
+            "blocks_since_last_step": subtensor_state["BlocksSinceLastStep"][netuid][self.block_number],
+            "subnet_emission": sum(neurons[uid].emission for uid in range(0, subnetwork_n)),
+            "alpha_in": 1,
+            "alpha_out": 1,
+            "tao_in": 1,
+            "alpha_out_emission": 1,
+            "alpha_in_emission": 1,
+            "tao_in_emission": 1,
+            "pending_alpha_emission": 1,
+            "pending_root_emission": 1,
+            "subnet_volume": sum(neurons[uid].emission for uid in range(0, subnetwork_n)),
+            "moving_price": {"bits": 1},
+            "rho": subtensor_state["Rho"][netuid][self.block_number],
+            "kappa": subtensor_state["Kappa"][netuid][self.block_number], 
+            "min_allowed_weights": subtensor_state["MinAllowedWeights"][netuid][self.block_number], 
+            "max_allowed_weights": subtensor_state["MaxWeightLimit"][netuid][self.block_number], 
+            "weights_version": 0,
+            "weights_rate_limit": 1,
+            "activity_cutoff": 1,
+            "max_validators": subtensor_state["MaxAllowedValidators"][netuid][self.block_number],
+            "num_uids": subnetwork_n,
+            "max_uids": subtensor_state["MaxAllowedUids"][netuid][self.block_number],
+            "burn": subtensor_state["Burn"][netuid][self.block_number],
+            "difficulty": subtensor_state["Difficulty"][netuid][self.block_number],
+            "registration_allowed": True,
+            "pow_registration_allowed": True,
+            "immunity_period": subtensor_state["ImmunityPeriod"][netuid][self.block_number],
+            "min_difficulty": 0,
+            "max_difficulty": 0,
+            "max_weights_limit": 0,
+            "min_burn": 0,
+            "max_burn": 0,
+            "adjustment_alpha": 1,
+            "adjustment_interval": 1,
+            "target_regs_per_interval": 1,
+            "max_regs_per_block": 1,
+            "serving_rate_limit": 1,
+            "commit_reveal_weights_enabled": True,
+            "commit_reveal_period": 4,
+            "liquid_alpha_enabled": True,
+            "alpha_high": 1,
+            "alpha_low": 1,
+            "bonds_moving_avg": 1,
+            "hotkeys": [self._convert_key(neurons[uid].hotkey) for uid in range(0, subnetwork_n)],
+            "active": [neurons[uid].active for uid in range(0, subnetwork_n)],
+            "validator_permit": [neurons[uid].validator_permit for uid in range(0, subnetwork_n)],
+            "last_update": [neurons[uid].last_update for uid in range(0, subnetwork_n)],
+            "block_at_registration": [
+                self._get_min_block_number(subtensor_state["LastUpdate"][netuid][uid]) 
+                for uid in range(0, subnetwork_n)
+            ],
+            "alpha_stake": [neurons[uid].total_stake.tao for uid in range(0, subnetwork_n)],
+            "tao_stake": [neurons[uid].stake.tao for uid in range(0, subnetwork_n)],
+            "total_stake": [neurons[uid].total_stake.tao for uid in range(0, subnetwork_n)],
+            "tao_dividends_per_hotkey": [],
+            "alpha_dividends_per_hotkey": [],
+            "identity": None,
+            "identities": [],   
+        }
+        return MetagraphInfo.from_dict(megagraph_info_dict)
+    
+    def query_runtime_api(
+        self,
+        runtime_api: str,
+        method: str,
+        params: Optional[Union[list[Any], dict[str, Any]]] = None,
+        block: Optional[int] = None,
+    ) -> Any:
+        """
+        Mocks the query_runtime_api method to return the state of the subnet.
+        """
+        block = self.block_number if block is None else block
+        if runtime_api == "SubnetInfoRuntimeApi" and method == "get_subnet_state" and isinstance(params, list) and params:
+            return self._get_subtensor_state_dict(netuid=params[0])
+        super().query_runtime_api(runtime_api, method, params, block)
+    
+    def _get_subtensor_state_dict(self, netuid: int) -> dict[str, Any]:
+        """
+        Returns the state of the subnet as a dictionary.
+        This is used to sync the metagraph with the subtensor.
+        """
+        subtensor_state = self.chain_state["SubtensorModule"]
+        if netuid not in subtensor_state["NetworksAdded"]:
+            raise Exception("Subnet does not exist")
+        
+        subnetwork_n = self._get_most_recent_storage(
+            subtensor_state["SubnetworkN"][netuid]
+        )
+        
+        neurons: list[NeuronInfo] = [
+            self._neuron_subnet_exists(uid, netuid, self.block_number) for uid in range(0, subnetwork_n)
+        ]
+    
+        return {
+            "netuid": netuid,
+            "hotkeys": [self._convert_key(neurons[uid].hotkey) for uid in range(0, subnetwork_n)],
+            "coldkeys": [self._convert_key(neurons[uid].coldkey) for uid in range(0, subnetwork_n)],
+            "active": [neurons[uid].active for uid in range(0, subnetwork_n)],
+            "validator_permit": [neurons[uid].validator_permit for uid in range(0, subnetwork_n)],
+            "pruning_score": [neurons[uid].pruning_score for uid in range(0, subnetwork_n)],
+            "last_update": [neurons[uid].last_update for uid in range(0, subnetwork_n)],
+            "emission": [neurons[uid].emission for uid in range(0, subnetwork_n)],
+            "dividends": [neurons[uid].dividends for uid in range(0, subnetwork_n)],
+            "incentives": [neurons[uid].incentive for uid in range(0, subnetwork_n)],
+            "consensus": [neurons[uid].consensus for uid in range(0, subnetwork_n)],
+            "trust": [neurons[uid].trust for uid in range(0, subnetwork_n)],
+            "rank": [neurons[uid].rank for uid in range(0, subnetwork_n)],
+            "block_at_registration": [
+                self._get_min_block_number(subtensor_state["LastUpdate"][netuid][uid]) 
+                for uid in range(0, subnetwork_n)
+            ],
+            "alpha_stake": [neurons[uid].total_stake.tao for uid in range(0, subnetwork_n)],
+            "tao_stake": [neurons[uid].stake.tao for uid in range(0, subnetwork_n)],
+            "total_stake": [neurons[uid].total_stake.tao for uid in range(0, subnetwork_n)],
+            "emission_history": [
+                [0] * self.block_number for _ in range(0, subnetwork_n)
+            ],
+        }
+
+    @staticmethod
+    def _convert_key(key: str) -> tuple[int, int]:
+        """Convert key to be compatible with the metagraph pipeline."""
+        return tuple(base58.b58decode(key[1:])[:-2])

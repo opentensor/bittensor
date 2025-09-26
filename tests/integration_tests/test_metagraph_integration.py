@@ -6,6 +6,8 @@ import torch
 import bittensor
 from bittensor.core.metagraph import METAGRAPH_STATE_DICT_NDARRAY_KEYS, get_save_dir
 from bittensor.utils.mock import MockSubtensor
+from bittensor_wallet.mock import get_mock_wallet
+from bittensor.utils.balance import Balance
 
 _subtensor_mock: MockSubtensor = MockSubtensor()
 
@@ -35,6 +37,29 @@ class TestMetagraph:
             self.sub, "get_metagraph_info", return_value=mock.MagicMock()
         ):
             self.metagraph.sync(lite=False, subtensor=self.sub)
+
+    def test_sync_with_stakes(self):
+        wallets = [get_mock_wallet() for _ in range(200)]
+        netuid = 1
+        subtensor_mock = MockSubtensor()
+        subtensor_mock.setup()
+        subtensor_mock.create_subnet(netuid)
+        balance = 10000.0
+
+        for wallet in wallets:
+            subtensor_mock.force_register_neuron(
+                netuid=netuid,
+                hotkey=wallet.hotkey.ss58_address,
+                coldkey=wallet.coldkey.ss58_address,
+                stake=Balance(balance),
+                balance=Balance(balance),
+            )
+
+        metagraph = bittensor.Metagraph(netuid=netuid, network=subtensor_mock.network, sync=False)
+        metagraph.sync(subtensor=subtensor_mock)
+        assert len(metagraph.S) == len(wallets)
+        for stake in metagraph.S:
+            assert stake == balance
 
     def test_sync_block_0(self):
         with mock.patch.object(
