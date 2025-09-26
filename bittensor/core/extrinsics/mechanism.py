@@ -54,7 +54,10 @@ def commit_mechanism_weights_extrinsic(
             `message` is a string value describing the success or potential error.
     """
     try:
-        unlock = unlock_key(wallet, raise_error=raise_error)
+        signing_keypair = "hotkey"
+        unlock = unlock_key(
+            wallet=wallet, raise_error=raise_error, unlock_type=signing_keypair
+        )
         if not unlock.success:
             logging.error(unlock.message)
             return False, unlock.message
@@ -86,8 +89,8 @@ def commit_mechanism_weights_extrinsic(
             wait_for_finalization=wait_for_finalization,
             use_nonce=True,
             period=period,
-            sign_with="hotkey",
-            nonce_key="hotkey",
+            sign_with=signing_keypair,
+            nonce_key=signing_keypair,
             raise_error=raise_error,
         )
 
@@ -146,7 +149,10 @@ def commit_timelocked_mechanism_weights_extrinsic(
             `message` is a string value describing the success or potential error.
     """
     try:
-        unlock = unlock_key(wallet, raise_error=raise_error)
+        signing_keypair = "hotkey"
+        unlock = unlock_key(
+            wallet=wallet, raise_error=raise_error, unlock_type=signing_keypair
+        )
         if not unlock.success:
             logging.error(unlock.message)
             return False, unlock.message
@@ -193,8 +199,8 @@ def commit_timelocked_mechanism_weights_extrinsic(
             wait_for_finalization=wait_for_finalization,
             use_nonce=True,
             period=period,
-            sign_with="hotkey",
-            nonce_key="hotkey",
+            sign_with=signing_keypair,
+            nonce_key=signing_keypair,
             raise_error=raise_error,
         )
 
@@ -252,7 +258,10 @@ def reveal_mechanism_weights_extrinsic(
             `message` is a string value describing the success or potential error.
     """
     try:
-        unlock = unlock_key(wallet, raise_error=raise_error)
+        signing_keypair = "hotkey"
+        unlock = unlock_key(
+            wallet=wallet, raise_error=raise_error, unlock_type=signing_keypair
+        )
         if not unlock.success:
             logging.error(unlock.message)
             return False, unlock.message
@@ -278,8 +287,8 @@ def reveal_mechanism_weights_extrinsic(
             wait_for_finalization=wait_for_finalization,
             use_nonce=True,
             period=period,
-            sign_with="hotkey",
-            nonce_key="hotkey",
+            sign_with=signing_keypair,
+            nonce_key=signing_keypair,
             raise_error=raise_error,
         )
 
@@ -335,7 +344,10 @@ def set_mechanism_weights_extrinsic(
             `message` is a string value describing the success or potential error.
     """
     try:
-        unlock = unlock_key(wallet, raise_error=raise_error)
+        signing_keypair = "hotkey"
+        unlock = unlock_key(
+            wallet=wallet, raise_error=raise_error, unlock_type=signing_keypair
+        )
         if not unlock.success:
             logging.error(unlock.message)
             return False, unlock.message
@@ -361,8 +373,8 @@ def set_mechanism_weights_extrinsic(
             wait_for_finalization=wait_for_finalization,
             period=period,
             use_nonce=True,
-            nonce_key="hotkey",
-            sign_with="hotkey",
+            sign_with=signing_keypair,
+            nonce_key=signing_keypair,
             raise_error=raise_error,
         )
 
