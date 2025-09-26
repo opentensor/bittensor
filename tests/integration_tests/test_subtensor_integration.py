@@ -41,14 +41,13 @@ async def test_get_all_subnets_info(mocker):
     assert result[1].blocks_since_epoch == 30
 
 
-# TODO: Improve integration tests workflow (https://github.com/opentensor/bittensor/issues/2435#issuecomment-2825858004)
-# @pytest.mark.asyncio
-# async def test_metagraph(mocker):
-#     subtensor = await prepare_test(mocker, "metagraph")
-#     result = subtensor.metagraph(1)
-#     assert result.n == 1
-#     assert result.netuid == 1
-#     assert result.block == 3264143
+@pytest.mark.asyncio
+async def test_metagraph(mocker):
+    subtensor = await prepare_test(mocker, "metagraph")
+    result = subtensor.metagraph(1)
+    assert result.n == 1024
+    assert result.netuid == 1
+    assert result.block == 6530118
 
 
 @pytest.mark.asyncio

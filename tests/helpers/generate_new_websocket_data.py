@@ -48,6 +48,9 @@ os.environ["SUBSTRATE_RUNTIME_CACHE_SIZE"] = "0"
 import logging
 import json
 import subprocess
+import importlib.util
+import pathlib
+import re
 
 from async_substrate_interface.sync_substrate import (
     raw_websocket_logger,
@@ -81,6 +84,11 @@ def main(seed: str, method: str, *args, **kwargs):
         os.remove(RAW_WS_LOG)
     if os.path.isfile(OUTPUT_DIR):
         os.remove(OUTPUT_DIR)
+
+    path = pathlib.Path(__file__).parent / "integration_websocket_data.py"
+    spec = importlib.util.spec_from_file_location("bittensor", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
 
     raw_websocket_logger.setLevel(logging.DEBUG)
     handler = logging.FileHandler(RAW_WS_LOG)
@@ -157,6 +165,15 @@ def main(seed: str, method: str, *args, **kwargs):
 
     with open(OUTPUT_DIR, "w+") as f:
         f.write(str(output_dict))
+
+
+    mod.WEBSOCKET_RESPONSES[seed] = output_dict_at_seed
+    source = path.read_text(encoding="utf-8")
+    pattern = re.compile(r"(?ms)^WEBSOCKET_RESPONSES\s*=\s*{.*?}")
+    replacement = f"WEBSOCKET_RESPONSES = {repr(mod.WEBSOCKET_RESPONSES)}"
+    new_source = pattern.sub(replacement, source)
+    path.write_text(new_source, encoding="utf-8")
+
     if metadata is not None:
         with open(OUTPUT_METADATA, "w+") as f:
             f.write(metadata)
@@ -164,7 +181,7 @@ def main(seed: str, method: str, *args, **kwargs):
         with open(OUTPUT_METADATA_V15, "w+") as f:
             f.write(metadataV15)
     # ruff format the output info to make it easier to copy/paste into the file
-    subprocess.run(["ruff", "format", OUTPUT_DIR])
+    subprocess.run(["ruff", "format", path.as_posix()])
 
 
 if __name__ == "__main__":
@@ -191,9 +208,10 @@ if __name__ == "__main__":
     # )
     # main("blocks_since_last_update", "blocks_since_last_update", 1, 0)
     # main("get_block_hash", "get_block_hash", 6522038)
-    main(
-        "get_neuron_for_pubkey_and_subnet",
-        "get_neuron_for_pubkey_and_subnet",
-        "5Cf4LPRv6tiyuFsfLRQaFYEEn3zJRGi4bAE9DwbbKmbCSHpV",
-        14,
-    )
+    # main(
+    #     "get_neuron_for_pubkey_and_subnet",
+    #     "get_neuron_for_pubkey_and_subnet",
+    #     "5Cf4LPRv6tiyuFsfLRQaFYEEn3zJRGi4bAE9DwbbKmbCSHpV",
+    #     14,
+    # )
+    main("metagraph", "metagraph", 1)
