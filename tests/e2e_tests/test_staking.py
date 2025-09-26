@@ -1074,3 +1074,43 @@ def test_unstaking_with_limit(
             bob_wallet.coldkey.ss58_address
         )
         assert len(bob_stakes) == 0
+
+
+def test_auto_staking(subtensor, alice_wallet, bob_wallet, eve_wallet):
+    """Tests auto staking logic."""
+
+    logging.console.info(f"Testing test_auto_staking.")
+
+    alice_subnet_netuid = subtensor.get_total_subnets()
+    assert subtensor.subnets.register_subnet(alice_wallet)
+    assert subtensor.subnets.subnet_exists(alice_subnet_netuid)
+
+    assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
+
+    assert subtensor.extrinsics.burned_register(bob_wallet, alice_subnet_netuid)
+
+    assert subtensor.staking.get_auto_stakes(alice_wallet.coldkey.ss58_address) == {}
+
+    # set auto stake
+    assert subtensor.staking.set_auto_stake(
+        wallet=alice_wallet,
+        netuid=alice_subnet_netuid,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
+    )
+    # check auto stake
+    assert subtensor.staking.get_auto_stakes(alice_wallet.coldkey.ss58_address) == {
+        alice_subnet_netuid: bob_wallet.hotkey.ss58_address
+    }
+
+    # set auto stake to another hotkey
+    assert subtensor.staking.set_auto_stake(
+        wallet=alice_wallet,
+        netuid=alice_subnet_netuid,
+        hotkey_ss58=eve_wallet.hotkey.ss58_address,
+    )
+    # check auto stake
+    assert subtensor.staking.get_auto_stakes(alice_wallet.coldkey.ss58_address) == {
+        alice_subnet_netuid: eve_wallet.hotkey.ss58_address
+    }
+
+    logging.console.success(f"Test `test_auto_staking` passed.")
