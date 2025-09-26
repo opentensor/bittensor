@@ -166,19 +166,21 @@ def main(seed: str, method: str, *args, **kwargs):
             f.write(metadataV15)
 
     with open(INTEGRATION_WS_DATA, "r") as f:
+        # Read the current integration_websocket_data.py file
         all_integration_ws_data = f.readlines()
-    waiting = False
+    watching = False
     start_idx = 0
     end_idx = 0
+    # look for the line of the dict matching the seed whose data we want to update
     sought_line = f'    "{seed}": ' + "{\n"
     for line_idx, line in enumerate(all_integration_ws_data):
-        if waiting:
+        if watching:
             if line == "    },\n":
-                waiting = False
+                # the part of the dict matching the end of the bit of data we need to update for this seed
                 end_idx = line_idx
                 break
         if line == sought_line:
-            waiting = True
+            watching = True
             start_idx = line_idx
     if start_idx == 0 or end_idx == 0:
         print(
@@ -186,21 +188,28 @@ def main(seed: str, method: str, *args, **kwargs):
             f"new seed key."
         )
         return
+    # only retain the portions of the file before and after the seed we want to update
     first_part = all_integration_ws_data[:start_idx]
     last_part = all_integration_ws_data[end_idx + 1 :]
     with open(OUTPUT_DIR, "r") as f:
+        # read the **ruff formatted** output of this seed's new data
         formatted_output = f.readlines()
     foutput_len = len(formatted_output)
     insertion_data = []
     for line_idx, line in enumerate(formatted_output):
         if line_idx == 0 and line.startswith("{"):
+            # remove the first { as we want to insert this dict into another dict (WEBSOCKET_DATA)
             line = line[1:]
         elif line_idx == foutput_len - 1:
+            # same with the end of this dict
             line = line.replace("}", ",")
         insertion_data.append(line)
     with open(INTEGRATION_WS_DATA, "w") as f:
+        # rewrite the corrected file with our data inserted into its proper place
         f.writelines(first_part + insertion_data + last_part)
-    subprocess.run(["ruff", "format", INTEGRATION_WS_DATA])
+    subprocess.run(
+        ["ruff", "format", INTEGRATION_WS_DATA]
+    )  # ruff format again for good measure
 
 
 if __name__ == "__main__":
