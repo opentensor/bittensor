@@ -64,6 +64,7 @@ RAW_WS_LOG = "/tmp/bittensor-raw-ws.log"
 OUTPUT_DIR = "/tmp/bittensor-ws-output.txt"
 OUTPUT_METADATA = "/tmp/integration_websocket_metadata.txt"
 OUTPUT_METADATA_V15 = "/tmp/integration_websocket_at_version.txt"
+INTEGRATION_WS_DATA = pathlib.Path(__file__).parent / "integration_websocket_data.py"
 
 
 def main(seed: str, method: str, *args, **kwargs):
@@ -84,11 +85,6 @@ def main(seed: str, method: str, *args, **kwargs):
         os.remove(RAW_WS_LOG)
     if os.path.isfile(OUTPUT_DIR):
         os.remove(OUTPUT_DIR)
-
-    path = pathlib.Path(__file__).parent / "integration_websocket_data.py"
-    spec = importlib.util.spec_from_file_location("bittensor", path)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
 
     raw_websocket_logger.setLevel(logging.DEBUG)
     handler = logging.FileHandler(RAW_WS_LOG)
@@ -165,14 +161,39 @@ def main(seed: str, method: str, *args, **kwargs):
 
     with open(OUTPUT_DIR, "w+") as f:
         f.write(str(output_dict))
+    subprocess.run(["ruff", "format", OUTPUT_DIR])
 
-
-    mod.WEBSOCKET_RESPONSES[seed] = output_dict_at_seed
-    source = path.read_text(encoding="utf-8")
-    pattern = re.compile(r"(?ms)^WEBSOCKET_RESPONSES\s*=\s*{.*?}")
-    replacement = f"WEBSOCKET_RESPONSES = {repr(mod.WEBSOCKET_RESPONSES)}"
-    new_source = pattern.sub(replacement, source)
-    path.write_text(new_source, encoding="utf-8")
+    with open(INTEGRATION_WS_DATA, "r") as f:
+        all_integration_ws_data = f.readlines()
+    waiting = False
+    start_idx = 0
+    end_idx = 0
+    for line_idx, line in enumerate(all_integration_ws_data):
+        if waiting:
+            if line == "    },":
+                waiting = False
+                end_idx = line_idx
+                break
+        if line == '    "{}": '.format(seed) + '{':
+            waiting = True
+            start_idx = line_idx
+            print(line)
+    first_part = all_integration_ws_data[:start_idx]
+    print(first_part)
+    last_part = all_integration_ws_data[end_idx:]
+    with open(OUTPUT_DIR, "r") as f:
+        formatted_output = f.readlines()
+    foutput_len = len(formatted_output)
+    insertion_data = []
+    for line_idx, line in enumerate(formatted_output):
+        if line_idx == 0 and line.startswith("{"):
+            line = line[1:]
+        elif line_idx == foutput_len and line.endswith("}"):
+            line = line[:-1] + ","
+        insertion_data.append(line)
+    with open(INTEGRATION_WS_DATA, "w") as f:
+        f.writelines(first_part+insertion_data+last_part)
+    subprocess.run(["ruff", "format", INTEGRATION_WS_DATA])
 
     if metadata is not None:
         with open(OUTPUT_METADATA, "w+") as f:
@@ -180,8 +201,7 @@ def main(seed: str, method: str, *args, **kwargs):
     if metadataV15 is not None:
         with open(OUTPUT_METADATA_V15, "w+") as f:
             f.write(metadataV15)
-    # ruff format the output info to make it easier to copy/paste into the file
-    subprocess.run(["ruff", "format", path.as_posix()])
+
 
 
 if __name__ == "__main__":
