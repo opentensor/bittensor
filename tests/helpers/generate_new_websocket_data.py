@@ -48,9 +48,7 @@ os.environ["SUBSTRATE_RUNTIME_CACHE_SIZE"] = "0"
 import logging
 import json
 import subprocess
-import importlib.util
 import pathlib
-import re
 
 from async_substrate_interface.sync_substrate import (
     raw_websocket_logger,
