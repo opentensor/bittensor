@@ -196,8 +196,8 @@ def main(seed: str, method: str, *args, **kwargs):
     for line_idx, line in enumerate(formatted_output):
         if line_idx == 0 and line.startswith("{"):
             line = line[1:]
-        elif line_idx == foutput_len and line.endswith("}"):
-            line = line[:-1] + ","
+        elif line_idx == foutput_len-1:
+            line = line.replace("}", "},")
             print(line)
         insertion_data.append(line)
     with open(INTEGRATION_WS_DATA, "w") as f:
