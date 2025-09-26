@@ -162,6 +162,12 @@ def main(seed: str, method: str, *args, **kwargs):
     with open(OUTPUT_DIR, "w+") as f:
         f.write(str(output_dict))
     subprocess.run(["ruff", "format", OUTPUT_DIR])
+    if metadata is not None:
+        with open(OUTPUT_METADATA, "w+") as f:
+            f.write(metadata)
+    if metadataV15 is not None:
+        with open(OUTPUT_METADATA_V15, "w+") as f:
+            f.write(metadataV15)
 
     with open(INTEGRATION_WS_DATA, "r") as f:
         all_integration_ws_data = f.readlines()
@@ -178,6 +184,9 @@ def main(seed: str, method: str, *args, **kwargs):
             waiting = True
             start_idx = line_idx
             print(line)
+    if start_idx == 0 or end_idx == 0:
+        print("Unable to parse integration ws data")
+        return
     first_part = all_integration_ws_data[:start_idx]
     print(first_part)
     last_part = all_integration_ws_data[end_idx:]
@@ -194,13 +203,6 @@ def main(seed: str, method: str, *args, **kwargs):
     with open(INTEGRATION_WS_DATA, "w") as f:
         f.writelines(first_part+insertion_data+last_part)
     subprocess.run(["ruff", "format", INTEGRATION_WS_DATA])
-
-    if metadata is not None:
-        with open(OUTPUT_METADATA, "w+") as f:
-            f.write(metadata)
-    if metadataV15 is not None:
-        with open(OUTPUT_METADATA_V15, "w+") as f:
-            f.write(metadataV15)
 
 
 
