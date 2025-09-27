@@ -59,8 +59,6 @@ async def test_root_reg_hyperparams(subtensor, templates, alice_wallet, bob_wall
     Raises:
         AssertionError: If any of the checks or verifications fail.
     """
-
-    logging.console.info("Testing root register, weights, and hyperparams")
     netuid = subtensor.subnets.get_total_subnets()  # 2
 
     # Default immunity period and tempo set through the subtensor side
@@ -152,8 +150,6 @@ async def test_root_reg_hyperparams(subtensor, templates, alice_wallet, bob_wall
     assert sn_one_neurons[alice_uid_sn_2].hotkey == alice_wallet.hotkey.ss58_address
     assert sn_one_neurons[alice_uid_sn_2].validator_permit is True
 
-    logging.console.success("✅ Passed root tests")
-
 
 @pytest.mark.asyncio
 async def test_root_reg_hyperparams_async(
@@ -179,8 +175,6 @@ async def test_root_reg_hyperparams_async(
     Raises:
         AssertionError: If any of the checks or verifications fail.
     """
-
-    logging.console.info("Testing root register, weights, and hyperparams")
     netuid = await async_subtensor.subnets.get_total_subnets()  # 2
 
     # Default immunity period and tempo set through the subtensor side
@@ -278,5 +272,3 @@ async def test_root_reg_hyperparams_async(
     )
     assert sn_one_neurons[alice_uid_sn_2].hotkey == alice_wallet.hotkey.ss58_address
     assert sn_one_neurons[alice_uid_sn_2].validator_permit is True
-
-    logging.console.success("✅ Passed root tests")

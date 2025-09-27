@@ -112,13 +112,13 @@ It must include:
 
 # Migration guide
 
-- [x] `._do_commit_reveal_v3` logic is included in the main code `.commit_reveal_v3_extrinsic`
-- [x] `revecommit_reveal_version` parameter with default value `4` added to `revecommit_reveal_version`
+- [x] `._do_commit_reveal_v3` logic is included in the main code `.commit_timelocked_weights_extrinsic`
+  - [x] `commit_reveal_version` parameter with default value `4` added to `commit_timelocked_weights_extrinsic`
 - [x] `._do_commit_weights` logic is included in the main code `.commit_weights_extrinsic`
 - [x] `._do_reveal_weights` logic is included in the main code `.reveal_weights_extrinsic`
 - [x] `._do_set_weights` logic is included in the main code `.set_weights_extrinsic`
 - [x] `set_weights_extrinsic` moved to `bittensor/core/extrinsics/commit_weights.py`
-- [x] `bittensor/core/extrinsics/commit_weights.py` module renamed to `bittensor/core/extrinsics/weights.py` (consistent naming with async module)
+  - [x] `bittensor/core/extrinsics/commit_weights.py` module renamed to `bittensor/core/extrinsics/weights.py` (consistent naming with async module)
 - [x] `_do_burned_register` logic is included in the main code `.burned_register_extrinsic`
 - [x] `_do_pow_register` logic is included in the main code `.register_extrinsic`
 - [x] `._do_set_root_weights` logic is included in the main code `.set_root_weights_extrinsic`
@@ -199,25 +199,31 @@ Additional changes in extrinsics:
 
 Removing deprecated extrinsics and replacing them with consistent ones:
 - `commit_reveal_extrinsic` (without mechanisms support) + related tests
-- `bittensor.core.extrinsics.mechanism.commit_timelocked_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.weights.commit_timelocked_weights_extrinsic`
-- `bittensor.core.extrinsics.asyncex.mechanism.commit_timelocked_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.asyncex.weights.commit_timelocked_weights_extrinsic`
+    - `bittensor.core.extrinsics.mechanism.commit_timelocked_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.weights.commit_timelocked_weights_extrinsic`
+    - `bittensor.core.extrinsics.asyncex.mechanism.commit_timelocked_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.asyncex.weights.commit_timelocked_weights_extrinsic`
 
 - `commit_weights_extrinsic`(without mechanisms support) + related tests
-- `bittensor.core.extrinsics.mechanism.commit_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.weights.commit_weights_extrinsic`
-- `bittensor.core.extrinsics.asyncex.mechanism.commit_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.asyncex.weights.commit_weights_extrinsic`
+    - `bittensor.core.extrinsics.mechanism.commit_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.weights.commit_weights_extrinsic`
+    - `bittensor.core.extrinsics.asyncex.mechanism.commit_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.asyncex.weights.commit_weights_extrinsic`
 
 - `reveal_weights_extrinsic`(without mechanisms support) + related tests
-- `bittensor.core.extrinsics.mechanism.reveal_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.weights.reveal_weights_extrinsic`
-- `bittensor.core.extrinsics.asyncex.mechanism.reveal_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.asyncex.weights.reveal_weights_extrinsic`
+    - `bittensor.core.extrinsics.mechanism.reveal_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.weights.reveal_weights_extrinsic`
+      - `bittensor.core.extrinsics.asyncex.mechanism.reveal_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.asyncex.weights.reveal_weights_extrinsic`
 
 - `set_weights_extrinsic`(without mechanisms support) + related tests
-- `bittensor.core.extrinsics.mechanism.reveal_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.weights.reveal_weights_extrinsic`
-- `bittensor.core.extrinsics.asyncex.mechanism.reveal_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.asyncex.weights.reveal_weights_extrinsic`
+    - `bittensor.core.extrinsics.mechanism.reveal_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.weights.reveal_weights_extrinsic`
+      - `bittensor.core.extrinsics.asyncex.mechanism.reveal_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.asyncex.weights.reveal_weights_extrinsic`
 
+- `decrease_take_extrinsic` and `increase_take_extrinsic` have been merged into a single set_take_extrinsic. The API now has a new `action: Literal["increase_take", "decrease_take"]` parameter (DRY rule).
+
+### Extrinsics has extra data in response's `data` field:
+- 
 
 ### Subtensor changes
-- method `all_subnets` has renamed parameter from `block_number` to `block`.
+- method `all_subnets` has renamed parameter from `block_number` to `block` (consistency in the codebase).
+- Method `unstake_all` has renamed parameter from `hotkey` to `hotkey_ss58` (consistency in the codebase).
 - method `query_subtensor` has updated parameters order.
 - method `query_module` has updated parameters order.
 - method `query_map_subtensor` has updated parameters order.
 - method `query_map` has updated parameters order.
+- method `add_stake_multiple` has updated parameters order.

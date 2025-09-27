@@ -1,9 +1,7 @@
 import argparse
 from abc import ABC
 from dataclasses import dataclass
-from typing import Any, TypedDict, Optional, Union
-
-from scalecodec.types import GenericExtrinsic
+from typing import Any, Literal, Optional, TypedDict, Union, TYPE_CHECKING
 
 import numpy as np
 from numpy.typing import NDArray
@@ -12,11 +10,20 @@ from bittensor.core import settings
 from bittensor.core.chain_data import NeuronInfo, NeuronInfoLite
 from bittensor.core.config import Config
 from bittensor.utils import (
-    determine_chain_endpoint_and_network,
-    networking,
     Certificate,
+    determine_chain_endpoint_and_network,
+    get_caller_name,
+    format_error_message,
+    networking,
+    unlock_key,
 )
 from bittensor.utils.btlogging import logging
+
+if TYPE_CHECKING:
+    from bittensor_wallet import Wallet
+    from bittensor.utils.balance import Balance
+    from scalecodec.types import GenericExtrinsic
+
 
 # Type annotations for UIDs and weights.
 UIDs = Union[NDArray[np.int64], list[Union[int]]]
@@ -292,10 +299,21 @@ class ExtrinsicResponse:
     Attributes:
         success: Indicates if the extrinsic execution was successful.
         message: A status or informational message returned from the execution (e.g., "Successfully registered subnet").
-        error: Captures the underlying exception if the extrinsic failed, otherwise `None`.
-        data: Arbitrary data returned from the extrinsic, such as decoded events, or extra context.
-        extrinsic_function: The name of the SDK extrinsic function that was executed (e.g. "register_subnet_extrinsic").
+        extrinsic_function: The SDK extrinsic or external function name that was executed (e.g., "add_stake_extrinsic").
         extrinsic: The raw extrinsic object used in the call, if available.
+        extrinsic_fee: The fee charged by the extrinsic, if available.
+        transaction_fee: The fee charged by the transaction (e.g., fee for add_stake or transfer_stake), if available.
+        error: Captures the underlying exception if the extrinsic failed, otherwise `None`.
+        data: Arbitrary data returned from the extrinsic, such as decoded events, balance or another extra context.
+
+    Instance methods:
+        as_dict: Returns a dictionary representation of this object.
+        with_log: Returns itself but with logging message.
+
+    Class methods:
+        from_exception: Checks if error is raised or return ExtrinsicResponse accordingly.
+        unlock_wallet: Checks if keypair is unlocked and can be used for signing the extrinsic.
+
 
     Example:
         import bittensor as bt
@@ -309,9 +327,12 @@ class ExtrinsicResponse:
         ExtrinsicResponse:
             success: True
             message: Successfully registered subnet
-            error: None
             extrinsic_function: register_subnet_extrinsic
             extrinsic: {'account_id': '0xd43593c715fdd31c...
+            extrinsic_fee: τ1.0
+            transaction_fee: τ1.0
+            error: None
+            data: None
 
         success, message = response
         print(success, message)
@@ -325,10 +346,12 @@ class ExtrinsicResponse:
     """
 
     success: bool = True
-    message: str = None
-    error: Optional[Exception] = None
+    message: Optional[str] = None
     extrinsic_function: Optional[str] = None
-    extrinsic: Optional[GenericExtrinsic] = None
+    extrinsic: Optional["GenericExtrinsic"] = None
+    extrinsic_fee: Optional["Balance"] = None
+    transaction_fee: Optional["Balance"] = None
+    error: Optional[Exception] = None
     data: Optional[Any] = None
 
     def __iter__(self):
@@ -336,29 +359,49 @@ class ExtrinsicResponse:
         yield self.message
 
     def __str__(self):
-        return str(
-            f"{self.__class__.__name__}:"
-            f"\n\tsuccess: {self.success}"
-            f"\n\tmessage: {self.message}"
-            f"\n\terror: {self.error}"
-            f"\n\textrinsic_function: {self.extrinsic_function}"
-            f"\n\textrinsic: {self.extrinsic}"
-            f"\n\tdata: {self.data}"
+        return (
+            f"{self.__class__.__name__}:\n"
+            f"\tsuccess: {self.success}\n"
+            f"\tmessage: {self.message}\n"
+            f"\textrinsic_function: {self.extrinsic_function}\n"
+            f"\textrinsic: {self.extrinsic}\n"
+            f"\textrinsic_fee: {self.extrinsic_fee}\n"
+            f"\ttransaction_fee: {self.transaction_fee}\n"
+            f"\tdata: {self.data}\n"
+            f"\terror: {self.error}"
         )
 
     def __repr__(self):
         return repr((self.success, self.message))
 
+    def as_dict(self) -> dict:
+        """Represents this object as a dictionary."""
+        return {
+            "success": self.success,
+            "message": self.message,
+            "extrinsic_function": self.extrinsic_function,
+            "extrinsic": self.extrinsic,
+            "extrinsic_fee": str(self.extrinsic_fee) if self.extrinsic_fee else None,
+            "transaction_fee": str(self.transaction_fee)
+            if self.transaction_fee
+            else None,
+            "error": str(self.error) if self.error else None,
+            "data": self.data,
+        }
+
     def __eq__(self, other: Any) -> bool:
-        if isinstance(other, tuple):
-            return (self.success, self.message) == other
+        if isinstance(other, (tuple, list)):
+            return (self.success, self.message) == tuple(other)
         if isinstance(other, ExtrinsicResponse):
             return (
                 self.success == other.success
                 and self.message == other.message
-                and self.error == other.error
                 and self.extrinsic_function == other.extrinsic_function
                 and self.extrinsic == other.extrinsic
+                and self.extrinsic_fee == other.extrinsic_fee
+                and self.transaction_fee == other.transaction_fee
+                and self.error == other.error
+                and self.data == other.data
             )
         return super().__eq__(other)
 
@@ -374,3 +417,44 @@ class ExtrinsicResponse:
 
     def __len__(self):
         return 2
+
+    def __post_init__(self):
+        if self.extrinsic_function is None:
+            self.extrinsic_function = get_caller_name(depth=3)
+
+    @classmethod
+    def unlock_wallet(
+        cls,
+        wallet: "Wallet",
+        raise_error: bool = False,
+        unlock_type: str = "coldkey",
+    ) -> "ExtrinsicResponse":
+        """Check if keypair is unlocked and return ExtrinsicResponse accordingly."""
+        unlock = unlock_key(wallet, unlock_type=unlock_type, raise_error=raise_error)
+        if not unlock.success:
+            logging.error(unlock.message)
+        return cls(
+            success=unlock.success,
+            message=unlock.message,
+            extrinsic_function=get_caller_name(),
+        )
+
+    @classmethod
+    def from_exception(cls, raise_error: bool, error: Exception) -> "ExtrinsicResponse":
+        """Check if error is raised and return ExtrinsicResponse accordingly."""
+        if raise_error:
+            raise error
+        return cls(
+            success=False,
+            message=format_error_message(error),
+            error=error,
+            extrinsic_function=get_caller_name(),
+        )
+
+    def with_log(
+        self, level: Literal["debug", "info", "warning", "error", "success"] = "error"
+    ) -> "ExtrinsicResponse":
+        """Logs provided message if passed and returns self instance."""
+        if self.message:
+            getattr(logging, level)(self.message)
+        return self

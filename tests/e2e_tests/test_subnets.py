@@ -9,8 +9,6 @@ def test_subnets(subtensor, alice_wallet):
     - Filtering subnets
     - Checks default TxRateLimit
     """
-    logging.console.info("Testing [blue]test_subnets[/blue]")
-
     subnets = subtensor.subnets.all_subnets()
     assert len(subnets) == 2
 
@@ -30,8 +28,6 @@ def test_subnets(subtensor, alice_wallet):
     tx_rate_limit = subtensor.chain.tx_rate_limit()
     assert tx_rate_limit == 1000
 
-    logging.console.success("✅ Test [green]test_subnets[/green] passed")
-
 
 @pytest.mark.asyncio
 async def test_subnets_async(async_subtensor, alice_wallet):
@@ -41,8 +37,6 @@ async def test_subnets_async(async_subtensor, alice_wallet):
     - Filtering subnets
     - Checks default TxRateLimit
     """
-    logging.console.info("Testing [blue]test_subnets_async[/blue]")
-
     subnets = await async_subtensor.subnets.all_subnets()
     assert len(subnets) == 2
 
@@ -61,5 +55,3 @@ async def test_subnets_async(async_subtensor, alice_wallet):
 
     tx_rate_limit = await async_subtensor.chain.tx_rate_limit()
     assert tx_rate_limit == 1000
-
-    logging.console.success("✅ Test [green]test_subnets_async[/green] passed")

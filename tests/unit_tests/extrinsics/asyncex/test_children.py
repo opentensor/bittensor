@@ -57,7 +57,6 @@ async def test_set_children_extrinsic(subtensor, mocker, fake_wallet):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
-        calling_function="set_children_extrinsic",
     )
 
     assert success is True
@@ -72,8 +71,7 @@ async def test_root_set_pending_childkey_cooldown_extrinsic(
     # Preps
     cooldown = 100
 
-    substrate = subtensor.substrate.__aenter__.return_value
-    substrate.compose_call = mocker.AsyncMock()
+    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
@@ -88,15 +86,17 @@ async def test_root_set_pending_childkey_cooldown_extrinsic(
     )
     # Asserts
 
-    substrate.compose_call.call_count == 2
+    assert mocked_compose_call.call_count == 2
     mocked_sign_and_send_extrinsic.assert_awaited_once_with(
-        call=substrate.compose_call.return_value,
+        call=mocked_compose_call.return_value,
         wallet=fake_wallet,
         period=None,
+        nonce_key="hotkey",
+        sign_with="coldkey",
+        use_nonce=False,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
-        calling_function="root_set_pending_childkey_cooldown_extrinsic",
     )
     assert success is True
     assert "Success" in message

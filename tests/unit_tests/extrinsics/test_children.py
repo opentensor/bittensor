@@ -53,7 +53,6 @@ def test_set_children_extrinsic(subtensor, mocker, fake_wallet):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
-        calling_function="set_children_extrinsic",
     )
 
     assert success is True
@@ -84,11 +83,13 @@ def test_root_set_pending_childkey_cooldown_extrinsic(subtensor, mocker, fake_wa
     mocked_sign_and_send_extrinsic.assert_called_once_with(
         call=subtensor.substrate.compose_call.return_value,
         wallet=fake_wallet,
+        nonce_key="hotkey",
+        sign_with="coldkey",
+        use_nonce=False,
         period=None,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=False,
-        calling_function="root_set_pending_childkey_cooldown_extrinsic",
     )
     assert success is True
     assert "Success" in message

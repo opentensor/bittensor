@@ -3582,14 +3582,14 @@ def test_unstake_all(subtensor, fake_wallet, mocker):
     # Call
     result = subtensor.unstake_all(
         wallet=fake_wallet,
-        hotkey=fake_wallet.hotkey.ss58_address,
+        hotkey_ss58=fake_wallet.hotkey.ss58_address,
         netuid=1,
     )
     # Asserts
     fake_unstake_all_extrinsic.assert_called_once_with(
         subtensor=subtensor,
         wallet=fake_wallet,
-        hotkey=fake_wallet.hotkey.ss58_address,
+        hotkey_ss58=fake_wallet.hotkey.ss58_address,
         netuid=1,
         rate_tolerance=0.005,
         wait_for_inclusion=True,
