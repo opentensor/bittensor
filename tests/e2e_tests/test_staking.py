@@ -477,14 +477,15 @@ def test_batch_operations(subtensor, alice_wallet, bob_wallet):
         fee_tao = dynamic_info.alpha_to_tao(fee_alpha)
         expected_fee_paid += fee_tao
 
-    success = subtensor.staking.unstake_multiple(
+    response = subtensor.staking.unstake_multiple(
         wallet=alice_wallet,
         netuids=netuids,
         hotkey_ss58s=[bob_wallet.hotkey.ss58_address for _ in netuids],
         amounts=[Balance.from_tao(100) for _ in netuids],
+        raise_error=True,
     )
-
-    assert success.success is True
+    logging.console.info(f">>> res {response}")
+    assert response.success, response.message
 
     for netuid, old_stake in zip(netuids, stakes):
         stake = subtensor.staking.get_stake(
@@ -626,7 +627,7 @@ async def test_batch_operations_async(async_subtensor, alice_wallet, bob_wallet)
         hotkey_ss58s=[bob_wallet.hotkey.ss58_address for _ in netuids],
         amounts=[Balance.from_tao(100) for _ in netuids],
     )
-    assert response.success is True
+    assert response.success, response.message
 
     for netuid, old_stake in zip(netuids, stakes):
         stake = await async_subtensor.staking.get_stake(

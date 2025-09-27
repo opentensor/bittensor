@@ -345,7 +345,7 @@ def unstake_multiple_extrinsic(
                 "`netuids` must be a list of the same length as `hotkey_ss58s`."
             )
 
-        block = subtensor.substrate.get_chain_head()
+        block = subtensor.get_current_block()
         old_balance = subtensor.get_balance(
             address=wallet.coldkeypub.ss58_address, block=block
         )

@@ -4235,7 +4235,6 @@ class AsyncSubtensor(SubtensorMixin):
             response_error_message = await response.error_message
 
             if raise_error:
-                logging.console.error(response_error_message)
                 raise ChainError.from_error(response_error_message)
 
             extrinsic_response.success = False
