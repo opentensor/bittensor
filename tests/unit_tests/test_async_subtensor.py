@@ -572,8 +572,8 @@ async def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker):
     mocked_query_runtime_api.assert_has_calls(
         [
             mock.call(
-                "StakeInfoRuntimeApi",
-                "get_stake_info_for_hotkey_coldkey_netuid",
+                runtime_api="StakeInfoRuntimeApi",
+                method="get_stake_info_for_hotkey_coldkey_netuid",
                 params=["hotkey", "coldkey", netuid],
                 block_hash=block_hash,
             )
