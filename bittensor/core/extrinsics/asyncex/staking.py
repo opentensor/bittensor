@@ -269,7 +269,7 @@ async def add_stake_multiple_extrinsic(
 
         block_hash = await subtensor.substrate.get_chain_head()
 
-        all_stakes = await subtensor.get_stake_for_coldkey(
+        all_stakes = await subtensor.get_stake_info_for_coldkey(
             coldkey_ss58=wallet.coldkeypub.ss58_address, block_hash=block_hash
         )
         old_stakes: list[Balance] = get_old_stakes(
