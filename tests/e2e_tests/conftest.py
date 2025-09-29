@@ -1,4 +1,3 @@
-import asyncio
 import os
 import re
 import shlex
@@ -12,7 +11,6 @@ from typing import Optional
 
 import pytest
 import pytest_asyncio
-from async_substrate_interface import SubstrateInterface
 
 from bittensor.core.addons import SubtensorApi
 from bittensor.utils.btlogging import logging
