@@ -14,7 +14,7 @@ import pytest
 import pytest_asyncio
 from async_substrate_interface import SubstrateInterface
 
-from bittensor.core.subtensor_api import SubtensorApi
+from bittensor.core.addons import SubtensorApi
 from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.e2e_test_utils import (
     Templates,
