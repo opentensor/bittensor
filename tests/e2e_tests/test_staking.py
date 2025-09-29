@@ -18,174 +18,174 @@ from tests.e2e_tests.utils.e2e_test_utils import (
 from tests.helpers.helpers import CloseInValue
 
 
-# def test_single_operation(subtensor, alice_wallet, bob_wallet):
-#     """
-#     Tests:
-#     - Staking using `add_stake`
-#     - Unstaking using `unstake`
-#     - Checks StakeInfo
-#     """
-#     alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
-#
-#     # Register root as Alice - the subnet owner and validator
-#     assert subtensor.subnets.register_subnet(alice_wallet).success
-#
-#     # Verify subnet <netuid> created successfully
-#     assert subtensor.subnets.subnet_exists(alice_subnet_netuid), (
-#         "Subnet wasn't created successfully"
-#     )
-#
-#     assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
-#
-#     assert subtensor.subnets.burned_register(
-#         wallet=alice_wallet,
-#         netuid=alice_subnet_netuid,
-#     ).success
-#     logging.console.success(f"Alice is registered in subnet {alice_subnet_netuid}")
-#     assert subtensor.subnets.burned_register(
-#         wallet=bob_wallet,
-#         netuid=alice_subnet_netuid,
-#     ).success
-#     logging.console.success(f"Bob is registered in subnet {alice_subnet_netuid}")
-#
-#     stake = subtensor.staking.get_stake(
-#         coldkey_ss58=alice_wallet.coldkey.ss58_address,
-#         hotkey_ss58=bob_wallet.hotkey.ss58_address,
-#         netuid=alice_subnet_netuid,
-#     )
-#
-#     assert stake == Balance(0).set_unit(alice_subnet_netuid)
-#
-#     assert subtensor.staking.add_stake(
-#         wallet=alice_wallet,
-#         netuid=alice_subnet_netuid,
-#         hotkey_ss58=bob_wallet.hotkey.ss58_address,
-#         amount=Balance.from_tao(1),
-#         period=16,
-#     ).success
-#
-#     stake_alice = subtensor.staking.get_stake(
-#         coldkey_ss58=alice_wallet.coldkey.ss58_address,
-#         hotkey_ss58=alice_wallet.hotkey.ss58_address,
-#         netuid=alice_subnet_netuid,
-#     )
-#     logging.console.info(f"Alice stake: {stake_alice}")
-#
-#     stake_bob = subtensor.staking.get_stake(
-#         coldkey_ss58=alice_wallet.coldkey.ss58_address,
-#         hotkey_ss58=bob_wallet.hotkey.ss58_address,
-#         netuid=alice_subnet_netuid,
-#     )
-#
-#     logging.console.info(f"Bob stake: {stake_bob}")
-#     assert stake_bob > Balance(0).set_unit(alice_subnet_netuid)
-#
-#     stakes = subtensor.staking.get_stake_for_coldkey(alice_wallet.coldkey.ss58_address)
-#
-#     expected_stakes = [
-#         StakeInfo(
-#             hotkey_ss58=stakes[0].hotkey_ss58,
-#             coldkey_ss58=alice_wallet.coldkey.ss58_address,
-#             netuid=alice_subnet_netuid,
-#             stake=get_dynamic_balance(stakes[0].stake.rao, alice_subnet_netuid),
-#             locked=Balance(0).set_unit(alice_subnet_netuid),
-#             emission=get_dynamic_balance(stakes[0].emission.rao, alice_subnet_netuid),
-#             drain=0,
-#             is_registered=True,
-#         ),
-#     ]
-#
-#     fast_blocks_stake = (
-#         [
-#             StakeInfo(
-#                 hotkey_ss58=stakes[1].hotkey_ss58,
-#                 coldkey_ss58=alice_wallet.coldkey.ss58_address,
-#                 netuid=alice_subnet_netuid,
-#                 stake=get_dynamic_balance(stakes[1].stake.rao, alice_subnet_netuid),
-#                 locked=Balance(0).set_unit(alice_subnet_netuid),
-#                 emission=get_dynamic_balance(
-#                     stakes[1].emission.rao, alice_subnet_netuid
-#                 ),
-#                 drain=0,
-#                 is_registered=True,
-#             )
-#         ]
-#         if subtensor.chain.is_fast_blocks()
-#         else []
-#     )
-#
-#     expected_stakes += fast_blocks_stake
-#
-#     assert stakes == expected_stakes
-#     assert (
-#         subtensor.staking.get_stake_for_coldkey
-#         == subtensor.staking.get_stake_info_for_coldkey
-#     )
-#
-#     stakes = subtensor.staking.get_stake_for_coldkey_and_hotkey(
-#         alice_wallet.coldkey.ss58_address,
-#         bob_wallet.hotkey.ss58_address,
-#     )
-#
-#     assert stakes == {
-#         0: StakeInfo(
-#             hotkey_ss58=bob_wallet.hotkey.ss58_address,
-#             coldkey_ss58=alice_wallet.coldkey.ss58_address,
-#             netuid=0,
-#             stake=Balance(0),
-#             locked=Balance(0),
-#             emission=Balance(0),
-#             drain=0,
-#             is_registered=False,
-#         ),
-#         1: StakeInfo(
-#             hotkey_ss58=bob_wallet.hotkey.ss58_address,
-#             coldkey_ss58=alice_wallet.coldkey.ss58_address,
-#             netuid=1,
-#             stake=stake.set_unit(1),
-#             locked=Balance.from_tao(0, netuid=1),
-#             emission=Balance.from_tao(0, netuid=1),
-#             drain=0,
-#             is_registered=False,
-#         ),
-#         2: StakeInfo(
-#             hotkey_ss58=bob_wallet.hotkey.ss58_address,
-#             coldkey_ss58=alice_wallet.coldkey.ss58_address,
-#             netuid=alice_subnet_netuid,
-#             stake=get_dynamic_balance(stakes[2].stake.rao, alice_subnet_netuid),
-#             locked=Balance.from_tao(0, netuid=alice_subnet_netuid),
-#             emission=get_dynamic_balance(stakes[2].emission.rao, alice_subnet_netuid),
-#             drain=0,
-#             is_registered=True,
-#         ),
-#     }
-#
-#     stake = subtensor.staking.get_stake(
-#         coldkey_ss58=alice_wallet.coldkey.ss58_address,
-#         hotkey_ss58=bob_wallet.hotkey.ss58_address,
-#         netuid=alice_subnet_netuid,
-#     )
-#     logging.console.info(f"Alice stake before unstake: {stake}")
-#
-#     # unstale all to check in later
-#     response = subtensor.staking.unstake(
-#         wallet=alice_wallet,
-#         netuid=alice_subnet_netuid,
-#         hotkey_ss58=bob_wallet.hotkey.ss58_address,
-#         amount=stake,
-#         period=16,
-#     )
-#
-#     assert response.success is True
-#
-#     stake = subtensor.staking.get_stake(
-#         coldkey_ss58=alice_wallet.coldkey.ss58_address,
-#         hotkey_ss58=bob_wallet.hotkey.ss58_address,
-#         netuid=alice_subnet_netuid,
-#     )
-#
-#     # all balances have been unstaked
-#     assert stake == Balance(0).set_unit(alice_subnet_netuid)
+def test_single_operation(subtensor, alice_wallet, bob_wallet):
+    """
+    Tests:
+    - Staking using `add_stake`
+    - Unstaking using `unstake`
+    - Checks StakeInfo
+    """
+    alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
+
+    # Register root as Alice - the subnet owner and validator
+    assert subtensor.subnets.register_subnet(alice_wallet).success
+
+    # Verify subnet <netuid> created successfully
+    assert subtensor.subnets.subnet_exists(alice_subnet_netuid), (
+        "Subnet wasn't created successfully"
+    )
+
+    assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
+
+    assert subtensor.subnets.burned_register(
+        wallet=alice_wallet,
+        netuid=alice_subnet_netuid,
+    ).success
+    logging.console.success(f"Alice is registered in subnet {alice_subnet_netuid}")
+    assert subtensor.subnets.burned_register(
+        wallet=bob_wallet,
+        netuid=alice_subnet_netuid,
+    ).success
+    logging.console.success(f"Bob is registered in subnet {alice_subnet_netuid}")
+
+    stake = subtensor.staking.get_stake(
+        coldkey_ss58=alice_wallet.coldkey.ss58_address,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
+        netuid=alice_subnet_netuid,
+    )
+
+    assert stake == Balance(0).set_unit(alice_subnet_netuid)
+
+    assert subtensor.staking.add_stake(
+        wallet=alice_wallet,
+        netuid=alice_subnet_netuid,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
+        amount=Balance.from_tao(1),
+        period=16,
+    ).success
+
+    stake_alice = subtensor.staking.get_stake(
+        coldkey_ss58=alice_wallet.coldkey.ss58_address,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        netuid=alice_subnet_netuid,
+    )
+    logging.console.info(f"Alice stake: {stake_alice}")
+
+    stake_bob = subtensor.staking.get_stake(
+        coldkey_ss58=alice_wallet.coldkey.ss58_address,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
+        netuid=alice_subnet_netuid,
+    )
+
+    logging.console.info(f"Bob stake: {stake_bob}")
+    assert stake_bob > Balance(0).set_unit(alice_subnet_netuid)
+
+    stakes = subtensor.staking.get_stake_for_coldkey(alice_wallet.coldkey.ss58_address)
+
+    expected_stakes = [
+        StakeInfo(
+            hotkey_ss58=stakes[0].hotkey_ss58,
+            coldkey_ss58=alice_wallet.coldkey.ss58_address,
+            netuid=alice_subnet_netuid,
+            stake=get_dynamic_balance(stakes[0].stake.rao, alice_subnet_netuid),
+            locked=Balance(0).set_unit(alice_subnet_netuid),
+            emission=get_dynamic_balance(stakes[0].emission.rao, alice_subnet_netuid),
+            drain=0,
+            is_registered=True,
+        ),
+    ]
+
+    fast_blocks_stake = (
+        [
+            StakeInfo(
+                hotkey_ss58=stakes[1].hotkey_ss58,
+                coldkey_ss58=alice_wallet.coldkey.ss58_address,
+                netuid=alice_subnet_netuid,
+                stake=get_dynamic_balance(stakes[1].stake.rao, alice_subnet_netuid),
+                locked=Balance(0).set_unit(alice_subnet_netuid),
+                emission=get_dynamic_balance(
+                    stakes[1].emission.rao, alice_subnet_netuid
+                ),
+                drain=0,
+                is_registered=True,
+            )
+        ]
+        if subtensor.chain.is_fast_blocks()
+        else []
+    )
+
+    expected_stakes += fast_blocks_stake
+
+    assert stakes == expected_stakes
+    assert (
+        subtensor.staking.get_stake_for_coldkey
+        == subtensor.staking.get_stake_info_for_coldkey
+    )
+
+    stakes = subtensor.staking.get_stake_for_coldkey_and_hotkey(
+        alice_wallet.coldkey.ss58_address,
+        bob_wallet.hotkey.ss58_address,
+    )
+
+    assert stakes == {
+        0: StakeInfo(
+            hotkey_ss58=bob_wallet.hotkey.ss58_address,
+            coldkey_ss58=alice_wallet.coldkey.ss58_address,
+            netuid=0,
+            stake=Balance(0),
+            locked=Balance(0),
+            emission=Balance(0),
+            drain=0,
+            is_registered=False,
+        ),
+        1: StakeInfo(
+            hotkey_ss58=bob_wallet.hotkey.ss58_address,
+            coldkey_ss58=alice_wallet.coldkey.ss58_address,
+            netuid=1,
+            stake=stake.set_unit(1),
+            locked=Balance.from_tao(0, netuid=1),
+            emission=Balance.from_tao(0, netuid=1),
+            drain=0,
+            is_registered=False,
+        ),
+        2: StakeInfo(
+            hotkey_ss58=bob_wallet.hotkey.ss58_address,
+            coldkey_ss58=alice_wallet.coldkey.ss58_address,
+            netuid=alice_subnet_netuid,
+            stake=get_dynamic_balance(stakes[2].stake.rao, alice_subnet_netuid),
+            locked=Balance.from_tao(0, netuid=alice_subnet_netuid),
+            emission=get_dynamic_balance(stakes[2].emission.rao, alice_subnet_netuid),
+            drain=0,
+            is_registered=True,
+        ),
+    }
+
+    stake = subtensor.staking.get_stake(
+        coldkey_ss58=alice_wallet.coldkey.ss58_address,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
+        netuid=alice_subnet_netuid,
+    )
+    logging.console.info(f"Alice stake before unstake: {stake}")
+
+    # unstale all to check in later
+    response = subtensor.staking.unstake(
+        wallet=alice_wallet,
+        netuid=alice_subnet_netuid,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
+        amount=stake,
+        period=16,
+    )
+
+    assert response.success is True
+
+    stake = subtensor.staking.get_stake(
+        coldkey_ss58=alice_wallet.coldkey.ss58_address,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
+        netuid=alice_subnet_netuid,
+    )
+
+    # all balances have been unstaked
+    assert stake == Balance(0).set_unit(alice_subnet_netuid)
 
 
 @pytest.mark.asyncio
