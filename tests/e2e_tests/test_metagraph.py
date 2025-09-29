@@ -52,8 +52,6 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    logging.console.info("Testing [blue]test_metagraph[/blue]")
-
     alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
 
     logging.console.info("Register the subnet through Alice")
@@ -210,8 +208,6 @@ async def test_metagraph_async(async_subtensor, alice_wallet, bob_wallet, dave_w
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    logging.console.info("Testing [blue]test_metagraph_async[/blue]")
-
     async with async_subtensor:
         alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
 
@@ -377,8 +373,6 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
     - Register Subnet
     - Check MetagraphInfo is updated
     """
-    logging.console.info("Testing [blue]test_metagraph_info[/blue]")
-
     alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
     assert subtensor.subnets.register_subnet(alice_wallet)
 
@@ -633,8 +627,6 @@ async def test_metagraph_info_async(async_subtensor, alice_wallet, bob_wallet):
     - Register Subnet
     - Check MetagraphInfo is updated
     """
-    logging.console.info("Testing [blue]test_metagraph_info_async[/blue]")
-
     alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
     assert await async_subtensor.subnets.register_subnet(alice_wallet)
 
@@ -896,8 +888,6 @@ def test_metagraph_info_with_indexes(subtensor, alice_wallet, bob_wallet):
     - Register Subnet
     - Check MetagraphInfo is updated
     """
-    logging.console.info("Testing [blue]test_metagraph_info_with_indexes[/blue]")
-
     alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
     assert subtensor.subnets.register_subnet(alice_wallet)
 
@@ -1132,8 +1122,6 @@ async def test_metagraph_info_with_indexes_async(
     - Register Subnet
     - Check MetagraphInfo is updated
     """
-    logging.console.info("Testing [blue]test_metagraph_info_with_indexes_async[/blue]")
-
     alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
     assert await async_subtensor.subnets.register_subnet(alice_wallet)
 
@@ -1370,8 +1358,6 @@ def test_blocks(subtensor):
     - Get block hash
     - Wait for block
     """
-    logging.console.info("Testing [blue]test_blocks[/blue]")
-
     get_current_block = subtensor.chain.get_current_block()
     block = subtensor.block
 
@@ -1395,8 +1381,6 @@ async def test_blocks_async(subtensor):
     - Get block hash
     - Wait for block
     """
-    logging.console.info("Testing [blue]test_blocks_async[/blue]")
-
     block = subtensor.chain.get_current_block()
     assert block == subtensor.block
 

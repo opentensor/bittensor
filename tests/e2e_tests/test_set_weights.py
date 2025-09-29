@@ -40,7 +40,6 @@ def test_set_weights_uses_next_nonce(subtensor, alice_wallet):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    logging.console.info("Testing [blue]test_set_weights_uses_next_nonce[/blue]")
     # turn off admin freeze window limit for testing
     assert sudo_set_admin_freeze_window_extrinsic(
         subtensor=subtensor,
@@ -56,7 +55,6 @@ def test_set_weights_uses_next_nonce(subtensor, alice_wallet):
         (0.25, 50) if subtensor.chain.is_fast_blocks() else (12.0, 20)
     )
 
-    print("Testing test_set_weights_uses_next_nonce")
     subnet_tempo = 50
 
     # Lower the network registration rate limit and cost
@@ -229,8 +227,6 @@ async def test_set_weights_uses_next_nonce_async(async_subtensor, alice_wallet):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    logging.console.info("Testing [blue]test_set_weights_uses_next_nonce_async[/blue]")
-
     # turn off admin freeze window limit for testing
     assert (
         await async_sudo_set_admin_utils(

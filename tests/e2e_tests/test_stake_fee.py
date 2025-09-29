@@ -14,8 +14,6 @@ def test_stake_fee_api(subtensor, alice_wallet, bob_wallet):
             - Removing stake
             - Moving stake between hotkeys/subnets/coldkeys
     """
-    logging.console.info("Testing [blue]test_stake_fee_api[/blue]")
-
     netuid = 2
     root_netuid = 0
     stake_amount = Balance.from_tao(100)  # 100 TAO
@@ -100,7 +98,6 @@ def test_stake_fee_api(subtensor, alice_wallet, bob_wallet):
     assert stake_fee >= min_stake_fee, (
         "Stake fee should be greater than the minimum stake fee"
     )
-    logging.console.success("✅ Passed [blue]test_stake_fee_api[/blue]")
 
 
 @pytest.mark.asyncio
@@ -115,8 +112,6 @@ async def test_stake_fee_api_async(async_subtensor, alice_wallet, bob_wallet):
             - Removing stake
             - Moving stake between hotkeys/subnets/coldkeys
     """
-    logging.console.info("Testing [blue]test_stake_fee_api_async[/blue]")
-
     netuid = 2
     root_netuid = 0
     stake_amount = Balance.from_tao(100)  # 100 TAO
@@ -203,4 +198,3 @@ async def test_stake_fee_api_async(async_subtensor, alice_wallet, bob_wallet):
     assert stake_fee >= min_stake_fee, (
         "Stake fee should be greater than the minimum stake fee"
     )
-    logging.console.success("✅ Passed [blue]test_stake_fee_api_async[/blue]")

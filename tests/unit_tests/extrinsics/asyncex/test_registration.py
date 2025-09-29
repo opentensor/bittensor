@@ -61,7 +61,6 @@ async def test_register_extrinsic_success(subtensor, fake_wallet, mocker):
         wait_for_finalization=True,
         period=None,
         raise_error=False,
-        calling_function="register_extrinsic",
     )
     mocked_is_hotkey_registered.assert_called_once_with(
         netuid=1, hotkey_ss58="hotkey_ss58"
@@ -129,7 +128,6 @@ async def test_register_extrinsic_success_with_cuda(subtensor, fake_wallet, mock
         wait_for_finalization=True,
         period=None,
         raise_error=False,
-        calling_function="register_extrinsic",
     )
     mocked_is_hotkey_registered.assert_called_once_with(
         netuid=1, hotkey_ss58="hotkey_ss58"
@@ -204,7 +202,7 @@ async def test_register_extrinsic_subnet_not_exists(subtensor, fake_wallet, mock
     )
     assert result == ExtrinsicResponse(
         False,
-        f"Subnet #{netuid} does not exist.",
+        f"Subnet {netuid} does not exist.",
         extrinsic_function="register_extrinsic",
     )
 
@@ -301,7 +299,6 @@ async def test_register_extrinsic_max_attempts_reached(subtensor, fake_wallet, m
         wait_for_finalization=True,
         period=None,
         raise_error=False,
-        calling_function="register_extrinsic",
     )
     assert result[0] is False
     assert result[1] == "No more attempts."
@@ -366,7 +363,6 @@ async def test_set_subnet_identity_extrinsic_is_success(subtensor, fake_wallet, 
         wait_for_finalization=True,
         period=None,
         raise_error=False,
-        calling_function="set_subnet_identity_extrinsic",
     )
 
     assert result == mocked_sign_and_send_extrinsic.return_value
@@ -435,7 +431,6 @@ async def test_set_subnet_identity_extrinsic_is_failed(subtensor, fake_wallet, m
         wait_for_finalization=True,
         period=None,
         raise_error=False,
-        calling_function="set_subnet_identity_extrinsic",
     )
 
     assert result == mocked_sign_and_send_extrinsic.return_value

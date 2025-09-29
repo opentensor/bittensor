@@ -52,8 +52,6 @@ async def test_neuron_certificate(subtensor, alice_wallet):
     assert alice_wallet.hotkey.ss58_address in all_certs_query.keys()
     assert all_certs_query[alice_wallet.hotkey.ss58_address] == encoded_certificate
 
-    logging.console.success("✅ Passed [blue]test_neuron_certificate[/blue]")
-
 
 @pytest.mark.asyncio
 async def test_neuron_certificate_async(async_subtensor, alice_wallet):
@@ -107,5 +105,3 @@ async def test_neuron_certificate_async(async_subtensor, alice_wallet):
     )
     assert alice_wallet.hotkey.ss58_address in all_certs_query.keys()
     assert all_certs_query[alice_wallet.hotkey.ss58_address] == encoded_certificate
-
-    logging.console.success("✅ Passed [blue]test_neuron_certificate[/blue]")

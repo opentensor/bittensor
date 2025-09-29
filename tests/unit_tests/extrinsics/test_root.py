@@ -21,12 +21,13 @@ def mock_wallet(mocker):
 
 
 @pytest.mark.parametrize(
-    "wait_for_inclusion, wait_for_finalization, hotkey_registered, registration_success, expected_result",
+    "wait_for_inclusion, wait_for_finalization, hotkey_registered, get_uid_for_hotkey_on_subnet, registration_success, expected_result",
     [
         (
             False,
             True,
             [True, None],
+            0,
             True,
             True,
         ),  # Already registered after attempt
@@ -34,14 +35,16 @@ def mock_wallet(mocker):
             False,
             True,
             [False, 1],
+            0,
             True,
             True,
         ),  # Registration succeeds with user confirmation
-        (False, True, [False, None], False, False),  # Registration fails
+        (False, True, [False, None], 0, False, False),  # Registration fails
         (
             False,
             True,
             [False, None],
+            None,
             True,
             False,
         ),  # Registration succeeds but neuron not found
@@ -59,14 +62,13 @@ def test_root_register_extrinsic(
     wait_for_inclusion,
     wait_for_finalization,
     hotkey_registered,
+    get_uid_for_hotkey_on_subnet,
     registration_success,
     expected_result,
     mocker,
 ):
-    # Arrange
-    mock_subtensor.is_hotkey_registered.return_value = hotkey_registered[0]
-
     # Preps
+    mock_subtensor.is_hotkey_registered.return_value = hotkey_registered[0]
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         mock_subtensor,
         "sign_and_send_extrinsic",
@@ -81,6 +83,11 @@ def test_root_register_extrinsic(
         mock_subtensor,
         "get_balance",
         return_value=Balance(1),
+    )
+    mocked_get_uid_for_hotkey_on_subnet = mocker.patch.object(
+        mock_subtensor,
+        "get_uid_for_hotkey_on_subnet",
+        return_value=get_uid_for_hotkey_on_subnet,
     )
 
     # Act

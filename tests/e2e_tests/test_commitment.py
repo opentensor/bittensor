@@ -1,17 +1,15 @@
 import pytest
 from async_substrate_interface.errors import SubstrateRequestException
 
-from bittensor import logging
-from tests.e2e_tests.utils.chain_interactions import (
-    async_sudo_set_admin_utils,
-    sudo_set_admin_utils,
+from bittensor.utils.btlogging import logging
+from bittensor.core.extrinsics.utils import sudo_call_extrinsic
+from bittensor.core.extrinsics.asyncex.utils import (
+    sudo_call_extrinsic as async_sudo_call_extrinsic,
 )
 from tests.e2e_tests.utils.e2e_test_utils import (
     wait_to_start_call,
     async_wait_to_start_call,
 )
-
-logging.set_trace()
 
 
 def test_commitment(subtensor, alice_wallet, dave_wallet):
@@ -25,9 +23,10 @@ def test_commitment(subtensor, alice_wallet, dave_wallet):
 
     with pytest.raises(SubstrateRequestException, match="AccountNotAllowedCommit"):
         subtensor.commitments.set_commitment(
-            alice_wallet,
+            wallet=alice_wallet,
             netuid=dave_subnet_netuid,
             data="Hello World!",
+            raise_error=True,
         )
 
     assert subtensor.subnets.burned_register(
@@ -53,8 +52,8 @@ def test_commitment(subtensor, alice_wallet, dave_wallet):
         data="Hello World!",
     )
 
-    status, error = sudo_set_admin_utils(
-        substrate=subtensor.substrate,
+    status, error = sudo_call_extrinsic(
+        subtensor=subtensor,
         wallet=alice_wallet,
         call_module="Commitments",
         call_function="set_max_space",
@@ -74,6 +73,7 @@ def test_commitment(subtensor, alice_wallet, dave_wallet):
             wallet=alice_wallet,
             netuid=dave_subnet_netuid,
             data="Hello World!1",
+            raise_error=True,
         )
 
     assert "Hello World!" == subtensor.commitments.get_commitment(
@@ -104,9 +104,10 @@ async def test_commitment_async(async_subtensor, alice_wallet, dave_wallet):
     async with async_subtensor as sub:
         with pytest.raises(SubstrateRequestException, match="AccountNotAllowedCommit"):
             await sub.commitments.set_commitment(
-                alice_wallet,
+                wallet=alice_wallet,
                 netuid=dave_subnet_netuid,
                 data="Hello World!",
+                raise_error=True,
             )
 
         assert (
@@ -134,8 +135,8 @@ async def test_commitment_async(async_subtensor, alice_wallet, dave_wallet):
             data="Hello World!",
         )
 
-        status, error = await async_sudo_set_admin_utils(
-            substrate=async_subtensor.substrate,
+        status, error = await async_sudo_call_extrinsic(
+            subtensor=async_subtensor,
             wallet=alice_wallet,
             call_module="Commitments",
             call_function="set_max_space",
@@ -155,6 +156,7 @@ async def test_commitment_async(async_subtensor, alice_wallet, dave_wallet):
                 alice_wallet,
                 netuid=dave_subnet_netuid,
                 data="Hello World!1",
+                raise_error=True,
             )
 
         assert "Hello World!" == await sub.commitments.get_commitment(

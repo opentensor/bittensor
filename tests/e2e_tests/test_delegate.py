@@ -37,8 +37,6 @@ def test_identity(subtensor, alice_wallet, bob_wallet):
     - Check Delegate's default identity
     - Update Delegate's identity
     """
-    logging.console.info("Testing [green]test_identity[/green].")
-
     identity = subtensor.neurons.query_identity(alice_wallet.coldkeypub.ss58_address)
     assert identity is None
 
@@ -89,7 +87,6 @@ def test_identity(subtensor, alice_wallet, bob_wallet):
         name="Alice",
         url="https://www.example.com",
     )
-    logging.console.success("Test [green]test_identity[/green] passed.")
 
 
 @pytest.mark.asyncio
@@ -99,8 +96,6 @@ async def test_identity_async(async_subtensor, alice_wallet, bob_wallet):
     - Check Delegate's default identity
     - Update Delegate's identity
     """
-    logging.console.info("Testing [green]test_identity_async[/green].")
-
     identity = await async_subtensor.neurons.query_identity(
         alice_wallet.coldkeypub.ss58_address
     )
@@ -159,7 +154,6 @@ async def test_identity_async(async_subtensor, alice_wallet, bob_wallet):
         name="Alice",
         url="https://www.example.com",
     )
-    logging.console.success("Test [green]test_identity_async[/green] passed.")
 
 
 def test_change_take(subtensor, alice_wallet, bob_wallet):
@@ -169,8 +163,6 @@ def test_change_take(subtensor, alice_wallet, bob_wallet):
     - Increase and decreased Delegate's take
     - Try corner cases (increase/decrease beyond allowed min/max)
     """
-
-    logging.console.info("Testing [green]test_change_take[/green].")
     with pytest.raises(HotKeyAccountNotExists):
         subtensor.delegates.set_delegate_take(
             wallet=alice_wallet,
@@ -244,8 +236,6 @@ def test_change_take(subtensor, alice_wallet, bob_wallet):
     take = subtensor.delegates.get_delegate_take(alice_wallet.hotkey.ss58_address)
     assert take == 0.14999618524452582
 
-    logging.console.success("Test [green]test_change_take[/green] passed.")
-
 
 @pytest.mark.asyncio
 async def test_change_take_async(async_subtensor, alice_wallet, bob_wallet):
@@ -255,8 +245,6 @@ async def test_change_take_async(async_subtensor, alice_wallet, bob_wallet):
     - Increase and decreased Delegate's take
     - Try corner cases (increase/decrease beyond allowed min/max)
     """
-
-    logging.console.info("Testing [green]test_change_take_async[/green].")
     with pytest.raises(HotKeyAccountNotExists):
         await async_subtensor.delegates.set_delegate_take(
             alice_wallet,
@@ -344,8 +332,6 @@ async def test_change_take_async(async_subtensor, alice_wallet, bob_wallet):
     )
     assert take == 0.14999618524452582
 
-    logging.console.success("Test [green]test_change_take_async[/green] passed.")
-
 
 def test_delegates(subtensor, alice_wallet, bob_wallet):
     """
@@ -355,8 +341,6 @@ def test_delegates(subtensor, alice_wallet, bob_wallet):
     - Check if Hotkey is a Delegate
     - Nominator Staking
     """
-    logging.console.info("Testing [green]test_delegates[/green].")
-
     assert subtensor.delegates.get_delegates() == []
     assert subtensor.delegates.get_delegated(alice_wallet.coldkey.ss58_address) == []
     assert (
@@ -484,7 +468,6 @@ def test_delegates(subtensor, alice_wallet, bob_wallet):
             stake=get_dynamic_balance(bob_delegated[0].stake.rao, alice_subnet_netuid),
         ),
     ]
-    logging.console.success("Test [green]test_delegates[/green] passed.")
 
 
 @pytest.mark.asyncio
@@ -496,8 +479,6 @@ async def test_delegates_async(async_subtensor, alice_wallet, bob_wallet):
     - Check if Hotkey is a Delegate
     - Nominator Staking
     """
-    logging.console.info("Testing [green]test_delegates_async[/green].")
-
     assert await async_subtensor.delegates.get_delegates() == []
     assert (
         await async_subtensor.delegates.get_delegated(alice_wallet.coldkey.ss58_address)
@@ -657,7 +638,6 @@ async def test_delegates_async(async_subtensor, alice_wallet, bob_wallet):
             stake=get_dynamic_balance(bob_delegated[0].stake.rao, alice_subnet_netuid),
         ),
     ]
-    logging.console.success("Test [green]test_delegates_async[/green] passed.")
 
 
 def test_nominator_min_required_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
@@ -668,8 +648,6 @@ def test_nominator_min_required_stake(subtensor, alice_wallet, bob_wallet, dave_
     - Update NominatorMinRequiredStake
     - Check Nominator is removed
     """
-    logging.console.info("Testing [green]test_delegates_async[/green].")
-
     alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
 
     # Register a subnet, netuid 2
@@ -728,10 +706,6 @@ def test_nominator_min_required_stake(subtensor, alice_wallet, bob_wallet, dave_
     )
     assert stake == Balance(0)
 
-    logging.console.success(
-        "Test [green]test_nominator_min_required_stake[/green] passed."
-    )
-
 
 @pytest.mark.asyncio
 async def test_nominator_min_required_stake_async(
@@ -744,10 +718,6 @@ async def test_nominator_min_required_stake_async(
     - Update NominatorMinRequiredStake
     - Check Nominator is removed
     """
-    logging.console.info(
-        "Testing [green]test_nominator_min_required_stake_async[/green]."
-    )
-
     alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
 
     # Register a subnet, netuid 2
@@ -816,10 +786,6 @@ async def test_nominator_min_required_stake_async(
     )
     assert stake == Balance(0)
 
-    logging.console.success(
-        "Test [green]test_nominator_min_required_stake_async[/green] passed."
-    )
-
 
 def test_get_vote_data(subtensor, alice_wallet):
     """
@@ -829,8 +795,6 @@ def test_get_vote_data(subtensor, alice_wallet):
     - Votes
     - Checks Proposal is updated
     """
-    logging.console.info("Testing [green]test_get_vote_data[/green].")
-
     assert subtensor.extrinsics.root_register(alice_wallet).success, (
         "Can not register Alice in root SN."
     )
@@ -924,7 +888,6 @@ def test_get_vote_data(subtensor, alice_wallet):
         nays=[],
         threshold=3,
     )
-    logging.console.success("Test [green]test_get_vote_data[/green] passed.")
 
 
 @pytest.mark.asyncio
@@ -936,8 +899,6 @@ async def test_get_vote_data_async(async_subtensor, alice_wallet):
     - Votes
     - Checks Proposal is updated
     """
-    logging.console.info("Testing [green]test_get_vote_data_async[/green].")
-
     assert (await async_subtensor.extrinsics.root_register(alice_wallet)).success, (
         "Can not register Alice in root SN."
     )
@@ -1032,4 +993,3 @@ async def test_get_vote_data_async(async_subtensor, alice_wallet):
         nays=[],
         threshold=3,
     )
-    logging.console.success("Test [green]test_get_vote_data_async[/green] passed.")
