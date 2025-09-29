@@ -21,7 +21,7 @@ on:
 jobs:
   # Looking for e2e tests
   find-tests:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, type-ccx33]
     if: ${{ github.event.pull_request.draft == false }}
     outputs:
       test-files: ${{ steps.get-tests.outputs.test-files }}
