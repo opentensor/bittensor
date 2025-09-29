@@ -5303,7 +5303,7 @@ WEBSOCKET_RESPONSES = {
         },
         "system_chain": {"[]": {"jsonrpc": "2.0", "result": "Bittensor"}},
     },
-    "get_subnets": {
+    "get_all_subnets_netuid": {
         "chain_getHead": {
             "[]": {
                 "jsonrpc": "2.0",

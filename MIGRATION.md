@@ -25,8 +25,8 @@
 
 ## Subtensor
 1. In the synchronous Subtensor class, the `get_owned_hotkeys` method includes a `reuse_block` parameter that is inconsistent with other methods. Either remove this parameter from `get_owned_hotkeys`, or add it to all other methods that directly call self.substrate.* to maintain a consistent interface.
-2. In all methods where we `get_stake_operations_fee` is called, remove unused arguments. Consider combining all methods using `get_stake_operations_fee` into one common one. 
-3. Delete deprecated `get_current_weight_commit_info` and `get_current_weight_commit_info_v2`. Rename `get_timelocked_weight_commits` to get_current_weight_commit_info.
+2. ✅ In all methods where we `get_stake_operations_fee` is called, remove unused arguments. Consider combining all methods using `get_stake_operations_fee` into one common one. 
+3. ✅ Delete deprecated `get_current_weight_commit_info` and `get_current_weight_commit_info_v2`. ~~Rename `get_timelocked_weight_commits` to `get_current_weight_commit_info`.~~
 4. ✅ Remove references like `get_stake_info_for_coldkey = get_stake_for_coldkey`.
 5. Reconsider some methods naming across the entire subtensor module.
 6. ~~Add `hotkey_ss58` parameter to `get_liquidity_list` method. One wallet can have many HKs. Currently, the mentioned method uses default HK only.~~ wrong idea
@@ -235,6 +235,7 @@ Removing deprecated extrinsics and replacing them with consistent ones:
 - method `query_map` has updated parameters order.
 - method `add_stake_multiple` has updated parameters order.
 - method `get_stake_for_coldkey` removed, bc this is the same as `get_stake_info_for_coldkey`
+- method `get_subnets` renamed to `get_all_subnets_netuid` (more obvious)
 
 Added sub-package `bittensor.core.addons` to host optional extensions and experimental logic enhancing the core functionality.
   - `bittensor.core.subtensor_api` moved to `bittensor.core.addons.subtensor_api`
