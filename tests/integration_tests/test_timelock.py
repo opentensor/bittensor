@@ -3,7 +3,7 @@ import time
 
 import pytest
 
-from bittensor.core import timelock
+from bittensor.core.addons import timelock
 
 
 def test_encrypt_returns_valid_tuple():
