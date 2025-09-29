@@ -13,7 +13,7 @@
 3. ✅ Set `wait_for_inclusion` and `wait_for_finalization` to `True` by default in extrinsics and their related calls. Then we will guarantee the correct/expected extrinsic call response is consistent with the chain response. If the user changes those values, then it is the user's responsibility.
 4. ✅ Make the internal logic of extrinsics the same. There are extrinsics that are slightly different in implementation.
 
-5. Since SDK is not a responsible tool, try to remove all calculations inside extrinsics that do not affect the result, but are only used in logging. Actually, this should be applied not to extrinsics only but for all codebase.
+5. ✅ ~~Since SDK is not a responsible tool, try to remove all calculations inside extrinsics that do not affect the result, but are only used in logging. Actually, this should be applied not to extrinsics only but for all codebase.~~ Just improved regarding usage.
 
 6. ✅ Remove `unstake_all` parameter from `unstake_extrinsic` since we have `unstake_all_extrinsic`which is calles another subtensor function.
 
@@ -21,7 +21,7 @@
 
 8. ✅ Remove `_do*` extrinsic calls and combine them with extrinsic logic.
 
-9. `subtensor.get_transfer_fee` calls extrinsic inside the subtensor module. Actually the method could be updated by using `bittensor.core.extrinsics.utils.get_extrinsic_fee`.
+9. ✅ ~~`subtensor.get_transfer_fee` calls extrinsic inside the subtensor module. Actually the method could be updated by using `bittensor.core.extrinsics.utils.get_extrinsic_fee`.~~ `get_transfer_fee` isn't `get_extrinsic_fee`
 
 ## Subtensor
 1. In the synchronous Subtensor class, the `get_owned_hotkeys` method includes a `reuse_block` parameter that is inconsistent with other methods. Either remove this parameter from `get_owned_hotkeys`, or add it to all other methods that directly call self.substrate.* to maintain a consistent interface.
@@ -41,7 +41,7 @@
 This may seem like a harsh decision at first, but ultimately we will push the community to use Balance and there will be fewer errors in their calculations. Confusion with TAO and Alpha in calculations and display/printing/logging will be eliminated.
 
 ## Common things
-1. Reduce the amount of logging.info or transfer part of logging.info to logging.debug
+1. Reduce the amount of logging.info or transfer part of logging.info to logging.debug `(in progress)`
 
 2. To be consistent across all SDK regarding local environment variables name:
 remove `BT_CHAIN_ENDPOINT` (settings.py :line 124) and use `BT_SUBTENSOR_CHAIN_ENDPOINT` instead of that.
@@ -53,7 +53,7 @@ rename this variable in documentation.
 
 5. Rename `non-/fast-blocks` to `non-/fast-runtime` in related places to be consistent with subtensor repo. Related with testing, subtensor scripts, documentation.
 
-6. To be consistent throughout the SDK:
+6. To be consistent throughout the SDK `(in progress)`:
 `hotkey`, `coldkey`, `hotkeypub`, and `coldkeypub` are keypairs
 `hotkey_ss58`, `coldkey_ss58`, `hotkeypub_ss58`, and `coldkeypub_ss58` are SS58 addresses of keypair.
 
@@ -61,9 +61,9 @@ rename this variable in documentation.
 
 8. ✅ Remove all type annotations for parameters in docstrings.
 
-9. Remove all logic related to CRv3 as it will be removed from the chain next week.
+9. ✅ Remove all logic related to CRv3 as it will be removed from the chain next week.
    - [x] CRv3 extrinsics
-   - [ ] CRv3 logic related subtensor's calls
+   - [x] CRv3 logic related subtensor's calls
 
 10. Revise `bittensor/utils/easy_imports.py` module to remove deprecated backwards compatibility objects. Use this module as a functionality for exporting existing objects to the package root to keep __init__.py minimal and simple.
 
@@ -77,10 +77,10 @@ rename this variable in documentation.
 ## New features
 1. Add `bittensor.utils.hex_to_ss58` function. SDK still doesn't have it. (Probably inner import `from scalecodec import ss58_encode, ss58_decode`) 
 2. Implement Crowdloan logic. Issue: https://github.com/opentensor/bittensor/issues/3017
-3. Implement Sub-subnets logic. Subtensor PR https://github.com/opentensor/subtensor/pull/1984
+3. ✅ Implement Sub-subnets logic. Subtensor PR https://github.com/opentensor/subtensor/pull/1984
 
 ## Testing
-1. When running tests via Docker, ensure no lingering processes occupy required ports before launch.
+1. ✅ When running tests via Docker, ensure no lingering processes occupy required ports before launch.
 
 2. Improve failed test reporting from GH Actions to the Docker channel (e.g., clearer messages, formatting).
 
@@ -112,13 +112,13 @@ It must include:
 
 # Migration guide
 
-- [x] `._do_commit_reveal_v3` logic is included in the main code `.commit_reveal_v3_extrinsic`
-- [x] `revecommit_reveal_version` parameter with default value `4` added to `revecommit_reveal_version`
+- [x] `._do_commit_reveal_v3` logic is included in the main code `.commit_timelocked_weights_extrinsic`
+  - [x] `commit_reveal_version` parameter with default value `4` added to `commit_timelocked_weights_extrinsic`
 - [x] `._do_commit_weights` logic is included in the main code `.commit_weights_extrinsic`
 - [x] `._do_reveal_weights` logic is included in the main code `.reveal_weights_extrinsic`
 - [x] `._do_set_weights` logic is included in the main code `.set_weights_extrinsic`
 - [x] `set_weights_extrinsic` moved to `bittensor/core/extrinsics/commit_weights.py`
-- [x] `bittensor/core/extrinsics/commit_weights.py` module renamed to `bittensor/core/extrinsics/weights.py` (consistent naming with async module)
+  - [x] `bittensor/core/extrinsics/commit_weights.py` module renamed to `bittensor/core/extrinsics/weights.py` (consistent naming with async module)
 - [x] `_do_burned_register` logic is included in the main code `.burned_register_extrinsic`
 - [x] `_do_pow_register` logic is included in the main code `.register_extrinsic`
 - [x] `._do_set_root_weights` logic is included in the main code `.set_root_weights_extrinsic`
@@ -199,25 +199,38 @@ Additional changes in extrinsics:
 
 Removing deprecated extrinsics and replacing them with consistent ones:
 - `commit_reveal_extrinsic` (without mechanisms support) + related tests
-- `bittensor.core.extrinsics.mechanism.commit_timelocked_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.weights.commit_timelocked_weights_extrinsic`
-- `bittensor.core.extrinsics.asyncex.mechanism.commit_timelocked_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.asyncex.weights.commit_timelocked_weights_extrinsic`
+    - `bittensor.core.extrinsics.mechanism.commit_timelocked_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.weights.commit_timelocked_weights_extrinsic`
+    - `bittensor.core.extrinsics.asyncex.mechanism.commit_timelocked_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.asyncex.weights.commit_timelocked_weights_extrinsic`
 
 - `commit_weights_extrinsic`(without mechanisms support) + related tests
-- `bittensor.core.extrinsics.mechanism.commit_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.weights.commit_weights_extrinsic`
-- `bittensor.core.extrinsics.asyncex.mechanism.commit_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.asyncex.weights.commit_weights_extrinsic`
+    - `bittensor.core.extrinsics.mechanism.commit_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.weights.commit_weights_extrinsic`
+    - `bittensor.core.extrinsics.asyncex.mechanism.commit_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.asyncex.weights.commit_weights_extrinsic`
 
 - `reveal_weights_extrinsic`(without mechanisms support) + related tests
-- `bittensor.core.extrinsics.mechanism.reveal_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.weights.reveal_weights_extrinsic`
-- `bittensor.core.extrinsics.asyncex.mechanism.reveal_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.asyncex.weights.reveal_weights_extrinsic`
+    - `bittensor.core.extrinsics.mechanism.reveal_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.weights.reveal_weights_extrinsic`
+      - `bittensor.core.extrinsics.asyncex.mechanism.reveal_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.asyncex.weights.reveal_weights_extrinsic`
 
 - `set_weights_extrinsic`(without mechanisms support) + related tests
-- `bittensor.core.extrinsics.mechanism.reveal_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.weights.reveal_weights_extrinsic`
-- `bittensor.core.extrinsics.asyncex.mechanism.reveal_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.asyncex.weights.reveal_weights_extrinsic`
+    - `bittensor.core.extrinsics.mechanism.reveal_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.weights.reveal_weights_extrinsic`
+      - `bittensor.core.extrinsics.asyncex.mechanism.reveal_mechanism_weights_extrinsic` moved and renamed to `bittensor.core.extrinsics.asyncex.weights.reveal_weights_extrinsic`
 
+- `decrease_take_extrinsic` and `increase_take_extrinsic` have been merged into a single set_take_extrinsic. The API now has a new `action: Literal["increase_take", "decrease_take"]` parameter (DRY rule).
+
+### Extrinsics has extra data in response's `data` field:
+- `add_stake_extrinsic`
+- `add_stake_multiple_extrinsic`
+- `burned_register_extrinsic`
+- `register_extrinsic`
+- `transfer_extrinsic`
+- `unstake_extrinsic`
+- `unstake_multiple_extrinsic`
 
 ### Subtensor changes
-- method `all_subnets` has renamed parameter from `block_number` to `block`.
+- method `all_subnets` has renamed parameter from `block_number` to `block` (consistency in the codebase).
+- The `hotkey` parameter, which meant ss58 key address, was renamed to `hotkey_ss58` in all methods (consistency in the codebase).
+- The `coldkey` parameter, which meant ss58 key address, was renamed to `coldkey_ss58` in all methods (consistency in the codebase).
 - method `query_subtensor` has updated parameters order.
 - method `query_module` has updated parameters order.
 - method `query_map_subtensor` has updated parameters order.
 - method `query_map` has updated parameters order.
+- method `add_stake_multiple` has updated parameters order.
