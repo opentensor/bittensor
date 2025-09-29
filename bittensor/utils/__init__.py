@@ -510,5 +510,14 @@ def get_transfer_fn_params(
 
 
 def get_function_name() -> str:
-    """Returns the name of the calling function."""
+    """Return the current function's name."""
     return inspect.currentframe().f_back.f_code.co_name
+
+
+def get_caller_name(depth: int = 2) -> str:
+    """Return the name of the caller function."""
+    frame = inspect.currentframe()
+    for _ in range(depth):
+        if frame is not None:
+            frame = frame.f_back
+    return frame.f_code.co_name if frame else "unknown"
