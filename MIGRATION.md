@@ -28,7 +28,7 @@
 2. ✅ In all methods where we `get_stake_operations_fee` is called, remove unused arguments. Consider combining all methods using `get_stake_operations_fee` into one common one. 
 3. ✅ Delete deprecated `get_current_weight_commit_info` and `get_current_weight_commit_info_v2`. ~~Rename `get_timelocked_weight_commits` to `get_current_weight_commit_info`.~~
 4. ✅ Remove references like `get_stake_info_for_coldkey = get_stake_for_coldkey`.
-5. Reconsider some methods naming across the entire subtensor module.
+5. ✅ Reconsider some methods naming across the entire subtensor module.
 6. ~~Add `hotkey_ss58` parameter to `get_liquidity_list` method. One wallet can have many HKs. Currently, the mentioned method uses default HK only.~~ wrong idea
 
 ## Metagraph
@@ -227,7 +227,7 @@ Removing deprecated extrinsics and replacing them with consistent ones:
 
 ### Subtensor changes
 - method `all_subnets` has renamed parameter from `block_number` to `block` (consistency in the codebase).
-- The `hotkey` parameter, which meant ss58 key address, was renamed to `hotkey_ss58` in all methods (consistency in the codebase).
+- The `hotkey` parameter, which meant ss58 key address, was renamed to `hotkey_ss58` in all methods and related extrinsics (consistency in the codebase).
 - The `coldkey` parameter, which meant ss58 key address, was renamed to `coldkey_ss58` in all methods (consistency in the codebase).
 - method `query_subtensor` has updated parameters order.
 - method `query_module` has updated parameters order.
