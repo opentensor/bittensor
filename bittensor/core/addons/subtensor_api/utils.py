@@ -11,7 +11,9 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.add_stake_multiple = subtensor.inner_subtensor.add_stake_multiple
     subtensor.all_subnets = subtensor.inner_subtensor.all_subnets
     subtensor.blocks_since_last_step = subtensor.inner_subtensor.blocks_since_last_step
-    subtensor.blocks_since_last_update = subtensor.inner_subtensor.blocks_since_last_update
+    subtensor.blocks_since_last_update = (
+        subtensor.inner_subtensor.blocks_since_last_update
+    )
     subtensor.bonds = subtensor.inner_subtensor.bonds
     subtensor.burned_register = subtensor.inner_subtensor.burned_register
     subtensor.chain_endpoint = subtensor.inner_subtensor.chain_endpoint
@@ -24,9 +26,13 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.filter_netuids_by_registered_hotkeys = (
         subtensor.inner_subtensor.filter_netuids_by_registered_hotkeys
     )
-    subtensor.get_admin_freeze_window = subtensor.inner_subtensor.get_admin_freeze_window
+    subtensor.get_admin_freeze_window = (
+        subtensor.inner_subtensor.get_admin_freeze_window
+    )
     subtensor.get_all_commitments = subtensor.inner_subtensor.get_all_commitments
-    subtensor.get_all_metagraphs_info = subtensor.inner_subtensor.get_all_metagraphs_info
+    subtensor.get_all_metagraphs_info = (
+        subtensor.inner_subtensor.get_all_metagraphs_info
+    )
     subtensor.get_all_neuron_certificates = (
         subtensor.inner_subtensor.get_all_neuron_certificates
     )
@@ -43,11 +49,15 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.get_commitment = subtensor.inner_subtensor.get_commitment
     subtensor.get_current_block = subtensor.inner_subtensor.get_current_block
     subtensor.get_delegate_by_hotkey = subtensor.inner_subtensor.get_delegate_by_hotkey
-    subtensor.get_delegate_identities = subtensor.inner_subtensor.get_delegate_identities
+    subtensor.get_delegate_identities = (
+        subtensor.inner_subtensor.get_delegate_identities
+    )
     subtensor.get_delegate_take = subtensor.inner_subtensor.get_delegate_take
     subtensor.get_delegated = subtensor.inner_subtensor.get_delegated
     subtensor.get_delegates = subtensor.inner_subtensor.get_delegates
-    subtensor.get_existential_deposit = subtensor.inner_subtensor.get_existential_deposit
+    subtensor.get_existential_deposit = (
+        subtensor.inner_subtensor.get_existential_deposit
+    )
     subtensor.get_hotkey_owner = subtensor.inner_subtensor.get_hotkey_owner
     subtensor.get_hotkey_stake = subtensor.inner_subtensor.get_hotkey_stake
     subtensor.get_hyperparameter = subtensor.inner_subtensor.get_hyperparameter
@@ -73,7 +83,9 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     )
     subtensor.get_owned_hotkeys = subtensor.inner_subtensor.get_owned_hotkeys
     subtensor.get_parents = subtensor.inner_subtensor.get_parents
-    subtensor.get_revealed_commitment = subtensor.inner_subtensor.get_revealed_commitment
+    subtensor.get_revealed_commitment = (
+        subtensor.inner_subtensor.get_revealed_commitment
+    )
     subtensor.get_revealed_commitment_by_hotkey = (
         subtensor.inner_subtensor.get_revealed_commitment_by_hotkey
     )
@@ -87,14 +99,18 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
         subtensor.inner_subtensor.get_stake_info_for_coldkey
     )
     subtensor.get_stake_movement_fee = subtensor.inner_subtensor.get_stake_movement_fee
-    subtensor.get_stake_operations_fee = subtensor.inner_subtensor.get_stake_operations_fee
+    subtensor.get_stake_operations_fee = (
+        subtensor.inner_subtensor.get_stake_operations_fee
+    )
     subtensor.get_stake_weight = subtensor.inner_subtensor.get_stake_weight
     subtensor.get_subnet_burn_cost = subtensor.inner_subtensor.get_subnet_burn_cost
     subtensor.get_subnet_hyperparameters = (
         subtensor.inner_subtensor.get_subnet_hyperparameters
     )
     subtensor.get_subnet_info = subtensor.inner_subtensor.get_subnet_info
-    subtensor.get_subnet_owner_hotkey = subtensor.inner_subtensor.get_subnet_owner_hotkey
+    subtensor.get_subnet_owner_hotkey = (
+        subtensor.inner_subtensor.get_subnet_owner_hotkey
+    )
     subtensor.get_subnet_price = subtensor.inner_subtensor.get_subnet_price
     subtensor.get_subnet_prices = subtensor.inner_subtensor.get_subnet_prices
     subtensor.get_subnet_reveal_period_epochs = (
@@ -103,7 +119,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.get_subnet_validator_permits = (
         subtensor.inner_subtensor.get_subnet_validator_permits
     )
-    subtensor.get_subnets = subtensor.inner_subtensor.get_subnets
+    subtensor.get_all_subnets_netuid = subtensor.inner_subtensor.get_all_subnets_netuid
     subtensor.get_timelocked_weight_commits = (
         subtensor.inner_subtensor.get_timelocked_weight_commits
     )
@@ -119,11 +135,15 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.is_fast_blocks = subtensor.inner_subtensor.is_fast_blocks
     subtensor.is_hotkey_delegate = subtensor.inner_subtensor.is_hotkey_delegate
     subtensor.is_hotkey_registered = subtensor.inner_subtensor.is_hotkey_registered
-    subtensor.is_hotkey_registered_any = subtensor.inner_subtensor.is_hotkey_registered_any
+    subtensor.is_hotkey_registered_any = (
+        subtensor.inner_subtensor.is_hotkey_registered_any
+    )
     subtensor.is_hotkey_registered_on_subnet = (
         subtensor.inner_subtensor.is_hotkey_registered_on_subnet
     )
-    subtensor.is_in_admin_freeze_window = subtensor.inner_subtensor.is_in_admin_freeze_window
+    subtensor.is_in_admin_freeze_window = (
+        subtensor.inner_subtensor.is_in_admin_freeze_window
+    )
     subtensor.is_subnet_active = subtensor.inner_subtensor.is_subnet_active
     subtensor.last_drand_round = subtensor.inner_subtensor.last_drand_round
     subtensor.log_verbose = subtensor.inner_subtensor.log_verbose
@@ -161,7 +181,9 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.set_subnet_identity = subtensor.inner_subtensor.set_subnet_identity
     subtensor.set_weights = subtensor.inner_subtensor.set_weights
     subtensor.setup_config = subtensor.inner_subtensor.setup_config
-    subtensor.sign_and_send_extrinsic = subtensor.inner_subtensor.sign_and_send_extrinsic
+    subtensor.sign_and_send_extrinsic = (
+        subtensor.inner_subtensor.sign_and_send_extrinsic
+    )
     subtensor.start_call = subtensor.inner_subtensor.start_call
     subtensor.state_call = subtensor.inner_subtensor.state_call
     subtensor.subnet = subtensor.inner_subtensor.subnet
