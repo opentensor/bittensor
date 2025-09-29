@@ -53,7 +53,7 @@ rename this variable in documentation.
 
 5. Rename `non-/fast-blocks` to `non-/fast-runtime` in related places to be consistent with subtensor repo. Related with testing, subtensor scripts, documentation.
 
-6. To be consistent throughout the SDK `(in progress)`:
+6. ✅ To be consistent throughout the SDK `(in progress)`:
 `hotkey`, `coldkey`, `hotkeypub`, and `coldkeypub` are keypairs
 `hotkey_ss58`, `coldkey_ss58`, `hotkeypub_ss58`, and `coldkeypub_ss58` are SS58 addresses of keypair.
 
@@ -236,6 +236,7 @@ Removing deprecated extrinsics and replacing them with consistent ones:
 - method `add_stake_multiple` has updated parameters order.
 - method `get_stake_for_coldkey` removed, bc this is the same as `get_stake_info_for_coldkey`
 - method `get_subnets` renamed to `get_all_subnets_netuid` (more obvious)
+- method `get_owned_hotkeys` get rid `reuse_block` parameter to be consistent with other sync methods.
 
 Added sub-package `bittensor.core.addons` to host optional extensions and experimental logic enhancing the core functionality.
   - `bittensor.core.subtensor_api` moved to `bittensor.core.addons.subtensor_api`
