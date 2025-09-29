@@ -20,7 +20,7 @@ from tests.e2e_tests.utils.e2e_test_utils import (
 """
 Verifies:
 
-* get_subnets()
+* get_all_subnets_netuid()
 * get_total_subnets()
 * subnet_exists()
 * get_netuids_for_hotkey()
@@ -59,7 +59,7 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
     existential_deposit = Balance.from_tao(0.000_000_500)
 
     # Subnets 0 and 1 are bootstrapped from the start
-    assert subtensor.subnets.get_subnets() == [0, 1]
+    assert subtensor.subnets.get_all_subnets_netuid() == [0, 1]
     assert subtensor.subnets.get_total_subnets() == 2
 
     # Assert correct balance is fetched for Alice
@@ -93,7 +93,7 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
     ), "Balance is the same even after registering a subnet."
 
     # Subnet 2 is added after registration
-    assert subtensor.subnets.get_subnets() == [0, 1, 2]
+    assert subtensor.subnets.get_all_subnets_netuid() == [0, 1, 2]
     assert subtensor.subnets.get_total_subnets() == 3
 
     # Verify subnet 2 created successfully
@@ -245,7 +245,7 @@ async def test_subtensor_extrinsics_async(
     existential_deposit = Balance.from_tao(0.000_000_500)
 
     # Subnets 0 and 1 are bootstrapped from the start
-    assert await async_subtensor.subnets.get_subnets() == [0, 1]
+    assert await async_subtensor.subnets.get_all_subnets_netuid() == [0, 1]
     assert await async_subtensor.subnets.get_total_subnets() == 2
 
     # Assert correct balance is fetched for Alice
@@ -281,7 +281,7 @@ async def test_subtensor_extrinsics_async(
     ), "Balance is the same even after registering a subnet."
 
     # Subnet 2 is added after registration
-    assert await async_subtensor.subnets.get_subnets() == [0, 1, 2]
+    assert await async_subtensor.subnets.get_all_subnets_netuid() == [0, 1, 2]
     assert await async_subtensor.subnets.get_total_subnets() == 3
 
     # Verify subnet 2 created successfully
