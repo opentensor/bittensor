@@ -1,3 +1,4 @@
+import asyncio
 import os
 import re
 import shlex
@@ -7,6 +8,7 @@ import subprocess
 import sys
 import threading
 import time
+from typing import Optional
 
 import pytest
 import pytest_asyncio
@@ -26,8 +28,11 @@ LOCALNET_IMAGE_NAME = (
 CONTAINER_NAME_PREFIX = "test_local_chain_"
 
 
-def wait_for_node_start(process, timestamp=None):
-    """Waits for node to start in the docker."""
+def wait_for_node_start(process, timestamp=None, timeout: Optional[int] = 120):
+    """Waits for node to start in the docker.
+
+    The `timeout` is set to 2 mins bc sometimes in GH the chain takes time after finalizing the first block.
+    """
     while True:
         line = process.stdout.readline()
         if not line:
@@ -35,8 +40,7 @@ def wait_for_node_start(process, timestamp=None):
 
         timestamp = timestamp or int(time.time())
         print(line.strip())
-        # 10 min as timeout
-        if int(time.time()) - timestamp > 20 * 30:
+        if int(time.time()) - timestamp > timeout:
             print("Subtensor not started in time")
             raise TimeoutError
 
@@ -111,12 +115,12 @@ def legacy_runner(params):
         text=True,
     ) as process:
         try:
-            wait_for_node_start(process)
+            wait_for_node_start(process, timeout=300)
         except TimeoutError:
             raise
         else:
-            with SubstrateInterface(url="ws://127.0.0.1:9944") as substrate:
-                yield substrate
+            yield
+
         finally:
             # Terminate the process group (includes all child processes)
             os.killpg(os.getpgid(process.pid), signal.SIGTERM)
@@ -131,6 +135,14 @@ def legacy_runner(params):
 
 def docker_runner(params):
     """Starts a Docker container before tests and gracefully terminates it after."""
+
+    def kill_local_nodes():
+        """Closes subtensor local running nodes."""
+        try:
+            subprocess.run(["pkill", "-9", "-f", "node-subtensor"], check=False)
+            print("Killed all local 'node-subtensor' processes.")
+        except Exception as e:
+            print(f"Warning: failed to kill local node-subtensor: {e}")
 
     def is_docker_running():
         """Check if Docker is running and optionally skip pulling the image."""
@@ -155,7 +167,7 @@ def docker_runner(params):
     def try_start_docker():
         """Run docker based on OS."""
         try:
-            subprocess.run(["open", "-a", "Docker"], check=True)  # macOS
+            subprocess.run(["open", "-g", "-a", "Docker"], check=True)  # macOS
         except (FileNotFoundError, subprocess.CalledProcessError):
             try:
                 subprocess.run(["systemctl", "start", "docker"], check=True)  # Linux
@@ -222,6 +234,8 @@ def docker_runner(params):
 
     print("Entire run command: ", cmds)
 
+    kill_local_nodes()
+
     try_start_docker()
 
     stop_existing_test_containers()
@@ -248,8 +262,7 @@ def docker_runner(params):
             if not result.stdout.strip():
                 raise RuntimeError("Docker container failed to start.")
 
-            with SubstrateInterface(url="ws://127.0.0.1:9944") as substrate:
-                yield substrate
+            yield
 
         finally:
             try:
@@ -268,15 +281,6 @@ def templates():
 @pytest.fixture
 def subtensor(local_chain):
     return SubtensorApi(network="ws://localhost:9944", legacy_methods=False)
-
-
-# @pytest.fixture
-# def async_subtensor(local_chain):
-#     a_sub = SubtensorApi(
-#         network="ws://localhost:9944", legacy_methods=False, async_subtensor=True
-#     )
-#     a_sub.initialize()
-#     return a_sub
 
 
 @pytest_asyncio.fixture
@@ -315,3 +319,11 @@ def dave_wallet():
 def eve_wallet():
     keypair, wallet = setup_wallet("//Eve")
     return wallet
+
+
+@pytest.fixture(autouse=True)
+def log_test_start_and_end(request):
+    test_name = request.node.nodeid
+    logging.console.info(f"🏁[green]Testing[/green] [yellow]{test_name}[/yellow]")
+    yield
+    logging.console.success(f"✅ [green]Passed[/green] [yellow]{test_name}[/yellow]")

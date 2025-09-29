@@ -38,8 +38,6 @@ def test_liquid_alpha(subtensor, alice_wallet):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    logging.console.info("Testing test_liquid_alpha_enabled")
-
     # turn off admin freeze window limit for testing
     assert (
         sudo_set_admin_utils(
@@ -244,8 +242,6 @@ async def test_liquid_alpha_async(async_subtensor, alice_wallet):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    logging.console.info("Testing [blue]test_liquid_alpha_async[/blue]")
-
     # turn off admin freeze window limit for testing
     assert (
         await async_sudo_set_admin_utils(

@@ -25,8 +25,6 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
         9. Remove all stake from Alice and check `get_liquidity_list` return new liquidity positions with 0 fees_tao.
         10. Remove all liquidity positions and check `get_liquidity_list` return empty list.
     """
-    logging.console.info("Testing [blue]test_liquidity[/blue]")
-
     alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
 
     # Make sure `get_liquidity_list` return None if SN doesn't exist
@@ -258,8 +256,8 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
     # Bob remove all stake from alice
     assert subtensor.extrinsics.unstake_all(
         wallet=bob_wallet,
-        hotkey=alice_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
         rate_tolerance=0.9,  # keep high rate tolerance to avoid flaky behavior
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -314,8 +312,6 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
         9. Remove all stake from Alice and check `get_liquidity_list` return new liquidity positions with 0 fees_tao.
         10. Remove all liquidity positions and check `get_liquidity_list` return empty list.
     """
-    logging.console.info("Testing [blue]test_liquidity_async[/blue]")
-
     alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
 
     # Make sure `get_liquidity_list` return None if SN doesn't exist
@@ -558,8 +554,8 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
     assert (
         await async_subtensor.extrinsics.unstake_all(
             wallet=bob_wallet,
-            hotkey=alice_wallet.hotkey.ss58_address,
             netuid=alice_subnet_netuid,
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
             rate_tolerance=0.9,  # keep high rate tolerance to avoid flaky behavior
             wait_for_inclusion=True,
             wait_for_finalization=True,
