@@ -7,7 +7,7 @@ from queue import Empty
 from typing import Callable, Union, Optional, TYPE_CHECKING
 
 from bittensor.core.errors import SubstrateRequestException
-
+from bittensor.utils.btlogging import logging
 from bittensor.utils.registration.pow import (
     get_cpu_count,
     update_curr_block,
@@ -512,6 +512,7 @@ async def create_pow_async(
             raise ValueError(f"Subnet {netuid} does not exist")
     solution: Optional[POWSolution]
     if cuda:
+        logging.debug("Solve difficulty with CUDA.")
         solution = await _solve_for_difficulty_fast_cuda(
             subtensor=subtensor,
             wallet=wallet,
@@ -523,6 +524,7 @@ async def create_pow_async(
             log_verbose=log_verbose,
         )
     else:
+        logging.debug("Solve difficulty.")
         solution = await _solve_for_difficulty_fast(
             subtensor=subtensor,
             wallet=wallet,
