@@ -234,3 +234,20 @@ Removing deprecated extrinsics and replacing them with consistent ones:
 - method `query_map_subtensor` has updated parameters order.
 - method `query_map` has updated parameters order.
 - method `add_stake_multiple` has updated parameters order.
+
+### Mechid related changes:
+In the next subtensor methods got updated the parameters order:
+  - `bonds`
+  - `get_metagraph_info`
+  - `get_timelocked_weight_commits`
+  - `metagraph`
+  - `weights`
+  - `commit_weights`
+  - `reveal_weights`
+  - `set_weights`
+
+Additional:
+  - `bittensor.core.chain_data.metagraph_info.MetagraphInfo` got required attribute `mechid: int`.
+
+### Renames parameters:
+- `get_metagraph_info`: `field_indices` -> `selected_indices` (to be consistent)
