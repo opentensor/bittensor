@@ -3,12 +3,9 @@ from typing import Optional, Union, TYPE_CHECKING
 
 from bittensor.core.errors import MetadataError
 from bittensor.core.settings import version_as_int
-from bittensor.core.types import AxonServeCallParams
-from bittensor.core.types import ExtrinsicResponse
+from bittensor.core.types import AxonServeCallParams, ExtrinsicResponse
 from bittensor.utils import (
-    get_function_name,
     networking as net,
-    unlock_key,
     Certificate,
 )
 from bittensor.utils.btlogging import logging
@@ -57,73 +54,77 @@ async def serve_extrinsic(
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
     """
-    # Decrypt hotkey
-    if not (unlock := unlock_key(wallet, "hotkey")).success:
-        logging.error(unlock.message)
-        return ExtrinsicResponse(
-            False, unlock.message, extrinsic_function=get_function_name()
+    try:
+        signing_keypair = "hotkey"
+        if not (
+            unlocked := ExtrinsicResponse.unlock_wallet(
+                wallet, raise_error, signing_keypair
+            )
+        ).success:
+            return unlocked
+
+        params = AxonServeCallParams(
+            **{
+                "version": version_as_int,
+                "ip": net.ip_to_int(ip),
+                "port": port,
+                "ip_type": net.ip_version(ip),
+                "netuid": netuid,
+                "hotkey": wallet.hotkey.ss58_address,
+                "coldkey": wallet.coldkeypub.ss58_address,
+                "protocol": protocol,
+                "placeholder1": placeholder1,
+                "placeholder2": placeholder2,
+                "certificate": certificate,
+            }
         )
+        logging.debug("Checking axon ...")
+        neuron = await subtensor.get_neuron_for_pubkey_and_subnet(
+            wallet.hotkey.ss58_address, netuid=netuid
+        )
+        neuron_up_to_date = not neuron.is_null and params == neuron
+        if neuron_up_to_date:
+            message = f"Axon already served on: AxonInfo({wallet.hotkey.ss58_address}, {ip}:{port})"
+            logging.debug(f"[blue]{message}[/blue]")
+            return ExtrinsicResponse(message=message)
 
-    params = AxonServeCallParams(
-        **{
-            "version": version_as_int,
-            "ip": net.ip_to_int(ip),
-            "port": port,
-            "ip_type": net.ip_version(ip),
-            "netuid": netuid,
-            "hotkey": wallet.hotkey.ss58_address,
-            "coldkey": wallet.coldkeypub.ss58_address,
-            "protocol": protocol,
-            "placeholder1": placeholder1,
-            "placeholder2": placeholder2,
-            "certificate": certificate,
-        }
-    )
-    logging.debug("Checking axon ...")
-    neuron = await subtensor.get_neuron_for_pubkey_and_subnet(
-        wallet.hotkey.ss58_address, netuid=netuid
-    )
-    neuron_up_to_date = not neuron.is_null and params == neuron
-    if neuron_up_to_date:
-        message = f"Axon already served on: AxonInfo({wallet.hotkey.ss58_address}, {ip}:{port})"
-        logging.debug(f"[blue]{message}[/blue]")
-        return ExtrinsicResponse(True, message, extrinsic_function=get_function_name())
-
-    logging.debug(
-        f"Serving axon with: [blue]AxonInfo({wallet.hotkey.ss58_address}, {ip}:{port})[/blue] -> "
-        f"[green]{subtensor.network}:{netuid}[/green]"
-    )
-
-    if params.certificate is None:
-        call_function = "serve_axon"
-    else:
-        call_function = "serve_axon_tls"
-
-    call = await subtensor.substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function=call_function,
-        call_params=params.dict(),
-    )
-    response = await subtensor.sign_and_send_extrinsic(
-        call=call,
-        wallet=wallet,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-        sign_with="hotkey",
-        period=period,
-        raise_error=raise_error,
-        calling_function=get_function_name(),
-    )
-
-    if response.success:
         logging.debug(
-            f"Axon served with: [blue]AxonInfo({wallet.hotkey.ss58_address}, {ip}:{port})[/blue] on "
+            f"Serving axon with: [blue]AxonInfo({wallet.hotkey.ss58_address}, {ip}:{port})[/blue] -> "
             f"[green]{subtensor.network}:{netuid}[/green]"
         )
+
+        if params.certificate is None:
+            call_function = "serve_axon"
+        else:
+            call_function = "serve_axon_tls"
+
+        call = await subtensor.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function=call_function,
+            call_params=params.dict(),
+        )
+        response = await subtensor.sign_and_send_extrinsic(
+            call=call,
+            wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            sign_with=signing_keypair,
+            period=period,
+            raise_error=raise_error,
+        )
+
+        if response.success:
+            logging.debug(
+                f"Axon served with: [blue]AxonInfo({wallet.hotkey.ss58_address}, {ip}:{port})[/blue] on "
+                f"[green]{subtensor.network}:{netuid}[/green]"
+            )
+            return response
+
+        logging.error(f"[red]{response.message}[/red]")
         return response
 
-    logging.error(f"Failed: {response.message}")
-    return response
+    except Exception as error:
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
 
 
 async def serve_axon_extrinsic(
@@ -154,45 +155,57 @@ async def serve_axon_extrinsic(
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
     """
-    if not (unlock := unlock_key(axon.wallet, "hotkey")).success:
-        logging.error(unlock.message)
-        return ExtrinsicResponse(
-            False, unlock.message, extrinsic_function=get_function_name()
+    try:
+        if not (
+            unlocked := ExtrinsicResponse.unlock_wallet(
+                axon.wallet, raise_error, "hotkey"
+            )
+        ).success:
+            return unlocked
+
+        external_port = axon.external_port
+
+        # ---- Get external ip ----
+        if axon.external_ip is None:
+            try:
+                external_ip = await asyncio.get_running_loop().run_in_executor(
+                    None, net.get_external_ip
+                )
+                logging.debug(
+                    f"[green]Found external ip:[/green] [blue]{external_ip}[/blue]"
+                )
+            except Exception as error:
+                message = f"Unable to attain your external ip. Check your internet connection. Error: {error}"
+                if raise_error:
+                    raise ConnectionError(message) from error
+
+                return ExtrinsicResponse(False, message).with_log()
+        else:
+            external_ip = axon.external_ip
+
+        # ---- Subscribe to chain ----
+        response = await serve_extrinsic(
+            subtensor=subtensor,
+            wallet=axon.wallet,
+            ip=external_ip,
+            port=external_port,
+            protocol=4,
+            netuid=netuid,
+            certificate=certificate,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
         )
+        response.data = {
+            "external_ip": external_ip,
+            "external_port": external_port,
+            "axon": axon,
+        }
+        return response
 
-    external_port = axon.external_port
-
-    # ---- Get external ip ----
-    if axon.external_ip is None:
-        try:
-            external_ip = await asyncio.get_running_loop().run_in_executor(
-                None, net.get_external_ip
-            )
-            logging.success(
-                f":white_heavy_check_mark: [green]Found external ip:[/green] [blue]{external_ip}[/blue]"
-            )
-        except Exception as e:
-            raise ConnectionError(
-                f"Unable to attain your external ip. Check your internet connection. error: {e}"
-            ) from e
-    else:
-        external_ip = axon.external_ip
-
-    # ---- Subscribe to chain ----
-    response = await serve_extrinsic(
-        subtensor=subtensor,
-        wallet=axon.wallet,
-        ip=external_ip,
-        port=external_port,
-        protocol=4,
-        netuid=netuid,
-        certificate=certificate,
-        period=period,
-        raise_error=raise_error,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
-    return response
+    except Exception as error:
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
 
 
 async def publish_metadata_extrinsic(
@@ -234,18 +247,20 @@ async def publish_metadata_extrinsic(
         MetadataError: If there is an error in submitting the extrinsic, or if the response from the blockchain indicates
         failure.
     """
-    if not (unlock := unlock_key(wallet, "hotkey")).success:
-        logging.error(unlock.message)
-        return ExtrinsicResponse(
-            False, unlock.message, extrinsic_function=get_function_name()
-        )
+    try:
+        signing_keypair = "hotkey"
+        if not (
+            unlocked := ExtrinsicResponse.unlock_wallet(
+                wallet, raise_error, signing_keypair
+            )
+        ).success:
+            return unlocked
 
-    fields = [{f"{data_type}": data}]
-    if reset_bonds:
-        fields.append({"ResetBondsFlag": b""})
+        fields = [{f"{data_type}": data}]
+        if reset_bonds:
+            fields.append({"ResetBondsFlag": b""})
 
-    async with subtensor.substrate as substrate:
-        call = await substrate.compose_call(
+        call = await subtensor.substrate.compose_call(
             call_module="Commitments",
             call_function="set_commitment",
             call_params={
@@ -257,23 +272,26 @@ async def publish_metadata_extrinsic(
         response = await subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
-            sign_with="hotkey",
+            sign_with=signing_keypair,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             period=period,
             raise_error=raise_error,
-            calling_function=get_function_name(),
         )
 
         if response.success:
             return response
+
         raise MetadataError(response.message)
+
+    except Exception as error:
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
 
 
 async def get_metadata(
     subtensor: "AsyncSubtensor",
     netuid: int,
-    hotkey: str,
+    hotkey_ss58: str,
     block: Optional[int] = None,
     block_hash: Optional[str] = None,
     reuse_block: bool = False,
@@ -286,7 +304,7 @@ async def get_metadata(
         commit_data = await subtensor.substrate.query(
             module="Commitments",
             storage_function="CommitmentOf",
-            params=[netuid, hotkey],
+            params=[netuid, hotkey_ss58],
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
@@ -296,7 +314,7 @@ async def get_metadata(
 async def get_last_bonds_reset(
     subtensor: "AsyncSubtensor",
     netuid: int,
-    hotkey: str,
+    hotkey_ss58: str,
     block: Optional[int] = None,
     block_hash: Optional[str] = None,
     reuse_block: bool = False,
@@ -307,7 +325,7 @@ async def get_last_bonds_reset(
     Parameters:
         subtensor: Subtensor instance object.
         netuid: The network uid to fetch from.
-        hotkey: The hotkey of the neuron for which to fetch the last bonds reset.
+        hotkey_ss58: The hotkey of the neuron for which to fetch the last bonds reset.
         block: The block number to query. If ``None``, the latest block is used.
         block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or reuse_block.
         reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
@@ -319,7 +337,7 @@ async def get_last_bonds_reset(
     block = await subtensor.substrate.query(
         module="Commitments",
         storage_function="LastBondsReset",
-        params=[netuid, hotkey],
+        params=[netuid, hotkey_ss58],
         block_hash=block_hash,
     )
     return block
