@@ -13,10 +13,10 @@ class Chain:
         self.get_delegate_identities = subtensor.get_delegate_identities
         self.get_existential_deposit = subtensor.get_existential_deposit
         self.get_minimum_required_stake = subtensor.get_minimum_required_stake
-        self.get_vote_data = subtensor.get_vote_data
         self.get_timestamp = subtensor.get_timestamp
-        self.is_in_admin_freeze_window = subtensor.is_in_admin_freeze_window
+        self.get_vote_data = subtensor.get_vote_data
         self.is_fast_blocks = subtensor.is_fast_blocks
+        self.is_in_admin_freeze_window = subtensor.is_in_admin_freeze_window
         self.last_drand_round = subtensor.last_drand_round
         self.state_call = subtensor.state_call
         self.tx_rate_limit = subtensor.tx_rate_limit
