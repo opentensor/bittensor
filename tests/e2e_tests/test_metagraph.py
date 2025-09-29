@@ -380,6 +380,7 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
 
     expected_metagraph_info = MetagraphInfo(
         netuid=1,
+        mechid=0,
         name="apex",
         symbol="α",
         identity=None,
@@ -477,6 +478,7 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
     expected_metagraph_infos = [
         MetagraphInfo(
             netuid=0,
+            mechid=0,
             name="root",
             symbol="Τ",
             identity=None,
@@ -636,6 +638,7 @@ async def test_metagraph_info_async(async_subtensor, alice_wallet, bob_wallet):
 
     expected_metagraph_info = MetagraphInfo(
         netuid=1,
+        mechid=0,
         name="apex",
         symbol="α",
         identity=None,
@@ -733,6 +736,7 @@ async def test_metagraph_info_async(async_subtensor, alice_wallet, bob_wallet):
     expected_metagraph_infos = [
         MetagraphInfo(
             netuid=0,
+            mechid=0,
             name="root",
             symbol="Τ",
             identity=None,
@@ -891,7 +895,7 @@ def test_metagraph_info_with_indexes(subtensor, alice_wallet, bob_wallet):
     alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
     assert subtensor.subnets.register_subnet(alice_wallet)
 
-    field_indices = [
+    selected_indices = [
         SelectiveMetagraphIndex.Name,
         SelectiveMetagraphIndex.Active,
         SelectiveMetagraphIndex.OwnerHotkey,
@@ -900,11 +904,12 @@ def test_metagraph_info_with_indexes(subtensor, alice_wallet, bob_wallet):
     ]
 
     metagraph_info = subtensor.metagraphs.get_metagraph_info(
-        netuid=alice_subnet_netuid, field_indices=field_indices
+        netuid=alice_subnet_netuid, selected_indices=selected_indices
     )
 
     assert metagraph_info == MetagraphInfo(
         netuid=alice_subnet_netuid,
+        mechid=0,
         name="omron",
         owner_hotkey=alice_wallet.hotkey.ss58_address,
         owner_coldkey=alice_wallet.coldkey.ss58_address,
@@ -1007,11 +1012,12 @@ def test_metagraph_info_with_indexes(subtensor, alice_wallet, bob_wallet):
     ]
 
     metagraph_info = subtensor.metagraphs.get_metagraph_info(
-        netuid=alice_subnet_netuid, field_indices=fields
+        netuid=alice_subnet_netuid, selected_indices=fields
     )
 
     assert metagraph_info == MetagraphInfo(
         netuid=alice_subnet_netuid,
+        mechid=0,
         name="omron",
         owner_hotkey=alice_wallet.hotkey.ss58_address,
         owner_coldkey=alice_wallet.coldkey.ss58_address,
@@ -1125,7 +1131,7 @@ async def test_metagraph_info_with_indexes_async(
     alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
     assert await async_subtensor.subnets.register_subnet(alice_wallet)
 
-    field_indices = [
+    selected_indices = [
         SelectiveMetagraphIndex.Name,
         SelectiveMetagraphIndex.Active,
         SelectiveMetagraphIndex.OwnerHotkey,
@@ -1134,11 +1140,12 @@ async def test_metagraph_info_with_indexes_async(
     ]
 
     metagraph_info = await async_subtensor.metagraphs.get_metagraph_info(
-        netuid=alice_subnet_netuid, field_indices=field_indices
+        netuid=alice_subnet_netuid, selected_indices=selected_indices
     )
 
     assert metagraph_info == MetagraphInfo(
         netuid=alice_subnet_netuid,
+        mechid=0,
         name="omron",
         owner_hotkey=alice_wallet.hotkey.ss58_address,
         owner_coldkey=alice_wallet.coldkey.ss58_address,
@@ -1245,11 +1252,12 @@ async def test_metagraph_info_with_indexes_async(
     ]
 
     metagraph_info = await async_subtensor.metagraphs.get_metagraph_info(
-        netuid=alice_subnet_netuid, field_indices=fields
+        netuid=alice_subnet_netuid, selected_indices=fields
     )
 
     assert metagraph_info == MetagraphInfo(
         netuid=alice_subnet_netuid,
+        mechid=0,
         name="omron",
         owner_hotkey=alice_wallet.hotkey.ss58_address,
         owner_coldkey=alice_wallet.coldkey.ss58_address,
