@@ -326,4 +326,4 @@ def log_test_start_and_end(request):
     test_name = request.node.nodeid
     logging.console.info(f"🏁[green]Testing[/green] [yellow]{test_name}[/yellow]")
     yield
-    logging.console.success(f"✅ [green]Passed[/green] [yellow]{test_name}[/yellow]")
+    logging.console.success(f"✅ [green]Finished[/green] [yellow]{test_name}[/yellow]")
