@@ -27,8 +27,8 @@ from bittensor_wallet.keyfile import (
 )
 from bittensor_wallet.wallet import Wallet
 
-from bittensor.core import settings, timelock
-from bittensor.core.addons.subtensor_api import SubtensorApi
+from bittensor.core import settings
+from bittensor.core.addons import timelock, SubtensorApi
 from bittensor.core.async_subtensor import AsyncSubtensor
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import (

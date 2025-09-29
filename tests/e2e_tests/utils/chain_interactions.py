@@ -15,7 +15,7 @@ from bittensor.utils.btlogging import logging
 # for typing purposes
 if TYPE_CHECKING:
     from bittensor import Wallet
-    from bittensor.core.subtensor_api import SubtensorApi
+    from bittensor.core.addons import SubtensorApi
     from async_substrate_interface import (
         AsyncSubstrateInterface,
         AsyncExtrinsicReceipt,
