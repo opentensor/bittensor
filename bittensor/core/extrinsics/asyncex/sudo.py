@@ -1,7 +1,7 @@
 from typing import Optional, TYPE_CHECKING
 
 from bittensor.core.extrinsics.asyncex.utils import sudo_call_extrinsic
-from bittensor.core.types import Weights as MaybeSplit
+from bittensor.core.types import Weights as MaybeSplit, ExtrinsicResponse
 from bittensor.utils.weight_utils import convert_maybe_split_to_u16
 
 if TYPE_CHECKING:
@@ -17,7 +17,7 @@ async def sudo_set_admin_freeze_window_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """
     Sets the admin freeze window length (in blocks) at the end of a tempo.
 
@@ -33,9 +33,7 @@ async def sudo_set_admin_freeze_window_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        tuple[bool, str]:
-            `True` if the extrinsic executed successfully, `False` otherwise.
-            `message` is a string value describing the success or potential error.
+        ExtrinsicResponse: The result object of the extrinsic execution.
     """
     call_function = "sudo_set_admin_freeze_window"
     call_params = {"window": window}
@@ -60,7 +58,7 @@ async def sudo_set_mechanism_count_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> tuple[bool, str]:
+) -> "ExtrinsicResponse":
     """
     Sets the number of subnet mechanisms.
 
@@ -77,9 +75,7 @@ async def sudo_set_mechanism_count_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        tuple[bool, str]:
-            `True` if the extrinsic executed successfully, `False` otherwise.
-            `message` is a string value describing the success or potential error.
+        ExtrinsicResponse: The result object of the extrinsic execution.
     """
     call_function = "sudo_set_mechanism_count"
     call_params = {"netuid": netuid, "mechanism_count": mech_count}
@@ -104,7 +100,7 @@ async def sudo_set_mechanism_emission_split_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> tuple[bool, str]:
+) -> "ExtrinsicResponse":
     """
     Sets the emission split between mechanisms in a provided subnet.
 
@@ -121,9 +117,7 @@ async def sudo_set_mechanism_emission_split_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        tuple[bool, str]:
-            `True` if the extrinsic executed successfully, `False` otherwise.
-            `message` is a string value describing the success or potential error.
+        ExtrinsicResponse: The result object of the extrinsic execution.
 
     Note:
         The `maybe_split` list defines the relative emission share for each subnet mechanism.

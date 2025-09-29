@@ -2,11 +2,9 @@ import asyncio
 from typing import Optional, Sequence, TYPE_CHECKING
 
 from async_substrate_interface.errors import SubstrateRequestException
-from bittensor.core.types import ExtrinsicResponse
 from bittensor.core.extrinsics.utils import get_old_stakes
-from bittensor.utils import unlock_key, format_error_message, get_function_name
-from bittensor.core.types import UIDs
-from bittensor.utils import unlock_key, format_error_message
+from bittensor.utils import format_error_message
+from bittensor.core.types import ExtrinsicResponse, UIDs
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 
@@ -55,153 +53,146 @@ async def add_stake_extrinsic(
 
     Raises:
         SubstrateRequestException: Raised if the extrinsic fails to be included in the block within the timeout.
+
+    Notes:
+        The `data` field in the returned `ExtrinsicResponse` contains extra information about the extrinsic execution.
     """
+    try:
+        if not (
+            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+        ).success:
+            return unlocked
 
-    # Decrypt keys,
-    if not (unlock := unlock_key(wallet)).success:
-        logging.error(unlock.message)
-        return ExtrinsicResponse(
-            False, unlock.message, extrinsic_function=get_function_name()
-        )
+        old_balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
+        block_hash = await subtensor.substrate.get_chain_head()
 
-    logging.info(
-        f":satellite: [magenta]Syncing with chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
-    )
-    old_balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
-    block_hash = await subtensor.substrate.get_chain_head()
-
-    # Get current stake and existential deposit
-    old_stake, existential_deposit = await asyncio.gather(
-        subtensor.get_stake(
-            coldkey_ss58=wallet.coldkeypub.ss58_address,
-            hotkey_ss58=hotkey_ss58,
-            netuid=netuid,
-            block_hash=block_hash,
-        ),
-        subtensor.get_existential_deposit(block_hash=block_hash),
-    )
-
-    # Leave existential balance to keep key alive.
-    if amount > old_balance - existential_deposit:
-        # If we are staking all, we need to leave at least the existential deposit.
-        amount = old_balance - existential_deposit
-    else:
-        amount = amount
-
-    # Check enough to stake.
-    if amount > old_balance:
-        message = "Not enough stake"
-        logging.error(f":cross_mark: [red]{message}:[/red]")
-        logging.error(f"\t\tbalance:{old_balance}")
-        logging.error(f"\t\tamount: {amount}")
-        logging.error(f"\t\twallet: {wallet.name}")
-        return ExtrinsicResponse(
-            False, f"{message}.", extrinsic_function=get_function_name()
-        )
-
-    call_params = {
-        "hotkey": hotkey_ss58,
-        "netuid": netuid,
-        "amount_staked": amount.rao,
-    }
-
-    if safe_staking:
-        pool = await subtensor.subnet(netuid=netuid)
-        base_price = pool.price.tao
-
-        price_with_tolerance = (
-            base_price if pool.netuid == 0 else base_price * (1 + rate_tolerance)
-        )
-
-        logging.info(
-            f":satellite: [magenta]Safe Staking to:[/magenta] "
-            f"[blue]netuid: [green]{netuid}[/green], amount: [green]{amount}[/green], "
-            f"tolerance percentage: [green]{rate_tolerance * 100}%[/green], "
-            f"price limit: [green]{price_with_tolerance}[/green], "
-            f"original price: [green]{base_price}[/green], "
-            f"with partial stake: [green]{allow_partial_stake}[/green] "
-            f"on [blue]{subtensor.network}[/blue][/magenta]...[/magenta]"
-        )
-
-        limit_price = Balance.from_tao(price_with_tolerance).rao
-        call_params.update(
-            {
-                "limit_price": limit_price,
-                "allow_partial": allow_partial_stake,
-            }
-        )
-        call_function = "add_stake_limit"
-    else:
-        logging.info(
-            f":satellite: [magenta]Staking to:[/magenta] "
-            f"[blue]netuid: [green]{netuid}[/green], amount: [green]{amount}[/green] "
-            f"on [blue]{subtensor.network}[/blue][magenta]...[/magenta]"
-        )
-        call_function = "add_stake"
-
-    call = await subtensor.substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function=call_function,
-        call_params=call_params,
-    )
-    response = await subtensor.sign_and_send_extrinsic(
-        call=call,
-        wallet=wallet,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-        nonce_key="coldkeypub",
-        sign_with="coldkey",
-        use_nonce=True,
-        period=period,
-        raise_error=raise_error,
-        calling_function=get_function_name(),
-    )
-    if response.success:  # If we successfully staked.
-        # We only wait here if we expect finalization.
-        if not wait_for_finalization and not wait_for_inclusion:
-            return response
-
-        logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
-
-        logging.info(
-            f":satellite: [magenta]Checking Balance on:[/magenta] "
-            f"[blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
-        )
-        new_block_hash = await subtensor.substrate.get_chain_head()
-        new_balance, new_stake = await asyncio.gather(
-            subtensor.get_balance(
-                wallet.coldkeypub.ss58_address, block_hash=new_block_hash
-            ),
+        # Get current stake and existential deposit
+        old_stake, existential_deposit = await asyncio.gather(
             subtensor.get_stake(
                 coldkey_ss58=wallet.coldkeypub.ss58_address,
                 hotkey_ss58=hotkey_ss58,
                 netuid=netuid,
-                block_hash=new_block_hash,
+                block_hash=block_hash,
             ),
+            subtensor.get_existential_deposit(block_hash=block_hash),
         )
 
-        logging.info(
-            f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
+        # Leave existential balance to keep key alive.
+        if amount > old_balance - existential_deposit:
+            # If we are staking all, we need to leave at least the existential deposit.
+            amount = old_balance - existential_deposit
+        else:
+            amount = amount
+
+        # Check enough to stake.
+        if amount > old_balance:
+            message = "Not enough stake"
+            logging.debug(f":cross_mark: [red]{message}:[/red]")
+            logging.debug(f"\t\tbalance:{old_balance}")
+            logging.debug(f"\t\tamount: {amount}")
+            logging.debug(f"\t\twallet: {wallet.name}")
+            return ExtrinsicResponse(False, f"{message}.").with_log()
+
+        call_params = {
+            "hotkey": hotkey_ss58,
+            "netuid": netuid,
+            "amount_staked": amount.rao,
+        }
+
+        if safe_staking:
+            pool = await subtensor.subnet(netuid=netuid)
+            base_price = pool.price.tao
+
+            price_with_tolerance = (
+                base_price if pool.netuid == 0 else base_price * (1 + rate_tolerance)
+            )
+
+            logging.debug(
+                f"Safe Staking to: [blue]netuid: [green]{netuid}[/green], amount: [green]{amount}[/green], "
+                f"tolerance percentage: [green]{rate_tolerance * 100}%[/green], "
+                f"price limit: [green]{price_with_tolerance}[/green], "
+                f"original price: [green]{base_price}[/green], "
+                f"with partial stake: [green]{allow_partial_stake}[/green] "
+                f"on [blue]{subtensor.network}[/blue]."
+            )
+
+            limit_price = Balance.from_tao(price_with_tolerance).rao
+            call_params.update(
+                {
+                    "limit_price": limit_price,
+                    "allow_partial": allow_partial_stake,
+                }
+            )
+            call_function = "add_stake_limit"
+        else:
+            logging.debug(
+                f"Staking to: [blue]netuid: [green]{netuid}[/green], amount: [green]{amount}[/green] "
+                f"on [blue]{subtensor.network}[/blue]."
+            )
+            call_function = "add_stake"
+
+        call = await subtensor.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function=call_function,
+            call_params=call_params,
         )
-        logging.info(
-            f"Stake: [blue]{old_stake}[/blue] :arrow_right: [green]{new_stake}[/green]"
+        response = await subtensor.sign_and_send_extrinsic(
+            call=call,
+            wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            nonce_key="coldkeypub",
+            use_nonce=True,
+            period=period,
+            raise_error=raise_error,
         )
+        if response.success:
+            if not wait_for_finalization and not wait_for_inclusion:
+                return response
+            logging.debug("[green]Finalized.[/green]")
+
+            new_block_hash = await subtensor.substrate.get_chain_head()
+            new_balance, new_stake = await asyncio.gather(
+                subtensor.get_balance(
+                    wallet.coldkeypub.ss58_address, block_hash=new_block_hash
+                ),
+                subtensor.get_stake(
+                    coldkey_ss58=wallet.coldkeypub.ss58_address,
+                    hotkey_ss58=hotkey_ss58,
+                    netuid=netuid,
+                    block_hash=new_block_hash,
+                ),
+            )
+
+            logging.debug(
+                f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
+            )
+            logging.debug(
+                f"Stake: [blue]{old_stake}[/blue] :arrow_right: [green]{new_stake}[/green]"
+            )
+            response.data = {
+                "balance_before": old_balance,
+                "balance_after": new_balance,
+                "stake_before": old_stake,
+                "stake_after": new_stake,
+            }
+            return response
+
+        if safe_staking and "Custom error: 8" in response.message:
+            response.message = "Price exceeded tolerance limit. Either increase price tolerance or enable partial staking."
+
+        logging.error(f"[red]{response.message}[/red]")
         return response
 
-    if safe_staking and "Custom error: 8" in response.message:
-        logging.error(
-            ":cross_mark: [red]Failed[/red]: Price exceeded tolerance limit. Either increase price tolerance or enable partial staking."
-        )
-    else:
-        logging.error(f":cross_mark: [red]Failed: {response.message}.[/red]")
-    return response
+    except Exception as error:
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
 
 
 async def add_stake_multiple_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
-    hotkey_ss58s: list[str],
     netuids: UIDs,
+    hotkey_ss58s: list[str],
     amounts: list[Balance],
     period: Optional[int] = None,
     raise_error: bool = False,
@@ -227,169 +218,193 @@ async def add_stake_multiple_extrinsic(
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
+
+    Note:
+        The `data` field in the returned `ExtrinsicResponse` contains the results of each individual internal
+        `add_stake_extrinsic` call. Each entry maps a tuple key `(idx, hotkey_ss58, netuid)` to either:
+            - the corresponding `ExtrinsicResponse` object if the staking attempt was executed, or
+            - `None` if the staking was skipped due to failing validation (e.g., wrong balance, zero amount, etc.).
+        In the key, `idx` is the index the stake attempt.
+
+        This allows the caller to inspect which specific operations were attempted and which were not.
     """
-    # Decrypt keys,
-    if not (unlock := unlock_key(wallet)).success:
-        logging.error(unlock.message)
-        return ExtrinsicResponse(
-            False, unlock.message, extrinsic_function=get_function_name()
-        )
+    try:
+        if not (
+            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+        ).success:
+            return unlocked
 
-    assert all(
-        [
-            isinstance(netuids, list),
-            isinstance(hotkey_ss58s, list),
-            isinstance(amounts, list),
-        ]
-    ), "The `netuids`, `hotkey_ss58s` and `amounts` must be lists."
+        if not all(
+            [
+                isinstance(netuids, list),
+                isinstance(hotkey_ss58s, list),
+                isinstance(amounts, list),
+            ]
+        ):
+            raise TypeError(
+                "The `netuids`, `hotkey_ss58s` and `amounts` must be lists."
+            )
 
-    if len(hotkey_ss58s) == 0:
-        return ExtrinsicResponse(
-            True, "Success", extrinsic_function=get_function_name()
-        )
+        if len(hotkey_ss58s) == 0:
+            return ExtrinsicResponse(True, "Success")
 
-    assert len(netuids) == len(hotkey_ss58s) == len(amounts), (
-        "The number of items in `netuids`, `hotkey_ss58s` and `amounts` must be the same."
-    )
+        if not len(netuids) == len(hotkey_ss58s) == len(amounts):
+            raise ValueError(
+                "The number of items in `netuids`, `hotkey_ss58s` and `amounts` must be the same."
+            )
 
-    if not all(isinstance(hotkey_ss58, str) for hotkey_ss58 in hotkey_ss58s):
-        raise TypeError("hotkey_ss58s must be a list of str")
+        if not all(isinstance(hotkey_ss58, str) for hotkey_ss58 in hotkey_ss58s):
+            raise TypeError("`hotkey_ss58s` must be a list of str.")
 
-    new_amounts: Sequence[Optional[Balance]] = [
-        amount.set_unit(netuid) for amount, netuid in zip(amounts, netuids)
-    ]
+        if not all(isinstance(a, Balance) for a in amounts):
+            raise TypeError("Each `amount` must be an instance of Balance.")
 
-    if sum(amount.tao for amount in new_amounts) == 0:
-        # Staking 0 tao
-        return ExtrinsicResponse(
-            True, "Success", extrinsic_function=get_function_name()
-        )
-
-    logging.info(
-        f":satellite: [magenta]Syncing with chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
-    )
-    block_hash = await subtensor.substrate.get_chain_head()
-
-    all_stakes = await subtensor.get_stake_for_coldkey(
-        coldkey_ss58=wallet.coldkeypub.ss58_address, block_hash=block_hash
-    )
-    old_stakes: list[Balance] = get_old_stakes(
-        wallet=wallet, hotkey_ss58s=hotkey_ss58s, netuids=netuids, all_stakes=all_stakes
-    )
-
-    # Remove existential balance to keep key alive.
-    # Keys must maintain a balance of at least 1000 rao to stay alive.
-    total_staking_rao = sum(
-        [amount.rao if amount is not None else 0 for amount in new_amounts]
-    )
-    old_balance = initial_balance = await subtensor.get_balance(
-        wallet.coldkeypub.ss58_address, block_hash=block_hash
-    )
-
-    if total_staking_rao == 0:
-        # Staking all to the first wallet.
-        if old_balance.rao > 1000:
-            old_balance -= Balance.from_rao(1000)
-
-    elif total_staking_rao < 1000:
-        # Staking less than 1000 rao to the wallets.
-        pass
-    else:
-        # Staking more than 1000 rao to the wallets.
-        # Reduce the amount to stake to each wallet to keep the balance above 1000 rao.
-        percent_reduction = 1 - (1000 / total_staking_rao)
-        new_amounts = [
-            Balance.from_tao(amount.tao * percent_reduction) for amount in new_amounts
+        new_amounts: Sequence[Optional[Balance]] = [
+            amount.set_unit(netuid) for amount, netuid in zip(amounts, netuids)
         ]
 
-    successful_stakes = 0
-    response = ExtrinsicResponse(False, "", extrinsic_function=get_function_name())
-    for idx, (hotkey_ss58, amount, old_stake, netuid) in enumerate(
-        zip(hotkey_ss58s, new_amounts, old_stakes, netuids)
-    ):
-        # Check enough to stake
-        if amount > old_balance:
-            logging.error(
-                f":cross_mark: [red]Not enough balance[/red]: [green]{old_balance}[/green] to stake: "
-                f"[blue]{amount}[/blue] from wallet: [white]{wallet.name}[/white]"
-            )
-            continue
+        if sum(amount.tao for amount in new_amounts) == 0:
+            # Staking 0 tao
+            return ExtrinsicResponse(True, "Success")
 
-        try:
-            logging.info(
-                f"Staking [blue]{amount}[/blue] to hotkey: [magenta]{hotkey_ss58}[/magenta] on netuid: "
-                f"[blue]{netuid}[/blue]"
-            )
-            call = await subtensor.substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="add_stake",
-                call_params={
-                    "hotkey": hotkey_ss58,
-                    "amount_staked": amount.rao,
-                    "netuid": netuid,
-                },
-            )
-            response = await subtensor.sign_and_send_extrinsic(
-                call=call,
-                wallet=wallet,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-                nonce_key="coldkeypub",
-                sign_with="coldkey",
-                use_nonce=True,
-                period=period,
-                raise_error=raise_error,
-                calling_function=get_function_name(),
-            )
+        block_hash = await subtensor.substrate.get_chain_head()
 
-            # If we successfully staked.
-            if response.success:
-                if not wait_for_finalization and not wait_for_inclusion:
-                    old_balance -= amount
+        all_stakes = await subtensor.get_stake_for_coldkey(
+            coldkey_ss58=wallet.coldkeypub.ss58_address, block_hash=block_hash
+        )
+        old_stakes: list[Balance] = get_old_stakes(
+            wallet=wallet,
+            hotkey_ss58s=hotkey_ss58s,
+            netuids=netuids,
+            all_stakes=all_stakes,
+        )
+
+        # Remove existential balance to keep key alive. Keys must maintain a balance of at least 1000 rao to stay alive.
+        total_staking_rao = sum(
+            [amount.rao if amount is not None else 0 for amount in new_amounts]
+        )
+        old_balance = initial_balance = await subtensor.get_balance(
+            address=wallet.coldkeypub.ss58_address, block_hash=block_hash
+        )
+
+        if total_staking_rao == 0:
+            # Staking all to the first wallet.
+            if old_balance.rao > 1000:
+                old_balance -= Balance.from_rao(1000)
+
+        elif total_staking_rao < 1000:
+            # Staking less than 1000 rao to the wallets.
+            pass
+        else:
+            # Staking more than 1000 rao to the wallets.
+            # Reduce the amount to stake to each wallet to keep the balance above 1000 rao.
+            percent_reduction = 1 - (1000 / total_staking_rao)
+            new_amounts = [
+                Balance.from_tao(amount.tao * percent_reduction)
+                for amount in new_amounts
+            ]
+
+        successful_stakes = 0
+        data = {}
+        for idx, (hotkey_ss58, amount, old_stake, netuid) in enumerate(
+            zip(hotkey_ss58s, new_amounts, old_stakes, netuids)
+        ):
+            data.update({(idx, hotkey_ss58, netuid): None})
+
+            # Check enough to stake
+            if amount > old_balance:
+                logging.warning(
+                    f"Not enough balance: [green]{old_balance}[/green] to stake "
+                    f"[blue]{amount}[/blue] from wallet: [white]{wallet.name}[/white] "
+                    f"with hotkey: [blue]{hotkey_ss58}[/blue] on netuid [blue]{netuid}[/blue]."
+                )
+                continue
+
+            try:
+                logging.debug(
+                    f"Staking [blue]{amount}[/blue] to hotkey [blue]{hotkey_ss58}[/blue] on netuid "
+                    f"[blue]{netuid}[/blue]."
+                )
+                response = await add_stake_extrinsic(
+                    subtensor=subtensor,
+                    wallet=wallet,
+                    netuid=netuid,
+                    hotkey_ss58=hotkey_ss58,
+                    amount=amount,
+                    period=period,
+                    raise_error=raise_error,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+
+                data.update({(idx, hotkey_ss58, netuid): response})
+
+                if response.success:
+                    if not wait_for_finalization and not wait_for_inclusion:
+                        old_balance -= amount
+                        successful_stakes += 1
+                        continue
+
+                    logging.debug("[green]Finalized[/green]")
+
+                    new_block_hash = await subtensor.substrate.get_chain_head()
+                    new_stake, new_balance = await asyncio.gather(
+                        subtensor.get_stake(
+                            coldkey_ss58=wallet.coldkeypub.ss58_address,
+                            hotkey_ss58=hotkey_ss58,
+                            netuid=netuid,
+                            block_hash=new_block_hash,
+                        ),
+                        subtensor.get_balance(
+                            wallet.coldkeypub.ss58_address, block_hash=new_block_hash
+                        ),
+                    )
+                    logging.debug(
+                        f"Stake ({hotkey_ss58}) on netuid {netuid}: [blue]{old_stake}[/blue] :arrow_right: "
+                        f"[green]{new_stake}[/green]"
+                    )
+                    logging.debug(
+                        f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
+                    )
+                    old_balance = new_balance
                     successful_stakes += 1
                     continue
 
-                logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
+                logging.warning(
+                    f"Staking amount {amount} to hotkey_ss58 {hotkey_ss58} in subnet {netuid} was not successful."
+                )
 
-                new_block_hash = await subtensor.substrate.get_chain_head()
-                new_stake, new_balance = await asyncio.gather(
-                    subtensor.get_stake(
-                        coldkey_ss58=wallet.coldkeypub.ss58_address,
-                        hotkey_ss58=hotkey_ss58,
-                        netuid=netuid,
-                        block_hash=new_block_hash,
-                    ),
-                    subtensor.get_balance(
-                        wallet.coldkeypub.ss58_address, block_hash=new_block_hash
-                    ),
+            except SubstrateRequestException as error:
+                logging.error(
+                    f"[red]Add Stake Multiple error: {format_error_message(error)}[/red]"
                 )
-                logging.info(
-                    f"Stake ({hotkey_ss58}) on netuid {netuid}: [blue]{old_stake}[/blue] :arrow_right: "
-                    f"[green]{new_stake}[/green]"
-                )
-                logging.info(
-                    f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
-                )
-                old_balance = new_balance
-                successful_stakes += 1
-            else:
-                logging.error(f":cross_mark: [red]Failed: {response.message}.[/red]")
-                continue
+                if raise_error:
+                    raise
 
-        except SubstrateRequestException as error:
-            logging.error(
-                f":cross_mark: [red]Add Stake Multiple error: {format_error_message(error)}[/red]"
+        if len(netuids) > successful_stakes > 0:
+            success = False
+            message = "Some stake were successful."
+        elif successful_stakes == len(netuids):
+            success = True
+            message = "Success"
+        else:
+            success = False
+            message = "No one stake were successful."
+
+        if (
+            new_balance := await subtensor.get_balance(wallet.coldkeypub.ss58_address)
+        ) != initial_balance:
+            logging.debug(
+                f"Balance: [blue]{initial_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
+            )
+            data.update(
+                {"balance_before": initial_balance, "balance_after": new_balance}
             )
 
-    if successful_stakes != 0:
-        logging.info(
-            f":satellite: [magenta]Checking Balance on:[/magenta] [blue]{subtensor.network}[/blue] "
-            f"[magenta]...[/magenta]"
-        )
-        new_balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
-        logging.info(
-            f"Balance: [blue]{initial_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
-        )
-        return response
+        response = ExtrinsicResponse(success, message, data=data)
+        if response.success:
+            return response
+        return response.with_log()
 
-    return response
+    except Exception as error:
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
