@@ -80,7 +80,7 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
     logging.console.info(f"Bob stake: {stake_bob}")
     assert stake_bob > Balance(0).set_unit(alice_subnet_netuid)
 
-    stakes = subtensor.staking.get_stake_for_coldkey(alice_wallet.coldkey.ss58_address)
+    stakes = subtensor.staking.get_stake_info_for_coldkey(alice_wallet.coldkey.ss58_address)
 
     expected_stakes = [
         StakeInfo(
@@ -117,10 +117,6 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
     expected_stakes += fast_blocks_stake
 
     assert stakes == expected_stakes
-    assert (
-        subtensor.staking.get_stake_for_coldkey
-        == subtensor.staking.get_stake_info_for_coldkey
-    )
 
     stakes = subtensor.staking.get_stake_for_coldkey_and_hotkey(
         alice_wallet.coldkey.ss58_address,
@@ -259,7 +255,7 @@ async def test_single_operation_async(async_subtensor, alice_wallet, bob_wallet)
     logging.console.info(f"Bob stake: {stake_bob}")
     assert stake_bob > Balance(0).set_unit(alice_subnet_netuid)
 
-    stakes = await async_subtensor.staking.get_stake_for_coldkey(
+    stakes = await async_subtensor.staking.get_stake_info_for_coldkey(
         alice_wallet.coldkey.ss58_address
     )
 
@@ -298,10 +294,6 @@ async def test_single_operation_async(async_subtensor, alice_wallet, bob_wallet)
     expected_stakes += fast_blocks_stake
 
     assert stakes == expected_stakes
-    assert (
-        async_subtensor.staking.get_stake_for_coldkey
-        == async_subtensor.staking.get_stake_info_for_coldkey
-    )
 
     stakes = await async_subtensor.staking.get_stake_for_coldkey_and_hotkey(
         alice_wallet.coldkey.ss58_address,
@@ -1287,7 +1279,7 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
         amount=Balance.from_tao(1_000),
     ).success
 
-    stakes = subtensor.staking.get_stake_for_coldkey(alice_wallet.coldkey.ss58_address)
+    stakes = subtensor.staking.get_stake_info_for_coldkey(alice_wallet.coldkey.ss58_address)
 
     assert stakes == [
         StakeInfo(
@@ -1332,7 +1324,7 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
     )
     assert response.success is True
 
-    stakes = subtensor.staking.get_stake_for_coldkey(alice_wallet.coldkey.ss58_address)
+    stakes = subtensor.staking.get_stake_info_for_coldkey(alice_wallet.coldkey.ss58_address)
 
     expected_stakes = [
         StakeInfo(
@@ -1446,7 +1438,7 @@ async def test_move_stake_async(async_subtensor, alice_wallet, bob_wallet, dave_
         )
     ).success
 
-    stakes = await async_subtensor.staking.get_stake_for_coldkey(
+    stakes = await async_subtensor.staking.get_stake_info_for_coldkey(
         alice_wallet.coldkey.ss58_address
     )
 
@@ -1499,7 +1491,7 @@ async def test_move_stake_async(async_subtensor, alice_wallet, bob_wallet, dave_
     )
     assert response.success is True
 
-    stakes = await async_subtensor.staking.get_stake_for_coldkey(
+    stakes = await async_subtensor.staking.get_stake_info_for_coldkey(
         alice_wallet.coldkey.ss58_address
     )
 
@@ -1618,7 +1610,7 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
         amount=Balance.from_tao(1_000),
     ).success
 
-    alice_stakes = subtensor.staking.get_stake_for_coldkey(
+    alice_stakes = subtensor.staking.get_stake_info_for_coldkey(
         alice_wallet.coldkey.ss58_address
     )
 
@@ -1637,7 +1629,7 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
         ),
     ]
 
-    bob_stakes = subtensor.staking.get_stake_for_coldkey(
+    bob_stakes = subtensor.staking.get_stake_info_for_coldkey(
         bob_wallet.coldkey.ss58_address
     )
 
@@ -1665,7 +1657,7 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
     )
     assert response.success is True
 
-    alice_stakes = subtensor.staking.get_stake_for_coldkey(
+    alice_stakes = subtensor.staking.get_stake_info_for_coldkey(
         alice_wallet.coldkey.ss58_address
     )
 
@@ -1692,7 +1684,7 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
 
     assert alice_stakes == expected_alice_stake
 
-    bob_stakes = subtensor.staking.get_stake_for_coldkey(
+    bob_stakes = subtensor.staking.get_stake_info_for_coldkey(
         bob_wallet.coldkey.ss58_address
     )
 
@@ -1749,7 +1741,7 @@ async def test_transfer_stake_async(
         )
     ).success
 
-    alice_stakes = await async_subtensor.staking.get_stake_for_coldkey(
+    alice_stakes = await async_subtensor.staking.get_stake_info_for_coldkey(
         alice_wallet.coldkey.ss58_address
     )
 
@@ -1768,7 +1760,7 @@ async def test_transfer_stake_async(
         ),
     ]
 
-    bob_stakes = await async_subtensor.staking.get_stake_for_coldkey(
+    bob_stakes = await async_subtensor.staking.get_stake_info_for_coldkey(
         bob_wallet.coldkey.ss58_address
     )
 
@@ -1800,7 +1792,7 @@ async def test_transfer_stake_async(
     )
     assert response.success is True
 
-    alice_stakes = await async_subtensor.staking.get_stake_for_coldkey(
+    alice_stakes = await async_subtensor.staking.get_stake_info_for_coldkey(
         alice_wallet.coldkey.ss58_address
     )
 
@@ -1827,7 +1819,7 @@ async def test_transfer_stake_async(
 
     assert alice_stakes == expected_alice_stake
 
-    bob_stakes = await async_subtensor.staking.get_stake_for_coldkey(
+    bob_stakes = await async_subtensor.staking.get_stake_info_for_coldkey(
         bob_wallet.coldkey.ss58_address
     )
 
