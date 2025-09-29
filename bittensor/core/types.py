@@ -333,7 +333,7 @@ class ExtrinsicResponse:
             extrinsic_function: register_subnet_extrinsic
             extrinsic: {'account_id': '0xd43593c715fdd31c...
             extrinsic_fee: τ1.0
-            extrinsic_receipt: Extrinsic Receipt data
+            extrinsic_receipt: Extrinsic Receipt data of of the submitted extrinsic
             transaction_fee: τ1.0
             error: None
             data: None
