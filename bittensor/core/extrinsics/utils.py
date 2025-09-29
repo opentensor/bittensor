@@ -2,9 +2,8 @@
 
 from typing import TYPE_CHECKING, Optional
 
-from bittensor.utils import unlock_key
+from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.balance import Balance
-from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
     from scalecodec import GenericCall
@@ -85,7 +84,7 @@ def sudo_call_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """Execute a sudo call extrinsic.
 
     Parameters:
@@ -105,15 +104,16 @@ def sudo_call_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        tuple[bool, str]:
-            `True` if the extrinsic executed successfully, `False` otherwise.
-            `message` is a string value describing the success or potential error.
+        ExtrinsicResponse: The result object of the extrinsic execution.
     """
     try:
-        unlock = unlock_key(wallet, raise_error=raise_error)
-        if not unlock.success:
-            logging.error(unlock.message)
-            return False, unlock.message
+        if not (
+            unlocked := ExtrinsicResponse.unlock_wallet(
+                wallet, raise_error, unlock_type=sign_with
+            )
+        ).success:
+            return unlocked
+
         sudo_call = subtensor.substrate.compose_call(
             call_module="Sudo",
             call_function="sudo",
@@ -138,7 +138,4 @@ def sudo_call_extrinsic(
         )
 
     except Exception as error:
-        if raise_error:
-            raise error
-
-        return False, str(error)
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
