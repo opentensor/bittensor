@@ -191,6 +191,7 @@ class FakeWebsocket(ClientConnection):
 
     def send(self, payload: str, *args, **kwargs):
         received = json.loads(payload)
+        received["jsonrpc"] = "2.0"
         id_ = received.pop("id")
         self.received.append((received, id_))
 
@@ -200,13 +201,13 @@ class FakeWebsocket(ClientConnection):
         item, _id = self.received.pop()
         try:
             if item["method"] == "state_getMetadata":
-                response = {"jsonrpc": "2.0", "id": _id, "result": METADATA}
+                response = {"id": _id, "result": METADATA}
             elif item[
                 "method"
             ] == "state_call" and "Metadata_metadata_at_version" in json.dumps(
                 item["params"]
             ):
-                response = {"jsonrpc": "2.0", "id": _id, "result": METADATA_AT_VERSION}
+                response = {"id": _id, "result": METADATA_AT_VERSION}
             else:
                 response = WEBSOCKET_RESPONSES[self.seed][item["method"]][
                     json.dumps(item["params"])
@@ -215,6 +216,7 @@ class FakeWebsocket(ClientConnection):
                     # Allows us to cycle through different responses for the same method/params combo
                     response = next(response)
                 response["id"] = _id
+            response["jsonrpc"] = "2.0"
             return json.dumps(response)
         except (KeyError, TypeError):
             print("ERROR", self.seed, item["method"], item["params"])
