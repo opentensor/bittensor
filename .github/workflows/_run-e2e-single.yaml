@@ -74,7 +74,7 @@ jobs:
               echo "::endgroup::"
               if [ "$i" -lt 3 ]; then
                 echo "Retrying..."
-                sleep 5
+                sleep 15
               fi
             fi
 
