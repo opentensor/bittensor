@@ -1,9 +1,7 @@
 from typing import Optional, TYPE_CHECKING
 
 from bittensor.core.types import ExtrinsicResponse
-from bittensor.utils import unlock_key, get_function_name
 from bittensor.utils.balance import Balance
-from bittensor.utils.btlogging import logging
 from bittensor.utils.liquidity import price_to_tick
 
 if TYPE_CHECKING:
@@ -48,37 +46,37 @@ def add_liquidity_extrinsic(
     Note: Adding is allowed even when user liquidity is enabled in specified subnet. Call
     `toggle_user_liquidity_extrinsic` to enable/disable user liquidity.
     """
-    if not (unlock := unlock_key(wallet)).success:
-        logging.error(unlock.message)
-        return ExtrinsicResponse(
-            False, unlock.message, extrinsic_function=get_function_name()
+    try:
+        if not (
+            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+        ).success:
+            return unlocked
+
+        tick_low = price_to_tick(price_low.tao)
+        tick_high = price_to_tick(price_high.tao)
+
+        call = subtensor.substrate.compose_call(
+            call_module="Swap",
+            call_function="add_liquidity",
+            call_params={
+                "hotkey": hotkey or wallet.hotkey.ss58_address,
+                "netuid": netuid,
+                "tick_low": tick_low,
+                "tick_high": tick_high,
+                "liquidity": liquidity.rao,
+            },
         )
 
-    tick_low = price_to_tick(price_low.tao)
-    tick_high = price_to_tick(price_high.tao)
-
-    call = subtensor.substrate.compose_call(
-        call_module="Swap",
-        call_function="add_liquidity",
-        call_params={
-            "hotkey": hotkey or wallet.hotkey.ss58_address,
-            "netuid": netuid,
-            "tick_low": tick_low,
-            "tick_high": tick_high,
-            "liquidity": liquidity.rao,
-        },
-    )
-
-    return subtensor.sign_and_send_extrinsic(
-        call=call,
-        wallet=wallet,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-        use_nonce=True,
-        period=period,
-        raise_error=raise_error,
-        calling_function=get_function_name(),
-    )
+        return subtensor.sign_and_send_extrinsic(
+            call=call,
+            wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            period=period,
+            raise_error=raise_error,
+        )
+    except Exception as error:
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
 
 
 def modify_liquidity_extrinsic(
@@ -115,33 +113,33 @@ def modify_liquidity_extrinsic(
     Note: Modifying is allowed even when user liquidity is enabled in specified subnet. Call
     `toggle_user_liquidity_extrinsic` to enable/disable user liquidity.
     """
-    if not (unlock := unlock_key(wallet)).success:
-        logging.error(unlock.message)
-        return ExtrinsicResponse(
-            False, unlock.message, extrinsic_function=get_function_name()
+    try:
+        if not (
+            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+        ).success:
+            return unlocked
+
+        call = subtensor.substrate.compose_call(
+            call_module="Swap",
+            call_function="modify_position",
+            call_params={
+                "hotkey": hotkey or wallet.hotkey.ss58_address,
+                "netuid": netuid,
+                "position_id": position_id,
+                "liquidity_delta": liquidity_delta.rao,
+            },
         )
 
-    call = subtensor.substrate.compose_call(
-        call_module="Swap",
-        call_function="modify_position",
-        call_params={
-            "hotkey": hotkey or wallet.hotkey.ss58_address,
-            "netuid": netuid,
-            "position_id": position_id,
-            "liquidity_delta": liquidity_delta.rao,
-        },
-    )
-
-    return subtensor.sign_and_send_extrinsic(
-        call=call,
-        wallet=wallet,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-        use_nonce=True,
-        period=period,
-        raise_error=raise_error,
-        calling_function=get_function_name(),
-    )
+        return subtensor.sign_and_send_extrinsic(
+            call=call,
+            wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            period=period,
+            raise_error=raise_error,
+        )
+    except Exception as error:
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
 
 
 def remove_liquidity_extrinsic(
@@ -176,32 +174,32 @@ def remove_liquidity_extrinsic(
     Note: Adding is allowed even when user liquidity is enabled in specified subnet. Call
     `toggle_user_liquidity_extrinsic` to enable/disable user liquidity.
     """
-    if not (unlock := unlock_key(wallet)).success:
-        logging.error(unlock.message)
-        return ExtrinsicResponse(
-            False, unlock.message, extrinsic_function=get_function_name()
+    try:
+        if not (
+            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+        ).success:
+            return unlocked
+
+        call = subtensor.substrate.compose_call(
+            call_module="Swap",
+            call_function="remove_liquidity",
+            call_params={
+                "hotkey": hotkey or wallet.hotkey.ss58_address,
+                "netuid": netuid,
+                "position_id": position_id,
+            },
         )
 
-    call = subtensor.substrate.compose_call(
-        call_module="Swap",
-        call_function="remove_liquidity",
-        call_params={
-            "hotkey": hotkey or wallet.hotkey.ss58_address,
-            "netuid": netuid,
-            "position_id": position_id,
-        },
-    )
-
-    return subtensor.sign_and_send_extrinsic(
-        call=call,
-        wallet=wallet,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-        use_nonce=True,
-        period=period,
-        raise_error=raise_error,
-        calling_function=get_function_name(),
-    )
+        return subtensor.sign_and_send_extrinsic(
+            call=call,
+            wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            period=period,
+            raise_error=raise_error,
+        )
+    except Exception as error:
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
 
 
 def toggle_user_liquidity_extrinsic(
@@ -231,24 +229,25 @@ def toggle_user_liquidity_extrinsic(
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
     """
-    if not (unlock := unlock_key(wallet)).success:
-        logging.error(unlock.message)
-        return ExtrinsicResponse(
-            False, unlock.message, extrinsic_function=get_function_name()
+    try:
+        if not (
+            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+        ).success:
+            return unlocked
+
+        call = subtensor.substrate.compose_call(
+            call_module="Swap",
+            call_function="toggle_user_liquidity",
+            call_params={"netuid": netuid, "enable": enable},
         )
 
-    call = subtensor.substrate.compose_call(
-        call_module="Swap",
-        call_function="toggle_user_liquidity",
-        call_params={"netuid": netuid, "enable": enable},
-    )
-
-    return subtensor.sign_and_send_extrinsic(
-        call=call,
-        wallet=wallet,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-        period=period,
-        raise_error=raise_error,
-        calling_function=get_function_name(),
-    )
+        return subtensor.sign_and_send_extrinsic(
+            call=call,
+            wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            period=period,
+            raise_error=raise_error,
+        )
+    except Exception as error:
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)

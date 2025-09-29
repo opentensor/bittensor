@@ -1,8 +1,6 @@
 from typing import TYPE_CHECKING, Optional
 
 from bittensor.core.types import ExtrinsicResponse
-from bittensor.utils import unlock_key, get_function_name
-from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -36,27 +34,27 @@ async def start_call_extrinsic(
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
     """
-    if not (unlock := unlock_key(wallet)).success:
-        logging.error(unlock.message)
-        return ExtrinsicResponse(
-            False, unlock.message, extrinsic_function=get_function_name()
-        )
+    try:
+        if not (
+            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+        ).success:
+            return unlocked
 
-    async with subtensor.substrate as substrate:
-        start_call = await substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="start_call",
-            call_params={"netuid": netuid},
-        )
+        async with subtensor.substrate as substrate:
+            start_call = await substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="start_call",
+                call_params={"netuid": netuid},
+            )
 
-        response = await subtensor.sign_and_send_extrinsic(
-            call=start_call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            period=period,
-            raise_error=raise_error,
-            calling_function=get_function_name(),
-        )
+            return await subtensor.sign_and_send_extrinsic(
+                call=start_call,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                period=period,
+                raise_error=raise_error,
+            )
 
-        return response
+    except Exception as error:
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
