@@ -42,8 +42,6 @@ async def test_commit_and_reveal_weights_legacy(subtensor, alice_wallet):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    logging.console.info("Testing test_commit_and_reveal_weights")
-
     # turn off admin freeze window limit for testing
     assert sudo_set_admin_freeze_window_extrinsic(subtensor, alice_wallet, 0), (
         "Failed to set admin freeze window to 0"
@@ -143,7 +141,6 @@ async def test_commit_and_reveal_weights_legacy(subtensor, alice_wallet):
         )
 
         assert response.success, response.message
-        logging.console.info(f"block: {subtensor.block} response: {response}")
 
         storage_index = get_mechid_storage_index(netuid, mechid)
         weight_commits = subtensor.queries.query_module(
@@ -192,8 +189,6 @@ async def test_commit_and_reveal_weights_legacy(subtensor, alice_wallet):
             f"Incorrect revealed weights. Expected: {weights[0]}, Actual: {revealed_weights[0][1]}"
         )
 
-    logging.console.success("✅ Passed test_commit_and_reveal_weights")
-
 
 @pytest.mark.asyncio
 async def test_commit_and_reveal_weights_legacy_async(async_subtensor, alice_wallet):
@@ -209,8 +204,6 @@ async def test_commit_and_reveal_weights_legacy_async(async_subtensor, alice_wal
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    logging.console.info("Testing test_commit_and_reveal_weights_async")
-
     # turn off admin freeze window limit for testing
     assert (
         await async_sudo_set_admin_utils(
@@ -352,7 +345,6 @@ async def test_commit_and_reveal_weights_legacy_async(async_subtensor, alice_wal
     assert weight_vals[0] == revealed_weights[0][1], (
         f"Incorrect revealed weights. Expected: {weights[0]}, Actual: {revealed_weights[0][1]}"
     )
-    logging.console.success("✅ Passed test_commit_and_reveal_weights_async")
 
 
 # Create different committed data to avoid coming into the pool's blacklist with the error
@@ -385,8 +377,6 @@ async def test_commit_weights_uses_next_nonce(subtensor, alice_wallet):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    logging.console.info("Testing test_commit_and_reveal_weights")
-
     # turn off admin freeze window limit for testing
     assert sudo_set_admin_freeze_window_extrinsic(subtensor, alice_wallet, 0), (
         "Failed to set admin freeze window to 0"
@@ -522,7 +512,6 @@ async def test_commit_weights_uses_next_nonce(subtensor, alice_wallet):
     assert len(weight_commits.value) == AMOUNT_OF_COMMIT_WEIGHTS, (
         "Expected exact list of weight commits"
     )
-    logging.console.success("✅ Passed `test_commit_and_reveal_weights` test.")
 
 
 @pytest.mark.asyncio
@@ -540,8 +529,6 @@ async def test_commit_weights_uses_next_nonce_async(async_subtensor, alice_walle
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    logging.console.info("Testing test_commit_and_reveal_weights")
-
     assert (
         await async_sudo_set_admin_utils(
             substrate=async_subtensor.substrate,
@@ -722,4 +709,3 @@ async def test_commit_weights_uses_next_nonce_async(async_subtensor, alice_walle
     assert len(weight_commits.value) == AMOUNT_OF_COMMIT_WEIGHTS, (
         "Expected exact list of weight commits"
     )
-    logging.console.success("✅ Passed `test_commit_and_reveal_weights_async` test.")

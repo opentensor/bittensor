@@ -45,34 +45,33 @@ def mock_new_wallet(mocker):
 
 
 @pytest.mark.parametrize(
-    "subnet_exists, neuron_is_null, cuda_available, expected_result, test_id, expected_message",
+    "subnet_exists, neuron_is_null, cuda_available, expected_result, expected_message",
     [
         (
             False,
             True,
             True,
             False,
-            "subnet-does-not-exist",
-            "Subnet #123 does not exist.",
+            "Subnet 123 does not exist.",
         ),
-        (True, False, True, True, "neuron-already-registered", "Already registered."),
-        (True, True, False, False, "cuda-unavailable", "CUDA not available."),
+        (True, False, True, True, "Already registered."),
+        (True, True, False, False, "CUDA not available."),
     ],
+    ids=["subnet-does-not-exist", "neuron-already-registered", "cuda-unavailable"],
 )
 def test_register_extrinsic_without_pow(
     mock_subtensor,
     mock_wallet,
+    mocker,
     subnet_exists,
     neuron_is_null,
     cuda_available,
     expected_result,
-    test_id,
-    mocker,
     expected_message,
 ):
     # Arrange
     mocker.patch.object(mock_subtensor, "subnet_exists", return_value=subnet_exists)
-    mocker.patch.object(
+    fake_neuron = mocker.patch.object(
         mock_subtensor,
         "get_neuron_for_pubkey_and_subnet",
         return_value=mocker.MagicMock(is_null=neuron_is_null),
@@ -101,9 +100,18 @@ def test_register_extrinsic_without_pow(
     )
 
     # Assert
-    assert result == ExtrinsicResponse(
-        expected_result, expected_message, extrinsic_function="register_extrinsic"
-    ), f"Test failed for test_id: {test_id}"
+    data = (
+        {"neuron": fake_neuron.return_value}
+        if fake_neuron.call_count > 0 and cuda_available
+        else None
+    )
+    expected_result = ExtrinsicResponse(
+        expected_result,
+        expected_message,
+        extrinsic_function="register_extrinsic",
+        data=data,
+    )
+    assert result == expected_result
 
 
 @pytest.mark.parametrize(
@@ -216,7 +224,6 @@ def test_burned_register_extrinsic(
         "get_neuron_for_pubkey_and_subnet",
         return_value=mocker.MagicMock(is_null=neuron_is_null),
     )
-    mocker.patch("bittensor.core.extrinsics.registration.get_extrinsic_fee")
     mocker.patch.object(
         mock_subtensor,
         "sign_and_send_extrinsic",
@@ -291,7 +298,6 @@ def test_set_subnet_identity_extrinsic_is_success(mock_subtensor, mock_wallet, m
         wait_for_finalization=True,
         period=None,
         raise_error=False,
-        calling_function="set_subnet_identity_extrinsic",
     )
 
     assert result == mocked_sign_and_send_extrinsic.return_value
@@ -357,7 +363,6 @@ def test_set_subnet_identity_extrinsic_is_failed(mock_subtensor, mock_wallet, mo
         wait_for_finalization=True,
         period=None,
         raise_error=False,
-        calling_function="set_subnet_identity_extrinsic",
     )
 
     assert result == mocked_sign_and_send_extrinsic.return_value

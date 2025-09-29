@@ -56,12 +56,10 @@ async def test_unstake_extrinsic(fake_wallet, mocker):
         wallet=fake_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
-        sign_with="coldkey",
         nonce_key="coldkeypub",
         use_nonce=True,
         period=None,
         raise_error=False,
-        calling_function="unstake_extrinsic",
     )
 
 
@@ -82,7 +80,7 @@ async def test_unstake_all_extrinsic(fake_wallet, mocker):
     result = await unstaking.unstake_all_extrinsic(
         subtensor=fake_subtensor,
         wallet=fake_wallet,
-        hotkey=hotkey,
+        hotkey_ss58=hotkey,
         netuid=fake_netuid,
     )
 
@@ -104,17 +102,15 @@ async def test_unstake_all_extrinsic(fake_wallet, mocker):
         wallet=fake_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
-        sign_with="coldkey",
         nonce_key="coldkeypub",
         use_nonce=True,
         period=None,
         raise_error=False,
-        calling_function="unstake_all_extrinsic",
     )
 
 
 @pytest.mark.asyncio
-async def test_unstake_multiple_extrinsic(fake_wallet, mocker):
+async def test_unstake_multiple_extrinsic_some_unstake_is_happy(fake_wallet, mocker):
     """Verify that sync `unstake_multiple_extrinsic` method calls proper async method."""
     # Preps
     fake_substrate = mocker.AsyncMock(
@@ -122,12 +118,11 @@ async def test_unstake_multiple_extrinsic(fake_wallet, mocker):
     )
     fake_subtensor = mocker.AsyncMock(
         **{
-            "get_hotkey_owner.return_value": "hotkey_owner",
-            "get_stake_for_coldkey_and_hotkey.return_value": [Balance(10.0)],
-            "sign_and_send_extrinsic.return_value": ExtrinsicResponse(True, ""),
-            "tx_rate_limit.return_value": 0,
             "substrate": fake_substrate,
         }
+    )
+    mocked_unstake_extrinsic = mocker.patch.object(
+        unstaking, "unstake_extrinsic", return_value=ExtrinsicResponse(True, "")
     )
     mocker.patch.object(
         unstaking, "get_old_stakes", return_value=[Balance(1.1), Balance(0.3)]
@@ -140,7 +135,7 @@ async def test_unstake_multiple_extrinsic(fake_wallet, mocker):
     wait_for_finalization = True
 
     # Call
-    result = await unstaking.unstake_multiple_extrinsic(
+    response = await unstaking.unstake_multiple_extrinsic(
         subtensor=fake_subtensor,
         wallet=fake_wallet,
         hotkey_ss58s=hotkey_ss58s,
@@ -151,37 +146,19 @@ async def test_unstake_multiple_extrinsic(fake_wallet, mocker):
     )
 
     # Asserts
-    assert result.success is True
-    assert fake_subtensor.substrate.compose_call.call_count == 1
-    assert fake_subtensor.sign_and_send_extrinsic.call_count == 1
-
-    fake_subtensor.substrate.compose_call.assert_any_call(
-        call_module="SubtensorModule",
-        call_function="remove_stake",
-        call_params={
-            "hotkey": "hotkey1",
-            "amount_unstaked": 1100000000,
-            "netuid": 1,
-        },
-    )
-    fake_subtensor.substrate.compose_call.assert_any_call(
-        call_module="SubtensorModule",
-        call_function="remove_stake",
-        call_params={
-            "hotkey": "hotkey1",
-            "amount_unstaked": 1100000000,
-            "netuid": 1,
-        },
-    )
-    fake_subtensor.sign_and_send_extrinsic.assert_awaited_with(
-        call=fake_subtensor.substrate.compose_call.return_value,
+    print(">>> result", response)
+    print(">>> result.success", response.success)
+    assert response.success is False
+    assert response.message == "Some unstake were successful."
+    assert len(response.data) == 2
+    mocked_unstake_extrinsic.assert_awaited_once_with(
+        subtensor=fake_subtensor,
         wallet=fake_wallet,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-        sign_with="coldkey",
-        nonce_key="coldkeypub",
-        use_nonce=True,
+        amount=Balance.from_tao(1.1),
+        hotkey_ss58=hotkey_ss58s[0],
+        netuid=fake_netuids[0],
         period=None,
         raise_error=False,
-        calling_function="unstake_multiple_extrinsic",
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
     )

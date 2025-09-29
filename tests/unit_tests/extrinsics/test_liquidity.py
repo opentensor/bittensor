@@ -42,10 +42,8 @@ def test_add_liquidity_extrinsic(subtensor, fake_wallet, mocker):
         wallet=fake_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
-        use_nonce=True,
         period=None,
         raise_error=False,
-        calling_function="add_liquidity_extrinsic",
     )
     assert result == mocked_sign_and_send_extrinsic.return_value
 
@@ -87,10 +85,8 @@ def test_modify_liquidity_extrinsic(subtensor, fake_wallet, mocker):
         wallet=fake_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
-        use_nonce=True,
         period=None,
         raise_error=False,
-        calling_function="modify_liquidity_extrinsic",
     )
     assert result == mocked_sign_and_send_extrinsic.return_value
 
@@ -129,10 +125,8 @@ def test_remove_liquidity_extrinsic(subtensor, fake_wallet, mocker):
         wallet=fake_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
-        use_nonce=True,
         period=None,
         raise_error=False,
-        calling_function="remove_liquidity_extrinsic",
     )
     assert result == mocked_sign_and_send_extrinsic.return_value
 
@@ -172,6 +166,5 @@ def test_toggle_user_liquidity_extrinsic(subtensor, fake_wallet, mocker):
         wait_for_finalization=True,
         period=None,
         raise_error=False,
-        calling_function="toggle_user_liquidity_extrinsic",
     )
     assert result == mocked_sign_and_send_extrinsic.return_value

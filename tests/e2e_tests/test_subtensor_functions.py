@@ -52,7 +52,6 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    logging.console.info("Testing [blue]test_subtensor_extrinsics[/blue]")
     netuid = subtensor.subnets.get_total_subnets()  # 22
     # Initial balance for Alice, defined in the genesis file of localnet
     initial_alice_balance = Balance.from_tao(1_000_000)
@@ -73,23 +72,11 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
     pre_subnet_creation_cost = subtensor.subnets.get_subnet_burn_cost()
 
     # Register subnet
-    assert subtensor.subnets.register_subnet(alice_wallet), (
-        "Unable to register the subnet."
-    )
+    response = subtensor.subnets.register_subnet(alice_wallet)
+    assert response.success, "Unable to register the subnet."
 
     # Subnet burn cost is increased immediately after a subnet is registered
     post_subnet_creation_cost = subtensor.subnets.get_subnet_burn_cost()
-
-    # TODO: in SDKv10 replace this logic with using `ExtrinsicResponse.extrinsic_fee`
-    call = subtensor.substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="register_network",
-        call_params={
-            "hotkey": alice_wallet.hotkey.ss58_address,
-            "mechid": 1,
-        },
-    )
-    register_fee = get_extrinsic_fee(subtensor, call, alice_wallet.hotkey)
 
     # Assert that the burn cost changed after registering a subnet
     assert Balance.from_tao(pre_subnet_creation_cost) < Balance.from_tao(
@@ -101,7 +88,7 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
         alice_wallet.coldkeypub.ss58_address
     )
     assert (
-        alice_balance_post_sn + pre_subnet_creation_cost + register_fee
+        alice_balance_post_sn + pre_subnet_creation_cost + response.extrinsic_fee
         == initial_alice_balance
     ), "Balance is the same even after registering a subnet."
 
@@ -234,8 +221,6 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
         f"Expected owner {expected_owner}, but found {actual_owner}"
     )
 
-    logging.console.success("✅ Passed [blue]test_subtensor_extrinsics[/blue]")
-
 
 @pytest.mark.asyncio
 async def test_subtensor_extrinsics_async(
@@ -253,7 +238,6 @@ async def test_subtensor_extrinsics_async(
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    logging.console.info("Testing [blue]test_subtensor_extrinsics[/blue]")
     netuid = await async_subtensor.subnets.get_total_subnets()  # 22
     # Initial balance for Alice, defined in the genesis file of localnet
     initial_alice_balance = Balance.from_tao(1_000_000)
@@ -276,22 +260,8 @@ async def test_subtensor_extrinsics_async(
     pre_subnet_creation_cost = await async_subtensor.subnets.get_subnet_burn_cost()
 
     # Register subnet
-    assert await async_subtensor.subnets.register_subnet(alice_wallet), (
-        "Unable to register the subnet"
-    )
-
-    # TODO: in SDKv10 replace this logic with using `ExtrinsicResponse.extrinsic_fee`
-    call = await async_subtensor.substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="register_network",
-        call_params={
-            "hotkey": alice_wallet.hotkey.ss58_address,
-            "mechid": 1,
-        },
-    )
-    register_fee = await get_extrinsic_fee_async(
-        async_subtensor, call, alice_wallet.hotkey
-    )
+    response = await async_subtensor.subnets.register_subnet(alice_wallet)
+    assert response.success, "Unable to register the subnet."
 
     # Subnet burn cost is increased immediately after a subnet is registered
     post_subnet_creation_cost = await async_subtensor.subnets.get_subnet_burn_cost()
@@ -306,7 +276,7 @@ async def test_subtensor_extrinsics_async(
         alice_wallet.coldkeypub.ss58_address
     )
     assert (
-        alice_balance_post_sn + pre_subnet_creation_cost + register_fee
+        alice_balance_post_sn + pre_subnet_creation_cost + response.extrinsic_fee
         == initial_alice_balance
     ), "Balance is the same even after registering a subnet."
 
@@ -442,5 +412,3 @@ async def test_subtensor_extrinsics_async(
     assert actual_owner == expected_owner, (
         f"Expected owner {expected_owner}, but found {actual_owner}"
     )
-
-    logging.console.success("✅ Passed [blue]test_subtensor_extrinsics[/blue]")
