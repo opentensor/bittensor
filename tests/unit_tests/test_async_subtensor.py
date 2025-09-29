@@ -2962,7 +2962,7 @@ async def test_get_metagraph_info_all_fields(subtensor, mocker):
 
     # Call
     result = await subtensor.get_metagraph_info(
-        netuid=netuid, field_indices=[f for f in range(len(SelectiveMetagraphIndex))]
+        netuid=netuid, selected_indices=[f for f in range(len(SelectiveMetagraphIndex))]
     )
 
     # Asserts
@@ -2995,7 +2995,7 @@ async def test_get_metagraph_info_specific_fields(subtensor, mocker):
     )
 
     # Call
-    result = await subtensor.get_metagraph_info(netuid=netuid, field_indices=fields)
+    result = await subtensor.get_metagraph_info(netuid=netuid, selected_indices=fields)
 
     # Asserts
     assert result == "parsed_metagraph"
