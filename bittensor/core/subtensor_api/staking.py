@@ -13,7 +13,6 @@ class Staking:
         self.get_minimum_required_stake = subtensor.get_minimum_required_stake
         self.get_stake = subtensor.get_stake
         self.get_stake_add_fee = subtensor.get_stake_add_fee
-        self.get_stake_for_coldkey = subtensor.get_stake_for_coldkey
         self.get_stake_for_coldkey_and_hotkey = (
             subtensor.get_stake_for_coldkey_and_hotkey
         )

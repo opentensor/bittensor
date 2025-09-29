@@ -262,7 +262,7 @@ def add_stake_multiple_extrinsic(
             return ExtrinsicResponse(True, "Success")
 
         block = subtensor.get_current_block()
-        all_stakes = subtensor.get_stake_for_coldkey(
+        all_stakes = subtensor.get_stake_info_for_coldkey(
             coldkey_ss58=wallet.coldkeypub.ss58_address,
         )
         old_stakes: list[Balance] = get_old_stakes(

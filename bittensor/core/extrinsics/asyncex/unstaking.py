@@ -352,7 +352,7 @@ async def unstake_multiple_extrinsic(
 
         block_hash = await subtensor.substrate.get_chain_head()
         all_stakes, old_balance = await asyncio.gather(
-            subtensor.get_stake_for_coldkey(
+            subtensor.get_stake_info_for_coldkey(
                 coldkey_ss58=wallet.coldkeypub.ss58_address, block_hash=block_hash
             ),
             subtensor.get_balance(

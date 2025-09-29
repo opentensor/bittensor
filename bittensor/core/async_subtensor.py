@@ -2829,7 +2829,7 @@ class AsyncSubtensor(SubtensorMixin):
             for (netuid, result) in zip(all_netuids, results)
         }
 
-    async def get_stake_for_coldkey(
+    async def get_stake_info_for_coldkey(
         self,
         coldkey_ss58: str,
         block: Optional[int] = None,
@@ -2862,8 +2862,6 @@ class AsyncSubtensor(SubtensorMixin):
 
         stakes: list[StakeInfo] = StakeInfo.list_from_dicts(result)
         return [stake for stake in stakes if stake.stake > 0]
-
-    get_stake_info_for_coldkey = get_stake_for_coldkey
 
     async def get_stake_for_hotkey(
         self,

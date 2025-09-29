@@ -2041,7 +2041,7 @@ class Subtensor(SubtensorMixin):
             for (netuid, result) in zip(all_netuids, results)
         }
 
-    def get_stake_for_coldkey(
+    def get_stake_info_for_coldkey(
         self, coldkey_ss58: str, block: Optional[int] = None
     ) -> list["StakeInfo"]:
         """
@@ -2065,8 +2065,6 @@ class Subtensor(SubtensorMixin):
             return []
         stakes: list[StakeInfo] = StakeInfo.list_from_dicts(result)
         return [stake for stake in stakes if stake.stake > 0]
-
-    get_stake_info_for_coldkey = get_stake_for_coldkey
 
     def get_stake_for_hotkey(
         self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
