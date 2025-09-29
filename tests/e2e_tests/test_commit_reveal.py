@@ -28,11 +28,10 @@ from tests.e2e_tests.utils.chain_interactions import (
 TESTED_SUB_SUBNETS = 2
 
 
-# @pytest.mark.parametrize("local_chain", [True], indirect=True)
 @pytest.mark.asyncio
-async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_wallet):
+async def test_commit_and_reveal_weights_cr4(subtensor, alice_wallet):
     """
-    Tests the commit/reveal weights mechanism (CR3)
+    Tests the commit/reveal weights mechanism (CRv4)
 
     Steps:
         1. Register a subnet through Alice
@@ -45,8 +44,6 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    logging.console.info("Testing `test_commit_and_reveal_weights_cr4`")
-
     # turn off admin freeze window limit for testing
     assert sudo_set_admin_freeze_window_extrinsic(subtensor, alice_wallet, 0)
 
@@ -77,7 +74,7 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
 
     # Enable commit_reveal on the subnet
     assert sudo_set_hyperparameter_bool(
-        substrate=local_chain,
+        substrate=subtensor.substrate,
         wallet=alice_wallet,
         call_function="sudo_set_commit_reveal_weights_enabled",
         value=True,
@@ -97,7 +94,7 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
 
     # Change the weights rate limit on the subnet
     status, error = sudo_set_admin_utils(
-        substrate=local_chain,
+        substrate=subtensor.substrate,
         wallet=alice_wallet,
         call_function="sudo_set_weights_set_rate_limit",
         call_params={"netuid": alice_subnet_netuid, "weights_set_rate_limit": "0"},
@@ -119,8 +116,8 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
     # Change the tempo of the subnet
     assert (
         sudo_set_admin_utils(
-            local_chain,
-            alice_wallet,
+            substrate=subtensor.substrate,
+            wallet=alice_wallet,
             call_function="sudo_set_tempo",
             call_params={"netuid": alice_subnet_netuid, "tempo": TEMPO_TO_SET},
         )[0]
@@ -273,15 +270,11 @@ async def test_commit_and_reveal_weights_cr4(local_chain, subtensor, alice_walle
             f"latest_drand_round ({latest_drand_round}) is less than expected_reveal_round ({expected_reveal_round})"
         )
 
-    logging.console.success("✅ Passed `test_commit_and_reveal_weights_cr4`")
-
 
 @pytest.mark.asyncio
-async def test_commit_and_reveal_weights_cr4_async(
-    async_subtensor, alice_wallet, local_chain
-):
+async def test_commit_and_reveal_weights_cr4_async(async_subtensor, alice_wallet):
     """
-    Tests the commit/reveal weights mechanism (CR3)
+    Tests the commit/reveal weights mechanism (CRv4)
 
     Steps:
         1. Register a subnet through Alice
@@ -294,9 +287,6 @@ async def test_commit_and_reveal_weights_cr4_async(
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-
-    logging.console.info("Testing `test_commit_and_reveal_weights_cr4`")
-
     # turn off admin freeze window limit for testing
     assert await async_sudo_set_admin_freeze_window_extrinsic(
         async_subtensor, alice_wallet, 0
@@ -348,8 +338,8 @@ async def test_commit_and_reveal_weights_cr4_async(
     assert cr_version == 4, f"Commit reveal version is not 3, got {cr_version}"
 
     # Change the weights rate limit on the subnet
-    status, error = sudo_set_admin_utils(
-        substrate=local_chain,
+    status, error = await async_sudo_set_admin_utils(
+        substrate=async_subtensor.substrate,
         wallet=alice_wallet,
         call_function="sudo_set_weights_set_rate_limit",
         call_params={"netuid": alice_subnet_netuid, "weights_set_rate_limit": "0"},
@@ -372,14 +362,13 @@ async def test_commit_and_reveal_weights_cr4_async(
 
     # Change the tempo of the subnet
     assert (
-        sudo_set_admin_utils(
-            local_chain,
-            alice_wallet,
+        await async_sudo_set_admin_utils(
+            substrate=async_subtensor.substrate,
+            wallet=alice_wallet,
             call_function="sudo_set_tempo",
             call_params={"netuid": alice_subnet_netuid, "tempo": TEMPO_TO_SET},
-        )[0]
-        is True
-    )
+        )
+    )[0] is True
 
     tempo = (
         await async_subtensor.subnets.get_subnet_hyperparameters(
@@ -427,8 +416,6 @@ async def test_commit_and_reveal_weights_cr4_async(
             f"[magenta]Testing subnet mechanism: {alice_subnet_netuid}.{mechid}[/magenta]"
         )
 
-        # commit_block is the block when weights were committed on the chain (transaction block)
-        expected_commit_block = await async_subtensor.block + 1
         # Commit weights
         response = await async_subtensor.extrinsics.set_weights(
             wallet=alice_wallet,
@@ -531,5 +518,3 @@ async def test_commit_and_reveal_weights_cr4_async(
         assert latest_drand_round - expected_reveal_round >= -3, (
             f"latest_drand_round ({latest_drand_round}) is less than expected_reveal_round ({expected_reveal_round})"
         )
-
-        logging.console.success("✅ Passed `test_commit_and_reveal_weights_cr4`")
