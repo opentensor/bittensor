@@ -8,3 +8,12 @@ but can be enabled or imported as needed for advanced use cases, internal toolin
 Use this package to keep optional, modular, or feature-gated logic separate from the primary codebase while maintaining
 discoverability and structure.
 """
+
+from bittensor.core.addons.subtensor_api import SubtensorApi
+from bittensor.core.addons import timelock
+
+
+__all__ = [
+    "timelock",
+    "SubtensorApi",
+]
