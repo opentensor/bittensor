@@ -75,7 +75,6 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     )
     subtensor.get_stake = subtensor._subtensor.get_stake
     subtensor.get_stake_add_fee = subtensor._subtensor.get_stake_add_fee
-    subtensor.get_stake_for_coldkey = subtensor._subtensor.get_stake_for_coldkey
     subtensor.get_stake_for_coldkey_and_hotkey = (
         subtensor._subtensor.get_stake_for_coldkey_and_hotkey
     )
