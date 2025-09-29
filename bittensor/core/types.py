@@ -366,6 +366,11 @@ class ExtrinsicResponse:
         yield self.message
 
     def __str__(self):
+        _extrinsic_receipt = (
+            f"ExtrinsicReceipt<hash:{self.extrinsic_receipt.extrinsic_hash}>\n"
+            if self.extrinsic_receipt
+            else f"{self.extrinsic_receipt}\n"
+        )
         return (
             f"{self.__class__.__name__}:\n"
             f"\tsuccess: {self.success}\n"
@@ -373,7 +378,7 @@ class ExtrinsicResponse:
             f"\textrinsic_function: {self.extrinsic_function}\n"
             f"\textrinsic: {self.extrinsic}\n"
             f"\textrinsic_fee: {self.extrinsic_fee}\n"
-            f"\textrinsic_receipt: ExtrinsicReceipt<hash:{self.extrinsic_receipt.extrinsic_hash}>\n"
+            f"\textrinsic_receipt: {_extrinsic_receipt}"
             f"\ttransaction_fee: {self.transaction_fee}\n"
             f"\tdata: {self.data}\n"
             f"\terror: {self.error}"
