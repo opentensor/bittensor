@@ -4266,6 +4266,7 @@ class AsyncSubtensor(SubtensorMixin):
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
+            extrinsic_response.extrinsic_receipt = response
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
                 extrinsic_response.message = (
