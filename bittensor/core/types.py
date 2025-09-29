@@ -486,7 +486,10 @@ class ExtrinsicResponse:
         ).with_log()
 
     def with_log(
-        self, level: Literal["trace", "debug", "info", "warning", "error", "success"] = "error"
+        self,
+        level: Literal[
+            "trace", "debug", "info", "warning", "error", "success"
+        ] = "error",
     ) -> "ExtrinsicResponse":
         """Logs provided message with provided level.
 
