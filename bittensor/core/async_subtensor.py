@@ -71,16 +71,14 @@ from bittensor.core.extrinsics.asyncex.staking import (
     add_stake_multiple_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.start_call import start_call_extrinsic
-from bittensor.core.extrinsics.asyncex.take import (
-    decrease_take_extrinsic,
-    increase_take_extrinsic,
-)
+from bittensor.core.extrinsics.asyncex.take import set_take_extrinsic
 from bittensor.core.extrinsics.asyncex.transfer import transfer_extrinsic
 from bittensor.core.extrinsics.asyncex.unstaking import (
     unstake_all_extrinsic,
     unstake_extrinsic,
     unstake_multiple_extrinsic,
 )
+from bittensor.core.extrinsics.asyncex.utils import get_extrinsic_fee
 from bittensor.core.extrinsics.asyncex.weights import (
     commit_timelocked_weights_extrinsic,
     commit_weights_extrinsic,
@@ -101,11 +99,12 @@ from bittensor.utils import (
     Certificate,
     decode_hex_identity_dict,
     format_error_message,
+    get_caller_name,
+    get_transfer_fn_params,
+    get_mechid_storage_index,
     is_valid_ss58_address,
     u16_normalized_float,
     u64_normalized_float,
-    get_transfer_fn_params,
-    get_mechid_storage_index,
 )
 from bittensor.utils.balance import (
     Balance,
@@ -1280,7 +1279,7 @@ class AsyncSubtensor(SubtensorMixin):
 
     async def get_parents(
         self,
-        hotkey: str,
+        hotkey_ss58: str,
         netuid: int,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
@@ -1290,7 +1289,7 @@ class AsyncSubtensor(SubtensorMixin):
         storage function to get the children and formats them before returning as a tuple.
 
         Parameters:
-            hotkey: The child hotkey SS58.
+            hotkey_ss58: The child hotkey SS58.
             netuid: The netuid value.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
             block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
@@ -1303,7 +1302,7 @@ class AsyncSubtensor(SubtensorMixin):
         parents = await self.substrate.query(
             module="SubtensorModule",
             storage_function="ParentKeys",
-            params=[hotkey, netuid],
+            params=[hotkey_ss58, netuid],
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
@@ -1320,7 +1319,7 @@ class AsyncSubtensor(SubtensorMixin):
 
     async def get_children(
         self,
-        hotkey: str,
+        hotkey_ss58: str,
         netuid: int,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
@@ -1333,7 +1332,7 @@ class AsyncSubtensor(SubtensorMixin):
         distribution.
 
         Parameters:
-            hotkey: The hotkey value.
+            hotkey_ss58: The hotkey value.
             netuid: The netuid value.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
             block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
@@ -1356,7 +1355,7 @@ class AsyncSubtensor(SubtensorMixin):
             children = await self.substrate.query(
                 module="SubtensorModule",
                 storage_function="ChildKeys",
-                params=[hotkey, netuid],
+                params=[hotkey_ss58, netuid],
                 block_hash=block_hash,
                 reuse_block_hash=reuse_block,
             )
@@ -1375,7 +1374,7 @@ class AsyncSubtensor(SubtensorMixin):
 
     async def get_children_pending(
         self,
-        hotkey: str,
+        hotkey_ss58: str,
         netuid: int,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
@@ -1390,7 +1389,7 @@ class AsyncSubtensor(SubtensorMixin):
         approval or in a cooldown period. These are children that have been proposed but not yet finalized.
 
         Parameters:
-            hotkey: The hotkey value.
+            hotkey_ss58: The hotkey value.
             netuid: The netuid value.
             block: The block number for which the children are to be retrieved.
             block_hash: The hash of the block to retrieve the subnet unique identifiers from.
@@ -1404,7 +1403,7 @@ class AsyncSubtensor(SubtensorMixin):
         response = await self.substrate.query(
             module="SubtensorModule",
             storage_function="PendingChildKeys",
-            params=[netuid, hotkey],
+            params=[netuid, hotkey_ss58],
             block_hash=await self.determine_block_hash(
                 block,
                 block_hash,
@@ -2077,7 +2076,7 @@ class AsyncSubtensor(SubtensorMixin):
 
     async def get_neuron_certificate(
         self,
-        hotkey: str,
+        hotkey_ss58: str,
         netuid: int,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
@@ -2088,7 +2087,7 @@ class AsyncSubtensor(SubtensorMixin):
         subnet (netuid) of the Bittensor network.
 
         Parameters:
-            hotkey: The hotkey to query.
+            hotkey_ss58: The hotkey to query.
             netuid: The unique identifier of the subnet.
             block: The blockchain block number for the query.
             block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
@@ -2108,7 +2107,7 @@ class AsyncSubtensor(SubtensorMixin):
                 name="NeuronCertificates",
                 block_hash=block_hash,
                 reuse_block=reuse_block,
-                params=[netuid, hotkey],
+                params=[netuid, hotkey_ss58],
             ),
         )
         try:
@@ -2373,14 +2372,14 @@ class AsyncSubtensor(SubtensorMixin):
         )
         if (uid := getattr(uid_query, "value", None)) is None:
             return NeuronInfo.get_null_neuron()
-        else:
-            return await self.neuron_for_uid(
-                uid=uid,
-                netuid=netuid,
-                block=block,
-                block_hash=block_hash,
-                reuse_block=reuse_block,
-            )
+
+        return await self.neuron_for_uid(
+            uid=uid,
+            netuid=netuid,
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
 
     async def get_next_epoch_start_block(
         self,
@@ -2817,8 +2816,8 @@ class AsyncSubtensor(SubtensorMixin):
         results = await asyncio.gather(
             *[
                 self.query_runtime_api(
-                    "StakeInfoRuntimeApi",
-                    "get_stake_info_for_hotkey_coldkey_netuid",
+                    runtime_api="StakeInfoRuntimeApi",
+                    method="get_stake_info_for_hotkey_coldkey_netuid",
                     params=[hotkey_ss58, coldkey_ss58, netuid],
                     block_hash=block_hash,
                 )
@@ -4185,7 +4184,11 @@ class AsyncSubtensor(SubtensorMixin):
         Raises:
             SubstrateRequestException: Substrate request exception.
         """
-        extrinsic_response = ExtrinsicResponse(extrinsic_function=calling_function)
+        extrinsic_response = ExtrinsicResponse(
+            extrinsic_function=calling_function
+            if calling_function
+            else get_caller_name()
+        )
         possible_keys = ("coldkey", "hotkey", "coldkeypub")
         if sign_with not in possible_keys:
             raise AttributeError(
@@ -4205,6 +4208,9 @@ class AsyncSubtensor(SubtensorMixin):
         if period is not None:
             extrinsic_data["era"] = {"period": period}
 
+        extrinsic_response.extrinsic_fee = await get_extrinsic_fee(
+            subtensor=self, call=call, keypair=signing_keypair
+        )
         extrinsic_response.extrinsic = await self.substrate.create_signed_extrinsic(
             **extrinsic_data
         )
@@ -4219,6 +4225,7 @@ class AsyncSubtensor(SubtensorMixin):
                 extrinsic_response.message = (
                     "Not waiting for finalization or inclusion."
                 )
+                logging.debug(extrinsic_response.message)
                 return extrinsic_response
 
             if await response.is_success:
@@ -4229,6 +4236,7 @@ class AsyncSubtensor(SubtensorMixin):
 
             if raise_error:
                 raise ChainError.from_error(response_error_message)
+
             extrinsic_response.success = False
             extrinsic_response.message = format_error_message(response_error_message)
             extrinsic_response.error = response_error_message
@@ -4358,8 +4366,8 @@ class AsyncSubtensor(SubtensorMixin):
     async def add_stake_multiple(
         self,
         wallet: "Wallet",
-        hotkey_ss58s: list[str],
         netuids: UIDs,
+        hotkey_ss58s: list[str],
         amounts: list[Balance],
         period: Optional[int] = None,
         raise_error: bool = False,
@@ -4372,8 +4380,8 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             wallet: The wallet used for staking.
-            hotkey_ss58s: List of ``SS58`` addresses of hotkeys to stake to.
             netuids: List of subnet UIDs.
+            hotkey_ss58s: List of ``SS58`` addresses of hotkeys to stake to.
             amounts: List of corresponding TAO amounts to bet for each netuid and hotkey.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
@@ -4492,11 +4500,9 @@ class AsyncSubtensor(SubtensorMixin):
             See also: <https://docs.learnbittensor.org/glossary#commit-reveal>,
         """
         retries = 0
-        response = ExtrinsicResponse(
-            False, "No attempt made. Perhaps it is too soon to commit weights!"
-        )
+        response = ExtrinsicResponse(False)
 
-        logging.info(
+        logging.debug(
             f"Committing weights with params: "
             f"netuid=[blue]{netuid}[/blue], uids=[blue]{uids}[/blue], weights=[blue]{weights}[/blue], "
             f"version_key=[blue]{version_key}[/blue]"
@@ -4518,10 +4524,16 @@ class AsyncSubtensor(SubtensorMixin):
                     raise_error=raise_error,
                 )
             except Exception as error:
-                response.error = error if not response.error else response.error
-                logging.error(f"Error committing weights: {error}")
+                return ExtrinsicResponse.from_exception(
+                    raise_error=raise_error, error=error
+                )
             retries += 1
 
+        if not response.success:
+            logging.debug(
+                "No one successful attempt made. "
+                "Perhaps it is too soon to commit weights!"
+            )
         return response
 
     async def modify_liquidity(
@@ -4834,9 +4846,7 @@ class AsyncSubtensor(SubtensorMixin):
         See also: <https://docs.learnbittensor.org/glossary#commit-reveal>,
         """
         retries = 0
-        response = ExtrinsicResponse(
-            False, "No attempt made. Perhaps it is too soon to reveal weights!"
-        )
+        response = ExtrinsicResponse(False)
 
         while retries < max_retries and response.success is False:
             try:
@@ -4855,10 +4865,13 @@ class AsyncSubtensor(SubtensorMixin):
                     wait_for_finalization=wait_for_finalization,
                 )
             except Exception as error:
-                response.error = error if not response.error else response.error
-                logging.error(f"Error revealing weights: {error}")
+                return ExtrinsicResponse.from_exception(
+                    raise_error=raise_error, error=error
+                )
             retries += 1
 
+        if not response.success:
+            logging.debug("No attempt made. Perhaps it is too soon to reveal weights!")
         return response
 
     async def root_register(
@@ -4933,7 +4946,7 @@ class AsyncSubtensor(SubtensorMixin):
     async def set_children(
         self,
         wallet: "Wallet",
-        hotkey: str,
+        hotkey_ss58: str,
         netuid: int,
         children: list[tuple[float, str]],
         period: Optional[int] = None,
@@ -4946,7 +4959,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             wallet: bittensor wallet instance.
-            hotkey: The `SS58` address of the neuron's hotkey.
+            hotkey_ss58: The `SS58` address of the neuron's hotkey.
             netuid: The netuid value.
             children: A list of children with their proportions.
             period: The number of blocks during which the transaction will remain valid after it's
@@ -4975,7 +4988,7 @@ class AsyncSubtensor(SubtensorMixin):
         return await set_children_extrinsic(
             subtensor=self,
             wallet=wallet,
-            hotkey=hotkey,
+            hotkey_ss58=hotkey_ss58,
             netuid=netuid,
             children=children,
             period=period,
@@ -5032,23 +5045,18 @@ class AsyncSubtensor(SubtensorMixin):
         current_take_u16 = int(current_take * 0xFFFF)
 
         if current_take_u16 == take_u16:
-            message = f"The take for {hotkey_ss58} is already set to {take}"
-            logging.info(f":white_heavy_check_mark: [green]{message}[/green].")
+            message = f"The take for {hotkey_ss58} is already set to {take}."
+            logging.debug(f"[green]{message}[/green].")
             return ExtrinsicResponse(True, message)
 
-        logging.info(f"Updating {hotkey_ss58} take: current={current_take} new={take}")
+        logging.debug(f"Updating {hotkey_ss58} take: current={current_take} new={take}")
 
-        extrinsic_call = (
-            increase_take_extrinsic
-            if current_take_u16 < take_u16
-            else decrease_take_extrinsic
-        )
-
-        response = await extrinsic_call(
+        response = await set_take_extrinsic(
             subtensor=self,
             wallet=wallet,
             hotkey_ss58=hotkey_ss58,
             take=take_u16,
+            action="increase_take" if current_take_u16 < take_u16 else "decrease_take",
             period=period,
             raise_error=raise_error,
             wait_for_finalization=wait_for_finalization,
@@ -5056,8 +5064,9 @@ class AsyncSubtensor(SubtensorMixin):
         )
 
         if response.success:
-            logging.info(":white_heavy_check_mark: [green]Take Updated[/green]")
+            return response
 
+        logging.error(f"[red]{response.message}[/red]")
         return response
 
     async def set_subnet_identity(
@@ -5166,9 +5175,8 @@ class AsyncSubtensor(SubtensorMixin):
             return bslu > wrl
 
         retries = 0
-        response = ExtrinsicResponse(
-            False, "No attempt made. Perhaps it is too soon to set weights!"
-        )
+        response = ExtrinsicResponse(False)
+
         if (
             uid := await self.get_uid_for_hotkey_on_subnet(
                 wallet.hotkey.ss58_address, netuid
@@ -5176,7 +5184,7 @@ class AsyncSubtensor(SubtensorMixin):
         ) is None:
             return ExtrinsicResponse(
                 False,
-                f"Hotkey {wallet.hotkey.ss58_address} not registered in subnet {netuid}",
+                f"Hotkey {wallet.hotkey.ss58_address} not registered in subnet {netuid}.",
             )
 
         if await self.commit_reveal_enabled(netuid=netuid):
@@ -5187,27 +5195,31 @@ class AsyncSubtensor(SubtensorMixin):
                 and response.success is False
                 and await _blocks_weight_limit()
             ):
-                logging.info(
+                logging.debug(
                     f"Committing weights for subnet [blue]{netuid}[/blue]. "
                     f"Attempt [blue]{retries + 1}[blue] of [green]{max_retries}[/green]."
                 )
-                response = await commit_timelocked_weights_extrinsic(
-                    subtensor=self,
-                    wallet=wallet,
-                    netuid=netuid,
-                    mechid=mechid,
-                    uids=uids,
-                    weights=weights,
-                    block_time=block_time,
-                    commit_reveal_version=commit_reveal_version,
-                    version_key=version_key,
-                    period=period,
-                    raise_error=raise_error,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
+                try:
+                    response = await commit_timelocked_weights_extrinsic(
+                        subtensor=self,
+                        wallet=wallet,
+                        netuid=netuid,
+                        mechid=mechid,
+                        uids=uids,
+                        weights=weights,
+                        block_time=block_time,
+                        commit_reveal_version=commit_reveal_version,
+                        version_key=version_key,
+                        period=period,
+                        raise_error=raise_error,
+                        wait_for_inclusion=wait_for_inclusion,
+                        wait_for_finalization=wait_for_finalization,
+                    )
+                except Exception as error:
+                    return ExtrinsicResponse.from_exception(
+                        raise_error=raise_error, error=error
+                    )
                 retries += 1
-            return response
         else:
             # go with `set_mechanism_weights_extrinsic`
 
@@ -5217,7 +5229,7 @@ class AsyncSubtensor(SubtensorMixin):
                 and await _blocks_weight_limit()
             ):
                 try:
-                    logging.info(
+                    logging.debug(
                         f"Setting weights for subnet #[blue]{netuid}[/blue]. "
                         f"Attempt [blue]{retries + 1}[/blue] of [green]{max_retries}[/green]."
                     )
@@ -5235,11 +5247,16 @@ class AsyncSubtensor(SubtensorMixin):
                         wait_for_finalization=wait_for_finalization,
                     )
                 except Exception as error:
-                    response.error = error if not response.error else response.error
-                    logging.error(f"Error setting weights: {error}")
+                    return ExtrinsicResponse.from_exception(
+                        raise_error=raise_error, error=error
+                    )
                 retries += 1
 
-            return response
+        if not response.success:
+            logging.debug(
+                "No one successful attempt made. Perhaps it is too soon to set weights!"
+            )
+        return response
 
     async def serve_axon(
         self,
@@ -5368,15 +5385,15 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Note: A commitment can be set once per subnet epoch and is reset at the next epoch in the chain automatically.
+        Note:
+            A commitment can be set once per subnet epoch and is reset at the next epoch in the chain automatically.
+            Successful extrinsic's the "data" field contains {"encrypted": encrypted, "reveal_round": reveal_round}.
         """
 
         encrypted, reveal_round = get_encrypted_commitment(
             data, blocks_until_reveal, block_time
         )
 
-        # increase reveal_round in return + 1 because we want to fetch data from the chain after that round was revealed
-        # and stored.
         data_ = {"encrypted": encrypted, "reveal_round": reveal_round}
         response = await publish_metadata_extrinsic(
             subtensor=self,
@@ -5389,7 +5406,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
-        response.data = {"reveal_round": reveal_round}
+        response.data = data_
         return response
 
     async def start_call(
@@ -5689,7 +5706,7 @@ class AsyncSubtensor(SubtensorMixin):
     async def unstake_all(
         self,
         wallet: "Wallet",
-        hotkey: str,
+        hotkey_ss58: str,
         netuid: int,
         rate_tolerance: Optional[float] = 0.005,
         period: Optional[int] = None,
@@ -5701,7 +5718,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             wallet: The wallet of the stake owner.
-            hotkey: The SS58 address of the hotkey to unstake from.
+            hotkey_ss58: The SS58 address of the hotkey to unstake from.
             netuid: The unique identifier of the subnet.
             rate_tolerance: The maximum allowed price change ratio when unstaking. For example, 0.005 = 0.5% maximum
                 price decrease. If not passed (None), then unstaking goes without price limit.
@@ -5754,14 +5771,10 @@ class AsyncSubtensor(SubtensorMixin):
                 )
                 print(result)
         """
-        if netuid != 0:
-            logging.debug(
-                f"Unstaking without Alpha price control from subnet [blue]#{netuid}[/blue]."
-            )
         return await unstake_all_extrinsic(
             subtensor=self,
             wallet=wallet,
-            hotkey=hotkey,
+            hotkey_ss58=hotkey_ss58,
             netuid=netuid,
             rate_tolerance=rate_tolerance,
             period=period,
