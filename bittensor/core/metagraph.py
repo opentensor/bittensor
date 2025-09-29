@@ -1556,7 +1556,8 @@ class AsyncMetagraph(NumpyOrTorch):
         """
         data_array = []
         n_subnets_, subnets = await asyncio.gather(
-            subtensor.get_total_subnets(block=block), subtensor.get_subnets(block=block)
+            subtensor.get_total_subnets(block=block),
+            subtensor.get_all_subnets_netuid(block=block),
         )
         n_subnets = n_subnets_ or 0
         for item in data:
@@ -1867,7 +1868,7 @@ class Metagraph(NumpyOrTorch):
         """
         data_array = []
         n_subnets = subtensor.get_total_subnets(block=block) or 0
-        subnets = subtensor.get_subnets(block=block)
+        subnets = subtensor.get_all_subnets_netuid(block=block)
         for item in data:
             if len(item) == 0:
                 if use_torch():

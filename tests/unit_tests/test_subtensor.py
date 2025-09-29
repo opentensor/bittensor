@@ -759,9 +759,9 @@ def test_get_total_subnets_no_block(mocker, subtensor):
     subtensor.substrate.get_block_hash.assert_not_called()
 
 
-# `get_subnets` tests
+# `get_all_subnets_netuid` tests
 def test_get_subnets_success(mocker, subtensor):
-    """Test get_subnets returns correct list when subnet information is found."""
+    """Test get_all_subnets_netuid returns correct list when subnet information is found."""
     # Prep
     block = 123
     mock_result = mocker.MagicMock()
@@ -770,7 +770,7 @@ def test_get_subnets_success(mocker, subtensor):
     mocker.patch.object(subtensor.substrate, "query_map", return_value=mock_result)
 
     # Call
-    result = subtensor.get_subnets(block)
+    result = subtensor.get_all_subnets_netuid(block)
 
     # Asserts
     assert result == [1, 2]
@@ -783,7 +783,7 @@ def test_get_subnets_success(mocker, subtensor):
 
 
 def test_get_subnets_no_data(mocker, subtensor):
-    """Test get_subnets returns empty list when no subnet information is found."""
+    """Test get_all_subnets_netuid returns empty list when no subnet information is found."""
     # Prep
     block = 123
     mock_result = mocker.MagicMock()
@@ -791,7 +791,7 @@ def test_get_subnets_no_data(mocker, subtensor):
     mocker.patch.object(subtensor.substrate, "query_map", return_value=mock_result)
 
     # Call
-    result = subtensor.get_subnets(block)
+    result = subtensor.get_all_subnets_netuid(block)
 
     # Asserts
     assert result == []
@@ -804,7 +804,7 @@ def test_get_subnets_no_data(mocker, subtensor):
 
 
 def test_get_subnets_no_block_specified(mocker, subtensor):
-    """Test get_subnets with no block specified."""
+    """Test get_all_subnets_netuid with no block specified."""
     # Prep
     mock_result = mocker.MagicMock()
     mock_result.records = [(1, True), (2, True)]
@@ -812,7 +812,7 @@ def test_get_subnets_no_block_specified(mocker, subtensor):
     mocker.patch.object(subtensor.substrate, "query_map", return_value=mock_result)
 
     # Call
-    result = subtensor.get_subnets()
+    result = subtensor.get_all_subnets_netuid()
 
     # Asserts
     assert result == [1, 2]
@@ -2087,7 +2087,7 @@ def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker):
         subtensor, "query_runtime_api", side_effect=query_fetcher
     )
     mocked_get_subnets = mocker.patch.object(
-        subtensor, "get_subnets", return_value=netuids
+        subtensor, "get_all_subnets_netuid", return_value=netuids
     )
 
     result = subtensor.get_stake_for_coldkey_and_hotkey(

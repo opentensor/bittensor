@@ -2810,7 +2810,7 @@ class AsyncSubtensor(SubtensorMixin):
         elif not block_hash:
             block_hash = await self.substrate.get_chain_head()
         if netuids is None:
-            all_netuids = await self.get_subnets(block_hash=block_hash)
+            all_netuids = await self.get_all_subnets_netuid(block_hash=block_hash)
         else:
             all_netuids = netuids
         results = await asyncio.gather(
@@ -3035,7 +3035,7 @@ class AsyncSubtensor(SubtensorMixin):
             param_name="RevealPeriodEpochs", block_hash=block_hash, netuid=netuid
         )
 
-    async def get_subnets(
+    async def get_all_subnets_netuid(
         self,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,

@@ -2024,7 +2024,7 @@ class Subtensor(SubtensorMixin):
             A {netuid: StakeInfo} pairing of all stakes across all subnets.
         """
         if netuids is None:
-            all_netuids = self.get_subnets(block=block)
+            all_netuids = self.get_all_subnets_netuid(block=block)
         else:
             all_netuids = netuids
         results = [
@@ -2198,7 +2198,7 @@ class Subtensor(SubtensorMixin):
             ),
         )
 
-    def get_subnets(self, block: Optional[int] = None) -> UIDs:
+    def get_all_subnets_netuid(self, block: Optional[int] = None) -> UIDs:
         """
         Retrieves the list of all subnet unique identifiers (netuids) currently present in the Bittensor network.
 
