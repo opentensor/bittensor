@@ -2,7 +2,7 @@ import asyncio
 from typing import Optional, TYPE_CHECKING
 
 from bittensor.core.types import ExtrinsicResponse
-from bittensor.utils import u16_normalized_float, unlock_key, get_function_name
+from bittensor.utils import u16_normalized_float
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 
@@ -59,85 +59,83 @@ async def root_register_extrinsic(
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
     """
-    if not (unlock := unlock_key(wallet)).success:
-        logging.error(unlock.message)
-        return ExtrinsicResponse(
-            False, unlock.message, extrinsic_function=get_function_name()
+    try:
+        if not (
+            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+        ).success:
+            return unlocked
+
+        netuid = 0
+        logging.debug(
+            f"Registering on netuid [blue]{netuid}[/blue] on network: [blue]{subtensor.network}[/blue]."
         )
 
-    netuid = 0
-    logging.info(
-        f"Registering on netuid [blue]{netuid}[/blue] on network: [blue]{subtensor.network}[/blue]"
-    )
-
-    logging.info("Fetching recycle amount & balance.")
-    block_hash = await subtensor.get_block_hash()
-    recycle_call, balance = await asyncio.gather(
-        subtensor.get_hyperparameter(
-            param_name="Burn",
-            netuid=netuid,
-            block_hash=block_hash,
-        ),
-        subtensor.get_balance(
-            wallet.coldkeypub.ss58_address,
-            block_hash=block_hash,
-        ),
-    )
-
-    current_recycle = Balance.from_rao(int(recycle_call))
-
-    if balance < current_recycle:
-        message = f"Insufficient balance {balance} to register neuron. Current recycle is {current_recycle} TAO"
-        logging.error(f"[red]{message}[/red].")
-        return ExtrinsicResponse(False, message, extrinsic_function=get_function_name())
-
-    logging.debug(
-        f"Checking if hotkey ([blue]{wallet.hotkey_str}[/blue]) is registered on root."
-    )
-    is_registered = await subtensor.is_hotkey_registered(
-        netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
-    )
-    if is_registered:
-        message = "Already registered on root network."
-        logging.error(f":white_heavy_check_mark: [green]{message}[/green]")
-        return ExtrinsicResponse(
-            message=message, extrinsic_function=get_function_name()
+        block_hash = await subtensor.get_block_hash()
+        recycle_call, balance = await asyncio.gather(
+            subtensor.get_hyperparameter(
+                param_name="Burn",
+                netuid=netuid,
+                block_hash=block_hash,
+            ),
+            subtensor.get_balance(
+                wallet.coldkeypub.ss58_address,
+                block_hash=block_hash,
+            ),
         )
 
-    logging.info(":satellite: [magenta]Registering to root network...[/magenta]")
-    call = await subtensor.substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="root_register",
-        call_params={"hotkey": wallet.hotkey.ss58_address},
-    )
-    response = await subtensor.sign_and_send_extrinsic(
-        call=call,
-        wallet=wallet,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-        period=period,
-        raise_error=raise_error,
-    )
+        current_recycle = Balance.from_rao(int(recycle_call))
 
-    if not response.success:
-        logging.error(f":cross_mark: [red]Failed error:[/red] {response.message}")
-        await asyncio.sleep(0.5)
-        return response
+        if balance < current_recycle:
+            return ExtrinsicResponse(
+                False,
+                f"Insufficient balance {balance} to register neuron. Current recycle is {current_recycle} TAO.",
+            ).with_log()
 
-    # Successful registration, final check for neuron and pubkey
-    uid = await subtensor.substrate.query(
-        module="SubtensorModule",
-        storage_function="Uids",
-        params=[netuid, wallet.hotkey.ss58_address],
-    )
-    if uid is not None:
-        response.data = {"uid": uid}
-        logging.info(
-            f":white_heavy_check_mark: [green]Registered with UID: {uid}[/green]."
+        logging.debug(
+            f"Checking if hotkey ([blue]{wallet.hotkey.ss58_address}[/blue]) is registered on root."
         )
-        return response
+        is_registered = await subtensor.is_hotkey_registered(
+            netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
+        )
+        if is_registered:
+            return ExtrinsicResponse(message="Already registered on root network.")
 
-    # neuron not found, try again
-    message = "Unknown error. Neuron not found."
-    logging.error(f":cross_mark: [red]{message}[/red]")
-    return ExtrinsicResponse(False, message, extrinsic_function=get_function_name())
+        call = await subtensor.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="root_register",
+            call_params={"hotkey": wallet.hotkey.ss58_address},
+        )
+        response = await subtensor.sign_and_send_extrinsic(
+            call=call,
+            wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            period=period,
+            raise_error=raise_error,
+        )
+
+        if not response.success:
+            logging.error(f"[red]{response.message}[/red]")
+            await asyncio.sleep(0.5)
+            return response
+
+        # Successful registration, final check for neuron and pubkey
+        uid = await subtensor.get_uid_for_hotkey_on_subnet(
+            hotkey_ss58=wallet.hotkey.ss58_address, netuid=netuid
+        )
+        if uid is not None:
+            response.data = {
+                "hotkey_ss58": wallet.hotkey.ss58_address,
+                "netuid": netuid,
+                "uid": uid,
+            }
+            logging.debug(
+                f"Hotkey {wallet.hotkey.ss58_address} registered in subnet {netuid} with UID: {uid}."
+            )
+            return response
+
+        # neuron not found, try again
+        return ExtrinsicResponse(False, "Unknown error. Neuron not found.").with_log()
+
+    except Exception as error:
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)

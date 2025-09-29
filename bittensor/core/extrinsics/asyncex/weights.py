@@ -6,12 +6,7 @@ from bittensor_drand import get_encrypted_commit
 
 from bittensor.core.settings import version_as_int
 from bittensor.core.types import ExtrinsicResponse, Salt, UIDs, Weights
-from bittensor.utils import (
-    format_error_message,
-    get_function_name,
-    get_mechid_storage_index,
-    unlock_key,
-)
+from bittensor.utils import get_mechid_storage_index
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import (
     convert_and_normalize_weights_and_uids,
@@ -61,14 +56,15 @@ async def commit_timelocked_weights_extrinsic(
         ExtrinsicResponse: The result object of the extrinsic execution.
     """
     try:
+        signing_keypair = "hotkey"
         if not (
-            unlock := unlock_key(wallet, unlock_type="hotkey", raise_error=raise_error)
-        ).success:
-            logging.error(unlock.message)
-            return ExtrinsicResponse(
-                False, unlock.message, extrinsic_function=get_function_name()
+            unlocked := ExtrinsicResponse.unlock_wallet(
+                wallet, raise_error, signing_keypair
             )
+        ).success:
+            return unlocked
 
+        # Convert, reformat and normalize uids and weights.
         uids, weights = convert_and_normalize_weights_and_uids(uids, weights)
 
         current_block = await subtensor.block
@@ -111,8 +107,8 @@ async def commit_timelocked_weights_extrinsic(
             wait_for_finalization=wait_for_finalization,
             use_nonce=True,
             period=period,
-            sign_with="hotkey",
-            nonce_key="hotkey",
+            sign_with=signing_keypair,
+            nonce_key=signing_keypair,
             raise_error=raise_error,
         )
 
@@ -128,16 +124,7 @@ async def commit_timelocked_weights_extrinsic(
         return response
 
     except Exception as error:
-        if raise_error:
-            raise error
-
-        logging.error(str(error))
-        return ExtrinsicResponse(
-            success=False,
-            message=format_error_message(error),
-            error=error,
-            extrinsic_function=get_function_name(),
-        )
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
 
 
 async def commit_weights_extrinsic(
@@ -176,13 +163,13 @@ async def commit_weights_extrinsic(
         ExtrinsicResponse: The result object of the extrinsic execution.
     """
     try:
+        signing_keypair = "hotkey"
         if not (
-            unlock := unlock_key(wallet, unlock_type="hotkey", raise_error=raise_error)
-        ).success:
-            logging.error(unlock.message)
-            return ExtrinsicResponse(
-                False, unlock.message, extrinsic_function=get_function_name()
+            unlocked := ExtrinsicResponse.unlock_wallet(
+                wallet, raise_error, signing_keypair
             )
+        ).success:
+            return unlocked
 
         storage_index = get_mechid_storage_index(netuid=netuid, mechid=mechid)
         # Generate the hash of the weights
@@ -211,8 +198,8 @@ async def commit_weights_extrinsic(
             wait_for_finalization=wait_for_finalization,
             use_nonce=True,
             period=period,
-            sign_with="hotkey",
-            nonce_key="hotkey",
+            sign_with=signing_keypair,
+            nonce_key=signing_keypair,
             raise_error=raise_error,
         )
 
@@ -224,16 +211,7 @@ async def commit_weights_extrinsic(
         return response
 
     except Exception as error:
-        if raise_error:
-            raise error
-
-        logging.error(str(error))
-        return ExtrinsicResponse(
-            success=False,
-            message=format_error_message(error),
-            error=error,
-            extrinsic_function=get_function_name(),
-        )
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
 
 
 async def reveal_weights_extrinsic(
@@ -273,14 +251,15 @@ async def reveal_weights_extrinsic(
         ExtrinsicResponse: The result object of the extrinsic execution.
     """
     try:
+        signing_keypair = "hotkey"
         if not (
-            unlock := unlock_key(wallet, unlock_type="hotkey", raise_error=raise_error)
-        ).success:
-            logging.error(unlock.message)
-            return ExtrinsicResponse(
-                False, unlock.message, extrinsic_function=get_function_name()
+            unlocked := ExtrinsicResponse.unlock_wallet(
+                wallet, raise_error, signing_keypair
             )
+        ).success:
+            return unlocked
 
+        # Convert, reformat and normalize uids and weights.
         uids, weights = convert_and_normalize_weights_and_uids(uids, weights)
 
         call = await subtensor.substrate.compose_call(
@@ -302,8 +281,8 @@ async def reveal_weights_extrinsic(
             wait_for_finalization=wait_for_finalization,
             use_nonce=True,
             period=period,
-            sign_with="hotkey",
-            nonce_key="hotkey",
+            sign_with=signing_keypair,
+            nonce_key=signing_keypair,
             raise_error=raise_error,
         )
 
@@ -315,16 +294,7 @@ async def reveal_weights_extrinsic(
         return response
 
     except Exception as error:
-        if raise_error:
-            raise error
-
-        logging.error(str(error))
-        return ExtrinsicResponse(
-            success=False,
-            message=format_error_message(error),
-            error=error,
-            extrinsic_function=get_function_name(),
-        )
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
 
 
 async def set_weights_extrinsic(
@@ -362,15 +332,15 @@ async def set_weights_extrinsic(
         ExtrinsicResponse: The result object of the extrinsic execution.
     """
     try:
+        signing_keypair = "hotkey"
         if not (
-            unlock := unlock_key(wallet, unlock_type="hotkey", raise_error=raise_error)
-        ).success:
-            logging.error(unlock.message)
-            return ExtrinsicResponse(
-                False, unlock.message, extrinsic_function=get_function_name()
+            unlocked := ExtrinsicResponse.unlock_wallet(
+                wallet, raise_error, signing_keypair
             )
+        ).success:
+            return unlocked
 
-        # Convert, reformat and normalize.
+        # Convert, reformat and normalize uids and weights.
         uids, weights = convert_and_normalize_weights_and_uids(uids, weights)
 
         call = await subtensor.substrate.compose_call(
@@ -391,26 +361,17 @@ async def set_weights_extrinsic(
             wait_for_finalization=wait_for_finalization,
             period=period,
             use_nonce=True,
-            nonce_key="hotkey",
-            sign_with="hotkey",
+            nonce_key=signing_keypair,
+            sign_with=signing_keypair,
             raise_error=raise_error,
         )
 
         if response.success:
-            logging.debug("Successfully set weights and Finalized.")
+            logging.debug(response.message)
             return response
 
         logging.error(response.message)
         return response
 
     except Exception as error:
-        if raise_error:
-            raise error
-
-        logging.error(str(error))
-        return ExtrinsicResponse(
-            success=False,
-            message=format_error_message(error),
-            error=error,
-            extrinsic_function=get_function_name(),
-        )
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
