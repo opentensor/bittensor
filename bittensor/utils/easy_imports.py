@@ -28,6 +28,7 @@ from bittensor_wallet.keyfile import (
 from bittensor_wallet.wallet import Wallet
 
 from bittensor.core import settings, timelock
+from bittensor.core.addons.subtensor_api import SubtensorApi
 from bittensor.core.async_subtensor import AsyncSubtensor
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import (
@@ -99,7 +100,6 @@ from bittensor.core.metagraph import Metagraph
 from bittensor.core.settings import BLOCKTIME
 from bittensor.core.stream import StreamingSynapse
 from bittensor.core.subtensor import Subtensor
-from bittensor.core.subtensor_api import SubtensorApi
 from bittensor.core.synapse import TerminalInfo, Synapse
 from bittensor.core.tensor import Tensor
 from bittensor.core.threadpool import PriorityThreadPoolExecutor
@@ -118,7 +118,6 @@ from bittensor.utils.balance import tao, rao
 from bittensor.utils.btlogging import logging
 from bittensor.utils.mock.subtensor_mock import MockSubtensor
 from bittensor.utils.subnets import SubnetsAPI
-
 
 # Backwards compatibility with previous bittensor versions.
 async_subtensor = AsyncSubtensor

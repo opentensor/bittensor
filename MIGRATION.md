@@ -236,6 +236,10 @@ Removing deprecated extrinsics and replacing them with consistent ones:
 - method `add_stake_multiple` has updated parameters order.
 - method `get_stake_for_coldkey` removed, bc this is the same as `get_stake_info_for_coldkey`
 
+Added sub-package `bittensor.core.addons` to host optional extensions and experimental logic enhancing the core functionality.
+  - `bittensor.core.subtensor_api` moved to `bittensor.core.addons.subtensor_api`
+  - 
+
 ### Mechid related changes:
 In the next subtensor methods got updated the parameters order:
   - `bonds`
