@@ -409,7 +409,7 @@ def _solve_for_nonce_block_cuda(
     )
 
     if solution != -1:
-        # Check if solution is valid (i.e. not -1)
+        # Check if solution is valid (i.e., not -1)
         return POWSolution(solution, block_number, difficulty, seal)
 
     return None
@@ -1156,9 +1156,10 @@ def create_pow(
             raise ValueError(f"Subnet {netuid} does not exist.")
 
     if cuda:
+        logging.debug("Solve difficulty with CUDA.")
         solution: Optional[POWSolution] = _solve_for_difficulty_fast_cuda(
-            subtensor,
-            wallet,
+            subtensor=subtensor,
+            wallet=wallet,
             netuid=netuid,
             output_in_place=output_in_place,
             dev_id=dev_id,
@@ -1167,9 +1168,10 @@ def create_pow(
             log_verbose=log_verbose,
         )
     else:
+        logging.debug("Solve difficulty.")
         solution: Optional[POWSolution] = _solve_for_difficulty_fast(
-            subtensor,
-            wallet,
+            subtensor=subtensor,
+            wallet=wallet,
             netuid=netuid,
             output_in_place=output_in_place,
             num_processes=num_processes,
