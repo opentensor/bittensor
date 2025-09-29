@@ -23,6 +23,8 @@ if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.utils.balance import Balance
     from scalecodec.types import GenericExtrinsic
+    from async_substrate_interface.sync_substrate import ExtrinsicReceipt
+    from async_substrate_interface.async_substrate import AsyncExtrinsicReceipt
 
 
 # Type annotations for UIDs and weights.
@@ -302,6 +304,7 @@ class ExtrinsicResponse:
         extrinsic_function: The SDK extrinsic or external function name that was executed (e.g., "add_stake_extrinsic").
         extrinsic: The raw extrinsic object used in the call, if available.
         extrinsic_fee: The fee charged by the extrinsic, if available.
+        extrinsic_receipt: The receipt object of the submitted extrinsic.
         transaction_fee: The fee charged by the transaction (e.g., fee for add_stake or transfer_stake), if available.
         error: Captures the underlying exception if the extrinsic failed, otherwise `None`.
         data: Arbitrary data returned from the extrinsic, such as decoded events, balance or another extra context.
@@ -330,6 +333,7 @@ class ExtrinsicResponse:
             extrinsic_function: register_subnet_extrinsic
             extrinsic: {'account_id': '0xd43593c715fdd31c...
             extrinsic_fee: τ1.0
+            extrinsic_receipt: Extrinsic Receipt data
             transaction_fee: τ1.0
             error: None
             data: None
@@ -350,6 +354,9 @@ class ExtrinsicResponse:
     extrinsic_function: Optional[str] = None
     extrinsic: Optional["GenericExtrinsic"] = None
     extrinsic_fee: Optional["Balance"] = None
+    extrinsic_receipt: Optional[Union["AsyncExtrinsicReceipt", "ExtrinsicReceipt"]] = (
+        None
+    )
     transaction_fee: Optional["Balance"] = None
     error: Optional[Exception] = None
     data: Optional[Any] = None
@@ -366,6 +373,7 @@ class ExtrinsicResponse:
             f"\textrinsic_function: {self.extrinsic_function}\n"
             f"\textrinsic: {self.extrinsic}\n"
             f"\textrinsic_fee: {self.extrinsic_fee}\n"
+            f"\textrinsic_receipt: ExtrinsicReceipt<hash:{self.extrinsic_receipt.extrinsic_hash}>\n"
             f"\ttransaction_fee: {self.transaction_fee}\n"
             f"\tdata: {self.data}\n"
             f"\terror: {self.error}"
@@ -385,6 +393,7 @@ class ExtrinsicResponse:
             "transaction_fee": str(self.transaction_fee)
             if self.transaction_fee
             else None,
+            "extrinsic_receipt": self.extrinsic_receipt,
             "error": str(self.error) if self.error else None,
             "data": self.data,
         }
@@ -400,6 +409,7 @@ class ExtrinsicResponse:
                 and self.extrinsic == other.extrinsic
                 and self.extrinsic_fee == other.extrinsic_fee
                 and self.transaction_fee == other.transaction_fee
+                and self.extrinsic_receipt == other.extrinsic_receipt
                 and self.error == other.error
                 and self.data == other.data
             )
