@@ -3239,7 +3239,7 @@ class Subtensor(SubtensorMixin):
         liquidity: Balance,
         price_low: Balance,
         price_high: Balance,
-        hotkey: Optional[str] = None,
+        hotkey_ss58: Optional[str] = None,
         period: Optional[int] = None,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -3254,7 +3254,7 @@ class Subtensor(SubtensorMixin):
             liquidity: The amount of liquidity to be added.
             price_low: The lower bound of the price tick range. In TAO.
             price_high: The upper bound of the price tick range. In TAO.
-            hotkey: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
+            hotkey_ss58: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -3275,7 +3275,7 @@ class Subtensor(SubtensorMixin):
             liquidity=liquidity,
             price_low=price_low,
             price_high=price_high,
-            hotkey=hotkey,
+            hotkey_ss58=hotkey_ss58,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -3458,7 +3458,7 @@ class Subtensor(SubtensorMixin):
         netuid: int,
         position_id: int,
         liquidity_delta: Balance,
-        hotkey: Optional[str] = None,
+        hotkey_ss58: Optional[str] = None,
         period: Optional[int] = None,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -3471,7 +3471,7 @@ class Subtensor(SubtensorMixin):
             netuid: The UID of the target subnet for which the call is being initiated.
             position_id: The id of the position record in the pool.
             liquidity_delta: The amount of liquidity to be added or removed (add if positive or remove if negative).
-            hotkey: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
+            hotkey_ss58: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -3517,7 +3517,7 @@ class Subtensor(SubtensorMixin):
             netuid=netuid,
             position_id=position_id,
             liquidity_delta=liquidity_delta,
-            hotkey=hotkey,
+            hotkey_ss58=hotkey_ss58,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -3678,7 +3678,7 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         netuid: int,
         position_id: int,
-        hotkey: Optional[str] = None,
+        hotkey_ss58: Optional[str] = None,
         period: Optional[int] = None,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -3690,7 +3690,7 @@ class Subtensor(SubtensorMixin):
             wallet: The wallet used to sign the extrinsic (must be unlocked).
             netuid: The UID of the target subnet for which the call is being initiated.
             position_id: The id of the position record in the pool.
-            hotkey: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
+            hotkey_ss58: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -3711,7 +3711,7 @@ class Subtensor(SubtensorMixin):
             wallet=wallet,
             netuid=netuid,
             position_id=position_id,
-            hotkey=hotkey,
+            hotkey_ss58=hotkey_ss58,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
