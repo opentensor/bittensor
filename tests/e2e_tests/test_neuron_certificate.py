@@ -44,7 +44,7 @@ async def test_neuron_certificate(subtensor, alice_wallet):
     assert (
         subtensor.neurons.get_neuron_certificate(
             netuid=netuid,
-            hotkey=alice_wallet.hotkey.ss58_address,
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
         )
         == encoded_certificate
     )
@@ -96,7 +96,7 @@ async def test_neuron_certificate_async(async_subtensor, alice_wallet):
     assert (
         await async_subtensor.neurons.get_neuron_certificate(
             netuid=netuid,
-            hotkey=alice_wallet.hotkey.ss58_address,
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
         )
         == encoded_certificate
     )
