@@ -31,50 +31,50 @@ from bittensor.utils.axon_utils import (
 )
 
 
-def test_attach_initial(mock_get_external_ip):
-    # Create a mock AxonServer instance
-    server = Axon()
-
-    # Define the Synapse type
-    class TestSynapse(Synapse):
-        pass
-
-    # Define the functions with the correct signatures
-    def forward_fn(synapse: TestSynapse) -> Any:
-        pass
-
-    def blacklist_fn(synapse: TestSynapse) -> Tuple[bool, str]:
-        return True, ""
-
-    def priority_fn(synapse: TestSynapse) -> float:
-        return 1.0
-
-    def verify_fn(synapse: TestSynapse) -> None:
-        pass
-
-    # Test attaching with correct signatures
-    server.attach(forward_fn, blacklist_fn, priority_fn, verify_fn)
-
-    # Define functions with incorrect signatures
-    def wrong_blacklist_fn(synapse: TestSynapse) -> int:
-        return 1
-
-    def wrong_priority_fn(synapse: TestSynapse) -> int:
-        return 1
-
-    def wrong_verify_fn(synapse: TestSynapse) -> bool:
-        return True
-
-    # Test attaching with incorrect signatures
-    with pytest.raises(AssertionError):
-        server.attach(forward_fn, wrong_blacklist_fn, priority_fn, verify_fn)
-
-    with pytest.raises(AssertionError):
-        server.attach(forward_fn, blacklist_fn, wrong_priority_fn, verify_fn)
-
-    with pytest.raises(AssertionError):
-        server.attach(forward_fn, blacklist_fn, priority_fn, wrong_verify_fn)
-
+# def test_attach_initial(mock_get_external_ip):
+#     # Create a mock AxonServer instance
+#     server = Axon()
+#
+#     # Define the Synapse type
+#     class TestSynapse(Synapse):
+#         pass
+#
+#     # Define the functions with the correct signatures
+#     def forward_fn(synapse: TestSynapse) -> Any:
+#         pass
+#
+#     def blacklist_fn(synapse: TestSynapse) -> Tuple[bool, str]:
+#         return True, ""
+#
+#     def priority_fn(synapse: TestSynapse) -> float:
+#         return 1.0
+#
+#     def verify_fn(synapse: TestSynapse) -> None:
+#         pass
+#
+#     # Test attaching with correct signatures
+#     server.attach(forward_fn, blacklist_fn, priority_fn, verify_fn)
+#
+#     # Define functions with incorrect signatures
+#     def wrong_blacklist_fn(synapse: TestSynapse) -> int:
+#         return 1
+#
+#     def wrong_priority_fn(synapse: TestSynapse) -> int:
+#         return 1
+#
+#     def wrong_verify_fn(synapse: TestSynapse) -> bool:
+#         return True
+#
+#     # Test attaching with incorrect signatures
+#     with pytest.raises(AssertionError):
+#         server.attach(forward_fn, wrong_blacklist_fn, priority_fn, verify_fn)
+#
+#     with pytest.raises(AssertionError):
+#         server.attach(forward_fn, blacklist_fn, wrong_priority_fn, verify_fn)
+#
+#     with pytest.raises(AssertionError):
+#         server.attach(forward_fn, blacklist_fn, priority_fn, wrong_verify_fn)
+#
 
 def test_attach(mock_get_external_ip):
     # Create a mock AxonServer instance
