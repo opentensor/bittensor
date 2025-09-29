@@ -349,7 +349,7 @@ def unstake_multiple_extrinsic(
         old_balance = subtensor.get_balance(
             address=wallet.coldkeypub.ss58_address, block=block
         )
-        all_stakes = subtensor.get_stake_for_coldkey(
+        all_stakes = subtensor.get_stake_info_for_coldkey(
             coldkey_ss58=wallet.coldkeypub.ss58_address,
             block=block,
         )
