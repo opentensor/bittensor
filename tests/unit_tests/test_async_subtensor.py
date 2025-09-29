@@ -1,6 +1,6 @@
 import datetime
 import unittest.mock as mock
-import numpy as np
+
 import pytest
 from async_substrate_interface.types import ScaleObj
 from bittensor_wallet import Wallet
@@ -16,7 +16,7 @@ from bittensor.core.chain_data import (
     SelectiveMetagraphIndex,
 )
 from bittensor.core.types import ExtrinsicResponse
-from bittensor.utils import U64_MAX
+from bittensor.utils import U64_MAX, get_function_name
 from bittensor.utils.balance import Balance
 from tests.helpers.helpers import assert_submit_signed_extrinsic
 
@@ -213,40 +213,17 @@ async def test_burned_register_on_root(mock_substrate, subtensor, fake_wallet, m
     mock_substrate.submit_extrinsic.return_value = mocker.AsyncMock(
         is_success=mocker.AsyncMock(return_value=True)(),
     )
-    mocker.patch.object(
-        subtensor,
-        "get_balance",
-        return_value=Balance(1),
-    )
-    mocker.patch.object(
-        subtensor,
-        "is_hotkey_registered",
-        return_value=False,
+    mocked_root_register_extrinsic = mocker.patch.object(
+        async_subtensor,
+        "root_register_extrinsic",
     )
 
-    success, _ = await subtensor.burned_register(
-        fake_wallet,
+    response = await subtensor.burned_register(
+        wallet=fake_wallet,
         netuid=0,
     )
 
-    assert success is True
-
-    subtensor.is_hotkey_registered.assert_called_once_with(
-        netuid=0,
-        hotkey_ss58=fake_wallet.hotkey.ss58_address,
-    )
-
-    assert_submit_signed_extrinsic(
-        mock_substrate,
-        fake_wallet.coldkey,
-        call_module="SubtensorModule",
-        call_function="root_register",
-        call_params={
-            "hotkey": fake_wallet.hotkey.ss58_address,
-        },
-        wait_for_finalization=True,
-        wait_for_inclusion=True,
-    )
+    assert response == mocked_root_register_extrinsic.return_value
 
 
 @pytest.mark.asyncio
@@ -595,8 +572,8 @@ async def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker):
     mocked_query_runtime_api.assert_has_calls(
         [
             mock.call(
-                "StakeInfoRuntimeApi",
-                "get_stake_info_for_hotkey_coldkey_netuid",
+                runtime_api="StakeInfoRuntimeApi",
+                method="get_stake_info_for_hotkey_coldkey_netuid",
                 params=["hotkey", "coldkey", netuid],
                 block_hash=block_hash,
             )
@@ -1705,6 +1682,8 @@ async def test_sign_and_send_extrinsic_success_finalization(
     fake_extrinsic = mocker.Mock()
     fake_response = mocker.Mock()
 
+    mocked_get_extrinsic_fee = mocker.patch.object(async_subtensor, "get_extrinsic_fee")
+
     mocked_create_signed_extrinsic = mocker.AsyncMock(return_value=fake_extrinsic)
     subtensor.substrate.create_signed_extrinsic = mocked_create_signed_extrinsic
 
@@ -1727,6 +1706,9 @@ async def test_sign_and_send_extrinsic_success_finalization(
     )
 
     # Asserts
+    mocked_get_extrinsic_fee.assert_awaited_once_with(
+        subtensor=subtensor, call=fake_call, keypair=fake_wallet.coldkey
+    )
     mocked_create_signed_extrinsic.assert_called_once_with(
         call=fake_call, keypair=fake_wallet.coldkey
     )
@@ -1736,6 +1718,11 @@ async def test_sign_and_send_extrinsic_success_finalization(
         wait_for_finalization=True,
     )
     assert result == (True, "Success")
+    assert result.extrinsic_function == get_function_name()
+    assert result.extrinsic == fake_extrinsic
+    assert result.extrinsic_fee == mocked_get_extrinsic_fee.return_value
+    assert result.error is None
+    assert result.data is None
 
 
 @pytest.mark.asyncio
@@ -1747,6 +1734,9 @@ async def test_sign_and_send_extrinsic_error_finalization(
     fake_call = mocker.Mock()
     fake_extrinsic = mocker.Mock()
     fake_response = mocker.Mock()
+    fake_error = {"some error": "message"}
+
+    mocked_get_extrinsic_fee = mocker.patch.object(async_subtensor, "get_extrinsic_fee")
 
     mocked_create_signed_extrinsic = mocker.AsyncMock(return_value=fake_extrinsic)
     subtensor.substrate.create_signed_extrinsic = mocked_create_signed_extrinsic
@@ -1762,7 +1752,7 @@ async def test_sign_and_send_extrinsic_error_finalization(
     fake_response.is_success = fake_is_success()
 
     async def fake_error_message():
-        return {"some error": "message"}
+        return fake_error
 
     fake_response.error_message = fake_error_message()
 
@@ -1778,6 +1768,9 @@ async def test_sign_and_send_extrinsic_error_finalization(
     )
 
     # Asserts
+    mocked_get_extrinsic_fee.assert_awaited_once_with(
+        subtensor=subtensor, call=fake_call, keypair=fake_wallet.coldkey
+    )
     mocked_create_signed_extrinsic.assert_called_once_with(
         call=fake_call, keypair=fake_wallet.coldkey
     )
@@ -1787,6 +1780,11 @@ async def test_sign_and_send_extrinsic_error_finalization(
         wait_for_finalization=True,
     )
     assert result == (False, mocked_format_error_message.return_value)
+    assert result.extrinsic_function == get_function_name()
+    assert result.extrinsic == fake_extrinsic
+    assert result.extrinsic_fee == mocked_get_extrinsic_fee.return_value
+    assert result.error is fake_error
+    assert result.data is None
 
 
 @pytest.mark.asyncio
@@ -1797,6 +1795,8 @@ async def test_sign_and_send_extrinsic_success_without_inclusion_finalization(
     # Preps
     fake_call = mocker.Mock()
     fake_extrinsic = mocker.Mock()
+
+    mocked_get_extrinsic_fee = mocker.patch.object(async_subtensor, "get_extrinsic_fee")
 
     mocked_create_signed_extrinsic = mocker.AsyncMock(return_value=fake_extrinsic)
     subtensor.substrate.create_signed_extrinsic = mocked_create_signed_extrinsic
@@ -1813,6 +1813,9 @@ async def test_sign_and_send_extrinsic_success_without_inclusion_finalization(
     )
 
     # Asserts
+    mocked_get_extrinsic_fee.assert_awaited_once_with(
+        subtensor=subtensor, call=fake_call, keypair=fake_wallet.coldkey
+    )
     mocked_create_signed_extrinsic.assert_awaited_once()
     mocked_create_signed_extrinsic.assert_called_once_with(
         call=fake_call, keypair=fake_wallet.coldkey
@@ -1824,6 +1827,11 @@ async def test_sign_and_send_extrinsic_success_without_inclusion_finalization(
         wait_for_finalization=False,
     )
     assert result == (True, "Not waiting for finalization or inclusion.")
+    assert result.extrinsic_function == get_function_name()
+    assert result.extrinsic == fake_extrinsic
+    assert result.extrinsic_fee == mocked_get_extrinsic_fee.return_value
+    assert result.error is None
+    assert result.data is None
 
 
 @pytest.mark.asyncio
@@ -1835,6 +1843,8 @@ async def test_sign_and_send_extrinsic_substrate_request_exception(
     fake_call = mocker.Mock()
     fake_extrinsic = mocker.Mock()
     fake_exception = async_subtensor.SubstrateRequestException("Test Exception")
+
+    mocked_get_extrinsic_fee = mocker.patch.object(async_subtensor, "get_extrinsic_fee")
 
     mocked_create_signed_extrinsic = mocker.AsyncMock(return_value=fake_extrinsic)
     subtensor.substrate.create_signed_extrinsic = mocked_create_signed_extrinsic
@@ -1857,13 +1867,25 @@ async def test_sign_and_send_extrinsic_substrate_request_exception(
     )
 
     # Asserts
+    mocked_get_extrinsic_fee.assert_awaited_once_with(
+        subtensor=subtensor, call=fake_call, keypair=fake_wallet.coldkey
+    )
     assert result == (False, str(fake_exception))
+    assert result.extrinsic_function == get_function_name()
+    assert result.extrinsic == fake_extrinsic
+    assert result.extrinsic_fee == mocked_get_extrinsic_fee.return_value
+    assert result.error == fake_exception
+    assert result.data is None
 
 
 @pytest.mark.asyncio
 async def test_sign_and_send_extrinsic_raises_error(
     mock_substrate, subtensor, fake_wallet, mocker
 ):
+    """Tests sign_and_send_extrinsic when an error is raised."""
+    # Preps
+    mocked_get_extrinsic_fee = mocker.patch.object(async_subtensor, "get_extrinsic_fee")
+
     mock_substrate.submit_extrinsic.return_value = mocker.AsyncMock(
         error_message=mocker.AsyncMock(
             return_value={
@@ -1873,6 +1895,7 @@ async def test_sign_and_send_extrinsic_raises_error(
         is_success=mocker.AsyncMock(return_value=False)(),
     )
 
+    # Call and asserts
     with pytest.raises(
         async_subtensor.SubstrateRequestException,
         match="{'name': 'Exception'}",
@@ -1882,6 +1905,7 @@ async def test_sign_and_send_extrinsic_raises_error(
             wallet=fake_wallet,
             raise_error=True,
         )
+    mocked_get_extrinsic_fee.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -1911,7 +1935,7 @@ async def test_get_children_success(subtensor, mocker):
     ]
 
     # Call
-    result = await subtensor.get_children(hotkey=fake_hotkey, netuid=fake_netuid)
+    result = await subtensor.get_children(hotkey_ss58=fake_hotkey, netuid=fake_netuid)
 
     # Asserts
     mocked_query.assert_called_once_with(
@@ -1939,7 +1963,7 @@ async def test_get_children_no_children(subtensor, mocker):
     subtensor.substrate.query = mocked_query
 
     # Call
-    result = await subtensor.get_children(hotkey=fake_hotkey, netuid=fake_netuid)
+    result = await subtensor.get_children(hotkey_ss58=fake_hotkey, netuid=fake_netuid)
 
     # Asserts
     mocked_query.assert_called_once_with(
@@ -1969,7 +1993,7 @@ async def test_get_children_substrate_request_exception(subtensor, mocker):
     )
 
     # Call
-    result = await subtensor.get_children(hotkey=fake_hotkey, netuid=fake_netuid)
+    result = await subtensor.get_children(hotkey_ss58=fake_hotkey, netuid=fake_netuid)
 
     # Asserts
     mocked_query.assert_called_once_with(
@@ -2010,7 +2034,7 @@ async def test_get_parents_success(subtensor, mocker):
     ]
 
     # Call
-    result = await subtensor.get_parents(hotkey=fake_hotkey, netuid=fake_netuid)
+    result = await subtensor.get_parents(hotkey_ss58=fake_hotkey, netuid=fake_netuid)
 
     # Asserts
     mocked_query.assert_called_once_with(
@@ -2038,7 +2062,7 @@ async def test_get_parents_no_parents(subtensor, mocker):
     subtensor.substrate.query = mocked_query
 
     # Call
-    result = await subtensor.get_parents(hotkey=fake_hotkey, netuid=fake_netuid)
+    result = await subtensor.get_parents(hotkey_ss58=fake_hotkey, netuid=fake_netuid)
 
     # Asserts
     mocked_query.assert_called_once_with(
@@ -2064,7 +2088,7 @@ async def test_get_parents_substrate_request_exception(subtensor, mocker):
 
     # Call
     with pytest.raises(async_subtensor.SubstrateRequestException):
-        await subtensor.get_parents(hotkey=fake_hotkey, netuid=fake_netuid)
+        await subtensor.get_parents(hotkey_ss58=fake_hotkey, netuid=fake_netuid)
 
 
 @pytest.mark.asyncio
@@ -2662,8 +2686,8 @@ async def test_set_children(subtensor, fake_wallet, mocker):
 
     # Call
     result = await subtensor.set_children(
-        fake_wallet,
-        fake_wallet.hotkey.ss58_address,
+        wallet=fake_wallet,
+        hotkey_ss58=fake_wallet.hotkey.ss58_address,
         netuid=1,
         children=fake_children,
     )
@@ -2672,7 +2696,7 @@ async def test_set_children(subtensor, fake_wallet, mocker):
     mocked_set_children_extrinsic.assert_awaited_once_with(
         subtensor=subtensor,
         wallet=fake_wallet,
-        hotkey=fake_wallet.hotkey.ss58_address,
+        hotkey_ss58=fake_wallet.hotkey.ss58_address,
         netuid=1,
         children=fake_children,
         wait_for_finalization=True,
@@ -2698,66 +2722,52 @@ async def test_set_delegate_take_equal(subtensor, fake_wallet, mocker):
     subtensor.substrate.submit_extrinsic.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    "take, delegate_take, extrinsic_call",
+    [
+        (0.1, 0.1, None),
+        (0.2, 0.1, "increase"),
+        (0.1, 0.2, "decrease"),
+    ],
+    ids=[
+        "already set",
+        "increase_take_extrinsic",
+        "decrease_take_extrinsic",
+    ],
+)
 @pytest.mark.asyncio
 async def test_set_delegate_take_increase(
-    mock_substrate, subtensor, fake_wallet, mocker
+    subtensor, fake_wallet, mocker, take, delegate_take, extrinsic_call
 ):
-    mock_substrate.submit_extrinsic.return_value = mocker.Mock(
-        is_success=mocker.AsyncMock(return_value=True)(),
-    )
-    mocker.patch.object(subtensor, "get_delegate_take", return_value=0.18)
-
-    assert (
-        await subtensor.set_delegate_take(
-            fake_wallet,
-            fake_wallet.hotkey.ss58_address,
-            0.2,
-        )
-    ).success
-
-    assert_submit_signed_extrinsic(
-        mock_substrate,
-        fake_wallet.coldkey,
-        call_module="SubtensorModule",
-        call_function="increase_take",
-        call_params={
-            "hotkey": fake_wallet.hotkey.ss58_address,
-            "take": 13107,
-        },
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
+    mocked_get_delegate_take = mocker.patch.object(
+        subtensor, "get_delegate_take", return_value=delegate_take
     )
 
-
-@pytest.mark.asyncio
-async def test_set_delegate_take_decrease(
-    mock_substrate, subtensor, fake_wallet, mocker
-):
-    mock_substrate.submit_extrinsic.return_value = mocker.Mock(
-        is_success=mocker.AsyncMock(return_value=True)(),
+    mocked_set_take_extrinsic = mocker.patch.object(
+        async_subtensor, "set_take_extrinsic"
     )
-    mocker.patch.object(subtensor, "get_delegate_take", return_value=0.18)
-
-    assert (
-        await subtensor.set_delegate_take(
-            fake_wallet,
-            fake_wallet.hotkey.ss58_address,
-            0.1,
-        )
-    ).success
-
-    assert_submit_signed_extrinsic(
-        mock_substrate,
-        fake_wallet.coldkey,
-        call_module="SubtensorModule",
-        call_function="decrease_take",
-        call_params={
-            "hotkey": fake_wallet.hotkey.ss58_address,
-            "take": 6553,
-        },
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
+    already_set_result = ExtrinsicResponse(
+        True,
+        f"The take for {fake_wallet.hotkey.ss58_address} is already set to 0.1.",
+        extrinsic_function="set_delegate_take",
     )
+
+    expected_result = already_set_result
+    if extrinsic_call == "increase":
+        expected_result = mocked_set_take_extrinsic.return_value
+    elif extrinsic_call == "decrease":
+        expected_result = mocked_set_take_extrinsic.return_value
+
+    # Call
+    result = await subtensor.set_delegate_take(
+        wallet=fake_wallet,
+        hotkey_ss58=fake_wallet.hotkey.ss58_address,
+        take=take,
+    )
+
+    # Assert
+    mocked_get_delegate_take.assert_awaited_once_with(fake_wallet.hotkey.ss58_address)
+    assert result == expected_result
 
 
 @pytest.mark.asyncio
@@ -3268,14 +3278,14 @@ async def test_unstake_all(subtensor, fake_wallet, mocker):
     # Call
     result = await subtensor.unstake_all(
         wallet=fake_wallet,
-        hotkey=fake_wallet.hotkey.ss58_address,
+        hotkey_ss58=fake_wallet.hotkey.ss58_address,
         netuid=1,
     )
     # Asserts
     fake_unstake_all_extrinsic.assert_awaited_once_with(
         subtensor=subtensor,
         wallet=fake_wallet,
-        hotkey=fake_wallet.hotkey.ss58_address,
+        hotkey_ss58=fake_wallet.hotkey.ss58_address,
         netuid=1,
         rate_tolerance=0.005,
         wait_for_inclusion=True,

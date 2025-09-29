@@ -27,15 +27,11 @@ def test_set_reveal_commitment(subtensor, alice_wallet, bob_wallet):
     Note: Actually we can run this tests in fast block mode. For this we need to set `BLOCK_TIME` to 0.25 and replace
     `False` to `True` in `pytest.mark.parametrize` decorator.
     """
-    logging.console.info("Testing [blue]test_set_reveal_commitment[/blue]")
-
     BLOCK_TIME, BLOCKS_UNTIL_REVEAL = (
         (0.25, 10) if subtensor.chain.is_fast_blocks() else (12.0, 5)
     )
 
     alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
-
-    logging.console.info("Testing Drand encrypted commitments.")
 
     # Register subnet as Alice
     assert subtensor.subnets.register_subnet(alice_wallet), (
@@ -83,14 +79,14 @@ def test_set_reveal_commitment(subtensor, alice_wallet, bob_wallet):
 
     # Sometimes the chain doesn't update the repository right away and the commit doesn't appear in the expected
     # `last_drand_round`. In this case need to wait a bit.
-    print(f"Waiting for reveal round {target_reveal_round}")
+    logging.console.info(f"Waiting for reveal round {target_reveal_round}")
     chain_offset = 1 if subtensor.chain.is_fast_blocks() else 24
 
     last_drand_round = -1
     while last_drand_round <= target_reveal_round + chain_offset:
         # wait one drand period (3 sec)
         last_drand_round = subtensor.chain.last_drand_round()
-        print(f"Current last reveled drand round {last_drand_round}")
+        logging.console.info(f"Current last reveled drand round {last_drand_round}")
         time.sleep(3)
 
     actual_all = subtensor.commitments.get_all_revealed_commitments(alice_subnet_netuid)
@@ -120,8 +116,6 @@ def test_set_reveal_commitment(subtensor, alice_wallet, bob_wallet):
     assert message_alice == actual_alice_message
     assert message_bob == actual_bob_message
 
-    logging.console.success("✅ Passed [blue]test_set_reveal_commitment[/blue]")
-
 
 @pytest.mark.asyncio
 async def test_set_reveal_commitment_async(async_subtensor, alice_wallet, bob_wallet):
@@ -142,15 +136,11 @@ async def test_set_reveal_commitment_async(async_subtensor, alice_wallet, bob_wa
     Note: Actually we can run this tests in fast block mode. For this we need to set `BLOCK_TIME` to 0.25 and replace
     `False` to `True` in `pytest.mark.parametrize` decorator.
     """
-    logging.console.info("Testing [blue]test_set_reveal_commitment[/blue]")
-
     BLOCK_TIME, BLOCKS_UNTIL_REVEAL = (
         (0.25, 10) if await async_subtensor.chain.is_fast_blocks() else (12.0, 5)
     )
 
     alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
-
-    logging.console.info("Testing Drand encrypted commitments.")
 
     # Register subnet as Alice
     assert await async_subtensor.subnets.register_subnet(alice_wallet), (
@@ -199,14 +189,14 @@ async def test_set_reveal_commitment_async(async_subtensor, alice_wallet, bob_wa
 
     # Sometimes the chain doesn't update the repository right away and the commit doesn't appear in the expected
     # `last_drand_round`. In this case need to wait a bit.
-    print(f"Waiting for reveal round {target_reveal_round}")
+    logging.console.info(f"Waiting for reveal round {target_reveal_round}")
     chain_offset = 1 if await async_subtensor.chain.is_fast_blocks() else 24
 
     last_drand_round = -1
     while last_drand_round <= target_reveal_round + chain_offset:
         # wait one drand period (3 sec)
         last_drand_round = await async_subtensor.chain.last_drand_round()
-        print(f"Current last reveled drand round {last_drand_round}")
+        logging.console.info(f"Current last reveled drand round {last_drand_round}")
         time.sleep(3)
 
     actual_all = await async_subtensor.commitments.get_all_revealed_commitments(
@@ -241,5 +231,3 @@ async def test_set_reveal_commitment_async(async_subtensor, alice_wallet, bob_wa
 
     assert message_alice == actual_alice_message
     assert message_bob == actual_bob_message
-
-    logging.console.success("✅ Passed [blue]test_set_reveal_commitment[/blue]")

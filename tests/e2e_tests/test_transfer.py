@@ -9,8 +9,6 @@ from bittensor import logging
 if typing.TYPE_CHECKING:
     from bittensor.core.subtensor_api import SubtensorApi
 
-logging.set_trace()
-
 
 def test_transfer(subtensor, alice_wallet):
     """
@@ -22,8 +20,6 @@ def test_transfer(subtensor, alice_wallet):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    logging.console.info("Testing [blue]test_transfer[/blue]")
-
     transfer_value = Balance.from_tao(2)
     dest_coldkey = "5GpzQgpiAKHMWNSH3RN4GLf96GVTDct9QxYEFAY7LWcVzTbx"
 
@@ -53,8 +49,6 @@ def test_transfer(subtensor, alice_wallet):
         f"Expected {balance_before - transfer_value - transfer_fee}, got {balance_after}"
     )
 
-    logging.console.success("✅ Passed [blue]test_transfer[/blue]")
-
 
 @pytest.mark.asyncio
 async def test_transfer_async(async_subtensor, alice_wallet):
@@ -67,8 +61,6 @@ async def test_transfer_async(async_subtensor, alice_wallet):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    logging.console.info("Testing [blue]test_transfer[/blue]")
-
     transfer_value = Balance.from_tao(2)
     dest_coldkey = "5GpzQgpiAKHMWNSH3RN4GLf96GVTDct9QxYEFAY7LWcVzTbx"
 
@@ -104,12 +96,8 @@ async def test_transfer_async(async_subtensor, alice_wallet):
         f"Expected {balance_before - transfer_value - transfer_fee}, got {balance_after}"
     )
 
-    logging.console.success("✅ Passed [blue]test_transfer[/blue]")
-
 
 def test_transfer_all(subtensor, alice_wallet):
-    logging.console.info("Testing [blue]test_transfer_all[/blue]")
-
     # create two dummy accounts we can drain
     dummy_account_1 = Wallet(path="/tmp/bittensor-dummy-account-1")
     dummy_account_2 = Wallet(path="/tmp/bittensor-dummy-account-2")
@@ -153,14 +141,10 @@ def test_transfer_all(subtensor, alice_wallet):
     )
     assert balance_after == Balance(0)
 
-    logging.console.success("✅ Test [green]test_transfer_all[/green] passed.")
-
 
 @pytest.mark.asyncio
 async def test_transfer_all_async(async_subtensor, alice_wallet):
     # create two dummy accounts we can drain
-    logging.console.info("Testing [blue]test_transfer_async[/blue]")
-
     dummy_account_1 = Wallet(path="/tmp/bittensor-dummy-account-3")
     dummy_account_2 = Wallet(path="/tmp/bittensor-dummy-account-4")
     dummy_account_1.create_new_coldkey(use_password=False, overwrite=True)
@@ -208,5 +192,3 @@ async def test_transfer_all_async(async_subtensor, alice_wallet):
         dummy_account_2.coldkeypub.ss58_address
     )
     assert balance_after == Balance(0)
-
-    logging.console.success("✅ Test [green]test_transfer_async[/green] passed.")
