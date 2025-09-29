@@ -1023,7 +1023,7 @@ def test_metagraph(subtensor, mocker):
     mocked_metagraph = mocker.patch.object(subtensor_module, "Metagraph")
 
     # Call
-    result = subtensor.metagraph(fake_netuid, fake_lite)
+    result = subtensor.metagraph(fake_netuid, lite=fake_lite)
 
     # Asserts
     mocked_metagraph.assert_called_once_with(
@@ -3162,7 +3162,7 @@ def test_get_metagraph_info_all_fields(subtensor, mocker):
 
     # Call
     result = subtensor.get_metagraph_info(
-        netuid=netuid, field_indices=[f for f in range(len(SelectiveMetagraphIndex))]
+        netuid=netuid, selected_indices=[f for f in range(len(SelectiveMetagraphIndex))]
     )
 
     # Asserts
@@ -3194,7 +3194,7 @@ def test_get_metagraph_info_specific_fields(subtensor, mocker):
     )
 
     # Call
-    result = subtensor.get_metagraph_info(netuid=netuid, field_indices=fields)
+    result = subtensor.get_metagraph_info(netuid=netuid, selected_indices=fields)
 
     # Asserts
     assert result == "parsed_metagraph"
