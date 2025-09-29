@@ -1,8 +1,8 @@
 from typing import TYPE_CHECKING, Optional
 
 from bittensor.core.types import ExtrinsicResponse
-from bittensor.utils import float_to_u64, unlock_key, get_function_name
-from bittensor.utils.btlogging import logging
+from bittensor.core.extrinsics.asyncex.utils import sudo_call_extrinsic
+from bittensor.utils import float_to_u64
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 async def set_children_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
-    hotkey: str,
+    hotkey_ss58: str,
     netuid: int,
     children: list[tuple[float, str]],
     period: Optional[int] = None,
@@ -26,7 +26,7 @@ async def set_children_extrinsic(
     Parameters:
         subtensor: The Subtensor client instance used for blockchain interaction.
         wallet: bittensor wallet instance.
-        hotkey: The ``SS58`` address of the neuron's hotkey.
+        hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
         netuid: The netuid value.
         children: A list of children with their proportions.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
@@ -52,16 +52,13 @@ async def set_children_extrinsic(
         bittensor_wallet.errors.KeyFileError: Failed to decode keyfile data.
         bittensor_wallet.errors.PasswordError: Decryption failed or wrong password for decryption provided.
     """
-    unlock = unlock_key(wallet, raise_error=raise_error)
+    try:
+        if not (
+            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+        ).success:
+            return unlocked
 
-    if not unlock.success:
-        logging.error(unlock.message)
-        return ExtrinsicResponse(
-            False, unlock.message, extrinsic_function=get_function_name()
-        )
-
-    async with subtensor.substrate as substrate:
-        call = await substrate.compose_call(
+        call = await subtensor.substrate.compose_call(
             call_module="SubtensorModule",
             call_function="set_children",
             call_params={
@@ -72,7 +69,7 @@ async def set_children_extrinsic(
                     )
                     for proportion, child_hotkey in children
                 ],
-                "hotkey": hotkey,
+                "hotkey": hotkey_ss58,
                 "netuid": netuid,
             },
         )
@@ -84,16 +81,11 @@ async def set_children_extrinsic(
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            calling_function=get_function_name(),
         )
-
-        if not wait_for_finalization and not wait_for_inclusion:
-            return response
-
-        if response.success:
-            return response
-
         return response
+
+    except Exception as error:
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
 
 
 async def root_set_pending_childkey_cooldown_extrinsic(
@@ -122,39 +114,14 @@ async def root_set_pending_childkey_cooldown_extrinsic(
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
     """
-    if not (unlock := unlock_key(wallet)).success:
-        logging.error(unlock.message)
-        return ExtrinsicResponse(
-            False, unlock.message, extrinsic_function=get_function_name()
-        )
-
-    async with subtensor.substrate as substrate:
-        call = await substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="set_pending_childkey_cooldown",
-            call_params={"cooldown": cooldown},
-        )
-
-        sudo_call = await substrate.compose_call(
-            call_module="Sudo",
-            call_function="sudo",
-            call_params={"call": call},
-        )
-
-        response = await subtensor.sign_and_send_extrinsic(
-            call=sudo_call,
-            wallet=wallet,
-            period=period,
-            raise_error=raise_error,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            calling_function=get_function_name(),
-        )
-
-        if not wait_for_finalization and not wait_for_inclusion:
-            return response
-
-        if response.success:
-            return response
-
-        return response
+    return await sudo_call_extrinsic(
+        subtensor=subtensor,
+        wallet=wallet,
+        call_module="SubtensorModule",
+        call_function="set_pending_childkey_cooldown",
+        call_params={"cooldown": cooldown},
+        period=period,
+        raise_error=raise_error,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
