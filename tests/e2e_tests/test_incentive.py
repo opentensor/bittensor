@@ -134,7 +134,7 @@ async def test_incentive(subtensor, templates, alice_wallet, bob_wallet):
     subtensor.wait_for_block(next_epoch_start_block + tempo + 1)
 
     validators = subtensor.metagraphs.get_metagraph_info(
-        alice_subnet_netuid, field_indices=[72]
+        alice_subnet_netuid, selected_indices=[72]
     ).validators
 
     alice_uid = subtensor.subnets.get_uid_for_hotkey_on_subnet(
@@ -320,7 +320,7 @@ async def test_incentive_async(async_subtensor, templates, alice_wallet, bob_wal
 
     validators = (
         await async_subtensor.metagraphs.get_metagraph_info(
-            alice_subnet_netuid, field_indices=[72]
+            alice_subnet_netuid, selected_indices=[72]
         )
     ).validators
 
