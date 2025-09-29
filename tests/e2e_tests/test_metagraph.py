@@ -79,7 +79,7 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     )
 
     logging.console.info("Refresh the metagraph")
-    metagraph.sync(subtensor=subtensor._subtensor)
+    metagraph.sync(subtensor=subtensor.inner_subtensor)
 
     logging.console.info("Assert metagraph has Alice and Bob neurons")
     assert len(metagraph.uids) == 2, "Metagraph doesn't have exactly 2 neurons"
@@ -118,7 +118,7 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
         dave_wallet, alice_subnet_netuid
     ).success, "Unable to register Dave as a neuron"
 
-    metagraph.sync(subtensor=subtensor._subtensor)
+    metagraph.sync(subtensor=subtensor.inner_subtensor)
 
     logging.console.info("Assert metagraph now includes Dave's neuron")
     assert len(metagraph.uids) == 3, (
@@ -147,7 +147,7 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
     ).success, "Failed to add stake for Bob"
 
     logging.console.info("Assert stake is added after updating metagraph")
-    metagraph.sync(subtensor=subtensor._subtensor)
+    metagraph.sync(subtensor=subtensor.inner_subtensor)
     assert 0.95 < metagraph.neurons[1].stake.rao / alpha.rao < 1.05, (
         "Bob's stake not updated in metagraph"
     )
@@ -242,7 +242,7 @@ async def test_metagraph_async(async_subtensor, alice_wallet, bob_wallet, dave_w
         ).success, "Unable to register Bob as a neuron"
 
         logging.console.info("Refresh the metagraph")
-        await metagraph.sync(subtensor=async_subtensor._subtensor)
+        await metagraph.sync(subtensor=async_subtensor.inner_subtensor)
 
         logging.console.info("Assert metagraph has Alice and Bob neurons")
         assert len(metagraph.uids) == 2, "Metagraph doesn't have exactly 2 neurons"
@@ -287,7 +287,7 @@ async def test_metagraph_async(async_subtensor, alice_wallet, bob_wallet, dave_w
             )
         ).success, "Unable to register Dave as a neuron"
 
-        await metagraph.sync(subtensor=async_subtensor._subtensor)
+        await metagraph.sync(subtensor=async_subtensor.inner_subtensor)
 
         logging.console.info("Assert metagraph now includes Dave's neuron")
         assert len(metagraph.uids) == 3, (
@@ -320,7 +320,7 @@ async def test_metagraph_async(async_subtensor, alice_wallet, bob_wallet, dave_w
         ).success, "Failed to add stake for Bob"
 
         logging.console.info("Assert stake is added after updating metagraph")
-        await metagraph.sync(subtensor=async_subtensor._subtensor)
+        await metagraph.sync(subtensor=async_subtensor.inner_subtensor)
         assert 0.95 < metagraph.neurons[1].stake.rao / alpha.rao < 1.05, (
             "Bob's stake not updated in metagraph"
         )

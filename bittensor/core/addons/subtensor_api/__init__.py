@@ -94,24 +94,24 @@ class SubtensorApi:
 
         # assigned only for async instance
         self.initialize = None
-        self._subtensor = self._get_subtensor()
+        self.inner_subtensor = self._get_subtensor()
 
         # fix naming collision
-        self._neurons = _Neurons(self._subtensor)
+        self._neurons = _Neurons(self.inner_subtensor)
 
         # define empty fields
-        self.substrate = self._subtensor.substrate
-        self.chain_endpoint = self._subtensor.chain_endpoint
-        self.close = self._subtensor.close
-        self.config = self._subtensor.config
-        self.setup_config = self._subtensor.setup_config
-        self.help = self._subtensor.help
+        self.substrate = self.inner_subtensor.substrate
+        self.chain_endpoint = self.inner_subtensor.chain_endpoint
+        self.close = self.inner_subtensor.close
+        self.config = self.inner_subtensor.config
+        self.setup_config = self.inner_subtensor.setup_config
+        self.help = self.inner_subtensor.help
 
-        self.determine_block_hash = self._subtensor.determine_block_hash
-        self.encode_params = self._subtensor.encode_params
-        self.sign_and_send_extrinsic = self._subtensor.sign_and_send_extrinsic
-        self.start_call = self._subtensor.start_call
-        self.wait_for_block = self._subtensor.wait_for_block
+        self.determine_block_hash = self.inner_subtensor.determine_block_hash
+        self.encode_params = self.inner_subtensor.encode_params
+        self.sign_and_send_extrinsic = self.inner_subtensor.sign_and_send_extrinsic
+        self.start_call = self.inner_subtensor.start_call
+        self.wait_for_block = self.inner_subtensor.wait_for_block
 
         # adds all Subtensor methods into main level os SubtensorApi class
         if legacy_methods:
@@ -178,7 +178,7 @@ class SubtensorApi:
             raise NotImplementedError(
                 "Sync version of SubtensorApi cannot be used with async context manager."
             )
-        await self._subtensor.__aenter__()
+        await self.inner_subtensor.__aenter__()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -195,32 +195,32 @@ class SubtensorApi:
     @property
     def block(self):
         """Returns current chain block number."""
-        return self._subtensor.block
+        return self.inner_subtensor.block
 
     @property
     def chain(self):
         """Property of interaction with chain methods."""
-        return _Chain(self._subtensor)
+        return _Chain(self.inner_subtensor)
 
     @property
     def commitments(self):
         """Property to access commitments methods."""
-        return _Commitments(self._subtensor)
+        return _Commitments(self.inner_subtensor)
 
     @property
     def delegates(self):
         """Property to access delegates methods."""
-        return _Delegates(self._subtensor)
+        return _Delegates(self.inner_subtensor)
 
     @property
     def extrinsics(self):
         """Property to access extrinsics methods."""
-        return _Extrinsics(self._subtensor)
+        return _Extrinsics(self.inner_subtensor)
 
     @property
     def metagraphs(self):
         """Property to access metagraphs methods."""
-        return _Metagraphs(self._subtensor)
+        return _Metagraphs(self.inner_subtensor)
 
     @property
     def neurons(self):
@@ -235,19 +235,19 @@ class SubtensorApi:
     @property
     def queries(self):
         """Property to access subtensor queries methods."""
-        return _Queries(self._subtensor)
+        return _Queries(self.inner_subtensor)
 
     @property
     def staking(self):
         """Property to access staking methods."""
-        return _Staking(self._subtensor)
+        return _Staking(self.inner_subtensor)
 
     @property
     def subnets(self):
         """Property of interaction with subnets methods."""
-        return _Subnets(self._subtensor)
+        return _Subnets(self.inner_subtensor)
 
     @property
     def wallets(self):
         """Property of interaction methods with cold/hotkeys, and balances, etc."""
-        return _Wallets(self._subtensor)
+        return _Wallets(self.inner_subtensor)
