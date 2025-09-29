@@ -30,7 +30,6 @@ ruff:
 	@python -m ruff format bittensor
 
 check: ruff
-	@mypy --ignore-missing-imports bittensor/ --python-version=3.9
 	@mypy --ignore-missing-imports bittensor/ --python-version=3.10
 	@mypy --ignore-missing-imports bittensor/ --python-version=3.11
 	@mypy --ignore-missing-imports bittensor/ --python-version=3.12

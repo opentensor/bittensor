@@ -2100,8 +2100,8 @@ def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker):
     mocked_query_runtime_api.assert_has_calls(
         [
             mock.call(
-                "StakeInfoRuntimeApi",
-                "get_stake_info_for_hotkey_coldkey_netuid",
+                runtime_api="StakeInfoRuntimeApi",
+                method="get_stake_info_for_hotkey_coldkey_netuid",
                 params=["hotkey", "coldkey", netuid],
                 block=None,
             )
@@ -3497,7 +3497,7 @@ def test_get_parents_success(subtensor, mocker):
     ]
 
     # Call
-    result = subtensor.get_parents(hotkey=fake_hotkey, netuid=fake_netuid)
+    result = subtensor.get_parents(hotkey_ss58=fake_hotkey, netuid=fake_netuid)
 
     # Asserts
     mocked_query.assert_called_once_with(
@@ -3523,7 +3523,7 @@ def test_get_parents_no_parents(subtensor, mocker):
     subtensor.substrate.query = mocked_query
 
     # Call
-    result = subtensor.get_parents(hotkey=fake_hotkey, netuid=fake_netuid)
+    result = subtensor.get_parents(hotkey_ss58=fake_hotkey, netuid=fake_netuid)
 
     # Asserts
     mocked_query.assert_called_once_with(
@@ -3561,7 +3561,7 @@ def test_set_children(subtensor, fake_wallet, mocker):
     mocked_set_children_extrinsic.assert_called_once_with(
         subtensor=subtensor,
         wallet=fake_wallet,
-        hotkey=fake_wallet.hotkey.ss58_address,
+        hotkey_ss58=fake_wallet.hotkey.ss58_address,
         netuid=1,
         children=fake_children,
         wait_for_finalization=True,
@@ -3582,14 +3582,14 @@ def test_unstake_all(subtensor, fake_wallet, mocker):
     # Call
     result = subtensor.unstake_all(
         wallet=fake_wallet,
-        hotkey=fake_wallet.hotkey.ss58_address,
+        hotkey_ss58=fake_wallet.hotkey.ss58_address,
         netuid=1,
     )
     # Asserts
     fake_unstake_all_extrinsic.assert_called_once_with(
         subtensor=subtensor,
         wallet=fake_wallet,
-        hotkey=fake_wallet.hotkey.ss58_address,
+        hotkey_ss58=fake_wallet.hotkey.ss58_address,
         netuid=1,
         rate_tolerance=0.005,
         wait_for_inclusion=True,

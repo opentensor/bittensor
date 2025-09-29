@@ -299,6 +299,7 @@ def test_serve_axon_extrinsic(
                     axon=mock_axon,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
+                    raise_error=True,
                 )
         else:
             result = serving.serve_axon_extrinsic(
@@ -375,5 +376,4 @@ def test_publish_metadata(
             wait_for_finalization=wait_for_finalization,
             period=None,
             raise_error=False,
-            calling_function="publish_metadata_extrinsic",
         )

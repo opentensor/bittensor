@@ -25,8 +25,6 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
     - Unstaking using `unstake`
     - Checks StakeInfo
     """
-    logging.console.info("Testing [blue]test_single_operation[/blue]")
-
     alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
 
     # Register root as Alice - the subnet owner and validator
@@ -188,7 +186,6 @@ def test_single_operation(subtensor, alice_wallet, bob_wallet):
 
     # all balances have been unstaked
     assert stake == Balance(0).set_unit(alice_subnet_netuid)
-    logging.console.success("✅ Test [green]test_single_operation[/green] passed")
 
 
 @pytest.mark.asyncio
@@ -199,8 +196,6 @@ async def test_single_operation_async(async_subtensor, alice_wallet, bob_wallet)
     - Unstaking using `unstake`
     - Checks StakeInfo
     """
-    logging.console.info("Testing [blue]test_single_operation_async[/blue]")
-
     alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
 
     # Register root as Alice - the subnet owner and validator
@@ -357,7 +352,7 @@ async def test_single_operation_async(async_subtensor, alice_wallet, bob_wallet)
     success, message = await async_subtensor.staking.unstake_all(
         wallet=alice_wallet,
         netuid=alice_subnet_netuid,
-        hotkey=bob_wallet.hotkey.ss58_address,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
         period=16,
     )
     assert success is True, message
@@ -372,8 +367,6 @@ async def test_single_operation_async(async_subtensor, alice_wallet, bob_wallet)
     # all balances have been unstaked
     assert stake == Balance(0).set_unit(alice_subnet_netuid)
 
-    logging.console.success("✅ Test [green]test_single_operation_async[/green] passed")
-
 
 def test_batch_operations(subtensor, alice_wallet, bob_wallet):
     """
@@ -383,8 +376,6 @@ def test_batch_operations(subtensor, alice_wallet, bob_wallet):
     - Checks StakeInfo
     - Checks Accounts Balance
     """
-    logging.console.info("Testing [blue]test_batch_operations[/blue]")
-
     netuids = [
         2,
         3,
@@ -486,14 +477,15 @@ def test_batch_operations(subtensor, alice_wallet, bob_wallet):
         fee_tao = dynamic_info.alpha_to_tao(fee_alpha)
         expected_fee_paid += fee_tao
 
-    success = subtensor.staking.unstake_multiple(
+    response = subtensor.staking.unstake_multiple(
         wallet=alice_wallet,
         netuids=netuids,
         hotkey_ss58s=[bob_wallet.hotkey.ss58_address for _ in netuids],
         amounts=[Balance.from_tao(100) for _ in netuids],
+        raise_error=True,
     )
-
-    assert success.success is True
+    logging.console.info(f">>> res {response}")
+    assert response.success, response.message
 
     for netuid, old_stake in zip(netuids, stakes):
         stake = subtensor.staking.get_stake(
@@ -514,7 +506,6 @@ def test_batch_operations(subtensor, alice_wallet, bob_wallet):
     ) == Balance.from_tao(999_999.7994)
 
     assert balances[alice_wallet.coldkey.ss58_address] > alice_balance
-    logging.console.success("✅ Test [green]test_batch_operations[/green] passed")
 
 
 @pytest.mark.asyncio
@@ -526,8 +517,6 @@ async def test_batch_operations_async(async_subtensor, alice_wallet, bob_wallet)
     - Checks StakeInfo
     - Checks Accounts Balance
     """
-    logging.console.info("Testing [blue]test_batch_operations_async[/blue]")
-
     netuids = [
         2,
         3,
@@ -575,19 +564,18 @@ async def test_batch_operations_async(async_subtensor, alice_wallet, bob_wallet)
 
     alice_balance = balances[alice_wallet.coldkey.ss58_address]
 
-    assert (
-        await async_subtensor.staking.add_stake_multiple(
-            alice_wallet,
-            hotkey_ss58s=[bob_wallet.hotkey.ss58_address for _ in netuids],
-            netuids=netuids,
-            amounts=[Balance.from_tao(10_000) for _ in netuids],
-        )
-    ).success
+    response = await async_subtensor.staking.add_stake_multiple(
+        wallet=alice_wallet,
+        hotkey_ss58s=[bob_wallet.hotkey.ss58_address for _ in netuids],
+        netuids=netuids,
+        amounts=[Balance.from_tao(10_000) for _ in netuids],
+    )
+    assert response.success
 
     stakes = [
         await async_subtensor.staking.get_stake(
-            alice_wallet.coldkey.ss58_address,
-            bob_wallet.hotkey.ss58_address,
+            coldkey_ss58=alice_wallet.coldkey.ss58_address,
+            hotkey_ss58=bob_wallet.hotkey.ss58_address,
             netuid=netuid,
         )
         for netuid in netuids
@@ -633,14 +621,13 @@ async def test_batch_operations_async(async_subtensor, alice_wallet, bob_wallet)
         fee_tao = dynamic_info.alpha_to_tao(fee_alpha)
         expected_fee_paid += fee_tao
 
-    success = await async_subtensor.staking.unstake_multiple(
+    response = await async_subtensor.staking.unstake_multiple(
         wallet=alice_wallet,
         netuids=netuids,
         hotkey_ss58s=[bob_wallet.hotkey.ss58_address for _ in netuids],
         amounts=[Balance.from_tao(100) for _ in netuids],
     )
-
-    assert success.success is True
+    assert response.success, response.message
 
     for netuid, old_stake in zip(netuids, stakes):
         stake = await async_subtensor.staking.get_stake(
@@ -661,7 +648,6 @@ async def test_batch_operations_async(async_subtensor, alice_wallet, bob_wallet)
     ) == Balance.from_tao(999_999.7994)
 
     assert balances[alice_wallet.coldkey.ss58_address] > alice_balance
-    logging.console.success("✅ Test [green]test_batch_operations_async[/green] passed")
 
 
 def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet, eve_wallet):
@@ -673,8 +659,6 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet, eve_wallet)
     2. Succeeds with strict threshold (0.5%) and partial staking allowed
     3. Succeeds with lenient threshold (10% and 30%) and no partial staking
     """
-    logging.console.info("Testing [blue]test_safe_staking_scenarios[/blue]")
-
     # turn off admin freeze window limit for testing
     assert (
         sudo_set_admin_utils(
@@ -856,7 +840,6 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet, eve_wallet)
         allow_partial_stake=False,
     )
     assert response.success is True, "Unstake should succeed"
-    logging.console.success("✅ Test [green]test_safe_staking_scenarios[/green] passed")
 
 
 @pytest.mark.asyncio
@@ -871,8 +854,6 @@ async def test_safe_staking_scenarios_async(
     2. Succeeds with strict threshold (0.5%) and partial staking allowed
     3. Succeeds with lenient threshold (10% and 30%) and no partial staking
     """
-    logging.console.info("Testing [blue]test_safe_staking_scenarios_async[/blue]")
-
     # turn off admin freeze window limit for testing
     assert (
         await async_sudo_set_admin_utils(
@@ -1061,9 +1042,6 @@ async def test_safe_staking_scenarios_async(
         allow_partial_stake=False,
     )
     assert response.success is True, "Unstake should succeed"
-    logging.console.success(
-        "✅ Test [green]test_safe_staking_scenarios_async[/green] passed"
-    )
 
 
 def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
@@ -1074,8 +1052,6 @@ def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
     1. Fails with strict threshold (0.5%)
     2. Succeeds with lenient threshold (10%)
     """
-    logging.console.info("Testing [blue]test_safe_swap_stake_scenarios[/blue]")
-
     # Create new subnet (netuid 2) and register Alice
     origin_netuid = 2
     assert subtensor.subnets.register_subnet(bob_wallet).success
@@ -1171,9 +1147,6 @@ def test_safe_swap_stake_scenarios(subtensor, alice_wallet, bob_wallet):
     assert dest_stake > Balance(0).set_unit(dest_netuid), (
         "Destination stake should be non-zero after successful swap"
     )
-    logging.console.success(
-        "✅ Test [green]test_safe_swap_stake_scenarios[/green] passed"
-    )
 
 
 @pytest.mark.asyncio
@@ -1187,8 +1160,6 @@ async def test_safe_swap_stake_scenarios_async(
     1. Fails with strict threshold (0.5%)
     2. Succeeds with lenient threshold (10%)
     """
-    logging.console.info("Testing [blue]test_safe_swap_stake_scenarios_async[/blue]")
-
     # Create new subnet (netuid 2) and register Alice
     origin_netuid = 2
     assert (await async_subtensor.subnets.register_subnet(bob_wallet)).success
@@ -1290,9 +1261,6 @@ async def test_safe_swap_stake_scenarios_async(
     assert dest_stake > Balance(0).set_unit(dest_netuid), (
         "Destination stake should be non-zero after successful swap"
     )
-    logging.console.success(
-        "✅ Test [green]test_safe_swap_stake_scenarios_async[/green] passed"
-    )
 
 
 def test_move_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
@@ -1302,8 +1270,6 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
     - Moving stake from one hotkey-subnet pair to another
     - Testing `move_stake` method with `move_all_stake=True` flag.
     """
-    logging.console.info("Testing [blue]test_move_stake[/blue]")
-
     alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
     assert subtensor.subnets.register_subnet(alice_wallet).success
     assert subtensor.subnets.subnet_exists(alice_subnet_netuid), (
@@ -1450,8 +1416,6 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
 
     assert dave_stake.rao == CloseInValue(0, 0.00001)
 
-    logging.console.success("✅ Test [green]test_move_stake[/green] passed.")
-
 
 @pytest.mark.asyncio
 async def test_move_stake_async(async_subtensor, alice_wallet, bob_wallet, dave_wallet):
@@ -1461,8 +1425,6 @@ async def test_move_stake_async(async_subtensor, alice_wallet, bob_wallet, dave_
     - Moving stake from one hotkey-subnet pair to another
     - Testing `move_stake` method with `move_all_stake=True` flag.
     """
-    logging.console.info("Testing [blue]test_move_stake_async[/blue]")
-
     alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
     assert (await async_subtensor.subnets.register_subnet(alice_wallet)).success
     assert await async_subtensor.subnets.subnet_exists(alice_subnet_netuid), (
@@ -1626,8 +1588,6 @@ async def test_move_stake_async(async_subtensor, alice_wallet, bob_wallet, dave_
 
     assert dave_stake.rao == CloseInValue(0, 0.00001)
 
-    logging.console.success("✅ Test [green]test_move_stake_async[/green] passed.")
-
 
 def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
     """
@@ -1635,8 +1595,6 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
     - Adding stake
     - Transferring stake from one coldkey-subnet pair to another
     """
-    logging.console.info("Testing [blue]test_transfer_stake[/blue]")
-
     alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
 
     assert subtensor.subnets.register_subnet(alice_wallet).success
@@ -1751,7 +1709,6 @@ def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
         ),
     ]
     assert bob_stakes == expected_bob_stake
-    logging.console.success("✅ Test [green]test_transfer_stake[/green] passed")
 
 
 @pytest.mark.asyncio
@@ -1763,8 +1720,6 @@ async def test_transfer_stake_async(
     - Adding stake
     - Transferring stake from one coldkey-subnet pair to another
     """
-    logging.console.info("Testing [blue]test_transfer_stake_async[/blue]")
-
     alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
 
     assert (await async_subtensor.subnets.register_subnet(alice_wallet)).success
@@ -1889,7 +1844,6 @@ async def test_transfer_stake_async(
         ),
     ]
     assert bob_stakes == expected_bob_stake
-    logging.console.success("✅ Test [green]test_transfer_stake_async[/green] passed")
 
 
 # For test we set rate_tolerance=0.7 (70%) because of price is highly dynamic for fast-blocks and 2 SN to avoid `
@@ -1907,8 +1861,6 @@ def test_unstaking_with_limit(
     subtensor, alice_wallet, bob_wallet, dave_wallet, rate_tolerance
 ):
     """Test unstaking with limits goes well for all subnets with and without price limit."""
-    logging.console.info("Testing [blue]test_unstaking_with_limit[/blue]")
-
     # Register first SN
     alice_subnet_netuid_2 = subtensor.subnets.get_total_subnets()  # 2
     assert subtensor.subnets.register_subnet(alice_wallet).success
@@ -1986,8 +1938,8 @@ def test_unstaking_with_limit(
         ):
             subtensor.staking.unstake_all(
                 wallet=bob_wallet,
-                hotkey=bob_stakes[0].hotkey_ss58,
                 netuid=bob_stakes[0].netuid,
+                hotkey_ss58=bob_stakes[0].hotkey_ss58,
                 rate_tolerance=rate_tolerance,
             )
     else:
@@ -1995,8 +1947,8 @@ def test_unstaking_with_limit(
         for si in bob_stakes:
             assert subtensor.staking.unstake_all(
                 wallet=bob_wallet,
-                hotkey=si.hotkey_ss58,
                 netuid=si.netuid,
+                hotkey_ss58=si.hotkey_ss58,
                 rate_tolerance=rate_tolerance,
             ).success
 
@@ -2020,8 +1972,6 @@ async def test_unstaking_with_limit_async(
     async_subtensor, alice_wallet, bob_wallet, dave_wallet, rate_tolerance
 ):
     """Test unstaking with limits goes well for all subnets with and without price limit."""
-    logging.console.info("Testing [blue]test_unstaking_with_limit_async[/blue]")
-
     # Register first SN
     alice_subnet_netuid_2 = await async_subtensor.subnets.get_total_subnets()  # 2
     assert (await async_subtensor.subnets.register_subnet(alice_wallet)).success
@@ -2116,7 +2066,7 @@ async def test_unstaking_with_limit_async(
             await async_subtensor.staking.unstake_all(
                 wallet=bob_wallet,
                 netuid=bob_stakes[0].netuid,
-                hotkey=bob_stakes[0].hotkey_ss58,
+                hotkey_ss58=bob_stakes[0].hotkey_ss58,
                 rate_tolerance=rate_tolerance,
             )
     else:
@@ -2125,8 +2075,8 @@ async def test_unstaking_with_limit_async(
             assert (
                 await async_subtensor.staking.unstake_all(
                     wallet=bob_wallet,
+                    hotkey_ss58=si.hotkey_ss58,
                     netuid=si.netuid,
-                    hotkey=si.hotkey_ss58,
                     rate_tolerance=rate_tolerance,
                 )
             ).success
@@ -2136,10 +2086,6 @@ async def test_unstaking_with_limit_async(
             bob_wallet.coldkey.ss58_address
         )
         assert len(bob_stakes) == 0
-
-        logging.console.success(
-            "✅ Test [green]test_unstaking_with_limit_async[/green] passed"
-        )
 
 
 def test_auto_staking(subtensor, alice_wallet, bob_wallet, eve_wallet):

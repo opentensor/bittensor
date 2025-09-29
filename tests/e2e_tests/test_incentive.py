@@ -27,8 +27,6 @@ async def test_incentive(subtensor, templates, alice_wallet, bob_wallet):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-
-    logging.console.info("Testing [blue]test_incentive[/blue]")
     alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
     # turn off admin freeze window limit for testing
     assert (
@@ -75,7 +73,7 @@ async def test_incentive(subtensor, templates, alice_wallet, bob_wallet):
 
     # Wait for the first epoch to pass
     subtensor.wait_for_block(
-        subtensor.subnets.get_next_epoch_start_block(alice_subnet_netuid) + 1
+        subtensor.subnets.get_next_epoch_start_block(alice_subnet_netuid) + 5
     )
 
     # Get current miner/validator stats
@@ -188,13 +186,10 @@ async def test_incentive(subtensor, templates, alice_wallet, bob_wallet):
                 ),
             ]
 
-            print("✅ Passed test_incentive")
             break
         except Exception:
             subtensor.wait_for_block(subtensor.block)
             continue
-
-    logging.console.success("Test [green]test_incentive[/green] passed.")
 
 
 @pytest.mark.asyncio
@@ -210,8 +205,6 @@ async def test_incentive_async(async_subtensor, templates, alice_wallet, bob_wal
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-
-    logging.console.info("Testing [blue]test_incentive[/blue]")
     alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
 
     # turn off admin freeze window limit for testing
@@ -264,7 +257,7 @@ async def test_incentive_async(async_subtensor, templates, alice_wallet, bob_wal
     next_epoch_start_block = await async_subtensor.subnets.get_next_epoch_start_block(
         netuid=alice_subnet_netuid
     )
-    await async_subtensor.wait_for_block(next_epoch_start_block + 1)
+    await async_subtensor.wait_for_block(next_epoch_start_block + 5)
 
     # Get current miner/validator stats
     alice_neuron = (await async_subtensor.neurons.neurons(netuid=alice_subnet_netuid))[
@@ -380,10 +373,7 @@ async def test_incentive_async(async_subtensor, templates, alice_wallet, bob_wal
                 ),
             ]
 
-            print("✅ Passed test_incentive")
             break
         except Exception:
             await async_subtensor.wait_for_block(await async_subtensor.block)
             continue
-
-    logging.console.success("Test [green]test_incentive[/green] passed.")

@@ -209,7 +209,7 @@ class Templates:
                 if b"Starting validator loop." in line:
                     logging.console.info("Validator started.")
                     self.started.set()
-                elif b"Successfully set weights and Finalized." in line:
+                elif b"Success" in line:
                     logging.console.info("Validator is setting weights.")
                     self.set_weights.set()
 

@@ -6,8 +6,9 @@ these are not present in btsdk but are required for e2e tests
 import asyncio
 import functools
 import time
+from symtable import Class
 from typing import Union, Optional, TYPE_CHECKING
-
+from dataclasses import dataclass
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 
@@ -216,10 +217,7 @@ async def wait_interval(
         current_block = subtensor.chain.get_current_block()
         if last_reported is None or current_block - last_reported >= reporting_interval:
             last_reported = current_block
-            print(
-                f"Current Block: {current_block}  Next tempo for netuid {netuid} at: {next_tempo_block_start}"
-            )
-            logging.info(
+            logging.console.info(
                 f"Current Block: {current_block}  Next tempo for netuid {netuid} at: {next_tempo_block_start}"
             )
 
@@ -254,10 +252,7 @@ async def async_wait_interval(
         current_block = await subtensor.chain.get_current_block()
         if last_reported is None or current_block - last_reported >= reporting_interval:
             last_reported = current_block
-            print(
-                f"Current Block: {current_block}  Next tempo for netuid {netuid} at: {next_tempo_block_start}"
-            )
-            logging.info(
+            logging.console.info(
                 f"Current Block: {current_block}  Next tempo for netuid {netuid} at: {next_tempo_block_start}"
             )
 

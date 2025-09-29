@@ -28,7 +28,7 @@ def mock_substrate(mocker):
 
 @pytest.fixture
 def subtensor(mock_substrate):
-    return bittensor.core.subtensor.Subtensor()
+    return bittensor.core.subtensor.Subtensor(_mock=True)
 
 
 @pytest.fixture

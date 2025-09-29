@@ -19,9 +19,6 @@ async def test_axon(subtensor, templates, alice_wallet):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-
-    logging.console.info("Testing test_axon")
-
     netuid = 2
 
     # Register a subnet, netuid 2
@@ -81,8 +78,6 @@ async def test_axon(subtensor, templates, alice_wallet):
         "Coldkey mismatch after mining"
     )
 
-    logging.console.success("✅ Passed test_axon")
-
 
 @pytest.mark.asyncio
 async def test_axon_async(async_subtensor, templates, alice_wallet):
@@ -97,9 +92,6 @@ async def test_axon_async(async_subtensor, templates, alice_wallet):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-
-    logging.console.info("Testing test_axon")
-
     netuid = 2
 
     # Register a subnet, netuid 2
@@ -162,5 +154,3 @@ async def test_axon_async(async_subtensor, templates, alice_wallet):
     assert updated_axon.coldkey == alice_wallet.coldkey.ss58_address, (
         "Coldkey mismatch after mining"
     )
-
-    logging.console.success("✅ Passed test_axon_async")
