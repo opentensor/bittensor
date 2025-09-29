@@ -1,6 +1,7 @@
-from bittensor.core.subtensor import Subtensor
-from bittensor.core.subtensor_api import SubtensorApi
 import pytest
+
+from bittensor.core.addons.subtensor_api import SubtensorApi
+from bittensor.core.subtensor import Subtensor
 
 
 def test_properties_methods_comparable(other_class: "Subtensor" = None):
