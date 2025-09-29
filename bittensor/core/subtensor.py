@@ -1727,7 +1727,6 @@ class Subtensor(SubtensorMixin):
         self,
         coldkey_ss58: str,
         block: Optional[int] = None,
-        reuse_block: bool = False,
     ) -> list[str]:
         """
         Retrieves all hotkeys owned by a specific coldkey address.
@@ -1735,7 +1734,6 @@ class Subtensor(SubtensorMixin):
         Parameters:
             coldkey_ss58: The SS58 address of the coldkey to query.
             block: The blockchain block number for the query.
-            reuse_block: Whether to reuse the last-used blockchain block hash.
 
         Returns:
             list[str]: A list of hotkey SS58 addresses owned by the coldkey.
@@ -1746,7 +1744,6 @@ class Subtensor(SubtensorMixin):
             storage_function="OwnedHotkeys",
             params=[coldkey_ss58],
             block_hash=block_hash,
-            reuse_block_hash=reuse_block,
         )
         return [decode_account_id(hotkey[0]) for hotkey in owned_hotkeys or []]
 
