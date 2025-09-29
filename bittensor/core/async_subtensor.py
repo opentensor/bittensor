@@ -880,10 +880,10 @@ class AsyncSubtensor(SubtensorMixin):
     async def bonds(
         self,
         netuid: int,
+        mechid: int = 0,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-        mechid: int = 0,
     ) -> list[tuple[int, list[tuple[int, int]]]]:
         """Retrieves the bond distribution set by subnet validators within a specific subnet.
 
@@ -893,10 +893,10 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             netuid: Subnet identifier.
+            mechid: Subnet mechanism identifier.
             block: The block number for this query. Do not specify if using block_hash or reuse_block.
             block_hash: The hash of the block for the query. Do not specify if using reuse_block or block.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
-            mechid: Subnet mechanism identifier.
 
         Returns:
             List of tuples mapping each neuron's UID to its bonds with other neurons.
@@ -1968,15 +1968,16 @@ class AsyncSubtensor(SubtensorMixin):
 
         return Balance.from_rao(getattr(result, "value", 0))
 
-    # TODO: update parameters order in SDKv10, rename `field_indices` to `selected_indices`
     async def get_metagraph_info(
         self,
         netuid: int,
-        field_indices: Optional[Union[list[SelectiveMetagraphIndex], list[int]]] = None,
+        mechid: int = 0,
+        selected_indices: Optional[
+            Union[list[SelectiveMetagraphIndex], list[int]]
+        ] = None,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-        mechid: int = 0,
     ) -> Optional[MetagraphInfo]:
         """
         Retrieves full or partial metagraph information for the specified subnet (netuid).
@@ -1987,7 +1988,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             netuid: The unique identifier of the subnet to query.
-            field_indices: Optional list of SelectiveMetagraphIndex or int values specifying which fields to retrieve.
+            selected_indices: Optional list of SelectiveMetagraphIndex or int values specifying which fields to retrieve.
                 If not provided, all available fields will be returned.
             block: The blockchain block number for the query.
             block_hash: The hash of the blockchain block number at which to perform the query.
@@ -2007,14 +2008,14 @@ class AsyncSubtensor(SubtensorMixin):
             # Retrieve selective data from the metagraph from subnet 2 mechanism 0
             partial_meta_info = subtensor.get_metagraph_info(
                 netuid=2,
-                field_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
+                selected_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
             )
 
             # Retrieve selective data from the metagraph from subnet 2 mechanism 1
             partial_meta_info = subtensor.get_metagraph_info(
                 netuid=2,
                 mechid=1,
-                field_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
+                selected_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
             )
 
         Notes:
@@ -2029,9 +2030,9 @@ class AsyncSubtensor(SubtensorMixin):
         indexes = (
             [
                 f.value if isinstance(f, SelectiveMetagraphIndex) else f
-                for f in field_indices
+                for f in selected_indices
             ]
-            if field_indices is not None
+            if selected_indices is not None
             else [f for f in range(len(SelectiveMetagraphIndex))]
         )
 
@@ -2741,24 +2742,23 @@ class AsyncSubtensor(SubtensorMixin):
         prices.update({0: Balance.from_tao(1)})
         return prices
 
-    # TODO: update order in SDKv10
     async def get_timelocked_weight_commits(
         self,
         netuid: int,
+        mechid: int = 0,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-        mechid: int = 0,
     ) -> list[tuple[str, int, str, int]]:
         """
         Retrieves CRv4 weight commit information for a specific subnet.
 
         Parameters:
             netuid: Subnet identifier.
-            block (Optional[int]): The blockchain block number for the query.
+            mechid: Subnet mechanism identifier.
+            block: The blockchain block number for the query.
             block_hash: The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block.
             reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
-            mechid: Subnet mechanism identifier.
 
         Returns:
             A list of commit details, where each item contains:
@@ -3585,13 +3585,12 @@ class AsyncSubtensor(SubtensorMixin):
         )
         return None if call is None else u16_normalized_float(int(call))
 
-    # TODO: update parameters order in SDKv10
     async def metagraph(
         self,
         netuid: int,
+        mechid: int = 0,
         lite: bool = True,
         block: Optional[int] = None,
-        mechid: int = 0,
     ) -> "AsyncMetagraph":
         """
         Returns a synced metagraph for a specified subnet within the Bittensor network.
@@ -3599,9 +3598,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             netuid: The network UID of the subnet to query.
+            mechid: Subnet mechanism identifier.
             lite: If true, returns a metagraph using a lightweight sync (no weights, no bonds).
             block: Block number for synchronization, or `None` for the latest block.
-            mechid: Subnet mechanism identifier.
 
         Returns:
             The metagraph representing the subnet's structure and neuron relationships.
@@ -4053,14 +4052,13 @@ class AsyncSubtensor(SubtensorMixin):
         )
         return True
 
-    # TODO: update order in SDKv10
     async def weights(
         self,
         netuid: int,
+        mechid: int = 0,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-        mechid: int = 0,
     ) -> list[tuple[int, list[tuple[int, int]]]]:
         """
         Retrieves the weight distribution set by neurons within a specific subnet of the Bittensor network.
@@ -4509,13 +4507,13 @@ class AsyncSubtensor(SubtensorMixin):
         salt: Salt,
         uids: UIDs,
         weights: Weights,
+        mechid: int = 0,
         version_key: int = version_as_int,
         max_retries: int = 5,
         period: Optional[int] = 16,
         raise_error: bool = True,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
-        mechid: int = 0,
     ) -> ExtrinsicResponse:
         """
         Commits a hash of the subnet validator's weight vector to the Bittensor blockchain using the provided wallet.
@@ -4527,6 +4525,7 @@ class AsyncSubtensor(SubtensorMixin):
             salt: list of randomly generated integers as salt to generated weighted hash.
             uids: NumPy array of neuron UIDs for which weights are being committed.
             weights: NumPy array of weight values corresponding to each UID.
+            mechid: The subnet mechanism unique identifier.
             version_key: Version key for compatibility with the network.
             max_retries: The number of maximum attempts to commit weights.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
@@ -4535,7 +4534,6 @@ class AsyncSubtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
-            mechid: The subnet mechanism unique identifier.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -4856,13 +4854,13 @@ class AsyncSubtensor(SubtensorMixin):
         uids: UIDs,
         weights: Weights,
         salt: Salt,
+        mechid: int = 0,
         max_retries: int = 5,
         version_key: int = version_as_int,
         period: Optional[int] = 16,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-        mechid: int = 0,
     ) -> ExtrinsicResponse:
         """
         Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
@@ -4874,6 +4872,7 @@ class AsyncSubtensor(SubtensorMixin):
             uids: NumPy array of neuron UIDs for which weights are being revealed.
             weights: NumPy array of weight values corresponding to each UID.
             salt: NumPy array of salt values corresponding to the hash function.
+            mechid: The subnet mechanism unique identifier.
             max_retries: The number of maximum attempts to reveal weights.
             version_key: Version key for compatibility with the network.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
@@ -4882,7 +4881,6 @@ class AsyncSubtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
-            mechid: The subnet mechanism unique identifier.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5208,6 +5206,7 @@ class AsyncSubtensor(SubtensorMixin):
         netuid: int,
         uids: UIDs,
         weights: Weights,
+        mechid: int = 0,
         block_time: float = 12.0,
         commit_reveal_version: int = 4,
         max_retries: int = 5,
@@ -5216,7 +5215,6 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-        mechid: int = 0,
     ) -> ExtrinsicResponse:
         """
         Sets the weight vector for a neuron acting as a validator, specifying the weights assigned to subnet miners
@@ -5232,6 +5230,7 @@ class AsyncSubtensor(SubtensorMixin):
             uids: The list of subnet miner neuron UIDs that the weights are being set for.
             weights: The corresponding weights to be set for each UID, representing the validator's evaluation of each
                 miner's performance.
+            mechid: The subnet mechanism unique identifier.
             block_time: The number of seconds for block duration.
             commit_reveal_version: The version of the chain commit-reveal protocol to use.
             max_retries: The number of maximum attempts to set weights.
@@ -5242,7 +5241,6 @@ class AsyncSubtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
-            mechid: The subnet mechanism unique identifier.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.

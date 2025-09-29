@@ -70,6 +70,7 @@ def process_nested(
 class MetagraphInfo(InfoBase):
     # Subnet index
     netuid: int
+    mechid: int
 
     # Name and symbol
     name: str
@@ -172,8 +173,6 @@ class MetagraphInfo(InfoBase):
     validators: Optional[list[str]]
 
     commitments: Optional[tuple[tuple[str, str]]]
-
-    mechid: int = 0
 
     @classmethod
     def _from_dict(cls, decoded: dict) -> "MetagraphInfo":
