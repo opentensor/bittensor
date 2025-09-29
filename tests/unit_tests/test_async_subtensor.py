@@ -390,7 +390,7 @@ async def test_get_total_subnets(subtensor, mocker):
 )
 @pytest.mark.asyncio
 async def test_get_subnets(subtensor, mocker, records, response):
-    """Tests get_subnets method with any return."""
+    """Tests get_all_subnets_netuid method with any return."""
     # Preps
     fake_result = mocker.AsyncMock(autospec=list)
     fake_result.records = records
@@ -405,7 +405,7 @@ async def test_get_subnets(subtensor, mocker, records, response):
     fake_block_hash = None
 
     # Call
-    result = await subtensor.get_subnets(block_hash=fake_block_hash)
+    result = await subtensor.get_all_subnets_netuid(block_hash=fake_block_hash)
 
     # Asserts
     mocked_substrate_query_map.assert_called_once_with(
@@ -559,7 +559,7 @@ async def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker):
         subtensor.substrate, "get_chain_head", return_value=block_hash
     )
     mocked_get_subnets = mocker.patch.object(
-        subtensor, "get_subnets", return_value=netuids
+        subtensor, "get_all_subnets_netuid", return_value=netuids
     )
 
     result = await subtensor.get_stake_for_coldkey_and_hotkey(

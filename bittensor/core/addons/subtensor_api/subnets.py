@@ -16,6 +16,7 @@ class Subnets:
         self.commit_reveal_enabled = subtensor.commit_reveal_enabled
         self.difficulty = subtensor.difficulty
         self.get_all_subnets_info = subtensor.get_all_subnets_info
+        self.get_all_subnets_netuid = subtensor.get_all_subnets_netuid
         self.get_parents = subtensor.get_parents
         self.get_children = subtensor.get_children
         self.get_children_pending = subtensor.get_children_pending
@@ -35,7 +36,6 @@ class Subnets:
         self.get_subnet_owner_hotkey = subtensor.get_subnet_owner_hotkey
         self.get_subnet_reveal_period_epochs = subtensor.get_subnet_reveal_period_epochs
         self.get_subnet_validator_permits = subtensor.get_subnet_validator_permits
-        self.get_subnets = subtensor.get_subnets
         self.get_total_subnets = subtensor.get_total_subnets
         self.get_uid_for_hotkey_on_subnet = subtensor.get_uid_for_hotkey_on_subnet
         self.immunity_period = subtensor.immunity_period
