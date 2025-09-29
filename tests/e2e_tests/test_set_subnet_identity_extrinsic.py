@@ -47,10 +47,6 @@ def test_set_subnet_identity_extrinsic_happy_pass(subtensor, alice_wallet):
     # Check SubnetIdentity of the subnet
     assert subtensor.subnets.subnet(netuid).subnet_identity == subnet_identity
 
-    logging.console.success(
-        "✅ Passed [blue]test_set_subnet_identity_extrinsic_happy_pass[/blue]"
-    )
-
 
 @pytest.mark.asyncio
 async def test_set_subnet_identity_extrinsic_happy_pass_async(
@@ -102,9 +98,6 @@ async def test_set_subnet_identity_extrinsic_happy_pass_async(
     assert (
         await async_subtensor.subnets.subnet(netuid)
     ).subnet_identity == subnet_identity
-    logging.console.success(
-        "✅ Passed [blue]test_set_subnet_identity_extrinsic_happy_pass_async[/blue]"
-    )
 
 
 def test_set_subnet_identity_extrinsic_failed(subtensor, alice_wallet, bob_wallet):
@@ -151,10 +144,6 @@ def test_set_subnet_identity_extrinsic_failed(subtensor, alice_wallet, bob_walle
         ).success
         is False
     ), "Set subnet identity failed"
-
-    logging.console.success(
-        "✅ Passed [blue]test_set_subnet_identity_extrinsic_failed[/blue]"
-    )
 
 
 @pytest.mark.asyncio
@@ -207,7 +196,3 @@ async def test_set_subnet_identity_extrinsic_failed_async(
             subnet_identity=subnet_identity,
         )
     ).success is False, "Set subnet identity failed"
-
-    logging.console.success(
-        "✅ Passed [blue]test_set_subnet_identity_extrinsic_failed[/blue]"
-    )
