@@ -238,7 +238,7 @@ Removing deprecated extrinsics and replacing them with consistent ones:
 
 Added sub-package `bittensor.core.addons` to host optional extensions and experimental logic enhancing the core functionality.
   - `bittensor.core.subtensor_api` moved to `bittensor.core.addons.subtensor_api`
-  - 
+  - `bittensor.core.timelock` moved to `bittensor.core.addons.timelock` 
 
 ### Mechid related changes:
 In the next subtensor methods got updated the parameters order:
