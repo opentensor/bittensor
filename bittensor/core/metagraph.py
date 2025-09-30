@@ -1412,7 +1412,7 @@ class AsyncMetagraph(NumpyOrTorch):
         ):
             cur_block = await subtensor.get_current_block()
             if block and block < (cur_block - 300):
-                logging.warning(
+                logging.debug(
                     "Attempting to sync longer than 300 blocks ago on a non-archive node. Please use the 'archive' "
                     "network for subtensor and retry."
                 )
@@ -1730,7 +1730,7 @@ class Metagraph(NumpyOrTorch):
         ):
             cur_block = subtensor.get_current_block()
             if block and block < (cur_block - 300):
-                logging.warning(
+                logging.debug(
                     "Attempting to sync longer than 300 blocks ago on a non-archive node. Please use the 'archive' "
                     "network for subtensor and retry."
                 )
