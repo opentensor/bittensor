@@ -110,7 +110,7 @@ from bittensor.utils import (
 from bittensor.utils.balance import (
     Balance,
     fixed_to_float,
-    check_and_convert_to_balance,
+    check_balance_amount,
 )
 from bittensor.utils.btlogging import logging
 from bittensor.utils.liquidity import (
@@ -3189,7 +3189,7 @@ class AsyncSubtensor(SubtensorMixin):
         a crucial tool for managing financial operations within the Bittensor network.
         """
         if value is not None:
-            value = check_and_convert_to_balance(value)
+            value = check_balance_amount(value)
         call_params: dict[str, Union[int, str, bool]]
         call_function, call_params = get_transfer_fn_params(value, dest, keep_alive)
 
@@ -4376,7 +4376,7 @@ class AsyncSubtensor(SubtensorMixin):
         When safe_staking is enabled, it provides protection against price fluctuations during the time stake is
         executed and the time it is actually processed by the chain.
         """
-        amount = check_and_convert_to_balance(amount)
+        amount = check_balance_amount(amount)
         return await add_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -4722,7 +4722,7 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
         """
-        amount = check_and_convert_to_balance(amount)
+        amount = check_balance_amount(amount)
         return await move_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -5613,7 +5613,7 @@ class AsyncSubtensor(SubtensorMixin):
             - With allow_partial_stake=True: A partial amount will be swapped up to the point where the price ratio
             would increase by rate_tolerance.
         """
-        amount = check_and_convert_to_balance(amount)
+        amount = check_balance_amount(amount)
         return await swap_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -5701,7 +5701,7 @@ class AsyncSubtensor(SubtensorMixin):
             ExtrinsicResponse: The result object of the extrinsic execution.
         """
         if amount is not None:
-            amount = check_and_convert_to_balance(amount)
+            amount = check_balance_amount(amount)
         return await transfer_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -5748,7 +5748,7 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
         """
-        amount = check_and_convert_to_balance(amount)
+        amount = check_balance_amount(amount)
         return await transfer_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -5806,7 +5806,7 @@ class AsyncSubtensor(SubtensorMixin):
         This function supports flexible stake management, allowing neurons to adjust their network participation and
         potential reward accruals.
         """
-        amount = check_and_convert_to_balance(amount)
+        amount = check_balance_amount(amount)
         return await unstake_extrinsic(
             subtensor=self,
             wallet=wallet,
