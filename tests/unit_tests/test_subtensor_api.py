@@ -8,9 +8,9 @@ def test_properties_methods_comparable(other_class: "Subtensor" = None):
     """Verifies that methods in SubtensorApi and its properties contains all Subtensors methods."""
     # Preps
     subtensor = (
-        other_class(network="latent-lite", _mock=True)
+        other_class(network="latent-lite", mock=True)
         if other_class
-        else Subtensor(network="latent-lite", _mock=True)
+        else Subtensor(network="latent-lite", mock=True)
     )
     subtensor_api = SubtensorApi(network="latent-lite", mock=True)
 
@@ -70,7 +70,7 @@ def test__methods_comparable_with_passed_legacy_methods(
     subtensor = (
         other_class(network="latent-lite", mock=True)
         if other_class
-        else Subtensor(network="latent-lite", _mock=True)
+        else Subtensor(network="latent-lite", mock=True)
     )
     subtensor_api = SubtensorApi(network="latent-lite", mock=True, legacy_methods=True)
 
