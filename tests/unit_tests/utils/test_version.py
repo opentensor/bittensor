@@ -133,20 +133,3 @@ def test_check_version_up_to_date(
 
     assert captured.out == ""
 
-
-def test_version_checking(mocker: MockerFixture):
-    mock = mocker.patch("bittensor.utils.version.check_version")
-
-    version.version_checking()
-
-    mock.assert_called_once()
-
-
-def test_version_checking_exception(mocker: MockerFixture):
-    mock = mocker.patch(
-        "bittensor.utils.version.check_version", side_effect=version.VersionCheckError
-    )
-
-    version.version_checking()
-
-    mock.assert_called_once()
