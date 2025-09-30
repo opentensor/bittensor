@@ -751,7 +751,7 @@ def test_safe_staking_scenarios(subtensor, alice_wallet, bob_wallet, eve_wallet)
     assert partial_stake > Balance(0).set_unit(alice_subnet_netuid), (
         "Partial stake should be added"
     )
-    assert partial_stake < stake_amount, (
+    assert partial_stake < Balance.from_tao(stake_amount.tao).set_unit(alice_subnet_netuid), (
         "Partial stake should be less than requested amount"
     )
 
@@ -952,7 +952,7 @@ async def test_safe_staking_scenarios_async(
     assert partial_stake > Balance(0).set_unit(alice_subnet_netuid), (
         "Partial stake should be added"
     )
-    assert partial_stake < stake_amount, (
+    assert partial_stake < Balance.from_tao(stake_amount.tao).set_unit(alice_subnet_netuid), (
         "Partial stake should be less than requested amount"
     )
 
@@ -1333,9 +1333,9 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
             netuid=alice_subnet_netuid
             if subtensor.chain.is_fast_blocks()
             else bob_subnet_netuid,
-            stake=get_dynamic_balance(stakes[0].stake.rao, bob_subnet_netuid),
-            locked=Balance(0).set_unit(bob_subnet_netuid),
-            emission=get_dynamic_balance(stakes[0].emission.rao, bob_subnet_netuid),
+            stake=get_dynamic_balance(stakes[0].stake.rao, alice_subnet_netuid),
+            locked=Balance(0).set_unit(alice_subnet_netuid),
+            emission=get_dynamic_balance(stakes[0].emission.rao, alice_subnet_netuid),
             drain=0,
             is_registered=True,
         )
@@ -1359,6 +1359,9 @@ def test_move_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
     )
 
     expected_stakes += fast_block_stake
+    logging.console.info(f"[orange]FS: {fast_block_stake}[/orange]")
+    logging.console.info(f"[orange]RS: {stakes}[/orange]")
+    logging.console.info(f"[orange]ES: {expected_stakes}[/orange]")
     assert stakes == expected_stakes
 
     # test move_stake with move_all_stake=True
@@ -1502,9 +1505,9 @@ async def test_move_stake_async(async_subtensor, alice_wallet, bob_wallet, dave_
             netuid=alice_subnet_netuid
             if await async_subtensor.chain.is_fast_blocks()
             else bob_subnet_netuid,
-            stake=get_dynamic_balance(stakes[0].stake.rao, bob_subnet_netuid),
-            locked=Balance(0).set_unit(bob_subnet_netuid),
-            emission=get_dynamic_balance(stakes[0].emission.rao, bob_subnet_netuid),
+            stake=get_dynamic_balance(stakes[0].stake.rao, alice_subnet_netuid),
+            locked=Balance(0).set_unit(alice_subnet_netuid),
+            emission=get_dynamic_balance(stakes[0].emission.rao, alice_subnet_netuid),
             drain=0,
             is_registered=True,
         )
