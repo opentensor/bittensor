@@ -19,7 +19,6 @@ class DelegateInfoLite(InfoBase):
         registrations: List of subnets that the delegate is registered on.
         validator_permits: List of subnets that the delegate is allowed to validate on.
         return_per_1000: Return per 1000 TAO, for the delegate over a day.
-        total_daily_return: Total daily return of the delegate.
     """
 
     delegate_ss58: str  # Hotkey of delegate
@@ -31,7 +30,6 @@ class DelegateInfoLite(InfoBase):
         int
     ]  # List of subnets that the delegate is allowed to validate on
     return_per_1000: Balance  # Return per 1000 tao for the delegate over a day
-    total_daily_return: Balance  # Total daily return of the delegate
 
     @classmethod
     def _from_dict(cls, decoded: dict) -> "DelegateInfoLite":
@@ -43,5 +41,4 @@ class DelegateInfoLite(InfoBase):
             registrations=decoded["registrations"],
             validator_permits=decoded["validator_permits"],
             return_per_1000=Balance.from_rao(decoded["return_per_1000"]),
-            total_daily_return=Balance.from_rao(decoded["total_daily_return"]),
         )
