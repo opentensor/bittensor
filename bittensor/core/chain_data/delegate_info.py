@@ -18,7 +18,6 @@ class DelegateInfoBase(InfoBase):
         validator_permits: List of subnets that the delegate is allowed to validate on.
         registrations: List of subnets that the delegate is registered on.
         return_per_1000: Return per 1000 tao of the delegate over a day.
-        total_daily_return: Total daily return of the delegate.
     """
 
     hotkey_ss58: str  # Hotkey of delegate
@@ -29,7 +28,6 @@ class DelegateInfoBase(InfoBase):
     ]  # List of subnets that the delegate is allowed to validate on
     registrations: list[int]  # list of subnets that the delegate is registered on
     return_per_1000: Balance  # Return per 1000 tao of the delegate over a day
-    total_daily_return: Balance  # Total daily return of the delegate
 
 
 @dataclass
@@ -77,7 +75,6 @@ class DelegateInfo(DelegateInfoBase):
             validator_permits=list(decoded.get("validator_permits", [])),
             registrations=list(decoded.get("registrations", [])),
             return_per_1000=Balance.from_rao(decoded.get("return_per_1000")),
-            total_daily_return=Balance.from_rao(decoded.get("total_daily_return")),
         )
 
 
@@ -108,9 +105,6 @@ class DelegatedInfo(DelegateInfoBase):
             validator_permits=list(delegate_info.get("validator_permits", [])),
             registrations=list(delegate_info.get("registrations", [])),
             return_per_1000=Balance.from_rao(delegate_info.get("return_per_1000")),
-            total_daily_return=Balance.from_rao(
-                delegate_info.get("total_daily_return")
-            ),
             netuid=int(netuid),
             stake=Balance.from_rao(int(stake)).set_unit(int(netuid)),
         )
