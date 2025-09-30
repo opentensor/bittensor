@@ -1,6 +1,6 @@
 import datetime
 import unittest.mock as mock
-
+from bittensor.core.errors import BalanceTypeError
 import pytest
 from async_substrate_interface.types import ScaleObj
 from bittensor_wallet import Wallet
@@ -710,13 +710,11 @@ async def test_get_transfer_with_exception(subtensor, mocker):
     subtensor.substrate.compose_call = mocked_compose_call
     subtensor.substrate.get_payment_info.side_effect = Exception
 
-    # Call
-    result = await subtensor.get_transfer_fee(
-        wallet=mocker.Mock(), dest=mocker.Mock(), value=fake_value
-    )
-
-    # Assertions
-    assert result == async_subtensor.Balance.from_rao(int(2e7))
+    # Call + Assertions
+    with pytest.raises(BalanceTypeError):
+        await subtensor.get_transfer_fee(
+            wallet=mocker.Mock(), dest=mocker.Mock(), value=fake_value
+        )
 
 
 @pytest.mark.asyncio
