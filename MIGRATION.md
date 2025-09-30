@@ -24,7 +24,7 @@
 9. ✅ ~~`subtensor.get_transfer_fee` calls extrinsic inside the subtensor module. Actually the method could be updated by using `bittensor.core.extrinsics.utils.get_extrinsic_fee`.~~ `get_transfer_fee` isn't `get_extrinsic_fee`
 
 ## Subtensor
-1. In the synchronous Subtensor class, the `get_owned_hotkeys` method includes a `reuse_block` parameter that is inconsistent with other methods. Either remove this parameter from `get_owned_hotkeys`, or add it to all other methods that directly call self.substrate.* to maintain a consistent interface.
+1. ✅ In the synchronous Subtensor class, the `get_owned_hotkeys` method includes a `reuse_block` parameter that is inconsistent with other methods. Either remove this parameter from `get_owned_hotkeys`, or add it to all other methods that directly call self.substrate.* to maintain a consistent interface.
 2. ✅ In all methods where we `get_stake_operations_fee` is called, remove unused arguments. Consider combining all methods using `get_stake_operations_fee` into one common one. 
 3. ✅ Delete deprecated `get_current_weight_commit_info` and `get_current_weight_commit_info_v2`. ~~Rename `get_timelocked_weight_commits` to `get_current_weight_commit_info`.~~
 4. ✅ Remove references like `get_stake_info_for_coldkey = get_stake_for_coldkey`.
@@ -41,17 +41,17 @@
 This may seem like a harsh decision at first, but ultimately we will push the community to use Balance and there will be fewer errors in their calculations. Confusion with TAO and Alpha in calculations and display/printing/logging will be eliminated.
 
 ## Common things
-1. Reduce the amount of logging.info or transfer part of logging.info to logging.debug `(in progress)`
+1. ✅ Reduce the amount of logging.info or transfer part of logging.info to logging.debug `(in progress)`
 
-2. To be consistent across all SDK regarding local environment variables name:
+2. ✅ To be consistent across all SDK regarding local environment variables name:
 remove `BT_CHAIN_ENDPOINT` (settings.py :line 124) and use `BT_SUBTENSOR_CHAIN_ENDPOINT` instead of that.
 rename this variable in documentation.
 
-3. Move `bittensor.utils.get_transfer_fn_params` to `bittensor.core.extrinsics.utils`.
+3. ~~Move `bittensor.utils.get_transfer_fn_params` to `bittensor.core.extrinsics.utils`.~~ it's on the right place.
 
 4. ✅ Common refactoring (improve type annotations, etc)
 
-5. ~~Rename `non-/fast-blocks` to `non-/fast-runtime` in related places to be consistent with subtensor repo. Related with testing, subtensor scripts, documentation.~~ done across many PRs.
+5. ✅ ~~Rename `non-/fast-blocks` to `non-/fast-runtime` in related places to be consistent with subtensor repo. Related with testing, subtensor scripts, documentation.~~ done across many PRs.
 
 6. ✅ To be consistent throughout the SDK `(in progress)`:
 `hotkey`, `coldkey`, `hotkeypub`, and `coldkeypub` are keypairs
@@ -245,6 +245,7 @@ Removing deprecated extrinsics and replacing them with consistent ones:
 Added sub-package `bittensor.core.addons` to host optional extensions and experimental logic enhancing the core functionality.
   - `bittensor.core.subtensor_api` moved to `bittensor.core.addons.subtensor_api`
   - `bittensor.core.timelock` moved to `bittensor.core.addons.timelock` 
+  - local env variable `BT_CHAIN_ENDPOINT` replaced with `BT_SUBTENSOR_CHAIN_ENDPOINT`.
 
 ### Mechid related changes:
 In the next subtensor methods got updated the parameters order:
