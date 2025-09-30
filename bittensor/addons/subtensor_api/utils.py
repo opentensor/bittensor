@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bittensor.core.addons import SubtensorApi
+    from bittensor.addons import SubtensorApi
 
 
 def add_legacy_methods(subtensor: "SubtensorApi"):
