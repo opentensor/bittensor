@@ -285,3 +285,9 @@ Next variables removed:
 Links to subpackages removed:
 - `bittensor.mock` (available in `bittensor.core.mock`)
 - `bittensor.extrinsics` (available in `bittensor.core.extrinsics`)
+
+
+New subpackage `bittensor.core.addons` created to host optional extensions and experimental logic enhancing the core functionality.
+Currently it contains:
+- `bittensor.core.addons.subtensor_api`
+- `bittensor.core.addons.timelock`
