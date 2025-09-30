@@ -857,12 +857,22 @@ class AsyncSubtensor(SubtensorMixin):
         )
         return query.value if query is not None and hasattr(query, "value") else query
 
-    async def blocks_since_last_update(self, netuid: int, uid: int) -> Optional[int]:
+    async def blocks_since_last_update(
+        self,
+        netuid: int,
+        uid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional[int]:
         """Returns the number of blocks since the last update, or ``None`` if the subnetwork or UID does not exist.
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
             uid: The unique identifier of the neuron.
+            block: The block number for this query. Do not specify if using block_hash or reuse_block.
+            block_hash: The hash of the block for the query. Do not specify if using reuse_block or block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
 
         Returns:
             The number of blocks since the last update, or None if the subnetwork or UID does not exist.
@@ -874,8 +884,16 @@ class AsyncSubtensor(SubtensorMixin):
             # Check if neuron needs updating
             blocks_since_update = await subtensor.blocks_since_last_update(netuid=1, uid=10)
         """
-        call = await self.get_hyperparameter(param_name="LastUpdate", netuid=netuid)
-        return None if call is None else await self.get_current_block() - int(call[uid])
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        block = block or await self.substrate.get_block_number(block_hash)
+        call = await self.get_hyperparameter(
+            param_name="LastUpdate",
+            netuid=netuid,
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        return None if call is None else (block - int(call[uid]))
 
     async def bonds(
         self,
