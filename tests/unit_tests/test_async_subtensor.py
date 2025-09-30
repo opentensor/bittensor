@@ -3499,8 +3499,8 @@ async def test_add_liquidity(subtensor, fake_wallet, mocker):
         wallet=fake_wallet,
         netuid=netuid,
         liquidity=Balance.from_tao(150),
-        price_low=Balance.from_tao(180).rao,
-        price_high=Balance.from_tao(130).rao,
+        price_low=Balance.from_tao(180),
+        price_high=Balance.from_tao(130),
     )
 
     # Asserts
@@ -3511,7 +3511,7 @@ async def test_add_liquidity(subtensor, fake_wallet, mocker):
         liquidity=Balance.from_tao(150),
         price_low=Balance.from_tao(180).rao,
         price_high=Balance.from_tao(130).rao,
-        hotkey=None,
+        hotkey_ss58=None,
         wait_for_inclusion=True,
         wait_for_finalization=True,
         period=None,
@@ -3545,7 +3545,7 @@ async def test_modify_liquidity(subtensor, fake_wallet, mocker):
         netuid=netuid,
         position_id=position_id,
         liquidity_delta=Balance.from_tao(150),
-        hotkey=None,
+        hotkey_ss58=None,
         wait_for_inclusion=True,
         wait_for_finalization=True,
         period=None,
@@ -3577,7 +3577,7 @@ async def test_remove_liquidity(subtensor, fake_wallet, mocker):
         wallet=fake_wallet,
         netuid=netuid,
         position_id=position_id,
-        hotkey=None,
+        hotkey_ss58=None,
         wait_for_inclusion=True,
         wait_for_finalization=True,
         period=None,
