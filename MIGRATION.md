@@ -240,7 +240,8 @@ Removing deprecated extrinsics and replacing them with consistent ones:
 - method `blocks_since_last_update` improved. Currently it can be used to get historical data from archive node.
 - methods (async) `get_subnet_validator_permits` and `get_subnet_owner_hotkey` got `block_hash` and `reuse_block` parameters.
 - attribute `DelegateInfo/lite.total_daily_return` has been deleted (Vune confirmed that we shouldn't use it)
-
+- `Async/Subtensor` parameter `_mock` renamed to `mock`, also moved to last one in order. Community can use mocked `Async/Subtensor` in their tests in the same way as in we use it in the codebase.
+ 
 Added sub-package `bittensor.core.addons` to host optional extensions and experimental logic enhancing the core functionality.
   - `bittensor.core.subtensor_api` moved to `bittensor.core.addons.subtensor_api`
   - `bittensor.core.timelock` moved to `bittensor.core.addons.timelock` 

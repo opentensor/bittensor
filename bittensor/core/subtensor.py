@@ -144,8 +144,8 @@ class Subtensor(SubtensorMixin):
         log_verbose: bool = False,
         fallback_endpoints: Optional[list[str]] = None,
         retry_forever: bool = False,
-        _mock: bool = False,
         archive_endpoints: Optional[list[str]] = None,
+        mock: bool = False,
     ):
         """
         Initializes an instance of the Subtensor class.
@@ -156,9 +156,9 @@ class Subtensor(SubtensorMixin):
             log_verbose: Enables or disables verbose logging.
             fallback_endpoints: List of fallback endpoints to use if default or provided network is not available.
             retry_forever: Whether to retry forever on connection errors.
-            _mock: Whether this is a mock instance. Mainly just for use in testing.
             archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in cases
                 where you are requesting a block that is too old for your current (presumably lite) node.
+            mock: Whether this is a mock instance. Mainly just for use in testing.
 
         Raises:
             Any exceptions raised during the setup, configuration, or connection process.
@@ -178,7 +178,7 @@ class Subtensor(SubtensorMixin):
         self.substrate = self._get_substrate(
             fallback_endpoints=fallback_endpoints,
             retry_forever=retry_forever,
-            _mock=_mock,
+            _mock=mock,
             archive_endpoints=archive_endpoints,
         )
         if self.log_verbose:
