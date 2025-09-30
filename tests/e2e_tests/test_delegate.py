@@ -694,7 +694,7 @@ def test_nominator_min_required_stake(subtensor, alice_wallet, bob_wallet, dave_
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
     )
-    assert stake == Balance(0)
+    assert stake == Balance.from_tao(0, alice_subnet_netuid)
 
 
 @pytest.mark.asyncio
@@ -774,7 +774,7 @@ async def test_nominator_min_required_stake_async(
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
         netuid=alice_subnet_netuid,
     )
-    assert stake == Balance(0)
+    assert stake == Balance.from_tao(0, alice_subnet_netuid)
 
 
 def test_get_vote_data(subtensor, alice_wallet):
