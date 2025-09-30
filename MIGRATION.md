@@ -37,7 +37,7 @@
 
 ## Balance
 1. ✅ In `bittensor.utils.balance._check_currencies` raise the error instead of `warnings.warn`.
-2. In `bittensor.utils.balance.check_and_convert_to_balance` raise the error instead of `warnings.warn`. 
+2. ✅ In `bittensor.utils.balance.check_and_convert_to_balance` raise the error instead of `warnings.warn`. 
 This may seem like a harsh decision at first, but ultimately we will push the community to use Balance and there will be fewer errors in their calculations. Confusion with TAO and Alpha in calculations and display/printing/logging will be eliminated.
 
 ## Common things
@@ -291,3 +291,12 @@ New subpackage `bittensor.addons` created to host optional extensions and experi
 Currently it contains:
 - `bittensor.addons.subtensor_api`
 - `bittensor.addons.timelock`
+
+### Balance (bittensor/utils/balance.py) and related changes
+- [x] Added 2 custom errors:
+  - `bittensor.core.errors.BalanceUnitMismatchError`
+  - `bittensor.core.errors.BalanceTypeError`
+- [x] `check_balance` renamed to `check_balance_amount`
+- [x] `check_and_convert_to_balance` renamed to `check_balance_amount`
+- [x] `check_balance_amount` raised `BalanceTypeError` error instead of deprecated warning message.
+- [x] private function `bittensor.utils.balance._check_currencies` raises `BalanceUnitMismatchError` error instead of deprecated warning message. This function is used inside the Balance class to check if units match during various mathematical and logical operations.
