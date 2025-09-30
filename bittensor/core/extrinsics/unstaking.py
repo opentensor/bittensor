@@ -2,6 +2,7 @@ from typing import Optional, TYPE_CHECKING
 
 from async_substrate_interface.errors import SubstrateRequestException
 
+from bittensor.core.errors import BalanceTypeError
 from bittensor.core.extrinsics.utils import get_old_stakes
 from bittensor.core.types import ExtrinsicResponse, UIDs
 from bittensor.utils import format_error_message
@@ -300,7 +301,7 @@ def unstake_multiple_extrinsic(
         if amounts is not None and not all(
             isinstance(amount, Balance) for amount in amounts
         ):
-            raise TypeError("`amounts` must be a list of Balance or None.")
+            raise BalanceTypeError("`amounts` must be a list of Balance or None.")
 
         if amounts is None:
             amounts = [None] * len(hotkey_ss58s)
