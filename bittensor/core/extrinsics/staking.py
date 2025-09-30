@@ -2,6 +2,7 @@ from typing import Optional, TYPE_CHECKING, Sequence
 
 from async_substrate_interface.errors import SubstrateRequestException
 
+from bittensor.core.errors import BalanceTypeError
 from bittensor.core.extrinsics.utils import get_old_stakes
 from bittensor.core.types import ExtrinsicResponse, UIDs
 from bittensor.utils import format_error_message
@@ -251,7 +252,7 @@ def add_stake_multiple_extrinsic(
             raise TypeError("`hotkey_ss58s` must be a list of str.")
 
         if not all(isinstance(a, Balance) for a in amounts):
-            raise TypeError("Each `amount` must be an instance of Balance.")
+            raise BalanceTypeError("Each `amount` must be an instance of Balance.")
 
         new_amounts: Sequence[Optional[Balance]] = [
             amount.set_unit(netuid) for amount, netuid in zip(amounts, netuids)
