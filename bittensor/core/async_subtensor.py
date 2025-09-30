@@ -146,9 +146,9 @@ class AsyncSubtensor(SubtensorMixin):
         log_verbose: bool = False,
         fallback_endpoints: Optional[list[str]] = None,
         retry_forever: bool = False,
-        _mock: bool = False,
         archive_endpoints: Optional[list[str]] = None,
         websocket_shutdown_timer: float = 5.0,
+        mock: bool = False,
     ):
         """Initializes an AsyncSubtensor instance for blockchain interaction.
 
@@ -159,7 +159,7 @@ class AsyncSubtensor(SubtensorMixin):
             log_verbose: Enables or disables verbose logging.
             fallback_endpoints: List of fallback endpoints to use if default or provided network is not available.
             retry_forever: Whether to retry forever on connection errors.
-            _mock: Whether this is a mock instance. Mainly for testing purposes.
+            mock: Whether this is a mock instance. Mainly for testing purposes.
             archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in
                 cases where you are requesting a block that is too old for your current (presumably lite) node.
             websocket_shutdown_timer: Amount of time, in seconds, to wait after the last response from the chain to
@@ -198,7 +198,7 @@ class AsyncSubtensor(SubtensorMixin):
         self.substrate = self._get_substrate(
             fallback_endpoints=fallback_endpoints,
             retry_forever=retry_forever,
-            _mock=_mock,
+            _mock=mock,
             archive_endpoints=archive_endpoints,
             ws_shutdown_timer=websocket_shutdown_timer,
         )
