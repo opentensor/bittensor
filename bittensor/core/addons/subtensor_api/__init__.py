@@ -127,7 +127,7 @@ class SubtensorApi:
                 log_verbose=self.log_verbose,
                 fallback_endpoints=self._fallback_endpoints,
                 retry_forever=self._retry_forever,
-                _mock=self._mock,
+                mock=self._mock,
                 archive_endpoints=self._archive_endpoints,
                 websocket_shutdown_timer=self._ws_shutdown_timer,
             )
@@ -140,7 +140,7 @@ class SubtensorApi:
                 log_verbose=self.log_verbose,
                 fallback_endpoints=self._fallback_endpoints,
                 retry_forever=self._retry_forever,
-                _mock=self._mock,
+                mock=self._mock,
                 archive_endpoints=self._archive_endpoints,
             )
 
