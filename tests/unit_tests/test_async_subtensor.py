@@ -3801,7 +3801,7 @@ async def test_get_stake_operations_fee(subtensor, mocker):
         params=[netuid],
         block_hash=mocked_determine_block_hash.return_value,
     )
-    assert result == Balance.from_rao(299076829).set_unit(netuid)
+    assert result == Balance.from_rao(299076829)
 
 
 @pytest.mark.asyncio
