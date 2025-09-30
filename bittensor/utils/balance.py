@@ -25,7 +25,7 @@ def _check_currencies(self, other):
     """
     if self.netuid != other.netuid:
         raise TypeError(
-            f"Cannot perform arithmetic between balances of different currencies: {self} and {other}. "
+            f"Cannot perform any operations between balances of different currencies: {self} and {other}. "
             "Both Balance objects must reference the same netuid (Alpha currency). "
             "For example, to create a Balance instance for subnet 12 you can use: "
             "Balance.from_tao(10).set_unit(14), which corresponds to 10 TAO in subnet 14."
@@ -43,6 +43,25 @@ class Balance:
         rao_unit (str): A string representing the symbol for the rao unit.
         rao (int): An integer that stores the balance in rao units.
         tao (float): A float property that gives the balance in tao units.
+
+    Note:
+        To ensure arithmetic operations between `Balance` instances work correctly, they must set the same unit for each
+        using the `netuid`.
+
+    Examples:
+
+        balance_wallet_default = Balance.from_tao(10, netuid=14)
+        balance_wallet_secret = Balance.from_tao(2, netuid=14)
+        total_balance = balance_wallet_default + balance_wallet_secret
+
+        # or
+
+        balance_wallet_default = Balance.from_tao(10).set_unit(netuid=14)
+        balance_wallet_secret = Balance.from_tao(2).set_unit(netuid=14)
+        total_balance = balance_wallet_default + balance_wallet_secret
+
+    The `from_tao()` and `from_rao()` methods accept the `netuid` parameter
+    to set the appropriate unit symbol.
     """
 
     unit: str = settings.TAO_SYMBOL  # This is the tao unit
