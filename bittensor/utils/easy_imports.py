@@ -105,7 +105,6 @@ from bittensor.core.tensor import Tensor
 from bittensor.core.threadpool import PriorityThreadPoolExecutor
 from bittensor.utils import (
     ss58_to_vec_u8,
-    version_checking,
     strtobool,
     get_explorer_url_for_network,
     ss58_address_to_bytes,
@@ -273,7 +272,6 @@ __all__ = [
     "Tensor",
     "PriorityThreadPoolExecutor",
     "ss58_to_vec_u8",
-    "version_checking",
     "strtobool",
     "get_explorer_url_for_network",
     "ss58_address_to_bytes",

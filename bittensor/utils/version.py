@@ -98,26 +98,6 @@ def check_version(timeout: int = 15):
         raise VersionCheckError("Version check failed") from e
 
 
-def version_checking(timeout: int = 15):
-    """Deprecated, kept for backwards compatibility. Use check_version() instead.
-
-    Parameters:
-        timeout: The timeout for calling :func:``check_version`` function.
-    """
-
-    from warnings import warn
-
-    warn(
-        "version_checking() is deprecated, please use check_version() instead",
-        DeprecationWarning,
-    )
-
-    try:
-        check_version(timeout)
-    except VersionCheckError:
-        logging.exception("Version check failed")
-
-
 def check_latest_version_in_pypi():
     """Check for the latest version of the package on PyPI."""
     package_name = __name__
