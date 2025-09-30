@@ -32,8 +32,8 @@
 6. ~~Add `hotkey_ss58` parameter to `get_liquidity_list` method. One wallet can have many HKs. Currently, the mentioned method uses default HK only.~~ wrong idea
 
 ## Metagraph
-1. Remove verbose archival node warnings for blocks older than 300. Some users complained about many messages for them.
-2. Reconsider entire metagraph module logic.
+1. ✅ Remove verbose archival node warnings for blocks older than 300. Some users complained about many messages for them.
+2. ✅ Reconsider entire metagraph module logic.
 
 ## Balance
 1. ✅ In `bittensor.utils.balance._check_currencies` raise the error instead of `warnings.warn`.
@@ -95,7 +95,6 @@ rename this variable in documentation.
 
 
 ## Implementation
-
 To implement the above changes and prepare for the v10 release, the following steps must be taken:
 
 - [x] Create a new branch named SDKv10.~~
@@ -111,7 +110,6 @@ It must include:
 
 
 # Migration guide
-
 - [x] `._do_commit_reveal_v3` logic is included in the main code `.commit_timelocked_weights_extrinsic`
   - [x] `commit_reveal_version` parameter with default value `4` added to `commit_timelocked_weights_extrinsic`
 - [x] `._do_commit_weights` logic is included in the main code `.commit_weights_extrinsic`
@@ -126,8 +124,8 @@ It must include:
 - [x] `dest` parameter has been renamed to `destination` in `transfer_extrinsic` function and `subtensor.transfer` method.
 - [x] obsolete extrinsic `set_root_weights_extrinsic` removed. Also related subtensor calls `subtensor.set_root_weights_extrinsic` removed too.
 
-# Standardize parameter order is applied for (extrinsics and related calls):
 
+# Standardize parameter order is applied for (extrinsics and related calls):
 These parameters will now exist in all extrinsics and related calls (default values could be different depends by extrinsic): 
 
 ```py
@@ -216,6 +214,7 @@ Removing deprecated extrinsics and replacing them with consistent ones:
 
 - `decrease_take_extrinsic` and `increase_take_extrinsic` have been merged into a single set_take_extrinsic. The API now has a new `action: Literal["increase_take", "decrease_take"]` parameter (DRY rule).
 
+
 ### Extrinsics has extra data in response's `data` field:
 - `add_stake_extrinsic`
 - `add_stake_multiple_extrinsic`
@@ -224,6 +223,7 @@ Removing deprecated extrinsics and replacing them with consistent ones:
 - `transfer_extrinsic`
 - `unstake_extrinsic`
 - `unstake_multiple_extrinsic`
+
 
 ### Subtensor changes
 - method `all_subnets` has renamed parameter from `block_number` to `block` (consistency in the codebase).
@@ -248,6 +248,7 @@ Added sub-package `bittensor.core.addons` to host optional extensions and experi
   - `bittensor.core.timelock` moved to `bittensor.core.addons.timelock` 
   - local env variable `BT_CHAIN_ENDPOINT` replaced with `BT_SUBTENSOR_CHAIN_ENDPOINT`.
 
+
 ### Mechid related changes:
 In the next subtensor methods got updated the parameters order:
   - `bonds`
@@ -261,6 +262,7 @@ In the next subtensor methods got updated the parameters order:
 
 Additional:
   - `bittensor.core.chain_data.metagraph_info.MetagraphInfo` got required attribute `mechid: int`.
+
 
 ### Renames parameters:
 - `get_metagraph_info`: `field_indices` -> `selected_indices` (to be consistent)
@@ -292,6 +294,7 @@ New subpackage `bittensor.addons` created to host optional extensions and experi
 Currently it contains:
 - `bittensor.addons.subtensor_api`
 - `bittensor.addons.timelock`
+
 
 ### Balance (bittensor/utils/balance.py) and related changes
 - [x] Added 2 custom errors:
