@@ -662,14 +662,14 @@ async def test_get_balance(subtensor, mocker):
     assert result == mocked_balance.return_value
 
 
-@pytest.mark.parametrize("balance", [100, 100.1])
+@pytest.mark.parametrize("balance", [Balance.from_tao(100), Balance.from_tao(100.1)])
 @pytest.mark.asyncio
 async def test_get_transfer_fee(subtensor, fake_wallet, mocker, balance):
     """Tests get_transfer_fee method."""
     # Preps
     fake_wallet.coldkeypub = "coldkeypub"
     fake_dest = "fake_dest"
-    fake_value = Balance(balance)
+    fake_value = balance
 
     mocked_compose_call = mocker.AsyncMock()
     subtensor.substrate.compose_call = mocked_compose_call
@@ -679,7 +679,7 @@ async def test_get_transfer_fee(subtensor, fake_wallet, mocker, balance):
 
     # Call
     result = await subtensor.get_transfer_fee(
-        wallet=fake_wallet, dest=fake_dest, value=fake_value
+        wallet=fake_wallet, dest=fake_dest, amount=fake_value
     )
 
     # Assertions
@@ -713,7 +713,7 @@ async def test_get_transfer_with_exception(subtensor, mocker):
     # Call + Assertions
     with pytest.raises(BalanceTypeError):
         await subtensor.get_transfer_fee(
-            wallet=mocker.Mock(), dest=mocker.Mock(), value=fake_value
+            wallet=mocker.Mock(), dest=mocker.Mock(), amount=fake_value
         )
 
 
@@ -3807,7 +3807,7 @@ async def test_get_stake_add_fee(subtensor, mocker):
     """Verify that `get_stake_add_fee` calls proper methods and returns the correct value."""
     # Preps
     netuid = mocker.Mock()
-    amount = mocker.Mock()
+    amount = mocker.Mock(spec=Balance)
     mocked_get_stake_operations_fee = mocker.patch.object(
         subtensor, "get_stake_operations_fee"
     )
@@ -3830,7 +3830,7 @@ async def test_get_unstake_fee(subtensor, mocker):
     """Verify that `get_unstake_fee` calls proper methods and returns the correct value."""
     # Preps
     netuid = mocker.Mock()
-    amount = mocker.Mock()
+    amount = mocker.Mock(spec=Balance)
     mocked_get_stake_operations_fee = mocker.patch.object(
         subtensor, "get_stake_operations_fee"
     )
@@ -3853,7 +3853,7 @@ async def test_get_stake_movement_fee(subtensor, mocker):
     """Verify that `get_stake_movement_fee` calls proper methods and returns the correct value."""
     # Preps
     netuid = mocker.Mock()
-    amount = mocker.Mock()
+    amount = mocker.Mock(spec=Balance)
     mocked_get_stake_operations_fee = mocker.patch.object(
         subtensor, "get_stake_operations_fee"
     )
