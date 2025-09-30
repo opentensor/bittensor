@@ -1,4 +1,4 @@
-from typing import Any, TypedDict, Union
+from typing import Optional, TypedDict, Union
 
 from scalecodec import ScaleType
 
@@ -851,13 +851,30 @@ def rao(amount: int, netuid: int = 0) -> Balance:
     return Balance.from_rao(amount).set_unit(netuid)
 
 
-def check_balance_amount(amount: Any) -> Balance:
-    """"""
+def check_balance_amount(amount: Optional[Balance]) -> Optional[None]:
+    """
+    Validate that the provided value is a Balance instance.
+
+    This function ensures that the `amount` argument is a `Balance` object.  If a non-Balance type is passed, it raises
+    a `BalanceTypeError` to enforce consistent usage of Balance objects across arithmetic operations.
+
+    Args:
+        amount: The value to validate.
+
+    Returns:
+        None if amount if None of a Balance instance.
+
+    Raises:
+        BalanceTypeError: If `amount` is not an instance of Balance.
+    """
+    if amount is None:
+        return None
+
     if not isinstance(amount, Balance):
         raise BalanceTypeError(
-            "Invalid type detected: expected a Balance instance. "
+            f"Invalid type detected: amount type is {type(amount)}, but expected a Balance instance. "
             "Passing non-Balance types may lead to incorrect calculations. "
             "Please update your code to explicitly construct Balance instances "
             "(e.g., Balance.from_tao(value)) before using this function."
         )
-    return amount
+    return None
