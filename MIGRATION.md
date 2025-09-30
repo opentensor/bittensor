@@ -263,3 +263,25 @@ Additional:
 
 ### Renames parameters:
 - `get_metagraph_info`: `field_indices` -> `selected_indices` (to be consistent)
+
+
+### `easy_import.py` module
+Added:
+- `from bittenosor import extrinsics`
+- `from bittenosor import mock`
+- `from bittenosor import get_async_subtensor`
+
+Next variables removed:
+- `async_subtensor` not -> `AsyncSubtensor`
+- `axon` not -> `Axon`
+- `config` not -> `Config`
+- `dendrite` not -> `Dendrite`
+- `keyfile` not -> `Keyfile`
+- `metagraph` not -> `Metagraph`
+- `wallet` not -> `Wallet`
+- `subtensor` not -> `Subtensor`
+- `synapse` not -> `Synapse`
+
+Links to subpackages removed:
+- `bittensor.mock` (available in `bittensor.core.mock`)
+- `bittensor.extrinsics` (available in `bittensor.core.extrinsics`)
