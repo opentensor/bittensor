@@ -113,7 +113,7 @@ from bittensor.utils.balance import (
     Balance,
     fixed_to_float,
     FixedPoint,
-    check_and_convert_to_balance,
+    check_balance_amount,
 )
 from bittensor.utils.btlogging import logging
 from bittensor.utils.liquidity import (
@@ -2275,7 +2275,7 @@ class Subtensor(SubtensorMixin):
         crucial tool for managing financial operations within the Bittensor network.
         """
         if value is not None:
-            value = check_and_convert_to_balance(value)
+            value = check_balance_amount(value)
         call_params: dict[str, Union[int, str, bool]]
         call_function, call_params = get_transfer_fn_params(value, dest, keep_alive)
 
@@ -3189,7 +3189,7 @@ class Subtensor(SubtensorMixin):
         When safe_staking is enabled, it provides protection against price fluctuations during the time stake is
         executed and the time it is actually processed by the chain.
         """
-        amount = check_and_convert_to_balance(amount)
+        amount = check_balance_amount(amount)
         return add_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -3532,7 +3532,7 @@ class Subtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
         """
-        amount = check_and_convert_to_balance(amount)
+        amount = check_balance_amount(amount)
         return move_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -4364,7 +4364,7 @@ class Subtensor(SubtensorMixin):
             - With allow_partial_stake=True: A partial amount will be swapped up to the point where the
             price ratio would increase by rate_tolerance
         """
-        amount = check_and_convert_to_balance(amount)
+        amount = check_balance_amount(amount)
         return swap_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -4452,7 +4452,7 @@ class Subtensor(SubtensorMixin):
             ExtrinsicResponse: The result object of the extrinsic execution.
         """
         if amount is not None:
-            amount = check_and_convert_to_balance(amount)
+            amount = check_balance_amount(amount)
         return transfer_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -4499,7 +4499,7 @@ class Subtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
         """
-        amount = check_and_convert_to_balance(amount)
+        amount = check_balance_amount(amount)
         return transfer_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -4558,7 +4558,7 @@ class Subtensor(SubtensorMixin):
         potential reward accruals. When safe_staking is enabled, it provides protection against price fluctuations
         during the time unstake is executed and the time it is actually processed by the chain.
         """
-        amount = check_and_convert_to_balance(amount)
+        amount = check_balance_amount(amount)
         return unstake_extrinsic(
             subtensor=self,
             wallet=wallet,
