@@ -67,7 +67,7 @@ rename this variable in documentation.
 
 10. Revise `bittensor/utils/easy_imports.py` module to remove deprecated backwards compatibility objects. Use this module as a functionality for exporting existing objects to the package root to keep __init__.py minimal and simple.
 
-11. Remove `bittensor.utils.version.version_checking`
+11. ✅ Remove deprecated `bittensor.utils.version.version_checking`
 
 12. Find and process all `TODOs` across the entire code base. If in doubt, discuss each one with the team separately. SDK has 29 TODOs.
 13. ✅ The SDK is dropping support for `Python 3.9` starting with this release.
