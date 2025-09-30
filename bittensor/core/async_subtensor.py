@@ -5954,14 +5954,14 @@ class AsyncSubtensor(SubtensorMixin):
 async def get_async_subtensor(
     network: Optional[str] = None,
     config: Optional["Config"] = None,
-    _mock: bool = False,
+    mock: bool = False,
     log_verbose: bool = False,
 ) -> "AsyncSubtensor":
     """Factory method to create an initialized AsyncSubtensor.
     Mainly useful for when you don't want to run `await subtensor.initialize()` after instantiation.
     """
     sub = AsyncSubtensor(
-        network=network, config=config, _mock=_mock, log_verbose=log_verbose
+        network=network, config=config, mock=mock, log_verbose=log_verbose
     )
     await sub.initialize()
     return sub
