@@ -4158,7 +4158,11 @@ class AsyncSubtensor(SubtensorMixin):
         return datetime.fromtimestamp(unix / 1000, tz=timezone.utc)
 
     async def get_subnet_owner_hotkey(
-        self, netuid: int, block: Optional[int] = None
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> Optional[str]:
         """
         Retrieves the hotkey of the subnet owner for a given network UID.
@@ -4168,17 +4172,27 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             netuid: The network UID of the subnet to fetch the owner's hotkey for.
-            block: The specific block number to query the data from.
+            block: The blockchain block number for the query.
+            block_hash: The blockchain block_hash representation of the block id.
+            reuse_block: Whether to reuse the last-used blockchain block hash.
 
         Returns:
             The hotkey of the subnet owner if available; None otherwise.
         """
         return await self.query_subtensor(
-            name="SubnetOwnerHotkey", params=[netuid], block=block
+            name="SubnetOwnerHotkey",
+            params=[netuid],
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
         )
 
     async def get_subnet_validator_permits(
-        self, netuid: int, block: Optional[int] = None
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> Optional[list[bool]]:
         """
         Retrieves the list of validator permits for a given subnet as boolean values.
@@ -4186,6 +4200,8 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             netuid: The unique identifier of the subnetwork.
             block: The blockchain block number for the query.
+            block_hash: The blockchain block_hash representation of the block id.
+            reuse_block: Whether to reuse the last-used blockchain block hash.
 
         Returns:
             A list of boolean values representing validator permits, or None if not available.
@@ -4194,6 +4210,8 @@ class AsyncSubtensor(SubtensorMixin):
             name="ValidatorPermit",
             params=[netuid],
             block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
         )
         return query.value if query is not None and hasattr(query, "value") else query
 

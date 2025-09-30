@@ -3113,6 +3113,8 @@ async def test_get_subnet_owner_hotkey_has_return(subtensor, mocker):
         name="SubnetOwnerHotkey",
         block=block,
         params=[netuid],
+        block_hash=None,
+        reuse_block=False,
     )
 
     assert result == expected_owner_hotkey
@@ -3135,6 +3137,8 @@ async def test_get_subnet_owner_hotkey_is_none(subtensor, mocker):
         name="SubnetOwnerHotkey",
         block=block,
         params=[netuid],
+        block_hash=None,
+        reuse_block=False,
     )
 
     assert result is None
@@ -3158,6 +3162,8 @@ async def test_get_subnet_validator_permits_has_values(subtensor, mocker):
         name="ValidatorPermit",
         block=block,
         params=[netuid],
+        block_hash=None,
+        reuse_block=False,
     )
 
     assert result == expected_validator_permits
@@ -3181,6 +3187,8 @@ async def test_get_subnet_validator_permits_is_none(subtensor, mocker):
         name="ValidatorPermit",
         block=block,
         params=[netuid],
+        block_hash=None,
+        reuse_block=False,
     )
 
     assert result is None
