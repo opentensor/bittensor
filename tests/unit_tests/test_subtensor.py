@@ -3094,7 +3094,6 @@ def test_get_owned_hotkeys_happy_path(subtensor, mocker):
         storage_function="OwnedHotkeys",
         params=[fake_coldkey],
         block_hash=None,
-        reuse_block_hash=False,
     )
     assert result == [mocked_decode_account_id.return_value]
     mocked_decode_account_id.assert_called_once_with(fake_hotkey)
@@ -3116,7 +3115,6 @@ def test_get_owned_hotkeys_return_empty(subtensor, mocker):
         storage_function="OwnedHotkeys",
         params=[fake_coldkey],
         block_hash=None,
-        reuse_block_hash=False,
     )
     assert result == []
 
@@ -3738,7 +3736,7 @@ def test_add_liquidity(subtensor, fake_wallet, mocker):
         liquidity=Balance.from_tao(150),
         price_low=Balance.from_tao(180).rao,
         price_high=Balance.from_tao(130).rao,
-        hotkey=None,
+        hotkey_ss58=None,
         wait_for_inclusion=True,
         wait_for_finalization=True,
         period=None,
@@ -3771,7 +3769,7 @@ def test_modify_liquidity(subtensor, fake_wallet, mocker):
         netuid=netuid,
         position_id=position_id,
         liquidity_delta=Balance.from_tao(150),
-        hotkey=None,
+        hotkey_ss58=None,
         wait_for_inclusion=True,
         wait_for_finalization=True,
         period=None,
@@ -3802,7 +3800,7 @@ def test_remove_liquidity(subtensor, fake_wallet, mocker):
         wallet=fake_wallet,
         netuid=netuid,
         position_id=position_id,
-        hotkey=None,
+        hotkey_ss58=None,
         wait_for_inclusion=True,
         wait_for_finalization=True,
         period=None,
