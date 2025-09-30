@@ -212,3 +212,11 @@ class SynapseDendriteNoneException(SynapseException):
     ):
         self.message = message
         super().__init__(self.message, synapse)
+
+
+class BalanceUnitMismatchError(Exception):
+    """Raised when operations is attempted between Balance objects with different units (netuid)."""
+
+
+class BalanceTypeError(Exception):
+    """Raised when an unsupported type is used instead of Balance amount."""
