@@ -1,4 +1,3 @@
-import warnings
 from typing import Union, TypedDict, Optional
 
 from scalecodec import ScaleType
@@ -13,26 +12,23 @@ def _check_currencies(self, other):
     A warning is raised if the netuids differ.
 
     Example:
-        >>> balance1 = Balance.from_rao(1000).set_unit(12)
-        >>> balance2 = Balance.from_rao(500).set_unit(12)
-        >>> balance1 + balance2  # No warning
+        balance1 = Balance.from_rao(1000).set_unit(14)
+        balance2 = Balance.from_tao(500).set_unit(14)
+        balance1 + balance2  # No error.
 
-        >>> balance3 = Balance.from_rao(200).set_unit(15)
-        >>> balance1 + balance3  # Raises DeprecationWarning
+        balance3 = Balance.from_tao(200).set_unit(14)
+        balance1 + balance3  # Raises ValueError.
 
     In this example:
-        - `from_rao` creates a Balance instance from the amount in rao (smallest unit).
-        - `set_unit(12)` sets the unit to correspond to subnet 12 (i.e., Alpha from netuid 12).
+        - `from_rao` creates a Balance instance from the amount in rao.
+        - `set_unit(14)` sets the unit to correspond to subnet 14 (i.e., Alpha from netuid 14).
     """
     if self.netuid != other.netuid:
-        warnings.simplefilter("default", DeprecationWarning)
-        warnings.warn(
-            "Balance objects must have the same netuid (Alpha currency) to perform arithmetic operations.\n"
-            f"First balance is `{self}`.  Second balance is `{other}`.\n\n"
-            "To create a Balance instance with the correct netuid, use:\n"
-            "Balance.from_rao(1000).set_unit(12)  # 1000 rao in subnet 12",
-            category=DeprecationWarning,
-            stacklevel=2,
+        raise TypeError(
+            f"Cannot perform arithmetic between balances of different currencies: {self} and {other}. "
+            "Both Balance objects must reference the same netuid (Alpha currency). "
+            "For example, to create a Balance instance for subnet 12 you can use: "
+            "Balance.from_tao(10).set_unit(14), which corresponds to 10 TAO in subnet 14."
         )
 
 
@@ -349,6 +345,7 @@ class FixedPoint(TypedDict):
 def fixed_to_float(
     fixed: Union[FixedPoint, ScaleType], frac_bits: int = 64, total_bits: int = 128
 ) -> float:
+    """Converts a fixed-point value (e.g., U64F64) into a floating-point number."""
     # By default, this is a U64F64
     # which is 64 bits of integer and 64 bits of fractional
     data: int = fb.value if isinstance((fb := fixed["bits"]), ScaleType) else fb

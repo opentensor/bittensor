@@ -7,23 +7,23 @@ from bittensor.utils.balance import Balance
 
 @pytest.mark.asyncio
 async def test_unstake_extrinsic(fake_wallet, mocker):
+    # Preps
     fake_substrate = mocker.AsyncMock(
         **{"get_payment_info.return_value": {"partial_fee": 10}}
     )
-    # Preps
+    fake_netuid = 14
     fake_subtensor = mocker.AsyncMock(
         **{
             "get_hotkey_owner.return_value": "hotkey_owner",
-            "get_stake_for_coldkey_and_hotkey.return_value": Balance(10.0),
+            "get_stake_for_coldkey_and_hotkey.return_value": Balance.from_tao(10.0, fake_netuid),
             "sign_and_send_extrinsic.return_value": ExtrinsicResponse(True, ""),
-            "get_stake.return_value": Balance(10.0),
+            "get_stake.return_value": Balance.from_tao(10.0, fake_netuid),
             "substrate": fake_substrate,
         }
     )
 
     fake_wallet.coldkeypub.ss58_address = "hotkey_owner"
     hotkey_ss58 = "hotkey"
-    fake_netuid = 1
     amount = Balance.from_tao(1.1)
     wait_for_inclusion = True
     wait_for_finalization = True
@@ -48,7 +48,7 @@ async def test_unstake_extrinsic(fake_wallet, mocker):
         call_params={
             "hotkey": "hotkey",
             "amount_unstaked": 1100000000,
-            "netuid": 1,
+            "netuid": fake_netuid,
         },
     )
     fake_subtensor.sign_and_send_extrinsic.assert_awaited_once_with(
@@ -113,6 +113,9 @@ async def test_unstake_all_extrinsic(fake_wallet, mocker):
 async def test_unstake_multiple_extrinsic_some_unstake_is_happy(fake_wallet, mocker):
     """Verify that sync `unstake_multiple_extrinsic` method calls proper async method."""
     # Preps
+    sn_5 = 5
+    sn_14 = 14
+    fake_netuids = [sn_5, sn_14]
     fake_substrate = mocker.AsyncMock(
         **{"get_payment_info.return_value": {"partial_fee": 10}}
     )
@@ -125,12 +128,11 @@ async def test_unstake_multiple_extrinsic_some_unstake_is_happy(fake_wallet, moc
         unstaking, "unstake_extrinsic", return_value=ExtrinsicResponse(True, "")
     )
     mocker.patch.object(
-        unstaking, "get_old_stakes", return_value=[Balance(1.1), Balance(0.3)]
+        unstaking, "get_old_stakes", return_value=[Balance.from_tao(1.1, sn_5), Balance.from_tao(0.3, sn_14)]
     )
     fake_wallet.coldkeypub.ss58_address = "hotkey_owner"
     hotkey_ss58s = ["hotkey1", "hotkey2"]
-    fake_netuids = [1, 2]
-    amounts = [Balance.from_tao(1.1), Balance.from_tao(1.2)]
+    amounts = [Balance.from_tao(1.1, sn_5), Balance.from_tao(1.2, sn_14)]
     wait_for_inclusion = True
     wait_for_finalization = True
 
@@ -146,15 +148,13 @@ async def test_unstake_multiple_extrinsic_some_unstake_is_happy(fake_wallet, moc
     )
 
     # Asserts
-    print(">>> result", response)
-    print(">>> result.success", response.success)
     assert response.success is False
     assert response.message == "Some unstake were successful."
     assert len(response.data) == 2
     mocked_unstake_extrinsic.assert_awaited_once_with(
         subtensor=fake_subtensor,
         wallet=fake_wallet,
-        amount=Balance.from_tao(1.1),
+        amount=Balance.from_tao(1.1, sn_5),
         hotkey_ss58=hotkey_ss58s[0],
         netuid=fake_netuids[0],
         period=None,

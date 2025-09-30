@@ -41,19 +41,19 @@
 This may seem like a harsh decision at first, but ultimately we will push the community to use Balance and there will be fewer errors in their calculations. Confusion with TAO and Alpha in calculations and display/printing/logging will be eliminated.
 
 ## Common things
-1. ✅ Reduce the amount of logging.info or transfer part of logging.info to logging.debug `(in progress)`
+1. ✅ Reduce the amount of logging.info or transfer part of logging.info to logging.debug
 
 2. ✅ To be consistent across all SDK regarding local environment variables name:
 remove `BT_CHAIN_ENDPOINT` (settings.py :line 124) and use `BT_SUBTENSOR_CHAIN_ENDPOINT` instead of that.
 rename this variable in documentation.
 
-3. ~~Move `bittensor.utils.get_transfer_fn_params` to `bittensor.core.extrinsics.utils`.~~ it's on the right place.
+3. ✅ ~~Move `bittensor.utils.get_transfer_fn_params` to `bittensor.core.extrinsics.utils`.~~ it's on the right place.
 
 4. ✅ Common refactoring (improve type annotations, etc)
 
 5. ✅ ~~Rename `non-/fast-blocks` to `non-/fast-runtime` in related places to be consistent with subtensor repo. Related with testing, subtensor scripts, documentation.~~ done across many PRs.
 
-6. ✅ To be consistent throughout the SDK `(in progress)`:
+6. ✅ To be consistent throughout the SDK:
 `hotkey`, `coldkey`, `hotkeypub`, and `coldkeypub` are keypairs
 `hotkey_ss58`, `coldkey_ss58`, `hotkeypub_ss58`, and `coldkeypub_ss58` are SS58 addresses of keypair.
 
@@ -235,7 +235,7 @@ Removing deprecated extrinsics and replacing them with consistent ones:
 - method `query_map` has updated parameters order.
 - method `add_stake_multiple` has updated parameters order.
 - method `get_stake_for_coldkey` removed, bc this is the same as `get_stake_info_for_coldkey`
-- method `get_subnets` renamed to `get_all_subnets_netuid` (more obvious)
+- method `get_subnets` renamed to `get_all_subnets_netuid` (obvious name, consistent with existing names)
 - method `get_owned_hotkeys` get rid `reuse_block` parameter to be consistent with other sync methods.
 - method `blocks_since_last_update` improved. Currently it can be used to get historical data from archive node.
 - methods (async) `get_subnet_validator_permits` and `get_subnet_owner_hotkey` got `block_hash` and `reuse_block` parameters.
@@ -287,7 +287,7 @@ Links to subpackages removed:
 - `bittensor.extrinsics` (available in `bittensor.core.extrinsics`)
 
 
-New subpackage `bittensor.core.addons` created to host optional extensions and experimental logic enhancing the core functionality.
+New subpackage `bittensor.addons` created to host optional extensions and experimental logic enhancing the core functionality.
 Currently it contains:
-- `bittensor.core.addons.subtensor_api`
-- `bittensor.core.addons.timelock`
+- `bittensor.addons.subtensor_api`
+- `bittensor.addons.timelock`
