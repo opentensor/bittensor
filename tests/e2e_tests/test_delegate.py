@@ -389,7 +389,6 @@ def test_delegates(subtensor, alice_wallet, bob_wallet):
         validator_permits=[],
         registrations=[0],
         return_per_1000=Balance(0),
-        total_daily_return=Balance(0),
         total_stake={},
         nominators={},
     )
@@ -405,7 +404,6 @@ def test_delegates(subtensor, alice_wallet, bob_wallet):
         validator_permits=[],
         registrations=[0],
         return_per_1000=Balance(0),
-        total_daily_return=Balance(0),
         total_stake={},
         nominators={},
     )
@@ -461,9 +459,6 @@ def test_delegates(subtensor, alice_wallet, bob_wallet):
             validator_permits=[alice_subnet_netuid],
             registrations=[0, alice_subnet_netuid],
             return_per_1000=Balance(0),
-            total_daily_return=get_dynamic_balance(
-                bob_delegated[0].total_daily_return.rao
-            ),
             netuid=alice_subnet_netuid,
             stake=get_dynamic_balance(bob_delegated[0].stake.rao, alice_subnet_netuid),
         ),
@@ -549,7 +544,6 @@ async def test_delegates_async(async_subtensor, alice_wallet, bob_wallet):
         validator_permits=[],
         registrations=[0],
         return_per_1000=Balance(0),
-        total_daily_return=Balance(0),
         total_stake={},
         nominators={},
     )
@@ -565,7 +559,6 @@ async def test_delegates_async(async_subtensor, alice_wallet, bob_wallet):
         validator_permits=[],
         registrations=[0],
         return_per_1000=Balance(0),
-        total_daily_return=Balance(0),
         total_stake={},
         nominators={},
     )
@@ -631,9 +624,6 @@ async def test_delegates_async(async_subtensor, alice_wallet, bob_wallet):
             validator_permits=[alice_subnet_netuid],
             registrations=[0, alice_subnet_netuid],
             return_per_1000=Balance(0),
-            total_daily_return=get_dynamic_balance(
-                bob_delegated[0].total_daily_return.rao
-            ),
             netuid=alice_subnet_netuid,
             stake=get_dynamic_balance(bob_delegated[0].stake.rao, alice_subnet_netuid),
         ),
