@@ -5,8 +5,8 @@ from typing import Union
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-
-from bittensor.utils.balance import Balance
+from bittensor.core.errors import BalanceTypeError, BalanceUnitMismatchError
+from bittensor.utils.balance import Balance, check_balance_amount
 from tests.helpers import CloseInValue
 
 
@@ -518,3 +518,31 @@ def test_from_float():
 def test_from_rao():
     """Tests from_rao method call."""
     assert Balance.from_tao(1) == Balance(1000000000)
+
+
+@pytest.mark.parametrize(
+    "first, second",
+    [
+        (Balance.from_tao(1), Balance.from_tao(1).set_unit(2)),
+        (Balance.from_tao(1).set_unit(2), Balance.from_tao(1)),
+    ],
+)
+def test_balance_raise_errors(first, second):
+    """Tests any cases with balance raise errors."""
+    with pytest.raises(BalanceUnitMismatchError):
+        _ = first + second
+
+
+@pytest.mark.parametrize(
+    "amount",
+    [
+        100,
+        100.1,
+        "100",
+        "10.2"
+    ],
+)
+def test_check_balance_amount_raise_error(amount):
+    """Tests Balance.check_rao_value method."""
+    with pytest.raises(BalanceTypeError):
+        check_balance_amount(amount)
