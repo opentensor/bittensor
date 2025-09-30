@@ -1,18 +1,23 @@
 import ast
 import decimal
 import hashlib
+import inspect
 import warnings
 from collections import namedtuple
 from typing import Any, Literal, Union, Optional, TYPE_CHECKING
 from urllib.parse import urlparse
-import inspect
+
 import scalecodec
 from async_substrate_interface.utils import (
     hex_to_bytes,
 )
 from bittensor_wallet import Keypair
 from bittensor_wallet.errors import KeyFileError, PasswordError
-from scalecodec import ss58_decode, is_valid_ss58_address as _is_valid_ss58_address
+from scalecodec import (
+    ss58_decode,
+    ss58_encode,
+    is_valid_ss58_address as _is_valid_ss58_address,
+)
 
 from bittensor.core import settings
 from bittensor.core.settings import SS58_FORMAT
@@ -23,6 +28,10 @@ from .version import check_version, VersionCheckError
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.utils.balance import Balance
+
+# keep save from import analyzer as obvious aliases
+hex_to_ss58 = ss58_encode
+ss58_to_hex = ss58_decode
 
 BT_DOCS_LINK = "https://docs.bittensor.com"
 RAOPERTAO = 1e9
