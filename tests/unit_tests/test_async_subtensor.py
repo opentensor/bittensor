@@ -2508,23 +2508,26 @@ async def test_blocks_since_last_update_success(subtensor, mocker):
     current_block = 100
     fake_blocks_since_update = current_block - last_update_block
 
+    mocker.patch.object(
+        subtensor.substrate, "get_block_number", return_value=current_block,
+    )
     mocked_get_hyperparameter = mocker.patch.object(
         subtensor,
         "get_hyperparameter",
         return_value={fake_uid: last_update_block},
     )
 
-    mocked_get_current_block = mocker.AsyncMock(return_value=current_block)
-    subtensor.get_current_block = mocked_get_current_block
-
     # Call
     result = await subtensor.blocks_since_last_update(netuid=fake_netuid, uid=fake_uid)
 
     # Asserts
     mocked_get_hyperparameter.assert_called_once_with(
-        param_name="LastUpdate", netuid=fake_netuid
+        param_name="LastUpdate",
+        netuid=fake_netuid,
+        block=subtensor.substrate.get_block_number.return_value,
+        block_hash=None,
+        reuse_block=False,
     )
-    mocked_get_current_block.assert_called_once()
     assert result == fake_blocks_since_update
 
 
@@ -2543,11 +2546,18 @@ async def test_blocks_since_last_update_no_last_update(subtensor, mocker):
     )
 
     # Call
-    result = await subtensor.blocks_since_last_update(netuid=fake_netuid, uid=fake_uid)
+    result = await subtensor.blocks_since_last_update(
+        netuid=fake_netuid,
+        uid=fake_uid,
+    )
 
     # Asserts
     mocked_get_hyperparameter.assert_called_once_with(
-        param_name="LastUpdate", netuid=fake_netuid
+        param_name="LastUpdate",
+        netuid=fake_netuid,
+        block=subtensor.substrate.get_block_number.return_value,
+        block_hash=None,
+        reuse_block=False,
     )
     assert result is None
 

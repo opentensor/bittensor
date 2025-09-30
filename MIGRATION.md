@@ -237,6 +237,7 @@ Removing deprecated extrinsics and replacing them with consistent ones:
 - method `get_stake_for_coldkey` removed, bc this is the same as `get_stake_info_for_coldkey`
 - method `get_subnets` renamed to `get_all_subnets_netuid` (more obvious)
 - method `get_owned_hotkeys` get rid `reuse_block` parameter to be consistent with other sync methods.
+- method `blocks_since_last_update` improved. Currently it can be used to get historical data from archive node.
 
 Added sub-package `bittensor.core.addons` to host optional extensions and experimental logic enhancing the core functionality.
   - `bittensor.core.subtensor_api` moved to `bittensor.core.addons.subtensor_api`
