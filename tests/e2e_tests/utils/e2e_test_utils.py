@@ -214,10 +214,7 @@ class Templates:
                     self.set_weights.set()
 
     def __init__(self):
-        # self.dir = clone_or_update_templates()
-        # keep it until https://github.com/opentensor/subnet-template/commits/feat/roman/no-low-case-classes-anymore/
-        # merged to main
-        self.dir = clone_or_update_templates(specific_commit="d972b47ba870c2a9f32760a83bdb7041c2752f01")
+        self.dir = clone_or_update_templates()
 
     def __enter__(self):
         return self
