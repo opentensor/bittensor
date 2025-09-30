@@ -1,5 +1,6 @@
 import asyncio
 import copy
+from bittensor.utils.btlogging import logging
 from bittensor.utils.balance import Balance
 from unittest.mock import Mock
 
@@ -159,10 +160,11 @@ def loguru_sink():
     ],
 )
 def test_sync_warning_cases(block, test_id, metagraph_instance, mock_subtensor, caplog):
+    """Makes sure that the warning message is logged when the block is greater than 300 with debug level."""
+    logging.set_debug()
     mock_subtensor.get_current_block.return_value = 601
     mock_subtensor.get_metagraph_info.return_value = []
     metagraph_instance.sync(block=block, lite=True, subtensor=mock_subtensor)
-
     expected_message = "Attempting to sync longer than 300 blocks ago on a non-archive node. Please use the 'archive' network for subtensor and retry."
     assert expected_message in caplog.text, (
         f"Test ID: {test_id} - Expected warning message not found in Loguru sink."
