@@ -27,7 +27,7 @@ def test_transfer(subtensor, alice_wallet):
     transfer_fee = subtensor.wallets.get_transfer_fee(
         wallet=alice_wallet,
         dest=dest_coldkey,
-        value=transfer_value,
+        amount=transfer_value,
     )
 
     # Account details before transfer
@@ -68,7 +68,7 @@ async def test_transfer_async(async_subtensor, alice_wallet):
     transfer_fee = await async_subtensor.wallets.get_transfer_fee(
         wallet=alice_wallet,
         dest=dest_coldkey,
-        value=transfer_value,
+        amount=transfer_value,
     )
 
     # Account details before transfer
