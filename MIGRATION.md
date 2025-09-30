@@ -51,7 +51,7 @@ rename this variable in documentation.
 
 4. ✅ Common refactoring (improve type annotations, etc)
 
-5. Rename `non-/fast-blocks` to `non-/fast-runtime` in related places to be consistent with subtensor repo. Related with testing, subtensor scripts, documentation.
+5. ~~Rename `non-/fast-blocks` to `non-/fast-runtime` in related places to be consistent with subtensor repo. Related with testing, subtensor scripts, documentation.~~ done across many PRs.
 
 6. ✅ To be consistent throughout the SDK `(in progress)`:
 `hotkey`, `coldkey`, `hotkeypub`, and `coldkeypub` are keypairs
