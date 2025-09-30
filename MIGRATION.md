@@ -100,11 +100,11 @@ To implement the above changes and prepare for the v10 release, the following st
 
 - [x] Create a new branch named SDKv10.~~
 All breaking changes and refactors should be targeted into this branch to isolate them from staging and maintain backward compatibility during development.
-- [ ] Add a `MIGRATION.md` document at the root of the repository and use it as a check list. This file will serve as a changelog and technical reference.
+- [x] Add a `MIGRATION.md` document at the root of the repository and use it as a check list. This file will serve as a changelog and technical reference.
 It must include:
   - [x] All change categories (Extrinsics, Subtensor, Metagraph, etc.)
   - [x] Per-PR breakdown of what was added, removed, renamed, or refactored.
-  - [ ] Justifications and migration notes for users (if API behavior changed).
+  - [x] Justifications and migration notes for users (if API behavior changed).
 
 - [ ] Based on the final `MIGRATION.md`, develop migration documentation for the community. 
 - [ ] Once complete, merge SDKv10 into staging and release version 10.
@@ -241,6 +241,7 @@ Removing deprecated extrinsics and replacing them with consistent ones:
 - methods (async) `get_subnet_validator_permits` and `get_subnet_owner_hotkey` got `block_hash` and `reuse_block` parameters.
 - attribute `DelegateInfo/lite.total_daily_return` has been deleted (Vune confirmed that we shouldn't use it)
 - `Async/Subtensor` parameter `_mock` renamed to `mock`, also moved to last one in order. Community can use mocked `Async/Subtensor` in their tests in the same way as in we use it in the codebase.
+- method `get_traansfer_fee` has renamed parameter `value` to `amount`
  
 Added sub-package `bittensor.core.addons` to host optional extensions and experimental logic enhancing the core functionality.
   - `bittensor.core.subtensor_api` moved to `bittensor.core.addons.subtensor_api`

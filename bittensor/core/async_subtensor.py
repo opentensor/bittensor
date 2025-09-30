@@ -2545,6 +2545,7 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             The calculated stake fee as a Balance object
         """
+        check_balance_amount(amount)
         return await self.get_stake_operations_fee(
             amount=amount, netuid=netuid, block=block
         )
@@ -2773,6 +2774,7 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             The calculated stake fee as a Balance object
         """
+        check_balance_amount(amount)
         return await self.get_stake_operations_fee(
             amount=amount, netuid=netuid, block=block
         )
@@ -2795,6 +2797,7 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             The calculated stake fee as a Balance object
         """
+        check_balance_amount(amount)
         return await self.get_stake_operations_fee(
             amount=amount, netuid=origin_netuid, block=block
         )
@@ -2932,6 +2935,7 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             The calculated stake fee as a Balance object.
         """
+        check_balance_amount(amount)
         block_hash = await self.determine_block_hash(
             block=block, block_hash=block_hash, reuse_block=reuse_block
         )
@@ -3119,7 +3123,7 @@ class AsyncSubtensor(SubtensorMixin):
 
     # TODO: update related with fee calculation
     async def get_transfer_fee(
-        self, wallet: "Wallet", dest: str, value: Balance, keep_alive: bool = True
+        self, wallet: "Wallet", dest: str, amount: Balance, keep_alive: bool = True
     ) -> Balance:
         """
         Calculates the transaction fee for transferring tokens from a wallet to a specified destination address. This
@@ -3129,7 +3133,7 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             wallet: The wallet from which the transfer is initiated.
             dest: The ``SS58`` address of the destination account.
-            value: The amount of tokens to be transferred, specified as a Balance object, or in Tao (float) or Rao
+            amount: The amount of tokens to be transferred, specified as a Balance object, or in Tao (float) or Rao
                 (int) units.
             keep_alive: Whether the transfer fee should be calculated based on keeping the wallet alive (existential
                 deposit) or not.
@@ -3142,10 +3146,9 @@ class AsyncSubtensor(SubtensorMixin):
         wallet has sufficient funds to cover both the transfer amount and the associated costs. This function provides
         a crucial tool for managing financial operations within the Bittensor network.
         """
-        if value is not None:
-            value = check_balance_amount(value)
+        check_balance_amount(amount)
         call_params: dict[str, Union[int, str, bool]]
-        call_function, call_params = get_transfer_fn_params(value, dest, keep_alive)
+        call_function, call_params = get_transfer_fn_params(amount, dest, keep_alive)
 
         call = await self.substrate.compose_call(
             call_module="Balances",
@@ -4330,7 +4333,7 @@ class AsyncSubtensor(SubtensorMixin):
         When safe_staking is enabled, it provides protection against price fluctuations during the time stake is
         executed and the time it is actually processed by the chain.
         """
-        amount = check_balance_amount(amount)
+        check_balance_amount(amount)
         return await add_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -4676,7 +4679,7 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
         """
-        amount = check_balance_amount(amount)
+        check_balance_amount(amount)
         return await move_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -5527,7 +5530,7 @@ class AsyncSubtensor(SubtensorMixin):
             - With allow_partial_stake=True: A partial amount will be swapped up to the point where the price ratio
             would increase by rate_tolerance.
         """
-        amount = check_balance_amount(amount)
+        check_balance_amount(amount)
         return await swap_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -5614,8 +5617,7 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
         """
-        if amount is not None:
-            amount = check_balance_amount(amount)
+        check_balance_amount(amount)
         return await transfer_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -5662,7 +5664,7 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
         """
-        amount = check_balance_amount(amount)
+        check_balance_amount(amount)
         return await transfer_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -5720,7 +5722,7 @@ class AsyncSubtensor(SubtensorMixin):
         This function supports flexible stake management, allowing neurons to adjust their network participation and
         potential reward accruals.
         """
-        amount = check_balance_amount(amount)
+        check_balance_amount(amount)
         return await unstake_extrinsic(
             subtensor=self,
             wallet=wallet,

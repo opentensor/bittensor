@@ -1729,7 +1729,7 @@ def test_get_transfer_fee(subtensor, fake_wallet, mocker):
     subtensor.substrate.get_payment_info.return_value = fake_payment_info
 
     # Call
-    result = subtensor.get_transfer_fee(wallet=fake_wallet, dest=fake_dest, value=value)
+    result = subtensor.get_transfer_fee(wallet=fake_wallet, dest=fake_dest, amount=value)
 
     # Asserts
     subtensor.substrate.compose_call.assert_called_once_with(
@@ -3993,7 +3993,7 @@ def test_get_stake_add_fee(subtensor, mocker):
     """Verify that `get_stake_add_fee` calls proper methods and returns the correct value."""
     # Preps
     netuid = mocker.Mock()
-    amount = mocker.Mock()
+    amount = mocker.Mock(spec=Balance)
     mocked_get_stake_operations_fee = mocker.patch.object(
         subtensor, "get_stake_operations_fee"
     )
@@ -4015,7 +4015,7 @@ def test_get_unstake_fee(subtensor, mocker):
     """Verify that `get_unstake_fee` calls proper methods and returns the correct value."""
     # Preps
     netuid = mocker.Mock()
-    amount = mocker.Mock()
+    amount = mocker.Mock(spec=Balance)
     mocked_get_stake_operations_fee = mocker.patch.object(
         subtensor, "get_stake_operations_fee"
     )
@@ -4037,7 +4037,7 @@ def test_get_stake_movement_fee(subtensor, mocker):
     """Verify that `get_stake_movement_fee` calls proper methods and returns the correct value."""
     # Preps
     netuid = mocker.Mock()
-    amount = mocker.Mock()
+    amount = mocker.Mock(spec=Balance)
     mocked_get_stake_operations_fee = mocker.patch.object(
         subtensor, "get_stake_operations_fee"
     )
