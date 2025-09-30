@@ -75,9 +75,9 @@ rename this variable in documentation.
 15. camfairchild: TODO, but we should have a grab_metadata if we don't already. Maybe don't decode, but can have a call that removes the Raw prefix, and another just doing grab_metadata_raw (no decoding)
 
 ## New features
-1. Add `bittensor.utils.hex_to_ss58` function. SDK still doesn't have it. (Probably inner import `from scalecodec import ss58_encode, ss58_decode`) 
-2. Implement Crowdloan logic. Issue: https://github.com/opentensor/bittensor/issues/3017
-3. ✅ Implement Sub-subnets logic. Subtensor PR https://github.com/opentensor/subtensor/pull/1984
+1. ✅ Add `bittensor.utils.hex_to_ss58` function. SDK still doesn't have it. (Probably inner import `from scalecodec import ss58_encode, ss58_decode`)
+2. ✅ Implement Sub-subnets logic. Subtensor PR https://github.com/opentensor/subtensor/pull/1984
+3. Implement `Crowdloan` logic. Issue: https://github.com/opentensor/bittensor/issues/3017
 
 ## Testing
 1. ✅ When running tests via Docker, ensure no lingering processes occupy required ports before launch.
