@@ -30,8 +30,8 @@ from bittensor_wallet.keyfile import (
 from bittensor_wallet.keypair import Keypair
 from bittensor_wallet.wallet import Wallet
 
+from bittensor.addons import timelock, SubtensorApi
 from bittensor.core import settings, extrinsics
-from bittensor.core.addons import timelock, SubtensorApi
 from bittensor.core.async_subtensor import AsyncSubtensor, get_async_subtensor
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import (
@@ -121,7 +121,6 @@ from bittensor.utils.btlogging import logging
 from bittensor.utils.btlogging.levels import trace, debug, warning, info
 from bittensor.utils.mock.subtensor_mock import MockSubtensor
 from bittensor.utils.subnets import SubnetsAPI
-
 
 __all__ = [
     "Keypair",
