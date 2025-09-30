@@ -61,8 +61,8 @@ def call_params_with_certificate():
 def test_methods_comparable(mock_substrate):
     """Verifies that methods in sync and async Subtensors are comparable."""
     # Preps
-    subtensor = Subtensor(_mock=True)
-    async_subtensor = AsyncSubtensor(_mock=True)
+    subtensor = Subtensor(mock=True)
+    async_subtensor = AsyncSubtensor(mock=True)
 
     # methods which lives in async subtensor only
     excluded_async_subtensor_methods = ["initialize"]

@@ -25,7 +25,7 @@ async def prepare_test(mocker, seed, **subtensor_args):
         "async_substrate_interface.sync_substrate.connect",
         mocker.Mock(return_value=FakeWebsocket(seed=seed)),
     )
-    subtensor = Subtensor("unknown", _mock=True, **subtensor_args)
+    subtensor = Subtensor("unknown", mock=True, **subtensor_args)
     return subtensor
 
 
