@@ -62,6 +62,8 @@ from bittensor.core.chain_data import (
 from bittensor.core.config import Config
 from bittensor.core.dendrite import Dendrite
 from bittensor.core.errors import (
+    BalanceTypeError,
+    BalanceUnitMismatchError,
     BlacklistedException,
     ChainConnectionError,
     ChainError,
@@ -169,6 +171,8 @@ __all__ = [
     "WeightCommitInfo",
     "Config",
     "Dendrite",
+    "BalanceTypeError",
+    "BalanceUnitMismatchError",
     "BlacklistedException",
     "ChainConnectionError",
     "ChainError",
