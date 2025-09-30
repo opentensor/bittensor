@@ -18,7 +18,7 @@ from bittensor.core import settings
 from bittensor.core.settings import SS58_FORMAT
 from bittensor.utils.btlogging import logging
 from .registration import torch, use_torch
-from .version import version_checking, check_version, VersionCheckError
+from .version import check_version, VersionCheckError
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -36,7 +36,6 @@ UnlockStatus = namedtuple("UnlockStatus", ["success", "message"])
 logging = logging
 torch = torch
 use_torch = use_torch
-version_checking = version_checking
 check_version = check_version
 VersionCheckError = VersionCheckError
 ss58_decode = ss58_decode
