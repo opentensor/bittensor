@@ -486,19 +486,25 @@ class Subtensor(SubtensorMixin):
         )
         return query.value if query is not None and hasattr(query, "value") else query
 
-    def blocks_since_last_update(self, netuid: int, uid: int) -> Optional[int]:
+    def blocks_since_last_update(
+        self, netuid: int, uid: int, block: Optional[int] = None
+    ) -> Optional[int]:
         """
         Returns the number of blocks since the last update for a specific UID in the subnetwork.
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
             uid: The unique identifier of the neuron.
+            block: the block number for this query.
 
         Returns:
             The number of blocks since the last update, or ``None`` if the subnetwork or UID does not exist.
         """
-        call = self.get_hyperparameter(param_name="LastUpdate", netuid=netuid)
-        return None if not call else (self.get_current_block() - int(call[uid]))
+        block = block or self.get_current_block()
+        call = self.get_hyperparameter(
+            param_name="LastUpdate", netuid=netuid, block=block
+        )
+        return None if not call else (block - int(call[uid]))
 
     def bonds(
         self,
