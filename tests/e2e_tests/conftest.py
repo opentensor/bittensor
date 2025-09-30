@@ -12,7 +12,7 @@ from typing import Optional
 import pytest
 import pytest_asyncio
 
-from bittensor.core.addons import SubtensorApi
+from bittensor.addons import SubtensorApi
 from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.e2e_test_utils import (
     Templates,
