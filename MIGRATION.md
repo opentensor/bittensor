@@ -36,7 +36,7 @@
 2. Reconsider entire metagraph module logic.
 
 ## Balance
-1. In `bittensor.utils.balance._check_currencies` raise the error instead of `warnings.warn`.
+1. ✅ In `bittensor.utils.balance._check_currencies` raise the error instead of `warnings.warn`.
 2. In `bittensor.utils.balance.check_and_convert_to_balance` raise the error instead of `warnings.warn`. 
 This may seem like a harsh decision at first, but ultimately we will push the community to use Balance and there will be fewer errors in their calculations. Confusion with TAO and Alpha in calculations and display/printing/logging will be eliminated.
 
@@ -65,7 +65,7 @@ rename this variable in documentation.
    - [x] CRv3 extrinsics
    - [x] CRv3 logic related subtensor's calls
 
-10. Revise `bittensor/utils/easy_imports.py` module to remove deprecated backwards compatibility objects. Use this module as a functionality for exporting existing objects to the package root to keep __init__.py minimal and simple.
+10. ✅ Revise `bittensor/utils/easy_imports.py` module to remove deprecated backwards compatibility objects. Use this module as a functionality for exporting existing objects to the package root to keep __init__.py minimal and simple.
 
 11. ✅ Remove deprecated `bittensor.utils.version.version_checking`
 
@@ -102,8 +102,8 @@ To implement the above changes and prepare for the v10 release, the following st
 All breaking changes and refactors should be targeted into this branch to isolate them from staging and maintain backward compatibility during development.
 - [ ] Add a `MIGRATION.md` document at the root of the repository and use it as a check list. This file will serve as a changelog and technical reference.
 It must include:
-  - [ ] All change categories (Extrinsics, Subtensor, Metagraph, etc.)
-  - [ ] Per-PR breakdown of what was added, removed, renamed, or refactored.
+  - [x] All change categories (Extrinsics, Subtensor, Metagraph, etc.)
+  - [x] Per-PR breakdown of what was added, removed, renamed, or refactored.
   - [ ] Justifications and migration notes for users (if API behavior changed).
 
 - [ ] Based on the final `MIGRATION.md`, develop migration documentation for the community. 
