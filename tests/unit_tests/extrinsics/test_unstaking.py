@@ -4,22 +4,22 @@ from bittensor.utils.balance import Balance
 
 
 def test_unstake_extrinsic(fake_wallet, mocker):
+    # Preps
     fake_substrate = mocker.Mock(
         **{"get_payment_info.return_value": {"partial_fee": 10}}
     )
-    # Preps
+    fake_netuid = 14
     fake_subtensor = mocker.Mock(
         **{
             "get_hotkey_owner.return_value": "hotkey_owner",
-            "get_stake_for_coldkey_and_hotkey.return_value": Balance(10.0),
+            "get_stake_for_coldkey_and_hotkey.return_value": Balance.from_tao(10.0, fake_netuid),
             "sign_and_send_extrinsic.return_value": ExtrinsicResponse(True, ""),
-            "get_stake.return_value": Balance(10.0),
+            "get_stake.return_value": Balance.from_tao(10.0, fake_netuid),
             "substrate": fake_substrate,
         }
     )
     fake_wallet.coldkeypub.ss58_address = "hotkey_owner"
     hotkey_ss58 = "hotkey"
-    fake_netuid = 1
     amount = Balance.from_tao(1.1)
     wait_for_inclusion = True
     wait_for_finalization = True
@@ -44,7 +44,7 @@ def test_unstake_extrinsic(fake_wallet, mocker):
         call_params={
             "hotkey": "hotkey",
             "amount_unstaked": 1100000000,
-            "netuid": 1,
+            "netuid": fake_netuid,
         },
     )
     fake_subtensor.sign_and_send_extrinsic.assert_called_once_with(
@@ -107,6 +107,9 @@ def test_unstake_all_extrinsic(fake_wallet, mocker):
 def test_unstake_multiple_extrinsic(subtensor, fake_wallet, mocker):
     """Tests when out of 2 unstakes 1 is completed and 1 is not."""
     # Preps
+    sn_5 = 5
+    sn_14 = 14
+    fake_netuids = [sn_5, sn_14]
     mocked_balance = mocker.patch.object(
         subtensor, "get_balance", return_value=Balance.from_tao(1.0)
     )
@@ -119,12 +122,11 @@ def test_unstake_multiple_extrinsic(subtensor, fake_wallet, mocker):
     mocker.patch.object(
         unstaking,
         "get_old_stakes",
-        return_value=[Balance.from_tao(10), Balance.from_tao(0.3)],
+        return_value=[Balance.from_tao(10, sn_5), Balance.from_tao(0.3, sn_14)],
     )
     fake_wallet.coldkeypub.ss58_address = "hotkey_owner"
     hotkey_ss58s = ["hotkey1", "hotkey2"]
-    fake_netuids = [1, 2]
-    amounts = [Balance.from_tao(1.1), Balance.from_tao(1.2)]
+    amounts = [Balance.from_tao(1.1, sn_5), Balance.from_tao(1.2, sn_14)]
     wait_for_inclusion = True
     wait_for_finalization = True
 
@@ -151,9 +153,9 @@ def test_unstake_multiple_extrinsic(subtensor, fake_wallet, mocker):
     mocked_unstake_extrinsic.assert_called_once_with(
         subtensor=subtensor,
         wallet=fake_wallet,
-        netuid=1,
+        netuid=sn_5,
         hotkey_ss58="hotkey1",
-        amount=Balance.from_tao(1.1),
+        amount=Balance.from_tao(1.1, sn_5),
         period=None,
         raise_error=False,
         wait_for_inclusion=wait_for_inclusion,
