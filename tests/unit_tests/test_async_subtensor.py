@@ -3821,10 +3821,10 @@ async def test_get_subnet_price(subtensor, mocker):
     # preps
     netuid = 123
     mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
-    fake_price = {"bits": 3155343338053956962}
+    fake_price = 29258617
     expected_price = Balance.from_tao(0.029258617)
     mocked_query = mocker.patch.object(
-        subtensor.substrate, "query", return_value=fake_price
+        subtensor.substrate, "runtime_call", return_value=mocker.Mock(value=fake_price)
     )
 
     # Call
@@ -3833,10 +3833,10 @@ async def test_get_subnet_price(subtensor, mocker):
     )
 
     # Asserts
-    mocked_determine_block_hash.assert_awaited_once_with(block=None)
+    mocked_determine_block_hash.assert_awaited_once()
     mocked_query.assert_awaited_once_with(
-        module="Swap",
-        storage_function="AlphaSqrtPrice",
+        api="SwapRuntimeApi",
+        method="current_alpha_price",
         params=[netuid],
         block_hash=mocked_determine_block_hash.return_value,
     )
