@@ -693,7 +693,7 @@ class Subtensor(SubtensorMixin):
         coldkey_ss58: str,
         block: Optional[int] = None,
     ) -> dict[int, str]:
-        """Retries the auto stakes for a given wallet across all subnets.
+        """Fetches auto stake destinations for a given wallet across all subnets.
 
         Parameters:
             coldkey_ss58: Coldkey ss58 address.

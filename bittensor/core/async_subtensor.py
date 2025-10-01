@@ -1209,7 +1209,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> dict[int, str]:
-        """Retries the auto stakes for a given wallet across all subnets.
+        """Fetches auto stake destinations for a given wallet across all subnets.
 
         Parameters:
             coldkey_ss58: Coldkey ss58 address.
