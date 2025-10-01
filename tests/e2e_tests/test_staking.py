@@ -1102,15 +1102,18 @@ def test_auto_staking(subtensor, alice_wallet, bob_wallet, eve_wallet):
         alice_subnet_netuid: bob_wallet.hotkey.ss58_address
     }
 
-    # set auto stake to another hotkey
-    assert subtensor.staking.set_auto_stake(
+    # set auto stake to nonexistent hotkey
+    success, message = subtensor.staking.set_auto_stake(
         wallet=alice_wallet,
         netuid=alice_subnet_netuid,
         hotkey_ss58=eve_wallet.hotkey.ss58_address,
     )
+    assert success is False
+    assert "HotKeyNotRegisteredInSubNet" in message
+
     # check auto stake
     assert subtensor.staking.get_auto_stakes(alice_wallet.coldkey.ss58_address) == {
-        alice_subnet_netuid: eve_wallet.hotkey.ss58_address
+        alice_subnet_netuid: bob_wallet.hotkey.ss58_address
     }
 
     logging.console.success(f"Test `test_auto_staking` passed.")
