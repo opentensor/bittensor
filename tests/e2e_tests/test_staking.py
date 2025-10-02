@@ -2088,9 +2088,7 @@ async def test_unstaking_with_limit_async(
 def test_auto_staking(subtensor, alice_wallet, bob_wallet, eve_wallet):
     """Tests auto staking logic."""
 
-    logging.console.info(f"Testing test_auto_staking.")
-
-    alice_subnet_netuid = subtensor.get_total_subnets()
+    alice_subnet_netuid = subtensor.subnets.get_total_subnets()
     assert subtensor.subnets.register_subnet(alice_wallet)
     assert subtensor.subnets.subnet_exists(alice_subnet_netuid)
 
@@ -2105,7 +2103,8 @@ def test_auto_staking(subtensor, alice_wallet, bob_wallet, eve_wallet):
         wallet=alice_wallet,
         netuid=alice_subnet_netuid,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
-    )
+    ).success
+
     # check auto stake
     assert subtensor.staking.get_auto_stakes(alice_wallet.coldkey.ss58_address) == {
         alice_subnet_netuid: bob_wallet.hotkey.ss58_address
@@ -2125,4 +2124,43 @@ def test_auto_staking(subtensor, alice_wallet, bob_wallet, eve_wallet):
         alice_subnet_netuid: bob_wallet.hotkey.ss58_address
     }
 
-    logging.console.success(f"Test `test_auto_staking` passed.")
+
+@pytest.mark.asyncio
+async def test_auto_staking_async(async_subtensor, alice_wallet, bob_wallet, eve_wallet):
+    """Tests auto staking logic."""
+
+    alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()
+    assert await async_subtensor.subnets.register_subnet(alice_wallet)
+    assert await async_subtensor.subnets.subnet_exists(alice_subnet_netuid)
+
+    assert await async_wait_to_start_call(async_subtensor, alice_wallet, alice_subnet_netuid)
+
+    assert await async_subtensor.extrinsics.burned_register(bob_wallet, alice_subnet_netuid)
+
+    assert await async_subtensor.staking.get_auto_stakes(alice_wallet.coldkey.ss58_address) == {}
+
+    # set auto stake
+    assert (await async_subtensor.staking.set_auto_stake(
+        wallet=alice_wallet,
+        netuid=alice_subnet_netuid,
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
+    )).success
+
+    # check auto stake
+    assert await async_subtensor.staking.get_auto_stakes(alice_wallet.coldkey.ss58_address) == {
+        alice_subnet_netuid: bob_wallet.hotkey.ss58_address
+    }
+
+    # set auto stake to nonexistent hotkey
+    success, message = await async_subtensor.staking.set_auto_stake(
+        wallet=alice_wallet,
+        netuid=alice_subnet_netuid,
+        hotkey_ss58=eve_wallet.hotkey.ss58_address,
+    )
+    assert success is False
+    assert "HotKeyNotRegisteredInSubNet" in message
+
+    # check auto stake
+    assert await async_subtensor.staking.get_auto_stakes(alice_wallet.coldkey.ss58_address) == {
+        alice_subnet_netuid: bob_wallet.hotkey.ss58_address
+    }
