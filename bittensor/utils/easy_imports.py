@@ -30,7 +30,6 @@ from bittensor_wallet.keyfile import (
 from bittensor_wallet.keypair import Keypair
 from bittensor_wallet.wallet import Wallet
 
-from bittensor.addons import timelock, SubtensorApi
 from bittensor.core import settings, extrinsics
 from bittensor.core.async_subtensor import AsyncSubtensor, get_async_subtensor
 from bittensor.core.axon import Axon
@@ -108,6 +107,7 @@ from bittensor.core.subtensor import Subtensor
 from bittensor.core.synapse import TerminalInfo, Synapse
 from bittensor.core.tensor import Tensor
 from bittensor.core.threadpool import PriorityThreadPoolExecutor
+from bittensor.extras import timelock, SubtensorApi
 from bittensor.utils import (
     mock,
     ss58_to_vec_u8,
