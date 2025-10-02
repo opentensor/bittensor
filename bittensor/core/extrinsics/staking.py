@@ -411,7 +411,7 @@ def set_auto_stake_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-) -> tuple[bool, str]:
+) -> ExtrinsicResponse:
     """Sets the coldkey to automatically stake to the hotkey within specific subnet mechanism.
 
     Parameters:
@@ -428,15 +428,13 @@ def set_auto_stake_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        tuple[bool, str]:
-            `True` if the extrinsic executed successfully, `False` otherwise.
-            `message` is a string value describing the success or potential error.
+        ExtrinsicResponse: The result object of the extrinsic execution.
     """
     try:
-        unlock = unlock_key(wallet, raise_error=raise_error)
-        if not unlock.success:
-            logging.error(unlock.message)
-            return False, unlock.message
+        if not (
+            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+        ).success:
+            return unlocked
 
         call = subtensor.substrate.compose_call(
             call_module="SubtensorModule",
@@ -446,7 +444,7 @@ def set_auto_stake_extrinsic(
                 "hotkey": hotkey_ss58,
             },
         )
-        success, message = subtensor.sign_and_send_extrinsic(
+        response = subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
             period=period,
@@ -455,16 +453,12 @@ def set_auto_stake_extrinsic(
             wait_for_finalization=wait_for_finalization,
         )
 
-        if success:
-            logging.debug(message)
-            return True, message
+        if response.success:
+            logging.debug(response.message)
+            return response
 
-        logging.error(message)
-        return False, message
+        logging.error(response.message)
+        return response
 
     except Exception as error:
-        if raise_error:
-            raise error
-        logging.error(str(error))
-
-        return False, str(error)
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
