@@ -851,7 +851,7 @@ def rao(amount: int, netuid: int = 0) -> Balance:
     return Balance.from_rao(amount).set_unit(netuid)
 
 
-def check_balance_amount(amount: Optional[Balance]) -> Optional[None]:
+def check_balance_amount(amount: Optional[Balance]) -> None:
     """
     Validate that the provided value is a Balance instance.
 
