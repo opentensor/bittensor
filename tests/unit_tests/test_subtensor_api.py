@@ -1,6 +1,6 @@
 import pytest
 
-from bittensor.addons.subtensor_api import SubtensorApi
+from bittensor.extras import SubtensorApi
 from bittensor.core.subtensor import Subtensor
 
 
