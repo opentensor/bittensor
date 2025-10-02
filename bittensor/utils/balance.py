@@ -16,8 +16,8 @@ def _check_currencies(self, other):
         balance2 = Balance.from_tao(500).set_unit(14)
         balance1 + balance2  # No error.
 
-        balance3 = Balance.from_tao(200).set_unit(14)
-        balance1 + balance3  # Raises ValueError.
+        balance3 = Balance.from_tao(200).set_unit(5)
+        balance1 + balance3  # Raises BalanceUnitMismatchError.
 
     In this example:
         - `from_rao` creates a Balance instance from the amount in rao.
@@ -862,7 +862,7 @@ def check_balance_amount(amount: Optional[Balance]) -> None:
         amount: The value to validate.
 
     Returns:
-        None
+        None if amount is Balance instance or None, otherwise raise error.
 
     Raises:
         BalanceTypeError: If `amount` is not an instance of Balance.
