@@ -1,5 +1,7 @@
 import pytest
+
 from bittensor.core.extrinsics.asyncex import staking
+from bittensor.core.types import ExtrinsicResponse
 
 
 @pytest.mark.parametrize(
@@ -17,14 +19,12 @@ async def test_set_auto_stake_extrinsic(
     # Preps
     netuid = mocker.Mock()
     hotkey_ss58 = mocker.Mock()
-    mocked_unlock_key = mocker.patch.object(
-        staking, "unlock_key", return_value=mocker.Mock(success=True, message="True")
-    )
+
 
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
 
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=(res_success, res_message)
+        subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(res_success, res_message)
     )
 
     # Call
@@ -36,7 +36,6 @@ async def test_set_auto_stake_extrinsic(
     )
 
     # Asserts
-    mocked_unlock_key.assert_called_once_with(fake_wallet, raise_error=False)
     mocked_compose_call.assert_awaited_once_with(
         call_module="SubtensorModule",
         call_function="set_coldkey_auto_stake_hotkey",
