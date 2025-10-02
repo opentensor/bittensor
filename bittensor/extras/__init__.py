@@ -9,8 +9,8 @@ Use this package to keep optional, modular, or feature-gated logic separate from
 discoverability and structure.
 """
 
-from bittensor.addons import timelock
-from bittensor.addons.subtensor_api import SubtensorApi
+from bittensor.extras import timelock
+from bittensor.extras.subtensor_api import SubtensorApi
 
 __all__ = [
     "timelock",
