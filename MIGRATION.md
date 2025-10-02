@@ -290,10 +290,10 @@ Links to subpackages removed:
 - `bittensor.extrinsics` (available in `bittensor.core.extrinsics`)
 
 
-New subpackage `bittensor.addons` created to host optional extensions and experimental logic enhancing the core functionality.
+New subpackage `bittensor.extras` created to host optional extensions and experimental logic enhancing the core functionality.
 Currently it contains:
-- `bittensor.addons.subtensor_api`
-- `bittensor.addons.timelock`
+- `bittensor.extras.subtensor_api`
+- `bittensor.extras.timelock`
 
 
 ### Balance (bittensor/utils/balance.py) and related changes
