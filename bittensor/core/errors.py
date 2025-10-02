@@ -218,5 +218,5 @@ class BalanceUnitMismatchError(Exception):
     """Raised when operations is attempted between Balance objects with different units (netuid)."""
 
 
-class BalanceTypeError(Exception):
+class BalanceTypeError(TypeError):
     """Raised when an unsupported type is used instead of Balance amount."""
