@@ -3877,7 +3877,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> tuple[bool, str]:
+    ) -> ExtrinsicResponse:
         """Sets the coldkey to automatically stake to the hotkey within specific subnet mechanism.
 
         Parameters:
@@ -3893,9 +3893,10 @@ class Subtensor(SubtensorMixin):
             wait_for_finalization: Whether to wait for the finalization of the transaction.
 
         Returns:
-            tuple[bool, str]:
-                `True` if the extrinsic executed successfully, `False` otherwise.
-                `message` is a string value describing the success or potential error.
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Note:
+            Use the `get_auto_stakes` method to get the hotkey address of the validator where auto stake is set.
         """
         return set_auto_stake_extrinsic(
             subtensor=self,
