@@ -862,10 +862,10 @@ def check_balance_amount(amount: Optional[Balance]) -> None:
         amount: The value to validate.
 
     Returns:
-        None if amount is Balance instance or None, otherwise raise error.
+        None: Always returns None if validation passes.
 
     Raises:
-        BalanceTypeError: If `amount` is not an instance of Balance.
+        BalanceTypeError: If amount is not a Balance instance and not None.
     """
     if amount is None:
         return None
