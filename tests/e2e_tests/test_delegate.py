@@ -10,21 +10,21 @@ from bittensor.core.errors import (
     NonAssociatedColdKey,
 )
 from bittensor.utils.balance import Balance
-from bittensor.utils.btlogging import logging
-from tests.e2e_tests.utils.chain_interactions import (
+from tests.e2e_tests.utils import (
     async_propose,
     async_set_identity,
-    async_sudo_set_admin_utils,
     async_vote,
     get_dynamic_balance,
     propose,
     set_identity,
-    sudo_set_admin_utils,
     vote,
-)
-from tests.e2e_tests.utils.e2e_test_utils import (
-    async_wait_to_start_call,
-    wait_to_start_call,
+    TestSubnet,
+    AdminUtils,
+    ACTIVATE_SUBNET,
+    REGISTER_SUBNET,
+    REGISTER_NEURON,
+    SUDO_SET_NOMINATOR_MIN_REQUIRED_STAKE,
+    SUDO_SET_TX_DELEGATE_TAKE_RATE_LIMIT,
 )
 from tests.helpers.helpers import CloseInValue
 
@@ -217,13 +217,8 @@ def test_change_take(subtensor, alice_wallet, bob_wallet):
     take = subtensor.delegates.get_delegate_take(alice_wallet.hotkey.ss58_address)
     assert take == 0.09999237048905166
 
-    sudo_set_admin_utils(
-        substrate=subtensor.substrate,
-        wallet=alice_wallet,
-        call_function="sudo_set_tx_delegate_take_rate_limit",
-        call_params={
-            "tx_rate_limit": 0,
-        },
+    TestSubnet(subtensor).execute_one(
+        SUDO_SET_TX_DELEGATE_TAKE_RATE_LIMIT(alice_wallet, AdminUtils, True, 0)
     )
 
     assert subtensor.delegates.set_delegate_take(
@@ -309,13 +304,8 @@ async def test_change_take_async(async_subtensor, alice_wallet, bob_wallet):
     )
     assert take == 0.09999237048905166
 
-    await async_sudo_set_admin_utils(
-        substrate=async_subtensor.substrate,
-        wallet=alice_wallet,
-        call_function="sudo_set_tx_delegate_take_rate_limit",
-        call_params={
-            "tx_rate_limit": 0,
-        },
+    await TestSubnet(async_subtensor).async_execute_one(
+        SUDO_SET_TX_DELEGATE_TAKE_RATE_LIMIT(alice_wallet, AdminUtils, True, 0)
     )
 
     assert (
@@ -417,38 +407,23 @@ def test_delegates(subtensor, alice_wallet, bob_wallet):
 
     assert subtensor.delegates.get_delegated(bob_wallet.coldkey.ss58_address) == []
 
-    alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
-    set_tempo = 10
-    # Register a subnet, netuid 2
-    assert subtensor.subnets.register_subnet(alice_wallet), "Subnet wasn't created"
-
-    # Verify subnet <netuid> created successfully
-    assert subtensor.subnets.subnet_exists(alice_subnet_netuid), (
-        "Subnet wasn't created successfully"
-    )
-
-    assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
-
-    # set the same tempo for both type of nodes (fast and non-fast blocks)
-    assert (
-        sudo_set_admin_utils(
-            substrate=subtensor.substrate,
-            wallet=alice_wallet,
-            call_function="sudo_set_tempo",
-            call_params={"netuid": alice_subnet_netuid, "tempo": set_tempo},
-        )[0]
-        is True
-    )
+    TEMPO_TO_SET = 10
+    alice_sn = TestSubnet(subtensor)
+    steps = [
+        REGISTER_SUBNET(alice_wallet),
+        ACTIVATE_SUBNET(alice_wallet),
+    ]
+    alice_sn.execute_steps(steps)
 
     assert subtensor.staking.add_stake(
         wallet=bob_wallet,
-        netuid=alice_subnet_netuid,
+        netuid=alice_sn.netuid,
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(10_000),
     ).success
 
     # let chain update validator_permits
-    subtensor.wait_for_block(subtensor.block + set_tempo + 1)
+    subtensor.wait_for_block(subtensor.block + TEMPO_TO_SET + 1)
 
     bob_delegated = subtensor.delegates.get_delegated(bob_wallet.coldkey.ss58_address)
     assert bob_delegated == [
@@ -456,11 +431,11 @@ def test_delegates(subtensor, alice_wallet, bob_wallet):
             hotkey_ss58=alice_wallet.hotkey.ss58_address,
             owner_ss58=alice_wallet.coldkey.ss58_address,
             take=DEFAULT_DELEGATE_TAKE,
-            validator_permits=[alice_subnet_netuid],
-            registrations=[0, alice_subnet_netuid],
+            validator_permits=[alice_sn.netuid],
+            registrations=[0, alice_sn.netuid],
             return_per_1000=Balance(0),
-            netuid=alice_subnet_netuid,
-            stake=get_dynamic_balance(bob_delegated[0].stake.rao, alice_subnet_netuid),
+            netuid=alice_sn.netuid,
+            stake=get_dynamic_balance(bob_delegated[0].stake.rao, alice_sn.netuid),
         ),
     ]
 
@@ -575,43 +550,25 @@ async def test_delegates_async(async_subtensor, alice_wallet, bob_wallet):
         == []
     )
 
-    alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
-    set_tempo = 10
-    # Register a subnet, netuid 2
-    assert await async_subtensor.subnets.register_subnet(alice_wallet), (
-        "Subnet wasn't created"
-    )
-
-    # Verify subnet <netuid> created successfully
-    assert await async_subtensor.subnets.subnet_exists(alice_subnet_netuid), (
-        "Subnet wasn't created successfully"
-    )
-
-    assert await async_wait_to_start_call(
-        async_subtensor, alice_wallet, alice_subnet_netuid
-    )
-
-    # set the same tempo for both type of nodes (fast and non-fast blocks)
-    assert (
-        await async_sudo_set_admin_utils(
-            substrate=async_subtensor.substrate,
-            wallet=alice_wallet,
-            call_function="sudo_set_tempo",
-            call_params={"netuid": alice_subnet_netuid, "tempo": set_tempo},
-        )
-    )[0] is True
+    TEMPO_TO_SET = 10
+    alice_sn = TestSubnet(async_subtensor)
+    steps = [
+        REGISTER_SUBNET(alice_wallet),
+        ACTIVATE_SUBNET(alice_wallet),
+    ]
+    await alice_sn.async_execute_steps(steps)
 
     assert (
         await async_subtensor.staking.add_stake(
             wallet=bob_wallet,
-            netuid=alice_subnet_netuid,
+            netuid=alice_sn.netuid,
             hotkey_ss58=alice_wallet.hotkey.ss58_address,
             amount=Balance.from_tao(10_000),
         )
     ).success
 
     # let chain update validator_permits
-    await async_subtensor.wait_for_block(await async_subtensor.block + set_tempo + 1)
+    await async_subtensor.wait_for_block(await async_subtensor.block + TEMPO_TO_SET + 1)
 
     bob_delegated = await async_subtensor.delegates.get_delegated(
         bob_wallet.coldkey.ss58_address
@@ -621,11 +578,11 @@ async def test_delegates_async(async_subtensor, alice_wallet, bob_wallet):
             hotkey_ss58=alice_wallet.hotkey.ss58_address,
             owner_ss58=alice_wallet.coldkey.ss58_address,
             take=DEFAULT_DELEGATE_TAKE,
-            validator_permits=[alice_subnet_netuid],
-            registrations=[0, alice_subnet_netuid],
+            validator_permits=[alice_sn.netuid],
+            registrations=[0, alice_sn.netuid],
             return_per_1000=Balance(0),
-            netuid=alice_subnet_netuid,
-            stake=get_dynamic_balance(bob_delegated[0].stake.rao, alice_subnet_netuid),
+            netuid=alice_sn.netuid,
+            stake=get_dynamic_balance(bob_delegated[0].stake.rao, alice_sn.netuid),
         ),
     ]
 
@@ -638,33 +595,22 @@ def test_nominator_min_required_stake(subtensor, alice_wallet, bob_wallet, dave_
     - Update NominatorMinRequiredStake
     - Check Nominator is removed
     """
-    alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
-
-    # Register a subnet, netuid 2
-    assert subtensor.subnets.register_subnet(alice_wallet), "Subnet wasn't created"
-
-    # Verify subnet <netuid> created successfully
-    assert subtensor.subnets.subnet_exists(alice_subnet_netuid), (
-        "Subnet wasn't created successfully"
+    alice_sn = TestSubnet(subtensor)
+    alice_sn.execute_steps(
+        [
+            REGISTER_SUBNET(alice_wallet),
+            ACTIVATE_SUBNET(alice_wallet),
+            REGISTER_NEURON(bob_wallet),
+            REGISTER_NEURON(dave_wallet),
+        ]
     )
-    assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
 
     minimum_required_stake = subtensor.staking.get_minimum_required_stake()
     assert minimum_required_stake == Balance(0)
 
-    assert subtensor.subnets.burned_register(
-        wallet=bob_wallet,
-        netuid=alice_subnet_netuid,
-    ).success
-
-    assert subtensor.subnets.burned_register(
-        wallet=dave_wallet,
-        netuid=alice_subnet_netuid,
-    ).success
-
     assert subtensor.staking.add_stake(
         wallet=dave_wallet,
-        netuid=alice_subnet_netuid,
+        netuid=alice_sn.netuid,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(1000),
     ).success
@@ -672,18 +618,15 @@ def test_nominator_min_required_stake(subtensor, alice_wallet, bob_wallet, dave_
     stake = subtensor.staking.get_stake(
         coldkey_ss58=dave_wallet.coldkey.ss58_address,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
-        netuid=alice_subnet_netuid,
+        netuid=alice_sn.netuid,
     )
     assert stake > 0
 
     # this will trigger clear_small_nominations
-    sudo_set_admin_utils(
-        substrate=subtensor.substrate,
-        wallet=alice_wallet,
-        call_function="sudo_set_nominator_min_required_stake",
-        call_params={
-            "min_stake": "100000000000000",
-        },
+    alice_sn.execute_one(
+        SUDO_SET_NOMINATOR_MIN_REQUIRED_STAKE(
+            alice_wallet, AdminUtils, True, 100000000000000
+        )
     )
 
     minimum_required_stake = subtensor.staking.get_minimum_required_stake()
@@ -692,9 +635,9 @@ def test_nominator_min_required_stake(subtensor, alice_wallet, bob_wallet, dave_
     stake = subtensor.staking.get_stake(
         coldkey_ss58=dave_wallet.coldkey.ss58_address,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
-        netuid=alice_subnet_netuid,
+        netuid=alice_sn.netuid,
     )
-    assert stake == Balance.from_tao(0, alice_subnet_netuid)
+    assert stake == Balance.from_tao(0, alice_sn.netuid)
 
 
 @pytest.mark.asyncio
@@ -708,19 +651,14 @@ async def test_nominator_min_required_stake_async(
     - Update NominatorMinRequiredStake
     - Check Nominator is removed
     """
-    alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
-
-    # Register a subnet, netuid 2
-    assert await async_subtensor.subnets.register_subnet(alice_wallet), (
-        "Subnet wasn't created"
-    )
-
-    # Verify subnet <netuid> created successfully
-    assert await async_subtensor.subnets.subnet_exists(alice_subnet_netuid), (
-        "Subnet wasn't created successfully"
-    )
-    assert await async_wait_to_start_call(
-        async_subtensor, alice_wallet, alice_subnet_netuid
+    alice_sn = TestSubnet(async_subtensor)
+    await alice_sn.async_execute_steps(
+        [
+            REGISTER_SUBNET(alice_wallet),
+            ACTIVATE_SUBNET(alice_wallet),
+            REGISTER_NEURON(bob_wallet),
+            REGISTER_NEURON(dave_wallet),
+        ]
     )
 
     minimum_required_stake = await async_subtensor.staking.get_minimum_required_stake()
@@ -729,21 +667,21 @@ async def test_nominator_min_required_stake_async(
     assert (
         await async_subtensor.subnets.burned_register(
             wallet=bob_wallet,
-            netuid=alice_subnet_netuid,
+            netuid=alice_sn.netuid,
         )
     ).success
 
     assert (
         await async_subtensor.subnets.burned_register(
             wallet=dave_wallet,
-            netuid=alice_subnet_netuid,
+            netuid=alice_sn.netuid,
         )
     ).success
 
     assert (
         await async_subtensor.staking.add_stake(
             wallet=dave_wallet,
-            netuid=alice_subnet_netuid,
+            netuid=alice_sn.netuid,
             hotkey_ss58=bob_wallet.hotkey.ss58_address,
             amount=Balance.from_tao(1000),
         )
@@ -752,18 +690,15 @@ async def test_nominator_min_required_stake_async(
     stake = await async_subtensor.staking.get_stake(
         coldkey_ss58=dave_wallet.coldkey.ss58_address,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
-        netuid=alice_subnet_netuid,
+        netuid=alice_sn.netuid,
     )
     assert stake > 0
 
     # this will trigger clear_small_nominations
-    await async_sudo_set_admin_utils(
-        substrate=async_subtensor.substrate,
-        wallet=alice_wallet,
-        call_function="sudo_set_nominator_min_required_stake",
-        call_params={
-            "min_stake": "100000000000000",
-        },
+    await alice_sn.async_execute_one(
+        SUDO_SET_NOMINATOR_MIN_REQUIRED_STAKE(
+            alice_wallet, AdminUtils, True, 100000000000000
+        )
     )
 
     minimum_required_stake = await async_subtensor.staking.get_minimum_required_stake()
@@ -772,9 +707,9 @@ async def test_nominator_min_required_stake_async(
     stake = await async_subtensor.staking.get_stake(
         coldkey_ss58=dave_wallet.coldkey.ss58_address,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
-        netuid=alice_subnet_netuid,
+        netuid=alice_sn.netuid,
     )
-    assert stake == Balance.from_tao(0, alice_subnet_netuid)
+    assert stake == Balance.from_tao(0, alice_sn.netuid)
 
 
 def test_get_vote_data(subtensor, alice_wallet):

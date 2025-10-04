@@ -2,8 +2,12 @@ import asyncio
 
 import pytest
 
-from bittensor import logging
 from bittensor.utils import networking
+from tests.e2e_tests.utils import (
+    TestSubnet,
+    ACTIVATE_SUBNET,
+    REGISTER_SUBNET,
+)
 
 
 @pytest.mark.asyncio
@@ -19,15 +23,14 @@ async def test_axon(subtensor, templates, alice_wallet):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    netuid = 2
+    alice_sn = TestSubnet(subtensor)
+    steps = [
+        REGISTER_SUBNET(alice_wallet),
+        ACTIVATE_SUBNET(alice_wallet),
+    ]
+    alice_sn.execute_steps(steps)
 
-    # Register a subnet, netuid 2
-    assert subtensor.subnets.register_subnet(alice_wallet), "Subnet wasn't created"
-
-    # Verify subnet <netuid> created successfully
-    assert subtensor.subnets.subnet_exists(netuid), "Subnet wasn't created successfully"
-
-    metagraph = subtensor.metagraphs.metagraph(netuid)
+    metagraph = subtensor.metagraphs.metagraph(alice_sn.netuid)
 
     # Validate current metagraph stats
     old_axon = metagraph.axons[0]
@@ -42,12 +45,12 @@ async def test_axon(subtensor, templates, alice_wallet):
     assert old_axon.port == 0, f"Expected port 0, but got {old_axon.port}"
     assert old_axon.ip_type == 0, f"Expected IP type 0, but got {old_axon.ip_type}"
 
-    async with templates.miner(alice_wallet, netuid):
+    async with templates.miner(alice_wallet, alice_sn.netuid):
         # Waiting for 5 seconds for metagraph to be updated
         await asyncio.sleep(5)
 
         # Refresh the metagraph
-        metagraph = subtensor.metagraphs.metagraph(netuid)
+        metagraph = subtensor.metagraphs.metagraph(alice_sn.netuid)
         updated_axon = metagraph.axons[0]
         external_ip = networking.get_external_ip()
 
@@ -92,19 +95,14 @@ async def test_axon_async(async_subtensor, templates, alice_wallet):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    netuid = 2
+    alice_sn = TestSubnet(async_subtensor)
+    steps = [
+        REGISTER_SUBNET(alice_wallet),
+        ACTIVATE_SUBNET(alice_wallet),
+    ]
+    await alice_sn.async_execute_steps(steps)
 
-    # Register a subnet, netuid 2
-    assert await async_subtensor.subnets.register_subnet(alice_wallet), (
-        "Subnet wasn't created"
-    )
-
-    # Verify subnet <netuid> created successfully
-    assert await async_subtensor.subnets.subnet_exists(netuid), (
-        "Subnet wasn't created successfully"
-    )
-
-    metagraph = await async_subtensor.metagraphs.metagraph(netuid)
+    metagraph = await async_subtensor.metagraphs.metagraph(alice_sn.netuid)
 
     # Validate current metagraph stats
     old_axon = metagraph.axons[0]
@@ -119,12 +117,12 @@ async def test_axon_async(async_subtensor, templates, alice_wallet):
     assert old_axon.port == 0, f"Expected port 0, but got {old_axon.port}"
     assert old_axon.ip_type == 0, f"Expected IP type 0, but got {old_axon.ip_type}"
 
-    async with templates.miner(alice_wallet, netuid):
+    async with templates.miner(alice_wallet, alice_sn.netuid):
         # Waiting for 5 seconds for metagraph to be updated
         await asyncio.sleep(5)
 
         # Refresh the metagraph
-        metagraph = await async_subtensor.metagraphs.metagraph(netuid)
+        metagraph = await async_subtensor.metagraphs.metagraph(alice_sn.netuid)
         updated_axon = metagraph.axons[0]
         external_ip = networking.get_external_ip()
 
