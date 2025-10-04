@@ -47,6 +47,7 @@ class Subnets:
         self.register = subtensor.register
         self.register_subnet = subtensor.register_subnet
         self.set_subnet_identity = subtensor.set_subnet_identity
+        self.start_call = subtensor.start_call
         self.subnet = subtensor.subnet
         self.subnet_exists = subtensor.subnet_exists
         self.subnetwork_n = subtensor.subnetwork_n
