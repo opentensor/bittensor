@@ -62,7 +62,9 @@ def test_add_stake_multiple_extrinsic(subtensor, mocker, fake_wallet):
     """Verify that sync `add_stake_multiple_extrinsic` method calls proper async method."""
     # Preps
     mocked_get_stake_for_coldkey = mocker.patch.object(
-        subtensor, "get_stake_info_for_coldkey", return_value=[Balance(1.1), Balance(0.3)]
+        subtensor,
+        "get_stake_info_for_coldkey",
+        return_value=[Balance(1.1), Balance(0.3)],
     )
     mocked_get_balance = mocker.patch.object(
         subtensor, "get_balance", return_value=Balance.from_tao(10)
@@ -120,7 +122,9 @@ def test_set_auto_stake_extrinsic(
     mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
 
     mocked_sign_and_send_extrinsic = mocker.patch.object(
-        subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(res_success, res_message)
+        subtensor,
+        "sign_and_send_extrinsic",
+        return_value=ExtrinsicResponse(res_success, res_message),
     )
 
     # Call
