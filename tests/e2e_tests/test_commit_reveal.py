@@ -20,6 +20,7 @@ from tests.e2e_tests.utils import (
 )
 
 TESTED_MECHANISMS = 2
+EXPECTED_CR_VERSION = 4
 
 
 def test_commit_and_reveal_weights_cr4(subtensor, alice_wallet):
@@ -63,9 +64,8 @@ def test_commit_and_reveal_weights_cr4(subtensor, alice_wallet):
     cr_version = subtensor.substrate.query(
         module="SubtensorModule", storage_function="CommitRevealWeightsVersion"
     )
-    expected_cr_version = 4
-    assert cr_version == expected_cr_version, (
-        f"Commit reveal version is not {expected_cr_version}, got {cr_version}"
+    assert cr_version == EXPECTED_CR_VERSION, (
+        f"Commit reveal version is not {EXPECTED_CR_VERSION}, got {cr_version}"
     )
 
     # Verify weights rate limit was changed
@@ -251,9 +251,8 @@ async def test_commit_and_reveal_weights_cr4_async(async_subtensor, alice_wallet
     cr_version = await async_subtensor.substrate.query(
         module="SubtensorModule", storage_function="CommitRevealWeightsVersion"
     )
-    expected_cr_version = 4
-    assert cr_version == 4, (
-        f"Commit reveal version is not {expected_cr_version}, got {cr_version}"
+    assert cr_version == EXPECTED_CR_VERSION, (
+        f"Commit reveal version is not {EXPECTED_CR_VERSION}, got {cr_version}"
     )
 
     # Verify weights rate limit was changed
@@ -327,10 +326,7 @@ async def test_commit_and_reveal_weights_cr4_async(async_subtensor, alice_wallet
         )
 
         # Fetch current commits pending on the chain
-        await async_subtensor.wait_for_block(
-            await async_subtensor.subnets.get_next_epoch_start_block(alice_sn.netuid)
-            + 1
-        )
+        await async_subtensor.wait_for_block(await async_subtensor.block + 1)
 
         commits_on_chain = (
             await async_subtensor.commitments.get_timelocked_weight_commits(
