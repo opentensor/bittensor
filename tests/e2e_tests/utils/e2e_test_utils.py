@@ -13,7 +13,11 @@ template_path = os.getcwd() + "/neurons/"
 templates_repo = "templates repository"
 
 
-def setup_wallet(uri: str) -> tuple[Keypair, Wallet]:
+def setup_wallet(
+    uri: str,
+    encrypt_hotkey: bool = False,
+    encrypt_coldkey: bool = False,
+) -> tuple[Keypair, Wallet]:
     """
     Sets up a wallet using the provided URI.
 
@@ -26,11 +30,12 @@ def setup_wallet(uri: str) -> tuple[Keypair, Wallet]:
         - Sets keys in the wallet without encryption and with overwriting enabled.
     """
     keypair = Keypair.create_from_uri(uri)
-    wallet_path = f"/tmp/btcli-e2e-wallet-{uri.strip('/')}"
-    wallet = Wallet(path=wallet_path)
-    wallet.set_coldkey(keypair=keypair, encrypt=False, overwrite=True)
+    name = uri.strip("/")
+    wallet_path = f"/tmp/btcli-e2e-wallet-{name}"
+    wallet = Wallet(name=name, path=wallet_path)
+    wallet.set_coldkey(keypair=keypair, encrypt=encrypt_coldkey, overwrite=True)
     wallet.set_coldkeypub(keypair=keypair, encrypt=False, overwrite=True)
-    wallet.set_hotkey(keypair=keypair, encrypt=False, overwrite=True)
+    wallet.set_hotkey(keypair=keypair, encrypt=encrypt_hotkey, overwrite=True)
     return keypair, wallet
 
 
@@ -227,68 +232,3 @@ class Templates:
 
     def validator(self, wallet, netuid):
         return self.Validator(self.dir, wallet, netuid)
-
-
-def wait_to_start_call(
-    subtensor: SubtensorApi,
-    subnet_owner_wallet: "Wallet",
-    netuid: int,
-    in_blocks: int = 10,
-):
-    """Waits for a certain number of blocks before making a start call."""
-    if subtensor.chain.is_fast_blocks() is False:
-        in_blocks = 5
-    logging.console.info(
-        f"Waiting for [blue]{in_blocks}[/blue] blocks before [red]start call[/red]. "
-        f"Current block: [blue]{subtensor.block}[/blue]."
-    )
-
-    # make sure subnet isn't active
-    assert subtensor.subnets.is_subnet_active(netuid) is False, (
-        "Subnet is already active."
-    )
-
-    # make sure we passed start_call limit
-    subtensor.wait_for_block(subtensor.block + in_blocks + 1)
-    status, message = subtensor.extrinsics.start_call(
-        wallet=subnet_owner_wallet,
-        netuid=netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
-    assert status, message
-    # make sure subnet is active
-    assert subtensor.subnets.is_subnet_active(netuid), (
-        "Subnet did not activated after start call."
-    )
-
-    return True
-
-
-async def async_wait_to_start_call(
-    subtensor: "SubtensorApi",
-    subnet_owner_wallet: "Wallet",
-    netuid: int,
-    in_blocks: int = 10,
-):
-    """Waits for a certain number of blocks before making a start call."""
-    if await subtensor.chain.is_fast_blocks() is False:
-        in_blocks = 5
-
-    current_block = await subtensor.block
-
-    logging.console.info(
-        f"Waiting for [blue]{in_blocks}[/blue] blocks before [red]start call[/red]. "
-        f"Current block: [blue]{current_block}[/blue]."
-    )
-
-    # make sure we passed start_call limit
-    await subtensor.wait_for_block(current_block + in_blocks + 1)
-    status, message = await subtensor.extrinsics.start_call(
-        wallet=subnet_owner_wallet,
-        netuid=netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
-    assert status, message
-    return True

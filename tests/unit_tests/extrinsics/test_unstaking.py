@@ -12,7 +12,9 @@ def test_unstake_extrinsic(fake_wallet, mocker):
     fake_subtensor = mocker.Mock(
         **{
             "get_hotkey_owner.return_value": "hotkey_owner",
-            "get_stake_for_coldkey_and_hotkey.return_value": Balance.from_tao(10.0, fake_netuid),
+            "get_stake_for_coldkey_and_hotkey.return_value": Balance.from_tao(
+                10.0, fake_netuid
+            ),
             "sign_and_send_extrinsic.return_value": ExtrinsicResponse(True, ""),
             "get_stake.return_value": Balance.from_tao(10.0, fake_netuid),
             "substrate": fake_substrate,
