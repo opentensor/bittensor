@@ -1,6 +1,7 @@
 import pytest
+
 from bittensor.utils.balance import Balance
-from bittensor.utils.btlogging import logging
+from tests.e2e_tests.utils import TestSubnet, REGISTER_SUBNET
 
 
 def test_stake_fee_api(subtensor, alice_wallet, bob_wallet):
@@ -14,21 +15,17 @@ def test_stake_fee_api(subtensor, alice_wallet, bob_wallet):
             - Removing stake
             - Moving stake between hotkeys/subnets/coldkeys
     """
-    netuid = 2
     root_netuid = 0
     stake_amount = Balance.from_tao(100)  # 100 TAO
     min_stake_fee = Balance.from_tao(0.050354772)
 
-    # Register subnet as Alice
-    assert subtensor.subnets.register_subnet(alice_wallet), (
-        "Unable to register the subnet"
-    )
-    assert subtensor.subnets.subnet_exists(netuid), "Subnet wasn't created successfully"
+    sn = TestSubnet(subtensor)
+    sn.execute_one(REGISTER_SUBNET(alice_wallet))
 
     # Test add_stake fee
     stake_fee_0 = subtensor.staking.get_stake_add_fee(
         amount=stake_amount,
-        netuid=netuid,
+        netuid=sn.netuid,
     )
     assert isinstance(stake_fee_0, Balance), "Stake fee should be a Balance object."
     assert stake_fee_0 == min_stake_fee, (
@@ -66,7 +63,7 @@ def test_stake_fee_api(subtensor, alice_wallet, bob_wallet):
         },
         # Move between coldkeys on non-root
         {
-            "origin_netuid": netuid,
+            "origin_netuid": sn.netuid,
             "stake_fee": min_stake_fee,
         },
     ]
@@ -92,7 +89,7 @@ def test_stake_fee_api(subtensor, alice_wallet, bob_wallet):
 
     stake_fee = subtensor.staking.get_stake_movement_fee(
         amount=stake_amount,
-        origin_netuid=netuid,
+        origin_netuid=sn.netuid,
     )
     assert isinstance(stake_fee, Balance), "Stake fee should be a Balance object"
     assert stake_fee >= min_stake_fee, (
@@ -112,23 +109,17 @@ async def test_stake_fee_api_async(async_subtensor, alice_wallet, bob_wallet):
             - Removing stake
             - Moving stake between hotkeys/subnets/coldkeys
     """
-    netuid = 2
     root_netuid = 0
     stake_amount = Balance.from_tao(100)  # 100 TAO
     min_stake_fee = Balance.from_tao(0.050354772)
 
-    # Register subnet as Alice
-    assert await async_subtensor.subnets.register_subnet(alice_wallet), (
-        "Unable to register the subnet"
-    )
-    assert await async_subtensor.subnets.subnet_exists(netuid), (
-        "Subnet wasn't created successfully"
-    )
+    sn = TestSubnet(async_subtensor)
+    await sn.async_execute_one(REGISTER_SUBNET(alice_wallet))
 
     # Test add_stake fee
     stake_fee_0 = await async_subtensor.staking.get_stake_add_fee(
         amount=stake_amount,
-        netuid=netuid,
+        netuid=sn.netuid,
     )
     assert isinstance(stake_fee_0, Balance), "Stake fee should be a Balance object."
     assert stake_fee_0 == min_stake_fee, (
@@ -166,7 +157,7 @@ async def test_stake_fee_api_async(async_subtensor, alice_wallet, bob_wallet):
         },
         # Move between coldkeys on non-root
         {
-            "origin_netuid": netuid,
+            "origin_netuid": sn.netuid,
             "stake_fee": min_stake_fee,
         },
     ]
@@ -192,7 +183,7 @@ async def test_stake_fee_api_async(async_subtensor, alice_wallet, bob_wallet):
 
     stake_fee = await async_subtensor.staking.get_stake_movement_fee(
         amount=stake_amount,
-        origin_netuid=netuid,
+        origin_netuid=sn.netuid,
     )
     assert isinstance(stake_fee, Balance), "Stake fee should be a Balance object"
     assert stake_fee >= min_stake_fee, (

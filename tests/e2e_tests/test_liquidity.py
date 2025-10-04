@@ -1,11 +1,12 @@
 import pytest
 
 from bittensor import Balance, logging
-from tests.e2e_tests.utils.e2e_test_utils import (
-    async_wait_to_start_call,
-    wait_to_start_call,
-)
 from bittensor.utils.liquidity import LiquidityPosition
+from tests.e2e_tests.utils import (
+    TestSubnet,
+    ACTIVATE_SUBNET,
+    REGISTER_SUBNET,
+)
 
 
 @pytest.mark.asyncio
@@ -25,41 +26,29 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
         9. Remove all stake from Alice and check `get_liquidity_list` return new liquidity positions with 0 fees_tao.
         10. Remove all liquidity positions and check `get_liquidity_list` return empty list.
     """
-    alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
+    alice_sn = TestSubnet(subtensor)
+    alice_sn.execute_one(REGISTER_SUBNET(alice_wallet))
 
     # Make sure `get_liquidity_list` return None if SN doesn't exist
     assert (
-        subtensor.subnets.get_liquidity_list(
-            wallet=alice_wallet, netuid=alice_subnet_netuid
-        )
-        is None
+        subtensor.subnets.get_liquidity_list(wallet=alice_wallet, netuid=14) is None
     ), "❌ `get_liquidity_list` is not None for unexisting subnet."
-
-    # Register root as Alice
-    assert subtensor.subnets.register_subnet(alice_wallet), (
-        "❌ Unable to register the subnet"
-    )
-
-    # Verify subnet 2 created successfully
-    assert subtensor.subnets.subnet_exists(alice_subnet_netuid), (
-        f"❌ Subnet {alice_subnet_netuid} wasn't created successfully"
-    )
 
     # Make sure `get_liquidity_list` return None without activ SN
     assert (
         subtensor.subnets.get_liquidity_list(
-            wallet=alice_wallet, netuid=alice_subnet_netuid
+            wallet=alice_wallet, netuid=alice_sn.netuid
         )
         is None
     ), "❌ `get_liquidity_list` is not None when no activ subnet."
 
     # Wait until start call availability and do this call
-    assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
+    alice_sn.execute_one(ACTIVATE_SUBNET(alice_wallet))
 
     # Make sure `get_liquidity_list` return None without activ SN
     assert (
         subtensor.subnets.get_liquidity_list(
-            wallet=alice_wallet, netuid=alice_subnet_netuid
+            wallet=alice_wallet, netuid=alice_sn.netuid
         )
         == []
     ), "❌ `get_liquidity_list` is not empty list before fist liquidity add."
@@ -67,7 +56,7 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
     # enable user liquidity in SN
     success, message = subtensor.extrinsics.toggle_user_liquidity(
         wallet=alice_wallet,
-        netuid=alice_subnet_netuid,
+        netuid=alice_sn.netuid,
         enable=True,
     )
     assert success, message
@@ -77,7 +66,7 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
     assert subtensor.staking.add_stake(
         wallet=alice_wallet,
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
-        netuid=alice_subnet_netuid,
+        netuid=alice_sn.netuid,
         amount=Balance.from_tao(1),
     ).success, "❌ Cannot cannot add stake to Alice from Alice."
 
@@ -95,7 +84,7 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
     # Add liquidity
     success, message = subtensor.extrinsics.add_liquidity(
         wallet=alice_wallet,
-        netuid=alice_subnet_netuid,
+        netuid=alice_sn.netuid,
         liquidity=Balance.from_tao(1),
         price_low=Balance.from_tao(1.7),
         price_high=Balance.from_tao(1.8),
@@ -107,7 +96,7 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
 
     # Get liquidity
     liquidity_positions = subtensor.subnets.get_liquidity_list(
-        wallet=alice_wallet, netuid=alice_subnet_netuid
+        wallet=alice_wallet, netuid=alice_sn.netuid
     )
 
     assert len(liquidity_positions) == 1, (
@@ -122,14 +111,14 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
         price_high=liquidity_position.price_high,
         liquidity=Balance.from_tao(1),
         fees_tao=Balance.from_tao(0),
-        fees_alpha=Balance.from_tao(0, netuid=alice_subnet_netuid),
-        netuid=alice_subnet_netuid,
+        fees_alpha=Balance.from_tao(0, netuid=alice_sn.netuid),
+        netuid=alice_sn.netuid,
     ), "❌ `get_liquidity_list` still empty list after liquidity add."
 
     # Modify liquidity position with positive value
     success, message = subtensor.extrinsics.modify_liquidity(
         wallet=alice_wallet,
-        netuid=alice_subnet_netuid,
+        netuid=alice_sn.netuid,
         position_id=liquidity_position.id,
         liquidity_delta=Balance.from_tao(20),
         wait_for_inclusion=True,
@@ -139,7 +128,7 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
     assert message == "Success", "❌ cannot modify liquidity position."
 
     liquidity_positions = subtensor.subnets.get_liquidity_list(
-        wallet=alice_wallet, netuid=alice_subnet_netuid
+        wallet=alice_wallet, netuid=alice_sn.netuid
     )
 
     assert len(liquidity_positions) == 1, (
@@ -153,14 +142,14 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
         price_high=liquidity_position.price_high,
         liquidity=Balance.from_tao(21),
         fees_tao=Balance.from_tao(0),
-        fees_alpha=Balance.from_tao(0, netuid=alice_subnet_netuid),
-        netuid=alice_subnet_netuid,
+        fees_alpha=Balance.from_tao(0, netuid=alice_sn.netuid),
+        netuid=alice_sn.netuid,
     )
 
     # Modify liquidity position with negative value
     success, message = subtensor.extrinsics.modify_liquidity(
         wallet=alice_wallet,
-        netuid=alice_subnet_netuid,
+        netuid=alice_sn.netuid,
         position_id=liquidity_position.id,
         liquidity_delta=-Balance.from_tao(11),
         wait_for_inclusion=True,
@@ -170,7 +159,7 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
     assert message == "Success", "❌ cannot modify liquidity position."
 
     liquidity_positions = subtensor.subnets.get_liquidity_list(
-        wallet=alice_wallet, netuid=alice_subnet_netuid
+        wallet=alice_wallet, netuid=alice_sn.netuid
     )
 
     assert len(liquidity_positions) == 1, (
@@ -184,15 +173,15 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
         price_high=liquidity_position.price_high,
         liquidity=Balance.from_tao(10),
         fees_tao=Balance.from_tao(0),
-        fees_alpha=Balance.from_tao(0, netuid=alice_subnet_netuid),
-        netuid=alice_subnet_netuid,
+        fees_alpha=Balance.from_tao(0, netuid=alice_sn.netuid),
+        netuid=alice_sn.netuid,
     )
 
     # Add stake from Bob to Alice
     assert subtensor.staking.add_stake(
         wallet=bob_wallet,
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
-        netuid=alice_subnet_netuid,
+        netuid=alice_sn.netuid,
         amount=Balance.from_tao(1000),
     ).success, "❌ Cannot add stake from Bob to Alice."
 
@@ -210,7 +199,7 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
     # Add second liquidity position
     success, message = subtensor.extrinsics.add_liquidity(
         wallet=alice_wallet,
-        netuid=alice_subnet_netuid,
+        netuid=alice_sn.netuid,
         liquidity=Balance.from_tao(150),
         price_low=Balance.from_tao(0.8),
         price_high=Balance.from_tao(1.2),
@@ -221,7 +210,7 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
     assert message == "Success", "❌ Cannot add liquidity."
 
     liquidity_positions = subtensor.subnets.get_liquidity_list(
-        wallet=alice_wallet, netuid=alice_subnet_netuid
+        wallet=alice_wallet, netuid=alice_sn.netuid
     )
 
     assert len(liquidity_positions) == 2, (
@@ -236,8 +225,8 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
         price_high=liquidity_position_second.price_high,
         liquidity=Balance.from_tao(150),
         fees_tao=Balance.from_tao(0),
-        fees_alpha=Balance.from_tao(0, netuid=alice_subnet_netuid),
-        netuid=alice_subnet_netuid,
+        fees_alpha=Balance.from_tao(0, netuid=alice_sn.netuid),
+        netuid=alice_sn.netuid,
     )
 
     liquidity_position_first = liquidity_positions[1]
@@ -247,8 +236,8 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
         price_high=liquidity_position_first.price_high,
         liquidity=Balance.from_tao(10),
         fees_tao=liquidity_position_first.fees_tao,
-        fees_alpha=Balance.from_tao(0, netuid=alice_subnet_netuid),
-        netuid=alice_subnet_netuid,
+        fees_alpha=Balance.from_tao(0, netuid=alice_sn.netuid),
+        netuid=alice_sn.netuid,
     )
     # After adding stake alice liquidity position has a fees_tao bc of high price
     assert liquidity_position_first.fees_tao > Balance.from_tao(0)
@@ -256,7 +245,7 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
     # Bob remove all stake from alice
     assert subtensor.extrinsics.unstake_all(
         wallet=bob_wallet,
-        netuid=alice_subnet_netuid,
+        netuid=alice_sn.netuid,
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
         rate_tolerance=0.9,  # keep high rate tolerance to avoid flaky behavior
         wait_for_inclusion=True,
@@ -265,18 +254,16 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
 
     # Check that fees_alpha comes too after all unstake
     liquidity_position_first = subtensor.subnets.get_liquidity_list(
-        wallet=alice_wallet, netuid=alice_subnet_netuid
+        wallet=alice_wallet, netuid=alice_sn.netuid
     )[1]
     assert liquidity_position_first.fees_tao > Balance.from_tao(0)
-    assert liquidity_position_first.fees_alpha > Balance.from_tao(
-        0, alice_subnet_netuid
-    )
+    assert liquidity_position_first.fees_alpha > Balance.from_tao(0, alice_sn.netuid)
 
     # Remove all liquidity positions
     for p in liquidity_positions:
         success, message = subtensor.extrinsics.remove_liquidity(
             wallet=alice_wallet,
-            netuid=alice_subnet_netuid,
+            netuid=alice_sn.netuid,
             position_id=p.id,
             wait_for_inclusion=True,
             wait_for_finalization=True,
@@ -287,7 +274,7 @@ async def test_liquidity(subtensor, alice_wallet, bob_wallet):
     # Make sure all liquidity positions removed
     assert (
         subtensor.subnets.get_liquidity_list(
-            wallet=alice_wallet, netuid=alice_subnet_netuid
+            wallet=alice_wallet, netuid=alice_sn.netuid
         )
         == []
     ), "❌ Not all liquidity positions removed."
@@ -312,43 +299,30 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
         9. Remove all stake from Alice and check `get_liquidity_list` return new liquidity positions with 0 fees_tao.
         10. Remove all liquidity positions and check `get_liquidity_list` return empty list.
     """
-    alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
+    alice_sn = TestSubnet(async_subtensor)
+    await alice_sn.async_execute_one(REGISTER_SUBNET(alice_wallet))
 
     # Make sure `get_liquidity_list` return None if SN doesn't exist
     assert (
-        await async_subtensor.subnets.get_liquidity_list(
-            wallet=alice_wallet, netuid=alice_subnet_netuid
-        )
+        await async_subtensor.subnets.get_liquidity_list(wallet=alice_wallet, netuid=14)
         is None
     ), "❌ `get_liquidity_list` is not None for unexisting subnet."
-
-    # Register root as Alice
-    assert await async_subtensor.subnets.register_subnet(alice_wallet), (
-        "❌ Unable to register the subnet"
-    )
-
-    # Verify subnet 2 created successfully
-    assert await async_subtensor.subnets.subnet_exists(alice_subnet_netuid), (
-        f"❌ Subnet {alice_subnet_netuid} wasn't created successfully"
-    )
 
     # Make sure `get_liquidity_list` return None without activ SN
     assert (
         await async_subtensor.subnets.get_liquidity_list(
-            wallet=alice_wallet, netuid=alice_subnet_netuid
+            wallet=alice_wallet, netuid=alice_sn.netuid
         )
         is None
     ), "❌ `get_liquidity_list` is not None when no activ subnet."
 
     # Wait until start call availability and do this call
-    assert await async_wait_to_start_call(
-        async_subtensor, alice_wallet, alice_subnet_netuid
-    )
+    await alice_sn.async_execute_one(ACTIVATE_SUBNET(alice_wallet))
 
     # Make sure `get_liquidity_list` return None without activ SN
     assert (
         await async_subtensor.subnets.get_liquidity_list(
-            wallet=alice_wallet, netuid=alice_subnet_netuid
+            wallet=alice_wallet, netuid=alice_sn.netuid
         )
         == []
     ), "❌ `get_liquidity_list` is not empty list before fist liquidity add."
@@ -356,7 +330,7 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
     # enable user liquidity in SN
     success, message = await async_subtensor.extrinsics.toggle_user_liquidity(
         wallet=alice_wallet,
-        netuid=alice_subnet_netuid,
+        netuid=alice_sn.netuid,
         enable=True,
     )
     assert success, message
@@ -367,7 +341,7 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
         await async_subtensor.staking.add_stake(
             wallet=alice_wallet,
             hotkey_ss58=alice_wallet.hotkey.ss58_address,
-            netuid=alice_subnet_netuid,
+            netuid=alice_sn.netuid,
             amount=Balance.from_tao(1),
         )
     ).success, "❌ Cannot cannot add stake to Alice from Alice."
@@ -388,7 +362,7 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
     # Add liquidity
     success, message = await async_subtensor.extrinsics.add_liquidity(
         wallet=alice_wallet,
-        netuid=alice_subnet_netuid,
+        netuid=alice_sn.netuid,
         liquidity=Balance.from_tao(1),
         price_low=Balance.from_tao(1.7),
         price_high=Balance.from_tao(1.8),
@@ -400,7 +374,7 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
 
     # Get liquidity
     liquidity_positions = await async_subtensor.subnets.get_liquidity_list(
-        wallet=alice_wallet, netuid=alice_subnet_netuid
+        wallet=alice_wallet, netuid=alice_sn.netuid
     )
 
     assert len(liquidity_positions) == 1, (
@@ -415,14 +389,14 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
         price_high=liquidity_position.price_high,
         liquidity=Balance.from_tao(1),
         fees_tao=Balance.from_tao(0),
-        fees_alpha=Balance.from_tao(0, netuid=alice_subnet_netuid),
-        netuid=alice_subnet_netuid,
+        fees_alpha=Balance.from_tao(0, netuid=alice_sn.netuid),
+        netuid=alice_sn.netuid,
     ), "❌ `get_liquidity_list` still empty list after liquidity add."
 
     # Modify liquidity position with positive value
     success, message = await async_subtensor.extrinsics.modify_liquidity(
         wallet=alice_wallet,
-        netuid=alice_subnet_netuid,
+        netuid=alice_sn.netuid,
         position_id=liquidity_position.id,
         liquidity_delta=Balance.from_tao(20),
         wait_for_inclusion=True,
@@ -432,7 +406,7 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
     assert message == "Success", "❌ cannot modify liquidity position."
 
     liquidity_positions = await async_subtensor.subnets.get_liquidity_list(
-        wallet=alice_wallet, netuid=alice_subnet_netuid
+        wallet=alice_wallet, netuid=alice_sn.netuid
     )
 
     assert len(liquidity_positions) == 1, (
@@ -446,14 +420,14 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
         price_high=liquidity_position.price_high,
         liquidity=Balance.from_tao(21),
         fees_tao=Balance.from_tao(0),
-        fees_alpha=Balance.from_tao(0, netuid=alice_subnet_netuid),
-        netuid=alice_subnet_netuid,
+        fees_alpha=Balance.from_tao(0, netuid=alice_sn.netuid),
+        netuid=alice_sn.netuid,
     )
 
     # Modify liquidity position with negative value
     success, message = await async_subtensor.extrinsics.modify_liquidity(
         wallet=alice_wallet,
-        netuid=alice_subnet_netuid,
+        netuid=alice_sn.netuid,
         position_id=liquidity_position.id,
         liquidity_delta=-Balance.from_tao(11),
         wait_for_inclusion=True,
@@ -463,7 +437,7 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
     assert message == "Success", "❌ cannot modify liquidity position."
 
     liquidity_positions = await async_subtensor.subnets.get_liquidity_list(
-        wallet=alice_wallet, netuid=alice_subnet_netuid
+        wallet=alice_wallet, netuid=alice_sn.netuid
     )
 
     assert len(liquidity_positions) == 1, (
@@ -477,8 +451,8 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
         price_high=liquidity_position.price_high,
         liquidity=Balance.from_tao(10),
         fees_tao=Balance.from_tao(0),
-        fees_alpha=Balance.from_tao(0, netuid=alice_subnet_netuid),
-        netuid=alice_subnet_netuid,
+        fees_alpha=Balance.from_tao(0, netuid=alice_sn.netuid),
+        netuid=alice_sn.netuid,
     )
 
     # Add stake from Bob to Alice
@@ -486,7 +460,7 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
         await async_subtensor.staking.add_stake(
             wallet=bob_wallet,
             hotkey_ss58=alice_wallet.hotkey.ss58_address,
-            netuid=alice_subnet_netuid,
+            netuid=alice_sn.netuid,
             amount=Balance.from_tao(1000),
         )
     ).success, "❌ Cannot add stake from Bob to Alice."
@@ -507,7 +481,7 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
     # Add second liquidity position
     success, message = await async_subtensor.extrinsics.add_liquidity(
         wallet=alice_wallet,
-        netuid=alice_subnet_netuid,
+        netuid=alice_sn.netuid,
         liquidity=Balance.from_tao(150),
         price_low=Balance.from_tao(0.8),
         price_high=Balance.from_tao(1.2),
@@ -518,7 +492,7 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
     assert message == "Success", "❌ Cannot add liquidity."
 
     liquidity_positions = await async_subtensor.subnets.get_liquidity_list(
-        wallet=alice_wallet, netuid=alice_subnet_netuid
+        wallet=alice_wallet, netuid=alice_sn.netuid
     )
 
     assert len(liquidity_positions) == 2, (
@@ -533,8 +507,8 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
         price_high=liquidity_position_second.price_high,
         liquidity=Balance.from_tao(150),
         fees_tao=Balance.from_tao(0),
-        fees_alpha=Balance.from_tao(0, netuid=alice_subnet_netuid),
-        netuid=alice_subnet_netuid,
+        fees_alpha=Balance.from_tao(0, netuid=alice_sn.netuid),
+        netuid=alice_sn.netuid,
     )
 
     liquidity_position_first = liquidity_positions[1]
@@ -544,8 +518,8 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
         price_high=liquidity_position_first.price_high,
         liquidity=Balance.from_tao(10),
         fees_tao=liquidity_position_first.fees_tao,
-        fees_alpha=Balance.from_tao(0, netuid=alice_subnet_netuid),
-        netuid=alice_subnet_netuid,
+        fees_alpha=Balance.from_tao(0, netuid=alice_sn.netuid),
+        netuid=alice_sn.netuid,
     )
     # After adding stake alice liquidity position has a fees_tao bc of high price
     assert liquidity_position_first.fees_tao > Balance.from_tao(0)
@@ -554,7 +528,7 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
     assert (
         await async_subtensor.extrinsics.unstake_all(
             wallet=bob_wallet,
-            netuid=alice_subnet_netuid,
+            netuid=alice_sn.netuid,
             hotkey_ss58=alice_wallet.hotkey.ss58_address,
             rate_tolerance=0.9,  # keep high rate tolerance to avoid flaky behavior
             wait_for_inclusion=True,
@@ -565,19 +539,17 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
     # Check that fees_alpha comes too after all unstake
     liquidity_position_first = (
         await async_subtensor.subnets.get_liquidity_list(
-            wallet=alice_wallet, netuid=alice_subnet_netuid
+            wallet=alice_wallet, netuid=alice_sn.netuid
         )
     )[1]
     assert liquidity_position_first.fees_tao > Balance.from_tao(0)
-    assert liquidity_position_first.fees_alpha > Balance.from_tao(
-        0, alice_subnet_netuid
-    )
+    assert liquidity_position_first.fees_alpha > Balance.from_tao(0, alice_sn.netuid)
 
     # Remove all liquidity positions
     for p in liquidity_positions:
         success, message = await async_subtensor.extrinsics.remove_liquidity(
             wallet=alice_wallet,
-            netuid=alice_subnet_netuid,
+            netuid=alice_sn.netuid,
             position_id=p.id,
             wait_for_inclusion=True,
             wait_for_finalization=True,
@@ -588,7 +560,7 @@ async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
     # Make sure all liquidity positions removed
     assert (
         await async_subtensor.subnets.get_liquidity_list(
-            wallet=alice_wallet, netuid=alice_subnet_netuid
+            wallet=alice_wallet, netuid=alice_sn.netuid
         )
         == []
     ), "❌ Not all liquidity positions removed."

@@ -3,14 +3,16 @@ import asyncio
 import pytest
 
 from bittensor.utils.btlogging import logging
-from tests.e2e_tests.utils.chain_interactions import (
-    async_sudo_set_admin_utils,
-    async_wait_epoch,
-    sudo_set_admin_utils,
-)
-from tests.e2e_tests.utils.e2e_test_utils import (
-    async_wait_to_start_call,
-    wait_to_start_call,
+from tests.e2e_tests.utils import (
+    TestSubnet,
+    AdminUtils,
+    NETUID,
+    ACTIVATE_SUBNET,
+    REGISTER_NEURON,
+    REGISTER_SUBNET,
+    SUDO_SET_ADMIN_FREEZE_WINDOW,
+    SUDO_SET_COMMIT_REVEAL_WEIGHTS_ENABLED,
+    SUDO_SET_WEIGHTS_SET_RATE_LIMIT,
 )
 
 
@@ -27,57 +29,30 @@ async def test_incentive(subtensor, templates, alice_wallet, bob_wallet):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    alice_subnet_netuid = subtensor.subnets.get_total_subnets()  # 2
-    # turn off admin freeze window limit for testing
-    assert (
-        sudo_set_admin_utils(
-            substrate=subtensor.substrate,
-            wallet=alice_wallet,
-            call_function="sudo_set_admin_freeze_window",
-            call_params={"window": 0},
-        )[0]
-        is True
-    ), "Failed to set admin freeze window to 0"
-
-    # Register root as Alice - the subnet owner and validator
-    assert subtensor.subnets.register_subnet(alice_wallet), "Subnet wasn't created"
-
-    # Verify subnet <netuid> created successfully
-    assert subtensor.subnets.subnet_exists(alice_subnet_netuid), (
-        "Subnet wasn't created successfully"
-    )
-
-    # Disable commit_reveal on the subnet to check proper behavior
-    status, error = sudo_set_admin_utils(
-        substrate=subtensor.substrate,
-        wallet=alice_wallet,
-        call_function="sudo_set_commit_reveal_weights_enabled",
-        call_params={
-            "netuid": alice_subnet_netuid,
-            "enabled": False,
-        },
-    )
-    assert status is True, error
-
-    assert wait_to_start_call(subtensor, alice_wallet, alice_subnet_netuid)
-
-    # Register Bob as a neuron on the subnet
-    assert subtensor.subnets.burned_register(bob_wallet, alice_subnet_netuid).success, (
-        "Unable to register Bob as a neuron"
-    )
+    alice_sn = TestSubnet(subtensor)
+    steps = [
+        SUDO_SET_ADMIN_FREEZE_WINDOW(alice_wallet, AdminUtils, True, 0),
+        REGISTER_SUBNET(alice_wallet),
+        SUDO_SET_COMMIT_REVEAL_WEIGHTS_ENABLED(
+            alice_wallet, AdminUtils, True, NETUID, False
+        ),
+        ACTIVATE_SUBNET(alice_wallet),
+        REGISTER_NEURON(bob_wallet),
+    ]
+    alice_sn.execute_steps(steps)
 
     # Assert two neurons are in network
-    assert len(subtensor.neurons.neurons(netuid=alice_subnet_netuid)) == 2, (
+    assert len(subtensor.neurons.neurons(netuid=alice_sn.netuid)) == 2, (
         "Alice & Bob not registered in the subnet"
     )
 
     # Wait for the first epoch to pass
     subtensor.wait_for_block(
-        subtensor.subnets.get_next_epoch_start_block(alice_subnet_netuid) + 5
+        subtensor.subnets.get_next_epoch_start_block(alice_sn.netuid) + 5
     )
 
     # Get current miner/validator stats
-    alice_neuron = subtensor.neurons.neurons(netuid=alice_subnet_netuid)[0]
+    alice_neuron = subtensor.neurons.neurons(netuid=alice_sn.netuid)[0]
 
     assert alice_neuron.validator_permit is True
     assert alice_neuron.dividends == 0
@@ -86,7 +61,7 @@ async def test_incentive(subtensor, templates, alice_wallet, bob_wallet):
     assert alice_neuron.consensus == 0
     assert alice_neuron.rank == 0
 
-    bob_neuron = subtensor.neurons.neurons(netuid=alice_subnet_netuid)[1]
+    bob_neuron = subtensor.neurons.neurons(netuid=alice_sn.netuid)[1]
 
     assert bob_neuron.incentive == 0
     assert bob_neuron.consensus == 0
@@ -94,29 +69,20 @@ async def test_incentive(subtensor, templates, alice_wallet, bob_wallet):
     assert bob_neuron.trust == 0
 
     # update weights_set_rate_limit for fast-blocks
-    tempo = subtensor.subnets.tempo(alice_subnet_netuid)
-    status, error = sudo_set_admin_utils(
-        substrate=subtensor.substrate,
-        wallet=alice_wallet,
-        call_function="sudo_set_weights_set_rate_limit",
-        call_params={
-            "netuid": alice_subnet_netuid,
-            "weights_set_rate_limit": tempo,
-        },
+    tempo = subtensor.subnets.tempo(alice_sn.netuid)
+    alice_sn.execute_one(
+        SUDO_SET_WEIGHTS_SET_RATE_LIMIT(alice_wallet, AdminUtils, True, NETUID, tempo)
     )
-
-    assert error is None
-    assert status is True
 
     # max attempts to run miner and validator
     max_attempt = 3
     while True:
         try:
-            async with templates.miner(bob_wallet, alice_subnet_netuid) as miner:
+            async with templates.miner(bob_wallet, alice_sn.netuid) as miner:
                 await asyncio.wait_for(miner.started.wait(), 60)
 
                 async with templates.validator(
-                    alice_wallet, alice_subnet_netuid
+                    alice_wallet, alice_sn.netuid
                 ) as validator:
                     # wait for the Validator to process and set_weights
                     await asyncio.wait_for(validator.set_weights.wait(), 60)
@@ -129,27 +95,27 @@ async def test_incentive(subtensor, templates, alice_wallet, bob_wallet):
 
     # wait one tempo (fast block)
     next_epoch_start_block = subtensor.subnets.get_next_epoch_start_block(
-        alice_subnet_netuid
+        alice_sn.netuid
     )
     subtensor.wait_for_block(next_epoch_start_block + tempo + 1)
 
     validators = subtensor.metagraphs.get_metagraph_info(
-        alice_subnet_netuid, selected_indices=[72]
+        alice_sn.netuid, selected_indices=[72]
     ).validators
 
     alice_uid = subtensor.subnets.get_uid_for_hotkey_on_subnet(
-        hotkey_ss58=alice_wallet.hotkey.ss58_address, netuid=alice_subnet_netuid
+        hotkey_ss58=alice_wallet.hotkey.ss58_address, netuid=alice_sn.netuid
     )
     assert validators[alice_uid] == 1
 
     bob_uid = subtensor.subnets.get_uid_for_hotkey_on_subnet(
-        hotkey_ss58=bob_wallet.hotkey.ss58_address, netuid=alice_subnet_netuid
+        hotkey_ss58=bob_wallet.hotkey.ss58_address, netuid=alice_sn.netuid
     )
     assert validators[bob_uid] == 0
 
     while True:
         try:
-            neurons = subtensor.neurons.neurons(netuid=alice_subnet_netuid)
+            neurons = subtensor.neurons.neurons(netuid=alice_sn.netuid)
             logging.info(f"neurons: {neurons}")
 
             # Get current emissions and validate that Alice has gotten tao
@@ -170,7 +136,7 @@ async def test_incentive(subtensor, templates, alice_wallet, bob_wallet):
             assert bob_neuron.rank > 0.5
             assert bob_neuron.trust == 1
 
-            bonds = subtensor.subnets.bonds(alice_subnet_netuid)
+            bonds = subtensor.subnets.bonds(alice_sn.netuid)
 
             assert bonds == [
                 (
@@ -205,64 +171,31 @@ async def test_incentive_async(async_subtensor, templates, alice_wallet, bob_wal
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    alice_subnet_netuid = await async_subtensor.subnets.get_total_subnets()  # 2
-
-    # turn off admin freeze window limit for testing
-    assert (
-        await async_sudo_set_admin_utils(
-            substrate=async_subtensor.substrate,
-            wallet=alice_wallet,
-            call_function="sudo_set_admin_freeze_window",
-            call_params={"window": 0},
-        )
-    )[0] is True, "Failed to set admin freeze window to 0"
-
-    # Register root as Alice - the subnet owner and validator
-    assert await async_subtensor.subnets.register_subnet(alice_wallet), (
-        "Subnet wasn't created"
-    )
-
-    # Verify subnet <netuid> created successfully
-    assert await async_subtensor.subnets.subnet_exists(alice_subnet_netuid), (
-        "Subnet wasn't created successfully"
-    )
-
-    # Disable commit_reveal on the subnet to check proper behavior
-    status, error = await async_sudo_set_admin_utils(
-        substrate=async_subtensor.substrate,
-        wallet=alice_wallet,
-        call_function="sudo_set_commit_reveal_weights_enabled",
-        call_params={
-            "netuid": alice_subnet_netuid,
-            "enabled": False,
-        },
-    )
-    assert status is True, error
-
-    assert await async_wait_to_start_call(
-        async_subtensor, alice_wallet, alice_subnet_netuid
-    )
-
-    # Register Bob as a neuron on the subnet
-    assert (
-        await async_subtensor.subnets.burned_register(bob_wallet, alice_subnet_netuid)
-    ).success, "Unable to register Bob as a neuron"
+    alice_sn = TestSubnet(async_subtensor)
+    steps = [
+        SUDO_SET_ADMIN_FREEZE_WINDOW(alice_wallet, AdminUtils, True, 0),
+        REGISTER_SUBNET(alice_wallet),
+        SUDO_SET_COMMIT_REVEAL_WEIGHTS_ENABLED(
+            alice_wallet, AdminUtils, True, NETUID, False
+        ),
+        ACTIVATE_SUBNET(alice_wallet),
+        REGISTER_NEURON(bob_wallet),
+    ]
+    await alice_sn.async_execute_steps(steps)
 
     # Assert two neurons are in network
-    assert (
-        len(await async_subtensor.neurons.neurons(netuid=alice_subnet_netuid)) == 2
-    ), "Alice & Bob not registered in the subnet"
+    assert len(await async_subtensor.neurons.neurons(netuid=alice_sn.netuid)) == 2, (
+        "Alice & Bob not registered in the subnet"
+    )
 
     # Wait for the first epoch to pass
     next_epoch_start_block = await async_subtensor.subnets.get_next_epoch_start_block(
-        netuid=alice_subnet_netuid
+        netuid=alice_sn.netuid
     )
     await async_subtensor.wait_for_block(next_epoch_start_block + 5)
 
     # Get current miner/validator stats
-    alice_neuron = (await async_subtensor.neurons.neurons(netuid=alice_subnet_netuid))[
-        0
-    ]
+    alice_neuron = (await async_subtensor.neurons.neurons(netuid=alice_sn.netuid))[0]
 
     assert alice_neuron.validator_permit is True
     assert alice_neuron.dividends == 0
@@ -271,7 +204,7 @@ async def test_incentive_async(async_subtensor, templates, alice_wallet, bob_wal
     assert alice_neuron.consensus == 0
     assert alice_neuron.rank == 0
 
-    bob_neuron = (await async_subtensor.neurons.neurons(netuid=alice_subnet_netuid))[1]
+    bob_neuron = (await async_subtensor.neurons.neurons(netuid=alice_sn.netuid))[1]
 
     assert bob_neuron.incentive == 0
     assert bob_neuron.consensus == 0
@@ -279,29 +212,20 @@ async def test_incentive_async(async_subtensor, templates, alice_wallet, bob_wal
     assert bob_neuron.trust == 0
 
     # update weights_set_rate_limit for fast-blocks
-    tempo = await async_subtensor.subnets.tempo(alice_subnet_netuid)
-    status, error = await async_sudo_set_admin_utils(
-        substrate=async_subtensor.substrate,
-        wallet=alice_wallet,
-        call_function="sudo_set_weights_set_rate_limit",
-        call_params={
-            "netuid": alice_subnet_netuid,
-            "weights_set_rate_limit": tempo,
-        },
+    tempo = await async_subtensor.subnets.tempo(alice_sn.netuid)
+    await alice_sn.async_execute_one(
+        SUDO_SET_WEIGHTS_SET_RATE_LIMIT(alice_wallet, AdminUtils, True, NETUID, tempo)
     )
-
-    assert error is None
-    assert status is True
 
     # max attempts to run miner and validator
     max_attempt = 3
     while True:
         try:
-            async with templates.miner(bob_wallet, alice_subnet_netuid) as miner:
+            async with templates.miner(bob_wallet, alice_sn.netuid) as miner:
                 await asyncio.wait_for(miner.started.wait(), 60)
 
                 async with templates.validator(
-                    alice_wallet, alice_subnet_netuid
+                    alice_wallet, alice_sn.netuid
                 ) as validator:
                     # wait for the Validator to process and set_weights
                     await asyncio.wait_for(validator.set_weights.wait(), 60)
@@ -314,29 +238,29 @@ async def test_incentive_async(async_subtensor, templates, alice_wallet, bob_wal
 
     # wait one tempo (fast block)
     next_epoch_start_block = await async_subtensor.subnets.get_next_epoch_start_block(
-        alice_subnet_netuid
+        alice_sn.netuid
     )
     await async_subtensor.wait_for_block(next_epoch_start_block + tempo + 1)
 
     validators = (
         await async_subtensor.metagraphs.get_metagraph_info(
-            alice_subnet_netuid, selected_indices=[72]
+            alice_sn.netuid, selected_indices=[72]
         )
     ).validators
 
     alice_uid = await async_subtensor.subnets.get_uid_for_hotkey_on_subnet(
-        hotkey_ss58=alice_wallet.hotkey.ss58_address, netuid=alice_subnet_netuid
+        hotkey_ss58=alice_wallet.hotkey.ss58_address, netuid=alice_sn.netuid
     )
     assert validators[alice_uid] == 1
 
     bob_uid = await async_subtensor.subnets.get_uid_for_hotkey_on_subnet(
-        hotkey_ss58=bob_wallet.hotkey.ss58_address, netuid=alice_subnet_netuid
+        hotkey_ss58=bob_wallet.hotkey.ss58_address, netuid=alice_sn.netuid
     )
     assert validators[bob_uid] == 0
 
     while True:
         try:
-            neurons = await async_subtensor.neurons.neurons(netuid=alice_subnet_netuid)
+            neurons = await async_subtensor.neurons.neurons(netuid=alice_sn.netuid)
             logging.info(f"neurons: {neurons}")
 
             # Get current emissions and validate that Alice has gotten tao
@@ -357,7 +281,7 @@ async def test_incentive_async(async_subtensor, templates, alice_wallet, bob_wal
             assert bob_neuron.rank > 0.5
             assert bob_neuron.trust == 1
 
-            bonds = await async_subtensor.subnets.bonds(alice_subnet_netuid)
+            bonds = await async_subtensor.subnets.bonds(alice_sn.netuid)
 
             assert bonds == [
                 (
