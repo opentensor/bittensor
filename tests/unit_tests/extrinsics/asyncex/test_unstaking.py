@@ -15,7 +15,9 @@ async def test_unstake_extrinsic(fake_wallet, mocker):
     fake_subtensor = mocker.AsyncMock(
         **{
             "get_hotkey_owner.return_value": "hotkey_owner",
-            "get_stake_for_coldkey_and_hotkey.return_value": Balance.from_tao(10.0, fake_netuid),
+            "get_stake_for_coldkey_and_hotkey.return_value": Balance.from_tao(
+                10.0, fake_netuid
+            ),
             "sign_and_send_extrinsic.return_value": ExtrinsicResponse(True, ""),
             "get_stake.return_value": Balance.from_tao(10.0, fake_netuid),
             "substrate": fake_substrate,
@@ -128,7 +130,9 @@ async def test_unstake_multiple_extrinsic_some_unstake_is_happy(fake_wallet, moc
         unstaking, "unstake_extrinsic", return_value=ExtrinsicResponse(True, "")
     )
     mocker.patch.object(
-        unstaking, "get_old_stakes", return_value=[Balance.from_tao(1.1, sn_5), Balance.from_tao(0.3, sn_14)]
+        unstaking,
+        "get_old_stakes",
+        return_value=[Balance.from_tao(1.1, sn_5), Balance.from_tao(0.3, sn_14)],
     )
     fake_wallet.coldkeypub.ss58_address = "hotkey_owner"
     hotkey_ss58s = ["hotkey1", "hotkey2"]
