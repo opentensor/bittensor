@@ -57,7 +57,7 @@ class CloseInValue:
         return f"CloseInValue<value: {self.value}, tolerance: {self.tolerance}>"
 
     def __repr__(self) -> str:
-        return self.__str__()
+        return repr([self.value - self.tolerance, self.value + self.tolerance])
 
 
 class ApproxBalance(CloseInValue, Balance):

@@ -535,12 +535,7 @@ def test_balance_raise_errors(first, second):
 
 @pytest.mark.parametrize(
     "amount",
-    [
-        100,
-        100.1,
-        "100",
-        "10.2"
-    ],
+    [100, 100.1, "100", "10.2"],
 )
 def test_check_balance_amount_raise_error(amount):
     """Tests Balance.check_rao_value method."""

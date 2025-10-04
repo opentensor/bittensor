@@ -368,7 +368,9 @@ def test_blocks_since_last_update_success_calls(subtensor, mocker):
 
     # Assertions
     mocked_get_current_block.assert_called_once()
-    mocked_get_hyperparameter.assert_called_once_with(param_name="LastUpdate", netuid=7, block=mocked_current_block)
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="LastUpdate", netuid=7, block=mocked_current_block
+    )
     assert result == 1
     # if we change the methods logic in the future we have to be make sure the returned type is correct
     assert isinstance(result, int)
@@ -1729,7 +1731,9 @@ def test_get_transfer_fee(subtensor, fake_wallet, mocker):
     subtensor.substrate.get_payment_info.return_value = fake_payment_info
 
     # Call
-    result = subtensor.get_transfer_fee(wallet=fake_wallet, dest=fake_dest, amount=value)
+    result = subtensor.get_transfer_fee(
+        wallet=fake_wallet, dest=fake_dest, amount=value
+    )
 
     # Asserts
     subtensor.substrate.compose_call.assert_called_once_with(
