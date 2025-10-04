@@ -1,5 +1,5 @@
 from typing import Optional, Union
-
+from collections import namedtuple
 from async_substrate_interface.async_substrate import AsyncExtrinsicReceipt
 from async_substrate_interface.sync_substrate import ExtrinsicReceipt
 from bittensor_wallet import Wallet
@@ -462,7 +462,7 @@ class TestSubnet:
         if not netuid:
             self._check_netuid()
         current_block = await self.s.block
-        next_epoch_block = self.s.subnets.get_next_epoch_start_block(netuid)
+        next_epoch_block = await self.s.subnets.get_next_epoch_start_block(netuid)
         logging.console.info(
             f"Waiting for next epoch first block: [blue]{next_epoch_block}[/blue]. "
             f"Current block: [blue]{current_block}[/blue]."
