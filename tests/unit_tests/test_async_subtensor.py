@@ -2507,7 +2507,9 @@ async def test_blocks_since_last_update_success(subtensor, mocker):
     fake_blocks_since_update = current_block - last_update_block
 
     mocker.patch.object(
-        subtensor.substrate, "get_block_number", return_value=current_block,
+        subtensor.substrate,
+        "get_block_number",
+        return_value=current_block,
     )
     mocked_get_hyperparameter = mocker.patch.object(
         subtensor,
