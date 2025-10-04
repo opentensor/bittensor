@@ -8,7 +8,12 @@ from bittensor.core.extrinsics.asyncex.utils import (
 from bittensor.core.extrinsics.utils import get_extrinsic_fee
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
-from tests.e2e_tests.utils import TestSubnet, REGISTER_SUBNET, ACTIVATE_SUBNET, REGISTER_NEURON
+from tests.e2e_tests.utils import (
+    TestSubnet,
+    REGISTER_SUBNET,
+    ACTIVATE_SUBNET,
+    REGISTER_NEURON,
+)
 
 """
 Verifies:
@@ -137,10 +142,12 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
 
     bob_balance = subtensor.wallets.get_balance(bob_wallet.coldkeypub.ss58_address)
 
-    alice_sn.execute_steps([
-        ACTIVATE_SUBNET(alice_wallet),
-        REGISTER_NEURON(bob_wallet),
-    ])
+    alice_sn.execute_steps(
+        [
+            ACTIVATE_SUBNET(alice_wallet),
+            REGISTER_NEURON(bob_wallet),
+        ]
+    )
 
     # Verify Bob's UID on netuid 2 is 1
     assert (
@@ -305,10 +312,12 @@ async def test_subtensor_extrinsics_async(
         bob_wallet.coldkeypub.ss58_address
     )
 
-    alice_sn.execute_steps([
-        ACTIVATE_SUBNET(alice_wallet),
-        REGISTER_NEURON(bob_wallet),
-    ])
+    alice_sn.execute_steps(
+        [
+            ACTIVATE_SUBNET(alice_wallet),
+            REGISTER_NEURON(bob_wallet),
+        ]
+    )
 
     # Verify Bob's UID on netuid 2 is 1
     assert (
