@@ -1,18 +1,18 @@
 import pytest
 
+from bittensor.utils import U16_MAX
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
-from tests.e2e_tests.utils.chain_interactions import (
-    async_sudo_set_hyperparameter_bool,
-    async_sudo_set_hyperparameter_values,
-    async_sudo_set_admin_utils,
-    sudo_set_hyperparameter_bool,
-    sudo_set_hyperparameter_values,
-    sudo_set_admin_utils,
-)
-from tests.e2e_tests.utils.e2e_test_utils import (
-    async_wait_to_start_call,
-    wait_to_start_call,
+from tests.e2e_tests.utils import (
+    TestSubnet,
+    AdminUtils,
+    NETUID,
+    ACTIVATE_SUBNET,
+    REGISTER_NEURON,
+    REGISTER_SUBNET,
+    SUDO_SET_ADMIN_FREEZE_WINDOW,
+    SUDO_SET_ALPHA_VALUES,
+    SUDO_SET_LIQUID_ALPHA_ENABLED,
 )
 
 
@@ -38,92 +38,63 @@ def test_liquid_alpha(subtensor, alice_wallet):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    # turn off admin freeze window limit for testing
-    assert (
-        sudo_set_admin_utils(
-            substrate=subtensor.substrate,
-            wallet=alice_wallet,
-            call_function="sudo_set_admin_freeze_window",
-            call_params={"window": 0},
-        )[0]
-        is True
-    ), "Failed to set admin freeze window to 0"
-
-    u16_max = 65535
-    netuid = 2
-
-    # Register root as Alice
-    assert subtensor.subnets.register_subnet(alice_wallet), (
-        "Unable to register the subnet."
-    )
-
-    # Verify subnet created successfully
-    assert subtensor.subnets.subnet_exists(netuid)
-
-    assert wait_to_start_call(subtensor, alice_wallet, netuid), (
-        "Subnet failed to start."
-    )
-
-    # Register a neuron (Alice) to the subnet
-    assert subtensor.subnets.burned_register(alice_wallet, netuid).success, (
-        "Unable to register Alice as a neuron."
-    )
+    alice_sn = TestSubnet(subtensor)
+    steps = [
+        SUDO_SET_ADMIN_FREEZE_WINDOW(alice_wallet, AdminUtils, True, 0),
+        REGISTER_SUBNET(alice_wallet),
+        ACTIVATE_SUBNET(alice_wallet),
+        REGISTER_NEURON(alice_wallet),
+    ]
+    alice_sn.execute_steps(steps)
 
     # Stake to become to top neuron after the first epoch
     assert subtensor.staking.add_stake(
         wallet=alice_wallet,
-        netuid=netuid,
+        netuid=alice_sn.netuid,
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
         amount=Balance.from_tao(10_000),
     ).success, "Unable to stake to Alice neuron."
 
     # Assert liquid alpha is disabled
     assert (
-        subtensor.subnets.get_subnet_hyperparameters(netuid=netuid).liquid_alpha_enabled
+        subtensor.subnets.get_subnet_hyperparameters(
+            netuid=alice_sn.netuid
+        ).liquid_alpha_enabled
         is False
     ), "Liquid alpha is enabled by default."
 
     # Attempt to set alpha high/low while disabled (should fail)
     alpha_values = "6553, 53083"
-    call_params = liquid_alpha_call_params(netuid, alpha_values)
-    result, error_message = sudo_set_hyperparameter_values(
-        substrate=subtensor.substrate,
-        wallet=alice_wallet,
-        call_function="sudo_set_alpha_values",
-        call_params=call_params,
-        return_error_message=True,
-    )
-    assert result is False, "Alpha values set while being disabled."
-    assert error_message["name"] == "LiquidAlphaDisabled"
+    call_params = liquid_alpha_call_params(alice_sn.netuid, alpha_values)
 
-    # Enabled liquid alpha on the subnet
-    assert sudo_set_hyperparameter_bool(
-        substrate=subtensor.substrate,
-        wallet=alice_wallet,
-        call_function="sudo_set_liquid_alpha_enabled",
-        value=True,
-        netuid=netuid,
-    ), "Unable to enable liquid alpha"
+    response = alice_sn.execute_one(
+        SUDO_SET_ALPHA_VALUES(alice_wallet, AdminUtils, False, **call_params)
+    )
+    assert response.success is False and "LiquidAlphaDisabled" in response.message, (
+        "Alpha values set while being disabled."
+    )
+
+    alice_sn.execute_one(
+        SUDO_SET_LIQUID_ALPHA_ENABLED(alice_wallet, AdminUtils, True, NETUID, True)
+    )
 
     assert subtensor.subnets.get_subnet_hyperparameters(
-        netuid,
+        alice_sn.netuid,
     ).liquid_alpha_enabled, "Failed to enable liquid alpha."
 
     # Attempt to set alpha high & low after enabling the hyperparameter
     alpha_values = "26001, 54099"
-    call_params = liquid_alpha_call_params(netuid, alpha_values)
-    assert sudo_set_hyperparameter_values(
-        substrate=subtensor.substrate,
-        wallet=alice_wallet,
-        call_function="sudo_set_alpha_values",
-        call_params=call_params,
-    ), "Unable to set alpha_values."
-    assert subtensor.subnets.get_subnet_hyperparameters(netuid).alpha_high == 54099, (
-        "Failed to set alpha high"
+    call_params = liquid_alpha_call_params(alice_sn.netuid, alpha_values)
+    alice_sn.execute_one(
+        SUDO_SET_ALPHA_VALUES(alice_wallet, AdminUtils, False, **call_params)
     )
-    assert subtensor.subnets.get_subnet_hyperparameters(netuid).alpha_low == 26001, (
-        "Failed to set alpha low."
-    )
+    assert (
+        subtensor.subnets.get_subnet_hyperparameters(alice_sn.netuid).alpha_high
+        == 54099
+    ), "Failed to set alpha high"
+    assert (
+        subtensor.subnets.get_subnet_hyperparameters(alice_sn.netuid).alpha_low == 26001
+    ), "Failed to set alpha low."
 
     # Testing alpha high upper and lower bounds
 
@@ -138,94 +109,85 @@ def test_liquid_alpha(subtensor, alice_wallet):
         f"OwnerHyperparamRateLimit is {owner_hyperparam_ratelimit} tempo(s)."
     )
     subtensor.wait_for_block(
-        subtensor.block + subtensor.subnets.tempo(netuid) * owner_hyperparam_ratelimit
+        subtensor.block
+        + subtensor.subnets.tempo(alice_sn.netuid) * owner_hyperparam_ratelimit
     )
 
-    call_params = liquid_alpha_call_params(netuid, f"6553, {alpha_high_too_low}")
-    result, error_message = sudo_set_hyperparameter_values(
-        substrate=subtensor.substrate,
-        wallet=alice_wallet,
-        call_function="sudo_set_alpha_values",
-        call_params=call_params,
-        return_error_message=True,
+    call_params = liquid_alpha_call_params(
+        alice_sn.netuid, f"6553, {alpha_high_too_low}"
     )
 
-    assert result is False, "Able to set incorrect alpha_high value."
-    assert error_message["name"] == "AlphaHighTooLow"
+    response = alice_sn.execute_one(
+        SUDO_SET_ALPHA_VALUES(alice_wallet, AdminUtils, False, **call_params)
+    )
+    assert response.success is False and "AlphaHighTooLow" in response.message, (
+        "Able to set incorrect alpha_high value."
+    )
 
     # 2. Test setting Alpha_high too high
-    alpha_high_too_high = u16_max + 1  # One more than the max acceptable value
-    call_params = liquid_alpha_call_params(netuid, f"6553, {alpha_high_too_high}")
-    try:
-        sudo_set_hyperparameter_values(
-            substrate=subtensor.substrate,
-            wallet=alice_wallet,
-            call_function="sudo_set_alpha_values",
-            call_params=call_params,
-            return_error_message=True,
-        )
-    except Exception as e:
-        assert str(e) == "65536 out of range for u16", f"Unexpected error: {e}"
+    alpha_high_too_high = U16_MAX + 1  # One more than the max acceptable value
+    call_params = liquid_alpha_call_params(
+        alice_sn.netuid, f"6553, {alpha_high_too_high}"
+    )
 
-    # Testing alpha low upper and lower bounds
+    response = alice_sn.execute_one(
+        SUDO_SET_ALPHA_VALUES(alice_wallet, AdminUtils, False, **call_params)
+    )
+    assert (
+        response.success is False and "65536 out of range for u16" in response.message
+    ), f"Unexpected error: {response}"
 
     # 1. Test setting Alpha_low too low
     alpha_low_too_low = 0
-    call_params = liquid_alpha_call_params(netuid, f"{alpha_low_too_low}, 53083")
-    result, error_message = sudo_set_hyperparameter_values(
-        substrate=subtensor.substrate,
-        wallet=alice_wallet,
-        call_function="sudo_set_alpha_values",
-        call_params=call_params,
-        return_error_message=True,
+    call_params = liquid_alpha_call_params(
+        alice_sn.netuid, f"{alpha_low_too_low}, 53083"
     )
-    assert result is False, "Able to set incorrect alpha_low value."
-    assert error_message["name"] == "AlphaLowOutOfRange"
+
+    response = alice_sn.execute_one(
+        SUDO_SET_ALPHA_VALUES(alice_wallet, AdminUtils, False, **call_params)
+    )
+    assert response.success is False and "AlphaLowOutOfRange" in response.message, (
+        "Able to set incorrect alpha_low value."
+    )
 
     # 2. Test setting Alpha_low too high
     alpha_low_too_high = 53084
-    call_params = liquid_alpha_call_params(netuid, f"{alpha_low_too_high}, 53083")
-    result, error_message = sudo_set_hyperparameter_values(
-        substrate=subtensor.substrate,
-        wallet=alice_wallet,
-        call_function="sudo_set_alpha_values",
-        call_params=call_params,
-        return_error_message=True,
+    call_params = liquid_alpha_call_params(
+        alice_sn.netuid, f"{alpha_low_too_high}, 53083"
     )
-    assert result is False, "Able to set incorrect alpha_low value."
-    assert error_message["name"] == "AlphaLowOutOfRange"
+    response = alice_sn.execute_one(
+        SUDO_SET_ALPHA_VALUES(alice_wallet, AdminUtils, False, **call_params)
+    )
+    assert response.success is False and "AlphaLowOutOfRange" in response.message, (
+        "Able to set incorrect alpha_low value."
+    )
 
     # Setting normal alpha values
     alpha_values = "6553, 53083"
-    call_params = liquid_alpha_call_params(netuid, alpha_values)
-    assert sudo_set_hyperparameter_values(
-        substrate=subtensor.substrate,
-        wallet=alice_wallet,
-        call_function="sudo_set_alpha_values",
-        call_params=call_params,
-    ), "Unable to set liquid alpha values."
-
-    assert subtensor.subnets.get_subnet_hyperparameters(netuid).alpha_high == 53083, (
-        "Failed to set alpha high."
+    call_params = liquid_alpha_call_params(alice_sn.netuid, alpha_values)
+    alice_sn.execute_one(
+        SUDO_SET_ALPHA_VALUES(alice_wallet, AdminUtils, False, **call_params)
     )
-    assert subtensor.subnets.get_subnet_hyperparameters(netuid).alpha_low == 6553, (
-        "Failed to set alpha low."
-    )
-
-    # Disable Liquid Alpha
-    assert sudo_set_hyperparameter_bool(
-        substrate=subtensor.substrate,
-        wallet=alice_wallet,
-        call_function="sudo_set_liquid_alpha_enabled",
-        value=False,
-        netuid=netuid,
-    ), "Unable to disable liquid alpha."
 
     assert (
-        subtensor.subnets.get_subnet_hyperparameters(netuid).liquid_alpha_enabled
+        subtensor.subnets.get_subnet_hyperparameters(alice_sn.netuid).alpha_high
+        == 53083
+    ), "Failed to set alpha high."
+    assert (
+        subtensor.subnets.get_subnet_hyperparameters(alice_sn.netuid).alpha_low == 6553
+    ), "Failed to set alpha low."
+
+    # Disable Liquid Alpha
+    alice_sn.execute_one(
+        SUDO_SET_LIQUID_ALPHA_ENABLED(alice_wallet, AdminUtils, True, NETUID, False)
+    )
+
+    assert (
+        subtensor.subnets.get_subnet_hyperparameters(
+            alice_sn.netuid
+        ).liquid_alpha_enabled
         is False
     ), "Failed to disable liquid alpha."
-    logging.console.info("✅ Passed [blue]test_liquid_alpha[/blue]")
 
 
 @pytest.mark.asyncio
@@ -242,94 +204,61 @@ async def test_liquid_alpha_async(async_subtensor, alice_wallet):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    # turn off admin freeze window limit for testing
-    assert (
-        await async_sudo_set_admin_utils(
-            substrate=async_subtensor.substrate,
-            wallet=alice_wallet,
-            call_function="sudo_set_admin_freeze_window",
-            call_params={"window": 0},
-        )
-    )[0] is True, "Failed to set admin freeze window to 0"
-
-    u16_max = 65535
-    netuid = 2
-
-    # Register root as Alice
-    assert await async_subtensor.subnets.register_subnet(alice_wallet), (
-        "Unable to register the subnet."
-    )
-
-    # Verify subnet created successfully
-    assert await async_subtensor.subnets.subnet_exists(netuid), "Subnet does not exist."
-
-    assert await async_wait_to_start_call(async_subtensor, alice_wallet, netuid), (
-        "Subnet failed to start."
-    )
-
-    # Register a neuron (Alice) to the subnet
-    assert (
-        await async_subtensor.subnets.burned_register(alice_wallet, netuid)
-    ).success, "Unable to register Alice as a neuron."
+    alice_sn = TestSubnet(async_subtensor)
+    steps = [
+        SUDO_SET_ADMIN_FREEZE_WINDOW(alice_wallet, AdminUtils, True, 0),
+        REGISTER_SUBNET(alice_wallet),
+        ACTIVATE_SUBNET(alice_wallet),
+        REGISTER_NEURON(alice_wallet),
+    ]
+    await alice_sn.async_execute_steps(steps)
 
     # Stake to become to top neuron after the first epoch
     assert (
         await async_subtensor.staking.add_stake(
             wallet=alice_wallet,
-            netuid=netuid,
+            netuid=alice_sn.netuid,
             hotkey_ss58=alice_wallet.hotkey.ss58_address,
             amount=Balance.from_tao(10_000),
         )
-    ).success, "Unable to stake to Alice neuron"
+    ).success, "Unable to stake to Alice neuron."
 
     # Assert liquid alpha is disabled
     assert (
-        await async_subtensor.subnets.get_subnet_hyperparameters(netuid=netuid)
-    ).liquid_alpha_enabled is False, "Liquid alpha is enabled by default"
+        await async_subtensor.subnets.get_subnet_hyperparameters(netuid=alice_sn.netuid)
+    ).liquid_alpha_enabled is False, "Liquid alpha is enabled by default."
 
     # Attempt to set alpha high/low while disabled (should fail)
     alpha_values = "6553, 53083"
-    call_params = liquid_alpha_call_params(netuid, alpha_values)
-    result, error_message = await async_sudo_set_hyperparameter_values(
-        substrate=async_subtensor.substrate,
-        wallet=alice_wallet,
-        call_function="sudo_set_alpha_values",
-        call_params=call_params,
-        return_error_message=True,
-    )
-    assert result is False, "Alpha values set while being disabled"
-    assert error_message["name"] == "LiquidAlphaDisabled"
+    call_params = liquid_alpha_call_params(alice_sn.netuid, alpha_values)
 
-    # Enabled liquid alpha on the subnet
-    assert await async_sudo_set_hyperparameter_bool(
-        substrate=async_subtensor.substrate,
-        wallet=alice_wallet,
-        call_function="sudo_set_liquid_alpha_enabled",
-        value=True,
-        netuid=netuid,
-    ), "Unable to enable liquid alpha"
+    response = await alice_sn.async_execute_one(
+        SUDO_SET_ALPHA_VALUES(alice_wallet, AdminUtils, False, **call_params)
+    )
+    assert response.success is False and "LiquidAlphaDisabled" in response.message, (
+        "Alpha values set while being disabled."
+    )
+
+    await alice_sn.async_execute_one(
+        SUDO_SET_LIQUID_ALPHA_ENABLED(alice_wallet, AdminUtils, True, NETUID, True)
+    )
 
     assert (
-        await async_subtensor.subnets.get_subnet_hyperparameters(
-            netuid,
-        )
-    ).liquid_alpha_enabled, "Failed to enable liquid alpha"
+        await async_subtensor.subnets.get_subnet_hyperparameters(alice_sn.netuid)
+    ).liquid_alpha_enabled, "Failed to enable liquid alpha."
 
     # Attempt to set alpha high & low after enabling the hyperparameter
     alpha_values = "26001, 54099"
-    call_params = liquid_alpha_call_params(netuid, alpha_values)
-    assert await async_sudo_set_hyperparameter_values(
-        substrate=async_subtensor.substrate,
-        wallet=alice_wallet,
-        call_function="sudo_set_alpha_values",
-        call_params=call_params,
-    ), "Unable to set alpha_values"
-
-    sn_hps = await async_subtensor.subnets.get_subnet_hyperparameters(netuid)
-    assert sn_hps.alpha_high == 54099, "Failed to set alpha high"
-    assert sn_hps.alpha_low == 26001, "Failed to set alpha low"
-
-    # Testing alpha high upper and lower bounds
+    call_params = liquid_alpha_call_params(alice_sn.netuid, alpha_values)
+    await alice_sn.async_execute_one(
+        SUDO_SET_ALPHA_VALUES(alice_wallet, AdminUtils, False, **call_params)
+    )
+    assert (
+        await async_subtensor.subnets.get_subnet_hyperparameters(alice_sn.netuid)
+    ).alpha_high == 54099, "Failed to set alpha high"
+    assert (
+        await async_subtensor.subnets.get_subnet_hyperparameters(alice_sn.netuid)
+    ).alpha_low == 26001, "Failed to set alpha low."
 
     # 1. Test setting Alpha_high too low
     alpha_high_too_low = 87
@@ -343,88 +272,78 @@ async def test_liquid_alpha_async(async_subtensor, alice_wallet):
     )
     await async_subtensor.wait_for_block(
         await async_subtensor.block
-        + await async_subtensor.subnets.tempo(netuid) * owner_hyperparam_ratelimit
+        + await async_subtensor.subnets.tempo(alice_sn.netuid)
+        * owner_hyperparam_ratelimit
     )
 
-    call_params = liquid_alpha_call_params(netuid, f"6553, {alpha_high_too_low}")
-    result, error_message = await async_sudo_set_hyperparameter_values(
-        substrate=async_subtensor.substrate,
-        wallet=alice_wallet,
-        call_function="sudo_set_alpha_values",
-        call_params=call_params,
-        return_error_message=True,
+    call_params = liquid_alpha_call_params(
+        alice_sn.netuid, f"6553, {alpha_high_too_low}"
     )
 
-    assert result is False, "Able to set incorrect alpha_high value"
-    assert error_message["name"] == "AlphaHighTooLow"
+    response = await alice_sn.async_execute_one(
+        SUDO_SET_ALPHA_VALUES(alice_wallet, AdminUtils, False, **call_params)
+    )
+    assert response.success is False and "AlphaHighTooLow" in response.message, (
+        "Able to set incorrect alpha_high value."
+    )
 
     # 2. Test setting Alpha_high too high
-    alpha_high_too_high = u16_max + 1  # One more than the max acceptable value
-    call_params = liquid_alpha_call_params(netuid, f"6553, {alpha_high_too_high}")
-    try:
-        await async_sudo_set_hyperparameter_values(
-            substrate=async_subtensor.substrate,
-            wallet=alice_wallet,
-            call_function="sudo_set_alpha_values",
-            call_params=call_params,
-            return_error_message=True,
-        )
-    except Exception as e:
-        assert str(e) == "65536 out of range for u16", f"Unexpected error: {e}"
+    alpha_high_too_high = U16_MAX + 1  # One more than the max acceptable value
+    call_params = liquid_alpha_call_params(
+        alice_sn.netuid, f"6553, {alpha_high_too_high}"
+    )
 
-    # Testing alpha low upper and lower bounds
+    response = await alice_sn.async_execute_one(
+        SUDO_SET_ALPHA_VALUES(alice_wallet, AdminUtils, False, **call_params)
+    )
+    assert (
+        response.success is False and "65536 out of range for u16" in response.message
+    ), f"Unexpected error: {response}"
 
     # 1. Test setting Alpha_low too low
     alpha_low_too_low = 0
-    call_params = liquid_alpha_call_params(netuid, f"{alpha_low_too_low}, 53083")
-    result, error_message = await async_sudo_set_hyperparameter_values(
-        substrate=async_subtensor.substrate,
-        wallet=alice_wallet,
-        call_function="sudo_set_alpha_values",
-        call_params=call_params,
-        return_error_message=True,
+    call_params = liquid_alpha_call_params(
+        alice_sn.netuid, f"{alpha_low_too_low}, 53083"
     )
-    assert result is False, "Able to set incorrect alpha_low value"
-    assert error_message["name"] == "AlphaLowOutOfRange"
+
+    response = await alice_sn.async_execute_one(
+        SUDO_SET_ALPHA_VALUES(alice_wallet, AdminUtils, False, **call_params)
+    )
+    assert response.success is False and "AlphaLowOutOfRange" in response.message, (
+        "Able to set incorrect alpha_low value."
+    )
 
     # 2. Test setting Alpha_low too high
     alpha_low_too_high = 53084
-    call_params = liquid_alpha_call_params(netuid, f"{alpha_low_too_high}, 53083")
-    result, error_message = await async_sudo_set_hyperparameter_values(
-        substrate=async_subtensor.substrate,
-        wallet=alice_wallet,
-        call_function="sudo_set_alpha_values",
-        call_params=call_params,
-        return_error_message=True,
+    call_params = liquid_alpha_call_params(
+        alice_sn.netuid, f"{alpha_low_too_high}, 53083"
     )
-    assert result is False, "Able to set incorrect alpha_low value."
-    assert error_message["name"] == "AlphaLowOutOfRange"
+    response = await alice_sn.async_execute_one(
+        SUDO_SET_ALPHA_VALUES(alice_wallet, AdminUtils, False, **call_params)
+    )
+    assert response.success is False and "AlphaLowOutOfRange" in response.message, (
+        "Able to set incorrect alpha_low value."
+    )
 
     # Setting normal alpha values
     alpha_values = "6553, 53083"
-    call_params = liquid_alpha_call_params(netuid, alpha_values)
-    assert await async_sudo_set_hyperparameter_values(
-        substrate=async_subtensor.substrate,
-        wallet=alice_wallet,
-        call_function="sudo_set_alpha_values",
-        call_params=call_params,
-    ), "Unable to set liquid alpha values."
-
-    sn_hps = await async_subtensor.subnets.get_subnet_hyperparameters(netuid)
-    assert sn_hps.alpha_high == 53083, "Failed to set alpha high"
-    assert sn_hps.alpha_low == 6553, "Failed to set alpha low"
-
-    # Disable Liquid Alpha
-    assert await async_sudo_set_hyperparameter_bool(
-        substrate=async_subtensor.substrate,
-        wallet=alice_wallet,
-        call_function="sudo_set_liquid_alpha_enabled",
-        value=False,
-        netuid=netuid,
-    ), "Unable to disable liquid alpha."
+    call_params = liquid_alpha_call_params(alice_sn.netuid, alpha_values)
+    await alice_sn.async_execute_one(
+        SUDO_SET_ALPHA_VALUES(alice_wallet, AdminUtils, False, **call_params)
+    )
 
     assert (
-        await async_subtensor.subnets.get_subnet_hyperparameters(netuid)
-    ).liquid_alpha_enabled is False, "Failed to disable liquid alpha."
+        await async_subtensor.subnets.get_subnet_hyperparameters(alice_sn.netuid)
+    ).alpha_high == 53083, "Failed to set alpha high."
+    assert (
+        await async_subtensor.subnets.get_subnet_hyperparameters(alice_sn.netuid)
+    ).alpha_low == 6553, "Failed to set alpha low."
 
-    logging.console.info("✅ Passed [blue]test_liquid_alpha_async[/blue]")
+    # Disable Liquid Alpha
+    await alice_sn.async_execute_one(
+        SUDO_SET_LIQUID_ALPHA_ENABLED(alice_wallet, AdminUtils, True, NETUID, False)
+    )
+
+    assert (
+        await async_subtensor.subnets.get_subnet_hyperparameters(alice_sn.netuid)
+    ).liquid_alpha_enabled is False, "Failed to disable liquid alpha."

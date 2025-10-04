@@ -8,14 +8,7 @@ from bittensor.core.extrinsics.asyncex.utils import (
 from bittensor.core.extrinsics.utils import get_extrinsic_fee
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
-from tests.e2e_tests.utils.chain_interactions import (
-    async_wait_epoch,
-    wait_epoch,
-)
-from tests.e2e_tests.utils.e2e_test_utils import (
-    async_wait_to_start_call,
-    wait_to_start_call,
-)
+from tests.e2e_tests.utils import TestSubnet, REGISTER_SUBNET, ACTIVATE_SUBNET, REGISTER_NEURON
 
 """
 Verifies:
@@ -72,8 +65,9 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
     pre_subnet_creation_cost = subtensor.subnets.get_subnet_burn_cost()
 
     # Register subnet
-    response = subtensor.subnets.register_subnet(alice_wallet)
-    assert response.success, "Unable to register the subnet."
+    alice_sn = TestSubnet(subtensor)
+    response = alice_sn.execute_one(REGISTER_SUBNET(alice_wallet))
+    netuid = alice_sn.netuid
 
     # Subnet burn cost is increased immediately after a subnet is registered
     post_subnet_creation_cost = subtensor.subnets.get_subnet_burn_cost()
@@ -143,12 +137,10 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
 
     bob_balance = subtensor.wallets.get_balance(bob_wallet.coldkeypub.ss58_address)
 
-    assert wait_to_start_call(subtensor, alice_wallet, netuid)
-
-    # Register Bob to the subnet
-    assert subtensor.subnets.burned_register(bob_wallet, netuid).success, (
-        "Unable to register Bob as a neuron"
-    )
+    alice_sn.execute_steps([
+        ACTIVATE_SUBNET(alice_wallet),
+        REGISTER_NEURON(bob_wallet),
+    ])
 
     # Verify Bob's UID on netuid 2 is 1
     assert (
@@ -160,16 +152,7 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
 
     # Fetch recycle_amount to register to the subnet
     recycle_amount = subtensor.subnets.recycle(netuid)
-    call = subtensor.substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="burned_register",
-        call_params={
-            "netuid": netuid,
-            "hotkey": bob_wallet.hotkey.ss58_address,
-        },
-    )
-    payment_info = subtensor.substrate.get_payment_info(call, bob_wallet.coldkeypub)
-    fee = Balance.from_rao(payment_info["partial_fee"])
+    fee = alice_sn.calls[-1].extrinsic_fee
     bob_balance_post_reg = subtensor.wallets.get_balance(
         bob_wallet.coldkeypub.ss58_address
     )
@@ -179,24 +162,12 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
         "Balance for Bob is not correct after burned register"
     )
 
-    # neuron_info_old = subtensor.get_neuron_for_pubkey_and_subnet(
-    #     alice_wallet.hotkey.ss58_address, netuid=netuid
-    # )
-
     async with templates.validator(alice_wallet, netuid):
         await asyncio.sleep(
             5
         )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
 
-        await wait_epoch(subtensor, netuid)
-
-    # Verify neuron info is updated after running as a validator
-    # neuron_info = subtensor.get_neuron_for_pubkey_and_subnet(
-    #     alice_wallet.hotkey.ss58_address, netuid=netuid
-    # )
-    # assert (
-    #     neuron_info_old.dividends != neuron_info.dividends
-    # ), "Neuron info not updated after running validator"
+        alice_sn.wait_next_epoch()
 
     # Fetch and assert existential deposit for an account in the network
     assert subtensor.chain.get_existential_deposit() == existential_deposit, (
@@ -260,8 +231,9 @@ async def test_subtensor_extrinsics_async(
     pre_subnet_creation_cost = await async_subtensor.subnets.get_subnet_burn_cost()
 
     # Register subnet
-    response = await async_subtensor.subnets.register_subnet(alice_wallet)
-    assert response.success, "Unable to register the subnet."
+    alice_sn = TestSubnet(async_subtensor)
+    response = await alice_sn.async_execute_one(REGISTER_SUBNET(alice_wallet))
+    netuid = alice_sn.netuid
 
     # Subnet burn cost is increased immediately after a subnet is registered
     post_subnet_creation_cost = await async_subtensor.subnets.get_subnet_burn_cost()
@@ -333,12 +305,10 @@ async def test_subtensor_extrinsics_async(
         bob_wallet.coldkeypub.ss58_address
     )
 
-    assert await async_wait_to_start_call(async_subtensor, alice_wallet, netuid)
-
-    # Register Bob to the subnet
-    assert (
-        await async_subtensor.subnets.burned_register(bob_wallet, netuid)
-    ).success, "Unable to register Bob as a neuron."
+    alice_sn.execute_steps([
+        ACTIVATE_SUBNET(alice_wallet),
+        REGISTER_NEURON(bob_wallet),
+    ])
 
     # Verify Bob's UID on netuid 2 is 1
     assert (
@@ -350,18 +320,7 @@ async def test_subtensor_extrinsics_async(
 
     # Fetch recycle_amount to register to the subnet
     recycle_amount = await async_subtensor.subnets.recycle(netuid)
-    call = await async_subtensor.substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="burned_register",
-        call_params={
-            "netuid": netuid,
-            "hotkey": bob_wallet.hotkey.ss58_address,
-        },
-    )
-    payment_info = await async_subtensor.substrate.get_payment_info(
-        call, bob_wallet.coldkeypub
-    )
-    fee = Balance.from_rao(payment_info["partial_fee"])
+    fee = alice_sn.calls[-1].extrinsic_fee
     bob_balance_post_reg = await async_subtensor.wallets.get_balance(
         bob_wallet.coldkeypub.ss58_address
     )
@@ -380,15 +339,7 @@ async def test_subtensor_extrinsics_async(
             5
         )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
 
-        await async_wait_epoch(async_subtensor, netuid)
-
-    # Verify neuron info is updated after running as a validator
-    # neuron_info = subtensor.get_neuron_for_pubkey_and_subnet(
-    #     alice_wallet.hotkey.ss58_address, netuid=netuid
-    # )
-    # assert (
-    #     neuron_info_old.dividends != neuron_info.dividends
-    # ), "Neuron info not updated after running validator"
+        await alice_sn.async_wait_next_epoch()
 
     # Fetch and assert existential deposit for an account in the network
     assert (
