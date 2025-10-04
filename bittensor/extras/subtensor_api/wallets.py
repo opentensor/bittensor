@@ -38,3 +38,4 @@ class Wallets:
         self.get_stake_movement_fee = subtensor.get_stake_movement_fee
         self.get_transfer_fee = subtensor.get_transfer_fee
         self.get_unstake_fee = subtensor.get_unstake_fee
+        self.set_children = subtensor.set_children
