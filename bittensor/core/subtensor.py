@@ -91,8 +91,8 @@ from bittensor.core.settings import (
     SS58_FORMAT,
     TYPE_REGISTRY,
 )
-from bittensor.core.types import ExtrinsicResponse
 from bittensor.core.types import (
+    ExtrinsicResponse,
     ParamWithTypes,
     Salt,
     SubtensorMixin,
