@@ -7,7 +7,7 @@ from bittensor.utils.balance import Balance
 from bittensor import logging
 
 if typing.TYPE_CHECKING:
-    from bittensor.core.addons import SubtensorApi
+    from bittensor.extras import SubtensorApi
 
 
 def test_transfer(subtensor, alice_wallet):
