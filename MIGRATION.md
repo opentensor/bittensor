@@ -3,25 +3,18 @@
 ## Extrinsics and related
 1. ✅ Standardize parameter order across all extrinsics and related calls. Pass extrinsic-specific arguments first (e.g., wallet, hotkey, netuid, amount), followed by optional general flags (e.g., wait_for_inclusion, wait_for_finalization)
   
-2. ✅ Unify extrinsic return values by introducing an ExtrinsicResponse class. Extrinsics currently return either a boolean or a tuple. 
+2. ✅ Set `wait_for_inclusion` and `wait_for_finalization` to `True` by default in extrinsics and their related calls. Then we will guarantee the correct/expected extrinsic call response is consistent with the chain response. If the user changes those values, then it is the user's responsibility.
+3. ✅ Make the internal logic of extrinsics the same. There are extrinsics that are slightly different in implementation.
 
-    Purpose:
-    - Ease of processing.
-    - This class should contain success, message, and optionally data.
-    - Opportunity to expand the content of the extrinsic's response at any time upon community request or based on new technical requirements any time.
+4. ✅ ~~Since SDK is not a responsible tool, try to remove all calculations inside extrinsics that do not affect the result, but are only used in logging. Actually, this should be applied not to extrinsics only but for all codebase.~~ Just improved regarding usage.
 
-3. ✅ Set `wait_for_inclusion` and `wait_for_finalization` to `True` by default in extrinsics and their related calls. Then we will guarantee the correct/expected extrinsic call response is consistent with the chain response. If the user changes those values, then it is the user's responsibility.
-4. ✅ Make the internal logic of extrinsics the same. There are extrinsics that are slightly different in implementation.
+5. ✅ Remove `unstake_all` parameter from `unstake_extrinsic` since we have `unstake_all_extrinsic`which is calles another subtensor function.
 
-5. ✅ ~~Since SDK is not a responsible tool, try to remove all calculations inside extrinsics that do not affect the result, but are only used in logging. Actually, this should be applied not to extrinsics only but for all codebase.~~ Just improved regarding usage.
+6. ✅ `unstake` and `unstake_multiple` extrinsics should have `safe_unstaking` parameters instead of `safe_staking`.
 
-6. ✅ Remove `unstake_all` parameter from `unstake_extrinsic` since we have `unstake_all_extrinsic`which is calles another subtensor function.
+7. ✅ Remove `_do*` extrinsic calls and combine them with extrinsic logic.
 
-7. ✅ `unstake` and `unstake_multiple` extrinsics should have `safe_unstaking` parameters instead of `safe_staking`.
-
-8. ✅ Remove `_do*` extrinsic calls and combine them with extrinsic logic.
-
-9. ✅ ~~`subtensor.get_transfer_fee` calls extrinsic inside the subtensor module. Actually the method could be updated by using `bittensor.core.extrinsics.utils.get_extrinsic_fee`.~~ `get_transfer_fee` isn't `get_extrinsic_fee`
+8. ✅ ~~`subtensor.get_transfer_fee` calls extrinsic inside the subtensor module. Actually the method could be updated by using `bittensor.core.extrinsics.utils.get_extrinsic_fee`.~~ (`get_transfer_fee` isn't `get_extrinsic_fee`)
 
 ## Subtensor
 1. ✅ In the synchronous Subtensor class, the `get_owned_hotkeys` method includes a `reuse_block` parameter that is inconsistent with other methods. Either remove this parameter from `get_owned_hotkeys`, or add it to all other methods that directly call self.substrate.* to maintain a consistent interface.
@@ -30,6 +23,10 @@
 4. ✅ Remove references like `get_stake_info_for_coldkey = get_stake_for_coldkey`.
 5. ✅ Reconsider some methods naming across the entire subtensor module.
 6. ~~Add `hotkey_ss58` parameter to `get_liquidity_list` method. One wallet can have many HKs. Currently, the mentioned method uses default HK only.~~ wrong idea
+7. Apply `SimSwap` logic to calculate any stake operation fees (this is not an extrinsic fee)
+8. Should the next functions move to `subtensor` as methods? They have exactly the same behavior as subtensor methods.
+   - `get_metadata`
+   - `get_last_bonds_reset`
 
 ## Metagraph
 1. ✅ Remove verbose archival node warnings for blocks older than 300. Some users complained about many messages for them.
@@ -69,30 +66,44 @@ rename this variable in documentation.
 
 11. ✅ Remove deprecated `bittensor.utils.version.version_checking`
 
-12. Find and process all `TODOs` across the entire code base. If in doubt, discuss each one with the team separately. SDK has 29 TODOs.
-13. ✅ The SDK is dropping support for `Python 3.9` starting with this release.
-14. ✅ Remove `Default is` and `Default to` in docstrings bc parameters enough.
-15. camfairchild: TODO, but we should have a grab_metadata if we don't already. Maybe don't decode, but can have a call that removes the Raw prefix, and another just doing grab_metadata_raw (no decoding)
+12. ✅ The SDK is dropping support for `Python 3.9` starting with this release.
+13. ✅ Remove `Default is` and `Default to` in docstrings bc parameters enough.
+14. `camfairchild`: TODO, but we should have a grab_metadata if we don't already. Maybe don't decode, but can have a call that removes the Raw prefix, and another just doing grab_metadata_raw (no decoding)
+15. Find and process all `TODOs` across the entire code base. If in doubt, discuss each one with the team separately. SDK has 29 TODOs.
 
 ## New features
-1. ✅ Add `bittensor.utils.hex_to_ss58` function. SDK still doesn't have it. (Probably inner import `from scalecodec import ss58_encode, ss58_decode`)
-2. ✅ Implement Sub-subnets logic. Subtensor PR https://github.com/opentensor/subtensor/pull/1984
-3. Implement `Crowdloan` logic. Issue: https://github.com/opentensor/bittensor/issues/3017
+1. ✅ Unify extrinsic return values by introducing an ExtrinsicResponse class. Extrinsics currently return either a boolean or a tuple.
+
+    Purpose:
+    - Ease of processing.
+    - This class should contain success, message, and optionally data.
+    - Opportunity to expand the content of the extrinsic's response at any time upon community request or based on new technical requirements any time.
+2. ✅ Add `bittensor.utils.hex_to_ss58` function. SDK still doesn't have it. (Probably inner import `from scalecodec import ss58_encode, ss58_decode`)
+3. ✅ Implement Sub-subnets logic. Subtensor PR https://github.com/opentensor/subtensor/pull/1984
+4. Implement classes for `Block` and `BlockHash` objects that will contain the following fields:
+   - number
+   - hash
+   - timestamp
+   - block_explorer (with the link to tao.app)
+   
+   This implementation has been repeatedly requested by the community in the past. The instances of this classes should behave the same as `block` (int) and `block_hash` (str) currently do (to safe backward compatibility).
+5. Implement `Crowdloan` logic. Issue: https://github.com/opentensor/bittensor/issues/3017
 
 ## Testing
 1. ✅ When running tests via Docker, ensure no lingering processes occupy required ports before launch.
 
 2. Improve failed test reporting from GH Actions to the Docker channel (e.g., clearer messages, formatting).
 
-3. Write a configurable test harness class for tests that will accept arguments and immediately:
-   - create a subnet
-   - activate a subnet (if the argument is passed as True)
-   - register neurons (use wallets as arguments)
-   - set the necessary hyperparameters (tempo, etc. if the argument are passed)
+3. ✅ Write a configurable test harness class for tests that will accept arguments and immediately:
+   - [x] create a subnet
+   - [x] activate a subnet (if the argument is passed as True)
+   - [x] register neurons (use wallets as arguments)
+   - [x] set the necessary hyperparameters (tempo, etc. if the argument are passed)
    Will greatly simplify tests.
 
 4. ✅ Add an async test versions. This will help us greatly improve the asynchronous implementation of Subtensors and Extrinsics.
 
+<hr>
 
 ## Implementation
 To implement the above changes and prepare for the v10 release, the following steps must be taken:
