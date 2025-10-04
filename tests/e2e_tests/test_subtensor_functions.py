@@ -159,7 +159,7 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
 
     # Fetch recycle_amount to register to the subnet
     recycle_amount = subtensor.subnets.recycle(netuid)
-    fee = alice_sn.calls[-1].extrinsic_fee
+    fee = alice_sn.calls[-1].response.extrinsic_fee
     bob_balance_post_reg = subtensor.wallets.get_balance(
         bob_wallet.coldkeypub.ss58_address
     )
@@ -312,7 +312,7 @@ async def test_subtensor_extrinsics_async(
         bob_wallet.coldkeypub.ss58_address
     )
 
-    alice_sn.execute_steps(
+    await alice_sn.async_execute_steps(
         [
             ACTIVATE_SUBNET(alice_wallet),
             REGISTER_NEURON(bob_wallet),
@@ -329,7 +329,7 @@ async def test_subtensor_extrinsics_async(
 
     # Fetch recycle_amount to register to the subnet
     recycle_amount = await async_subtensor.subnets.recycle(netuid)
-    fee = alice_sn.calls[-1].extrinsic_fee
+    fee = alice_sn.calls[-1].response.extrinsic_fee
     bob_balance_post_reg = await async_subtensor.wallets.get_balance(
         bob_wallet.coldkeypub.ss58_address
     )
