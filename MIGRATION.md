@@ -23,8 +23,9 @@
 4. ✅ Remove references like `get_stake_info_for_coldkey = get_stake_for_coldkey`.
 5. ✅ Reconsider some methods naming across the entire subtensor module.
 6. ~~Add `hotkey_ss58` parameter to `get_liquidity_list` method. One wallet can have many HKs. Currently, the mentioned method uses default HK only.~~ wrong idea
-7. Apply `SimSwap` logic to calculate any stake operation fees (this is not an extrinsic fee)
-8. Should the next functions move to `subtensor` as methods? They have exactly the same behavior as subtensor methods.
+7. ✅ apply correct logic if subtensor got `lov_verbose=True` -> `set_trace` level for btloggin
+8. Apply `SimSwap` logic to calculate any stake operation fees (this is not an extrinsic fee)
+9. Should the next functions move to `subtensor` as methods? They have exactly the same behavior as subtensor methods.
    - `get_metadata`
    - `get_last_bonds_reset`
 
@@ -80,13 +81,15 @@ rename this variable in documentation.
     - Opportunity to expand the content of the extrinsic's response at any time upon community request or based on new technical requirements any time.
 2. ✅ Add `bittensor.utils.hex_to_ss58` function. SDK still doesn't have it. (Probably inner import `from scalecodec import ss58_encode, ss58_decode`)
 3. ✅ Implement Sub-subnets logic. Subtensor PR https://github.com/opentensor/subtensor/pull/1984
-4. Implement classes for `Block` and `BlockHash` objects that will contain the following fields:
-   - number
-   - hash
-   - timestamp
-   - block_explorer (with the link to tao.app)
+4. Implement classes for `BlockInfo` objects that will contain the following fields:
+   - number (int)
+   - hash (str)
+   - timestamp (datetime)
+   - header (dict)
+   - extrinsics (list)
+   - block_explorer (link to tao.app)
    
-   This implementation has been repeatedly requested by the community in the past. The instances of this classes should behave the same as `block` (int) and `block_hash` (str) currently do (to safe backward compatibility).
+   This implementation has been repeatedly requested by the community in the past.
 5. Implement `Crowdloan` logic. Issue: https://github.com/opentensor/bittensor/issues/3017
 
 ## Testing
@@ -286,15 +289,15 @@ Added:
 - `from bittenosor import get_async_subtensor`
 
 Next variables removed:
-- `async_subtensor` not -> `AsyncSubtensor`
-- `axon` not -> `Axon`
-- `config` not -> `Config`
-- `dendrite` not -> `Dendrite`
-- `keyfile` not -> `Keyfile`
-- `metagraph` not -> `Metagraph`
-- `wallet` not -> `Wallet`
-- `subtensor` not -> `Subtensor`
-- `synapse` not -> `Synapse`
+- `async_subtensor` now only -> `AsyncSubtensor`
+- `axon` now only -> `Axon`
+- `config` now only -> `Config`
+- `dendrite` now only -> `Dendrite`
+- `keyfile` now only -> `Keyfile`
+- `metagraph` now only -> `Metagraph`
+- `wallet` now only -> `Wallet`
+- `subtensor` now only -> `Subtensor`
+- `synapse` now only -> `Synapse`
 
 Links to subpackages removed:
 - `bittensor.mock` (available in `bittensor.core.mock`)
