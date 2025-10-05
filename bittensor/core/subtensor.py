@@ -184,6 +184,7 @@ class Subtensor(SubtensorMixin):
             archive_endpoints=archive_endpoints,
         )
         if self.log_verbose:
+            logging.set_trace()
             logging.info(
                 f"Connected to {self.network} network and {self.chain_endpoint}."
             )
