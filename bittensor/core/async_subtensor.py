@@ -1387,6 +1387,7 @@ class AsyncSubtensor(SubtensorMixin):
                 timestamp=timestamp,
                 header=header,
                 extrinsics=extrinsics,
+                explorer=f"{TAO_APP_BLOCK_EXPLORER}{block}"
             )
         return None
 
