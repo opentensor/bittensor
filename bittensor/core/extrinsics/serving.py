@@ -283,39 +283,3 @@ def publish_metadata_extrinsic(
 
     except Exception as error:
         return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
-
-
-def get_metadata(
-    subtensor: "Subtensor", netuid: int, hotkey_ss58: str, block: Optional[int] = None
-) -> Union[str, dict]:
-    """Fetches metadata from the blockchain for a given hotkey and netuid."""
-    commit_data = subtensor.substrate.query(
-        module="Commitments",
-        storage_function="CommitmentOf",
-        params=[netuid, hotkey_ss58],
-        block_hash=subtensor.determine_block_hash(block),
-    )
-    return commit_data
-
-
-def get_last_bonds_reset(
-    subtensor: "Subtensor", netuid: int, hotkey_ss58: str, block: Optional[int] = None
-) -> bytes:
-    """
-    Fetches the last bonds reset triggered at commitment from the blockchain for a given hotkey and netuid.
-
-    Parameters:
-        subtensor: Subtensor instance object.
-        netuid: The network uid to fetch from.
-        hotkey_ss58: The hotkey of the neuron for which to fetch the last bonds reset.
-        block: The block number to query. If ``None``, the latest block is used.
-
-    Returns:
-        bytes: The last bonds reset data for the specified hotkey and netuid.
-    """
-    return subtensor.substrate.query(
-        module="Commitments",
-        storage_function="LastBondsReset",
-        params=[netuid, hotkey_ss58],
-        block_hash=subtensor.determine_block_hash(block),
-    )
