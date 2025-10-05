@@ -86,9 +86,10 @@ from bittensor.core.extrinsics.weights import (
     set_weights_extrinsic,
 )
 from bittensor.core.metagraph import Metagraph
+from bittensor_wallet.utils import SS58_FORMAT
 from bittensor.core.settings import (
     version_as_int,
-    SS58_FORMAT,
+    TAO_APP_BLOCK_EXPLORER,
     TYPE_REGISTRY,
 )
 from bittensor.core.types import (
@@ -822,6 +823,7 @@ class Subtensor(SubtensorMixin):
                 timestamp=timestamp,
                 header=header,
                 extrinsics=extrinsics,
+                explorer=f"{TAO_APP_BLOCK_EXPLORER}/"
             )
         return None
 

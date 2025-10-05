@@ -20,7 +20,7 @@ from scalecodec import (
 )
 
 from bittensor.core import settings
-from bittensor.core.settings import SS58_FORMAT
+from bittensor_wallet.utils import SS58_FORMAT
 from bittensor.utils.btlogging import logging
 from .registration import torch, use_torch
 from .version import check_version, VersionCheckError
