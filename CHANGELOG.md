@@ -1,5 +1,13 @@
 # Changelog
 
+## 9.11.1 /2025-09-25
+
+## What's Changed
+* Fix bug with unlocking keypair in mechanism extrinsics by @basfroman in https://github.com/opentensor/bittensor/pull/3070
+* Changelog + bumping  version 9.11.1 by @basfroman in https://github.com/opentensor/bittensor/pull/3071
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.11.0...v9.11.1
+
 ## 9.11.0 /2025-09-25
 
 ## What's Changed
