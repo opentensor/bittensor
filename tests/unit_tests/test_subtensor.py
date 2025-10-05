@@ -1500,7 +1500,7 @@ def test_get_commitment(subtensor, mocker):
     subtensor.metagraph = mocked_metagraph
     mocked_metagraph.return_value.hotkeys = {fake_uid: fake_hotkey}
 
-    mocked_get_metadata = mocker.patch.object(subtensor_module, "get_metadata")
+    mocked_get_metadata = mocker.patch.object(subtensor, "get_metadata")
     mocked_get_metadata.return_value = {
         "deposit": 0,
         "block": 3843930,
@@ -1654,7 +1654,7 @@ def test_get_last_commitment_bonds_reset_block(subtensor, mocker):
     expected_result = 3
 
     mocked_get_last_bonds_reset = mocker.patch.object(
-        subtensor_module, "get_last_bonds_reset"
+        subtensor, "get_last_bonds_reset"
     )
     mocked_get_last_bonds_reset.return_value = expected_result
 
