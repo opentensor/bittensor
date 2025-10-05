@@ -62,6 +62,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.get_hotkey_owner = subtensor.inner_subtensor.get_hotkey_owner
     subtensor.get_hotkey_stake = subtensor.inner_subtensor.get_hotkey_stake
     subtensor.get_hyperparameter = subtensor.inner_subtensor.get_hyperparameter
+    subtensor.get_last_bonds_reset = subtensor.inner_subtensor.get_last_bonds_reset
     subtensor.get_last_commitment_bonds_reset_block = (
         subtensor.inner_subtensor.get_last_commitment_bonds_reset_block
     )
@@ -70,6 +71,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.get_mechanism_emission_split = (
         subtensor.inner_subtensor.get_mechanism_emission_split
     )
+    subtensor.get_metadata = subtensor.inner_subtensor.get_metadata
     subtensor.get_metagraph_info = subtensor.inner_subtensor.get_metagraph_info
     subtensor.get_minimum_required_stake = (
         subtensor.inner_subtensor.get_minimum_required_stake
