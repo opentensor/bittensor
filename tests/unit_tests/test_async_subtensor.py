@@ -1,12 +1,12 @@
 import datetime
 import unittest.mock as mock
-from bittensor.core.errors import BalanceTypeError
+
 import pytest
 from async_substrate_interface.types import ScaleObj
 from bittensor_wallet import Wallet
 
 from bittensor import u64_normalized_float
-from bittensor.core import async_subtensor
+from bittensor.core import async_subtensor, settings
 from bittensor.core.async_subtensor import AsyncSubtensor
 from bittensor.core.chain_data import (
     proposal_vote_data,
@@ -15,6 +15,7 @@ from bittensor.core.chain_data import (
     StakeInfo,
     SelectiveMetagraphIndex,
 )
+from bittensor.core.errors import BalanceTypeError
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils import U64_MAX, get_function_name
 from bittensor.utils.balance import Balance
@@ -4171,3 +4172,44 @@ async def test_determine_block_hash(subtensor, mocker):
 
     with pytest.raises(ValueError):
         await subtensor.determine_block_hash(block=2, block_hash=mocked_hash)
+
+
+@pytest.mark.asyncio
+async def test_get_block_info(subtensor, mocker):
+    """Tests that `get_block_info` calls proper methods and returns the correct value."""
+    # Preps
+    fake_block = mocker.Mock(spec=int)
+    fake_hash = mocker.Mock(spec=str)
+    fake_substrate_block = {
+        "header": {
+            "number": fake_block,
+            "hash": fake_hash,
+        },
+        "extrinsics": []
+
+    }
+    mocked_get_block = mocker.patch.object(subtensor.substrate, "get_block", return_value=fake_substrate_block)
+    mocked_get_timestamp = mocker.patch.object(subtensor, "get_timestamp")
+    mocked_BlockInfo = mocker.patch.object(async_subtensor, "BlockInfo")
+
+    # Call
+    result = await subtensor.get_block_info()
+
+    # Asserts
+    mocked_get_block.assert_awaited_once_with(
+        block_hash=None,
+        block_number=None,
+        ignore_decoding_errors=True,
+    )
+    mocked_get_timestamp.assert_awaited_once_with(
+        block=fake_block
+    )
+    mocked_BlockInfo.assert_called_once_with(
+        number=fake_block,
+        hash=fake_hash,
+        timestamp=mocked_get_timestamp.return_value,
+        header=fake_substrate_block.get("header"),
+        extrinsics=fake_substrate_block.get("extrinsics"),
+        explorer=f"{settings.TAO_APP_BLOCK_EXPLORER}{fake_block}"
+    )
+    assert result == mocked_BlockInfo.return_value
