@@ -204,6 +204,7 @@ class AsyncSubtensor(SubtensorMixin):
             ws_shutdown_timer=websocket_shutdown_timer,
         )
         if self.log_verbose:
+            logging.set_trace()
             logging.info(
                 f"Connected to {self.network} network and {self.chain_endpoint}."
             )
