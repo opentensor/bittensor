@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from typing import Optional
 
+from bittensor_wallet.utils import SS58_FORMAT
 from scalecodec.utils.ss58 import ss58_encode
 
 from bittensor.core.chain_data.info_base import InfoBase
 from bittensor.core.chain_data.utils import from_scale_encoding, ChainDataType
-from bittensor.core.settings import SS58_FORMAT
 
 
 @dataclass
