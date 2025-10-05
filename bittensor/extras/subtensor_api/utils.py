@@ -44,6 +44,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.get_balance = subtensor.inner_subtensor.get_balance
     subtensor.get_balances = subtensor.inner_subtensor.get_balances
     subtensor.get_block_hash = subtensor.inner_subtensor.get_block_hash
+    subtensor.get_block_info = subtensor.inner_subtensor.get_block_info
     subtensor.get_children = subtensor.inner_subtensor.get_children
     subtensor.get_children_pending = subtensor.inner_subtensor.get_children_pending
     subtensor.get_commitment = subtensor.inner_subtensor.get_commitment
