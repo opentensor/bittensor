@@ -1,5 +1,5 @@
 import asyncio
-
+import re
 import pytest
 
 from bittensor.core.extrinsics.asyncex.utils import (
@@ -372,3 +372,44 @@ async def test_subtensor_extrinsics_async(
     assert actual_owner == expected_owner, (
         f"Expected owner {expected_owner}, but found {actual_owner}"
     )
+
+
+def test_blocks(subtensor):
+    """
+    Tests:
+    - Get current block
+    - Get block hash
+    - Wait for block
+    """
+    get_current_block = subtensor.chain.get_current_block()
+    block = subtensor.block
+
+    # Several random tests fell during the block finalization period. Fast blocks of 0.25 seconds (very fast)
+    assert get_current_block in [block, block + 1]
+
+    block_hash = subtensor.chain.get_block_hash(block)
+    assert re.match("0x[a-z0-9]{64}", block_hash)
+
+    subtensor.wait_for_block(block + 10)
+    assert subtensor.chain.get_current_block() == block + 10
+
+    logging.console.info("✅ Passed [blue]test_blocks[/blue]")
+
+
+@pytest.mark.asyncio
+async def test_blocks_async(subtensor):
+    """
+    Async tests:
+    - Get current block
+    - Get block hash
+    - Wait for block
+    """
+    block = subtensor.chain.get_current_block()
+    assert block == subtensor.block
+
+    block_hash = subtensor.chain.get_block_hash(block)
+    assert re.match("0x[a-z0-9]{64}", block_hash)
+
+    subtensor.wait_for_block(block + 10)
+    assert subtensor.chain.get_current_block() in [block + 10, block + 11]
+    logging.console.info("✅ Passed [blue]test_blocks_async[/blue]")

@@ -537,6 +537,7 @@ class BlockInfo:
         extrinsics: The list of decoded extrinsics included in the block.
         explorer: The link to block explorer service.
     """
+
     number: int
     hash: str
     timestamp: datetime
