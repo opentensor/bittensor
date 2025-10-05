@@ -526,5 +526,6 @@ class BlockInfo:
     number: int
     hash: str
     timestamp: datetime
-    header: Optional[dict] = None
-    extrinsics: Optional[dict] = None
+    header: dict
+    extrinsics: dict
+    explorer: str
