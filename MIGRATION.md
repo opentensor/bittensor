@@ -69,8 +69,9 @@ rename this variable in documentation.
 
 12. ✅ The SDK is dropping support for `Python 3.9` starting with this release.
 13. ✅ Remove `Default is` and `Default to` in docstrings bc parameters enough.
-14. `camfairchild`: TODO, but we should have a grab_metadata if we don't already. Maybe don't decode, but can have a call that removes the Raw prefix, and another just doing grab_metadata_raw (no decoding)
-15. Find and process all `TODOs` across the entire code base. If in doubt, discuss each one with the team separately. SDK has 29 TODOs.
+14. Solve the issue when a script using SDK receives the `--config` cli parameter. Disable `argparse` processing by default and enable it only when using SOME? a local environment variable.
+15. `camfairchild`: TODO, but we should have a grab_metadata if we don't already. Maybe don't decode, but can have a call that removes the Raw prefix, and another just doing grab_metadata_raw (no decoding)
+16. Find and process all `TODOs` across the entire code base. If in doubt, discuss each one with the team separately. SDK has 29 TODOs.
 
 ## New features
 1. ✅ Unify extrinsic return values by introducing an ExtrinsicResponse class. Extrinsics currently return either a boolean or a tuple.
@@ -81,7 +82,7 @@ rename this variable in documentation.
     - Opportunity to expand the content of the extrinsic's response at any time upon community request or based on new technical requirements any time.
 2. ✅ Add `bittensor.utils.hex_to_ss58` function. SDK still doesn't have it. (Probably inner import `from scalecodec import ss58_encode, ss58_decode`)
 3. ✅ Implement Sub-subnets logic. Subtensor PR https://github.com/opentensor/subtensor/pull/1984
-4. Implement classes for `BlockInfo` objects that will contain the following fields:
+4. ✅ Implement classes for `BlockInfo` objects that will contain the following fields:
    - number (int)
    - hash (str)
    - timestamp (datetime)
