@@ -9,6 +9,7 @@ class Chain:
     def __init__(self, subtensor: Union["_Subtensor", "_AsyncSubtensor"]):
         self.get_admin_freeze_window = subtensor.get_admin_freeze_window
         self.get_block_hash = subtensor.get_block_hash
+        self.get_block_info = subtensor.get_block_info
         self.get_current_block = subtensor.get_current_block
         self.get_delegate_identities = subtensor.get_delegate_identities
         self.get_existential_deposit = subtensor.get_existential_deposit
