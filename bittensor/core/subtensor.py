@@ -60,9 +60,7 @@ from bittensor.core.extrinsics.registration import (
 )
 from bittensor.core.extrinsics.root import root_register_extrinsic
 from bittensor.core.extrinsics.serving import (
-    get_last_bonds_reset,
     publish_metadata_extrinsic,
-    get_metadata,
     serve_axon_extrinsic,
 )
 from bittensor.core.extrinsics.staking import (
@@ -966,12 +964,33 @@ class Subtensor(SubtensorMixin):
             )
             return ""
 
-        metadata = cast(dict, get_metadata(self, netuid, hotkey, block))
+        metadata = cast(dict, self.get_metadata(netuid, hotkey, block))
         try:
             return decode_metadata(metadata)
         except Exception as error:
             logging.error(error)
             return ""
+
+    def get_last_bonds_reset(
+        self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
+    ) -> bytes:
+        """
+        Fetches the last bonds reset triggered at commitment from the blockchain for a given hotkey and netuid.
+
+        Parameters:
+            netuid: The network uid to fetch from.
+            hotkey_ss58: The hotkey of the neuron for which to fetch the last bonds reset.
+            block: The block number to query. If ``None``, the latest block is used.
+
+        Returns:
+            bytes: The last bonds reset data for the specified hotkey and netuid.
+        """
+        return self.substrate.query(
+            module="self",
+            storage_function="LastBondsReset",
+            params=[netuid, hotkey_ss58],
+            block_hash=self.determine_block_hash(block),
+        )
 
     def get_last_commitment_bonds_reset_block(
         self, netuid: int, uid: int
@@ -995,7 +1014,7 @@ class Subtensor(SubtensorMixin):
                 "Your uid is not in the hotkeys. Please double-check your UID."
             )
             return None
-        block = get_last_bonds_reset(self, netuid, hotkey)
+        block = self.get_last_bonds_reset(netuid, hotkey)
         if block is None:
             return None
         return decode_block(block)
@@ -1309,6 +1328,18 @@ class Subtensor(SubtensorMixin):
         )
 
         return Balance.from_rao(getattr(result, "value", 0))
+
+    def get_metadata(
+        self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
+    ) -> Union[str, dict]:
+        """Fetches metadata from the blockchain for a given hotkey and netuid."""
+        commit_data = self.substrate.query(
+            module="Commitments",
+            storage_function="CommitmentOf",
+            params=[netuid, hotkey_ss58],
+            block_hash=self.determine_block_hash(block),
+        )
+        return commit_data
 
     def get_metagraph_info(
         self,

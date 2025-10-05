@@ -61,9 +61,7 @@ from bittensor.core.extrinsics.asyncex.registration import (
 )
 from bittensor.core.extrinsics.asyncex.root import root_register_extrinsic
 from bittensor.core.extrinsics.asyncex.serving import (
-    get_last_bonds_reset,
     publish_metadata_extrinsic,
-    get_metadata,
 )
 from bittensor.core.extrinsics.asyncex.serving import serve_axon_extrinsic
 from bittensor.core.extrinsics.asyncex.staking import (
@@ -1524,14 +1522,45 @@ class AsyncSubtensor(SubtensorMixin):
             )
             return ""
 
-        metadata = await get_metadata(
-            self, netuid, hotkey, block, block_hash, reuse_block
+        metadata = cast(
+            dict,
+            await self.get_metadata(netuid, hotkey, block, block_hash, reuse_block),
         )
         try:
             return decode_metadata(metadata)
         except Exception as error:
             logging.error(error)
             return ""
+
+    async def get_last_bonds_reset(
+        self,
+        netuid: int,
+        hotkey_ss58: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> bytes:
+        """
+        Fetches the last bonds reset triggered at commitment from the blockchain for a given hotkey and netuid.
+
+        Parameters:
+            netuid: The network uid to fetch from.
+            hotkey_ss58: The hotkey of the neuron for which to fetch the last bonds reset.
+            block: The block number to query. If ``None``, the latest block is used.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or reuse_block.
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            bytes: The last bonds reset data for the specified hotkey and netuid.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        block = await self.substrate.query(
+            module="Commitments",
+            storage_function="LastBondsReset",
+            params=[netuid, hotkey_ss58],
+            block_hash=block_hash,
+        )
+        return block
 
     async def get_last_commitment_bonds_reset_block(
         self, netuid: int, uid: int
@@ -1555,7 +1584,7 @@ class AsyncSubtensor(SubtensorMixin):
                 "Your uid is not in the hotkeys. Please double-check your UID."
             )
             return None
-        block = await get_last_bonds_reset(self, netuid, hotkey)
+        block = await self.get_last_bonds_reset(netuid, hotkey)
         try:
             return decode_block(block)
         except TypeError:
@@ -1976,6 +2005,26 @@ class AsyncSubtensor(SubtensorMixin):
         )
 
         return Balance.from_rao(getattr(result, "value", 0))
+
+    async def get_metadata(
+        self,
+        netuid: int,
+        hotkey_ss58: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Union[str, dict]:
+        """Fetches metadata from the blockchain for a given hotkey and netuid."""
+        async with self.substrate:
+            block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+            commit_data = await self.substrate.query(
+                module="Commitments",
+                storage_function="CommitmentOf",
+                params=[netuid, hotkey_ss58],
+                block_hash=block_hash,
+                reuse_block_hash=reuse_block,
+            )
+        return commit_data
 
     async def get_metagraph_info(
         self,
