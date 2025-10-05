@@ -14,6 +14,8 @@ USER_BITTENSOR_DIR = HOME_DIR / ".bittensor"
 WALLETS_DIR = USER_BITTENSOR_DIR / "wallets"
 MINERS_DIR = USER_BITTENSOR_DIR / "miners"
 
+TAO_APP_BLOCK_EXPLORER = "https://www.tao.app/block/"
+
 __version__ = importlib.metadata.version("bittensor")
 
 
@@ -63,9 +65,6 @@ PIPADDRESS = "https://pypi.org/pypi/bittensor/json"
 
 # Substrate chain block time (seconds).
 BLOCKTIME = 12
-
-# Substrate ss58_format
-SS58_FORMAT = 42
 
 # Wallet ss58 address length
 SS58_ADDRESS_LENGTH = 48
