@@ -523,9 +523,23 @@ class ExtrinsicResponse:
 
 @dataclass
 class BlockInfo:
+    """
+    Class that holds information about a blockchain block.
+
+    This class encapsulates all relevant information about a block in the blockchain, including its number, hash,
+    timestamp, and contents.
+
+    Attributes:
+        number: The block number.
+        hash: The corresponding block hash.
+        timestamp: The timestamp of the block (based on the `Timestamp.Now` extrinsic).
+        header: The raw block header returned by the node RPC.
+        extrinsics: The list of decoded extrinsics included in the block.
+        explorer: The link to block explorer service.
+    """
     number: int
     hash: str
     timestamp: datetime
     header: dict
-    extrinsics: dict
+    extrinsics: list
     explorer: str
