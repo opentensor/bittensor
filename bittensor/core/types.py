@@ -1,6 +1,7 @@
 import argparse
 from abc import ABC
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Literal, Optional, TypedDict, Union, TYPE_CHECKING
 
 import numpy as np
@@ -518,3 +519,12 @@ class ExtrinsicResponse:
         if self.message:
             getattr(logging, level)(self.message)
         return self
+
+
+@dataclass
+class BlockInfo:
+    number: int
+    hash: str
+    timestamp: datetime
+    header: Optional[dict] = None
+    extrinsics: Optional[dict] = None
