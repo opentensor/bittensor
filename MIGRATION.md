@@ -24,10 +24,10 @@
 5. ✅ Reconsider some methods naming across the entire subtensor module.
 6. ~~Add `hotkey_ss58` parameter to `get_liquidity_list` method. One wallet can have many HKs. Currently, the mentioned method uses default HK only.~~ wrong idea
 7. ✅ apply correct logic if subtensor got `lov_verbose=True` -> `set_trace` level for btloggin
-8. Apply `SimSwap` logic to calculate any stake operation fees (this is not an extrinsic fee)
-9. Should the next functions move to `subtensor` as methods? They have exactly the same behavior as subtensor methods.
+8. ✅ Should the next functions move to `subtensor` as methods? They have exactly the same behavior as subtensor methods.
    - `get_metadata`
    - `get_last_bonds_reset`
+9. Apply `SimSwap` logic to calculate any stake operation fees (this is not an extrinsic fee)
 
 ## Metagraph
 1. ✅ Remove verbose archival node warnings for blocks older than 300. Some users complained about many messages for them.
@@ -256,6 +256,8 @@ Removing deprecated extrinsics and replacing them with consistent ones:
 - attribute `DelegateInfo/lite.total_daily_return` has been deleted (Vune confirmed that we shouldn't use it)
 - `Async/Subtensor` parameter `_mock` renamed to `mock`, also moved to last one in order. Community can use mocked `Async/Subtensor` in their tests in the same way as in we use it in the codebase.
 - method `get_traansfer_fee` has renamed parameter `value` to `amount`
+- `bittensor.core.extrinsic.serving.get_metadata` functions moved to `subtensor.get_metadata` method
+- `bittensor.core.extrinsic.serving.get_last_bonds_reset` function moved to `subtensor.get_last_bonds_reset` method
  
 Added sub-package `bittensor.core.addons` to host optional extensions and experimental logic enhancing the core functionality.
   - `bittensor.core.subtensor_api` moved to `bittensor.core.addons.subtensor_api`
