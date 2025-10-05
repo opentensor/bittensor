@@ -413,3 +413,50 @@ async def test_blocks_async(subtensor):
     subtensor.wait_for_block(block + 10)
     assert subtensor.chain.get_current_block() in [block + 10, block + 11]
     logging.console.info("✅ Passed [blue]test_blocks_async[/blue]")
+
+
+@pytest.mark.parametrize(
+    "block, block_hash, result",
+    [
+        (None, None, True),
+        (1, None, True),
+        (None, "SOME_HASH", True),
+        (1, "SOME_HASH", False)
+    ]
+)
+def test_block_info(subtensor, block, block_hash, result):
+    """Tests sync get_block_info."""
+    if block_hash:
+        block_hash = subtensor.chain.get_block_hash()
+
+    subtensor.wait_for_block(2)
+
+    try:
+        res = subtensor.chain.get_block_info(block=block, block_hash=block_hash)
+        assert (res is not None) == result
+    except Exception as e:
+        assert "Either block_hash or block_number should be set" in str(e)
+
+
+@pytest.mark.parametrize(
+    "block, block_hash, result",
+    [
+        (None, None, True),
+        (1, None, True),
+        (None, "SOME_HASH", True),
+        (1, "SOME_HASH", False)
+    ]
+)
+@pytest.mark.asyncio
+async def test_block_info(async_subtensor, block, block_hash, result):
+    """Tests async get_block_info."""
+    if block_hash:
+        block_hash = await async_subtensor.chain.get_block_hash()
+
+    await async_subtensor.wait_for_block(2)
+
+    try:
+        res = await async_subtensor.chain.get_block_info(block=block, block_hash=block_hash)
+        assert (res is not None) == result
+    except Exception as e:
+        assert "Either block_hash or block_number should be set" in str(e)
