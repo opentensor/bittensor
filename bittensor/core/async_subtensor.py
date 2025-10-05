@@ -1371,16 +1371,15 @@ class AsyncSubtensor(SubtensorMixin):
                 - timestamp: The timestamp of the block (based on the `Timestamp.Now` extrinsic).
                 - header: The raw block header returned by the node RPC.
                 - extrinsics: The list of decoded extrinsics included in the block.
+                - explorer: The link to block explorer service.
         """
-        block_info = self.substrate.get_block(
-            block_number=block,
-            block_hash=block_hash,
-            ignore_decoding_errors=True
+        block_info = await self.substrate.get_block(
+            block_number=block, block_hash=block_hash, ignore_decoding_errors=True
         )
         if isinstance(block_info, dict) and (header := block_info.get("header")):
             block = block or header.get("number", None)
             block_hash = block_hash or header.get("hash", None)
-            extrinsics = block_info.get("extrinsics")
+            extrinsics = cast(list, block_info.get("extrinsics"))
             timestamp = await self.get_timestamp(block=block)
             return BlockInfo(
                 number=block,
@@ -1388,7 +1387,7 @@ class AsyncSubtensor(SubtensorMixin):
                 timestamp=timestamp,
                 header=header,
                 extrinsics=extrinsics,
-                explorer=f"{TAO_APP_BLOCK_EXPLORER}{block}"
+                explorer=f"{TAO_APP_BLOCK_EXPLORER}{block}",
             )
         return None
 
