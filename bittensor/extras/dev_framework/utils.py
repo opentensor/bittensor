@@ -1,12 +1,7 @@
-import os
 from dataclasses import dataclass
 from typing import Optional, Union
 
 from bittensor_wallet import Wallet
-
-from bittensor.core.subtensor import Subtensor
-from bittensor.core.async_subtensor import AsyncSubtensor
-from bittensor.core.types import ExtrinsicResponse
 
 
 @dataclass
