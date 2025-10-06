@@ -1307,15 +1307,14 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             The raw commitment metadata from specific subnet for given hotkey.
         """
-        async with self.substrate:
-            block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-            commit_data = await self.substrate.query(
-                module="Commitments",
-                storage_function="CommitmentOf",
-                params=[netuid, hotkey_ss58],
-                block_hash=block_hash,
-                reuse_block_hash=reuse_block,
-            )
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        commit_data = await self.substrate.query(
+            module="Commitments",
+            storage_function="CommitmentOf",
+            params=[netuid, hotkey_ss58],
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
         return commit_data
 
     async def get_current_block(self) -> int:
