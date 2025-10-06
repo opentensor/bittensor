@@ -4310,3 +4310,50 @@ def test_set_auto_stake(subtensor, mocker):
     )
 
     assert result == mocked_extrinsic.return_value
+
+
+def test_get_block_info(subtensor, mocker):
+    """Tests that `get_block_info` calls proper methods and returns the correct value."""
+    # Preps
+    fake_block = mocker.Mock(spec=int)
+    fake_hash = mocker.Mock(spec=str)
+    fake_timestamp = mocker.Mock(spec=int)
+    fake_decoded = mocker.Mock(
+        value_serialized={
+            "call": {
+                "call_module": "Timestamp",
+                "call_args": [{"value": fake_timestamp}],
+            }
+        }
+    )
+    fake_substrate_block = {
+        "header": {
+            "number": fake_block,
+            "hash": fake_hash,
+        },
+        "extrinsics": [
+            fake_decoded,
+        ]
+
+    }
+    mocked_get_block = mocker.patch.object(subtensor.substrate, "get_block", return_value=fake_substrate_block)
+    mocked_BlockInfo = mocker.patch.object(subtensor_module, "BlockInfo")
+
+    # Call
+    result = subtensor.get_block_info()
+
+    # Asserts
+    mocked_get_block.assert_called_once_with(
+        block_hash=None,
+        block_number=None,
+        ignore_decoding_errors=True,
+    )
+    mocked_BlockInfo.assert_called_once_with(
+        number=fake_block,
+        hash=fake_hash,
+        timestamp=fake_timestamp,
+        header=fake_substrate_block.get("header"),
+        extrinsics=fake_substrate_block.get("extrinsics"),
+        explorer=f"{settings.TAO_APP_BLOCK_EXPLORER}{fake_block}"
+    )
+    assert result == mocked_BlockInfo.return_value

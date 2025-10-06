@@ -84,12 +84,14 @@ from bittensor.core.extrinsics.weights import (
     set_weights_extrinsic,
 )
 from bittensor.core.metagraph import Metagraph
+from bittensor_wallet.utils import SS58_FORMAT
 from bittensor.core.settings import (
     version_as_int,
-    SS58_FORMAT,
+    TAO_APP_BLOCK_EXPLORER,
     TYPE_REGISTRY,
 )
 from bittensor.core.types import (
+    BlockInfo,
     ExtrinsicResponse,
     ParamWithTypes,
     Salt,
@@ -800,6 +802,53 @@ class Subtensor(SubtensorMixin):
             return self._get_block_hash(block)
         else:
             return self.substrate.get_chain_head()
+
+    def get_block_info(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+    ) -> Optional[BlockInfo]:
+        """
+        Retrieve complete information about a specific block from the Subtensor chain.
+
+        This method aggregates multiple low-level RPC calls into a single structured response, returning both the raw
+        on-chain data and high-level decoded metadata for the given block.
+
+        Args:
+            block: The block number for which the hash is to be retrieved.
+            block_hash: The hash of the block to retrieve the block from.
+
+        Returns:
+            BlockInfo instance:
+                A dataclass containing all available information about the specified block, including:
+                - number: The block number.
+                - hash: The corresponding block hash.
+                - timestamp: The timestamp of the block (based on the `Timestamp.Now` extrinsic).
+                - header: The raw block header returned by the node RPC.
+                - extrinsics: The list of decoded extrinsics included in the block.
+                - explorer: The link to block explorer service. Always related with finney block data.
+        """
+        block_info = self.substrate.get_block(
+            block_number=block, block_hash=block_hash, ignore_decoding_errors=True
+        )
+        if isinstance(block_info, dict) and (header := block_info.get("header")):
+            block = block or header.get("number", None)
+            block_hash = block_hash or header.get("hash", None)
+            extrinsics = cast(list, block_info.get("extrinsics"))
+            timestamp = None
+            for ext in extrinsics:
+                if ext.value_serialized["call"]["call_module"] == "Timestamp":
+                    timestamp = ext.value_serialized["call"]["call_args"][0]["value"]
+                    break
+            return BlockInfo(
+                number=block,
+                hash=block_hash,
+                timestamp=timestamp,
+                header=header,
+                extrinsics=extrinsics,
+                explorer=f"{TAO_APP_BLOCK_EXPLORER}{block}",
+            )
+        return None
 
     def determine_block_hash(self, block: Optional[int]) -> Optional[str]:
         if block is None:
