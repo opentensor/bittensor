@@ -48,6 +48,9 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.get_children = subtensor.inner_subtensor.get_children
     subtensor.get_children_pending = subtensor.inner_subtensor.get_children_pending
     subtensor.get_commitment = subtensor.inner_subtensor.get_commitment
+    subtensor.get_commitment_metadata = (
+        subtensor.inner_subtensor.get_commitment_metadata
+    )
     subtensor.get_current_block = subtensor.inner_subtensor.get_current_block
     subtensor.get_delegate_by_hotkey = subtensor.inner_subtensor.get_delegate_by_hotkey
     subtensor.get_delegate_identities = (
@@ -71,7 +74,6 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.get_mechanism_emission_split = (
         subtensor.inner_subtensor.get_mechanism_emission_split
     )
-    subtensor.get_metadata = subtensor.inner_subtensor.get_metadata
     subtensor.get_metagraph_info = subtensor.inner_subtensor.get_metagraph_info
     subtensor.get_minimum_required_stake = (
         subtensor.inner_subtensor.get_minimum_required_stake
