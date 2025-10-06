@@ -11,11 +11,11 @@ class Commitments:
         self.get_all_commitments = subtensor.get_all_commitments
         self.get_all_revealed_commitments = subtensor.get_all_revealed_commitments
         self.get_commitment = subtensor.get_commitment
+        self.get_commitment_metadata = subtensor.get_commitment_metadata
         self.get_last_bonds_reset = subtensor.get_last_bonds_reset
         self.get_last_commitment_bonds_reset_block = (
             subtensor.get_last_commitment_bonds_reset_block
         )
-        self.get_metadata = subtensor.get_metadata
         self.get_revealed_commitment = subtensor.get_revealed_commitment
         self.get_revealed_commitment_by_hotkey = (
             subtensor.get_revealed_commitment_by_hotkey
