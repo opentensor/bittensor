@@ -69,7 +69,7 @@ rename this variable in documentation.
 
 12. ✅ The SDK is dropping support for `Python 3.9` starting with this release.
 13. ✅ Remove `Default is` and `Default to` in docstrings bc parameters enough.
-14. `camfairchild`: TODO, but we should have a grab_metadata if we don't already. Maybe don't decode, but can have a call that removes the Raw prefix, and another just doing grab_metadata_raw (no decoding)
+14. ✅ `camfairchild`: TODO, but we should have a grab_metadata if we don't already. Maybe don't decode, but can have a call that removes the Raw prefix, and another just doing grab_metadata_raw (no decoding). `get_commitment_metadata` added.
 15. Find and process all `TODOs` across the entire code base. If in doubt, discuss each one with the team separately. SDK has 29 TODOs.
 
 ## New features
@@ -241,8 +241,8 @@ Removing deprecated extrinsics and replacing them with consistent ones:
 
 ### Subtensor changes
 - method `all_subnets` has renamed parameter from `block_number` to `block` (consistency in the codebase).
-- The `hotkey` parameter, which meant ss58 key address, was renamed to `hotkey_ss58` in all methods and related extrinsics (consistency in the codebase).
-- The `coldkey` parameter, which meant ss58 key address, was renamed to `coldkey_ss58` in all methods (consistency in the codebase).
+- The `hotkey`,`hotkey_ss58_address` parameter, which meant ss58 key address, was renamed to `hotkey_ss58` in all methods and related extrinsics (consistency in the codebase).
+- The `coldkey`, `coldkey_ss58_address` parameter, which meant ss58 key address, was renamed to `coldkey_ss58` in all methods (consistency in the codebase).
 - method `query_subtensor` has updated parameters order.
 - method `query_module` has updated parameters order.
 - method `query_map_subtensor` has updated parameters order.
@@ -256,7 +256,7 @@ Removing deprecated extrinsics and replacing them with consistent ones:
 - attribute `DelegateInfo/lite.total_daily_return` has been deleted (Vune confirmed that we shouldn't use it)
 - `Async/Subtensor` parameter `_mock` renamed to `mock`, also moved to last one in order. Community can use mocked `Async/Subtensor` in their tests in the same way as in we use it in the codebase.
 - method `get_traansfer_fee` has renamed parameter `value` to `amount`
-- `bittensor.core.extrinsic.serving.get_metadata` functions moved to `subtensor.get_metadata` method
+- `bittensor.core.extrinsic.serving.get_metadata` functions moved to `subtensor.get_commitment_metadata` method
 - `bittensor.core.extrinsic.serving.get_last_bonds_reset` function moved to `subtensor.get_last_bonds_reset` method
  
 Added sub-package `bittensor.core.addons` to host optional extensions and experimental logic enhancing the core functionality.
