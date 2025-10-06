@@ -1,18 +1,24 @@
 # E2E Test Framework
 
 ## Overview
-The E2E test framework provides a unified orchestration layer for subnet operations testing in Bittensor.
-It simplifies the creation of end-to-end test scenarios by abstracting low-level Subtensor API calls into declarative steps.
+The Bittensor Test Framework provides a unified orchestration layer for subnet operations and on-chain behavior testing.
+Originally built to support SDK end-to-end (E2E) testing, it now serves as a general-purpose testing framework that can 
+be used both internally and by the Bittensor community.
 
+It abstracts low-level Subtensor RPC and extrinsic interactions into reproducible, declarative test steps, making it 
+suitable for:
+- Local development and simulation.
+- Testnet experimentation.
+- Other suitable cases.
 ---
 
 ## Structure
 ```
-tests/e2e_tests/framework/
+bittensor/extras/dev_framework/
 ├── subnet.py          # Main orchestration class (TestSubnet)
 ├── utils.py           # Common helpers and validators
 ├── __init__.py
-└── calls/             # Auto-generated extrinsic definitions
+└── calls/             # Auto-generated extrinsic definitions (based on current Subtensor spec version)
     ├── sudo_calls.py
     ├── non_sudo_calls.py
     ├── pallets.py
