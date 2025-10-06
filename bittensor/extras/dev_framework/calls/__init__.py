@@ -11,9 +11,9 @@ structure of available Subtensor operations.
 
 import os
 from bittensor import Subtensor
-from tests.e2e_tests.framework.calls.sudo_calls import *  # noqa: F401
-from tests.e2e_tests.framework.calls.non_sudo_calls import *  # noqa: F401
-from tests.e2e_tests.framework.calls.pallets import *  # noqa: F401
+from bittensor.extras.dev_framework.calls.sudo_calls import *  # noqa: F401
+from bittensor.extras.dev_framework.calls.non_sudo_calls import *  # noqa: F401
+from bittensor.extras.dev_framework.calls.pallets import *  # noqa: F401
 
 HEADER = '''"""
 This file is auto-generated. Do not edit manually.
@@ -28,6 +28,9 @@ For developers:
 
 Note:
     Any manual changes will be overwritten the next time the generator is run.
+'''
+
+IMPORT_TEXT = '''
 """
 
 from collections import namedtuple
@@ -40,6 +43,8 @@ def recreate_calls_subpackage(network="local"):
     """Fetch the list of pallets and their call and save them to the corresponding modules."""
     sub = Subtensor(network=network)
 
+    spec_version = sub.query_constant("System", "Version").value["spec_version"]
+    spec_version_text = f"    Subtensor spec version: {spec_version}"
     non_sudo_calls = []
     sudo_calls = []
     pallets = []
@@ -67,9 +72,19 @@ def recreate_calls_subpackage(network="local"):
                     f"# args: [{', '.join(fields_and_annot)}]  | Pallet: {pallet.name}"
                 )
 
-    sudo_text = HEADER + "\n".join(sorted(sudo_calls)) + "\n"
-    non_sudo_text = HEADER + "\n".join(sorted(non_sudo_calls)) + "\n"
-    pallets_text = "\n".join([f'{p} = "{p}"' for p in pallets])
+    sudo_text = (
+        HEADER + spec_version_text + IMPORT_TEXT + "\n".join(sorted(sudo_calls)) + "\n"
+    )
+    non_sudo_text = (
+        HEADER
+        + spec_version_text
+        + IMPORT_TEXT
+        + "\n".join(sorted(non_sudo_calls))
+        + "\n"
+    )
+    pallets_text = f'""""\n{spec_version_text} \n"""\n' + "\n".join(
+        [f'{p} = "{p}"' for p in pallets]
+    )
 
     sudo_calls_file_path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "sudo_calls.py"
