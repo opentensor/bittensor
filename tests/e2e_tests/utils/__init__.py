@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 
-from tests.e2e_tests.framework import *  # noqa: F401
+from bittensor.extras.dev_framework import *  # noqa: F401
 
 
 if TYPE_CHECKING:
