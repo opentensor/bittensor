@@ -1031,7 +1031,7 @@ class Subtensor(SubtensorMixin):
             The block number when the bonds were last reset, or None if not found.
         """
 
-        metagraph = self.metagraph(netuid)
+        metagraph = self.metagraph(netuid, block=block)
         try:
             hotkey_ss58 = metagraph.hotkeys[uid]
         except IndexError:
@@ -1040,9 +1040,10 @@ class Subtensor(SubtensorMixin):
             )
             return None
         block_data = self.get_last_bonds_reset(netuid, hotkey_ss58, block)
-        if block is None:
+        try:
+            return decode_block(block_data)
+        except TypeError:
             return None
-        return decode_block(block_data)
 
     def get_all_commitments(
         self, netuid: int, block: Optional[int] = None
