@@ -670,7 +670,7 @@ class Subtensor(SubtensorMixin):
 
         Parameters:
             coldkey_ss58: Coldkey ss58 address.
-            block: Subnet unique identifier.
+            block: The block number for the query.
 
         Returns:
             dict[int, str]:
@@ -743,6 +743,27 @@ class Subtensor(SubtensorMixin):
             value = item[1] or {"data": {"free": 0}}
             results.update({item[0].params[0]: Balance(value["data"]["free"])})
         return results
+
+    def get_commitment_metadata(
+        self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
+    ) -> Union[str, dict]:
+        """Fetches raw commitment metadata from specific subnet for given hotkey.
+
+        Parameters:
+            netuid: The unique subnet identifier.
+            hotkey_ss58: The hotkey ss58 address.
+            block: The blockchain block number for the query.
+
+        Returns:
+            The raw commitment metadata from specific subnet for given hotkey.
+        """
+        commit_data = self.substrate.query(
+            module="Commitments",
+            storage_function="CommitmentOf",
+            params=[netuid, hotkey_ss58],
+            block_hash=self.determine_block_hash(block),
+        )
+        return commit_data
 
     def get_current_block(self) -> int:
         """
@@ -1009,7 +1030,7 @@ class Subtensor(SubtensorMixin):
             )
             return ""
 
-        metadata = cast(dict, self.get_metadata(netuid, hotkey, block))
+        metadata = cast(dict, self.get_commitment_metadata(netuid, hotkey, block))
         try:
             return decode_metadata(metadata)
         except Exception as error:
@@ -1020,25 +1041,28 @@ class Subtensor(SubtensorMixin):
         self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
     ) -> bytes:
         """
-        Fetches the last bonds reset triggered at commitment from the blockchain for a given hotkey and netuid.
+        Retrieves the last bonds reset triggered at commitment from given subnet for a specific hotkey.
 
         Parameters:
             netuid: The network uid to fetch from.
             hotkey_ss58: The hotkey of the neuron for which to fetch the last bonds reset.
-            block: The block number to query. If ``None``, the latest block is used.
+            block: The block number to query.
 
         Returns:
-            bytes: The last bonds reset data for the specified hotkey and netuid.
+            bytes: The last bonds reset data from given subnet for the specified hotkey.
         """
         return self.substrate.query(
-            module="self",
+            module="Commitments",
             storage_function="LastBondsReset",
             params=[netuid, hotkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
 
     def get_last_commitment_bonds_reset_block(
-        self, netuid: int, uid: int
+        self,
+        netuid: int,
+        uid: int,
+        block: Optional[int] = None,
     ) -> Optional[int]:
         """
         Retrieves the last block number when the bonds reset were triggered by publish_metadata for a specific neuron.
@@ -1046,6 +1070,7 @@ class Subtensor(SubtensorMixin):
         Parameters:
             netuid: The unique identifier of the subnetwork.
             uid: The unique identifier of the neuron.
+            block: The block number to query.
 
         Returns:
             The block number when the bonds were last reset, or None if not found.
@@ -1053,20 +1078,32 @@ class Subtensor(SubtensorMixin):
 
         metagraph = self.metagraph(netuid)
         try:
-            hotkey = metagraph.hotkeys[uid]
+            hotkey_ss58 = metagraph.hotkeys[uid]
         except IndexError:
             logging.error(
                 "Your uid is not in the hotkeys. Please double-check your UID."
             )
             return None
-        block = self.get_last_bonds_reset(netuid, hotkey)
+        block_data = self.get_last_bonds_reset(netuid, hotkey_ss58, block)
         if block is None:
             return None
-        return decode_block(block)
+        return decode_block(block_data)
 
     def get_all_commitments(
         self, netuid: int, block: Optional[int] = None
     ) -> dict[str, str]:
+        """Retrieves raw commitment metadata from a given subnet.
+
+        This method retrieves all commitment data for all neurons in a specific subnet. This is useful for analyzing the
+        commit-reveal patterns across an entire subnet.
+
+        Parameters:
+            netuid: The unique subnet identifier.
+            block: The blockchain block number for the query.
+
+        Returns:
+            The raw on-chain commitment metadata (as SCALE-decoded object or raw bytes) from specific subnet.
+        """
         query = self.query_map(
             module="Commitments",
             name="CommitmentOf",
@@ -1086,26 +1123,26 @@ class Subtensor(SubtensorMixin):
     def get_revealed_commitment_by_hotkey(
         self,
         netuid: int,
-        hotkey_ss58_address: str,
+        hotkey_ss58: str,
         block: Optional[int] = None,
     ) -> Optional[tuple[tuple[int, str], ...]]:
-        """Returns hotkey related revealed commitment for a given netuid.
+        """Retrieves hotkey related revealed commitment for a given subnet.
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
-            hotkey_ss58_address: The ss58 address of the committee member.
+            hotkey_ss58: The ss58 address of the committee member.
             block: The block number to retrieve the commitment from.
 
         Returns:
             A tuple of reveal block and commitment message.
         """
-        if not is_valid_ss58_address(address=hotkey_ss58_address):
-            raise ValueError(f"Invalid ss58 address {hotkey_ss58_address} provided.")
+        if not is_valid_ss58_address(address=hotkey_ss58):
+            raise ValueError(f"Invalid ss58 address {hotkey_ss58} provided.")
 
         query = self.query_module(
             module="Commitments",
             name="RevealedCommitments",
-            params=[netuid, hotkey_ss58_address],
+            params=[netuid, hotkey_ss58],
             block=block,
         )
         if query is None:
@@ -1135,20 +1172,20 @@ class Subtensor(SubtensorMixin):
         try:
             meta_info = self.get_metagraph_info(netuid, block=block)
             if meta_info:
-                hotkey_ss58_address = meta_info.hotkeys[uid]
+                hotkey_ss58 = meta_info.hotkeys[uid]
             else:
                 raise ValueError(f"Subnet with netuid {netuid} does not exist.")
         except IndexError:
             raise ValueError(f"Subnet {netuid} does not have a neuron with uid {uid}.")
 
         return self.get_revealed_commitment_by_hotkey(
-            netuid=netuid, hotkey_ss58_address=hotkey_ss58_address, block=block
+            netuid=netuid, hotkey_ss58=hotkey_ss58, block=block
         )
 
     def get_all_revealed_commitments(
         self, netuid: int, block: Optional[int] = None
     ) -> dict[str, tuple[tuple[int, str], ...]]:
-        """Returns all revealed commitments for a given netuid.
+        """Retrieves all revealed commitments for a given subnet.
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
@@ -1373,18 +1410,6 @@ class Subtensor(SubtensorMixin):
         )
 
         return Balance.from_rao(getattr(result, "value", 0))
-
-    def get_metadata(
-        self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
-    ) -> Union[str, dict]:
-        """Fetches metadata from the blockchain for a given hotkey and netuid."""
-        commit_data = self.substrate.query(
-            module="Commitments",
-            storage_function="CommitmentOf",
-            params=[netuid, hotkey_ss58],
-            block_hash=self.determine_block_hash(block),
-        )
-        return commit_data
 
     def get_metagraph_info(
         self,
