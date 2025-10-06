@@ -826,7 +826,7 @@ class Subtensor(SubtensorMixin):
                 - timestamp: The timestamp of the block (based on the `Timestamp.Now` extrinsic).
                 - header: The raw block header returned by the node RPC.
                 - extrinsics: The list of decoded extrinsics included in the block.
-                - explorer: The link to block explorer service.
+                - explorer: The link to block explorer service. Always related with finney block data.
         """
         block_info = self.substrate.get_block(
             block_number=block, block_hash=block_hash, ignore_decoding_errors=True
@@ -837,9 +837,8 @@ class Subtensor(SubtensorMixin):
             extrinsics = cast(list, block_info.get("extrinsics"))
             timestamp = None
             for ext in extrinsics:
-                decoded = ext.decode()
-                if decoded["call"]["call_module"] == "Timestamp":
-                    timestamp = decoded["call"]["call_args"][0]["value"]
+                if ext.value_serialized["call"]["call_module"] == "Timestamp":
+                    timestamp = ext.value_serialized["call"]["call_args"][0]["value"]
                     break
             return BlockInfo(
                 number=block,
