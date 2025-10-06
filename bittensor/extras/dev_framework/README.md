@@ -1,4 +1,4 @@
-# E2E Test Framework
+# Development Test Framework
 
 ## Overview
 The Bittensor Test Framework provides a unified orchestration layer for subnet operations and on-chain behavior testing.
