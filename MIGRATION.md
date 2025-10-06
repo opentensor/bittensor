@@ -310,6 +310,7 @@ New subpackage `bittensor.extras` created to host optional extensions and experi
 Currently it contains:
 - `bittensor.extras.subtensor_api`
 - `bittensor.extras.timelock`
+- `bittensor.extras.dev_framework` (read `bittensor/extras/dev_framework/README.md`)
 
 
 ### Balance (bittensor/utils/balance.py) and related changes

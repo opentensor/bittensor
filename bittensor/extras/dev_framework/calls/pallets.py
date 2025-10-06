@@ -1,3 +1,7 @@
+""" "
+Subtensor spec version: 325
+"""
+
 System = "System"
 Timestamp = "Timestamp"
 Grandpa = "Grandpa"
