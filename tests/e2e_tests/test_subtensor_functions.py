@@ -384,7 +384,7 @@ def test_blocks(subtensor):
     get_current_block = subtensor.chain.get_current_block()
     block = subtensor.block
 
-    # Several random tests fell during the block finalization period. Fast blocks of 0.25 seconds (very fast)
+    # Several random tests fail during the block finalization period. Fast blocks of 0.25 seconds (very fast)
     assert get_current_block in [block, block + 1]
 
     block_hash = subtensor.chain.get_block_hash(block)
