@@ -534,7 +534,7 @@ class BlockInfo:
         hash: The corresponding block hash.
         timestamp: The timestamp of the block (based on the `Timestamp.Now` extrinsic).
         header: The raw block header returned by the node RPC.
-        extrinsics: The list of decoded extrinsics included in the block.
+        extrinsics: The list of extrinsics included in the block.
         explorer: The link to block explorer service.
     """
 
