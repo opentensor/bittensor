@@ -1651,12 +1651,11 @@ def test_get_last_commitment_bonds_reset_block(subtensor, mocker):
     fake_netuid = 1
     fake_uid = 2
     fake_hotkey = "hotkey"
-    expected_result = 3
 
     mocked_get_last_bonds_reset = mocker.patch.object(
         subtensor, "get_last_bonds_reset"
     )
-    mocked_get_last_bonds_reset.return_value = expected_result
+    mocked_decode_block = mocker.patch.object(subtensor_module, "decode_block")
 
     mocked_metagraph = mocker.MagicMock()
     subtensor.metagraph = mocked_metagraph
@@ -1668,8 +1667,12 @@ def test_get_last_commitment_bonds_reset_block(subtensor, mocker):
     )
 
     # Assertions
-    mocked_get_last_bonds_reset.assert_called_once()
-    assert result == expected_result
+    mocked_metagraph.assert_called_once_with(fake_netuid, None)
+    mocked_get_last_bonds_reset.assert_called_once_with(
+        fake_netuid, fake_hotkey, None
+    )
+    mocked_decode_block.assert_called_once_with(mocked_get_last_bonds_reset.return_value)
+    assert result == mocked_decode_block.return_value
 
 
 def test_min_allowed_weights(subtensor, mocker):
