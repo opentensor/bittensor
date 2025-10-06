@@ -1,7 +1,6 @@
 import argparse
 from abc import ABC
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Any, Literal, Optional, TypedDict, Union, TYPE_CHECKING
 
 import numpy as np
@@ -540,7 +539,7 @@ class BlockInfo:
 
     number: int
     hash: str
-    timestamp: datetime
+    timestamp: Optional[int]
     header: dict
     extrinsics: list
     explorer: str
