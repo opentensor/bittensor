@@ -49,7 +49,7 @@ async def sudo_call_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-    root: bool = False,
+    sn_owner_call: bool = False,
 ) -> ExtrinsicResponse:
     """Execute a sudo call extrinsic.
 
@@ -68,7 +68,7 @@ async def sudo_call_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
-        root: Whether to use the root account for not sudo call in some subtensor pallet.
+        : True, if the subnet owner makes a call.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -86,7 +86,7 @@ async def sudo_call_extrinsic(
             call_function=call_function,
             call_params=call_params,
         )
-        if not root:
+        if not sn_owner_call:
             call = await subtensor.substrate.compose_call(
                 call_module="Sudo",
                 call_function="sudo",
