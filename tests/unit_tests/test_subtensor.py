@@ -1667,7 +1667,9 @@ def test_get_last_commitment_bonds_reset_block(subtensor, mocker):
     )
 
     # Assertions
-    mocked_metagraph.assert_called_once_with(fake_netuid, None)
+    mocked_metagraph.assert_called_once_with(
+        fake_netuid,
+        block=None)
     mocked_get_last_bonds_reset.assert_called_once_with(
         fake_netuid, fake_hotkey, None
     )
