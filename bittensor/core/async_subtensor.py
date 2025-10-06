@@ -1399,7 +1399,12 @@ class AsyncSubtensor(SubtensorMixin):
             block = block or header.get("number", None)
             block_hash = block_hash or header.get("hash", None)
             extrinsics = cast(list, block_info.get("extrinsics"))
-            timestamp = await self.get_timestamp(block=block)
+            timestamp = None
+            for ext in extrinsics:
+                decoded = ext.decode()
+                if decoded["call"]["call_module"] == "Timestamp":
+                    timestamp = decoded["call"]["call_args"][0]["value"]
+                    break
             return BlockInfo(
                 number=block,
                 hash=block_hash,
