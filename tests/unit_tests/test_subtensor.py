@@ -4317,16 +4317,26 @@ def test_get_block_info(subtensor, mocker):
     # Preps
     fake_block = mocker.Mock(spec=int)
     fake_hash = mocker.Mock(spec=str)
+    fake_timestamp = mocker.Mock(spec=int)
+    fake_decoded = mocker.Mock(
+        value_serialized={
+            "call": {
+                "call_module": "Timestamp",
+                "call_args": [{"value": fake_timestamp}],
+            }
+        }
+    )
     fake_substrate_block = {
         "header": {
             "number": fake_block,
             "hash": fake_hash,
         },
-        "extrinsics": []
+        "extrinsics": [
+            fake_decoded,
+        ]
 
     }
     mocked_get_block = mocker.patch.object(subtensor.substrate, "get_block", return_value=fake_substrate_block)
-    mocked_get_timestamp = mocker.patch.object(subtensor, "get_timestamp")
     mocked_BlockInfo = mocker.patch.object(subtensor_module, "BlockInfo")
 
     # Call
@@ -4341,7 +4351,7 @@ def test_get_block_info(subtensor, mocker):
     mocked_BlockInfo.assert_called_once_with(
         number=fake_block,
         hash=fake_hash,
-        timestamp=mocked_get_timestamp.return_value,
+        timestamp=fake_timestamp,
         header=fake_substrate_block.get("header"),
         extrinsics=fake_substrate_block.get("extrinsics"),
         explorer=f"{settings.TAO_APP_BLOCK_EXPLORER}{fake_block}"
