@@ -400,7 +400,7 @@ class TestSubnet:
             raise_error=raise_error or self.raise_error,
             wait_for_inclusion=wait_for_inclusion or self.wait_for_inclusion,
             wait_for_finalization=wait_for_finalization or self.wait_for_finalization,
-            root=not sudo_call,
+            sn_owner_call=not sudo_call,
         )
 
         if self._check_response(response):
@@ -433,7 +433,7 @@ class TestSubnet:
             raise_error=raise_error or self.raise_error,
             wait_for_inclusion=wait_for_inclusion or self.wait_for_inclusion,
             wait_for_finalization=wait_for_finalization or self.wait_for_finalization,
-            root=not sudo_call,
+            sn_owner_call=not sudo_call,
         )
 
         if self._check_response(response):
