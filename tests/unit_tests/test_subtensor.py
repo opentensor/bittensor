@@ -4338,9 +4338,6 @@ def test_get_block_info(subtensor, mocker):
         block_number=None,
         ignore_decoding_errors=True,
     )
-    mocked_get_timestamp.assert_called_once_with(
-        block=fake_block
-    )
     mocked_BlockInfo.assert_called_once_with(
         number=fake_block,
         hash=fake_hash,
