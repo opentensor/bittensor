@@ -1,7 +1,7 @@
 import pytest
 
 from bittensor import warnings, __getattr__, version_split, logging, trace, debug, utils
-from bittensor.core.settings import SS58_FORMAT
+from bittensor_wallet.utils import SS58_FORMAT
 
 
 def test_getattr_version_split():
