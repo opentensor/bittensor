@@ -1500,7 +1500,7 @@ def test_get_commitment(subtensor, mocker):
     subtensor.metagraph = mocked_metagraph
     mocked_metagraph.return_value.hotkeys = {fake_uid: fake_hotkey}
 
-    mocked_get_metadata = mocker.patch.object(subtensor_module, "get_metadata")
+    mocked_get_metadata = mocker.patch.object(subtensor, "get_commitment_metadata")
     mocked_get_metadata.return_value = {
         "deposit": 0,
         "block": 3843930,
@@ -1651,12 +1651,11 @@ def test_get_last_commitment_bonds_reset_block(subtensor, mocker):
     fake_netuid = 1
     fake_uid = 2
     fake_hotkey = "hotkey"
-    expected_result = 3
 
     mocked_get_last_bonds_reset = mocker.patch.object(
-        subtensor_module, "get_last_bonds_reset"
+        subtensor, "get_last_bonds_reset"
     )
-    mocked_get_last_bonds_reset.return_value = expected_result
+    mocked_decode_block = mocker.patch.object(subtensor_module, "decode_block")
 
     mocked_metagraph = mocker.MagicMock()
     subtensor.metagraph = mocked_metagraph
@@ -1668,8 +1667,14 @@ def test_get_last_commitment_bonds_reset_block(subtensor, mocker):
     )
 
     # Assertions
-    mocked_get_last_bonds_reset.assert_called_once()
-    assert result == expected_result
+    mocked_metagraph.assert_called_once_with(
+        fake_netuid,
+        block=None)
+    mocked_get_last_bonds_reset.assert_called_once_with(
+        fake_netuid, fake_hotkey, None
+    )
+    mocked_decode_block.assert_called_once_with(mocked_get_last_bonds_reset.return_value)
+    assert result == mocked_decode_block.return_value
 
 
 def test_min_allowed_weights(subtensor, mocker):
@@ -4305,3 +4310,50 @@ def test_set_auto_stake(subtensor, mocker):
     )
 
     assert result == mocked_extrinsic.return_value
+
+
+def test_get_block_info(subtensor, mocker):
+    """Tests that `get_block_info` calls proper methods and returns the correct value."""
+    # Preps
+    fake_block = mocker.Mock(spec=int)
+    fake_hash = mocker.Mock(spec=str)
+    fake_timestamp = mocker.Mock(spec=int)
+    fake_decoded = mocker.Mock(
+        value_serialized={
+            "call": {
+                "call_module": "Timestamp",
+                "call_args": [{"value": fake_timestamp}],
+            }
+        }
+    )
+    fake_substrate_block = {
+        "header": {
+            "number": fake_block,
+            "hash": fake_hash,
+        },
+        "extrinsics": [
+            fake_decoded,
+        ]
+
+    }
+    mocked_get_block = mocker.patch.object(subtensor.substrate, "get_block", return_value=fake_substrate_block)
+    mocked_BlockInfo = mocker.patch.object(subtensor_module, "BlockInfo")
+
+    # Call
+    result = subtensor.get_block_info()
+
+    # Asserts
+    mocked_get_block.assert_called_once_with(
+        block_hash=None,
+        block_number=None,
+        ignore_decoding_errors=True,
+    )
+    mocked_BlockInfo.assert_called_once_with(
+        number=fake_block,
+        hash=fake_hash,
+        timestamp=fake_timestamp,
+        header=fake_substrate_block.get("header"),
+        extrinsics=fake_substrate_block.get("extrinsics"),
+        explorer=f"{settings.TAO_APP_BLOCK_EXPLORER}{fake_block}"
+    )
+    assert result == mocked_BlockInfo.return_value

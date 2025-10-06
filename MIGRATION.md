@@ -24,10 +24,10 @@
 5. ✅ Reconsider some methods naming across the entire subtensor module.
 6. ~~Add `hotkey_ss58` parameter to `get_liquidity_list` method. One wallet can have many HKs. Currently, the mentioned method uses default HK only.~~ wrong idea
 7. ✅ apply correct logic if subtensor got `lov_verbose=True` -> `set_trace` level for btloggin
-8. Apply `SimSwap` logic to calculate any stake operation fees (this is not an extrinsic fee)
-9. Should the next functions move to `subtensor` as methods? They have exactly the same behavior as subtensor methods.
+8. ✅ Should the next functions move to `subtensor` as methods? They have exactly the same behavior as subtensor methods.
    - `get_metadata`
    - `get_last_bonds_reset`
+9. Apply `SimSwap` logic to calculate any stake operation fees (this is not an extrinsic fee)
 
 ## Metagraph
 1. ✅ Remove verbose archival node warnings for blocks older than 300. Some users complained about many messages for them.
@@ -69,8 +69,9 @@ rename this variable in documentation.
 
 12. ✅ The SDK is dropping support for `Python 3.9` starting with this release.
 13. ✅ Remove `Default is` and `Default to` in docstrings bc parameters enough.
-14. `camfairchild`: TODO, but we should have a grab_metadata if we don't already. Maybe don't decode, but can have a call that removes the Raw prefix, and another just doing grab_metadata_raw (no decoding)
-15. Find and process all `TODOs` across the entire code base. If in doubt, discuss each one with the team separately. SDK has 29 TODOs.
+14. ✅ `camfairchild`: TODO, but we should have a grab_metadata if we don't already. Maybe don't decode, but can have a call that removes the Raw prefix, and another just doing grab_metadata_raw (no decoding). `get_commitment_metadata` added.
+15. Solve the issue when a script using SDK receives the `--config` cli parameter. Disable `argparse` processing by default and enable it only when using SOME? a local environment variable.
+16. Find and process all `TODOs` across the entire code base. If in doubt, discuss each one with the team separately. SDK has 29 TODOs.
 
 ## New features
 1. ✅ Unify extrinsic return values by introducing an ExtrinsicResponse class. Extrinsics currently return either a boolean or a tuple.
@@ -81,7 +82,7 @@ rename this variable in documentation.
     - Opportunity to expand the content of the extrinsic's response at any time upon community request or based on new technical requirements any time.
 2. ✅ Add `bittensor.utils.hex_to_ss58` function. SDK still doesn't have it. (Probably inner import `from scalecodec import ss58_encode, ss58_decode`)
 3. ✅ Implement Sub-subnets logic. Subtensor PR https://github.com/opentensor/subtensor/pull/1984
-4. Implement classes for `BlockInfo` objects that will contain the following fields:
+4. ✅ Implement classes for `BlockInfo` objects that will contain the following fields:
    - number (int)
    - hash (str)
    - timestamp (datetime)
@@ -241,8 +242,8 @@ Removing deprecated extrinsics and replacing them with consistent ones:
 
 ### Subtensor changes
 - method `all_subnets` has renamed parameter from `block_number` to `block` (consistency in the codebase).
-- The `hotkey` parameter, which meant ss58 key address, was renamed to `hotkey_ss58` in all methods and related extrinsics (consistency in the codebase).
-- The `coldkey` parameter, which meant ss58 key address, was renamed to `coldkey_ss58` in all methods (consistency in the codebase).
+- The `hotkey`,`hotkey_ss58_address` parameter, which meant ss58 key address, was renamed to `hotkey_ss58` in all methods and related extrinsics (consistency in the codebase).
+- The `coldkey`, `coldkey_ss58_address` parameter, which meant ss58 key address, was renamed to `coldkey_ss58` in all methods (consistency in the codebase).
 - method `query_subtensor` has updated parameters order.
 - method `query_module` has updated parameters order.
 - method `query_map_subtensor` has updated parameters order.
@@ -256,6 +257,8 @@ Removing deprecated extrinsics and replacing them with consistent ones:
 - attribute `DelegateInfo/lite.total_daily_return` has been deleted (Vune confirmed that we shouldn't use it)
 - `Async/Subtensor` parameter `_mock` renamed to `mock`, also moved to last one in order. Community can use mocked `Async/Subtensor` in their tests in the same way as in we use it in the codebase.
 - method `get_traansfer_fee` has renamed parameter `value` to `amount`
+- `bittensor.core.extrinsic.serving.get_metadata` functions moved to `subtensor.get_commitment_metadata` method
+- `bittensor.core.extrinsic.serving.get_last_bonds_reset` function moved to `subtensor.get_last_bonds_reset` method
  
 Added sub-package `bittensor.core.addons` to host optional extensions and experimental logic enhancing the core functionality.
   - `bittensor.core.subtensor_api` moved to `bittensor.core.addons.subtensor_api`

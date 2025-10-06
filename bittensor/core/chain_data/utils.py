@@ -3,12 +3,12 @@
 from enum import Enum
 from typing import Optional, Union, TYPE_CHECKING
 
-from scalecodec.base import RuntimeConfiguration, ScaleBytes
 from async_substrate_interface.types import ScaleObj
+from bittensor_wallet.utils import SS58_FORMAT
+from scalecodec.base import RuntimeConfiguration, ScaleBytes
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.utils.ss58 import ss58_encode
 
-from bittensor.core.settings import SS58_FORMAT
 from bittensor.utils.balance import Balance
 
 if TYPE_CHECKING:
