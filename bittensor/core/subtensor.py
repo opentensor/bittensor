@@ -187,15 +187,21 @@ class Subtensor(SubtensorMixin):
                 f"Connected to {self.network} network and {self.chain_endpoint}."
             )
 
+    def close(self):
+        """Closes the websocket connection."""
+        self.substrate.close()
+
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
-    def close(self):
-        """Closes the websocket connection."""
-        self.substrate.close()
+    # Helpers ==========================================================================================================
+
+    @lru_cache(maxsize=128)
+    def _get_block_hash(self, block_id: int):
+        return self.substrate.get_block_hash(block_id)
 
     def _get_substrate(
         self,
@@ -236,6 +242,64 @@ class Subtensor(SubtensorMixin):
             chain_name="Bittensor",
             _mock=_mock,
         )
+
+    def determine_block_hash(self, block: Optional[int]) -> Optional[str]:
+        if block is None:
+            return None
+        else:
+            return self.get_block_hash(block=block)
+
+    def encode_params(
+        self,
+        call_definition: dict[str, list["ParamWithTypes"]],
+        params: Union[list[Any], dict[str, Any]],
+    ) -> str:
+        """Returns a hex encoded string of the params using their types."""
+        param_data = scalecodec.ScaleBytes(b"")
+
+        for i, param in enumerate(call_definition["params"]):
+            scale_obj = self.substrate.create_scale_object(param["type"])
+            if isinstance(params, list):
+                param_data += scale_obj.encode(params[i])
+            else:
+                if param["name"] not in params:
+                    raise ValueError(f"Missing param {param['name']} in params dict.")
+
+                param_data += scale_obj.encode(params[param["name"]])
+
+        return param_data.to_hex()
+
+    def get_hyperparameter(
+        self, param_name: str, netuid: int, block: Optional[int] = None
+    ) -> Optional[Any]:
+        """
+        Retrieves a specified hyperparameter for a specific subnet.
+
+        Parameters:
+            param_name: The name of the hyperparameter to retrieve.
+            netuid: The unique identifier of the subnet.
+            block: the block number at which to retrieve the hyperparameter.
+
+        Returns:
+            The value of the specified hyperparameter if the subnet exists, or None
+        """
+        block_hash = self.determine_block_hash(block)
+        if not self.subnet_exists(netuid, block=block):
+            logging.error(f"subnet {netuid} does not exist")
+            return None
+
+        result = self.substrate.query(
+            module="SubtensorModule",
+            storage_function=param_name,
+            params=[netuid],
+            block_hash=block_hash,
+        )
+
+        return getattr(result, "value", result)
+
+    @property
+    def block(self) -> int:
+        return self.get_current_block()
 
     # Subtensor queries ===========================================================================================
 
@@ -436,10 +500,6 @@ class Subtensor(SubtensorMixin):
         )
 
     # Common subtensor calls ===========================================================================================
-
-    @property
-    def block(self) -> int:
-        return self.get_current_block()
 
     def all_subnets(self, block: Optional[int] = None) -> Optional[list["DynamicInfo"]]:
         """
@@ -661,6 +721,151 @@ class Subtensor(SubtensorMixin):
 
         return SubnetInfo.list_from_dicts(result)
 
+    def get_all_commitments(
+        self, netuid: int, block: Optional[int] = None
+    ) -> dict[str, str]:
+        """Retrieves raw commitment metadata from a given subnet.
+
+        This method retrieves all commitment data for all neurons in a specific subnet. This is useful for analyzing the
+        commit-reveal patterns across an entire subnet.
+
+        Parameters:
+            netuid: The unique subnet identifier.
+            block: The blockchain block number for the query.
+
+        Returns:
+            The raw on-chain commitment metadata (as SCALE-decoded object or raw bytes) from specific subnet.
+        """
+        query = self.query_map(
+            module="Commitments",
+            name="CommitmentOf",
+            params=[netuid],
+            block=block,
+        )
+        result = {}
+        for id_, value in query:
+            try:
+                result[decode_account_id(id_[0])] = decode_metadata(value)
+            except Exception as error:
+                logging.error(
+                    f"Error decoding [red]{id_}[/red] and [red]{value}[/red]: {error}"
+                )
+        return result
+
+    def get_all_metagraphs_info(
+        self,
+        block: Optional[int] = None,
+        all_mechanisms: bool = False,
+    ) -> Optional[list[MetagraphInfo]]:
+        """
+        Retrieves a list of MetagraphInfo objects for all subnets
+
+        Parameters:
+            block: The blockchain block number for the query.
+            all_mechanisms: If True then returns all mechanisms, otherwise only those with index 0 for all subnets.
+
+        Returns:
+            List of MetagraphInfo objects for all existing subnets.
+
+        Notes:
+            See also: See <https://docs.learnbittensor.org/glossary#metagraph>
+        """
+        block_hash = self.determine_block_hash(block)
+        method = "get_all_mechagraphs" if all_mechanisms else "get_all_metagraphs"
+        query = self.substrate.runtime_call(
+            api="SubnetInfoRuntimeApi",
+            method=method,
+            block_hash=block_hash,
+        )
+        if query is None or not hasattr(query, "value"):
+            return None
+
+        return MetagraphInfo.list_from_dicts(query.value)
+
+    def get_all_neuron_certificates(
+        self, netuid: int, block: Optional[int] = None
+    ) -> dict[str, Certificate]:
+        """
+        Retrieves the TLS certificates for neurons within a specified subnet (netuid) of the Bittensor network.
+
+        Parameters:
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query.
+
+        Returns:
+            {ss58: Certificate} for the key/Certificate pairs on the subnet
+
+        This function is used for certificate discovery for setting up mutual tls communication between neurons.
+        """
+        query_certificates = self.query_map(
+            module="SubtensorModule",
+            name="NeuronCertificates",
+            params=[netuid],
+            block=block,
+        )
+        output = {}
+        for key, item in query_certificates:
+            output[decode_account_id(key)] = Certificate(item.value)
+        return output
+
+    def get_all_revealed_commitments(
+        self, netuid: int, block: Optional[int] = None
+    ) -> dict[str, tuple[tuple[int, str], ...]]:
+        """Retrieves all revealed commitments for a given subnet.
+
+        Parameters:
+            netuid: The unique identifier of the subnetwork.
+            block: The block number to retrieve the commitment from.
+
+        Returns:
+            result: A dictionary of all revealed commitments in view {ss58_address: (reveal block, commitment message)}.
+
+        Example of result:
+        {
+            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY": ( (12, "Alice message 1"), (152, "Alice message 2") ),
+            "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty": ( (12, "Bob message 1"), (147, "Bob message 2") ),
+        }
+        """
+        query = self.query_map(
+            module="Commitments",
+            name="RevealedCommitments",
+            params=[netuid],
+            block=block,
+        )
+
+        result = {}
+        for pair in query:
+            hotkey_ss58_address, commitment_message = (
+                decode_revealed_commitment_with_hotkey(pair)
+            )
+            result[hotkey_ss58_address] = commitment_message
+        return result
+
+    def get_all_subnets_netuid(self, block: Optional[int] = None) -> UIDs:
+        """
+        Retrieves the list of all subnet unique identifiers (netuids) currently present in the Bittensor network.
+
+        Parameters:
+            block: The blockchain block number for the query.
+
+        Returns:
+            A list of subnet netuids.
+
+        This function provides a comprehensive view of the subnets within the Bittensor network,
+        offering insights into its diversity and scale.
+        """
+        result = self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function="NetworksAdded",
+            block_hash=self.determine_block_hash(block),
+        )
+        subnets = []
+        if result.records:
+            for netuid, exists in result:
+                if exists:
+                    subnets.append(netuid)
+        return subnets
+
     def get_auto_stakes(
         self,
         coldkey_ss58: str,
@@ -744,27 +949,6 @@ class Subtensor(SubtensorMixin):
             results.update({item[0].params[0]: Balance(value["data"]["free"])})
         return results
 
-    def get_commitment_metadata(
-        self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
-    ) -> Union[str, dict]:
-        """Fetches raw commitment metadata from specific subnet for given hotkey.
-
-        Parameters:
-            netuid: The unique subnet identifier.
-            hotkey_ss58: The hotkey ss58 address.
-            block: The blockchain block number for the query.
-
-        Returns:
-            The raw commitment metadata from specific subnet for given hotkey.
-        """
-        commit_data = self.substrate.query(
-            module="Commitments",
-            storage_function="CommitmentOf",
-            params=[netuid, hotkey_ss58],
-            block_hash=self.determine_block_hash(block),
-        )
-        return commit_data
-
     def get_current_block(self) -> int:
         """
         Returns the current block number on the Bittensor blockchain. This function provides the latest block number,
@@ -778,10 +962,6 @@ class Subtensor(SubtensorMixin):
             synchronization.
         """
         return self.substrate.get_block_number(None)
-
-    @lru_cache(maxsize=128)
-    def _get_block_hash(self, block_id: int):
-        return self.substrate.get_block_hash(block_id)
 
     def get_block_hash(self, block: Optional[int] = None) -> str:
         """
@@ -849,92 +1029,6 @@ class Subtensor(SubtensorMixin):
                 explorer=f"{TAO_APP_BLOCK_EXPLORER}{block}",
             )
         return None
-
-    def determine_block_hash(self, block: Optional[int]) -> Optional[str]:
-        if block is None:
-            return None
-        else:
-            return self.get_block_hash(block=block)
-
-    def encode_params(
-        self,
-        call_definition: dict[str, list["ParamWithTypes"]],
-        params: Union[list[Any], dict[str, Any]],
-    ) -> str:
-        """Returns a hex encoded string of the params using their types."""
-        param_data = scalecodec.ScaleBytes(b"")
-
-        for i, param in enumerate(call_definition["params"]):
-            scale_obj = self.substrate.create_scale_object(param["type"])
-            if isinstance(params, list):
-                param_data += scale_obj.encode(params[i])
-            else:
-                if param["name"] not in params:
-                    raise ValueError(f"Missing param {param['name']} in params dict.")
-
-                param_data += scale_obj.encode(params[param["name"]])
-
-        return param_data.to_hex()
-
-    def get_hyperparameter(
-        self, param_name: str, netuid: int, block: Optional[int] = None
-    ) -> Optional[Any]:
-        """
-        Retrieves a specified hyperparameter for a specific subnet.
-
-        Parameters:
-            param_name: The name of the hyperparameter to retrieve.
-            netuid: The unique identifier of the subnet.
-            block: the block number at which to retrieve the hyperparameter.
-
-        Returns:
-            The value of the specified hyperparameter if the subnet exists, or None
-        """
-        block_hash = self.determine_block_hash(block)
-        if not self.subnet_exists(netuid, block=block):
-            logging.error(f"subnet {netuid} does not exist")
-            return None
-
-        result = self.substrate.query(
-            module="SubtensorModule",
-            storage_function=param_name,
-            params=[netuid],
-            block_hash=block_hash,
-        )
-
-        return getattr(result, "value", result)
-
-    def get_parents(
-        self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
-    ) -> list[tuple[float, str]]:
-        """
-        This method retrieves the parent of a given hotkey and netuid. It queries the SubtensorModule's ParentKeys
-        storage function to get the children and formats them before returning as a tuple.
-
-        Parameters:
-            hotkey_ss58: The child hotkey SS58.
-            netuid: The netuid.
-            block: The block number for which the children are to be retrieved.
-
-        Returns:
-            A list of formatted parents [(proportion, parent)]
-        """
-        parents = self.substrate.query(
-            module="SubtensorModule",
-            storage_function="ParentKeys",
-            params=[hotkey_ss58, netuid],
-            block_hash=self.determine_block_hash(block),
-        )
-        if parents:
-            formatted_parents = []
-            for proportion, parent in parents.value:
-                # Convert U64 to int
-                formatted_child = decode_account_id(parent[0])
-                normalized_proportion = u64_normalized_float(proportion)
-                formatted_parents.append((normalized_proportion, formatted_child))
-            return formatted_parents
-
-        return []
 
     def get_children(
         self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
@@ -1041,184 +1135,26 @@ class Subtensor(SubtensorMixin):
             logging.error(error)
             return ""
 
-    def get_last_bonds_reset(
+    def get_commitment_metadata(
         self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
-    ) -> bytes:
-        """
-        Retrieves the last bonds reset triggered at commitment from given subnet for a specific hotkey.
-
-        Parameters:
-            netuid: The network uid to fetch from.
-            hotkey_ss58: The hotkey of the neuron for which to fetch the last bonds reset.
-            block: The block number to query.
-
-        Returns:
-            bytes: The last bonds reset data from given subnet for the specified hotkey.
-        """
-        return self.substrate.query(
-            module="Commitments",
-            storage_function="LastBondsReset",
-            params=[netuid, hotkey_ss58],
-            block_hash=self.determine_block_hash(block),
-        )
-
-    def get_last_commitment_bonds_reset_block(
-        self,
-        netuid: int,
-        uid: int,
-        block: Optional[int] = None,
-    ) -> Optional[int]:
-        """
-        Retrieves the last block number when the bonds reset were triggered by publish_metadata for a specific neuron.
-
-        Parameters:
-            netuid: The unique identifier of the subnetwork.
-            uid: The unique identifier of the neuron.
-            block: The block number to query.
-
-        Returns:
-            The block number when the bonds were last reset, or None if not found.
-        """
-
-        metagraph = self.metagraph(netuid, block=block)
-        try:
-            hotkey_ss58 = metagraph.hotkeys[uid]
-        except IndexError:
-            logging.error(
-                "Your uid is not in the hotkeys. Please double-check your UID."
-            )
-            return None
-        block_data = self.get_last_bonds_reset(netuid, hotkey_ss58, block)
-        try:
-            return decode_block(block_data)
-        except TypeError:
-            return None
-
-    def get_all_commitments(
-        self, netuid: int, block: Optional[int] = None
-    ) -> dict[str, str]:
-        """Retrieves raw commitment metadata from a given subnet.
-
-        This method retrieves all commitment data for all neurons in a specific subnet. This is useful for analyzing the
-        commit-reveal patterns across an entire subnet.
+    ) -> Union[str, dict]:
+        """Fetches raw commitment metadata from specific subnet for given hotkey.
 
         Parameters:
             netuid: The unique subnet identifier.
+            hotkey_ss58: The hotkey ss58 address.
             block: The blockchain block number for the query.
 
         Returns:
-            The raw on-chain commitment metadata (as SCALE-decoded object or raw bytes) from specific subnet.
+            The raw commitment metadata from specific subnet for given hotkey.
         """
-        query = self.query_map(
+        commit_data = self.substrate.query(
             module="Commitments",
-            name="CommitmentOf",
-            params=[netuid],
-            block=block,
-        )
-        result = {}
-        for id_, value in query:
-            try:
-                result[decode_account_id(id_[0])] = decode_metadata(value)
-            except Exception as error:
-                logging.error(
-                    f"Error decoding [red]{id_}[/red] and [red]{value}[/red]: {error}"
-                )
-        return result
-
-    def get_revealed_commitment_by_hotkey(
-        self,
-        netuid: int,
-        hotkey_ss58: str,
-        block: Optional[int] = None,
-    ) -> Optional[tuple[tuple[int, str], ...]]:
-        """Retrieves hotkey related revealed commitment for a given subnet.
-
-        Parameters:
-            netuid: The unique identifier of the subnetwork.
-            hotkey_ss58: The ss58 address of the committee member.
-            block: The block number to retrieve the commitment from.
-
-        Returns:
-            A tuple of reveal block and commitment message.
-        """
-        if not is_valid_ss58_address(address=hotkey_ss58):
-            raise ValueError(f"Invalid ss58 address {hotkey_ss58} provided.")
-
-        query = self.query_module(
-            module="Commitments",
-            name="RevealedCommitments",
+            storage_function="CommitmentOf",
             params=[netuid, hotkey_ss58],
-            block=block,
+            block_hash=self.determine_block_hash(block),
         )
-        if query is None:
-            return None
-        return tuple(decode_revealed_commitment(pair) for pair in query)
-
-    def get_revealed_commitment(
-        self,
-        netuid: int,
-        uid: int,
-        block: Optional[int] = None,
-    ) -> Optional[tuple[tuple[int, str], ...]]:
-        """Returns uid related revealed commitment for a given netuid.
-
-        Parameters:
-            netuid: The unique identifier of the subnetwork.
-            uid: The neuron uid to retrieve the commitment from.
-            block: The block number to retrieve the commitment from.
-
-        Returns:
-            A tuple of reveal block and commitment message.
-
-        Example of result:
-            ( (12, "Alice message 1"), (152, "Alice message 2") )
-            ( (12, "Bob message 1"), (147, "Bob message 2") )
-        """
-        try:
-            meta_info = self.get_metagraph_info(netuid, block=block)
-            if meta_info:
-                hotkey_ss58 = meta_info.hotkeys[uid]
-            else:
-                raise ValueError(f"Subnet with netuid {netuid} does not exist.")
-        except IndexError:
-            raise ValueError(f"Subnet {netuid} does not have a neuron with uid {uid}.")
-
-        return self.get_revealed_commitment_by_hotkey(
-            netuid=netuid, hotkey_ss58=hotkey_ss58, block=block
-        )
-
-    def get_all_revealed_commitments(
-        self, netuid: int, block: Optional[int] = None
-    ) -> dict[str, tuple[tuple[int, str], ...]]:
-        """Retrieves all revealed commitments for a given subnet.
-
-        Parameters:
-            netuid: The unique identifier of the subnetwork.
-            block: The block number to retrieve the commitment from.
-
-        Returns:
-            result: A dictionary of all revealed commitments in view {ss58_address: (reveal block, commitment message)}.
-
-        Example of result:
-        {
-            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY": ( (12, "Alice message 1"), (152, "Alice message 2") ),
-            "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty": ( (12, "Bob message 1"), (147, "Bob message 2") ),
-        }
-        """
-        query = self.query_map(
-            module="Commitments",
-            name="RevealedCommitments",
-            params=[netuid],
-            block=block,
-        )
-
-        result = {}
-        for pair in query:
-            hotkey_ss58_address, commitment_message = (
-                decode_revealed_commitment_with_hotkey(pair)
-            )
-            result[hotkey_ss58_address] = commitment_message
-        return result
+        return commit_data
 
     def get_delegate_by_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
@@ -1403,205 +1339,58 @@ class Subtensor(SubtensorMixin):
         hotkey_owner = hk_owner_query if exists else None
         return hotkey_owner
 
-    def get_minimum_required_stake(self) -> Balance:
+    def get_last_bonds_reset(
+        self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
+    ) -> bytes:
         """
-        Returns the minimum required stake for nominators in the Subtensor network.
-
-        Returns:
-            The minimum required stake as a Balance object in TAO.
-        """
-        result = self.substrate.query(
-            module="SubtensorModule", storage_function="NominatorMinRequiredStake"
-        )
-
-        return Balance.from_rao(getattr(result, "value", 0))
-
-    def get_metagraph_info(
-        self,
-        netuid: int,
-        selected_indices: Optional[
-            Union[list[SelectiveMetagraphIndex], list[int]]
-        ] = None,
-        block: Optional[int] = None,
-        mechid: int = 0,
-    ) -> Optional[MetagraphInfo]:
-        """
-        Retrieves full or partial metagraph information for the specified subnet mechanism (netuid, mechid).
+        Retrieves the last bonds reset triggered at commitment from given subnet for a specific hotkey.
 
         Parameters:
-            netuid: Subnet unique identifier.
-            mechid: Subnet mechanism unique identifier.
-            selected_indices: Optional list of SelectiveMetagraphIndex or int values specifying which fields to retrieve.
-                If not provided, all available fields will be returned.
-            block: The block number at which to query the data.
+            netuid: The network uid to fetch from.
+            hotkey_ss58: The hotkey of the neuron for which to fetch the last bonds reset.
+            block: The block number to query.
 
         Returns:
-            MetagraphInfo object with the requested subnet mechanism data, None if the subnet mechanism does not exist.
-
-        Example:
-            # Retrieve all fields from the metagraph from subnet 2 mechanism 0
-            meta_info = subtensor.get_metagraph_info(netuid=2)
-
-            # Retrieve all fields from the metagraph from subnet 2 mechanism 1
-            meta_info = subtensor.get_metagraph_info(netuid=2, mechid=1)
-
-            # Retrieve selective data from the metagraph from subnet 2 mechanism 0
-            partial_meta_info = subtensor.get_metagraph_info(
-                netuid=2,
-                selected_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
-            )
-
-            # Retrieve selective data from the metagraph from subnet 2 mechanism 1
-            partial_meta_info = subtensor.get_metagraph_info(
-                netuid=2,
-                mechid=1,
-                selected_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
-            )
-
-        Notes:
-            See also:
-            - <https://docs.learnbittensor.org/glossary#metagraph>
-            - <https://docs.learnbittensor.org/glossary#emission>
+            bytes: The last bonds reset data from given subnet for the specified hotkey.
         """
-        block_hash = self.determine_block_hash(block=block)
-
-        indexes = (
-            [
-                f.value if isinstance(f, SelectiveMetagraphIndex) else f
-                for f in selected_indices
-            ]
-            if selected_indices is not None
-            else [f for f in range(len(SelectiveMetagraphIndex))]
-        )
-
-        query = self.substrate.runtime_call(
-            api="SubnetInfoRuntimeApi",
-            method="get_selective_mechagraph",
-            params=[netuid, mechid, indexes if 0 in indexes else [0] + indexes],
-            block_hash=block_hash,
-        )
-        if query is None or not hasattr(query, "value") or query.value is None:
-            logging.error(
-                f"Subnet mechanism {netuid}.{mechid if mechid else 0} does not exist."
-            )
-            return None
-
-        return MetagraphInfo.from_dict(query.value)
-
-    # TODO: update parameters order in SDKv10
-    def get_all_metagraphs_info(
-        self,
-        block: Optional[int] = None,
-        all_mechanisms: bool = False,
-    ) -> Optional[list[MetagraphInfo]]:
-        """
-        Retrieves a list of MetagraphInfo objects for all subnets
-
-        Parameters:
-            block: The blockchain block number for the query.
-            all_mechanisms: If True then returns all mechanisms, otherwise only those with index 0 for all subnets.
-
-        Returns:
-            List of MetagraphInfo objects for all existing subnets.
-
-        Notes:
-            See also: See <https://docs.learnbittensor.org/glossary#metagraph>
-        """
-        block_hash = self.determine_block_hash(block)
-        method = "get_all_mechagraphs" if all_mechanisms else "get_all_metagraphs"
-        query = self.substrate.runtime_call(
-            api="SubnetInfoRuntimeApi",
-            method=method,
-            block_hash=block_hash,
-        )
-        if query is None or not hasattr(query, "value"):
-            return None
-
-        return MetagraphInfo.list_from_dicts(query.value)
-
-    def get_netuids_for_hotkey(
-        self, hotkey_ss58: str, block: Optional[int] = None
-    ) -> list[int]:
-        """
-        Retrieves a list of subnet UIDs (netuids) for which a given hotkey is a member. This function identifies the
-            specific subnets within the Bittensor network where the neuron associated with the hotkey is active.
-
-        Parameters:
-            hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
-            block: The blockchain block number for the query.
-
-        Returns:
-            A list of netuids where the neuron is a member.
-        """
-        result = self.substrate.query_map(
-            module="SubtensorModule",
-            storage_function="IsNetworkMember",
-            params=[hotkey_ss58],
+        return self.substrate.query(
+            module="Commitments",
+            storage_function="LastBondsReset",
+            params=[netuid, hotkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
-        netuids = []
-        if result.records:
-            for record in result:
-                if record[1].value:
-                    netuids.append(record[0])
-        return netuids
 
-    def get_neuron_certificate(
-        self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
-    ) -> Optional[Certificate]:
+    def get_last_commitment_bonds_reset_block(
+        self,
+        netuid: int,
+        uid: int,
+        block: Optional[int] = None,
+    ) -> Optional[int]:
         """
-        Retrieves the TLS certificate for a specific neuron identified by its unique identifier (UID) within a specified
-        subnet (netuid) of the Bittensor network.
+        Retrieves the last block number when the bonds reset were triggered by publish_metadata for a specific neuron.
 
         Parameters:
-            hotkey_ss58: The hotkey to query.
-            netuid: The unique identifier of the subnet.
-            block: The blockchain block number for the query.
+            netuid: The unique identifier of the subnetwork.
+            uid: The unique identifier of the neuron.
+            block: The block number to query.
 
         Returns:
-            the certificate of the neuron if found, `None` otherwise.
-
-        This function is used for certificate discovery for setting up mutual tls communication between neurons.
+            The block number when the bonds were last reset, or None if not found.
         """
-        certificate_query = self.query_module(
-            module="SubtensorModule",
-            name="NeuronCertificates",
-            block=block,
-            params=[netuid, hotkey_ss58],
-        )
+
+        metagraph = self.metagraph(netuid, block=block)
         try:
-            if certificate_query:
-                certificate = cast(dict, certificate_query)
-                return Certificate(certificate)
-        except AttributeError:
+            hotkey_ss58 = metagraph.hotkeys[uid]
+        except IndexError:
+            logging.error(
+                "Your uid is not in the hotkeys. Please double-check your UID."
+            )
             return None
-        return None
-
-    def get_all_neuron_certificates(
-        self, netuid: int, block: Optional[int] = None
-    ) -> dict[str, Certificate]:
-        """
-        Retrieves the TLS certificates for neurons within a specified subnet (netuid) of the Bittensor network.
-
-        Parameters:
-            netuid: The unique identifier of the subnet.
-            block: The blockchain block number for the query.
-
-        Returns:
-            {ss58: Certificate} for the key/Certificate pairs on the subnet
-
-        This function is used for certificate discovery for setting up mutual tls communication between neurons.
-        """
-        query_certificates = self.query_map(
-            module="SubtensorModule",
-            name="NeuronCertificates",
-            params=[netuid],
-            block=block,
-        )
-        output = {}
-        for key, item in query_certificates:
-            output[decode_account_id(key)] = Certificate(item.value)
-        return output
+        block_data = self.get_last_bonds_reset(netuid, hotkey_ss58, block)
+        try:
+            return decode_block(block_data)
+        except TypeError:
+            return None
 
     def get_liquidity_list(
         self,
@@ -1776,6 +1565,197 @@ class Subtensor(SubtensorMixin):
 
         return positions
 
+    def get_mechanism_emission_split(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[list[int]]:
+        """Returns the emission percentages allocated to each subnet mechanism.
+
+        Parameters:
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query.
+
+        Returns:
+            A list of integers representing the percentage of emission allocated to each subnet mechanism (rounded to
+            whole numbers). Returns None if emission is evenly split or if the data is unavailable.
+        """
+        block_hash = self.determine_block_hash(block)
+        result = self.substrate.query(
+            module="SubtensorModule",
+            storage_function="MechanismEmissionSplit",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+        if result is None or not hasattr(result, "value"):
+            return None
+
+        return [round(i / sum(result.value) * 100) for i in result.value]
+
+    def get_mechanism_count(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+    ) -> int:
+        """Retrieves the number of mechanisms for the given subnet.
+
+        Parameters:
+            netuid: Subnet identifier.
+            block: The blockchain block number for the query.
+
+        Returns:
+            The number of mechanisms for the given subnet.
+        """
+        block_hash = self.determine_block_hash(block)
+        query = self.substrate.query(
+            module="SubtensorModule",
+            storage_function="MechanismCountCurrent",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+        return query.value if query is not None and hasattr(query, "value") else 1
+
+    def get_metagraph_info(
+        self,
+        netuid: int,
+        selected_indices: Optional[
+            Union[list[SelectiveMetagraphIndex], list[int]]
+        ] = None,
+        block: Optional[int] = None,
+        mechid: int = 0,
+    ) -> Optional[MetagraphInfo]:
+        """
+        Retrieves full or partial metagraph information for the specified subnet mechanism (netuid, mechid).
+
+        Parameters:
+            netuid: Subnet unique identifier.
+            mechid: Subnet mechanism unique identifier.
+            selected_indices: Optional list of SelectiveMetagraphIndex or int values specifying which fields to retrieve.
+                If not provided, all available fields will be returned.
+            block: The block number at which to query the data.
+
+        Returns:
+            MetagraphInfo object with the requested subnet mechanism data, None if the subnet mechanism does not exist.
+
+        Example:
+            # Retrieve all fields from the metagraph from subnet 2 mechanism 0
+            meta_info = subtensor.get_metagraph_info(netuid=2)
+
+            # Retrieve all fields from the metagraph from subnet 2 mechanism 1
+            meta_info = subtensor.get_metagraph_info(netuid=2, mechid=1)
+
+            # Retrieve selective data from the metagraph from subnet 2 mechanism 0
+            partial_meta_info = subtensor.get_metagraph_info(
+                netuid=2,
+                selected_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
+            )
+
+            # Retrieve selective data from the metagraph from subnet 2 mechanism 1
+            partial_meta_info = subtensor.get_metagraph_info(
+                netuid=2,
+                mechid=1,
+                selected_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
+            )
+
+        Notes:
+            See also:
+            - <https://docs.learnbittensor.org/glossary#metagraph>
+            - <https://docs.learnbittensor.org/glossary#emission>
+        """
+        block_hash = self.determine_block_hash(block=block)
+
+        indexes = (
+            [
+                f.value if isinstance(f, SelectiveMetagraphIndex) else f
+                for f in selected_indices
+            ]
+            if selected_indices is not None
+            else [f for f in range(len(SelectiveMetagraphIndex))]
+        )
+
+        query = self.substrate.runtime_call(
+            api="SubnetInfoRuntimeApi",
+            method="get_selective_mechagraph",
+            params=[netuid, mechid, indexes if 0 in indexes else [0] + indexes],
+            block_hash=block_hash,
+        )
+        if query is None or not hasattr(query, "value") or query.value is None:
+            logging.error(
+                f"Subnet mechanism {netuid}.{mechid if mechid else 0} does not exist."
+            )
+            return None
+
+        return MetagraphInfo.from_dict(query.value)
+
+    def get_minimum_required_stake(self) -> Balance:
+        """
+        Returns the minimum required stake for nominators in the Subtensor network.
+
+        Returns:
+            The minimum required stake as a Balance object in TAO.
+        """
+        result = self.substrate.query(
+            module="SubtensorModule", storage_function="NominatorMinRequiredStake"
+        )
+
+        return Balance.from_rao(getattr(result, "value", 0))
+
+    def get_netuids_for_hotkey(
+        self, hotkey_ss58: str, block: Optional[int] = None
+    ) -> list[int]:
+        """
+        Retrieves a list of subnet UIDs (netuids) for which a given hotkey is a member. This function identifies the
+            specific subnets within the Bittensor network where the neuron associated with the hotkey is active.
+
+        Parameters:
+            hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
+            block: The blockchain block number for the query.
+
+        Returns:
+            A list of netuids where the neuron is a member.
+        """
+        result = self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function="IsNetworkMember",
+            params=[hotkey_ss58],
+            block_hash=self.determine_block_hash(block),
+        )
+        netuids = []
+        if result.records:
+            for record in result:
+                if record[1].value:
+                    netuids.append(record[0])
+        return netuids
+
+    def get_neuron_certificate(
+        self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
+    ) -> Optional[Certificate]:
+        """
+        Retrieves the TLS certificate for a specific neuron identified by its unique identifier (UID) within a specified
+        subnet (netuid) of the Bittensor network.
+
+        Parameters:
+            hotkey_ss58: The hotkey to query.
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query.
+
+        Returns:
+            the certificate of the neuron if found, `None` otherwise.
+
+        This function is used for certificate discovery for setting up mutual tls communication between neurons.
+        """
+        certificate_query = self.query_module(
+            module="SubtensorModule",
+            name="NeuronCertificates",
+            block=block,
+            params=[netuid, hotkey_ss58],
+        )
+        try:
+            if certificate_query:
+                certificate = cast(dict, certificate_query)
+                return Certificate(certificate)
+        except AttributeError:
+            return None
+        return None
+
     def get_neuron_for_pubkey_and_subnet(
         self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
     ) -> Optional["NeuronInfo"]:
@@ -1860,6 +1840,100 @@ class Subtensor(SubtensorMixin):
         )
         return [decode_account_id(hotkey[0]) for hotkey in owned_hotkeys or []]
 
+    def get_parents(
+        self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
+    ) -> list[tuple[float, str]]:
+        """
+        This method retrieves the parent of a given hotkey and netuid. It queries the SubtensorModule's ParentKeys
+        storage function to get the children and formats them before returning as a tuple.
+
+        Parameters:
+            hotkey_ss58: The child hotkey SS58.
+            netuid: The netuid.
+            block: The block number for which the children are to be retrieved.
+
+        Returns:
+            A list of formatted parents [(proportion, parent)]
+        """
+        parents = self.substrate.query(
+            module="SubtensorModule",
+            storage_function="ParentKeys",
+            params=[hotkey_ss58, netuid],
+            block_hash=self.determine_block_hash(block),
+        )
+        if parents:
+            formatted_parents = []
+            for proportion, parent in parents.value:
+                # Convert U64 to int
+                formatted_child = decode_account_id(parent[0])
+                normalized_proportion = u64_normalized_float(proportion)
+                formatted_parents.append((normalized_proportion, formatted_child))
+            return formatted_parents
+
+        return []
+
+    def get_revealed_commitment(
+        self,
+        netuid: int,
+        uid: int,
+        block: Optional[int] = None,
+    ) -> Optional[tuple[tuple[int, str], ...]]:
+        """Returns uid related revealed commitment for a given netuid.
+
+        Parameters:
+            netuid: The unique identifier of the subnetwork.
+            uid: The neuron uid to retrieve the commitment from.
+            block: The block number to retrieve the commitment from.
+
+        Returns:
+            A tuple of reveal block and commitment message.
+
+        Example of result:
+            ( (12, "Alice message 1"), (152, "Alice message 2") )
+            ( (12, "Bob message 1"), (147, "Bob message 2") )
+        """
+        try:
+            meta_info = self.get_metagraph_info(netuid, block=block)
+            if meta_info:
+                hotkey_ss58 = meta_info.hotkeys[uid]
+            else:
+                raise ValueError(f"Subnet with netuid {netuid} does not exist.")
+        except IndexError:
+            raise ValueError(f"Subnet {netuid} does not have a neuron with uid {uid}.")
+
+        return self.get_revealed_commitment_by_hotkey(
+            netuid=netuid, hotkey_ss58=hotkey_ss58, block=block
+        )
+
+    def get_revealed_commitment_by_hotkey(
+        self,
+        netuid: int,
+        hotkey_ss58: str,
+        block: Optional[int] = None,
+    ) -> Optional[tuple[tuple[int, str], ...]]:
+        """Retrieves hotkey related revealed commitment for a given subnet.
+
+        Parameters:
+            netuid: The unique identifier of the subnetwork.
+            hotkey_ss58: The ss58 address of the committee member.
+            block: The block number to retrieve the commitment from.
+
+        Returns:
+            A tuple of reveal block and commitment message.
+        """
+        if not is_valid_ss58_address(address=hotkey_ss58):
+            raise ValueError(f"Invalid ss58 address {hotkey_ss58} provided.")
+
+        query = self.query_module(
+            module="Commitments",
+            name="RevealedCommitments",
+            params=[netuid, hotkey_ss58],
+            block=block,
+        )
+        if query is None:
+            return None
+        return tuple(decode_revealed_commitment(pair) for pair in query)
+
     def get_stake(
         self,
         coldkey_ss58: str,
@@ -1935,220 +2009,6 @@ class Subtensor(SubtensorMixin):
         """
         check_balance_amount(amount)
         return self.get_stake_operations_fee(amount=amount, netuid=netuid, block=block)
-
-    def get_mechanism_emission_split(
-        self, netuid: int, block: Optional[int] = None
-    ) -> Optional[list[int]]:
-        """Returns the emission percentages allocated to each subnet mechanism.
-
-        Parameters:
-            netuid: The unique identifier of the subnet.
-            block: The blockchain block number for the query.
-
-        Returns:
-            A list of integers representing the percentage of emission allocated to each subnet mechanism (rounded to
-            whole numbers). Returns None if emission is evenly split or if the data is unavailable.
-        """
-        block_hash = self.determine_block_hash(block)
-        result = self.substrate.query(
-            module="SubtensorModule",
-            storage_function="MechanismEmissionSplit",
-            params=[netuid],
-            block_hash=block_hash,
-        )
-        if result is None or not hasattr(result, "value"):
-            return None
-
-        return [round(i / sum(result.value) * 100) for i in result.value]
-
-    def get_mechanism_count(
-        self,
-        netuid: int,
-        block: Optional[int] = None,
-    ) -> int:
-        """Retrieves the number of mechanisms for the given subnet.
-
-        Parameters:
-            netuid: Subnet identifier.
-            block: The blockchain block number for the query.
-
-        Returns:
-            The number of mechanisms for the given subnet.
-        """
-        block_hash = self.determine_block_hash(block)
-        query = self.substrate.query(
-            module="SubtensorModule",
-            storage_function="MechanismCountCurrent",
-            params=[netuid],
-            block_hash=block_hash,
-        )
-        return query.value if query is not None and hasattr(query, "value") else 1
-
-    def get_subnet_info(
-        self, netuid: int, block: Optional[int] = None
-    ) -> Optional["SubnetInfo"]:
-        """
-        Retrieves detailed information about subnet within the Bittensor network.
-        This function provides comprehensive data on subnet, including its characteristics and operational parameters.
-
-        Parameters:
-            netuid: The unique identifier of the subnet.
-            block: The blockchain block number for the query.
-
-        Returns:
-            SubnetInfo: A SubnetInfo objects, each containing detailed information about a subnet.
-
-        Gaining insights into the subnet's details assists in understanding the network's composition, the roles of
-        different subnets, and their unique features.
-        """
-        result = self.query_runtime_api(
-            runtime_api="SubnetInfoRuntimeApi",
-            method="get_subnet_info_v2",
-            params=[netuid],
-            block=block,
-        )
-        if not result:
-            return None
-        return SubnetInfo.from_dict(result)
-
-    def get_subnet_price(
-        self,
-        netuid: int,
-        block: Optional[int] = None,
-    ) -> Balance:
-        """Gets the current Alpha price in TAO for all subnets.
-
-        Parameters:
-            netuid: The unique identifier of the subnet.
-            block: The blockchain block number for the query.
-
-        Returns:
-            The current Alpha price in TAO units for the specified subnet.
-        """
-        # SN0 price is always 1 TAO
-        if netuid == 0:
-            return Balance.from_tao(1)
-
-        block_hash = self.determine_block_hash(block=block)
-        price_rao = self.substrate.runtime_call(
-            api="SwapRuntimeApi",
-            method="current_alpha_price",
-            params=[netuid],
-            block_hash=block_hash,
-        ).value
-        return Balance.from_rao(price_rao)
-
-    def get_subnet_prices(
-        self,
-        block: Optional[int] = None,
-    ) -> dict[int, Balance]:
-        """Gets the current Alpha price in TAO for a specified subnet.
-
-        Parameters:
-            block: The blockchain block number for the query.
-
-        Returns:
-            dict:
-                - subnet unique ID
-                - The current Alpha price in TAO units for the specified subnet.
-        """
-        block_hash = self.determine_block_hash(block=block)
-
-        current_sqrt_prices = self.substrate.query_map(
-            module="Swap",
-            storage_function="AlphaSqrtPrice",
-            block_hash=block_hash,
-            page_size=129,  # total number of subnets
-        )
-
-        prices = {}
-        for id_, current_sqrt_price in current_sqrt_prices:
-            current_sqrt_price = fixed_to_float(current_sqrt_price)
-            current_price = current_sqrt_price * current_sqrt_price
-            current_price_in_tao = Balance.from_rao(int(current_price * 1e9))
-            prices.update({id_: current_price_in_tao})
-
-        # SN0 price is always 1 TAO
-        prices.update({0: Balance.from_tao(1)})
-        return prices
-
-    def get_timelocked_weight_commits(
-        self,
-        netuid: int,
-        mechid: int = 0,
-        block: Optional[int] = None,
-    ) -> list[tuple[str, int, str, int]]:
-        """
-        Retrieves CRv4 weight commit information for a specific subnet.
-
-        Parameters:
-            netuid: Subnet identifier.
-            mechid: Subnet mechanism identifier.
-            block: The blockchain block number for the query.
-
-        Returns:
-            A list of commit details, where each item contains:
-                - ss58_address: The address of the committer.
-                - commit_block: The block number when the commitment was made.
-                - commit_message: The commit message.
-                - reveal_round: The round when the commitment was revealed.
-
-            The list may be empty if there are no commits found.
-        """
-        storage_index = get_mechid_storage_index(netuid, mechid)
-        result = self.substrate.query_map(
-            module="SubtensorModule",
-            storage_function="TimelockedWeightCommits",
-            params=[storage_index],
-            block_hash=self.determine_block_hash(block=block),
-        )
-
-        commits = result.records[0][1] if result.records else []
-        return [WeightCommitInfo.from_vec_u8_v2(commit) for commit in commits]
-
-    # TODO: update related with fee calculation
-    def get_unstake_fee(
-        self,
-        amount: Balance,
-        netuid: int,
-        block: Optional[int] = None,
-    ) -> Balance:
-        """
-        Calculates the fee for unstaking from a hotkey.
-
-        Parameters:
-            amount: Amount of stake to unstake in TAO
-            netuid: Netuid of subnet
-            block: Block number at which to perform the calculation
-
-        Returns:
-            The calculated stake fee as a Balance object
-        """
-        check_balance_amount(amount)
-        return self.get_stake_operations_fee(amount=amount, netuid=netuid, block=block)
-
-    # TODO: update related with fee calculation
-    def get_stake_movement_fee(
-        self,
-        amount: Balance,
-        origin_netuid: int,
-        block: Optional[int] = None,
-    ) -> Balance:
-        """
-        Calculates the fee for moving stake between hotkeys/subnets/coldkeys.
-
-        Parameters:
-            amount: Amount of stake to move in TAO
-            origin_netuid: Netuid of origin subnet
-            block: Block number at which to perform the calculation
-
-        Returns:
-            The calculated stake fee as a Balance object
-        """
-        check_balance_amount(amount)
-        return self.get_stake_operations_fee(
-            amount=amount, netuid=origin_netuid, block=block
-        )
 
     def get_stake_for_coldkey_and_hotkey(
         self,
@@ -2232,6 +2092,29 @@ class Subtensor(SubtensorMixin):
         return balance
 
     get_hotkey_stake = get_stake_for_hotkey
+
+    # TODO: update related with fee calculation
+    def get_stake_movement_fee(
+        self,
+        amount: Balance,
+        origin_netuid: int,
+        block: Optional[int] = None,
+    ) -> Balance:
+        """
+        Calculates the fee for moving stake between hotkeys/subnets/coldkeys.
+
+        Parameters:
+            amount: Amount of stake to move in TAO
+            origin_netuid: Netuid of origin subnet
+            block: Block number at which to perform the calculation
+
+        Returns:
+            The calculated stake fee as a Balance object
+        """
+        check_balance_amount(amount)
+        return self.get_stake_operations_fee(
+            amount=amount, netuid=origin_netuid, block=block
+        )
 
     def get_stake_operations_fee(
         self,
@@ -2334,6 +2217,114 @@ class Subtensor(SubtensorMixin):
 
         return SubnetHyperparameters.from_dict(result)
 
+    def get_subnet_info(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional["SubnetInfo"]:
+        """
+        Retrieves detailed information about subnet within the Bittensor network.
+        This function provides comprehensive data on subnet, including its characteristics and operational parameters.
+
+        Parameters:
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query.
+
+        Returns:
+            SubnetInfo: A SubnetInfo objects, each containing detailed information about a subnet.
+
+        Gaining insights into the subnet's details assists in understanding the network's composition, the roles of
+        different subnets, and their unique features.
+        """
+        result = self.query_runtime_api(
+            runtime_api="SubnetInfoRuntimeApi",
+            method="get_subnet_info_v2",
+            params=[netuid],
+            block=block,
+        )
+        if not result:
+            return None
+        return SubnetInfo.from_dict(result)
+
+    def get_subnet_owner_hotkey(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[str]:
+        """
+        Retrieves the hotkey of the subnet owner for a given network UID.
+
+        This function queries the subtensor network to fetch the hotkey of the owner of a subnet specified by its
+        netuid. If no data is found or the query fails, the function returns None.
+
+        Parameters:
+            netuid: The network UID of the subnet to fetch the owner's hotkey for.
+            block: The specific block number to query the data from.
+
+        Returns:
+            The hotkey of the subnet owner if available; None otherwise.
+        """
+        return self.query_subtensor(
+            name="SubnetOwnerHotkey", params=[netuid], block=block
+        )
+
+    def get_subnet_price(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+    ) -> Balance:
+        """Gets the current Alpha price in TAO for all subnets.
+
+        Parameters:
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query.
+
+        Returns:
+            The current Alpha price in TAO units for the specified subnet.
+        """
+        # SN0 price is always 1 TAO
+        if netuid == 0:
+            return Balance.from_tao(1)
+
+        block_hash = self.determine_block_hash(block=block)
+        price_rao = self.substrate.runtime_call(
+            api="SwapRuntimeApi",
+            method="current_alpha_price",
+            params=[netuid],
+            block_hash=block_hash,
+        ).value
+        return Balance.from_rao(price_rao)
+
+    def get_subnet_prices(
+        self,
+        block: Optional[int] = None,
+    ) -> dict[int, Balance]:
+        """Gets the current Alpha price in TAO for a specified subnet.
+
+        Parameters:
+            block: The blockchain block number for the query.
+
+        Returns:
+            dict:
+                - subnet unique ID
+                - The current Alpha price in TAO units for the specified subnet.
+        """
+        block_hash = self.determine_block_hash(block=block)
+
+        current_sqrt_prices = self.substrate.query_map(
+            module="Swap",
+            storage_function="AlphaSqrtPrice",
+            block_hash=block_hash,
+            page_size=129,  # total number of subnets
+        )
+
+        prices = {}
+        for id_, current_sqrt_price in current_sqrt_prices:
+            current_sqrt_price = fixed_to_float(current_sqrt_price)
+            current_price = current_sqrt_price * current_sqrt_price
+            current_price_in_tao = Balance.from_rao(int(current_price * 1e9))
+            prices.update({id_: current_price_in_tao})
+
+        # SN0 price is always 1 TAO
+        prices.update({0: Balance.from_tao(1)})
+        return prices
+
     def get_subnet_reveal_period_epochs(
         self, netuid: int, block: Optional[int] = None
     ) -> int:
@@ -2345,30 +2336,72 @@ class Subtensor(SubtensorMixin):
             ),
         )
 
-    def get_all_subnets_netuid(self, block: Optional[int] = None) -> UIDs:
+    def get_subnet_validator_permits(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[list[bool]]:
         """
-        Retrieves the list of all subnet unique identifiers (netuids) currently present in the Bittensor network.
+        Retrieves the list of validator permits for a given subnet as boolean values.
+
+        Parameters:
+            netuid: The unique identifier of the subnetwork.
+            block: The blockchain block number for the query.
+
+        Returns:
+            A list of boolean values representing validator permits, or None if not available.
+        """
+        query = self.query_subtensor(
+            name="ValidatorPermit",
+            params=[netuid],
+            block=block,
+        )
+        return query.value if query is not None and hasattr(query, "value") else query
+
+    def get_timelocked_weight_commits(
+        self,
+        netuid: int,
+        mechid: int = 0,
+        block: Optional[int] = None,
+    ) -> list[tuple[str, int, str, int]]:
+        """
+        Retrieves CRv4 weight commit information for a specific subnet.
+
+        Parameters:
+            netuid: Subnet identifier.
+            mechid: Subnet mechanism identifier.
+            block: The blockchain block number for the query.
+
+        Returns:
+            A list of commit details, where each item contains:
+                - ss58_address: The address of the committer.
+                - commit_block: The block number when the commitment was made.
+                - commit_message: The commit message.
+                - reveal_round: The round when the commitment was revealed.
+
+            The list may be empty if there are no commits found.
+        """
+        storage_index = get_mechid_storage_index(netuid, mechid)
+        result = self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function="TimelockedWeightCommits",
+            params=[storage_index],
+            block_hash=self.determine_block_hash(block=block),
+        )
+
+        commits = result.records[0][1] if result.records else []
+        return [WeightCommitInfo.from_vec_u8_v2(commit) for commit in commits]
+
+    def get_timestamp(self, block: Optional[int] = None) -> datetime:
+        """
+        Retrieves the datetime timestamp for a given block
 
         Parameters:
             block: The blockchain block number for the query.
 
         Returns:
-            A list of subnet netuids.
-
-        This function provides a comprehensive view of the subnets within the Bittensor network,
-        offering insights into its diversity and scale.
+            datetime object for the timestamp of the block
         """
-        result = self.substrate.query_map(
-            module="SubtensorModule",
-            storage_function="NetworksAdded",
-            block_hash=self.determine_block_hash(block),
-        )
-        subnets = []
-        if result.records:
-            for netuid, exists in result:
-                if exists:
-                    subnets.append(netuid)
-        return subnets
+        unix = cast(ScaleObj, self.query_module("Timestamp", "Now", block=block)).value
+        return datetime.fromtimestamp(unix / 1000, tz=timezone.utc)
 
     def get_total_subnets(self, block: Optional[int] = None) -> Optional[int]:
         """
@@ -2437,6 +2470,27 @@ class Subtensor(SubtensorMixin):
             payment_info = {"partial_fee": int(2e7)}  # assume  0.02 Tao
 
         return Balance.from_rao(payment_info["partial_fee"])
+
+    # TODO: update related with fee calculation
+    def get_unstake_fee(
+        self,
+        amount: Balance,
+        netuid: int,
+        block: Optional[int] = None,
+    ) -> Balance:
+        """
+        Calculates the fee for unstaking from a hotkey.
+
+        Parameters:
+            amount: Amount of stake to unstake in TAO
+            netuid: Netuid of subnet
+            block: Block number at which to perform the calculation
+
+        Returns:
+            The calculated stake fee as a Balance object
+        """
+        check_balance_amount(amount)
+        return self.get_stake_operations_fee(amount=amount, netuid=netuid, block=block)
 
     def get_vote_data(
         self, proposal_hash: str, block: Optional[int] = None
@@ -2728,7 +2782,6 @@ class Subtensor(SubtensorMixin):
         )
         return None if call is None else u16_normalized_float(int(call))
 
-    # TODO: update parameters order in SDKv10
     def metagraph(
         self,
         netuid: int,
@@ -3125,59 +3178,6 @@ class Subtensor(SubtensorMixin):
             param_name="WeightsSetRateLimit", netuid=netuid, block=block
         )
         return None if call is None else int(call)
-
-    def get_timestamp(self, block: Optional[int] = None) -> datetime:
-        """
-        Retrieves the datetime timestamp for a given block
-
-        Parameters:
-            block: The blockchain block number for the query.
-
-        Returns:
-            datetime object for the timestamp of the block
-        """
-        unix = cast(ScaleObj, self.query_module("Timestamp", "Now", block=block)).value
-        return datetime.fromtimestamp(unix / 1000, tz=timezone.utc)
-
-    def get_subnet_owner_hotkey(
-        self, netuid: int, block: Optional[int] = None
-    ) -> Optional[str]:
-        """
-        Retrieves the hotkey of the subnet owner for a given network UID.
-
-        This function queries the subtensor network to fetch the hotkey of the owner of a subnet specified by its
-        netuid. If no data is found or the query fails, the function returns None.
-
-        Parameters:
-            netuid: The network UID of the subnet to fetch the owner's hotkey for.
-            block: The specific block number to query the data from.
-
-        Returns:
-            The hotkey of the subnet owner if available; None otherwise.
-        """
-        return self.query_subtensor(
-            name="SubnetOwnerHotkey", params=[netuid], block=block
-        )
-
-    def get_subnet_validator_permits(
-        self, netuid: int, block: Optional[int] = None
-    ) -> Optional[list[bool]]:
-        """
-        Retrieves the list of validator permits for a given subnet as boolean values.
-
-        Parameters:
-            netuid: The unique identifier of the subnetwork.
-            block: The blockchain block number for the query.
-
-        Returns:
-            A list of boolean values representing validator permits, or None if not available.
-        """
-        query = self.query_subtensor(
-            name="ValidatorPermit",
-            params=[netuid],
-            block=block,
-        )
-        return query.value if query is not None and hasattr(query, "value") else query
 
     # Extrinsics helper ================================================================================================
 
