@@ -4327,3 +4327,36 @@ async def test_set_auto_stake(subtensor, mocker):
     )
 
     assert result == mocked_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_determine_block_hash(subtensor, mocker):
+    """Tests that `determine_block_hash` calls proper methods and returns the correct value."""
+
+    async def fake_get_block_hash(block: int) -> str:
+        d = {
+            1: "0xfake1",
+            2: "0xfake2",
+        }
+        return d[block]
+
+    subtensor.get_block_hash = fake_get_block_hash
+
+    # Call
+    mocked_hash = await subtensor.get_block_hash(block=1)
+
+    expected_hash_1 = await subtensor.determine_block_hash(block_hash=mocked_hash)
+    assert mocked_hash == expected_hash_1
+
+    expected_hash_2 = await subtensor.determine_block_hash(
+        block=1, block_hash=mocked_hash
+    )
+    assert expected_hash_1 == expected_hash_2
+
+    with pytest.raises(ValueError):
+        await subtensor.determine_block_hash(
+            block_hash=mocked_hash, block=1, reuse_block=True
+        )
+
+    with pytest.raises(ValueError):
+        await subtensor.determine_block_hash(block=2, block_hash=mocked_hash)
