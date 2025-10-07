@@ -341,7 +341,7 @@ class AsyncSubtensor(SubtensorMixin):
             # Reuse last block hash
             block_hash = await subtensor.determine_block_hash(reuse_block=True)
         """
-        if reuse_block and any([block_hash, block_hash]):
+        if reuse_block and any([block, block_hash]):
             raise ValueError("Cannot specify both reuse_block and block_hash/block")
         if block and block_hash:
             retrieved_block_hash = await self.get_block_hash(block)
