@@ -2567,6 +2567,7 @@ class AsyncSubtensor(SubtensorMixin):
             return await self.neuron_for_uid(
                 uid=uid,
                 netuid=netuid,
+                # do not pass block=block in this as block_hash is already determined above from the block if specified
                 block_hash=block_hash,
                 reuse_block=reuse_block,
             )
