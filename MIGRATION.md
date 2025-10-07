@@ -323,3 +323,4 @@ Currently it contains:
 
 ### ArgParser issue
 - to turn on args parser across SDK, the local env variable `BT_PARSE_CLI_ARGS` should be set to on of the values: `1`, `true`, `yes`, `on`.
+- `bittensor.core.config.DefaultConfig` class has been deleted (unused).
