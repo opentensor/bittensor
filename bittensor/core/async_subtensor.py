@@ -308,7 +308,7 @@ class AsyncSubtensor(SubtensorMixin):
 
     async def determine_block_hash(
         self,
-        block: Optional[int],
+        block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[str]:
