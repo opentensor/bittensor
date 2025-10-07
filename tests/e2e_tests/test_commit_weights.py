@@ -298,7 +298,7 @@ def test_commit_weights_uses_next_nonce(subtensor, alice_wallet):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    TEMPO_TO_SET = 50 if subtensor.chain.is_fast_blocks() else 20
+    TEMPO_TO_SET = 100 if subtensor.chain.is_fast_blocks() else 20
 
     # Create and prepare subnet
     alice_sn = TestSubnet(subtensor)
@@ -422,7 +422,7 @@ async def test_commit_weights_uses_next_nonce_async(async_subtensor, alice_walle
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    TEMPO_TO_SET = 50 if await async_subtensor.chain.is_fast_blocks() else 20
+    TEMPO_TO_SET = 100 if await async_subtensor.chain.is_fast_blocks() else 20
 
     # Create and prepare subnet
     alice_sn = TestSubnet(async_subtensor)
@@ -555,12 +555,21 @@ async def test_commit_weights_uses_next_nonce_async(async_subtensor, alice_walle
     )
     await async_subtensor.wait_for_block(waiting_block)
 
+    weight_commits = None
+    counter = 0
     # Query the WeightCommits storage map for all three salts
-    weight_commits = await async_subtensor.queries.query_module(
-        module="SubtensorModule",
-        name="WeightCommits",
-        params=[alice_sn.netuid, alice_wallet.hotkey.ss58_address],
-    )
+    while not weight_commits or not len(weight_commits) == AMOUNT_OF_COMMIT_WEIGHTS:
+        weight_commits = await async_subtensor.queries.query_module(
+            module="SubtensorModule",
+            name="WeightCommits",
+            params=[alice_sn.netuid, alice_wallet.hotkey.ss58_address],
+        )
+        await async_subtensor.wait_for_block()
+        logging.console.info(f"len(weight_commits): {len(weight_commits)}")
+        counter += 1
+        if counter > TEMPO_TO_SET:
+            break
+
     # Assert that the committed weights are set correctly
     assert weight_commits.value is not None, "Weight commit not found in storage"
     commit_hash, commit_block, reveal_block, expire_block = weight_commits.value[0]
