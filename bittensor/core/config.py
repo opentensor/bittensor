@@ -53,7 +53,7 @@ class Config(DefaultMunch):
         strict: bool = False,
         default: Any = DEFAULTS,
     ) -> None:
-        parse_cli = os.getenv("BT_PARSE_CLI_ARGS", "").lower() in (
+        no_parse_cli = os.getenv("BT_NO_PARSE_CLI_ARGS", "").lower() in (
             "1",
             "true",
             "yes",
@@ -73,7 +73,7 @@ class Config(DefaultMunch):
         self.__is_set = {}
 
         # If CLI parsing disabled, stop here
-        if not parse_cli or parser is None:
+        if no_parse_cli or parser is None:
             return
 
         self._add_default_arguments(parser)
