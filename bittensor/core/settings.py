@@ -122,7 +122,7 @@ DEFAULTS = munchify(
         "subtensor": {
             "chain_endpoint": os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT")
             or DEFAULT_ENDPOINT,
-            "network": os.getenv("BT_NETWORK") or DEFAULT_NETWORK,
+            "network": os.getenv("BT_SUBTENSOR_NETWORK") or DEFAULT_NETWORK,
             "_mock": False,
         },
         "wallet": {
@@ -130,6 +130,9 @@ DEFAULTS = munchify(
             "hotkey": os.getenv("BT_WALLET_HOTKEY") or "default",
             "path": os.getenv("BT_WALLET_PATH") or str(WALLETS_DIR),
         },
+        "config": False,
+        "strict": False,
+        "no_version_checking": False,
     }
 )
 
