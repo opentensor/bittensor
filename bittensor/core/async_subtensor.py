@@ -336,23 +336,23 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash = await subtensor.determine_block_hash(block=1000000)
 
             # Use provided block hash
-            hash_ = await subtensor.determine_block_hash(block_hash="0x1234...")
+            block_hash = await subtensor.determine_block_hash(block_hash="0x1234...")
 
             # Reuse last block hash
-            hash_ = await subtensor.determine_block_hash(reuse_block=True)
+            block_hash = await subtensor.determine_block_hash(reuse_block=True)
         """
         if reuse_block and any([block_hash, block_hash]):
             raise ValueError("Cannot specify both reuse_block and block_hash/block")
         if block and block_hash:
-            bh = await self.get_block_hash(block)
-            if bh != block_hash:
+            retrieved_block_hash = await self.get_block_hash(block)
+            if retrieved_block_hash != block_hash:
                 raise ValueError(
                     "You have supplied a `block_hash` and a `block`, but the block does not map to the same hash as "
                     f"the one you supplied. You supplied `block_hash={block_hash}` for `block={block}`, but this block"
-                    f"maps to the block hash {bh}."
+                    f"maps to the block hash {retrieved_block_hash}."
                 )
             else:
-                return bh
+                return retrieved_block_hash
 
         # Return the appropriate value.
         if block_hash:
