@@ -30,7 +30,6 @@ TEST_ARGS = [
 
 def test_bittensor_cli_parser_enabled(monkeypatch):
     """Tests that the bt cli args are processed."""
-    monkeypatch.setenv("BT_PARSE_CLI_ARGS", "true")
 
     monkeypatch.setattr(sys, "argv", TEST_ARGS)
 
@@ -42,6 +41,7 @@ def test_bittensor_cli_parser_enabled(monkeypatch):
 
 def test_bittensor_cli_parser_disabled(monkeypatch):
     """Tests that the bt cli args are not processed."""
+    monkeypatch.setenv("BT_NO_PARSE_CLI_ARGS", "true")
     monkeypatch.setattr(sys, "argv", TEST_ARGS)
 
     config = _config_call()
