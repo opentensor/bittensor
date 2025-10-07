@@ -2,18 +2,12 @@
 
 ## Extrinsics and related
 1. ✅ Standardize parameter order across all extrinsics and related calls. Pass extrinsic-specific arguments first (e.g., wallet, hotkey, netuid, amount), followed by optional general flags (e.g., wait_for_inclusion, wait_for_finalization)
-  
 2. ✅ Set `wait_for_inclusion` and `wait_for_finalization` to `True` by default in extrinsics and their related calls. Then we will guarantee the correct/expected extrinsic call response is consistent with the chain response. If the user changes those values, then it is the user's responsibility.
 3. ✅ Make the internal logic of extrinsics the same. There are extrinsics that are slightly different in implementation.
-
 4. ✅ ~~Since SDK is not a responsible tool, try to remove all calculations inside extrinsics that do not affect the result, but are only used in logging. Actually, this should be applied not to extrinsics only but for all codebase.~~ Just improved regarding usage.
-
 5. ✅ Remove `unstake_all` parameter from `unstake_extrinsic` since we have `unstake_all_extrinsic`which is calles another subtensor function.
-
 6. ✅ `unstake` and `unstake_multiple` extrinsics should have `safe_unstaking` parameters instead of `safe_staking`.
-
 7. ✅ Remove `_do*` extrinsic calls and combine them with extrinsic logic.
-
 8. ✅ ~~`subtensor.get_transfer_fee` calls extrinsic inside the subtensor module. Actually the method could be updated by using `bittensor.core.extrinsics.utils.get_extrinsic_fee`.~~ (`get_transfer_fee` isn't `get_extrinsic_fee`)
 
 ## Subtensor
@@ -35,15 +29,18 @@
 
 ## Balance
 1. ✅ In `bittensor.utils.balance._check_currencies` raise the error instead of `warnings.warn`.
-2. ✅ In `bittensor.utils.balance.check_and_convert_to_balance` raise the error instead of `warnings.warn`. 
-This may seem like a harsh decision at first, but ultimately we will push the community to use Balance and there will be fewer errors in their calculations. Confusion with TAO and Alpha in calculations and display/printing/logging will be eliminated.
+2. ✅ In `bittensor.utils.balance.check_and_convert_to_balance` raise the error instead of `warnings.warn`. This may 
+   seem like a harsh decision at first, but ultimately we will push the community to use Balance and there will be fewer 
+   errors in their calculations. Confusion with TAO and Alpha in calculations and display/printing/logging will be 
+   eliminated.
 
 ## Common things
 1. ✅ Reduce the amount of logging.info or transfer part of logging.info to logging.debug
 
 2. ✅ To be consistent across all SDK regarding local environment variables name:
-remove `BT_CHAIN_ENDPOINT` (settings.py :line 124) and use `BT_SUBTENSOR_CHAIN_ENDPOINT` instead of that.
-rename this variable in documentation.
+   - remove `BT_CHAIN_ENDPOINT` (settings.py :line 124) and use `BT_SUBTENSOR_CHAIN_ENDPOINT` instead of that.
+   rename this variable in documentation.
+   - rename local env variable`BT_NETWORK` to `BT_SUBTENSOR_NETWORK`
 
 3. ✅ ~~Move `bittensor.utils.get_transfer_fn_params` to `bittensor.core.extrinsics.utils`.~~ it's on the right place.
 
@@ -70,7 +67,7 @@ rename this variable in documentation.
 12. ✅ The SDK is dropping support for `Python 3.9` starting with this release.
 13. ✅ Remove `Default is` and `Default to` in docstrings bc parameters enough.
 14. ✅ `camfairchild`: TODO, but we should have a grab_metadata if we don't already. Maybe don't decode, but can have a call that removes the Raw prefix, and another just doing grab_metadata_raw (no decoding). `get_commitment_metadata` added.
-15. Solve the issue when a script using SDK receives the `--config` cli parameter. Disable `argparse` processing by default and enable it only when using SOME? a local environment variable.
+15. ✅ Resolve an issue where a script using the SDK receives the `--config` or any other CLI parameters used in the SDK. Disable configuration processing. Use default values ​​instead.
 16. Find and process all `TODOs` across the entire code base. If in doubt, discuss each one with the team separately. SDK has 29 TODOs.
 
 ## New features
@@ -322,3 +319,7 @@ Currently it contains:
 - [x] `check_and_convert_to_balance` renamed to `check_balance_amount`
 - [x] `check_balance_amount` raised `BalanceTypeError` error instead of deprecated warning message.
 - [x] private function `bittensor.utils.balance._check_currencies` raises `BalanceUnitMismatchError` error instead of deprecated warning message. This function is used inside the Balance class to check if units match during various mathematical and logical operations.
+
+
+### ArgParser issue
+- to turn on args parser across SDK, the local env variable `BT_PARSE_CLI_ARGS` should be set to on of the values: `1`, `true`, `yes`, `on`.
