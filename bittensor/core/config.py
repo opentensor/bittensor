@@ -20,8 +20,8 @@ import argparse
 import os
 import sys
 from copy import deepcopy
-from typing import Any, TypeVar, Type, Optional
-
+from typing import Any, Optional
+from bittensor.core.settings import DEFAULTS
 import yaml
 from munch import DefaultMunch
 
@@ -51,12 +51,29 @@ class Config(DefaultMunch):
         parser: argparse.ArgumentParser = None,
         args: Optional[list[str]] = None,
         strict: bool = False,
-        default: Any = None,
+        default: Any = DEFAULTS,
     ) -> None:
-        super().__init__(default)
+        parse_cli = os.getenv("BT_PARSE_CLI_ARGS", "").lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        )
+
+        # Fallback to defaults if not provided
+        default = deepcopy(default or DEFAULTS)
+
+        if isinstance(default, DefaultMunch):
+            # Initialize Munch with defaults (dict-safe)
+            super().__init__(None, default.toDict())
+        else:
+            # if defaults passed as dict
+            super().__init__(None, default)
+
         self.__is_set = {}
 
-        if parser is None:
+        # If CLI parsing disabled, stop here
+        if not parse_cli or parser is None:
             return
 
         self._add_default_arguments(parser)
@@ -234,15 +251,3 @@ class Config(DefaultMunch):
             except argparse.ArgumentError:
                 # this can fail if argument has already been added.
                 pass
-
-
-T = TypeVar("T", bound="DefaultConfig")
-
-
-class DefaultConfig(Config):
-    """A Config with a set of default values."""
-
-    @classmethod
-    def default(cls: Type[T]) -> T:
-        """Get default config."""
-        raise NotImplementedError("Function default is not implemented.")
