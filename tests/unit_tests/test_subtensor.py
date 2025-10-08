@@ -1734,6 +1734,7 @@ def test_get_transfer_fee(subtensor, fake_wallet, mocker):
 
     fake_payment_info = {"partial_fee": int(2e10)}
     subtensor.substrate.get_payment_info.return_value = fake_payment_info
+    mocker_compose_call = mocker.patch.object(subtensor, "compose_call")
 
     # Call
     result = subtensor.get_transfer_fee(
@@ -1741,14 +1742,14 @@ def test_get_transfer_fee(subtensor, fake_wallet, mocker):
     )
 
     # Asserts
-    subtensor.substrate.compose_call.assert_called_once_with(
+    mocker_compose_call.assert_called_once_with(
         call_module="Balances",
         call_function="transfer_keep_alive",
         call_params={"dest": fake_dest, "value": value.rao},
     )
 
     subtensor.substrate.get_payment_info.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value,
+        call=mocker_compose_call.return_value,
         keypair=fake_wallet.coldkeypub,
     )
 
@@ -3545,6 +3546,7 @@ def test_get_parents_no_parents(subtensor, mocker):
 def test_set_children(subtensor, fake_wallet, mocker):
     """Tests set_children extrinsic calls properly."""
     # Preps
+    fake_netuid = mocker.Mock()
     mocked_set_children_extrinsic = mocker.Mock()
     mocker.patch.object(
         subtensor_module, "set_children_extrinsic", mocked_set_children_extrinsic
@@ -3558,9 +3560,9 @@ def test_set_children(subtensor, fake_wallet, mocker):
 
     # Call
     result = subtensor.set_children(
-        fake_wallet,
-        fake_wallet.hotkey.ss58_address,
-        netuid=1,
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        hotkey_ss58=fake_wallet.hotkey.ss58_address,
         children=fake_children,
     )
 
@@ -3569,7 +3571,7 @@ def test_set_children(subtensor, fake_wallet, mocker):
         subtensor=subtensor,
         wallet=fake_wallet,
         hotkey_ss58=fake_wallet.hotkey.ss58_address,
-        netuid=1,
+        netuid=fake_netuid,
         children=fake_children,
         wait_for_finalization=True,
         wait_for_inclusion=True,
@@ -3974,37 +3976,13 @@ def test_subnet(subtensor, mocker):
     assert result == mocked_di_from_dict.return_value
 
 
-def test_get_stake_operations_fee(subtensor, mocker):
-    """Verify that `get_stake_operations_fee` calls proper methods and returns the correct value."""
-    # Preps
-    netuid = 1
-    amount = Balance.from_rao(100_000_000_000)  # 100 Tao
-    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
-    mocked_query_map = mocker.patch.object(
-        subtensor.substrate, "query", return_value=mocker.Mock(value=196)
-    )
-
-    # Call
-    result = subtensor.get_stake_operations_fee(amount=amount, netuid=netuid)
-
-    # Assert
-    mocked_determine_block_hash.assert_called_once_with(block=None)
-    mocked_query_map.assert_called_once_with(
-        module="Swap",
-        storage_function="FeeRate",
-        params=[netuid],
-        block_hash=mocked_determine_block_hash.return_value,
-    )
-    assert result == Balance.from_rao(299076829)
-
-
 def test_get_stake_add_fee(subtensor, mocker):
     """Verify that `get_stake_add_fee` calls proper methods and returns the correct value."""
     # Preps
     netuid = mocker.Mock()
     amount = mocker.Mock(spec=Balance)
-    mocked_get_stake_operations_fee = mocker.patch.object(
-        subtensor, "get_stake_operations_fee"
+    mocked_sim_swap = mocker.patch.object(
+        subtensor, "sim_swap"
     )
 
     # Call
@@ -4014,10 +3992,13 @@ def test_get_stake_add_fee(subtensor, mocker):
     )
 
     # Asserts
-    mocked_get_stake_operations_fee.assert_called_once_with(
-        amount=amount, netuid=netuid, block=None
+    mocked_sim_swap.assert_called_once_with(
+        origin_netuid=0,
+        destination_netuid=netuid,
+        amount=amount,
+        block=None,
     )
-    assert result == mocked_get_stake_operations_fee.return_value
+    assert result == mocked_sim_swap.return_value.tao_fee
 
 
 def test_get_unstake_fee(subtensor, mocker):
@@ -4025,8 +4006,9 @@ def test_get_unstake_fee(subtensor, mocker):
     # Preps
     netuid = mocker.Mock()
     amount = mocker.Mock(spec=Balance)
-    mocked_get_stake_operations_fee = mocker.patch.object(
-        subtensor, "get_stake_operations_fee"
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_sim_swap = mocker.patch.object(
+        subtensor, "sim_swap", return_value=mocker.MagicMock(alpha_fee=mocker.MagicMock())
     )
 
     # Call
@@ -4036,32 +4018,42 @@ def test_get_unstake_fee(subtensor, mocker):
     )
 
     # Asserts
-    mocked_get_stake_operations_fee.assert_called_once_with(
-        amount=amount, netuid=netuid, block=None
+    mocked_sim_swap.assert_called_once_with(
+        origin_netuid=netuid,
+        destination_netuid=0,
+        amount=amount,
+        block=None,
     )
-    assert result == mocked_get_stake_operations_fee.return_value
+    assert result == mocked_sim_swap.return_value.alpha_fee.set_unit.return_value
 
 
 def test_get_stake_movement_fee(subtensor, mocker):
     """Verify that `get_stake_movement_fee` calls proper methods and returns the correct value."""
     # Preps
-    netuid = mocker.Mock()
+    origin_netuid = mocker.Mock()
+    destination_netuid = mocker.Mock()
     amount = mocker.Mock(spec=Balance)
-    mocked_get_stake_operations_fee = mocker.patch.object(
-        subtensor, "get_stake_operations_fee"
+
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_sim_swap = mocker.patch.object(
+        subtensor, "sim_swap", return_value=mocker.MagicMock(alpha_fee=mocker.MagicMock())
     )
 
     # Call
     result = subtensor.get_stake_movement_fee(
+        origin_netuid=origin_netuid,
+        destination_netuid=destination_netuid,
         amount=amount,
-        origin_netuid=netuid,
     )
 
     # Asserts
-    mocked_get_stake_operations_fee.assert_called_once_with(
-        amount=amount, netuid=netuid, block=None
+    mocked_sim_swap.assert_called_once_with(
+        origin_netuid=origin_netuid,
+        destination_netuid=destination_netuid,
+        amount=amount,
+        block=None,
     )
-    assert result == mocked_get_stake_operations_fee.return_value
+    assert result == mocked_sim_swap.return_value.tao_fee
 
 
 def test_get_stake_weight(subtensor, mocker):

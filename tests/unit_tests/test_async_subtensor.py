@@ -19,7 +19,6 @@ from bittensor.core.errors import BalanceTypeError
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils import U64_MAX, get_function_name
 from bittensor.utils.balance import Balance
-from tests.helpers.helpers import assert_submit_signed_extrinsic
 
 
 @pytest.fixture
@@ -166,46 +165,59 @@ async def test_async_subtensor_aenter_connection_refused_error(
 
 
 @pytest.mark.asyncio
-async def test_burned_register(mock_substrate, subtensor, fake_wallet, mocker):
-    mock_substrate.submit_extrinsic.return_value = mocker.AsyncMock(
-        is_success=mocker.AsyncMock(return_value=True)(),
-    )
-    mock_substrate.get_payment_info.return_value = {"partial_fee": 10}
-    mocker.patch.object(
+async def test_burned_register(subtensor, fake_wallet, mocker):
+    # Preps
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
+    mocked_sign_and_send_extrinsic = mocker.patch.object(subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, ""))
+    mocked_get_neuron_for_pubkey_and_subnet = mocker.patch.object(
         subtensor,
         "get_neuron_for_pubkey_and_subnet",
         return_value=NeuronInfo.get_null_neuron(),
     )
-    mocker.patch.object(
+    mocked_get_balance = mocker.patch.object(
         subtensor,
         "get_balance",
-        return_value=Balance(1),
+        return_value=Balance.from_tao(1),
     )
+    mocked_recycle = mocker.patch.object(subtensor, "recycle")
+    fake_netuid = 14
 
+    # Call
     success, _ = await subtensor.burned_register(
-        fake_wallet,
-        netuid=1,
+        wallet=fake_wallet,
+        netuid=fake_netuid,
     )
 
+    # Asserts
     assert success is True
 
-    subtensor.get_neuron_for_pubkey_and_subnet.assert_called_once_with(
-        fake_wallet.hotkey.ss58_address,
-        netuid=1,
-        block_hash=mock_substrate.get_chain_head.return_value,
-    )
-
-    assert_submit_signed_extrinsic(
-        mock_substrate,
-        fake_wallet.coldkey,
+    mocked_compose_call.assert_awaited_once_with(
         call_module="SubtensorModule",
         call_function="burned_register",
         call_params={
-            "netuid": 1,
             "hotkey": fake_wallet.hotkey.ss58_address,
-        },
+            "netuid": fake_netuid,
+        }
+    )
+    mocked_sign_and_send_extrinsic.assert_awaited_once_with(
+        call=mocked_compose_call.return_value,
+        wallet=fake_wallet,
+        period=None,
+        raise_error=False,
         wait_for_finalization=True,
         wait_for_inclusion=True,
+    )
+    mocked_get_neuron_for_pubkey_and_subnet.assert_awaited_once_with(
+        hotkey_ss58=fake_wallet.hotkey.ss58_address,
+        block_hash=subtensor.substrate.get_chain_head.return_value,
+        netuid=fake_netuid,
+    )
+    mocked_get_balance.assert_awaited_with(
+        address=fake_wallet.coldkeypub.ss58_address
+    )
+    mocked_recycle.assert_awaited_with(
+        netuid=fake_netuid,
+        block_hash=subtensor.substrate.get_chain_head.return_value,
     )
 
 
@@ -673,7 +685,7 @@ async def test_get_transfer_fee(subtensor, fake_wallet, mocker, balance):
     fake_value = balance
 
     mocked_compose_call = mocker.AsyncMock()
-    subtensor.substrate.compose_call = mocked_compose_call
+    subtensor.compose_call = mocked_compose_call
 
     mocked_get_payment_info = mocker.AsyncMock(return_value={"partial_fee": 100})
     subtensor.substrate.get_payment_info = mocked_get_payment_info
@@ -708,7 +720,7 @@ async def test_get_transfer_with_exception(subtensor, mocker):
     fake_value = 123
 
     mocked_compose_call = mocker.AsyncMock()
-    subtensor.substrate.compose_call = mocked_compose_call
+    subtensor.compose_call = mocked_compose_call
     subtensor.substrate.get_payment_info.side_effect = Exception
 
     # Call + Assertions
@@ -1681,7 +1693,7 @@ async def test_sign_and_send_extrinsic_success_finalization(
     fake_extrinsic = mocker.Mock()
     fake_response = mocker.Mock()
 
-    mocked_get_extrinsic_fee = mocker.patch.object(async_subtensor, "get_extrinsic_fee")
+    mocked_get_extrinsic_fee = mocker.patch.object(subtensor, "get_extrinsic_fee")
 
     mocked_create_signed_extrinsic = mocker.AsyncMock(return_value=fake_extrinsic)
     subtensor.substrate.create_signed_extrinsic = mocked_create_signed_extrinsic
@@ -1706,7 +1718,7 @@ async def test_sign_and_send_extrinsic_success_finalization(
 
     # Asserts
     mocked_get_extrinsic_fee.assert_awaited_once_with(
-        subtensor=subtensor, call=fake_call, keypair=fake_wallet.coldkey
+        call=fake_call, keypair=fake_wallet.coldkey
     )
     mocked_create_signed_extrinsic.assert_called_once_with(
         call=fake_call, keypair=fake_wallet.coldkey
@@ -1735,7 +1747,7 @@ async def test_sign_and_send_extrinsic_error_finalization(
     fake_response = mocker.Mock()
     fake_error = {"some error": "message"}
 
-    mocked_get_extrinsic_fee = mocker.patch.object(async_subtensor, "get_extrinsic_fee")
+    mocked_get_extrinsic_fee = mocker.patch.object(subtensor, "get_extrinsic_fee")
 
     mocked_create_signed_extrinsic = mocker.AsyncMock(return_value=fake_extrinsic)
     subtensor.substrate.create_signed_extrinsic = mocked_create_signed_extrinsic
@@ -1768,7 +1780,7 @@ async def test_sign_and_send_extrinsic_error_finalization(
 
     # Asserts
     mocked_get_extrinsic_fee.assert_awaited_once_with(
-        subtensor=subtensor, call=fake_call, keypair=fake_wallet.coldkey
+        call=fake_call, keypair=fake_wallet.coldkey
     )
     mocked_create_signed_extrinsic.assert_called_once_with(
         call=fake_call, keypair=fake_wallet.coldkey
@@ -1795,7 +1807,7 @@ async def test_sign_and_send_extrinsic_success_without_inclusion_finalization(
     fake_call = mocker.Mock()
     fake_extrinsic = mocker.Mock()
 
-    mocked_get_extrinsic_fee = mocker.patch.object(async_subtensor, "get_extrinsic_fee")
+    mocked_get_extrinsic_fee = mocker.patch.object(subtensor, "get_extrinsic_fee")
 
     mocked_create_signed_extrinsic = mocker.AsyncMock(return_value=fake_extrinsic)
     subtensor.substrate.create_signed_extrinsic = mocked_create_signed_extrinsic
@@ -1813,7 +1825,7 @@ async def test_sign_and_send_extrinsic_success_without_inclusion_finalization(
 
     # Asserts
     mocked_get_extrinsic_fee.assert_awaited_once_with(
-        subtensor=subtensor, call=fake_call, keypair=fake_wallet.coldkey
+        call=fake_call, keypair=fake_wallet.coldkey
     )
     mocked_create_signed_extrinsic.assert_awaited_once()
     mocked_create_signed_extrinsic.assert_called_once_with(
@@ -1843,7 +1855,7 @@ async def test_sign_and_send_extrinsic_substrate_request_exception(
     fake_extrinsic = mocker.Mock()
     fake_exception = async_subtensor.SubstrateRequestException("Test Exception")
 
-    mocked_get_extrinsic_fee = mocker.patch.object(async_subtensor, "get_extrinsic_fee")
+    mocked_get_extrinsic_fee = mocker.patch.object(subtensor, "get_extrinsic_fee")
 
     mocked_create_signed_extrinsic = mocker.AsyncMock(return_value=fake_extrinsic)
     subtensor.substrate.create_signed_extrinsic = mocked_create_signed_extrinsic
@@ -1867,7 +1879,7 @@ async def test_sign_and_send_extrinsic_substrate_request_exception(
 
     # Asserts
     mocked_get_extrinsic_fee.assert_awaited_once_with(
-        subtensor=subtensor, call=fake_call, keypair=fake_wallet.coldkey
+        call=fake_call, keypair=fake_wallet.coldkey
     )
     assert result == (False, str(fake_exception))
     assert result.extrinsic_function == get_function_name()
@@ -1883,7 +1895,7 @@ async def test_sign_and_send_extrinsic_raises_error(
 ):
     """Tests sign_and_send_extrinsic when an error is raised."""
     # Preps
-    mocked_get_extrinsic_fee = mocker.patch.object(async_subtensor, "get_extrinsic_fee")
+    mocked_get_extrinsic_fee = mocker.patch.object(subtensor, "get_extrinsic_fee")
 
     mock_substrate.submit_extrinsic.return_value = mocker.AsyncMock(
         error_message=mocker.AsyncMock(
@@ -3779,40 +3791,13 @@ async def test_subnet(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_get_stake_operations_fee(subtensor, mocker):
-    """Verify that `get_stake_operations_fee` calls proper methods and returns the correct value."""
-    # Preps
-    netuid = 1
-    amount = Balance.from_rao(100_000_000_000)  # 100 Tao
-    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
-    mocked_query_map = mocker.patch.object(
-        subtensor.substrate, "query", return_value=mocker.Mock(value=196)
-    )
-
-    # Call
-    result = await subtensor.get_stake_operations_fee(netuid=netuid, amount=amount)
-
-    # Assert
-    mocked_determine_block_hash.assert_awaited_once_with(
-        block=None, block_hash=None, reuse_block=False
-    )
-    mocked_query_map.assert_awaited_once_with(
-        module="Swap",
-        storage_function="FeeRate",
-        params=[netuid],
-        block_hash=mocked_determine_block_hash.return_value,
-    )
-    assert result == Balance.from_rao(299076829)
-
-
-@pytest.mark.asyncio
 async def test_get_stake_add_fee(subtensor, mocker):
     """Verify that `get_stake_add_fee` calls proper methods and returns the correct value."""
     # Preps
     netuid = mocker.Mock()
     amount = mocker.Mock(spec=Balance)
-    mocked_get_stake_operations_fee = mocker.patch.object(
-        subtensor, "get_stake_operations_fee"
+    mocked_sim_swap = mocker.patch.object(
+        subtensor, "sim_swap"
     )
 
     # Call
@@ -3822,10 +3807,13 @@ async def test_get_stake_add_fee(subtensor, mocker):
     )
 
     # Asserts
-    mocked_get_stake_operations_fee.assert_awaited_once_with(
-        amount=amount, netuid=netuid, block=None
+    mocked_sim_swap.assert_awaited_once_with(
+        origin_netuid=0,
+        destination_netuid=netuid,
+        amount=amount,
+        block_hash=None,
     )
-    assert result == mocked_get_stake_operations_fee.return_value
+    assert result == mocked_sim_swap.return_value.tao_fee
 
 
 @pytest.mark.asyncio
@@ -3834,8 +3822,9 @@ async def test_get_unstake_fee(subtensor, mocker):
     # Preps
     netuid = mocker.Mock()
     amount = mocker.Mock(spec=Balance)
-    mocked_get_stake_operations_fee = mocker.patch.object(
-        subtensor, "get_stake_operations_fee"
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_sim_swap = mocker.patch.object(
+        subtensor, "sim_swap", return_value=mocker.MagicMock(alpha_fee=mocker.MagicMock())
     )
 
     # Call
@@ -3845,33 +3834,43 @@ async def test_get_unstake_fee(subtensor, mocker):
     )
 
     # Asserts
-    mocked_get_stake_operations_fee.assert_awaited_once_with(
-        amount=amount, netuid=netuid, block=None
+    mocked_sim_swap.assert_awaited_once_with(
+        origin_netuid=netuid,
+        destination_netuid=0,
+        amount=amount,
+        block_hash=mocked_determine_block_hash.return_value,
     )
-    assert result == mocked_get_stake_operations_fee.return_value
+    assert result == mocked_sim_swap.return_value.alpha_fee.set_unit.return_value
 
 
 @pytest.mark.asyncio
 async def test_get_stake_movement_fee(subtensor, mocker):
     """Verify that `get_stake_movement_fee` calls proper methods and returns the correct value."""
     # Preps
-    netuid = mocker.Mock()
+    origin_netuid = mocker.Mock()
+    destination_netuid = mocker.Mock()
     amount = mocker.Mock(spec=Balance)
-    mocked_get_stake_operations_fee = mocker.patch.object(
-        subtensor, "get_stake_operations_fee"
+
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_sim_swap = mocker.patch.object(
+        subtensor, "sim_swap", return_value=mocker.MagicMock(alpha_fee=mocker.MagicMock())
     )
 
     # Call
     result = await subtensor.get_stake_movement_fee(
+        origin_netuid=origin_netuid,
+        destination_netuid=destination_netuid,
         amount=amount,
-        origin_netuid=netuid,
     )
 
     # Asserts
-    mocked_get_stake_operations_fee.assert_awaited_once_with(
-        amount=amount, netuid=netuid, block=None
+    mocked_sim_swap.assert_awaited_once_with(
+        origin_netuid=origin_netuid,
+        destination_netuid=destination_netuid,
+        amount=amount,
+        block_hash=mocked_determine_block_hash.return_value,
     )
-    assert result == mocked_get_stake_operations_fee.return_value
+    assert result == mocked_sim_swap.return_value.tao_fee
 
 
 @pytest.mark.asyncio
