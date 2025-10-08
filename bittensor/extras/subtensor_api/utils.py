@@ -40,6 +40,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
         subtensor.inner_subtensor.get_all_revealed_commitments
     )
     subtensor.get_all_subnets_info = subtensor.inner_subtensor.get_all_subnets_info
+    subtensor.get_all_subnets_netuid = subtensor.inner_subtensor.get_all_subnets_netuid
     subtensor.get_auto_stakes = subtensor.inner_subtensor.get_auto_stakes
     subtensor.get_balance = subtensor.inner_subtensor.get_balance
     subtensor.get_balances = subtensor.inner_subtensor.get_balances
@@ -62,6 +63,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.get_existential_deposit = (
         subtensor.inner_subtensor.get_existential_deposit
     )
+    subtensor.get_extrinsic_fee = subtensor.inner_subtensor.get_extrinsic_fee
     subtensor.get_hotkey_owner = subtensor.inner_subtensor.get_hotkey_owner
     subtensor.get_hotkey_stake = subtensor.inner_subtensor.get_hotkey_stake
     subtensor.get_hyperparameter = subtensor.inner_subtensor.get_hyperparameter
@@ -104,9 +106,6 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
         subtensor.inner_subtensor.get_stake_info_for_coldkey
     )
     subtensor.get_stake_movement_fee = subtensor.inner_subtensor.get_stake_movement_fee
-    subtensor.get_stake_operations_fee = (
-        subtensor.inner_subtensor.get_stake_operations_fee
-    )
     subtensor.get_stake_weight = subtensor.inner_subtensor.get_stake_weight
     subtensor.get_subnet_burn_cost = subtensor.inner_subtensor.get_subnet_burn_cost
     subtensor.get_subnet_hyperparameters = (
@@ -124,7 +123,6 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.get_subnet_validator_permits = (
         subtensor.inner_subtensor.get_subnet_validator_permits
     )
-    subtensor.get_all_subnets_netuid = subtensor.inner_subtensor.get_all_subnets_netuid
     subtensor.get_timelocked_weight_commits = (
         subtensor.inner_subtensor.get_timelocked_weight_commits
     )
@@ -189,6 +187,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.sign_and_send_extrinsic = (
         subtensor.inner_subtensor.sign_and_send_extrinsic
     )
+    subtensor.sim_swap = subtensor.inner_subtensor.sim_swap
     subtensor.start_call = subtensor.inner_subtensor.start_call
     subtensor.state_call = subtensor.inner_subtensor.state_call
     subtensor.subnet = subtensor.inner_subtensor.subnet
@@ -204,6 +203,9 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.unstake = subtensor.inner_subtensor.unstake
     subtensor.unstake_all = subtensor.inner_subtensor.unstake_all
     subtensor.unstake_multiple = subtensor.inner_subtensor.unstake_multiple
+    subtensor.validate_extrinsic_params = (
+        subtensor.inner_subtensor.validate_extrinsic_params
+    )
     subtensor.wait_for_block = subtensor.inner_subtensor.wait_for_block
     subtensor.weights = subtensor.inner_subtensor.weights
     subtensor.weights_rate_limit = subtensor.inner_subtensor.weights_rate_limit
