@@ -12,6 +12,7 @@ class Extrinsics:
         self.add_stake_multiple = subtensor.add_stake_multiple
         self.burned_register = subtensor.burned_register
         self.commit_weights = subtensor.commit_weights
+        self.get_extrinsic_fee = subtensor.get_extrinsic_fee
         self.modify_liquidity = subtensor.modify_liquidity
         self.move_stake = subtensor.move_stake
         self.register = subtensor.register
@@ -35,3 +36,4 @@ class Extrinsics:
         self.unstake = subtensor.unstake
         self.unstake_all = subtensor.unstake_all
         self.unstake_multiple = subtensor.unstake_multiple
+        self.validate_extrinsic_params = subtensor.validate_extrinsic_params
