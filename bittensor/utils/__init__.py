@@ -486,37 +486,6 @@ def deprecated_message(message: str) -> None:
     warnings.warn(message=message, category=DeprecationWarning, stacklevel=2)
 
 
-def get_transfer_fn_params(
-    amount: Optional["Balance"], destination: str, keep_alive: bool
-) -> tuple[str, dict[str, Union[str, int, bool]]]:
-    """
-    Helper function to get the transfer call function and call params, depending on the value and keep_alive flag
-    provided.
-
-    Parameters:
-        amount: the amount of Tao to transfer. `None` if transferring all.
-        destination: the destination SS58 of the transfer
-        keep_alive: whether to enforce a retention of the existential deposit in the account after transfer.
-
-    Returns:
-        tuple[call function, call params]
-    """
-    call_params = {"dest": destination}
-    if amount is None:
-        call_function = "transfer_all"
-        if keep_alive:
-            call_params["keep_alive"] = True
-        else:
-            call_params["keep_alive"] = False
-    else:
-        call_params["value"] = amount.rao
-        if keep_alive:
-            call_function = "transfer_keep_alive"
-        else:
-            call_function = "transfer_allow_death"
-    return call_function, call_params
-
-
 def get_function_name() -> str:
     """Return the current function's name."""
     return inspect.currentframe().f_back.f_code.co_name
