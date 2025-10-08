@@ -735,7 +735,7 @@ def test_get_vote_data(subtensor, alice_wallet):
     success, message = propose(
         subtensor=subtensor,
         wallet=alice_wallet,
-        proposal=subtensor.substrate.compose_call(
+        proposal=subtensor.compose_call(
             call_module="Triumvirate",
             call_function="set_members",
             call_params={
@@ -839,7 +839,7 @@ async def test_get_vote_data_async(async_subtensor, alice_wallet):
     success, message = await async_propose(
         subtensor=async_subtensor,
         wallet=alice_wallet,
-        proposal=await async_subtensor.substrate.compose_call(
+        proposal=await async_subtensor.compose_call(
             call_module="Triumvirate",
             call_function="set_members",
             call_params={
