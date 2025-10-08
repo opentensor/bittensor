@@ -3,7 +3,7 @@ import os
 import shutil
 import subprocess
 import sys
-
+from typing import Optional
 from bittensor_wallet import Keypair, Wallet
 
 from bittensor.extras import SubtensorApi
@@ -15,15 +15,16 @@ templates_repo = "templates repository"
 
 def setup_wallet(
     uri: str,
-    encrypt_hotkey: bool = False,
     encrypt_coldkey: bool = False,
+    encrypt_hotkey: bool = False,
+    coldkey_password: Optional[str] = None,
+    hotkey_password: Optional[str] = None,
 ) -> tuple[Keypair, Wallet]:
     """
     Sets up a wallet using the provided URI.
 
-    This function creates a keypair from the given URI and initializes a wallet
-    at a temporary path. It sets the coldkey, coldkeypub, and hotkey for the wallet
-    using the generated keypair.
+    This function creates a keypair from the given URI and initializes a wallet at a temporary path. It sets the
+    coldkey, coldkeypub, and hotkey for the wallet using the generated keypair.
 
     Side Effects:
         - Creates a wallet in a temporary directory.
@@ -33,9 +34,10 @@ def setup_wallet(
     name = uri.strip("/")
     wallet_path = f"/tmp/btcli-e2e-wallet-{name}"
     wallet = Wallet(name=name, path=wallet_path)
-    wallet.set_coldkey(keypair=keypair, encrypt=encrypt_coldkey, overwrite=True)
+    wallet.set_coldkey(keypair=keypair, encrypt=encrypt_coldkey, overwrite=True, coldkey_password=coldkey_password)
     wallet.set_coldkeypub(keypair=keypair, encrypt=False, overwrite=True)
-    wallet.set_hotkey(keypair=keypair, encrypt=encrypt_hotkey, overwrite=True)
+    wallet.set_hotkey(keypair=keypair, encrypt=encrypt_hotkey, overwrite=True, hotkey_password=hotkey_password)
+    wallet.set_hotkeypub(keypair=keypair, encrypt=False, overwrite=True)
     return keypair, wallet
 
 
