@@ -851,7 +851,7 @@ def rao(amount: int, netuid: int = 0) -> Balance:
     return Balance.from_rao(amount).set_unit(netuid)
 
 
-def check_balance_amount(amount: Optional[Balance]) -> None:
+def check_balance_amount(amount: Optional[Balance], allow_none: bool = True) -> None:
     """
     Validate that the provided value is a Balance instance.
 
@@ -860,6 +860,7 @@ def check_balance_amount(amount: Optional[Balance]) -> None:
 
     Args:
         amount: The value to validate.
+        allow_none: if False then a `BalanceTypeError` is raised if the value is None.
 
     Returns:
         None: Always returns None if validation passes.
@@ -867,7 +868,7 @@ def check_balance_amount(amount: Optional[Balance]) -> None:
     Raises:
         BalanceTypeError: If amount is not a Balance instance and not None.
     """
-    if amount is None:
+    if amount is None and allow_none is True:
         return None
 
     if not isinstance(amount, Balance):
