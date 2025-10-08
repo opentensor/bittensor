@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Optional
 
+from bittensor.core.extrinsics.params import StartCallParams
 from bittensor.core.types import ExtrinsicResponse
 
 if TYPE_CHECKING:
@@ -40,21 +41,20 @@ async def start_call_extrinsic(
         ).success:
             return unlocked
 
-        async with subtensor.substrate as substrate:
-            start_call = await substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="start_call",
-                call_params={"netuid": netuid},
-            )
+        call = await subtensor.compose_call(
+            call_module="SubtensorModule",
+            call_function="start_call",
+            call_params=StartCallParams.start_call(netuid=netuid),
+        )
 
-            return await subtensor.sign_and_send_extrinsic(
-                call=start_call,
-                wallet=wallet,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-                period=period,
-                raise_error=raise_error,
-            )
+        return await subtensor.sign_and_send_extrinsic(
+            call=call,
+            wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            period=period,
+            raise_error=raise_error,
+        )
 
     except Exception as error:
         return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
