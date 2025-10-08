@@ -14,7 +14,7 @@ def test_set_children_extrinsic(subtensor, mocker, fake_wallet):
         ),
     ]
 
-    subtensor.substrate.compose_call = mocker.Mock()
+    subtensor.compose_call = mocker.Mock()
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
@@ -31,7 +31,7 @@ def test_set_children_extrinsic(subtensor, mocker, fake_wallet):
     )
 
     # Asserts
-    subtensor.substrate.compose_call.assert_called_once_with(
+    subtensor.compose_call.assert_called_once_with(
         call_module="SubtensorModule",
         call_function="set_children",
         call_params={
@@ -47,7 +47,7 @@ def test_set_children_extrinsic(subtensor, mocker, fake_wallet):
     )
 
     mocked_sign_and_send_extrinsic.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value,
+        call=subtensor.compose_call.return_value,
         wallet=fake_wallet,
         period=None,
         raise_error=False,
@@ -64,7 +64,7 @@ def test_root_set_pending_childkey_cooldown_extrinsic(subtensor, mocker, fake_wa
     # Preps
     cooldown = 100
 
-    subtensor.substrate.compose_call = mocker.Mock()
+    subtensor.compose_call = mocker.Mock()
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
@@ -79,9 +79,8 @@ def test_root_set_pending_childkey_cooldown_extrinsic(subtensor, mocker, fake_wa
     )
     # Asserts
 
-    subtensor.substrate.compose_call.call_count == 2
     mocked_sign_and_send_extrinsic.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value,
+        call=subtensor.compose_call.return_value,
         wallet=fake_wallet,
         nonce_key="hotkey",
         sign_with="coldkey",

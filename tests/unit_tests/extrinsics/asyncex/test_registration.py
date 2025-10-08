@@ -26,7 +26,7 @@ async def test_register_extrinsic_success(subtensor, fake_wallet, mocker):
             is_stale_async=mocker.AsyncMock(return_value=False), seal=[]
         ),
     )
-    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, "")
     )
@@ -92,7 +92,7 @@ async def test_register_extrinsic_success_with_cuda(subtensor, fake_wallet, mock
             is_stale_async=mocker.AsyncMock(return_value=False), seal=[]
         ),
     )
-    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, "")
     )
@@ -263,7 +263,7 @@ async def test_register_extrinsic_max_attempts_reached(subtensor, fake_wallet, m
         "create_pow_async",
         return_value=fake_pow_result,
     )
-    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
@@ -318,7 +318,7 @@ async def test_set_subnet_identity_extrinsic_is_success(subtensor, fake_wallet, 
     description = "mock_description"
     additional = "mock_additional"
 
-    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
 
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor, "sign_and_send_extrinsic"
@@ -383,7 +383,7 @@ async def test_set_subnet_identity_extrinsic_is_failed(subtensor, fake_wallet, m
     additional = "mock_additional"
     fake_error_message = "error message"
 
-    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
 
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,

@@ -35,7 +35,7 @@ def test_transfer_extrinsic_success(subtensor, fake_wallet, mocker):
     subtensor.get_transfer_fee = mocker.patch.object(
         subtensor, "get_transfer_fee", return_value=2
     )
-    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, "")
     )
@@ -106,7 +106,7 @@ def test_transfer_extrinsic_call_successful_with_failed_response(
     subtensor.get_transfer_fee = mocker.patch.object(
         subtensor, "get_transfer_fee", return_value=2
     )
-    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(False, "")
     )
@@ -298,7 +298,7 @@ def test_transfer_extrinsic_keep_alive_false_and_transfer_all_true(
     subtensor.get_transfer_fee = mocker.patch.object(
         subtensor, "get_transfer_fee", return_value=2
     )
-    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, "")
     )

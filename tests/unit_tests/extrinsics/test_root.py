@@ -101,13 +101,13 @@ def test_root_register_extrinsic(
     assert result.success == expected_result
 
     if not hotkey_registered[0]:
-        mock_subtensor.substrate.compose_call.assert_called_once_with(
+        mock_subtensor.compose_call.assert_called_once_with(
             call_module="SubtensorModule",
             call_function="root_register",
             call_params={"hotkey": "fake_hotkey_address"},
         )
         mocked_sign_and_send_extrinsic.assert_called_once_with(
-            call=mock_subtensor.substrate.compose_call.return_value,
+            call=mock_subtensor.compose_call.return_value,
             wallet=mock_wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,

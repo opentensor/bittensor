@@ -8,12 +8,13 @@ from bittensor.core.types import ExtrinsicResponse
 def test_add_stake_extrinsic(mocker):
     """Verify that sync `add_stake_extrinsic` method calls proper async method."""
     # Preps
+    fake_extrinsic_fee = Balance.from_tao(0.1)
     fake_subtensor = mocker.Mock(
         **{
             "get_balance.return_value": Balance(10),
             "get_existential_deposit.return_value": Balance(1),
             "get_hotkey_owner.return_value": "hotkey_owner",
-            "sign_and_send_extrinsic.return_value": ExtrinsicResponse(True, "Success"),
+            "sign_and_send_extrinsic.return_value": ExtrinsicResponse(True, "Success", extrinsic_fee=fake_extrinsic_fee),
         }
     )
     fake_wallet_ = mocker.Mock(
@@ -40,14 +41,15 @@ def test_add_stake_extrinsic(mocker):
 
     # Asserts
     assert result.success is True
+    assert result.extrinsic_fee == fake_extrinsic_fee
 
-    fake_subtensor.substrate.compose_call.assert_called_once_with(
+    fake_subtensor.compose_call.assert_called_once_with(
         call_module="SubtensorModule",
         call_function="add_stake",
         call_params={"hotkey": "hotkey", "amount_staked": 9, "netuid": 1},
     )
     fake_subtensor.sign_and_send_extrinsic.assert_called_once_with(
-        call=fake_subtensor.substrate.compose_call.return_value,
+        call=fake_subtensor.compose_call.return_value,
         wallet=fake_wallet_,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -119,7 +121,7 @@ def test_set_auto_stake_extrinsic(
     netuid = mocker.Mock()
     hotkey_ss58 = mocker.Mock()
 
-    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
 
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,

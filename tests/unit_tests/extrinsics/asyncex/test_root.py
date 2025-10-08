@@ -52,7 +52,7 @@ async def test_root_register_extrinsic_success(subtensor, fake_wallet, mocker):
         "is_hotkey_registered",
         return_value=False,
     )
-    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
@@ -83,7 +83,7 @@ async def test_root_register_extrinsic_success(subtensor, fake_wallet, mocker):
     )
 
     # Asserts
-    mocked_unlock_key.assert_called_once_with(fake_wallet, False)
+    mocked_unlock_key.assert_called_once_with(fake_wallet, False, unlock_type="both")
     mocked_is_hotkey_registered.assert_called_once_with(
         netuid=0, hotkey_ss58="fake_hotkey_address"
     )
@@ -129,7 +129,7 @@ async def test_root_register_extrinsic_insufficient_balance(
         wait_for_finalization=True,
     )
 
-    mocked_unlock_key.assert_called_once_with(fake_wallet, False)
+    mocked_unlock_key.assert_called_once_with(fake_wallet, False, unlock_type="both")
     assert result.success is False
 
     subtensor.get_balance.assert_called_once_with(
@@ -168,7 +168,7 @@ async def test_root_register_extrinsic_unlock_failed(subtensor, fake_wallet, moc
     )
 
     # Asserts
-    mocked_unlock_key.assert_called_once_with(fake_wallet, False)
+    mocked_unlock_key.assert_called_once_with(fake_wallet, False, unlock_type="both")
     assert result.success is False
 
 
@@ -210,7 +210,7 @@ async def test_root_register_extrinsic_already_registered(
     )
 
     # Asserts
-    mocked_unlock_key.assert_called_once_with(fake_wallet, False)
+    mocked_unlock_key.assert_called_once_with(fake_wallet, False, unlock_type="both")
     mocked_is_hotkey_registered.assert_called_once_with(
         netuid=0, hotkey_ss58="fake_hotkey_address"
     )
@@ -245,7 +245,7 @@ async def test_root_register_extrinsic_transaction_failed(
         "is_hotkey_registered",
         return_value=False,
     )
-    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
@@ -261,7 +261,7 @@ async def test_root_register_extrinsic_transaction_failed(
     )
 
     # Asserts
-    mocked_unlock_key.assert_called_once_with(fake_wallet, False)
+    mocked_unlock_key.assert_called_once_with(fake_wallet, False, unlock_type="both")
     mocked_is_hotkey_registered.assert_called_once_with(
         netuid=0, hotkey_ss58="fake_hotkey_address"
     )
@@ -296,7 +296,7 @@ async def test_root_register_extrinsic_uid_not_found(subtensor, fake_wallet, moc
         "is_hotkey_registered",
         return_value=False,
     )
-    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
@@ -317,7 +317,7 @@ async def test_root_register_extrinsic_uid_not_found(subtensor, fake_wallet, moc
     )
 
     # Asserts
-    mocked_unlock_key.assert_called_once_with(fake_wallet, False)
+    mocked_unlock_key.assert_called_once_with(fake_wallet, False, unlock_type="both")
     mocked_is_hotkey_registered.assert_called_once_with(
         netuid=0, hotkey_ss58="fake_hotkey_address"
     )

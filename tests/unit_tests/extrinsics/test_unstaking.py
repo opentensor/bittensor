@@ -40,7 +40,7 @@ def test_unstake_extrinsic(fake_wallet, mocker):
     # Asserts
     assert result.success is True
 
-    fake_subtensor.substrate.compose_call.assert_called_once_with(
+    fake_subtensor.compose_call.assert_called_once_with(
         call_module="SubtensorModule",
         call_function="remove_stake",
         call_params={
@@ -50,7 +50,7 @@ def test_unstake_extrinsic(fake_wallet, mocker):
         },
     )
     fake_subtensor.sign_and_send_extrinsic.assert_called_once_with(
-        call=fake_subtensor.substrate.compose_call.return_value,
+        call=fake_subtensor.compose_call.return_value,
         wallet=fake_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -85,7 +85,7 @@ def test_unstake_all_extrinsic(fake_wallet, mocker):
     assert result[0] is True
     assert result[1] == ""
 
-    fake_subtensor.substrate.compose_call.assert_called_once_with(
+    fake_subtensor.compose_call.assert_called_once_with(
         call_module="SubtensorModule",
         call_function="remove_stake_full_limit",
         call_params={
@@ -95,7 +95,7 @@ def test_unstake_all_extrinsic(fake_wallet, mocker):
         },
     )
     fake_subtensor.sign_and_send_extrinsic.assert_called_once_with(
-        call=fake_subtensor.substrate.compose_call.return_value,
+        call=fake_subtensor.compose_call.return_value,
         wallet=fake_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,

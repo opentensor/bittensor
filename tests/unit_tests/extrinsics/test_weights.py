@@ -30,7 +30,7 @@ def test_commit_timelocked_weights_extrinsic(mocker, subtensor, fake_wallet):
         "get_encrypted_commit",
         return_value=(mocker.Mock(), mocker.Mock()),
     )
-    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
@@ -109,7 +109,7 @@ def test_commit_weights_extrinsic(mocker, subtensor, fake_wallet):
     mocked_generate_weight_hash = mocker.patch.object(
         weights_module, "generate_weight_hash"
     )
-    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, "")
     )
@@ -176,7 +176,7 @@ def test_reveal_weights_extrinsic(mocker, subtensor, fake_wallet):
         "convert_and_normalize_weights_and_uids",
         return_value=(uids, weights),
     )
-    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, "")
     )
@@ -236,7 +236,7 @@ def test_set_weights_extrinsic(mocker, subtensor, fake_wallet):
         "convert_and_normalize_weights_and_uids",
         return_value=(uids, weights),
     )
-    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",

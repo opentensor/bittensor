@@ -20,7 +20,7 @@ async def test_set_auto_stake_extrinsic(
     netuid = mocker.Mock()
     hotkey_ss58 = mocker.Mock()
 
-    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
 
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,

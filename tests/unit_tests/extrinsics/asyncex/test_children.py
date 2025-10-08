@@ -17,7 +17,7 @@ async def test_set_children_extrinsic(subtensor, mocker, fake_wallet):
         ),
     ]
 
-    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
@@ -70,7 +70,7 @@ async def test_root_set_pending_childkey_cooldown_extrinsic(
     # Preps
     cooldown = 100
 
-    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
