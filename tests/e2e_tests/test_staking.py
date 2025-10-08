@@ -1399,8 +1399,6 @@ async def test_move_stake_async(async_subtensor, alice_wallet, bob_wallet, dave_
     logging.console.info(f"[orange]Dave stake after moving all: {dave_stake}[orange]")
 
     assert dave_stake.rao == CloseInValue(0, 0.00001)
-    print(">>> alice", alice_sn.calls)
-    print(">>> alice", alice_sn.calls)
 
 
 def test_transfer_stake(subtensor, alice_wallet, bob_wallet, dave_wallet):
