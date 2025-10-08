@@ -1652,9 +1652,7 @@ def test_get_last_commitment_bonds_reset_block(subtensor, mocker):
     fake_uid = 2
     fake_hotkey = "hotkey"
 
-    mocked_get_last_bonds_reset = mocker.patch.object(
-        subtensor, "get_last_bonds_reset"
-    )
+    mocked_get_last_bonds_reset = mocker.patch.object(subtensor, "get_last_bonds_reset")
     mocked_decode_block = mocker.patch.object(subtensor_module, "decode_block")
 
     mocked_metagraph = mocker.MagicMock()
@@ -1667,13 +1665,11 @@ def test_get_last_commitment_bonds_reset_block(subtensor, mocker):
     )
 
     # Assertions
-    mocked_metagraph.assert_called_once_with(
-        fake_netuid,
-        block=None)
-    mocked_get_last_bonds_reset.assert_called_once_with(
-        fake_netuid, fake_hotkey, None
+    mocked_metagraph.assert_called_once_with(fake_netuid, block=None)
+    mocked_get_last_bonds_reset.assert_called_once_with(fake_netuid, fake_hotkey, None)
+    mocked_decode_block.assert_called_once_with(
+        mocked_get_last_bonds_reset.return_value
     )
-    mocked_decode_block.assert_called_once_with(mocked_get_last_bonds_reset.return_value)
     assert result == mocked_decode_block.return_value
 
 
@@ -3981,9 +3977,7 @@ def test_get_stake_add_fee(subtensor, mocker):
     # Preps
     netuid = mocker.Mock()
     amount = mocker.Mock(spec=Balance)
-    mocked_sim_swap = mocker.patch.object(
-        subtensor, "sim_swap"
-    )
+    mocked_sim_swap = mocker.patch.object(subtensor, "sim_swap")
 
     # Call
     result = subtensor.get_stake_add_fee(
@@ -4008,7 +4002,9 @@ def test_get_unstake_fee(subtensor, mocker):
     amount = mocker.Mock(spec=Balance)
     mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
     mocked_sim_swap = mocker.patch.object(
-        subtensor, "sim_swap", return_value=mocker.MagicMock(alpha_fee=mocker.MagicMock())
+        subtensor,
+        "sim_swap",
+        return_value=mocker.MagicMock(alpha_fee=mocker.MagicMock()),
     )
 
     # Call
@@ -4036,7 +4032,9 @@ def test_get_stake_movement_fee(subtensor, mocker):
 
     mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
     mocked_sim_swap = mocker.patch.object(
-        subtensor, "sim_swap", return_value=mocker.MagicMock(alpha_fee=mocker.MagicMock())
+        subtensor,
+        "sim_swap",
+        return_value=mocker.MagicMock(alpha_fee=mocker.MagicMock()),
     )
 
     # Call
@@ -4325,10 +4323,11 @@ def test_get_block_info(subtensor, mocker):
         },
         "extrinsics": [
             fake_decoded,
-        ]
-
+        ],
     }
-    mocked_get_block = mocker.patch.object(subtensor.substrate, "get_block", return_value=fake_substrate_block)
+    mocked_get_block = mocker.patch.object(
+        subtensor.substrate, "get_block", return_value=fake_substrate_block
+    )
     mocked_BlockInfo = mocker.patch.object(subtensor_module, "BlockInfo")
 
     # Call
@@ -4346,6 +4345,6 @@ def test_get_block_info(subtensor, mocker):
         timestamp=fake_timestamp,
         header=fake_substrate_block.get("header"),
         extrinsics=fake_substrate_block.get("extrinsics"),
-        explorer=f"{settings.TAO_APP_BLOCK_EXPLORER}{fake_block}"
+        explorer=f"{settings.TAO_APP_BLOCK_EXPLORER}{fake_block}",
     )
     assert result == mocked_BlockInfo.return_value
