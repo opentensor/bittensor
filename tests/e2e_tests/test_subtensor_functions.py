@@ -2,10 +2,6 @@ import asyncio
 import re
 import pytest
 
-from bittensor.core.extrinsics.asyncex.utils import (
-    get_extrinsic_fee as get_extrinsic_fee_async,
-)
-from bittensor.core.extrinsics.utils import get_extrinsic_fee
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils import (
