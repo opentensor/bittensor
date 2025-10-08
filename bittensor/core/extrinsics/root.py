@@ -1,6 +1,7 @@
 import time
 from typing import Optional, TYPE_CHECKING
 
+from bittensor.core.extrinsics.params import RootParams
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils import u16_normalized_float
 from bittensor.utils.balance import Balance
@@ -59,7 +60,9 @@ def root_register_extrinsic(
     """
     try:
         if not (
-            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+            unlocked := ExtrinsicResponse.unlock_wallet(
+                wallet, raise_error, unlock_type="both"
+            )
         ).success:
             return unlocked
 
@@ -96,10 +99,10 @@ def root_register_extrinsic(
         if is_registered:
             return ExtrinsicResponse(message="Already registered on root network.")
 
-        call = subtensor.substrate.compose_call(
+        call = subtensor.compose_call(
             call_module="SubtensorModule",
             call_function="root_register",
-            call_params={"hotkey": wallet.hotkey.ss58_address},
+            call_params=RootParams.root_register(wallet.hotkey.ss58_address),
         )
         response = subtensor.sign_and_send_extrinsic(
             call=call,

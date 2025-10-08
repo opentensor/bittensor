@@ -1,8 +1,8 @@
 from typing import Optional, TYPE_CHECKING
 
+from bittensor.core.extrinsics.params import LiquidityParams
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.balance import Balance
-from bittensor.utils.liquidity import price_to_tick
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -47,24 +47,26 @@ def add_liquidity_extrinsic(
     `toggle_user_liquidity_extrinsic` to enable/disable user liquidity.
     """
     try:
+        unlock_type = "coldkey" if hotkey_ss58 else "both"
         if not (
-            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+            unlocked := ExtrinsicResponse.unlock_wallet(
+                wallet, raise_error, unlock_type
+            )
         ).success:
             return unlocked
 
-        tick_low = price_to_tick(price_low.tao)
-        tick_high = price_to_tick(price_high.tao)
+        hotkey_ss58 = hotkey_ss58 or wallet.hotkey.ss58_address
 
-        call = subtensor.substrate.compose_call(
+        call = subtensor.compose_call(
             call_module="Swap",
             call_function="add_liquidity",
-            call_params={
-                "hotkey": hotkey_ss58 or wallet.hotkey.ss58_address,
-                "netuid": netuid,
-                "tick_low": tick_low,
-                "tick_high": tick_high,
-                "liquidity": liquidity.rao,
-            },
+            call_params=LiquidityParams.add_liquidity(
+                netuid=netuid,
+                hotkey_ss58=hotkey_ss58 or wallet.hotkey.ss58_address,
+                liquidity=liquidity,
+                price_low=price_low,
+                price_high=price_high,
+            ),
         )
 
         return subtensor.sign_and_send_extrinsic(
@@ -114,20 +116,23 @@ def modify_liquidity_extrinsic(
     `toggle_user_liquidity_extrinsic` to enable/disable user liquidity.
     """
     try:
+        unlock_type = "coldkey" if hotkey_ss58 else "both"
         if not (
-            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+            unlocked := ExtrinsicResponse.unlock_wallet(
+                wallet, raise_error, unlock_type
+            )
         ).success:
             return unlocked
 
-        call = subtensor.substrate.compose_call(
+        call = subtensor.compose_call(
             call_module="Swap",
             call_function="modify_position",
-            call_params={
-                "hotkey": hotkey_ss58 or wallet.hotkey.ss58_address,
-                "netuid": netuid,
-                "position_id": position_id,
-                "liquidity_delta": liquidity_delta.rao,
-            },
+            call_params=LiquidityParams.modify_position(
+                netuid=netuid,
+                hotkey_ss58=hotkey_ss58 or wallet.hotkey.ss58_address,
+                position_id=position_id,
+                liquidity_delta=liquidity_delta,
+            ),
         )
 
         return subtensor.sign_and_send_extrinsic(
@@ -175,19 +180,22 @@ def remove_liquidity_extrinsic(
     `toggle_user_liquidity_extrinsic` to enable/disable user liquidity.
     """
     try:
+        unlock_type = "coldkey" if hotkey_ss58 else "both"
         if not (
-            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+            unlocked := ExtrinsicResponse.unlock_wallet(
+                wallet, raise_error, unlock_type
+            )
         ).success:
             return unlocked
 
-        call = subtensor.substrate.compose_call(
+        call = subtensor.compose_call(
             call_module="Swap",
             call_function="remove_liquidity",
-            call_params={
-                "hotkey": hotkey_ss58 or wallet.hotkey.ss58_address,
-                "netuid": netuid,
-                "position_id": position_id,
-            },
+            call_params=LiquidityParams.remove_liquidity(
+                netuid=netuid,
+                hotkey_ss58=hotkey_ss58 or wallet.hotkey.ss58_address,
+                position_id=position_id,
+            ),
         )
 
         return subtensor.sign_and_send_extrinsic(
@@ -235,10 +243,13 @@ def toggle_user_liquidity_extrinsic(
         ).success:
             return unlocked
 
-        call = subtensor.substrate.compose_call(
+        call = subtensor.compose_call(
             call_module="Swap",
             call_function="toggle_user_liquidity",
-            call_params={"netuid": netuid, "enable": enable},
+            call_params=LiquidityParams.toggle_user_liquidity(
+                netuid=netuid,
+                enable=enable,
+            ),
         )
 
         return subtensor.sign_and_send_extrinsic(
