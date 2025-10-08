@@ -9,6 +9,7 @@ class Staking:
     def __init__(self, subtensor: Union["_Subtensor", "_AsyncSubtensor"]):
         self.add_stake = subtensor.add_stake
         self.add_stake_multiple = subtensor.add_stake_multiple
+        self.get_auto_stakes = subtensor.get_auto_stakes
         self.get_hotkey_stake = subtensor.get_hotkey_stake
         self.get_minimum_required_stake = subtensor.get_minimum_required_stake
         self.get_stake = subtensor.get_stake
@@ -23,6 +24,7 @@ class Staking:
         self.get_stake_weight = subtensor.get_stake_weight
         self.get_unstake_fee = subtensor.get_unstake_fee
         self.move_stake = subtensor.move_stake
+        self.set_auto_stake = subtensor.set_auto_stake
         self.unstake = subtensor.unstake
         self.unstake_all = subtensor.unstake_all
         self.unstake_multiple = subtensor.unstake_multiple
