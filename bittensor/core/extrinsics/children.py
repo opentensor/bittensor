@@ -1,8 +1,8 @@
 from typing import TYPE_CHECKING, Optional
 
-from bittensor.core.types import ExtrinsicResponse
-from bittensor.utils import float_to_u64
+from bittensor.core.extrinsics.params import ChildrenParams
 from bittensor.core.extrinsics.utils import sudo_call_extrinsic
+from bittensor.core.types import ExtrinsicResponse
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -58,20 +58,10 @@ def set_children_extrinsic(
         ).success:
             return unlocked
 
-        call = subtensor.substrate.compose_call(
+        call = subtensor.compose_call(
             call_module="SubtensorModule",
             call_function="set_children",
-            call_params={
-                "children": [
-                    (
-                        float_to_u64(proportion),
-                        child_hotkey,
-                    )
-                    for proportion, child_hotkey in children
-                ],
-                "hotkey": hotkey_ss58,
-                "netuid": netuid,
-            },
+            call_params=ChildrenParams.set_children(hotkey_ss58, netuid, children),
         )
 
         response = subtensor.sign_and_send_extrinsic(
@@ -119,7 +109,7 @@ def root_set_pending_childkey_cooldown_extrinsic(
         wallet=wallet,
         call_module="SubtensorModule",
         call_function="set_pending_childkey_cooldown",
-        call_params={"cooldown": cooldown},
+        call_params=ChildrenParams.set_pending_childkey_cooldown(cooldown),
         period=period,
         raise_error=raise_error,
         wait_for_inclusion=wait_for_inclusion,

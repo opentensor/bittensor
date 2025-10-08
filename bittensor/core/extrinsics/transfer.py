@@ -1,10 +1,10 @@
 from typing import TYPE_CHECKING, Optional
 
+from bittensor.core.extrinsics.params import get_transfer_fn_params
 from bittensor.core.settings import NETWORK_EXPLORER_MAP, DEFAULT_NETWORK
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils import (
     get_explorer_url_for_network,
-    get_transfer_fn_params,
     is_valid_bittensor_address_or_public_key,
 )
 from bittensor.utils.balance import Balance
@@ -95,7 +95,7 @@ def transfer_extrinsic(
             amount, destination, keep_alive
         )
 
-        call = subtensor.substrate.compose_call(
+        call = subtensor.compose_call(
             call_module="Balances",
             call_function=call_function,
             call_params=call_params,
@@ -109,7 +109,7 @@ def transfer_extrinsic(
             period=period,
             raise_error=raise_error,
         )
-        response.transaction_fee = fee
+        response.transaction_tao_fee = fee
 
         if response.success:
             block_hash = subtensor.get_block_hash()

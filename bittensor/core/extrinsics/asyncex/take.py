@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Optional, Literal
 
 from bittensor_wallet.bittensor_wallet import Wallet
 
+from bittensor.core.extrinsics.params import TakeParams
 from bittensor.core.types import ExtrinsicResponse
 
 if TYPE_CHECKING:
@@ -43,13 +44,10 @@ async def set_take_extrinsic(
         ).success:
             return unlocked
 
-        call = await subtensor.substrate.compose_call(
+        call = await subtensor.compose_call(
             call_module="SubtensorModule",
             call_function=action,
-            call_params={
-                "hotkey": hotkey_ss58,
-                "take": take,
-            },
+            call_params=TakeParams.increase_decrease_take(hotkey_ss58, take),
         )
         return await subtensor.sign_and_send_extrinsic(
             call=call,

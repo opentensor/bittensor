@@ -6,6 +6,7 @@ import asyncio
 from typing import Optional, Union, TYPE_CHECKING
 
 from bittensor.core.errors import RegistrationError
+from bittensor.core.extrinsics.params import RegistrationParams
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import create_pow_async, log_no_torch_error, torch
@@ -42,22 +43,26 @@ async def burned_register_extrinsic(
     """
     try:
         if not (
-            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+            unlocked := ExtrinsicResponse.unlock_wallet(
+                wallet, raise_error, unlock_type="both"
+            )
         ).success:
             return unlocked
 
         block_hash = await subtensor.substrate.get_chain_head()
-        if not await subtensor.subnet_exists(netuid, block_hash=block_hash):
+        if not await subtensor.subnet_exists(netuid=netuid, block_hash=block_hash):
             return ExtrinsicResponse(
                 False, f"Subnet {netuid} does not exist."
             ).with_log()
 
         neuron, old_balance, recycle_amount = await asyncio.gather(
             subtensor.get_neuron_for_pubkey_and_subnet(
-                wallet.hotkey.ss58_address, netuid=netuid, block_hash=block_hash
+                netuid=netuid,
+                hotkey_ss58=wallet.hotkey.ss58_address,
+                block_hash=block_hash,
             ),
             subtensor.get_balance(
-                wallet.coldkeypub.ss58_address, block_hash=block_hash
+                address=wallet.coldkeypub.ss58_address, block_hash=block_hash
             ),
             subtensor.recycle(netuid=netuid, block_hash=block_hash),
         )
@@ -75,13 +80,12 @@ async def burned_register_extrinsic(
 
         logging.debug(f"Recycling {recycle_amount} to register on subnet:{netuid}")
 
-        call = await subtensor.substrate.compose_call(
+        call = await subtensor.compose_call(
             call_module="SubtensorModule",
             call_function="burned_register",
-            call_params={
-                "netuid": netuid,
-                "hotkey": wallet.hotkey.ss58_address,
-            },
+            call_params=RegistrationParams.burned_register(
+                netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
+            ),
         )
         response = await subtensor.sign_and_send_extrinsic(
             call=call,
@@ -101,7 +105,9 @@ async def burned_register_extrinsic(
             return response
 
         # Successful registration, final check for neuron and pubkey
-        new_balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
+        new_balance = await subtensor.get_balance(
+            address=wallet.coldkeypub.ss58_address
+        )
 
         logging.debug(
             f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
@@ -160,7 +166,9 @@ async def register_subnet_extrinsic(
     """
     try:
         if not (
-            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+            unlocked := ExtrinsicResponse.unlock_wallet(
+                wallet, raise_error, unlock_type="both"
+            )
         ).success:
             return unlocked
 
@@ -173,12 +181,12 @@ async def register_subnet_extrinsic(
                 f"Insufficient balance {balance} to register subnet. Current burn cost is {burn_cost} TAO.",
             ).with_log()
 
-        call = await subtensor.substrate.compose_call(
+        call = await subtensor.compose_call(
             call_module="SubtensorModule",
             call_function="register_network",
-            call_params={
-                "hotkey": wallet.hotkey.ss58_address,
-            },
+            call_params=RegistrationParams.register_network(
+                hotkey_ss58=wallet.hotkey.ss58_address
+            ),
         )
 
         response = await subtensor.sign_and_send_extrinsic(
@@ -250,7 +258,9 @@ async def register_extrinsic(
     """
     try:
         if not (
-            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+            unlocked := ExtrinsicResponse.unlock_wallet(
+                wallet, raise_error, unlock_type="both"
+            )
         ).success:
             return unlocked
 
@@ -332,17 +342,17 @@ async def register_extrinsic(
             else:
                 # check if a pow result is still valid
                 while not await pow_result.is_stale_async(subtensor=subtensor):
-                    call = await subtensor.substrate.compose_call(
+                    call = await subtensor.compose_call(
                         call_module="SubtensorModule",
                         call_function="register",
-                        call_params={
-                            "netuid": netuid,
-                            "block_number": pow_result.block_number,
-                            "nonce": pow_result.nonce,
-                            "work": [int(byte_) for byte_ in pow_result.seal],
-                            "hotkey": wallet.hotkey.ss58_address,
-                            "coldkey": wallet.coldkeypub.ss58_address,
-                        },
+                        call_params=RegistrationParams.register(
+                            netuid=netuid,
+                            coldkey_ss58=wallet.coldkeypub.ss58_address,
+                            hotkey_ss58=wallet.hotkey.ss58_address,
+                            block_number=pow_result.block_number,
+                            nonce=pow_result.nonce,
+                            work=[int(byte_) for byte_ in pow_result.seal],
+                        ),
                     )
                     response = await subtensor.sign_and_send_extrinsic(
                         call=call,
@@ -437,25 +447,27 @@ async def set_subnet_identity_extrinsic(
     """
     try:
         if not (
-            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+            unlocked := ExtrinsicResponse.unlock_wallet(
+                wallet, raise_error, unlock_type="both"
+            )
         ).success:
             return unlocked
 
-        call = await subtensor.substrate.compose_call(
+        call = await subtensor.compose_call(
             call_module="SubtensorModule",
             call_function="set_subnet_identity",
-            call_params={
-                "hotkey": wallet.hotkey.ss58_address,
-                "netuid": netuid,
-                "subnet_name": subnet_name,
-                "github_repo": github_repo,
-                "subnet_contact": subnet_contact,
-                "subnet_url": subnet_url,
-                "logo_url": logo_url,
-                "discord": discord,
-                "description": description,
-                "additional": additional,
-            },
+            call_params=RegistrationParams.set_subnet_identity(
+                hotkey_ss58=wallet.hotkey.ss58_address,
+                netuid=netuid,
+                subnet_name=subnet_name,
+                github_repo=github_repo,
+                subnet_contact=subnet_contact,
+                subnet_url=subnet_url,
+                logo_url=logo_url,
+                discord=discord,
+                description=description,
+                additional=additional,
+            ),
         )
 
         response = await subtensor.sign_and_send_extrinsic(

@@ -19,11 +19,11 @@ class Staking:
         )
         self.get_stake_info_for_coldkey = subtensor.get_stake_info_for_coldkey
         self.get_stake_movement_fee = subtensor.get_stake_movement_fee
-        self.get_stake_operations_fee = subtensor.get_stake_operations_fee
         self.get_stake_weight = subtensor.get_stake_weight
         self.get_unstake_fee = subtensor.get_unstake_fee
         self.move_stake = subtensor.move_stake
         self.set_auto_stake = subtensor.set_auto_stake
+        self.sim_swap = subtensor.sim_swap
         self.swap_stake = subtensor.swap_stake
         self.transfer_stake = subtensor.transfer_stake
         self.unstake = subtensor.unstake
