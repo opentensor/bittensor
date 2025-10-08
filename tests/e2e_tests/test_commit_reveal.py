@@ -329,30 +329,26 @@ async def test_commit_and_reveal_weights_cr4_async(async_subtensor, alice_wallet
         # Fetch current commits pending on the chain
         await async_subtensor.wait_for_block(await async_subtensor.block + 1)
 
-        commits_on_chain = (
-            await async_subtensor.commitments.get_timelocked_weight_commits(
-                netuid=alice_sn.netuid, mechid=mechid
+        # need to wait for the commit to be on the chain bc of the drand delay on fast block node on gh
+        commits_on_chain = []
+        counter = TEMPO_TO_SET
+        while commits_on_chain == []:
+            counter -= 1
+            if counter == 0:
+                break
+            commits_on_chain = (
+                await async_subtensor.commitments.get_timelocked_weight_commits(
+                    netuid=alice_sn.netuid, mechid=mechid
+                )
             )
+            logging.console.info(
+                f"block: {await async_subtensor.block}, commits: {commits_on_chain}, waiting for next round..."
+            )
+            await async_subtensor.wait_for_block()
+
+        logging.console.info(
+            f"block: {await async_subtensor.block}, commits: {commits_on_chain}, waiting for next round..."
         )
-        # commits_on_chain = []
-        # counter = TEMPO_TO_SET
-        # while commits_on_chain == []:
-        #     counter -= 1
-        #     if counter == 0:
-        #         break
-        #     commits_on_chain = (
-        #         await async_subtensor.commitments.get_timelocked_weight_commits(
-        #             netuid=alice_sn.netuid, mechid=mechid
-        #         )
-        #     )
-        #     logging.console.info(
-        #         f"block: {await async_subtensor.block}, commits: {commits_on_chain}, waiting for next round..."
-        #     )
-        #     await async_subtensor.wait_for_block()
-        #
-        # logging.console.info(
-        #     f"block: {await async_subtensor.block}, commits: {commits_on_chain}, waiting for next round..."
-        # )
         address, commit_block, commit, reveal_round = commits_on_chain[0]
 
         # Assert correct values are committed on the chain
