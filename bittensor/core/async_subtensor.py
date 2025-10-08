@@ -21,6 +21,7 @@ from bittensor.core.chain_data import (
     NeuronInfo,
     ProposalVoteData,
     SelectiveMetagraphIndex,
+    SimSwapResult,
     StakeInfo,
     SubnetHyperparameters,
     SubnetIdentity,
@@ -77,13 +78,13 @@ from bittensor.core.extrinsics.asyncex.unstaking import (
     unstake_extrinsic,
     unstake_multiple_extrinsic,
 )
-from bittensor.core.extrinsics.asyncex.utils import get_extrinsic_fee
 from bittensor.core.extrinsics.asyncex.weights import (
     commit_timelocked_weights_extrinsic,
     commit_weights_extrinsic,
     reveal_weights_extrinsic,
     set_weights_extrinsic,
 )
+from bittensor.core.extrinsics.params.transfer import get_transfer_fn_params
 from bittensor.core.metagraph import AsyncMetagraph
 from bittensor.core.settings import (
     version_as_int,
@@ -104,7 +105,6 @@ from bittensor.utils import (
     decode_hex_identity_dict,
     format_error_message,
     get_caller_name,
-    get_transfer_fn_params,
     get_mechid_storage_index,
     is_valid_ss58_address,
     u16_normalized_float,
@@ -123,13 +123,10 @@ from bittensor.utils.liquidity import (
     price_to_tick,
     LiquidityPosition,
 )
-from bittensor.utils.weight_utils import (
-    U16_MAX,
-)
 
 if TYPE_CHECKING:
     from async_substrate_interface.types import ScaleObj
-    from bittensor_wallet import Wallet
+    from bittensor_wallet import Keypair, Wallet
     from bittensor.core.axon import Axon
     from async_substrate_interface import AsyncQueryMapResult
 
@@ -354,6 +351,11 @@ class AsyncSubtensor(SubtensorMixin):
             ws_shutdown_timer=ws_shutdown_timer,
         )
 
+    @property
+    async def block(self):
+        """Provides an asynchronous property to retrieve the current block."""
+        return await self.get_current_block()
+
     async def determine_block_hash(
         self,
         block: Optional[int] = None,
@@ -515,10 +517,80 @@ class AsyncSubtensor(SubtensorMixin):
 
         return getattr(result, "value", result)
 
-    @property
-    async def block(self):
-        """Provides an asynchronous property to retrieve the current block."""
-        return await self.get_current_block()
+    async def sim_swap(
+        self,
+        origin_netuid: int,
+        destination_netuid: int,
+        amount: "Balance",
+        block_hash: Optional[str] = None,
+    ) -> SimSwapResult:
+        """
+        Hits the SimSwap Runtime API to calculate the fee and result for a given transaction. The SimSwapResult contains
+        the staking fees and expected returned amounts of a given transaction. This does not include the transaction
+        (extrinsic) fee.
+
+        Args:
+            origin_netuid: Netuid of the source subnet (0 if add stake).
+            destination_netuid: Netuid of the destination subnet.
+            amount: Amount to stake operation.
+            block_hash: The hash of the blockchain block number for the query.
+
+        Returns:
+            SimSwapResult object representing the result.
+        """
+        check_balance_amount(amount)
+        block_hash = block_hash or await self.substrate.get_chain_head()
+        if origin_netuid > 0 and destination_netuid > 0:
+            # for cross-subnet moves where neither origin nor destination is root
+            intermediate_result_, sn_price = await asyncio.gather(
+                self.query_runtime_api(
+                    runtime_api="SwapRuntimeApi",
+                    method="sim_swap_alpha_for_tao",
+                    params={"netuid": origin_netuid, "alpha": amount.rao},
+                    block_hash=block_hash,
+                ),
+                self.get_subnet_price(origin_netuid, block_hash=block_hash),
+            )
+            intermediate_result = SimSwapResult.from_dict(
+                intermediate_result_, origin_netuid
+            )
+            result = SimSwapResult.from_dict(
+                await self.query_runtime_api(
+                    runtime_api="SwapRuntimeApi",
+                    method="sim_swap_tao_for_alpha",
+                    params={
+                        "netuid": destination_netuid,
+                        "tao": intermediate_result.tao_amount.rao,
+                    },
+                    block_hash=block_hash,
+                ),
+                origin_netuid,
+            )
+            secondary_fee = (result.tao_fee / sn_price.tao).set_unit(origin_netuid)
+            result.alpha_fee = result.alpha_fee + secondary_fee
+            return result
+        elif origin_netuid > 0:
+            # dynamic to tao
+            return SimSwapResult.from_dict(
+                await self.query_runtime_api(
+                    runtime_api="SwapRuntimeApi",
+                    method="sim_swap_alpha_for_tao",
+                    params={"netuid": origin_netuid, "alpha": amount.rao},
+                    block_hash=block_hash,
+                ),
+                origin_netuid,
+            )
+        else:
+            # tao to dynamic or unstaked to staked tao (SN0)
+            return SimSwapResult.from_dict(
+                await self.query_runtime_api(
+                    runtime_api="SwapRuntimeApi",
+                    method="sim_swap_tao_for_alpha",
+                    params={"netuid": destination_netuid, "tao": amount.rao},
+                    block_hash=block_hash,
+                ),
+                destination_netuid,
+            )
 
     # Subtensor queries ===========================================================================================
 
@@ -2791,12 +2863,13 @@ class AsyncSubtensor(SubtensorMixin):
 
         return Balance.from_rao(int(stake)).set_unit(netuid=netuid)
 
-    # TODO: update related with fee calculation
     async def get_stake_add_fee(
         self,
         amount: Balance,
         netuid: int,
         block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> Balance:
         """
         Calculates the fee for adding new stake to a hotkey.
@@ -2804,38 +2877,55 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             amount: Amount of stake to add in TAO
             netuid: Netuid of subnet
-            block: Block number at which to perform the calculation
+            block: The block number for which the children are to be retrieved.
+            block_hash: The hash of the block to retrieve the subnet unique identifiers from.
+            reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            The calculated stake fee as a Balance object
+            The calculated stake fee as a Balance object in TAO.
         """
         check_balance_amount(amount)
-        return await self.get_stake_operations_fee(
-            amount=amount, netuid=netuid, block=block
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        sim_swap_result = await self.sim_swap(
+            origin_netuid=0,
+            destination_netuid=netuid,
+            amount=amount,
+            block_hash=block_hash,
         )
+        return sim_swap_result.tao_fee
 
-    # TODO: update related with fee calculation
     async def get_stake_movement_fee(
         self,
-        amount: Balance,
         origin_netuid: int,
+        destination_netuid: int,
+        amount: Balance,
         block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> Balance:
         """
         Calculates the fee for moving stake between hotkeys/subnets/coldkeys.
 
         Parameters:
-            amount: Amount of stake to move in TAO
-            origin_netuid: Netuid of source subnet
-            block: Block number at which to perform the calculation
+            origin_netuid: Netuid of source subnet.
+            destination_netuid: Netuid of the destination subnet.
+            amount: Amount of stake to move.
+            block: The block number for which the children are to be retrieved.
+            block_hash: The hash of the block to retrieve the subnet unique identifiers from.
+            reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
             The calculated stake fee as a Balance object
         """
         check_balance_amount(amount)
-        return await self.get_stake_operations_fee(
-            amount=amount, netuid=origin_netuid, block=block
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        sim_swap_result = await self.sim_swap(
+            origin_netuid=origin_netuid,
+            destination_netuid=destination_netuid,
+            amount=amount,
+            block_hash=block_hash,
         )
+        return sim_swap_result.tao_fee
 
     async def get_stake_for_coldkey_and_hotkey(
         self,
@@ -2949,38 +3039,6 @@ class AsyncSubtensor(SubtensorMixin):
         return balance
 
     get_hotkey_stake = get_stake_for_hotkey
-
-    async def get_stake_operations_fee(
-        self,
-        amount: Balance,
-        netuid: int,
-        block: Optional[int] = None,
-        block_hash: Optional[str] = None,
-        reuse_block: bool = False,
-    ):
-        """Returns fee for any stake operation in specified subnet.
-
-        Parameters:
-            amount: Amount of stake to add in Alpha/TAO.
-            netuid: Netuid of subnet.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
-
-        Returns:
-            The calculated stake fee as a Balance object.
-        """
-        check_balance_amount(amount)
-        block_hash = await self.determine_block_hash(
-            block=block, block_hash=block_hash, reuse_block=reuse_block
-        )
-        result = await self.substrate.query(
-            module="Swap",
-            storage_function="FeeRate",
-            params=[netuid],
-            block_hash=block_hash,
-        )
-        return amount * (result.value / U16_MAX)
 
     async def get_stake_weight(
         self,
@@ -3355,7 +3413,6 @@ class AsyncSubtensor(SubtensorMixin):
         )
         return getattr(result, "value", None)
 
-    # TODO: update related with fee calculation
     async def get_transfer_fee(
         self, wallet: "Wallet", dest: str, amount: Balance, keep_alive: bool = True
     ) -> Balance:
@@ -3384,7 +3441,7 @@ class AsyncSubtensor(SubtensorMixin):
         call_params: dict[str, Union[int, str, bool]]
         call_function, call_params = get_transfer_fn_params(amount, dest, keep_alive)
 
-        call = await self.substrate.compose_call(
+        call = await self.compose_call(
             call_module="Balances",
             call_function=call_function,
             call_params=call_params,
@@ -3400,28 +3457,36 @@ class AsyncSubtensor(SubtensorMixin):
 
         return Balance.from_rao(payment_info["partial_fee"])
 
-    # TODO: update related with fee calculation
     async def get_unstake_fee(
         self,
-        amount: Balance,
         netuid: int,
+        amount: Balance,
         block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> Balance:
         """
         Calculates the fee for unstaking from a hotkey.
 
         Parameters:
-            amount: Amount of stake to unstake in TAO
-            netuid: Netuid of subnet
-            block: Block number at which to perform the calculation
+            netuid: The unique identifier of the subnet.
+            amount: Amount of stake to unstake in TAO.
+            block: The blockchain block number for the query.
+            block_hash: The blockchain block_hash representation of the block id.
+            reuse_block: Whether to reuse the last-used blockchain block hash.
 
         Returns:
-            The calculated stake fee as a Balance object
+            The calculated stake fee as a Balance object in Alpha.
         """
         check_balance_amount(amount)
-        return await self.get_stake_operations_fee(
-            amount=amount, netuid=netuid, block=block
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        sim_swap_result = await self.sim_swap(
+            origin_netuid=netuid,
+            destination_netuid=0,
+            amount=amount,
+            block_hash=block_hash,
         )
+        return sim_swap_result.alpha_fee.set_unit(netuid=netuid)
 
     async def get_vote_data(
         self,
@@ -4353,7 +4418,119 @@ class AsyncSubtensor(SubtensorMixin):
         )
         return None if call is None else int(call)
 
-    # Extrinsics helper ================================================================================================
+    # Extrinsics helpers ===============================================================================================
+    async def validate_extrinsic_params(
+        self,
+        call_module: str,
+        call_function: str,
+        call_params: dict[str, Any],
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ):
+        """
+        Validate and filter extrinsic parameters against on-chain metadata.
+
+        This method checks that the provided parameters match the expected signature of the given extrinsic (module and
+        function) as defined in the Substrate metadata. It raises explicit errors for missing or invalid parameters and
+        silently ignores any extra keys not present in the function definition.
+
+        Args:
+            call_module: The pallet name, e.g. "SubtensorModule" or "AdminUtils".
+            call_function: The extrinsic function name, e.g. "set_weights" or "sudo_set_tempo".
+            call_params: A dictionary of parameters to validate.
+            block: The blockchain block number for the query.
+            block_hash: The blockchain block_hash representation of the block id.
+            reuse_block: Whether to reuse the last-used blockchain block hash.
+
+        Returns:
+            A filtered dictionary containing only the parameters that are valid for the specified extrinsic.
+
+        Raises:
+            ValueError: If the given module or function is not found in the chain metadata.
+            KeyError: If one or more required parameters are missing.
+
+        Notes:
+            This method does not compose or submit the extrinsic. It only ensures that `call_params` conforms to the
+            expected schema derived from on-chain metadata.
+        """
+        block_hash = await self.determine_block_hash(
+            block=block, block_hash=block_hash, reuse_block=reuse_block
+        )
+
+        func_meta = await self.substrate.get_metadata_call_function(
+            module_name=call_module,
+            call_function_name=call_function,
+            block_hash=block_hash,
+        )
+
+        if not func_meta:
+            raise ValueError(
+                f"Call {call_module}.{call_function} not found in chain metadata."
+            )
+
+        # Expected params from metadata
+        expected_params = func_meta.get_param_info()
+        provided_params = {}
+
+        # Validate and filter parameters
+        for param_name in expected_params.keys():
+            if param_name not in call_params:
+                raise KeyError(f"Missing required parameter: '{param_name}'")
+            provided_params[param_name] = call_params[param_name]
+
+        # Warn about extra params not defined in metadata
+        extra_params = set(call_params.keys()) - set(expected_params.keys())
+        if extra_params:
+            logging.debug(
+                f"Ignoring extra parameters for {call_module}.{call_function}: {extra_params}."
+            )
+        return provided_params
+
+    async def compose_call(
+        self,
+        call_module: str,
+        call_function: str,
+        call_params: dict[str, Any],
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> "GenericCall":
+        """
+        Dynamically compose a GenericCall using on-chain Substrate metadata after validating the provided parameters.
+
+        Args:
+            call_module: Pallet name (e.g. "SubtensorModule", "AdminUtils").
+            call_function: Function name (e.g. "set_weights", "sudo_set_tempo").
+            call_params: Dictionary of parameters for the call.
+            block: The blockchain block number for the query.
+            block_hash: The blockchain block_hash representation of the block id.
+            reuse_block: Whether to reuse the last-used blockchain block hash.
+
+        Returns:
+            GenericCall: Composed call object ready for extrinsic submission.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+
+        call_params = await self.validate_extrinsic_params(
+            call_module=call_module,
+            call_function=call_function,
+            call_params=call_params,
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+
+        logging.debug(
+            f"Composing GenericCall -> {call_module}.{call_function} "
+            f"with params: {call_params}."
+        )
+        return await self.substrate.compose_call(
+            call_module=call_module,
+            call_function=call_function,
+            call_params=call_params,
+            block_hash=block_hash,
+        )
 
     async def sign_and_send_extrinsic(
         self,
@@ -4415,8 +4592,8 @@ class AsyncSubtensor(SubtensorMixin):
         if period is not None:
             extrinsic_data["era"] = {"period": period}
 
-        extrinsic_response.extrinsic_fee = await get_extrinsic_fee(
-            subtensor=self, call=call, keypair=signing_keypair
+        extrinsic_response.extrinsic_fee = await self.get_extrinsic_fee(
+            call=call, keypair=signing_keypair
         )
         extrinsic_response.extrinsic = await self.substrate.create_signed_extrinsic(
             **extrinsic_data
@@ -4458,6 +4635,27 @@ class AsyncSubtensor(SubtensorMixin):
             extrinsic_response.message = format_error_message(error)
             extrinsic_response.error = error
             return extrinsic_response
+
+    async def get_extrinsic_fee(
+        self,
+        call: "GenericCall",
+        keypair: "Keypair",
+    ):
+        """
+        Get extrinsic fee for a given extrinsic call and keypair for a given SN's netuid.
+
+        Parameters:
+            call: The extrinsic GenericCall.
+            keypair: The keypair associated with the extrinsic.
+
+        Returns:
+            Balance object representing the extrinsic fee in RAO.
+
+        Note:
+            To create the GenericCall object use `compose_call` method with proper parameters.
+        """
+        payment_info = await self.substrate.get_payment_info(call=call, keypair=keypair)
+        return Balance.from_rao(amount=payment_info["partial_fee"])
 
     # Extrinsics =======================================================================================================
 
@@ -4819,10 +5017,10 @@ class AsyncSubtensor(SubtensorMixin):
     async def move_stake(
         self,
         wallet: "Wallet",
-        origin_hotkey_ss58: str,
         origin_netuid: int,
-        destination_hotkey_ss58: str,
+        origin_hotkey_ss58: str,
         destination_netuid: int,
+        destination_hotkey_ss58: str,
         amount: Optional[Balance] = None,
         move_all_stake: bool = False,
         period: Optional[int] = None,
@@ -4835,10 +5033,10 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             wallet: The wallet to move stake from.
-            origin_hotkey_ss58: The SS58 address of the source hotkey.
             origin_netuid: The netuid of the source subnet.
-            destination_hotkey_ss58: The SS58 address of the destination hotkey.
+            origin_hotkey_ss58: The SS58 address of the source hotkey.
             destination_netuid: The netuid of the destination subnet.
+            destination_hotkey_ss58: The SS58 address of the destination hotkey.
             amount: Amount of stake to move.
             move_all_stake: If true, moves all stake from the source hotkey to the destination hotkey.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
@@ -4855,10 +5053,10 @@ class AsyncSubtensor(SubtensorMixin):
         return await move_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
-            origin_hotkey_ss58=origin_hotkey_ss58,
             origin_netuid=origin_netuid,
-            destination_hotkey_ss58=destination_hotkey_ss58,
+            origin_hotkey_ss58=origin_hotkey_ss58,
             destination_netuid=destination_netuid,
+            destination_hotkey_ss58=destination_hotkey_ss58,
             amount=amount,
             move_all_stake=move_all_stake,
             period=period,
@@ -5954,8 +6152,8 @@ class AsyncSubtensor(SubtensorMixin):
     async def unstake_all(
         self,
         wallet: "Wallet",
-        hotkey_ss58: str,
         netuid: int,
+        hotkey_ss58: str,
         rate_tolerance: Optional[float] = 0.005,
         period: Optional[int] = None,
         raise_error: bool = False,
@@ -5966,8 +6164,8 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             wallet: The wallet of the stake owner.
-            hotkey_ss58: The SS58 address of the hotkey to unstake from.
             netuid: The unique identifier of the subnet.
+            hotkey_ss58: The SS58 address of the hotkey to unstake from.
             rate_tolerance: The maximum allowed price change ratio when unstaking. For example, 0.005 = 0.5% maximum
                 price decrease. If not passed (None), then unstaking goes without price limit.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
@@ -6022,8 +6220,8 @@ class AsyncSubtensor(SubtensorMixin):
         return await unstake_all_extrinsic(
             subtensor=self,
             wallet=wallet,
-            hotkey_ss58=hotkey_ss58,
             netuid=netuid,
+            hotkey_ss58=hotkey_ss58,
             rate_tolerance=rate_tolerance,
             period=period,
             raise_error=raise_error,
