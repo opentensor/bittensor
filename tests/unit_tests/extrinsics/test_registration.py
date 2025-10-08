@@ -254,7 +254,7 @@ def test_set_subnet_identity_extrinsic_is_success(mock_subtensor, mock_wallet, m
     description = "mock_description"
     additional = "mock_additional"
 
-    mocked_compose_call = mocker.patch.object(mock_subtensor.substrate, "compose_call")
+    mocked_compose_call = mocker.patch.object(mock_subtensor, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         mock_subtensor, "sign_and_send_extrinsic"
     )
@@ -318,7 +318,7 @@ def test_set_subnet_identity_extrinsic_is_failed(mock_subtensor, mock_wallet, mo
 
     fake_error_message = "error message"
 
-    mocked_compose_call = mocker.patch.object(mock_subtensor.substrate, "compose_call")
+    mocked_compose_call = mocker.patch.object(mock_subtensor, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         mock_subtensor,
         "sign_and_send_extrinsic",

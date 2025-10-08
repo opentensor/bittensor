@@ -9,11 +9,11 @@ def test_add_liquidity_extrinsic(subtensor, fake_wallet, mocker):
     fake_price_low = mocker.Mock()
     fake_price_high = mocker.Mock()
 
-    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor, "sign_and_send_extrinsic"
     )
-    mocked_price_to_tick = mocker.patch.object(liquidity, "price_to_tick")
+    mocked_params = mocker.patch.object(liquidity.LiquidityParams, "add_liquidity")
 
     # Call
     result = liquidity.add_liquidity_extrinsic(
@@ -29,13 +29,7 @@ def test_add_liquidity_extrinsic(subtensor, fake_wallet, mocker):
     mocked_compose_call.assert_called_once_with(
         call_module="Swap",
         call_function="add_liquidity",
-        call_params={
-            "hotkey": fake_wallet.hotkey.ss58_address,
-            "netuid": fake_netuid,
-            "tick_low": mocked_price_to_tick.return_value,
-            "tick_high": mocked_price_to_tick.return_value,
-            "liquidity": fake_liquidity.rao,
-        },
+        call_params=mocked_params.return_value,
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
         call=mocked_compose_call.return_value,
@@ -55,7 +49,7 @@ def test_modify_liquidity_extrinsic(subtensor, fake_wallet, mocker):
     fake_position_id = 2
     fake_liquidity_delta = mocker.Mock()
 
-    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor, "sign_and_send_extrinsic"
     )
@@ -97,7 +91,7 @@ def test_remove_liquidity_extrinsic(subtensor, fake_wallet, mocker):
     fake_netuid = 1
     fake_position_id = 2
 
-    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor, "sign_and_send_extrinsic"
     )
@@ -137,7 +131,7 @@ def test_toggle_user_liquidity_extrinsic(subtensor, fake_wallet, mocker):
     fake_netuid = 1
     fake_enable = mocker.Mock()
 
-    mocked_compose_call = mocker.patch.object(subtensor.substrate, "compose_call")
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor, "sign_and_send_extrinsic"
     )
