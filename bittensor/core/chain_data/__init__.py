@@ -24,6 +24,7 @@ from .prometheus_info import PrometheusInfo
 from .proposal_vote_data import ProposalVoteData
 from .scheduled_coldkey_swap_info import ScheduledColdkeySwapInfo
 from .stake_info import StakeInfo
+from .sim_swap import SimSwapResult
 from .subnet_hyperparameters import SubnetHyperparameters
 from .subnet_identity import SubnetIdentity
 from .subnet_info import SubnetInfo
@@ -52,6 +53,7 @@ __all__ = [
     "ProposalVoteData",
     "ScheduledColdkeySwapInfo",
     "SelectiveMetagraphIndex",
+    "SimSwapResult",
     "StakeInfo",
     "SubnetHyperparameters",
     "SubnetIdentity",
