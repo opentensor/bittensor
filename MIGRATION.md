@@ -12,7 +12,7 @@
 
 ## Subtensor
 1. ✅ In the synchronous Subtensor class, the `get_owned_hotkeys` method includes a `reuse_block` parameter that is inconsistent with other methods. Either remove this parameter from `get_owned_hotkeys`, or add it to all other methods that directly call self.substrate.* to maintain a consistent interface.
-2. ✅ In all methods where we `get_stake_operations_fee` is called, remove unused arguments. Consider combining all methods using `get_stake_operations_fee` into one common one. 
+2. ✅ In all methods where we `sim_swap` is called, remove unused arguments. Consider combining all methods using `sim_swap` into one common one. 
 3. ✅ Delete deprecated `get_current_weight_commit_info` and `get_current_weight_commit_info_v2`. ~~Rename `get_timelocked_weight_commits` to `get_current_weight_commit_info`.~~
 4. ✅ Remove references like `get_stake_info_for_coldkey = get_stake_for_coldkey`.
 5. ✅ Reconsider some methods naming across the entire subtensor module.
@@ -86,9 +86,12 @@
    - header (dict)
    - extrinsics (list)
    - block_explorer (link to tao.app)
-   
+
    This implementation has been repeatedly requested by the community in the past.
-5. Implement `Crowdloan` logic. Issue: https://github.com/opentensor/bittensor/issues/3017
+5. ✅ Added `bittensor.core.extrinsics.params` subpackage. This package will contain all extrinsic parameters. Due to 
+   the duplication of extrinsics (async and sync implementations), it's easy to miss the sequence of changes. This also 
+   makes it easier to obtain the parameter list.
+6. Implement `Crowdloan` logic. Issue: https://github.com/opentensor/bittensor/issues/3017
 
 ## Testing
 1. ✅ When running tests via Docker, ensure no lingering processes occupy required ports before launch.
@@ -147,6 +150,7 @@ wait_for_inclusion: bool = True,
 wait_for_finalization: bool = True,
 ``` 
 - [x] `.set_children_extrinsic` and `.root_set_pending_childkey_cooldown_extrinsic`. `subtensor.set_children` and `subtensor.root_set_pending_childkey_cooldown` methods.
+  - parameters re-ordered. All extrinsics and related call has the same oder schema: `subtensor, netuid, hotkey_ss58` ... Another order confuses ppl.
 - [x] `.add_liquidity_extrinsic` and `subtensor.add_liquidity`
 - [x] `.modify_liquidity_extrinsic` and `subtensor.modify_liquidity`
 - [x] `.remove_liquidity_extrinsic` and `subtensor.remove_liquidity`
@@ -159,6 +163,7 @@ wait_for_finalization: bool = True,
   - Changes in `move_stake_extrinsic` and `subtensor.move_stake`:
     - parameter `origin_hotkey` renamed to `origin_hotkey_ss58`
     - parameter `destination_hotkey` renamed to `destination_hotkey_ss58`
+    - parameters re-ordered. All extrinsics and related call has the same oder schema: `subtensor, netuid, hotkey_ss58` ... Another order confuses ppl.
 - [x] `.burned_register_extrinsic` and `subtensor.burned_register`
 - [x] `.register_subnet_extrinsic` and `subtensor.register_subnet`
 - [x] `.register_extrinsic` and `subtensor.register`
@@ -193,6 +198,7 @@ wait_for_finalization: bool = True,
     - parameter `safe_staking: bool` renamed to `safe_unstaking: bool`
     - parameter `unstake_all: bool` removed (use `unstake_all_extrinsic` for unstake all stake)
 - [x] `.unstake_all_extrinsic` and `subtensor.unstake_all`
+    - parameters re-ordered. All extrinsics and related call has the same oder schema: `subtensor, netuid, hotkey_ss58` ... Another order confuses ppl.
 - [x] `.unstake_multiple_extrinsic` and `subtensor.unstake_multiple`
   - Changes in `.unstake_multiple_extrinsic` and `subtensor.unstake_multiple`:
     - parameter `amounts` is now required (no Optional anymore)
@@ -256,7 +262,12 @@ Removing deprecated extrinsics and replacing them with consistent ones:
 - method `get_traansfer_fee` has renamed parameter `value` to `amount`
 - `bittensor.core.extrinsic.serving.get_metadata` functions moved to `subtensor.get_commitment_metadata` method
 - `bittensor.core.extrinsic.serving.get_last_bonds_reset` function moved to `subtensor.get_last_bonds_reset` method
- 
+- added method `subtensor.get_extrinsic_fee`
+- added method `subtensor.compose_call`
+- added method `subtensor.sim_swap`
+- added method `subtensor.validate_extrinsic_params`
+- methods `get_stake_add_fee`, `get_stake_movement_fee`, `get_unstake_fee` have updated parameters order.
+
 Added sub-package `bittensor.core.addons` to host optional extensions and experimental logic enhancing the core functionality.
   - `bittensor.core.subtensor_api` moved to `bittensor.core.addons.subtensor_api`
   - `bittensor.core.timelock` moved to `bittensor.core.addons.timelock` 
