@@ -24,6 +24,8 @@ async def test_unstake_extrinsic(fake_wallet, mocker):
         }
     )
 
+    mocked_params = mocker.patch.object(unstaking.UnstakingParams, "remove_stake")
+
     fake_wallet.coldkeypub.ss58_address = "hotkey_owner"
     hotkey_ss58 = "hotkey"
     amount = Balance.from_tao(1.1)
@@ -44,17 +46,13 @@ async def test_unstake_extrinsic(fake_wallet, mocker):
     # Asserts
     assert result.success is True
 
-    fake_subtensor.substrate.compose_call.assert_awaited_once_with(
+    fake_subtensor.compose_call.assert_awaited_once_with(
         call_module="SubtensorModule",
         call_function="remove_stake",
-        call_params={
-            "hotkey": "hotkey",
-            "amount_unstaked": 1100000000,
-            "netuid": fake_netuid,
-        },
+        call_params=mocked_params.return_value,
     )
     fake_subtensor.sign_and_send_extrinsic.assert_awaited_once_with(
-        call=fake_subtensor.substrate.compose_call.return_value,
+        call=fake_subtensor.compose_call.return_value,
         wallet=fake_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -74,7 +72,7 @@ async def test_unstake_all_extrinsic(fake_wallet, mocker):
             "sign_and_send_extrinsic.return_value": (True, ""),
         }
     )
-    fake_substrate = fake_subtensor.substrate.__aenter__.return_value
+    mocked_compose_call = mocker.patch.object(fake_subtensor, "compose_call")
     hotkey = "hotkey"
     fake_netuid = 1
 
@@ -90,7 +88,7 @@ async def test_unstake_all_extrinsic(fake_wallet, mocker):
     assert result[0] is True
     assert result[1] == ""
 
-    fake_substrate.compose_call.assert_awaited_once_with(
+    mocked_compose_call.assert_awaited_once_with(
         call_module="SubtensorModule",
         call_function="remove_stake_full_limit",
         call_params={
@@ -100,7 +98,7 @@ async def test_unstake_all_extrinsic(fake_wallet, mocker):
         },
     )
     fake_subtensor.sign_and_send_extrinsic.assert_awaited_once_with(
-        call=fake_substrate.compose_call.return_value,
+        call=mocked_compose_call.return_value,
         wallet=fake_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
