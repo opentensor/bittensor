@@ -1,5 +1,6 @@
 from typing import Optional, TYPE_CHECKING
 
+from bittensor.core.extrinsics.params import MoveStakeParams
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -33,6 +34,146 @@ def _get_stake_in_origin_and_dest(
         block=block,
     )
     return stake_in_origin, stake_in_destination
+
+
+def move_stake_extrinsic(
+    subtensor: "Subtensor",
+    wallet: "Wallet",
+    origin_netuid: int,
+    origin_hotkey_ss58: str,
+    destination_netuid: int,
+    destination_hotkey_ss58: str,
+    amount: Optional[Balance] = None,
+    move_all_stake: bool = False,
+    period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
+) -> ExtrinsicResponse:
+    """
+    Moves stake to a different hotkey and/or subnet while keeping the same coldkey owner.
+
+    Parameters:
+        subtensor: Subtensor instance.
+        wallet: The wallet to move stake from.
+        origin_netuid: The netuid of the source subnet.
+        origin_hotkey_ss58: The SS58 address of the source hotkey.
+        destination_netuid: The netuid of the destination subnet.
+        destination_hotkey_ss58: The SS58 address of the destination hotkey.
+        amount: Amount to move.
+        move_all_stake: If true, moves all stake from the source hotkey to the destination hotkey.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+    Returns:
+        ExtrinsicResponse: The result object of the extrinsic execution.
+    """
+    try:
+        if not (
+            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+        ).success:
+            return unlocked
+
+        if not amount and not move_all_stake:
+            return ExtrinsicResponse(
+                False,
+                "Please specify an `amount` or `move_all_stake` argument to move stake.",
+            ).with_log()
+
+        # Check sufficient stake
+        stake_in_origin, stake_in_destination = _get_stake_in_origin_and_dest(
+            subtensor=subtensor,
+            origin_netuid=origin_netuid,
+            origin_hotkey_ss58=origin_hotkey_ss58,
+            destination_netuid=destination_netuid,
+            destination_hotkey_ss58=destination_hotkey_ss58,
+            origin_coldkey_ss58=wallet.coldkeypub.ss58_address,
+            destination_coldkey_ss58=wallet.coldkeypub.ss58_address,
+        )
+        if move_all_stake:
+            amount = stake_in_origin
+
+        elif stake_in_origin < amount:
+            return ExtrinsicResponse(
+                False,
+                f"Insufficient stake in origin hotkey: {origin_hotkey_ss58}. Stake: {stake_in_origin}, amount: {amount}.",
+            ).with_log()
+
+        amount.set_unit(netuid=origin_netuid)
+
+        logging.debug(
+            f"Moving stake from hotkey [blue]{origin_hotkey_ss58}[/blue] to hotkey [blue]{destination_hotkey_ss58}[/blue]\n"
+            f"Amount: [green]{amount}[/green] from netuid [yellow]{origin_netuid}[/yellow] to netuid [yellow]{destination_netuid}[/yellow]"
+        )
+        call = subtensor.compose_call(
+            call_module="SubtensorModule",
+            call_function="move_stake",
+            call_params=MoveStakeParams.move_stake(
+                origin_netuid=origin_netuid,
+                origin_hotkey_ss58=origin_hotkey_ss58,
+                destination_netuid=destination_netuid,
+                destination_hotkey_ss58=destination_hotkey_ss58,
+                amount=amount,
+            ),
+        )
+
+        response = subtensor.sign_and_send_extrinsic(
+            call=call,
+            wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            period=period,
+            raise_error=raise_error,
+        )
+
+        if response.success:
+            sim_swap = subtensor.sim_swap(
+                origin_netuid=origin_netuid,
+                destination_netuid=destination_netuid,
+                amount=amount,
+            )
+            response.transaction_tao_fee = sim_swap.tao_fee
+            response.transaction_alpha_fee = sim_swap.alpha_fee.set_unit(origin_netuid)
+
+            if not wait_for_finalization and not wait_for_inclusion:
+                return response
+
+            logging.debug("[green]Finalized[/green]")
+
+            # Get updated stakes
+            origin_stake, dest_stake = _get_stake_in_origin_and_dest(
+                subtensor=subtensor,
+                origin_hotkey_ss58=origin_hotkey_ss58,
+                destination_hotkey_ss58=destination_hotkey_ss58,
+                origin_netuid=origin_netuid,
+                destination_netuid=destination_netuid,
+                origin_coldkey_ss58=wallet.coldkeypub.ss58_address,
+                destination_coldkey_ss58=wallet.coldkeypub.ss58_address,
+            )
+            logging.debug(
+                f"Origin Stake: [blue]{stake_in_origin}[/blue] :arrow_right: [green]{origin_stake}[/green]"
+            )
+            logging.debug(
+                f"Destination Stake: [blue]{stake_in_destination}[/blue] :arrow_right: [green]{dest_stake}[/green]"
+            )
+
+            response.data = {
+                "origin_stake_before": stake_in_origin,
+                "origin_stake_after": origin_stake,
+                "destination_stake_before": stake_in_destination,
+                "destination_stake_after": dest_stake,
+            }
+            return response
+
+        logging.error(f"[red]{response.message}[/red]")
+        return response
+
+    except Exception as error:
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
 
 
 def transfer_stake_extrinsic(
@@ -101,16 +242,16 @@ def transfer_stake_extrinsic(
             f"Amount: [green]{amount}[/green] from netuid [yellow]{origin_netuid}[/yellow] to netuid "
             f"[yellow]{destination_netuid}[/yellow]"
         )
-        call = subtensor.substrate.compose_call(
+        call = subtensor.compose_call(
             call_module="SubtensorModule",
             call_function="transfer_stake",
-            call_params={
-                "destination_coldkey": destination_coldkey_ss58,
-                "hotkey": hotkey_ss58,
-                "origin_netuid": origin_netuid,
-                "destination_netuid": destination_netuid,
-                "alpha_amount": amount.rao,
-            },
+            call_params=MoveStakeParams.transfer_stake(
+                hotkey_ss58=hotkey_ss58,
+                origin_netuid=origin_netuid,
+                destination_coldkey_ss58=destination_coldkey_ss58,
+                destination_netuid=destination_netuid,
+                amount=amount,
+            ),
         )
 
         response = subtensor.sign_and_send_extrinsic(
@@ -123,6 +264,14 @@ def transfer_stake_extrinsic(
         )
 
         if response.success:
+            sim_swap = subtensor.sim_swap(
+                origin_netuid=origin_netuid,
+                destination_netuid=destination_netuid,
+                amount=amount,
+            )
+            response.transaction_tao_fee = sim_swap.tao_fee
+            response.transaction_alpha_fee = sim_swap.alpha_fee.set_unit(origin_netuid)
+
             if not wait_for_finalization and not wait_for_inclusion:
                 return response
 
@@ -216,18 +365,23 @@ def swap_stake_extrinsic(
                 f"Insufficient stake in origin hotkey: {hotkey_ss58}. Stake: {stake_in_origin}, amount: {amount}.",
             ).with_log()
 
-        call_params = {
-            "hotkey": hotkey_ss58,
-            "origin_netuid": origin_netuid,
-            "destination_netuid": destination_netuid,
-            "alpha_amount": amount.rao,
-        }
-
         if safe_swapping:
             origin_pool = subtensor.subnet(netuid=origin_netuid)
             destination_pool = subtensor.subnet(netuid=destination_netuid)
             swap_rate_ratio = origin_pool.price.rao / destination_pool.price.rao
             swap_rate_ratio_with_tolerance = swap_rate_ratio * (1 + rate_tolerance)
+
+            call_function = "swap_stake_limit"
+            call_params = MoveStakeParams.swap_stake_limit(
+                hotkey_ss58=hotkey_ss58,
+                origin_netuid=origin_netuid,
+                destination_netuid=destination_netuid,
+                amount=amount,
+                allow_partial_stake=allow_partial_stake,
+                rate_tolerance=rate_tolerance,
+                origin_pool=origin_pool,
+                destination_pool=destination_pool,
+            )
 
             logging.debug(
                 f"Swapping stake with safety for hotkey [blue]{hotkey_ss58}[/blue]\n"
@@ -236,22 +390,21 @@ def swap_stake_extrinsic(
                 f"Current price ratio: [green]{swap_rate_ratio:.4f}[/green], "
                 f"Ratio with tolerance: [green]{swap_rate_ratio_with_tolerance:.4f}[/green]"
             )
-            call_params.update(
-                {
-                    "limit_price": swap_rate_ratio_with_tolerance,
-                    "allow_partial": allow_partial_stake,
-                }
-            )
-            call_function = "swap_stake_limit"
         else:
+            call_function = "swap_stake"
+            call_params = MoveStakeParams.swap_stake(
+                hotkey_ss58=hotkey_ss58,
+                origin_netuid=origin_netuid,
+                destination_netuid=destination_netuid,
+                amount=amount,
+            )
             logging.debug(
                 f"Swapping stake for hotkey [blue]{hotkey_ss58}[/blue]\n"
                 f"Amount: [green]{amount}[/green] from netuid [green]{origin_netuid}[/green] to netuid "
                 f"[green]{destination_netuid}[/green]"
             )
-            call_function = "swap_stake"
 
-        call = subtensor.substrate.compose_call(
+        call = subtensor.compose_call(
             call_module="SubtensorModule",
             call_function=call_function,
             call_params=call_params,
@@ -267,6 +420,14 @@ def swap_stake_extrinsic(
         )
 
         if response.success:
+            sim_swap = subtensor.sim_swap(
+                origin_netuid=origin_netuid,
+                destination_netuid=destination_netuid,
+                amount=amount,
+            )
+            response.transaction_tao_fee = sim_swap.tao_fee
+            response.transaction_alpha_fee = sim_swap.alpha_fee.set_unit(origin_netuid)
+
             if not wait_for_finalization and not wait_for_inclusion:
                 return response
 
@@ -300,138 +461,6 @@ def swap_stake_extrinsic(
 
         if safe_swapping and "Custom error: 8" in response.message:
             response.message = "Price ratio exceeded tolerance limit. Either increase price tolerance or enable partial staking."
-
-        logging.error(f"[red]{response.message}[/red]")
-        return response
-
-    except Exception as error:
-        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
-
-
-def move_stake_extrinsic(
-    subtensor: "Subtensor",
-    wallet: "Wallet",
-    origin_hotkey_ss58: str,
-    origin_netuid: int,
-    destination_hotkey_ss58: str,
-    destination_netuid: int,
-    amount: Optional[Balance] = None,
-    move_all_stake: bool = False,
-    period: Optional[int] = None,
-    raise_error: bool = False,
-    wait_for_inclusion: bool = True,
-    wait_for_finalization: bool = True,
-) -> ExtrinsicResponse:
-    """
-    Moves stake to a different hotkey and/or subnet while keeping the same coldkey owner.
-
-    Parameters:
-        subtensor: Subtensor instance.
-        wallet: The wallet to move stake from.
-        origin_hotkey_ss58: The SS58 address of the source hotkey.
-        origin_netuid: The netuid of the source subnet.
-        destination_hotkey_ss58: The SS58 address of the destination hotkey.
-        destination_netuid: The netuid of the destination subnet.
-        amount: Amount to move.
-        move_all_stake: If true, moves all stake from the source hotkey to the destination hotkey.
-        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
-            think of it as an expiration date for the transaction.
-        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
-        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
-        wait_for_finalization: Whether to wait for the finalization of the transaction.
-
-    Returns:
-        ExtrinsicResponse: The result object of the extrinsic execution.
-    """
-    try:
-        if not (
-            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
-        ).success:
-            return unlocked
-
-        if not amount and not move_all_stake:
-            return ExtrinsicResponse(
-                False,
-                "Please specify an `amount` or `move_all_stake` argument to move stake.",
-            ).with_log()
-
-        # Check sufficient stake
-        stake_in_origin, stake_in_destination = _get_stake_in_origin_and_dest(
-            subtensor=subtensor,
-            origin_hotkey_ss58=origin_hotkey_ss58,
-            destination_hotkey_ss58=destination_hotkey_ss58,
-            origin_netuid=origin_netuid,
-            destination_netuid=destination_netuid,
-            origin_coldkey_ss58=wallet.coldkeypub.ss58_address,
-            destination_coldkey_ss58=wallet.coldkeypub.ss58_address,
-        )
-        if move_all_stake:
-            amount = stake_in_origin
-
-        elif stake_in_origin < amount:
-            return ExtrinsicResponse(
-                False,
-                f"Insufficient stake in origin hotkey: {origin_hotkey_ss58}. Stake: {stake_in_origin}, amount: {amount}.",
-            ).with_log()
-
-        amount.set_unit(netuid=origin_netuid)
-
-        logging.debug(
-            f"Moving stake from hotkey [blue]{origin_hotkey_ss58}[/blue] to hotkey [blue]{destination_hotkey_ss58}[/blue]\n"
-            f"Amount: [green]{amount}[/green] from netuid [yellow]{origin_netuid}[/yellow] to netuid [yellow]{destination_netuid}[/yellow]"
-        )
-        call = subtensor.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="move_stake",
-            call_params={
-                "origin_hotkey": origin_hotkey_ss58,
-                "origin_netuid": origin_netuid,
-                "destination_hotkey": destination_hotkey_ss58,
-                "destination_netuid": destination_netuid,
-                "alpha_amount": amount.rao,
-            },
-        )
-
-        response = subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            period=period,
-            raise_error=raise_error,
-        )
-
-        if response.success:
-            if not wait_for_finalization and not wait_for_inclusion:
-                return response
-
-            logging.debug("[green]Finalized[/green]")
-
-            # Get updated stakes
-            origin_stake, dest_stake = _get_stake_in_origin_and_dest(
-                subtensor=subtensor,
-                origin_hotkey_ss58=origin_hotkey_ss58,
-                destination_hotkey_ss58=destination_hotkey_ss58,
-                origin_netuid=origin_netuid,
-                destination_netuid=destination_netuid,
-                origin_coldkey_ss58=wallet.coldkeypub.ss58_address,
-                destination_coldkey_ss58=wallet.coldkeypub.ss58_address,
-            )
-            logging.debug(
-                f"Origin Stake: [blue]{stake_in_origin}[/blue] :arrow_right: [green]{origin_stake}[/green]"
-            )
-            logging.debug(
-                f"Destination Stake: [blue]{stake_in_destination}[/blue] :arrow_right: [green]{dest_stake}[/green]"
-            )
-
-            response.data = {
-                "origin_stake_before": stake_in_origin,
-                "origin_stake_after": origin_stake,
-                "destination_stake_before": stake_in_destination,
-                "destination_stake_after": dest_stake,
-            }
-            return response
 
         logging.error(f"[red]{response.message}[/red]")
         return response

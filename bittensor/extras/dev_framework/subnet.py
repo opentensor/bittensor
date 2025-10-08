@@ -114,11 +114,7 @@ class TestSubnet:
 
             if call_function.startswith("sudo_") and sudo_call is None:
                 sudo_call = True
-            self._check_set_hp(
-                function_module=call_module,
-                function_name=call_function,
-                function_params=call_params,
-            )
+
             response = self.set_hyperparameter(
                 sudo_or_owner_wallet=sudo_or_owner_wallet,
                 call_function=call_function,
@@ -179,11 +175,7 @@ class TestSubnet:
 
             if call_function.startswith("sudo_") and sudo_call is None:
                 sudo_call = True
-            self._check_set_hp(
-                function_module=call_module,
-                function_name=call_function,
-                function_params=call_params,
-            )
+
             response = await self.async_set_hyperparameter(
                 sudo_or_owner_wallet=sudo_or_owner_wallet,
                 call_function=call_function,
@@ -477,33 +469,6 @@ class TestSubnet:
     def _add_call_record(self, operation: str, response: ExtrinsicResponse):
         """Add extrinsic response to the calls list."""
         self._calls.append(CALL_RECORD(len(self._calls), operation, response))
-
-    def _check_set_hp(
-        self,
-        function_module: str,
-        function_name: str,
-        function_params: Optional[dict] = None,
-    ):
-        """Check if the function exists in the Subtensor node and parameters are provided for the function correctly."""
-        pallet = self.s.substrate.metadata.get_metadata_pallet(function_module)
-        assert pallet is not None, f"Pallet {function_module} is not found."
-        functions = getattr(pallet.calls, "value", None)
-        functions_call = [f for f in functions if f.get("name", None) == function_name]
-        function_call = functions_call[0] if functions_call else None
-        assert function_call is not None, (
-            f"Function {function_name} is not found in pallet {function_module}."
-        )
-        function_call_fields = function_call.get("fields", [])
-        parameters = [field.get("name") for field in function_call_fields]
-        assert parameters is not None, (
-            f"Parameters are required for function {function_name}."
-        )
-        if "netuid" in parameters and not function_params.get("netuid", None):
-            function_params.update({"netuid": self._netuid})
-        assert len(parameters) == len(function_params) is not False, (
-            f"Not all parameters {function_params} where provided for function {function_name}. "
-            f"All required parameters: {parameters}."
-        )
 
     def _check_response(self, response: ExtrinsicResponse) -> bool:
         """Check if the call was successful."""

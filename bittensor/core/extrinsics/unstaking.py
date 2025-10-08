@@ -3,6 +3,7 @@ from typing import Optional, TYPE_CHECKING
 from async_substrate_interface.errors import SubstrateRequestException
 
 from bittensor.core.errors import BalanceTypeError
+from bittensor.core.extrinsics.params import UnstakingParams
 from bittensor.core.extrinsics.utils import get_old_stakes
 from bittensor.core.types import ExtrinsicResponse, UIDs
 from bittensor.utils import format_error_message
@@ -77,49 +78,45 @@ def unstake_extrinsic(
                 f"Not enough stake: {old_stake} to unstake: {amount} from hotkey: {hotkey_ss58}",
             ).with_log()
 
-        call_params = {
-            "hotkey": hotkey_ss58,
-            "netuid": netuid,
-            "amount_unstaked": amount.rao,
-        }
-
         if safe_unstaking:
             pool = subtensor.subnet(netuid=netuid)
-            base_price = pool.price.tao
 
-            if pool.netuid == 0:
-                price_with_tolerance = base_price
-            else:
-                price_with_tolerance = base_price * (1 - rate_tolerance)
+            call_function = "remove_stake_limit"
+
+            call_params = UnstakingParams.remove_stake_limit(
+                netuid=netuid,
+                hotkey_ss58=hotkey_ss58,
+                amount=amount,
+                allow_partial_stake=allow_partial_stake,
+                rate_tolerance=rate_tolerance,
+                pool=pool,
+            )
 
             logging_message = (
                 f":satellite: [magenta]Safe Unstaking from:[/magenta] "
                 f"netuid: [green]{netuid}[/green], amount: [green]{amount}[/green], "
                 f"tolerance percentage: [green]{rate_tolerance * 100}%[/green], "
-                f"price limit: [green]{price_with_tolerance}[/green], "
-                f"original price: [green]{base_price}[/green], "
+                f"price limit: [green]{Balance.from_rao(call_params['limit_price'])}[/green], "
+                f"original price: [green]{pool.price.tao}[/green], "
                 f"with partial unstake: [green]{allow_partial_stake}[/green] "
                 f"on [blue]{subtensor.network}[/blue]"
             )
 
-            limit_price = Balance.from_tao(price_with_tolerance).rao
-            call_params.update(
-                {
-                    "limit_price": limit_price,
-                    "allow_partial": allow_partial_stake,
-                }
-            )
-            call_function = "remove_stake_limit"
         else:
+            call_function = "remove_stake"
+            call_params = UnstakingParams.remove_stake(
+                netuid=netuid,
+                hotkey_ss58=hotkey_ss58,
+                amount=amount,
+            )
             logging_message = (
                 f":satellite: [magenta]Unstaking from:[/magenta] "
                 f"netuid: [green]{netuid}[/green], amount: [green]{amount}[/green] "
                 f"on [blue]{subtensor.network}[/blue]"
             )
-            call_function = "remove_stake"
 
         logging.debug(logging_message)
-        call = subtensor.substrate.compose_call(
+        call = subtensor.compose_call(
             call_module="SubtensorModule",
             call_function=call_function,
             call_params=call_params,
@@ -136,8 +133,15 @@ def unstake_extrinsic(
             raise_error=raise_error,
         )
 
-        if response.success:  # If we successfully unstaked.
-            # We only wait here if we expect finalization.
+        if response.success:
+            sim_swap = subtensor.sim_swap(
+                origin_netuid=netuid,
+                destination_netuid=0,
+                amount=amount,
+            )
+            response.transaction_tao_fee = sim_swap.tao_fee
+            response.transaction_alpha_fee = sim_swap.alpha_fee.set_unit(netuid)
+
             if not wait_for_finalization and not wait_for_inclusion:
                 return response
 
@@ -180,8 +184,8 @@ def unstake_extrinsic(
 def unstake_all_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
-    hotkey_ss58: str,
     netuid: int,
+    hotkey_ss58: str,
     rate_tolerance: Optional[float] = 0.005,
     period: Optional[int] = None,
     raise_error: bool = False,
@@ -193,8 +197,8 @@ def unstake_all_extrinsic(
     Parameters:
         subtensor: Subtensor instance.
         wallet: The wallet of the stake owner.
-        hotkey_ss58: The SS58 address of the hotkey to unstake from.
         netuid: The unique identifier of the subnet.
+        hotkey_ss58: The SS58 address of the hotkey to unstake from.
         rate_tolerance: The maximum allowed price change ratio when unstaking. For example, 0.005 = 0.5% maximum
             price decrease. If not passed (None), then unstaking goes without price limit.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
@@ -213,18 +217,15 @@ def unstake_all_extrinsic(
         ).success:
             return unlocked
 
-        call_params = {
-            "hotkey": hotkey_ss58,
-            "netuid": netuid,
-            "limit_price": None,
-        }
+        pool = subtensor.subnet(netuid=netuid) if rate_tolerance else None
+        call_params = UnstakingParams.remove_stake_full_limit(
+            netuid=netuid,
+            hotkey_ss58=hotkey_ss58,
+            rate_tolerance=rate_tolerance,
+            pool=pool,
+        )
 
-        if rate_tolerance:
-            current_price = subtensor.subnet(netuid=netuid).price
-            limit_price = current_price * (1 - rate_tolerance)
-            call_params.update({"limit_price": limit_price})
-
-        call = subtensor.substrate.compose_call(
+        call = subtensor.compose_call(
             call_module="SubtensorModule",
             call_function="remove_stake_full_limit",
             call_params=call_params,
