@@ -21,7 +21,7 @@
 8. ✅ Should the next functions move to `subtensor` as methods? They have exactly the same behavior as subtensor methods.
    - `get_metadata`
    - `get_last_bonds_reset`
-9. Apply `SimSwap` logic to calculate any stake operation fees (this is not an extrinsic fee)
+9. ✅ Apply `SimSwap` logic to calculate any stake operation fees (this is not an extrinsic fee)
 
 ## Metagraph
 1. ✅ Remove verbose archival node warnings for blocks older than 300. Some users complained about many messages for them.
