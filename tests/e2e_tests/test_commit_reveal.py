@@ -90,7 +90,7 @@ def test_commit_and_reveal_weights_cr4(subtensor, alice_wallet):
     current_block = subtensor.chain.get_current_block()
     upcoming_tempo = subtensor.subnets.get_next_epoch_start_block(alice_sn.netuid)
     logging.console.info(
-        f"Checking if window is too low with Current block: {current_block}, next tempo: {upcoming_tempo}"
+        f"Checking if window is too low with current block: {current_block}, next tempo: {upcoming_tempo}"
     )
 
     # Lower than this might mean weights will get revealed before we can check them
@@ -276,9 +276,9 @@ async def test_commit_and_reveal_weights_cr4_async(async_subtensor, alice_wallet
     )
 
     # Fetch current block and calculate next tempo for the subnet
-    current_block = await async_subtensor.chain.get_current_block()
-    upcoming_tempo = await async_subtensor.subnets.get_next_epoch_start_block(
-        alice_sn.netuid
+    current_block, upcoming_tempo = await asyncio.gather(
+        async_subtensor.chain.get_current_block(),
+        async_subtensor.subnets.get_next_epoch_start_block(alice_sn.netuid),
     )
     logging.console.info(
         f"Checking if window is too low with Current block: {current_block}, next tempo: {upcoming_tempo}"
@@ -288,10 +288,11 @@ async def test_commit_and_reveal_weights_cr4_async(async_subtensor, alice_wallet
     if upcoming_tempo - current_block < 6:
         await alice_sn.async_wait_next_epoch()
 
-    current_block = await async_subtensor.chain.get_current_block()
-    latest_drand_round = await async_subtensor.chain.last_drand_round()
-    upcoming_tempo = await async_subtensor.subnets.get_next_epoch_start_block(
-        alice_sn.netuid
+    current_block, latest_drand_round = await asyncio.gather(
+        async_subtensor.chain.get_current_block(),
+        async_subtensor.subnets.get_next_epoch_start_block(
+            alice_sn.netuid
+        )
     )
     logging.console.info(
         f"Post first wait_interval (to ensure window isn't too low): {current_block}, next tempo: {upcoming_tempo}, drand: {latest_drand_round}"
@@ -333,6 +334,25 @@ async def test_commit_and_reveal_weights_cr4_async(async_subtensor, alice_wallet
                 netuid=alice_sn.netuid, mechid=mechid
             )
         )
+        # commits_on_chain = []
+        # counter = TEMPO_TO_SET
+        # while commits_on_chain == []:
+        #     counter -= 1
+        #     if counter == 0:
+        #         break
+        #     commits_on_chain = (
+        #         await async_subtensor.commitments.get_timelocked_weight_commits(
+        #             netuid=alice_sn.netuid, mechid=mechid
+        #         )
+        #     )
+        #     logging.console.info(
+        #         f"block: {await async_subtensor.block}, commits: {commits_on_chain}, waiting for next round..."
+        #     )
+        #     await async_subtensor.wait_for_block()
+        #
+        # logging.console.info(
+        #     f"block: {await async_subtensor.block}, commits: {commits_on_chain}, waiting for next round..."
+        # )
         address, commit_block, commit, reveal_round = commits_on_chain[0]
 
         # Assert correct values are committed on the chain
