@@ -168,7 +168,9 @@ async def test_async_subtensor_aenter_connection_refused_error(
 async def test_burned_register(subtensor, fake_wallet, mocker):
     # Preps
     mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
-    mocked_sign_and_send_extrinsic = mocker.patch.object(subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, ""))
+    mocked_sign_and_send_extrinsic = mocker.patch.object(
+        subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, "")
+    )
     mocked_get_neuron_for_pubkey_and_subnet = mocker.patch.object(
         subtensor,
         "get_neuron_for_pubkey_and_subnet",
@@ -197,7 +199,7 @@ async def test_burned_register(subtensor, fake_wallet, mocker):
         call_params={
             "hotkey": fake_wallet.hotkey.ss58_address,
             "netuid": fake_netuid,
-        }
+        },
     )
     mocked_sign_and_send_extrinsic.assert_awaited_once_with(
         call=mocked_compose_call.return_value,
@@ -212,9 +214,7 @@ async def test_burned_register(subtensor, fake_wallet, mocker):
         block_hash=subtensor.substrate.get_chain_head.return_value,
         netuid=fake_netuid,
     )
-    mocked_get_balance.assert_awaited_with(
-        address=fake_wallet.coldkeypub.ss58_address
-    )
+    mocked_get_balance.assert_awaited_with(address=fake_wallet.coldkeypub.ss58_address)
     mocked_recycle.assert_awaited_with(
         netuid=fake_netuid,
         block_hash=subtensor.substrate.get_chain_head.return_value,
@@ -3796,9 +3796,7 @@ async def test_get_stake_add_fee(subtensor, mocker):
     # Preps
     netuid = mocker.Mock()
     amount = mocker.Mock(spec=Balance)
-    mocked_sim_swap = mocker.patch.object(
-        subtensor, "sim_swap"
-    )
+    mocked_sim_swap = mocker.patch.object(subtensor, "sim_swap")
 
     # Call
     result = await subtensor.get_stake_add_fee(
@@ -3824,7 +3822,9 @@ async def test_get_unstake_fee(subtensor, mocker):
     amount = mocker.Mock(spec=Balance)
     mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
     mocked_sim_swap = mocker.patch.object(
-        subtensor, "sim_swap", return_value=mocker.MagicMock(alpha_fee=mocker.MagicMock())
+        subtensor,
+        "sim_swap",
+        return_value=mocker.MagicMock(alpha_fee=mocker.MagicMock()),
     )
 
     # Call
@@ -3853,7 +3853,9 @@ async def test_get_stake_movement_fee(subtensor, mocker):
 
     mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
     mocked_sim_swap = mocker.patch.object(
-        subtensor, "sim_swap", return_value=mocker.MagicMock(alpha_fee=mocker.MagicMock())
+        subtensor,
+        "sim_swap",
+        return_value=mocker.MagicMock(alpha_fee=mocker.MagicMock()),
     )
 
     # Call
@@ -4195,10 +4197,11 @@ async def test_get_block_info(subtensor, mocker):
         },
         "extrinsics": [
             fake_decoded,
-        ]
-
+        ],
     }
-    mocked_get_block = mocker.patch.object(subtensor.substrate, "get_block", return_value=fake_substrate_block)
+    mocked_get_block = mocker.patch.object(
+        subtensor.substrate, "get_block", return_value=fake_substrate_block
+    )
     mocked_BlockInfo = mocker.patch.object(async_subtensor, "BlockInfo")
 
     # Call
@@ -4216,6 +4219,6 @@ async def test_get_block_info(subtensor, mocker):
         timestamp=fake_timestamp,
         header=fake_substrate_block.get("header"),
         extrinsics=fake_substrate_block.get("extrinsics"),
-        explorer=f"{settings.TAO_APP_BLOCK_EXPLORER}{fake_block}"
+        explorer=f"{settings.TAO_APP_BLOCK_EXPLORER}{fake_block}",
     )
     assert result == mocked_BlockInfo.return_value

@@ -14,7 +14,9 @@ def test_add_stake_extrinsic(mocker):
             "get_balance.return_value": Balance(10),
             "get_existential_deposit.return_value": Balance(1),
             "get_hotkey_owner.return_value": "hotkey_owner",
-            "sign_and_send_extrinsic.return_value": ExtrinsicResponse(True, "Success", extrinsic_fee=fake_extrinsic_fee),
+            "sign_and_send_extrinsic.return_value": ExtrinsicResponse(
+                True, "Success", extrinsic_fee=fake_extrinsic_fee
+            ),
         }
     )
     fake_wallet_ = mocker.Mock(

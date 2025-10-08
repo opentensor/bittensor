@@ -57,28 +57,24 @@ def test_stake_fee_api(subtensor, alice_wallet, bob_wallet):
             "destination_netuid": sn2.netuid,
             "stake_fee": min_stake_fee,
         },
-
         {
             "title": "Move between hotkeys on root",
             "origin_netuid": root_netuid,
             "destination_netuid": root_netuid,
             "stake_fee": 0,
         },
-
         {
             "title": "Move between coldkeys on root",
             "origin_netuid": root_netuid,
             "destination_netuid": root_netuid,
             "stake_fee": 0,
         },
-
         {
             "title": "Move between coldkeys on non-root",
             "origin_netuid": sn2.netuid,
             "destination_netuid": sn2.netuid,
             "stake_fee": min_stake_fee,
         },
-
         {
             "title": "Move between different subnets",
             "origin_netuid": sn2.netuid,
@@ -88,7 +84,7 @@ def test_stake_fee_api(subtensor, alice_wallet, bob_wallet):
     ]
 
     for scenario in movement_scenarios:
-        logging.console.info(f"Scenario: {scenario.get("title")}")
+        logging.console.info(f"Scenario: {scenario.get('title')}")
         stake_fee = subtensor.staking.get_stake_movement_fee(
             origin_netuid=scenario.get("origin_netuid"),
             destination_netuid=scenario.get("destination_netuid"),
@@ -151,28 +147,24 @@ async def test_stake_fee_api_async(async_subtensor, alice_wallet, bob_wallet):
             "destination_netuid": sn2.netuid,
             "stake_fee": min_stake_fee,
         },
-
         {
             "title": "Move between hotkeys on root",
             "origin_netuid": root_netuid,
             "destination_netuid": root_netuid,
             "stake_fee": 0,
         },
-
         {
             "title": "Move between coldkeys on root",
             "origin_netuid": root_netuid,
             "destination_netuid": root_netuid,
             "stake_fee": 0,
         },
-
         {
             "title": "Move between coldkeys on non-root",
             "origin_netuid": sn2.netuid,
             "destination_netuid": sn2.netuid,
             "stake_fee": min_stake_fee,
         },
-
         {
             "title": "Move between different subnets",
             "origin_netuid": sn2.netuid,
@@ -182,7 +174,7 @@ async def test_stake_fee_api_async(async_subtensor, alice_wallet, bob_wallet):
     ]
 
     for scenario in movement_scenarios:
-        logging.console.info(f"Scenario: {scenario.get("title")}")
+        logging.console.info(f"Scenario: {scenario.get('title')}")
         stake_fee = await async_subtensor.staking.get_stake_movement_fee(
             origin_netuid=scenario.get("origin_netuid"),
             destination_netuid=scenario.get("destination_netuid"),

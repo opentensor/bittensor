@@ -290,9 +290,7 @@ async def test_commit_and_reveal_weights_cr4_async(async_subtensor, alice_wallet
 
     current_block, latest_drand_round = await asyncio.gather(
         async_subtensor.chain.get_current_block(),
-        async_subtensor.subnets.get_next_epoch_start_block(
-            alice_sn.netuid
-        )
+        async_subtensor.subnets.get_next_epoch_start_block(alice_sn.netuid),
     )
     logging.console.info(
         f"Post first wait_interval (to ensure window isn't too low): {current_block}, next tempo: {upcoming_tempo}, drand: {latest_drand_round}"
