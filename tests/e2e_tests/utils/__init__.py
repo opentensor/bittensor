@@ -73,7 +73,7 @@ def set_identity(
     additional="",
 ):
     return subtensor.sign_and_send_extrinsic(
-        call=subtensor.substrate.compose_call(
+        call=subtensor.compose_call(
             call_module="SubtensorModule",
             call_function="set_identity",
             call_params={
@@ -104,7 +104,7 @@ async def async_set_identity(
     additional="",
 ):
     return await subtensor.sign_and_send_extrinsic(
-        call=await subtensor.substrate.compose_call(
+        call=await subtensor.compose_call(
             call_module="SubtensorModule",
             call_function="set_identity",
             call_params={
@@ -125,7 +125,7 @@ async def async_set_identity(
 
 def propose(subtensor, wallet, proposal, duration):
     return subtensor.sign_and_send_extrinsic(
-        call=subtensor.substrate.compose_call(
+        call=subtensor.compose_call(
             call_module="Triumvirate",
             call_function="propose",
             call_params={
@@ -147,7 +147,7 @@ async def async_propose(
     duration,
 ):
     return await subtensor.sign_and_send_extrinsic(
-        call=await subtensor.substrate.compose_call(
+        call=await subtensor.compose_call(
             call_module="Triumvirate",
             call_function="propose",
             call_params={
@@ -171,7 +171,7 @@ def vote(
     approve,
 ):
     return subtensor.sign_and_send_extrinsic(
-        call=subtensor.substrate.compose_call(
+        call=subtensor.compose_call(
             call_module="SubtensorModule",
             call_function="vote",
             call_params={
@@ -196,7 +196,7 @@ async def async_vote(
     approve,
 ):
     return await subtensor.sign_and_send_extrinsic(
-        call=await subtensor.substrate.compose_call(
+        call=await subtensor.compose_call(
             call_module="SubtensorModule",
             call_function="vote",
             call_params={
