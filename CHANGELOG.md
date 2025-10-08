@@ -1,5 +1,18 @@
 # Changelog
 
+## 9.12.0 /2025-10-08
+
+## What's Changed
+* Websocket Stub Generator Script by @thewhaleking in https://github.com/opentensor/bittensor/pull/3067
+* set auto hotkey per subnet by @basfroman in https://github.com/opentensor/bittensor/pull/3062
+* Update `get_neuron_for_pubkey_and_subnet` to use block_hash instead of block and block_hash by @yuma-doc in https://github.com/opentensor/bittensor/pull/3084
+* Improves `determine_block_hash` method of `AsyncSubtensor` by @thewhaleking in https://github.com/opentensor/bittensor/pull/3087
+
+## New Contributors
+* @yuma-doc made their first contribution in https://github.com/opentensor/bittensor/pull/3084
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.11.1...v9.12.0
+
 ## 9.11.1 /2025-09-25
 
 ## What's Changed
