@@ -22,9 +22,10 @@ def _config_call():
 
 TEST_ARGS = [
     "bittensor",
-    "--config", "path/to/config.yaml",
+    "--config",
+    "path/to/config.yaml",
     "--strict",
-    "--no_version_checking"
+    "--no_version_checking",
 ]
 
 
