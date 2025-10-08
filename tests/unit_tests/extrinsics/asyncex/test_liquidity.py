@@ -15,7 +15,9 @@ async def test_add_liquidity_extrinsic(subtensor, fake_wallet, mocker):
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor, "sign_and_send_extrinsic"
     )
-    mocked_param_add_liquidity = mocker.patch.object(liquidity.LiquidityParams, "add_liquidity")
+    mocked_param_add_liquidity = mocker.patch.object(
+        liquidity.LiquidityParams, "add_liquidity"
+    )
 
     # Call
     result = await liquidity.add_liquidity_extrinsic(

@@ -34,9 +34,19 @@ def setup_wallet(
     name = uri.strip("/")
     wallet_path = f"/tmp/btcli-e2e-wallet-{name}"
     wallet = Wallet(name=name, path=wallet_path)
-    wallet.set_coldkey(keypair=keypair, encrypt=encrypt_coldkey, overwrite=True, coldkey_password=coldkey_password)
+    wallet.set_coldkey(
+        keypair=keypair,
+        encrypt=encrypt_coldkey,
+        overwrite=True,
+        coldkey_password=coldkey_password,
+    )
     wallet.set_coldkeypub(keypair=keypair, encrypt=False, overwrite=True)
-    wallet.set_hotkey(keypair=keypair, encrypt=encrypt_hotkey, overwrite=True, hotkey_password=hotkey_password)
+    wallet.set_hotkey(
+        keypair=keypair,
+        encrypt=encrypt_hotkey,
+        overwrite=True,
+        hotkey_password=hotkey_password,
+    )
     wallet.set_hotkeypub(keypair=keypair, encrypt=False, overwrite=True)
     return keypair, wallet
 
