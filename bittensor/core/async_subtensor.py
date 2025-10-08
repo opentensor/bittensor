@@ -155,7 +155,7 @@ class AsyncSubtensor(SubtensorMixin):
         retry_forever: bool = False,
         _mock: bool = False,
         archive_endpoints: Optional[list[str]] = None,
-        websocket_shutdown_timer: float = 5.0,
+        websocket_shutdown_timer: Optional[float] = 5.0,
     ):
         """Initializes an AsyncSubtensor instance for blockchain interaction.
 
@@ -172,7 +172,9 @@ class AsyncSubtensor(SubtensorMixin):
                 cases where you are requesting a block that is too old for your current (presumably lite) node.
                 Defaults to ``None``.
             websocket_shutdown_timer: Amount of time, in seconds, to wait after the last response from the chain to
-                close the connection. Defaults to ``5.0``.
+                close the connection. Defaults to ``5.0``. Passing `None` will disable to automatic shutdown process
+                entirely.
+
         Returns:
             None
 
