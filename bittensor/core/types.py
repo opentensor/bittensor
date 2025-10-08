@@ -10,12 +10,13 @@ from bittensor.core import settings
 from bittensor.core.chain_data import NeuronInfo, NeuronInfoLite
 from bittensor.core.config import Config
 from bittensor.utils import (
-    Certificate,
     determine_chain_endpoint_and_network,
     get_caller_name,
     format_error_message,
     networking,
     unlock_key,
+    Certificate,
+    UnlockStatus,
 )
 from bittensor.utils.btlogging import logging
 
@@ -305,7 +306,8 @@ class ExtrinsicResponse:
         extrinsic: The raw extrinsic object used in the call, if available.
         extrinsic_fee: The fee charged by the extrinsic, if available.
         extrinsic_receipt: The receipt object of the submitted extrinsic.
-        transaction_fee: The fee charged by the transaction (e.g., fee for add_stake or transfer_stake), if available.
+        transaction_tao_fee: TAO fee charged by the transaction in TAO (e.g., fee for add_stake), if available.
+        transaction_alpha_fee: Alpha fee charged by the transaction (e.g., fee for transfer_stake), if available.
         error: Captures the underlying exception if the extrinsic failed, otherwise `None`.
         data: Arbitrary data returned from the extrinsic, such as decoded events, balance or another extra context.
 
@@ -332,7 +334,8 @@ class ExtrinsicResponse:
             message: Successfully registered subnet
             extrinsic_function: register_subnet_extrinsic
             extrinsic: {'account_id': '0xd43593c715fdd31c...
-            extrinsic_fee: τ1.0
+            transaction_tao_fee: τ1.0
+            transaction_alpha_fee: 1.0β
             extrinsic_receipt: Extrinsic Receipt data of of the submitted extrinsic
             transaction_fee: τ1.0
             error: None
@@ -357,7 +360,8 @@ class ExtrinsicResponse:
     extrinsic_receipt: Optional[Union["AsyncExtrinsicReceipt", "ExtrinsicReceipt"]] = (
         None
     )
-    transaction_fee: Optional["Balance"] = None
+    transaction_tao_fee: Optional["Balance"] = None
+    transaction_alpha_fee: Optional["Balance"] = None
     error: Optional[Exception] = None
     data: Optional[Any] = None
 
@@ -379,7 +383,8 @@ class ExtrinsicResponse:
             f"\textrinsic: {self.extrinsic}\n"
             f"\textrinsic_fee: {self.extrinsic_fee}\n"
             f"\textrinsic_receipt: {_extrinsic_receipt}"
-            f"\ttransaction_fee: {self.transaction_fee}\n"
+            f"\ttransaction_tao_fee: {self.transaction_tao_fee}\n"
+            f"\ttransaction_alpha_fee: {self.transaction_alpha_fee}\n"
             f"\tdata: {self.data}\n"
             f"\terror: {self.error}"
         )
@@ -394,9 +399,12 @@ class ExtrinsicResponse:
             "message": self.message,
             "extrinsic_function": self.extrinsic_function,
             "extrinsic": self.extrinsic,
-            "extrinsic_fee": str(self.extrinsic_fee) if self.extrinsic_fee else None,
-            "transaction_fee": str(self.transaction_fee)
-            if self.transaction_fee
+            "extrinsic_fee": self.extrinsic_fee.rao if self.extrinsic_fee else None,
+            "transaction_tao_fee": self.transaction_tao_fee.rao
+            if self.transaction_tao_fee
+            else None,
+            "transaction_alpha_fee": str(self.transaction_alpha_fee)
+            if self.transaction_alpha_fee
             else None,
             "extrinsic_receipt": self.extrinsic_receipt,
             "error": str(self.error) if self.error else None,
@@ -413,7 +421,8 @@ class ExtrinsicResponse:
                 and self.extrinsic_function == other.extrinsic_function
                 and self.extrinsic == other.extrinsic
                 and self.extrinsic_fee == other.extrinsic_fee
-                and self.transaction_fee == other.transaction_fee
+                and self.transaction_tao_fee == other.transaction_tao_fee
+                and self.transaction_alpha_fee == other.transaction_alpha_fee
                 and self.extrinsic_receipt == other.extrinsic_receipt
                 and self.error == other.error
                 and self.data == other.data
@@ -450,15 +459,27 @@ class ExtrinsicResponse:
         Parameters:
             wallet: Bittensor Wallet instance.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
-            unlock_type: The key type, 'coldkey' or 'hotkey'.
+            unlock_type: The key type, 'coldkey' or 'hotkey'. Or 'both' to check both.
             nonce_key: Key used for generating nonce in extrinsic function.
 
         Returns:
             Extrinsic Response is used to check if the key is unlocked.
+
+        Note:
+            When an extrinsic is signed with the coldkey but internally references or uses the hotkey, both keypairs
+            must be validated. Passing unlock_type='both' ensures that authentication is performed against both the
+            coldkey and hotkey.
         """
-        unlock = unlock_key(wallet, unlock_type=unlock_type, raise_error=raise_error)
-        if not unlock.success:
-            logging.error(unlock.message)
+        both = ["coldkey", "hotkey"]
+        keys = [unlock_type] if unlock_type in both else both
+        unlock = UnlockStatus(False, "")
+
+        for unlock_type in keys:
+            unlock = unlock_key(
+                wallet, unlock_type=unlock_type, raise_error=raise_error
+            )
+            if not unlock.success:
+                logging.error(unlock.message)
 
         # If extrinsic uses `unlock_type` and `nonce_key` and `nonce_key` is not public, we need to check the
         # availability of both keys.
