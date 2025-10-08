@@ -17,6 +17,7 @@ class SimSwapResult:
         tao_fee: The fee associated with the tao token portion of the swap.
         alpha_fee: The fee associated with the alpha token portion of the swap.
     """
+
     tao_amount: Balance
     alpha_amount: Balance
     tao_fee: Balance
