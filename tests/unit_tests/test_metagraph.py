@@ -97,7 +97,6 @@ def test_process_weights_or_bonds(mock_environment):
     assert weights.shape[1] == len(
         neurons
     )  # Number of columns should be equal to number of neurons
-    # TODO: Add more checks to ensure the weights have been processed correctly
 
     # Test bonds processing
     bonds = metagraph._process_weights_or_bonds(
@@ -109,8 +108,6 @@ def test_process_weights_or_bonds(mock_environment):
     assert bonds.shape[1] == len(
         neurons
     )  # Number of columns should be equal to number of neurons
-
-    # TODO: Add more checks to ensure the bonds have been processed correctly
 
 
 # Mocking the bittensor.Subtensor class for testing purposes
