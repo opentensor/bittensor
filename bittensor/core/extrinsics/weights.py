@@ -58,9 +58,10 @@ def commit_timelocked_weights_extrinsic(
         ExtrinsicResponse: The result object of the extrinsic execution.
     """
     try:
+        signing_keypair = "hotkey"
         if not (
             unlocked := ExtrinsicResponse.unlock_wallet(
-                wallet, raise_error, unlock_type="both"
+                wallet, raise_error, signing_keypair
             )
         ).success:
             return unlocked
@@ -108,8 +109,8 @@ def commit_timelocked_weights_extrinsic(
             wait_for_finalization=wait_for_finalization,
             use_nonce=True,
             period=period,
-            sign_with="hotkey",
-            nonce_key="hotkey",
+            sign_with=signing_keypair,
+            nonce_key=signing_keypair,
             raise_error=raise_error,
         )
 
@@ -164,9 +165,10 @@ def commit_weights_extrinsic(
         ExtrinsicResponse: The result object of the extrinsic execution.
     """
     try:
+        signing_keypair = "hotkey"
         if not (
             unlocked := ExtrinsicResponse.unlock_wallet(
-                wallet, raise_error, unlock_type="both"
+                wallet, raise_error, signing_keypair
             )
         ).success:
             return unlocked
@@ -198,8 +200,8 @@ def commit_weights_extrinsic(
             wait_for_finalization=wait_for_finalization,
             use_nonce=True,
             period=period,
-            sign_with="hotkey",
-            nonce_key="hotkey",
+            sign_with=signing_keypair,
+            nonce_key=signing_keypair,
             raise_error=raise_error,
         )
 
