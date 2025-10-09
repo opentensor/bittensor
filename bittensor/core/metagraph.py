@@ -1330,17 +1330,27 @@ else:
 
 class AsyncMetagraph(NumpyOrTorch):
     """
-    TODO docstring. Advise user to use `async_metagraph` factory fn if they want to sync at init
+    Asynchronous version of the Metagraph class for non-blocking synchronization  with the Bittensor network state.
+
+    This class allows developers to fetch and update metagraph data using async  operations, enabling concurrent
+    execution in event-driven environments.
+
+    Note:
+        Prefer using the factory function `async_metagraph()` for initialization,  which handles async synchronization
+        automatically.
+
+    Example:
+        metagraph = await async_metagraph(netuid=1, network="finney")
     """
 
     def __init__(
         self,
         netuid: int,
+        mechid: int = 0,
         network: str = settings.DEFAULT_NETWORK,
         lite: bool = True,
         sync: bool = True,
         subtensor: Optional["AsyncSubtensor"] = None,
-        mechid: int = 0,
     ):
         super().__init__(netuid, network, lite, sync, subtensor, mechid)
 
@@ -1656,14 +1666,26 @@ class AsyncMetagraph(NumpyOrTorch):
 
 
 class Metagraph(NumpyOrTorch):
+    """
+    Synchronous implementation of the Metagraph, representing the current state of a Bittensor subnet.
+
+    The Metagraph encapsulates neuron attributes such as stake, trust, incentive,  weights, and connectivity, and
+    provides methods to synchronize these values directly from the blockchain via a Subtensor instance.
+
+    Example:
+        from bittensor.core.subtensor import Subtensor
+        subtensor = Subtensor(network="finney")
+        metagraph = Metagraph(netuid=1, network="finney", sync=True, subtensor=subtensor)
+    """
+
     def __init__(
         self,
         netuid: int,
+        mechid: int = 0,
         network: str = settings.DEFAULT_NETWORK,
         lite: bool = True,
         sync: bool = True,
         subtensor: Optional["Subtensor"] = None,
-        mechid: int = 0,
     ):
         super().__init__(netuid, network, lite, sync, subtensor, mechid)
         if self.should_sync:
