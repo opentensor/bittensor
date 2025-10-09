@@ -275,24 +275,7 @@ class AsyncSubtensor(SubtensorMixin):
             raise ConnectionError
 
     async def __aenter__(self):
-        logging.info(
-            f"[magenta]Connecting to Substrate:[/magenta] [blue]{self}[/blue][magenta]...[/magenta]"
-        )
-        try:
-            await self.substrate.initialize()
-            return self
-        except TimeoutError:
-            logging.error(
-                f"[red]Error[/red]: Timeout occurred connecting to substrate."
-                f" Verify your chain and network settings: {self}"
-            )
-            raise ConnectionError
-        except (ConnectionRefusedError, ssl.SSLError) as error:
-            logging.error(
-                f"[red]Error[/red]: Connection refused when connecting to substrate. "
-                f"Verify your chain and network settings: {self}. Error: {error}"
-            )
-            raise ConnectionError
+        await self.initialize()
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.substrate.close()
