@@ -1988,6 +1988,7 @@ class Metagraph(NumpyOrTorch):
 
 async def async_metagraph(
     netuid: int,
+    mechid: int = 0,
     network: str = settings.DEFAULT_NETWORK,
     lite: bool = True,
     sync: bool = True,
@@ -1997,7 +1998,12 @@ async def async_metagraph(
     Factory function to create an instantiated AsyncMetagraph, mainly for the ability to use sync at instantiation.
     """
     metagraph_ = AsyncMetagraph(
-        netuid=netuid, network=network, lite=lite, sync=sync, subtensor=subtensor
+        netuid=netuid,
+        mechid=mechid,
+        network=network,
+        lite=lite,
+        sync=sync,
+        subtensor=subtensor,
     )
     if sync:
         await metagraph_.sync()
