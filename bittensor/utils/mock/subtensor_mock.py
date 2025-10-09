@@ -976,7 +976,6 @@ class MockSubtensor(Subtensor):
 
         neuron_info = self._neuron_subnet_exists(uid, netuid, block)
         if neuron_info is None:
-            # TODO Why does this return None here but a null neuron earlier?
             return None
 
         else:
