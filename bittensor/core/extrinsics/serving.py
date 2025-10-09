@@ -233,9 +233,10 @@ def publish_metadata_extrinsic(
         failure.
     """
     try:
+        signing_keypair = "hotkey"
         if not (
             unlocked := ExtrinsicResponse.unlock_wallet(
-                wallet, raise_error, unlock_type="both"
+                wallet, raise_error, signing_keypair
             )
         ).success:
             return unlocked
@@ -253,7 +254,7 @@ def publish_metadata_extrinsic(
         response = subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
-            sign_with="hotkey",
+            sign_with=signing_keypair,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             period=period,
