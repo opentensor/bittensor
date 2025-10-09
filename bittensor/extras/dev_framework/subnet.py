@@ -47,15 +47,20 @@ class TestSubnet:
         self.wait_for_finalization = wait_for_finalization
 
         self._netuid: Optional[int] = None
+        self._owner: Optional[Wallet] = None
         self._calls: list[CALL_RECORD] = []
 
     @property
-    def calls(self):
+    def calls(self) -> list[CALL_RECORD]:
         return self._calls
 
     @property
-    def netuid(self):
+    def netuid(self) -> int:
         return self._netuid
+
+    @property
+    def owner(self) -> Wallet:
+        return self._owner
 
     def execute_steps(self, steps: list[Union[STEPS, tuple]]):
         """Executes a multiple steps synchronously."""
@@ -214,6 +219,7 @@ class TestSubnet:
         else:
             self._netuid = self.s.subnets.get_total_subnets() - 1
         if response.success:
+            self._owner = owner_wallet
             logging.console.info(f"Subnet [blue]{self._netuid}[/blue] was registered.")
         self._add_call_record(REGISTER_SUBNET.__name__, response)
         return response
@@ -243,6 +249,7 @@ class TestSubnet:
         else:
             self._netuid = self.s.subnets.get_total_subnets() - 1
         if response.success:
+            self._owner = owner_wallet
             logging.console.info(f"Subnet [blue]{self._netuid}[/blue] was registered.")
         self._add_call_record(REGISTER_SUBNET.__name__, response)
         return response
