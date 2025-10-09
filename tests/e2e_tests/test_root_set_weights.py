@@ -2,6 +2,7 @@ import asyncio
 
 import pytest
 
+from bittensor.extras.dev_framework import REGISTER_NEURON
 from bittensor.utils.balance import Balance
 from tests.e2e_tests.utils import (
     TestSubnet,
@@ -107,7 +108,7 @@ async def test_root_reg_hyperparams(subtensor, templates, alice_wallet, bob_wall
         assert block_since_update is not None
 
     # Use subnetwork_n hyperparam to check sn creation
-    assert subtensor.subnets.subnetwork_n(alice_sn.netuid) == 1  # TODO?
+    assert subtensor.subnets.subnetwork_n(alice_sn.netuid) == 1
     assert subtensor.subnets.subnetwork_n(alice_sn.netuid + 1) is None
 
     # Ensure correct hyperparams are being fetched regarding weights
@@ -137,6 +138,9 @@ async def test_root_reg_hyperparams(subtensor, templates, alice_wallet, bob_wall
     )
     assert sn_one_neurons[alice_uid_sn_2].hotkey == alice_wallet.hotkey.ss58_address
     assert sn_one_neurons[alice_uid_sn_2].validator_permit is True
+
+    alice_sn.execute_one(REGISTER_NEURON(bob_wallet))
+    assert subtensor.subnets.subnetwork_n(alice_sn.netuid) == 2
 
 
 @pytest.mark.asyncio
@@ -215,7 +219,7 @@ async def test_root_reg_hyperparams_async(
         assert block_since_update is not None
 
     # Use subnetwork_n hyperparam to check sn creation
-    assert await async_subtensor.subnets.subnetwork_n(alice_sn.netuid) == 1  # TODO?
+    assert await async_subtensor.subnets.subnetwork_n(alice_sn.netuid) == 1
     assert await async_subtensor.subnets.subnetwork_n(alice_sn.netuid + 1) is None
 
     # Ensure correct hyperparams are being fetched regarding weights
@@ -248,3 +252,6 @@ async def test_root_reg_hyperparams_async(
     )
     assert sn_one_neurons[alice_uid_sn_2].hotkey == alice_wallet.hotkey.ss58_address
     assert sn_one_neurons[alice_uid_sn_2].validator_permit is True
+
+    await alice_sn.async_execute_one(REGISTER_NEURON(bob_wallet))
+    assert await async_subtensor.subnets.subnetwork_n(alice_sn.netuid) == 2
