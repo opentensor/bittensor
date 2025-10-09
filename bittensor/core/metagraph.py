@@ -706,7 +706,6 @@ class MetagraphMixin(ABC):
                     data_array.append(np.zeros(len(self.neurons), dtype=np.float32))
             else:
                 uids, values = zip(*item)
-                # TODO: Validate and test the conversion of uids and values to tensor
                 if attribute == "weights":
                     data_array.append(
                         convert_weight_uids_and_vals_to_tensor(
@@ -1579,7 +1578,6 @@ class AsyncMetagraph(NumpyOrTorch):
                     data_array.append(np.zeros(n_subnets, dtype=np.float32))
             else:
                 uids, values = zip(*item)
-                # TODO: Validate and test the conversion of uids and values to tensor
                 data_array.append(
                     convert_root_weight_uids_and_vals_to_tensor(
                         n_subnets, list(uids), list(values), subnets
@@ -1900,7 +1898,6 @@ class Metagraph(NumpyOrTorch):
                     data_array.append(np.zeros(n_subnets, dtype=np.float32))
             else:
                 uids, values = zip(*item)
-                # TODO: Validate and test the conversion of uids and values to tensor
                 data_array.append(
                     convert_root_weight_uids_and_vals_to_tensor(
                         n_subnets, list(uids), list(values), subnets
