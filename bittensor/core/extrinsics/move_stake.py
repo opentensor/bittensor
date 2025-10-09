@@ -121,6 +121,7 @@ def move_stake_extrinsic(
             ),
         )
 
+        block_before = subtensor.block
         response = subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
@@ -135,6 +136,7 @@ def move_stake_extrinsic(
                 origin_netuid=origin_netuid,
                 destination_netuid=destination_netuid,
                 amount=amount,
+                block=block_before,
             )
             response.transaction_tao_fee = sim_swap.tao_fee
             response.transaction_alpha_fee = sim_swap.alpha_fee.set_unit(origin_netuid)
@@ -254,6 +256,7 @@ def transfer_stake_extrinsic(
             ),
         )
 
+        block_before = subtensor.block
         response = subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
@@ -268,6 +271,7 @@ def transfer_stake_extrinsic(
                 origin_netuid=origin_netuid,
                 destination_netuid=destination_netuid,
                 amount=amount,
+                block=block_before,
             )
             response.transaction_tao_fee = sim_swap.tao_fee
             response.transaction_alpha_fee = sim_swap.alpha_fee.set_unit(origin_netuid)
@@ -410,6 +414,7 @@ def swap_stake_extrinsic(
             call_params=call_params,
         )
 
+        block_before = subtensor.block
         response = subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
@@ -424,6 +429,7 @@ def swap_stake_extrinsic(
                 origin_netuid=origin_netuid,
                 destination_netuid=destination_netuid,
                 amount=amount,
+                block=block_before,
             )
             response.transaction_tao_fee = sim_swap.tao_fee
             response.transaction_alpha_fee = sim_swap.alpha_fee.set_unit(origin_netuid)
