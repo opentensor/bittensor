@@ -278,7 +278,7 @@ async def test_commit_and_reveal_weights_cr4_async(async_subtensor, alice_wallet
     # Fetch current block and calculate next tempo for the subnet
     current_block, upcoming_tempo = await asyncio.gather(
         async_subtensor.chain.get_current_block(),
-        async_subtensor.subnets.get_next_epoch_start_block(alice_sn.netuid)
+        async_subtensor.subnets.get_next_epoch_start_block(alice_sn.netuid),
     )
     logging.console.info(
         f"Checking if window is too low with Current block: {current_block}, next tempo: {upcoming_tempo}"
@@ -323,7 +323,7 @@ async def test_commit_and_reveal_weights_cr4_async(async_subtensor, alice_wallet
             async_subtensor.commitments.get_timelocked_weight_commits(
                 netuid=alice_sn.netuid, mechid=mechid
             ),
-            async_subtensor.subnets.weights(netuid=alice_sn.netuid, mechid=mechid)
+            async_subtensor.subnets.weights(netuid=alice_sn.netuid, mechid=mechid),
         )
         address, commit_block, commit, reveal_round = commits_on_chain[0]
 
