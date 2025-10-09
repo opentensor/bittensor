@@ -2868,12 +2868,12 @@ class Subtensor(SubtensorMixin):
         decentralized architecture, particularly in relation to neuron interconnectivity and consensus processes.
         """
         metagraph = Metagraph(
-            network=self.chain_endpoint,
             netuid=netuid,
+            mechid=mechid,
+            network=self.chain_endpoint,
             lite=lite,
             sync=False,
             subtensor=self,
-            mechid=mechid,
         )
         metagraph.sync(block=block, lite=lite, subtensor=self)
 
