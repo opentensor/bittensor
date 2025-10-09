@@ -122,6 +122,7 @@ def unstake_extrinsic(
             call_params=call_params,
         )
 
+        block_before = subtensor.block
         response = subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
@@ -138,6 +139,7 @@ def unstake_extrinsic(
                 origin_netuid=netuid,
                 destination_netuid=0,
                 amount=amount,
+                block=block_before,
             )
             response.transaction_tao_fee = sim_swap.tao_fee
             response.transaction_alpha_fee = sim_swap.alpha_fee.set_unit(netuid)

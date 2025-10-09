@@ -124,7 +124,7 @@ async def move_stake_extrinsic(
                 amount=amount,
             ),
         )
-
+        block_hash_before = await subtensor.get_block_hash()
         response = await subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
@@ -139,6 +139,7 @@ async def move_stake_extrinsic(
                 origin_netuid=origin_netuid,
                 destination_netuid=destination_netuid,
                 amount=amount,
+                block_hash=block_hash_before,
             )
             response.transaction_tao_fee = sim_swap.tao_fee
             response.transaction_alpha_fee = sim_swap.alpha_fee.set_unit(origin_netuid)
@@ -257,7 +258,7 @@ async def transfer_stake_extrinsic(
                 amount=amount,
             ),
         )
-
+        block_hash_before = await subtensor.get_block_hash()
         response = await subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
@@ -272,6 +273,7 @@ async def transfer_stake_extrinsic(
                 origin_netuid=origin_netuid,
                 destination_netuid=destination_netuid,
                 amount=amount,
+                block_hash=block_hash_before,
             )
             response.transaction_tao_fee = sim_swap.tao_fee
             response.transaction_alpha_fee = sim_swap.alpha_fee.set_unit(origin_netuid)
@@ -423,7 +425,7 @@ async def swap_stake_extrinsic(
             call_function=call_function,
             call_params=call_params,
         )
-
+        block_hash_before = await subtensor.get_block_hash()
         response = await subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
@@ -438,6 +440,7 @@ async def swap_stake_extrinsic(
                 origin_netuid=origin_netuid,
                 destination_netuid=destination_netuid,
                 amount=amount,
+                block_hash=block_hash_before,
             )
             response.transaction_tao_fee = sim_swap.tao_fee
             response.transaction_alpha_fee = sim_swap.alpha_fee.set_unit(origin_netuid)

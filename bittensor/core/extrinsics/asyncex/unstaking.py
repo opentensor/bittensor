@@ -81,11 +81,6 @@ async def unstake_extrinsic(
                 f"Not enough stake: {old_stake} to unstake: {amount} from hotkey: {hotkey_ss58}",
             ).with_log()
 
-        call_params = {
-            "hotkey": hotkey_ss58,
-            "netuid": netuid,
-            "amount_unstaked": amount.rao,
-        }
         if safe_unstaking:
             pool = await subtensor.subnet(netuid=netuid)
 
@@ -129,6 +124,7 @@ async def unstake_extrinsic(
             call_params=call_params,
         )
 
+        block_hash_before = await subtensor.get_block_hash()
         response = await subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
@@ -145,6 +141,7 @@ async def unstake_extrinsic(
                 origin_netuid=netuid,
                 destination_netuid=0,
                 amount=amount,
+                block_hash=block_hash_before,
             )
             response.transaction_tao_fee = sim_swap.tao_fee
             response.transaction_alpha_fee = sim_swap.alpha_fee.set_unit(netuid)

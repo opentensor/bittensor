@@ -134,6 +134,7 @@ async def add_stake_extrinsic(
             call_function=call_function,
             call_params=call_params,
         )
+        block_hash_before = await subtensor.get_block_hash()
         response = await subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
@@ -148,7 +149,8 @@ async def add_stake_extrinsic(
             sim_swap = await subtensor.sim_swap(
                 origin_netuid=0,
                 destination_netuid=netuid,
-                amount=(amount - response.extrinsic_fee),
+                amount=amount,
+                block_hash=block_hash_before,
             )
             response.transaction_tao_fee = sim_swap.tao_fee
             response.transaction_alpha_fee = sim_swap.alpha_fee.set_unit(netuid)
