@@ -1477,8 +1477,9 @@ class AsyncMetagraph(NumpyOrTorch):
             # Lazy import due to circular import (subtensor -> metagraph, metagraph -> subtensor)
             from bittensor.core.async_subtensor import AsyncSubtensor
 
-            async with AsyncSubtensor(network=self.chain_endpoint) as subtensor:
-                self.subtensor = subtensor
+            self.subtensor = AsyncSubtensor(network=self.chain_endpoint)
+            await self.subtensor.initialize()
+            self.subtensor = subtensor
         return subtensor
 
     async def _assign_neurons(
