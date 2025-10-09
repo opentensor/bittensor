@@ -4358,7 +4358,6 @@ class AsyncSubtensor(SubtensorMixin):
         """
         storage_index = get_mechid_storage_index(netuid, mechid)
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        # TODO look into seeing if we can speed this up with storage query
         w_map_encoded = await self.substrate.query_map(
             module="SubtensorModule",
             storage_function="Weights",
