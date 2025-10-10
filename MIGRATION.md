@@ -274,6 +274,11 @@ Added sub-package `bittensor.core.addons` to host optional extensions and experi
   - local env variable `BT_CHAIN_ENDPOINT` replaced with `BT_SUBTENSOR_CHAIN_ENDPOINT`.
 
 
+## Metagraph changes:
+- all methods with `mechid` parameter has reordered list of parameters.
+- async `_initialize_subtensor` method no longer kill the subtensor instance after use.
+
+
 ### Mechid related changes:
 In the next subtensor methods got updated the parameters order:
   - `bonds`
