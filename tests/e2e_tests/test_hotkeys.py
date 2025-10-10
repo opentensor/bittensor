@@ -226,7 +226,7 @@ def test_children(subtensor, alice_wallet, bob_wallet, dave_wallet):
         )
 
     with pytest.raises(DuplicateChild):
-        subtensor.set_children(
+        subtensor.wallet.set_children(
             wallet=alice_wallet,
             hotkey_ss58=alice_wallet.hotkey.ss58_address,
             netuid=dave_sn.netuid,
