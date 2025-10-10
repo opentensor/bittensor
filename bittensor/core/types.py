@@ -72,9 +72,7 @@ class SubtensorMixin(ABC):
         return Config(parser)
 
     @staticmethod
-    def setup_config(
-        network: Optional[str], config: "Config"
-    ) -> tuple[Optional[str], Optional[str]]:
+    def setup_config(network: Optional[str], config: "Config") -> tuple[str, str]:
         """
         Sets up and returns the configuration for the Subtensor network and endpoint.
 
