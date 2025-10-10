@@ -58,7 +58,7 @@ class SubtensorMixin(ABC):
                 "This increases decentralization and resilience of the network."
             )
 
-    @staticmethod  # TODO can this be a class method?
+    @staticmethod
     def config() -> "Config":
         """
         Creates and returns a Bittensor configuration object.
@@ -72,7 +72,7 @@ class SubtensorMixin(ABC):
         return Config(parser)
 
     @staticmethod
-    def setup_config(network: Optional[str], config: "Config"):
+    def setup_config(network: Optional[str], config: "Config") -> tuple[str, str]:
         """
         Sets up and returns the configuration for the Subtensor network and endpoint.
 
