@@ -1,4 +1,20 @@
-# Plan
+## High level overview
+To implement the above changes and prepare for the v10 release, the following steps must be taken:
+
+- [x] Create a new branch named SDKv10.
+All breaking changes and refactors should be targeted into this branch to isolate them from staging and maintain backward compatibility during development.
+- [x] Add a `MIGRATION.md` document at the root of the repository and use it as a check list. This file will serve as a changelog and technical reference.
+It must include:
+  - [x] All change categories (Extrinsics, Subtensor, Metagraph, etc.)
+  - [x] Per-PR breakdown of what was added, removed, renamed, or refactored.
+  - [x] Justifications and migration notes for users (if API behavior changed).
+
+- [x] Based on the final `MIGRATION.md`, develop migration documentation for the community. 
+- [ ] Once complete, merge SDKv10 into staging and release version 10.
+
+<hr>
+
+# Detailed Plan
 
 ## Extrinsics and related
 1. ✅ Standardize parameter order across all extrinsics and related calls. Pass extrinsic-specific arguments first (e.g., wallet, hotkey, netuid, amount), followed by optional general flags (e.g., wait_for_inclusion, wait_for_finalization)
@@ -109,22 +125,9 @@
 
 <hr>
 
-## Implementation
-To implement the above changes and prepare for the v10 release, the following steps must be taken:
+# Step-by-step plan execution
 
-- [x] Create a new branch named SDKv10.~~
-All breaking changes and refactors should be targeted into this branch to isolate them from staging and maintain backward compatibility during development.
-- [x] Add a `MIGRATION.md` document at the root of the repository and use it as a check list. This file will serve as a changelog and technical reference.
-It must include:
-  - [x] All change categories (Extrinsics, Subtensor, Metagraph, etc.)
-  - [x] Per-PR breakdown of what was added, removed, renamed, or refactored.
-  - [x] Justifications and migration notes for users (if API behavior changed).
-
-- [ ] Based on the final `MIGRATION.md`, develop migration documentation for the community. 
-- [ ] Once complete, merge SDKv10 into staging and release version 10.
-
-
-# Migration guide
+## Extrinsics refactoring
 - [x] `._do_commit_reveal_v3` logic is included in the main code `.commit_timelocked_weights_extrinsic`
   - [x] `commit_reveal_version` parameter with default value `4` added to `commit_timelocked_weights_extrinsic`
 - [x] `._do_commit_weights` logic is included in the main code `.commit_weights_extrinsic`
