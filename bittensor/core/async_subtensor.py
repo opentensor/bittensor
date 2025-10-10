@@ -279,7 +279,7 @@ class AsyncSubtensor(SubtensorMixin):
             raise ConnectionError
 
     async def __aenter__(self):
-        await self.initialize()
+        return await self.initialize()
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.substrate.close()
