@@ -49,8 +49,8 @@
 5. ✅ ~~Rename `non-/fast-blocks` to `non-/fast-runtime` in related places to be consistent with subtensor repo. Related with testing, subtensor scripts, documentation.~~ done across many PRs.
 
 6. ✅ To be consistent throughout the SDK:
-`hotkey`, `coldkey`, `hotkeypub`, and `coldkeypub` are keypairs
-`hotkey_ss58`, `coldkey_ss58`, `hotkeypub_ss58`, and `coldkeypub_ss58` are SS58 addresses of keypair.
+   - `hotkey`, `coldkey`, `hotkeypub`, and `coldkeypub` are keypairs
+   - `hotkey_ss58`, `coldkey_ss58`, `hotkeypub_ss58`, and `coldkeypub_ss58` are SS58 addresses of keypair.
 
 7. ✅ Replace `Arguments` with `Parameters`. Matches Python rules. Improve docstrings for writing MСP server.
 
@@ -67,7 +67,7 @@
 12. ✅ The SDK is dropping support for `Python 3.9` starting with this release.
 13. ✅ Remove `Default is` and `Default to` in docstrings bc parameters enough.
 14. ✅ `camfairchild`: TODO, but we should have a grab_metadata if we don't already. Maybe don't decode, but can have a call that removes the Raw prefix, and another just doing grab_metadata_raw (no decoding). `get_commitment_metadata` added.
-15. ✅ Resolve an issue where a script using the SDK receives the `--config` or any other CLI parameters used in the SDK. Disable configuration processing. Use default values ​​instead.
+15. ✅ Resolve an issue where a script using the SDK receives the `--config` or any other CLI parameters used in the SDK. Disable configuration processing.
 16. ✅ Find and process all `TODOs` across the entire code base. If in doubt, discuss each one with the team separately. SDK has 29 TODOs.
 
 ## New features
@@ -338,5 +338,5 @@ Currently it contains:
 
 
 ### ArgParser issue
-- to turn on args parser across SDK, the local env variable `BT_PARSE_CLI_ARGS` should be set to on of the values: `1`, `true`, `yes`, `on`.
+- to turn off args parser across SDK, the local env variable `BT_NO_PARSE_CLI_ARGS` should be set to on of the values: `1`, `true`, `yes`, `on`.
 - `bittensor.core.config.DefaultConfig` class has been deleted (unused).
