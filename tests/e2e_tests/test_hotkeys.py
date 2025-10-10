@@ -194,7 +194,7 @@ async def test_children(local_chain, subtensor, alice_wallet, bob_wallet, dave_w
             raise_error=True,
         )
 
-    with pytest.raises(TooManyChildren):
+    with pytest.raises(DuplicateChild):
         subtensor.set_children(
             alice_wallet,
             alice_wallet.hotkey.ss58_address,
