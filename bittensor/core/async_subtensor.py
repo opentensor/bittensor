@@ -2878,7 +2878,6 @@ class AsyncSubtensor(SubtensorMixin):
             destination_netuid=netuid,
             amount=amount,
             block_hash=block_hash,
-            reuse_block_hash=reuse_block,
         )
         return sim_swap_result.tao_fee
 
