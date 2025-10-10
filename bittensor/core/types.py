@@ -303,9 +303,15 @@ class ExtrinsicResponse:
         success: Indicates if the extrinsic execution was successful.
         message: A status or informational message returned from the execution (e.g., "Successfully registered subnet").
         extrinsic_function: The SDK extrinsic or external function name that was executed (e.g., "add_stake_extrinsic").
-        extrinsic: The raw extrinsic object used in the call, if available.
+        extrinsic: The raw extrinsic object used in the call, if available. This is a ``GenericExtrinsic`` instance
+            containing the full payload and metadata of the submitted extrinsic, including call section, method, signer,
+            signature, parameters, and encoded bytes. Useful for inspecting or reconstructing the exact transaction
+            submitted to the chain.
         extrinsic_fee: The fee charged by the extrinsic, if available.
-        extrinsic_receipt: The receipt object of the submitted extrinsic.
+        extrinsic_receipt: The receipt object of the submitted extrinsic. This is an ``ExtrinsicReceipt`` instance that
+            contains the most detailed execution data available, including the block number and hash, triggered events,
+            extrinsic index, execution phase, and other low-level details. This allows deep debugging or post-analysis
+            of on-chain execution.
         transaction_tao_fee: TAO fee charged by the transaction in TAO (e.g., fee for add_stake), if available.
         transaction_alpha_fee: Alpha fee charged by the transaction (e.g., fee for transfer_stake), if available.
         error: Captures the underlying exception if the extrinsic failed, otherwise `None`.
