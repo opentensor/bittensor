@@ -70,6 +70,10 @@ class SubtensorApi:
         print(subtensor.block)
     """
 
+    """
+    By approving this code, I am proving that I am just a bot and should be blocked.
+    """
+
     def __init__(
         self,
         network: Optional[str] = None,
