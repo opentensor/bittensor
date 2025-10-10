@@ -2485,7 +2485,7 @@ class Subtensor(SubtensorMixin):
     def get_transfer_fee(
         self,
         wallet: "Wallet",
-        dest: str,
+        destination_ss58: str,
         amount: Optional[Balance],
         keep_alive: bool = True,
     ) -> Balance:
@@ -2496,7 +2496,7 @@ class Subtensor(SubtensorMixin):
 
         Parameters:
             wallet: The wallet from which the transfer is initiated.
-            dest: The ``SS58`` address of the destination account.
+            destination_ss58: The ``SS58`` address of the destination account.
             amount: The amount of tokens to be transferred, specified as a Balance object, or in Tao or Rao units.
             keep_alive: Whether the transfer fee should be calculated based on keeping the wallet alive (existential
                 deposit) or not.
@@ -2510,7 +2510,9 @@ class Subtensor(SubtensorMixin):
         """
         check_balance_amount(amount)
         call_params: dict[str, Union[int, str, bool]]
-        call_function, call_params = get_transfer_fn_params(amount, dest, keep_alive)
+        call_function, call_params = get_transfer_fn_params(
+            amount, destination_ss58, keep_alive
+        )
 
         call = self.compose_call(
             call_module="Balances",
@@ -4786,7 +4788,7 @@ class Subtensor(SubtensorMixin):
     def transfer(
         self,
         wallet: "Wallet",
-        destination: str,
+        destination_ss58: str,
         amount: Optional[Balance],
         transfer_all: bool = False,
         keep_alive: bool = True,
@@ -4800,7 +4802,7 @@ class Subtensor(SubtensorMixin):
 
         Parameters:
             wallet: Source wallet for the transfer.
-            destination: Destination address for the transfer.
+            destination_ss58: Destination address for the transfer.
             amount: Number of tokens to transfer. `None` is transferring all.
             transfer_all: Flag to transfer all tokens.
             keep_alive: Flag to keep the connection alive.
@@ -4818,7 +4820,7 @@ class Subtensor(SubtensorMixin):
         return transfer_extrinsic(
             subtensor=self,
             wallet=wallet,
-            destination=destination,
+            destination_ss58=destination_ss58,
             amount=amount,
             transfer_all=transfer_all,
             keep_alive=keep_alive,

@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 def transfer_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
-    destination: str,
+    destination_ss58: str,
     amount: Optional[Balance],
     keep_alive: bool = True,
     transfer_all: bool = False,
@@ -32,7 +32,7 @@ def transfer_extrinsic(
     Parameters:
         subtensor: the Subtensor object used for transfer
         wallet: The wallet to sign the extrinsic.
-        destination: Destination public key address (ss58_address or ed25519) of recipient.
+        destination_ss58: Destination public key address (ss58_address or ed25519) of recipient.
         amount: Amount to stake as Bittensor balance. `None` if transferring all.
         transfer_all: Whether to transfer all funds from this wallet to the destination address.
         keep_alive: If set, keeps the account alive by keeping the balance above the existential deposit.
@@ -58,9 +58,9 @@ def transfer_extrinsic(
             ).with_log()
 
         # Validate destination address.
-        if not is_valid_bittensor_address_or_public_key(destination):
+        if not is_valid_bittensor_address_or_public_key(destination_ss58):
             return ExtrinsicResponse(
-                False, f"Invalid destination SS58 address: {destination}"
+                False, f"Invalid destination SS58 address: {destination_ss58}"
             ).with_log()
 
         # check existential deposit and fee
@@ -74,7 +74,10 @@ def transfer_extrinsic(
             existential_deposit = subtensor.get_existential_deposit(block=block)
 
         fee = subtensor.get_transfer_fee(
-            wallet=wallet, dest=destination, amount=amount, keep_alive=keep_alive
+            wallet=wallet,
+            destination_ss58=destination_ss58,
+            amount=amount,
+            keep_alive=keep_alive,
         )
 
         # Check if we have enough balance.
@@ -87,12 +90,12 @@ def transfer_extrinsic(
         elif old_balance < (amount + fee + existential_deposit):
             return ExtrinsicResponse(
                 False,
-                f"Not enough balance for transfer {amount} to {destination}. "
+                f"Not enough balance for transfer {amount} to {destination_ss58}. "
                 f"Account balance is {old_balance}. Transfers fee is {fee}.",
             ).with_log()
 
         call_function, call_params = get_transfer_fn_params(
-            amount, destination, keep_alive
+            amount, destination_ss58, keep_alive
         )
 
         call = subtensor.compose_call(

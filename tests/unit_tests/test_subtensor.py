@@ -1264,7 +1264,7 @@ def test_transfer(subtensor, fake_wallet, mocker):
     # Call
     result = subtensor.transfer(
         wallet=fake_wallet,
-        destination=fake_dest,
+        destination_ss58=fake_dest,
         amount=fake_amount,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
@@ -1274,7 +1274,7 @@ def test_transfer(subtensor, fake_wallet, mocker):
     mocked_transfer_extrinsic.assert_called_once_with(
         subtensor=subtensor,
         wallet=fake_wallet,
-        destination=fake_dest,
+        destination_ss58=fake_dest,
         amount=fake_amount,
         transfer_all=False,
         wait_for_inclusion=fake_wait_for_inclusion,
@@ -1734,7 +1734,7 @@ def test_get_transfer_fee(subtensor, fake_wallet, mocker):
 
     # Call
     result = subtensor.get_transfer_fee(
-        wallet=fake_wallet, dest=fake_dest, amount=value
+        wallet=fake_wallet, destination_ss58=fake_dest, amount=value
     )
 
     # Asserts
