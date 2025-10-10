@@ -68,7 +68,7 @@
 13. ✅ Remove `Default is` and `Default to` in docstrings bc parameters enough.
 14. ✅ `camfairchild`: TODO, but we should have a grab_metadata if we don't already. Maybe don't decode, but can have a call that removes the Raw prefix, and another just doing grab_metadata_raw (no decoding). `get_commitment_metadata` added.
 15. ✅ Resolve an issue where a script using the SDK receives the `--config` or any other CLI parameters used in the SDK. Disable configuration processing. Use default values ​​instead.
-16. Find and process all `TODOs` across the entire code base. If in doubt, discuss each one with the team separately. SDK has 29 TODOs.
+16. ✅ Find and process all `TODOs` across the entire code base. If in doubt, discuss each one with the team separately. SDK has 29 TODOs.
 
 ## New features
 1. ✅ Unify extrinsic return values by introducing an ExtrinsicResponse class. Extrinsics currently return either a boolean or a tuple.
