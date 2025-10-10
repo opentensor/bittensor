@@ -526,11 +526,11 @@ class MetagraphMixin(ABC):
     def __init__(
         self,
         netuid: int,
+        mechid: int = 0,
         network: str = settings.DEFAULT_NETWORK,
         lite: bool = True,
         sync: bool = True,
         subtensor: Optional[Union["AsyncSubtensor", "Subtensor"]] = None,
-        mechid: int = 0,
     ):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the
@@ -671,7 +671,6 @@ class MetagraphMixin(ABC):
 
                 self.stake = self._create_tensor(neuron_stakes, dtype=np.float32)
         """
-        # TODO: Check and test the creation of tensor
         return (
             torch.nn.Parameter(torch.tensor(data, dtype=dtype), requires_grad=False)
             if use_torch()
@@ -706,7 +705,6 @@ class MetagraphMixin(ABC):
                     data_array.append(np.zeros(len(self.neurons), dtype=np.float32))
             else:
                 uids, values = zip(*item)
-                # TODO: Validate and test the conversion of uids and values to tensor
                 if attribute == "weights":
                     data_array.append(
                         convert_weight_uids_and_vals_to_tensor(
@@ -1033,11 +1031,11 @@ class TorchMetagraph(MetagraphMixin, BaseClass):
     def __init__(
         self,
         netuid: int,
+        mechid: int = 0,
         network: str = settings.DEFAULT_NETWORK,
         lite: bool = True,
         sync: bool = True,
         subtensor: Optional[Union["AsyncSubtensor", "Subtensor"]] = None,
-        mechid: int = 0,
     ):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the
@@ -1199,11 +1197,11 @@ class NonTorchMetagraph(MetagraphMixin):
     def __init__(
         self,
         netuid: int,
+        mechid: int = 0,
         network: str = settings.DEFAULT_NETWORK,
         lite: bool = True,
         sync: bool = True,
         subtensor: Optional[Union["AsyncSubtensor", "Subtensor"]] = None,
-        mechid: int = 0,
     ):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the
@@ -1227,7 +1225,7 @@ class NonTorchMetagraph(MetagraphMixin):
 
                 metagraph = Metagraph(netuid=123, network="finney", lite=True, sync=True)
         """
-        MetagraphMixin.__init__(self, netuid, network, lite, sync, subtensor, mechid)
+        MetagraphMixin.__init__(self, netuid, mechid, network, lite, sync, subtensor)
 
         self.netuid = netuid
         self.network, self.chain_endpoint = determine_chain_endpoint_and_network(
@@ -1330,19 +1328,29 @@ else:
 
 class AsyncMetagraph(NumpyOrTorch):
     """
-    TODO docstring. Advise user to use `async_metagraph` factory fn if they want to sync at init
+    Asynchronous version of the Metagraph class for non-blocking synchronization  with the Bittensor network state.
+
+    This class allows developers to fetch and update metagraph data using async  operations, enabling concurrent
+    execution in event-driven environments.
+
+    Note:
+        Prefer using the factory function `async_metagraph()` for initialization,  which handles async synchronization
+        automatically.
+
+    Example:
+        metagraph = await async_metagraph(netuid=1, network="finney")
     """
 
     def __init__(
         self,
         netuid: int,
+        mechid: int = 0,
         network: str = settings.DEFAULT_NETWORK,
         lite: bool = True,
         sync: bool = True,
         subtensor: Optional["AsyncSubtensor"] = None,
-        mechid: int = 0,
     ):
-        super().__init__(netuid, network, lite, sync, subtensor, mechid)
+        super().__init__(netuid, mechid, network, lite, sync, subtensor)
 
     async def __aenter__(self):
         if self.should_sync:
@@ -1467,8 +1475,9 @@ class AsyncMetagraph(NumpyOrTorch):
             # Lazy import due to circular import (subtensor -> metagraph, metagraph -> subtensor)
             from bittensor.core.async_subtensor import AsyncSubtensor
 
-            async with AsyncSubtensor(network=self.chain_endpoint) as subtensor:
-                self.subtensor = subtensor
+            self.subtensor = AsyncSubtensor(network=self.chain_endpoint)
+            await self.subtensor.initialize()
+            self.subtensor = subtensor
         return subtensor
 
     async def _assign_neurons(
@@ -1518,7 +1527,6 @@ class AsyncMetagraph(NumpyOrTorch):
 
                 self._set_weights_and_bonds(subtensor=subtensor)
         """
-        # TODO: Check and test the computation of weights and bonds
         if self.netuid == 0:
             self.weights = await self._process_root_weights(
                 [neuron.weights for neuron in self.neurons],
@@ -1568,7 +1576,6 @@ class AsyncMetagraph(NumpyOrTorch):
                     data_array.append(np.zeros(n_subnets, dtype=np.float32))
             else:
                 uids, values = zip(*item)
-                # TODO: Validate and test the conversion of uids and values to tensor
                 data_array.append(
                     convert_root_weight_uids_and_vals_to_tensor(
                         n_subnets, list(uids), list(values), subnets
@@ -1656,16 +1663,28 @@ class AsyncMetagraph(NumpyOrTorch):
 
 
 class Metagraph(NumpyOrTorch):
+    """
+    Synchronous implementation of the Metagraph, representing the current state of a Bittensor subnet.
+
+    The Metagraph encapsulates neuron attributes such as stake, trust, incentive,  weights, and connectivity, and
+    provides methods to synchronize these values directly from the blockchain via a Subtensor instance.
+
+    Example:
+        from bittensor.core.subtensor import Subtensor
+        subtensor = Subtensor(network="finney")
+        metagraph = Metagraph(netuid=1, network="finney", sync=True, subtensor=subtensor)
+    """
+
     def __init__(
         self,
         netuid: int,
+        mechid: int = 0,
         network: str = settings.DEFAULT_NETWORK,
         lite: bool = True,
         sync: bool = True,
         subtensor: Optional["Subtensor"] = None,
-        mechid: int = 0,
     ):
-        super().__init__(netuid, network, lite, sync, subtensor, mechid)
+        super().__init__(netuid, mechid, network, lite, sync, subtensor)
         if self.should_sync:
             self.sync()
 
@@ -1877,7 +1896,6 @@ class Metagraph(NumpyOrTorch):
                     data_array.append(np.zeros(n_subnets, dtype=np.float32))
             else:
                 uids, values = zip(*item)
-                # TODO: Validate and test the conversion of uids and values to tensor
                 data_array.append(
                     convert_root_weight_uids_and_vals_to_tensor(
                         n_subnets, list(uids), list(values), subnets
@@ -1966,6 +1984,7 @@ class Metagraph(NumpyOrTorch):
 
 async def async_metagraph(
     netuid: int,
+    mechid: int = 0,
     network: str = settings.DEFAULT_NETWORK,
     lite: bool = True,
     sync: bool = True,
@@ -1975,7 +1994,12 @@ async def async_metagraph(
     Factory function to create an instantiated AsyncMetagraph, mainly for the ability to use sync at instantiation.
     """
     metagraph_ = AsyncMetagraph(
-        netuid=netuid, network=network, lite=lite, sync=sync, subtensor=subtensor
+        netuid=netuid,
+        mechid=mechid,
+        network=network,
+        lite=lite,
+        sync=sync,
+        subtensor=subtensor,
     )
     if sync:
         await metagraph_.sync()

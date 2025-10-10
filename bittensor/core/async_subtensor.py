@@ -279,24 +279,7 @@ class AsyncSubtensor(SubtensorMixin):
             raise ConnectionError
 
     async def __aenter__(self):
-        logging.info(
-            f"[magenta]Connecting to Substrate:[/magenta] [blue]{self}[/blue][magenta]...[/magenta]"
-        )
-        try:
-            await self.substrate.initialize()
-            return self
-        except TimeoutError:
-            logging.error(
-                f"[red]Error[/red]: Timeout occurred connecting to substrate."
-                f" Verify your chain and network settings: {self}"
-            )
-            raise ConnectionError
-        except (ConnectionRefusedError, ssl.SSLError) as error:
-            logging.error(
-                f"[red]Error[/red]: Connection refused when connecting to substrate. "
-                f"Verify your chain and network settings: {self}. Error: {error}"
-            )
-            raise ConnectionError
+        return await self.initialize()
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.substrate.close()
@@ -3908,12 +3891,12 @@ class AsyncSubtensor(SubtensorMixin):
         decentralized architecture, particularly in relation to neuron interconnectivity and consensus processes.
         """
         metagraph = AsyncMetagraph(
-            network=self.chain_endpoint,
             netuid=netuid,
+            mechid=mechid,
+            network=self.chain_endpoint,
             lite=lite,
             sync=False,
             subtensor=self,
-            mechid=mechid,
         )
         await metagraph.sync(block=block, lite=lite, subtensor=self)
 
@@ -4379,7 +4362,6 @@ class AsyncSubtensor(SubtensorMixin):
         """
         storage_index = get_mechid_storage_index(netuid, mechid)
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        # TODO look into seeing if we can speed this up with storage query
         w_map_encoded = await self.substrate.query_map(
             module="SubtensorModule",
             storage_function="Weights",
@@ -5647,7 +5629,7 @@ class AsyncSubtensor(SubtensorMixin):
                 and await _blocks_weight_limit()
             ):
                 logging.debug(
-                    f"Committing weights for subnet [blue]{netuid}[/blue]. "
+                    f"Committing weights {weights} for subnet [blue]{netuid}[/blue]. "
                     f"Attempt [blue]{retries + 1}[blue] of [green]{max_retries}[/green]."
                 )
                 try:

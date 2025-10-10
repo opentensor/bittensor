@@ -279,9 +279,9 @@ async def test_set_weights_uses_next_nonce_async(async_subtensor, alice_wallet):
                 mechid=mechid_,
                 uids=weight_uids,
                 weights=weight_vals,
+                period=subnet_tempo,
                 wait_for_inclusion=True,
                 wait_for_finalization=False,
-                period=subnet_tempo,
             )
             assert success_ is True, message_
 

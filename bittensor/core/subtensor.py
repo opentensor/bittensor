@@ -1693,11 +1693,11 @@ class Subtensor(SubtensorMixin):
     def get_metagraph_info(
         self,
         netuid: int,
+        mechid: int = 0,
         selected_indices: Optional[
             Union[list[SelectiveMetagraphIndex], list[int]]
         ] = None,
         block: Optional[int] = None,
-        mechid: int = 0,
     ) -> Optional[MetagraphInfo]:
         """
         Retrieves full or partial metagraph information for the specified subnet mechanism (netuid, mechid).
@@ -2868,12 +2868,12 @@ class Subtensor(SubtensorMixin):
         decentralized architecture, particularly in relation to neuron interconnectivity and consensus processes.
         """
         metagraph = Metagraph(
-            network=self.chain_endpoint,
             netuid=netuid,
+            mechid=mechid,
+            network=self.chain_endpoint,
             lite=lite,
             sync=False,
             subtensor=self,
-            mechid=mechid,
         )
         metagraph.sync(block=block, lite=lite, subtensor=self)
 
@@ -4428,7 +4428,7 @@ class Subtensor(SubtensorMixin):
                 and _blocks_weight_limit()
             ):
                 logging.debug(
-                    f"Committing weights for subnet [blue]{netuid}[/blue]. "
+                    f"Committing weights {weights} for subnet [blue]{netuid}[/blue]. "
                     f"Attempt [blue]{retries + 1}[blue] of [green]{max_retries}[/green]."
                 )
                 try:
