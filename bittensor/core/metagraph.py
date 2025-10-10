@@ -526,11 +526,11 @@ class MetagraphMixin(ABC):
     def __init__(
         self,
         netuid: int,
+        mechid: int = 0,
         network: str = settings.DEFAULT_NETWORK,
         lite: bool = True,
         sync: bool = True,
         subtensor: Optional[Union["AsyncSubtensor", "Subtensor"]] = None,
-        mechid: int = 0,
     ):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the
@@ -1032,11 +1032,11 @@ class TorchMetagraph(MetagraphMixin, BaseClass):
     def __init__(
         self,
         netuid: int,
+        mechid: int = 0,
         network: str = settings.DEFAULT_NETWORK,
         lite: bool = True,
         sync: bool = True,
         subtensor: Optional[Union["AsyncSubtensor", "Subtensor"]] = None,
-        mechid: int = 0,
     ):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the
@@ -1198,11 +1198,11 @@ class NonTorchMetagraph(MetagraphMixin):
     def __init__(
         self,
         netuid: int,
+        mechid: int = 0,
         network: str = settings.DEFAULT_NETWORK,
         lite: bool = True,
         sync: bool = True,
         subtensor: Optional[Union["AsyncSubtensor", "Subtensor"]] = None,
-        mechid: int = 0,
     ):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the
@@ -1226,7 +1226,7 @@ class NonTorchMetagraph(MetagraphMixin):
 
                 metagraph = Metagraph(netuid=123, network="finney", lite=True, sync=True)
         """
-        MetagraphMixin.__init__(self, netuid, network, lite, sync, subtensor, mechid)
+        MetagraphMixin.__init__(self, netuid, mechid, network, lite, sync, subtensor)
 
         self.netuid = netuid
         self.network, self.chain_endpoint = determine_chain_endpoint_and_network(
@@ -1351,7 +1351,7 @@ class AsyncMetagraph(NumpyOrTorch):
         sync: bool = True,
         subtensor: Optional["AsyncSubtensor"] = None,
     ):
-        super().__init__(netuid, network, lite, sync, subtensor, mechid)
+        super().__init__(netuid, mechid, network, lite, sync, subtensor)
 
     async def __aenter__(self):
         if self.should_sync:
@@ -1686,7 +1686,7 @@ class Metagraph(NumpyOrTorch):
         sync: bool = True,
         subtensor: Optional["Subtensor"] = None,
     ):
-        super().__init__(netuid, network, lite, sync, subtensor, mechid)
+        super().__init__(netuid, mechid, network, lite, sync, subtensor)
         if self.should_sync:
             self.sync()
 
