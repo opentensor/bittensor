@@ -46,7 +46,7 @@ async def test_transfer_extrinsic_success(subtensor, fake_wallet, mocker):
     result = await async_transfer.transfer_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
-        destination=fake_destination,
+        destination_ss58=fake_destination,
         amount=fake_amount,
         transfer_all=False,
         wait_for_inclusion=True,
@@ -118,7 +118,7 @@ async def test_transfer_extrinsic_call_successful_with_failed_response(
     result = await async_transfer.transfer_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
-        destination=fake_destination,
+        destination_ss58=fake_destination,
         amount=fake_amount,
         transfer_all=False,
         wait_for_inclusion=True,
@@ -185,7 +185,7 @@ async def test_transfer_extrinsic_insufficient_balance(subtensor, fake_wallet, m
     result = await async_transfer.transfer_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
-        destination=fake_destination,
+        destination_ss58=fake_destination,
         amount=fake_amount,
         transfer_all=False,
         wait_for_inclusion=True,
@@ -222,7 +222,7 @@ async def test_transfer_extrinsic_invalid_destination(subtensor, fake_wallet, mo
     result = await async_transfer.transfer_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
-        destination=fake_destination,
+        destination_ss58=fake_destination,
         amount=fake_amount,
         transfer_all=False,
         wait_for_inclusion=True,
@@ -253,7 +253,7 @@ async def test_transfer_extrinsic_unlock_key_false(subtensor, fake_wallet, mocke
     result = await async_transfer.transfer_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
-        destination=fake_destination,
+        destination_ss58=fake_destination,
         amount=fake_amount,
         transfer_all=False,
         wait_for_inclusion=True,
@@ -309,7 +309,7 @@ async def test_transfer_extrinsic_keep_alive_false_and_transfer_all_true(
     result = await async_transfer.transfer_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
-        destination=fake_destination,
+        destination_ss58=fake_destination,
         amount=fake_amount,
         transfer_all=True,
         wait_for_inclusion=True,

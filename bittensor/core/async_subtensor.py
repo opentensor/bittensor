@@ -3401,7 +3401,11 @@ class AsyncSubtensor(SubtensorMixin):
         return getattr(result, "value", None)
 
     async def get_transfer_fee(
-        self, wallet: "Wallet", dest: str, amount: Balance, keep_alive: bool = True
+        self,
+        wallet: "Wallet",
+        destination_ss58: str,
+        amount: Balance,
+        keep_alive: bool = True,
     ) -> Balance:
         """
         Calculates the transaction fee for transferring tokens from a wallet to a specified destination address. This
@@ -3410,7 +3414,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             wallet: The wallet from which the transfer is initiated.
-            dest: The ``SS58`` address of the destination account.
+            destination_ss58: The ``SS58`` address of the destination account.
             amount: The amount of tokens to be transferred, specified as a Balance object, or in Tao (float) or Rao
                 (int) units.
             keep_alive: Whether the transfer fee should be calculated based on keeping the wallet alive (existential
@@ -3426,7 +3430,9 @@ class AsyncSubtensor(SubtensorMixin):
         """
         check_balance_amount(amount)
         call_params: dict[str, Union[int, str, bool]]
-        call_function, call_params = get_transfer_fn_params(amount, dest, keep_alive)
+        call_function, call_params = get_transfer_fn_params(
+            amount, destination_ss58, keep_alive
+        )
 
         call = await self.compose_call(
             call_module="Balances",
@@ -5986,7 +5992,7 @@ class AsyncSubtensor(SubtensorMixin):
     async def transfer(
         self,
         wallet: "Wallet",
-        destination: str,
+        destination_ss58: str,
         amount: Optional[Balance],
         transfer_all: bool = False,
         keep_alive: bool = True,
@@ -6000,7 +6006,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             wallet: Source wallet for the transfer.
-            destination: Destination address for the transfer.
+            destination_ss58: Destination address for the transfer.
             amount: Number of tokens to transfer. `None` is transferring all.
             transfer_all: Flag to transfer all tokens.
             keep_alive: Flag to keep the connection alive.
@@ -6018,7 +6024,7 @@ class AsyncSubtensor(SubtensorMixin):
         return await transfer_extrinsic(
             subtensor=self,
             wallet=wallet,
-            destination=destination,
+            destination_ss58=destination_ss58,
             amount=amount,
             transfer_all=transfer_all,
             keep_alive=keep_alive,
