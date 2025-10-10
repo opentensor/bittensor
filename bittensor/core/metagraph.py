@@ -671,7 +671,6 @@ class MetagraphMixin(ABC):
 
                 self.stake = self._create_tensor(neuron_stakes, dtype=np.float32)
         """
-        # TODO: Check and test the creation of tensor
         return (
             torch.nn.Parameter(torch.tensor(data, dtype=dtype), requires_grad=False)
             if use_torch()

@@ -1,22 +1,33 @@
 import os.path
-import re
 import shutil
 import time
-
+import numpy as np
 import pytest
 
 from bittensor.core.chain_data import SelectiveMetagraphIndex
 from bittensor.core.chain_data.metagraph_info import MetagraphInfo
+from bittensor.extras.dev_framework import (
+    SUDO_SET_WEIGHTS_SET_RATE_LIMIT,
+    SUDO_SET_TEMPO,
+)
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
+from bittensor.utils.registration.pow import LazyLoadedTorch
+from bittensor.utils.weight_utils import convert_and_normalize_weights_and_uids
 from tests.e2e_tests.utils import (
+    AdminUtils,
+    NETUID,
     TestSubnet,
     ACTIVATE_SUBNET,
     REGISTER_SUBNET,
     REGISTER_NEURON,
+    SUDO_SET_ADMIN_FREEZE_WINDOW,
 )
 
 NULL_KEY = tuple(bytearray(32))
+
+
+torch = LazyLoadedTorch()
 
 
 def neuron_to_dict(neuron):
@@ -182,8 +193,6 @@ def test_metagraph(subtensor, alice_wallet, bob_wallet, dave_wallet):
         "Neurons don't match after save and load"
     )
 
-    logging.console.info("✅ Passed [blue]test_metagraph[/blue]")
-
 
 @pytest.mark.asyncio
 async def test_metagraph_async(async_subtensor, alice_wallet, bob_wallet, dave_wallet):
@@ -338,7 +347,252 @@ async def test_metagraph_async(async_subtensor, alice_wallet, bob_wallet, dave_w
         "Neurons don't match after save and load"
     )
 
-    logging.console.info("✅ Passed [blue]test_metagraph_async[/blue]")
+
+def test_metagraph_weights_bonds(
+    subtensor, alice_wallet, bob_wallet, charlie_wallet, dave_wallet
+):
+    """
+    Tests that weights and bonds matrices are computed correctly when the metagraph is initialized with lite=False.
+
+    Test:
+    - Disable the admin freeze window (set to 0).
+    - Register a new subnet owned by Bob.
+    - Update subnet tempo to a custom value.
+    - Activate the subnet.
+    - Register Charlie and Dave as new neurons in the subnet.
+    - Disable weights rate limit (set_weights_rate_limit = 0).
+    - Set weights for Charlie and Dave (20% / 80%) using Bob.
+    - Wait for commit-reveal completion and ensure version is 4.
+    - Initialize the metagraph with lite=False.
+    - Verify:
+        - Shape and consistency of weights and bonds tensors.
+        - Validator (Alice) has non-zero outgoing weights.
+        - Miners have zero rows (no outgoing weights).
+        - All bonds are non-negative.
+        - Validator weight rows are normalized to 1.
+    """
+    logging.set_debug()
+    TEMPO_TO_SET, BLOCK_TIME = (
+        (100, 0.25) if subtensor.chain.is_fast_blocks() else (20, 12)
+    )
+
+    bob_sn = TestSubnet(subtensor)
+    bob_sn.execute_steps(
+        [
+            SUDO_SET_ADMIN_FREEZE_WINDOW(alice_wallet, AdminUtils, True, 0),
+            REGISTER_SUBNET(bob_wallet),
+            SUDO_SET_TEMPO(alice_wallet, AdminUtils, True, NETUID, TEMPO_TO_SET),
+            ACTIVATE_SUBNET(bob_wallet),
+            REGISTER_NEURON(charlie_wallet),
+            REGISTER_NEURON(dave_wallet),
+            SUDO_SET_WEIGHTS_SET_RATE_LIMIT(alice_wallet, AdminUtils, True, NETUID, 0),
+        ]
+    )
+
+    # wait before CRv4 works in new subnets
+    bob_sn.wait_next_epoch()
+    bob_sn.wait_next_epoch()
+
+    cr_version = subtensor.substrate.query(
+        module="SubtensorModule", storage_function="CommitRevealWeightsVersion"
+    )
+    assert cr_version == 4, "Commit reveal weights version is not 4"
+    assert subtensor.subnets.weights_rate_limit(netuid=bob_sn.netuid) == 0
+    tempo = subtensor.subnets.get_subnet_hyperparameters(netuid=bob_sn.netuid).tempo
+    assert tempo == TEMPO_TO_SET, "SN tempos has not been changed."
+
+    metagraph = subtensor.metagraphs.metagraph(netuid=bob_sn.netuid, lite=False)
+
+    # Check that the metagraph is instantiated correctly.
+    assert metagraph.weights.shape == (metagraph.n.item(), metagraph.n.item())
+    assert metagraph.bonds.shape == (metagraph.n.item(), metagraph.n.item())
+
+    uids = [1, 2]
+    weights = [20, 80]
+
+    response = subtensor.extrinsics.set_weights(
+        wallet=bob_wallet,
+        netuid=bob_sn.netuid,
+        uids=uids,
+        weights=weights,
+        block_time=BLOCK_TIME,
+    )
+    logging.console.info(f"Response: {response}")
+
+    assert response.success, response.message
+
+    expected_reveal_round = response.data.get("reveal_round")
+    last_drand_round = subtensor.chain.last_drand_round()
+
+    while expected_reveal_round > last_drand_round + 24:  # drand offset for fast blocks
+        last_drand_round = subtensor.chain.last_drand_round()
+        subtensor.wait_for_block()
+        logging.console.debug(
+            f"expected_reveal_round: {expected_reveal_round}, last_drand_round: {last_drand_round}"
+        )
+
+    counter = TEMPO_TO_SET
+    while True:
+        weights = subtensor.subnets.weights(bob_sn.netuid)
+        counter -= 1
+
+        if weights or counter == 0:
+            break
+
+        subtensor.wait_for_block()
+        logging.console.debug(f"Weights: {weights}, block: {subtensor.block}")
+
+    metagraph.sync()
+
+    # Ensure the validator has at least one non-zero weight
+    assert metagraph.weights[0].sum().item() > 0.0, "Validator has no outgoing weights."
+
+    # Ensure miner rows are all zeros (miners don't set weights)
+    if metagraph.n.item() > 1:
+        assert np.allclose(
+            metagraph.weights[1],
+            np.zeros_like(metagraph.weights[1]),
+        ), "Miner row should be all zeros"
+
+    # Ensure bond matrix contains no negative values
+    assert (metagraph.bonds >= 0).all(), "Bond matrix contains negative values"
+
+    # Ensure validator weight rows are normalized to 1
+    row_sums = metagraph.weights.sum(axis=1)
+    validator_mask = metagraph.validator_permit
+    assert np.allclose(
+        row_sums[validator_mask],
+        np.ones_like(row_sums[validator_mask]),
+        atol=1e-6,
+    ), "Validator weight rows are not normalized to 1"
+
+
+@pytest.mark.asyncio
+async def test_metagraph_weights_bonds_async(
+    async_subtensor, alice_wallet, bob_wallet, charlie_wallet, dave_wallet
+):
+    """
+    Tests that weights and bonds matrices are computed correctly when the metagraph is initialized with lite=False.
+
+    Test:
+    - Disable the admin freeze window (set to 0).
+    - Register a new subnet owned by Bob.
+    - Update subnet tempo to a custom value.
+    - Activate the subnet.
+    - Register Charlie and Dave as new neurons in the subnet.
+    - Disable weights rate limit (set_weights_rate_limit = 0).
+    - Set weights for Charlie and Dave (20% / 80%) using Bob.
+    - Wait for commit-reveal completion and ensure version is 4.
+    - Initialize the metagraph with lite=False.
+    - Verify:
+        - Shape and consistency of weights and bonds tensors.
+        - Validator (Alice) has non-zero outgoing weights.
+        - Miners have zero rows (no outgoing weights).
+        - All bonds are non-negative.
+        - Validator weight rows are normalized to 1.
+    """
+    logging.set_debug()
+    TEMPO_TO_SET, BLOCK_TIME = (
+        (100, 0.25) if await async_subtensor.chain.is_fast_blocks() else (20, 12)
+    )
+
+    bob_sn = TestSubnet(async_subtensor)
+    await bob_sn.async_execute_steps(
+        [
+            SUDO_SET_ADMIN_FREEZE_WINDOW(alice_wallet, AdminUtils, True, 0),
+            REGISTER_SUBNET(bob_wallet),
+            SUDO_SET_TEMPO(alice_wallet, AdminUtils, True, NETUID, TEMPO_TO_SET),
+            ACTIVATE_SUBNET(bob_wallet),
+            REGISTER_NEURON(charlie_wallet),
+            REGISTER_NEURON(dave_wallet),
+            SUDO_SET_WEIGHTS_SET_RATE_LIMIT(alice_wallet, AdminUtils, True, NETUID, 0),
+        ]
+    )
+
+    # wait before CRv4 works in new subnets
+    await bob_sn.async_wait_next_epoch()
+    await bob_sn.async_wait_next_epoch()
+
+    cr_version = await async_subtensor.substrate.query(
+        module="SubtensorModule", storage_function="CommitRevealWeightsVersion"
+    )
+    assert cr_version == 4, "Commit reveal weights version is not 4"
+    assert await async_subtensor.subnets.weights_rate_limit(netuid=bob_sn.netuid) == 0
+    tempo = (
+        await async_subtensor.subnets.get_subnet_hyperparameters(netuid=bob_sn.netuid)
+    ).tempo
+    assert tempo == TEMPO_TO_SET, "SN tempos has not been changed."
+
+    metagraph = await async_subtensor.metagraphs.metagraph(
+        netuid=bob_sn.netuid, lite=False
+    )
+
+    # Check that the metagraph is instantiated correctly.
+    assert metagraph.weights.shape == (metagraph.n.item(), metagraph.n.item())
+    assert metagraph.bonds.shape == (metagraph.n.item(), metagraph.n.item())
+
+    uids = [1, 2]
+    weights = [20, 80]
+
+    response = await async_subtensor.extrinsics.set_weights(
+        wallet=bob_wallet,
+        netuid=bob_sn.netuid,
+        uids=uids,
+        weights=weights,
+        block_time=BLOCK_TIME,
+        period=TEMPO_TO_SET,
+        wait_for_finalization=False,
+    )
+    logging.console.info(f"Response: {response}")
+
+    assert response.success, response.message
+
+    expected_reveal_round = response.data.get("reveal_round")
+    last_drand_round = await async_subtensor.chain.last_drand_round()
+
+    while expected_reveal_round > last_drand_round + 24:  # drand offset for fast blocks
+        last_drand_round = await async_subtensor.chain.last_drand_round()
+        await async_subtensor.wait_for_block()
+        logging.console.debug(
+            f"expected_reveal_round: {expected_reveal_round}, last_drand_round: {last_drand_round}"
+        )
+
+    counter = TEMPO_TO_SET
+    while True:
+        weights = await async_subtensor.subnets.weights(bob_sn.netuid)
+        counter -= 1
+
+        if weights or counter == 0:
+            break
+
+        await async_subtensor.wait_for_block()
+        logging.console.debug(
+            f"Weights: {weights}, block: {await async_subtensor.block}"
+        )
+
+    await metagraph.sync()
+
+    # Ensure the validator has at least one non-zero weight
+    assert metagraph.weights[0].sum().item() > 0.0, "Validator has no outgoing weights."
+
+    # Ensure miner rows are all zeros (miners don't set weights)
+    if metagraph.n.item() > 1:
+        assert np.allclose(
+            metagraph.weights[1],
+            np.zeros_like(metagraph.weights[1]),
+        ), "Miner row should be all zeros"
+
+    # Ensure bond matrix contains no negative values
+    assert (metagraph.bonds >= 0).all(), "Bond matrix contains negative values"
+
+    # Ensure validator weight rows are normalized to 1
+    row_sums = metagraph.weights.sum(axis=1)
+    validator_mask = metagraph.validator_permit
+    assert np.allclose(
+        row_sums[validator_mask],
+        np.ones_like(row_sums[validator_mask]),
+        atol=1e-6,
+    ), "Validator weight rows are not normalized to 1"
 
 
 def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
@@ -585,8 +839,6 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
     metagraph_info = subtensor.metagraphs.get_metagraph_info(netuid=bob_sn.netuid + 1)
 
     assert metagraph_info is None
-
-    logging.console.info("✅ Passed [blue]test_metagraph_info[/blue]")
 
 
 @pytest.mark.asyncio
@@ -843,8 +1095,6 @@ async def test_metagraph_info_async(async_subtensor, alice_wallet, bob_wallet):
 
     assert metagraph_info is None
 
-    logging.console.info("✅ Passed [blue]test_metagraph_info_async[/blue]")
-
 
 def test_metagraph_info_with_indexes(subtensor, alice_wallet, bob_wallet):
     """
@@ -1070,8 +1320,6 @@ def test_metagraph_info_with_indexes(subtensor, alice_wallet, bob_wallet):
         validators=None,
         commitments=None,
     )
-
-    logging.console.info("✅ Passed [blue]test_metagraph_info_with_indexes[/blue]")
 
 
 @pytest.mark.asyncio
@@ -1302,8 +1550,4 @@ async def test_metagraph_info_with_indexes_async(
         alpha_dividends_per_hotkey=None,
         validators=None,
         commitments=None,
-    )
-
-    logging.console.info(
-        "✅ Passed [blue]test_metagraph_info_with_indexes_async[/blue]"
     )
