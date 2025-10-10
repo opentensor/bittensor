@@ -5625,7 +5625,7 @@ class AsyncSubtensor(SubtensorMixin):
                 and await _blocks_weight_limit()
             ):
                 logging.debug(
-                    f"Committing weights for subnet [blue]{netuid}[/blue]. "
+                    f"Committing weights {weights} for subnet [blue]{netuid}[/blue]. "
                     f"Attempt [blue]{retries + 1}[blue] of [green]{max_retries}[/green]."
                 )
                 try:
