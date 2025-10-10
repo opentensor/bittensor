@@ -692,7 +692,7 @@ async def test_get_transfer_fee(subtensor, fake_wallet, mocker, balance):
 
     # Call
     result = await subtensor.get_transfer_fee(
-        wallet=fake_wallet, dest=fake_dest, amount=fake_value
+        wallet=fake_wallet, destination_ss58=fake_dest, amount=fake_value
     )
 
     # Assertions
@@ -726,7 +726,7 @@ async def test_get_transfer_with_exception(subtensor, mocker):
     # Call + Assertions
     with pytest.raises(BalanceTypeError):
         await subtensor.get_transfer_fee(
-            wallet=mocker.Mock(), dest=mocker.Mock(), amount=fake_value
+            wallet=mocker.Mock(), destination_ss58=mocker.Mock(), amount=fake_value
         )
 
 
@@ -2636,7 +2636,7 @@ async def test_transfer_success(subtensor, fake_wallet, mocker):
     # Call
     result = await subtensor.transfer(
         wallet=fake_wallet,
-        destination=fake_destination,
+        destination_ss58=fake_destination,
         amount=fake_amount,
         transfer_all=fake_transfer_all,
     )
@@ -2645,7 +2645,7 @@ async def test_transfer_success(subtensor, fake_wallet, mocker):
     mocked_transfer_extrinsic.assert_awaited_once_with(
         subtensor=subtensor,
         wallet=fake_wallet,
-        destination=fake_destination,
+        destination_ss58=fake_destination,
         amount=fake_amount,
         transfer_all=fake_transfer_all,
         wait_for_inclusion=True,
