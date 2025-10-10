@@ -148,7 +148,7 @@ class AsyncSubtensor(SubtensorMixin):
         fallback_endpoints: Optional[list[str]] = None,
         retry_forever: bool = False,
         archive_endpoints: Optional[list[str]] = None,
-        websocket_shutdown_timer: float = 5.0,
+        websocket_shutdown_timer: Optional[float] = 5.0,
         mock: bool = False,
     ):
         """Initializes an AsyncSubtensor instance for blockchain interaction.
@@ -164,7 +164,11 @@ class AsyncSubtensor(SubtensorMixin):
             archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in
                 cases where you are requesting a block that is too old for your current (presumably lite) node.
             websocket_shutdown_timer: Amount of time, in seconds, to wait after the last response from the chain to
-                close the connection.
+                close the connection. Passing `None` will disable to automatic shutdown process
+                entirely.
+
+        Returns:
+            None
 
         Raises:
             ConnectionError: If unable to connect to the specified network.
@@ -2874,6 +2878,7 @@ class AsyncSubtensor(SubtensorMixin):
             destination_netuid=netuid,
             amount=amount,
             block_hash=block_hash,
+            reuse_block_hash=reuse_block,
         )
         return sim_swap_result.tao_fee
 
