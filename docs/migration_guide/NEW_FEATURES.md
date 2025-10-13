@@ -17,10 +17,10 @@
    - `bittensor.extras.dev_framework` (read `bittensor/extras/dev_framework/README.md`)
 
 ### New Functions
-- `Async/ubtensor.compose_call`
-- `Async/ubtensor.validate_extrinsic_params`
+- `Async/Subtensor.compose_call`
+- `Async/Subtensor.validate_extrinsic_params`
 - `Async/Subtensor.get_extrinsic_fee`
-- `Async/ubtensor.sim_swap`
+- `Async/Subtensor.sim_swap`
 - `bittensor.utils.hex_to_ss58`
 - `bittensor.utils.ss58_to_hex`
    NOTE: Please read detailed documentation for these functions in their docstrings.
