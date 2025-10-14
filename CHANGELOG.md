@@ -1,5 +1,14 @@
 # Changelog
 
+## 10.0.0rc1 /2025-10-14
+
+## What's Changed
+* This release marks the first release candidate for Bittensor SDK v10.0.0, representing a major breaking revision of the Python SDK.
+* It includes a full refactor of the extrinsic layer, API standardization across Subtensor, and the introduction of multiple-mechanism (sub-subnet) support.
+* For a complete list of breaking changes and migration details, see the **MIGRATION_GUIDE.md** file in the repository.
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.12.0...SDKv10
+
 ## 9.12.0 /2025-10-08
 
 ## What's Changed
