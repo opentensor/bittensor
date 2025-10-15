@@ -15,6 +15,8 @@ from bittensor_wallet.utils import SS58_FORMAT
 from bittensor.core.async_subtensor import ProposalVoteData
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import (
+    CrowdloanInfo,
+    CrowdloanConstants,
     DelegatedInfo,
     DelegateInfo,
     DynamicInfo,
@@ -195,6 +197,32 @@ class Subtensor(SubtensorMixin):
         self.close()
 
     # Helpers ==========================================================================================================
+
+    def _decode_crowdloan_entry(
+        self,
+        crowdloan_id: int,
+        data: dict,
+        block_hash: Optional[str] = None,
+    ) -> "CrowdloanInfo":
+        """
+        Internal helper to parse and decode a single Crowdloan record.
+
+        Automatically decodes the embedded `call` field if present (Inline SCALE format).
+        """
+        call_data = data.get("call")
+        if call_data and "Inline" in call_data:
+            try:
+                inline_bytes = bytes(call_data["Inline"][0][0])
+                decoded_call = self.substrate.create_scale_object(
+                    type_string="Call",
+                    data=scalecodec.ScaleBytes(inline_bytes),
+                    block_hash=block_hash,
+                ).decode()
+                data["call"] = decoded_call
+            except Exception as e:
+                data["call"] = {"decode_error": str(e), "raw": call_data}
+
+        return CrowdloanInfo.from_dict(crowdloan_id, data)
 
     @lru_cache(maxsize=128)
     def _get_block_hash(self, block_id: int):
@@ -1232,6 +1260,168 @@ class Subtensor(SubtensorMixin):
             block_hash=self.determine_block_hash(block),
         )
         return commit_data
+
+    def get_crowdloan_constants(
+        self,
+        constants: Optional[list[str]] = None,
+        block: Optional[int] = None,
+    ) -> "CrowdloanConstants":
+        """
+        Fetches runtime configuration constants from the `Crowdloan` pallet.
+
+        If a list of constant names is provided, only those constants will be queried.
+        Otherwise, all known constants defined in `CrowdloanConstants.field_names()` are fetched.
+
+        Parameters:
+            constants: A list of specific constant names to fetch from the pallet. If omitted, all constants from
+                `CrowdloanConstants` are queried.
+            block: The blockchain block number for the query.
+
+        Returns:
+            CrowdloanConstants:
+                A structured dataclass containing the retrieved values. Missing constants are returned as `None`.
+
+        Example:
+            print(subtensor.get_crowdloan_constants())
+            CrowdloanConstants(
+                AbsoluteMinimumContribution=τ1.000000000,
+                MaxContributors=1000,
+                MaximumBlockDuration=86400,
+                MinimumDeposit=τ10.000000000,
+                MinimumBlockDuration=600,
+                RefundContributorsLimit=50
+            )
+
+            crowdloan_consts = subtensor.get_crowdloan_constants(
+                constants=["MaxContributors", "RefundContributorsLimit"]
+            )
+            print(crowdloan_consts)
+            CrowdloanConstants(MaxContributors=1000, RefundContributorsLimit=50)
+
+            print(crowdloan_consts.MaxContributors)
+            1000
+        """
+        result = {}
+        const_names = constants or CrowdloanConstants.constants_names()
+
+        for const_name in const_names:
+            value = self.query_constant(
+                module_name="Crowdloan",
+                constant_name=const_name,
+                block=block,
+            )
+            result[const_name] = value.value if hasattr(value, "value") else value
+
+        return CrowdloanConstants.from_dict(result)
+
+    def get_crowdloan_contributions(
+        self,
+        crowdloan_id: int,
+        block: Optional[int] = None,
+    ) -> dict[str, "Balance"]:
+        """
+        Returns a mapping of contributor SS58 addresses to their contribution amounts for a specific crowdloan.
+
+        Parameters:
+            crowdloan_id: The unique identifier of the crowdloan.
+            block: The blockchain block number for the query.
+
+        Returns:
+            Dict[address -> Balance].
+        """
+        block_hash = self.determine_block_hash(block)
+        query = self.substrate.query_map(
+            module="Crowdloan",
+            storage_function="Contributions",
+            params=[crowdloan_id],
+            block_hash=block_hash,
+        )
+        result = {}
+        for record in query.records:
+            if record[1].value:
+                result[decode_account_id(record[0])] = Balance.from_rao(record[1].value)
+        return result
+
+    def get_crowdloan_by_id(
+        self, crowdloan_id: int, block: Optional[int] = None
+    ) -> Optional["CrowdloanInfo"]:
+        """
+        Returns detailed information about a specific crowdloan by ID.
+
+        Parameters:
+            crowdloan_id: Unique identifier of the crowdloan.
+            block: The blockchain block number for the query.
+
+        Returns:
+            CrowdloanInfo if found, else None.
+        """
+        block_hash = self.determine_block_hash(block)
+        query = self.substrate.query(
+            module="Crowdloan",
+            storage_function="Crowdloans",
+            params=[crowdloan_id],
+            block_hash=block_hash,
+        )
+        if not query:
+            return None
+        return self._decode_crowdloan_entry(
+            crowdloan_id=crowdloan_id, data=query.value, block_hash=block_hash
+        )
+
+    def get_crowdloan_next_id(
+        self,
+        block: Optional[int] = None,
+    ) -> int:
+        """
+        Returns the next available crowdloan ID (auto-increment value).
+
+        Parameters:
+            block: The blockchain block number for the query.
+
+        Returns:
+            The next crowdloan ID to be used when creating a new campaign.
+        """
+        block_hash = self.determine_block_hash(block)
+        result = self.substrate.query(
+            module="Crowdloan",
+            storage_function="NextCrowdloanId",
+            block_hash=block_hash,
+        )
+        return int(result.value or 0)
+
+    def get_crowdloans(
+        self,
+        block: Optional[int] = None,
+    ) -> list["CrowdloanInfo"]:
+        """
+        Returns a list of all existing crowdloans with their metadata.
+
+        Parameters:
+            block: The blockchain block number for the query.
+
+        Returns:
+            List of CrowdloanInfo which contains (id, creator, cap, raised, end, finalized, etc.)
+        """
+        block_hash = self.determine_block_hash(block)
+        query = self.substrate.query_map(
+            module="Crowdloan",
+            storage_function="Crowdloans",
+            block_hash=block_hash,
+        )
+
+        crowdloans = []
+
+        for c_id, value_obj in getattr(query, "records", []):
+            data = value_obj.value
+            if not data:
+                continue
+            crowdloans.append(
+                self._decode_crowdloan_entry(
+                    crowdloan_id=c_id, data=data, block_hash=block_hash
+                )
+            )
+
+        return crowdloans
 
     def get_delegate_by_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
