@@ -1,6 +1,6 @@
 import pytest
 
-from bittensor import warnings, __getattr__, logging, trace, debug, utils
+from bittensor import logging, trace, debug, utils
 from bittensor_wallet.utils import SS58_FORMAT
 
 
