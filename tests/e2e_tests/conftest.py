@@ -322,6 +322,12 @@ def eve_wallet():
     return wallet
 
 
+@pytest.fixture
+def fred_wallet():
+    keypair, wallet = setup_wallet("//Fred")
+    return wallet
+
+
 @pytest.fixture(autouse=True)
 def log_test_start_and_end(request):
     test_name = request.node.nodeid
