@@ -20,14 +20,15 @@ def __getattr__(name):
 # the ones used by crowdloan using Option<scale_info::227>. There is a PR up for this: https://github.com/JAMdotTech/py-scale-codec/pull/134
 # and this patch will be removed when this is applied/released.
 
-def patched_process(self):
 
+def patched_process(self):
     option_byte = self.get_next_bytes(1)
 
-    if self.sub_type and option_byte != b'\x00':
+    if self.sub_type and option_byte != b"\x00":
         self.value_object = self.process_type(self.sub_type, metadata=self.metadata)
         return self.value_object.value
 
     return None
+
 
 scalecodec.types.Option.process = patched_process
