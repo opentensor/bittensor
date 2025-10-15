@@ -138,9 +138,9 @@ async def serve_axon_extrinsic(
 
     Parameters:
         subtensor: AsyncSubtensor instance object.
-        netuid (int): The ``netuid`` being served on.
-        axon (bittensor.core.axon.Axon): Axon to serve.
-        certificate (bittensor.utils.Certificate): Certificate to use for TLS. If ``None``, no TLS will be used.
+        netuid: The ``netuid`` being served on.
+        axon: Axon to serve.
+        certificate: Certificate to use for TLS. If ``None``, no TLS will be used.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.

@@ -22,9 +22,9 @@ def start_call_extrinsic(
     new subnet's emission mechanism).
 
     Parameters:
-        subtensor (Subtensor): The Subtensor client instance used for blockchain interaction.
-        wallet (Wallet): The wallet used to sign the extrinsic (must be unlocked).
-        netuid (int): The UID of the target subnet for which the call is being initiated.
+        subtensor: The Subtensor client instance used for blockchain interaction.
+        wallet: The wallet used to sign the extrinsic (must be unlocked).
+        netuid: The UID of the target subnet for which the call is being initiated.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
