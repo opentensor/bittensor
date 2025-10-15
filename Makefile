@@ -27,7 +27,7 @@ reinstall: clean clean-venv install
 reinstall-dev: clean clean-venv install-dev
 
 ruff:
-	@python -m ruff format bittensor
+	@python -m ruff format .
 
 check: ruff
 	@mypy --ignore-missing-imports bittensor/ --python-version=3.10
