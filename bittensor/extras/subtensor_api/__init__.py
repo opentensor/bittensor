@@ -4,6 +4,7 @@ from bittensor.core.async_subtensor import AsyncSubtensor as _AsyncSubtensor
 from bittensor.core.subtensor import Subtensor as _Subtensor
 from .chain import Chain as _Chain
 from .commitments import Commitments as _Commitments
+from .crowdloans import Crowdloans as _Crowdloans
 from .delegates import Delegates as _Delegates
 from .extrinsics import Extrinsics as _Extrinsics
 from .metagraphs import Metagraphs as _Metagraphs
@@ -208,6 +209,11 @@ class SubtensorApi:
     def commitments(self):
         """Property to access commitments methods."""
         return _Commitments(self.inner_subtensor)
+
+    @property
+    def crowdloans(self):
+        """Property to access crowdloans methods."""
+        return _Crowdloans(self.inner_subtensor)
 
     @property
     def delegates(self):

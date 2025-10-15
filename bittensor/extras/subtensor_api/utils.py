@@ -19,6 +19,15 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.chain_endpoint = subtensor.inner_subtensor.chain_endpoint
     subtensor.commit_reveal_enabled = subtensor.inner_subtensor.commit_reveal_enabled
     subtensor.commit_weights = subtensor.inner_subtensor.commit_weights
+    subtensor.get_crowdloan_constants = (
+        subtensor.inner_subtensor.get_crowdloan_constants
+    )
+    subtensor.get_crowdloan_contributions = (
+        subtensor.inner_subtensor.get_crowdloan_contributions
+    )
+    subtensor.get_crowdloan_by_id = subtensor.inner_subtensor.get_crowdloan_by_id
+    subtensor.get_crowdloan_next_id = subtensor.inner_subtensor.get_crowdloan_next_id
+    subtensor.get_crowdloans = subtensor.inner_subtensor.get_crowdloans
     subtensor.determine_block_hash = subtensor.inner_subtensor.determine_block_hash
     subtensor.difficulty = subtensor.inner_subtensor.difficulty
     subtensor.does_hotkey_exist = subtensor.inner_subtensor.does_hotkey_exist

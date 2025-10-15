@@ -20,6 +20,9 @@ def test_properties_methods_comparable(other_class: "Subtensor" = None):
 
     subtensor_api_methods = [m for m in dir(subtensor_api) if not m.startswith("_")]
     chain_methods = [m for m in dir(subtensor_api.chain) if not m.startswith("_")]
+    crowdloans_methods = [
+        m for m in dir(subtensor_api.crowdloans) if not m.startswith("_")
+    ]
     commitments_methods = [
         m for m in dir(subtensor_api.commitments) if not m.startswith("_")
     ]
@@ -42,6 +45,7 @@ def test_properties_methods_comparable(other_class: "Subtensor" = None):
         subtensor_api_methods
         + chain_methods
         + commitments_methods
+        + crowdloans_methods
         + delegates_methods
         + extrinsics_methods
         + metagraphs_methods

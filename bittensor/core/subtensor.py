@@ -1305,12 +1305,14 @@ class Subtensor(SubtensorMixin):
         const_names = constants or CrowdloanConstants.constants_names()
 
         for const_name in const_names:
-            value = self.query_constant(
+            query = self.query_constant(
                 module_name="Crowdloan",
                 constant_name=const_name,
                 block=block,
             )
-            result[const_name] = value.value if hasattr(value, "value") else value
+
+            if query is not None:
+                result[const_name] = query.value
 
         return CrowdloanConstants.from_dict(result)
 
