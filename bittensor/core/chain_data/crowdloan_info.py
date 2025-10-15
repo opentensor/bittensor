@@ -84,6 +84,9 @@ class CrowdloanConstants:
         MinimumDeposit: The minimum deposit required from the creator to open a new crowdloan.
         MinimumBlockDuration: The minimum allowed duration (in blocks) for a crowdloan campaign.
         RefundContributorsLimit: The maximum number of contributors that can be refunded in single on-chain refund call.
+
+    Note:
+        All Balance amounts are in RAO.
     """
 
     AbsoluteMinimumContribution: Optional["Balance"]
