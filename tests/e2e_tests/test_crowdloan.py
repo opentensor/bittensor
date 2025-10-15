@@ -99,8 +99,6 @@ def test_crowdloan_with_target(
         cap=crowdloan_cap,
         end=current_block + 240,
         target_address=fred_wallet.hotkey.ss58_address,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     assert "DepositTooLow" in response.message
     assert response.error["name"] == "DepositTooLow"
@@ -113,8 +111,6 @@ def test_crowdloan_with_target(
         cap=Balance.from_tao(10),
         end=current_block + 240,
         target_address=fred_wallet.hotkey.ss58_address,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     assert "CapTooLow" in response.message
     assert response.error["name"] == "CapTooLow"
@@ -127,8 +123,6 @@ def test_crowdloan_with_target(
         cap=crowdloan_cap,
         end=current_block,
         target_address=fred_wallet.hotkey.ss58_address,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     assert "CannotEndInPast" in response.message
     assert response.error["name"] == "CannotEndInPast"
@@ -141,8 +135,6 @@ def test_crowdloan_with_target(
         cap=crowdloan_cap,
         end=subtensor.block + 10,
         target_address=fred_wallet.hotkey.ss58_address,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     assert "BlockDurationTooShort" in response.message
     assert response.error["name"] == "BlockDurationTooShort"
@@ -155,8 +147,6 @@ def test_crowdloan_with_target(
         cap=crowdloan_cap,
         end=subtensor.block + crowdloan_constants.MaximumBlockDuration + 100,
         target_address=fred_wallet.hotkey.ss58_address,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     assert "BlockDurationTooLong" in response.message
     assert response.error["name"] == "BlockDurationTooLong"
@@ -173,8 +163,6 @@ def test_crowdloan_with_target(
         cap=crowdloan_cap,
         end=end_block,
         target_address=fred_wallet.hotkey.ss58_address,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     assert response.success, response.message
 
@@ -334,8 +322,6 @@ def test_crowdloan_with_target(
         cap=crowdloan_cap,
         end=subtensor.block + 240,
         target_address=dave_wallet.hotkey.ss58_address,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     assert response.success, response.message
 
@@ -544,8 +530,6 @@ async def test_crowdloan_with_target_async(
         cap=crowdloan_cap,
         end=current_block + 240,
         target_address=fred_wallet.hotkey.ss58_address,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     assert "DepositTooLow" in response.message
     assert response.error["name"] == "DepositTooLow"
@@ -558,8 +542,6 @@ async def test_crowdloan_with_target_async(
         cap=Balance.from_tao(10),
         end=current_block + 240,
         target_address=fred_wallet.hotkey.ss58_address,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     assert "CapTooLow" in response.message
     assert response.error["name"] == "CapTooLow"
@@ -572,8 +554,6 @@ async def test_crowdloan_with_target_async(
         cap=crowdloan_cap,
         end=current_block,
         target_address=fred_wallet.hotkey.ss58_address,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     assert "CannotEndInPast" in response.message
     assert response.error["name"] == "CannotEndInPast"
@@ -586,8 +566,6 @@ async def test_crowdloan_with_target_async(
         cap=crowdloan_cap,
         end=await async_subtensor.block + 49,
         target_address=fred_wallet.hotkey.ss58_address,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     assert "BlockDurationTooShort" in response.message
     assert response.error["name"] == "BlockDurationTooShort"
@@ -602,8 +580,6 @@ async def test_crowdloan_with_target_async(
         + crowdloan_constants.MaximumBlockDuration
         + 100,
         target_address=fred_wallet.hotkey.ss58_address,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     assert "BlockDurationTooLong" in response.message
     assert response.error["name"] == "BlockDurationTooLong"
@@ -622,8 +598,6 @@ async def test_crowdloan_with_target_async(
         cap=crowdloan_cap,
         end=end_block,
         target_address=fred_wallet.hotkey.ss58_address,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     assert response.success, response.message
 
@@ -783,8 +757,6 @@ async def test_crowdloan_with_target_async(
         cap=crowdloan_cap,
         end=await async_subtensor.block + 240,
         target_address=dave_wallet.hotkey.ss58_address,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
     )
     assert response.success, response.message
 
@@ -927,9 +899,6 @@ def test_crowdloan_with_call(
         cap=crowdloan_cap,
         end=subtensor.block + 2400,
         call=crowdloan_call,
-        raise_error=True,
-        wait_for_inclusion=False,
-        wait_for_finalization=False,
     )
 
     # keep it until `scalecodec` has a fix for `wait_for_inclusion=True` and `wait_for_finalization=True`
@@ -1040,9 +1009,6 @@ async def test_crowdloan_with_call_async(
         cap=crowdloan_cap,
         end=end_block,
         call=crowdloan_call,
-        raise_error=True,
-        wait_for_inclusion=False,
-        wait_for_finalization=False,
     )
 
     # keep it until `scalecodec` has a fix for `wait_for_inclusion=True` and `wait_for_finalization=True`

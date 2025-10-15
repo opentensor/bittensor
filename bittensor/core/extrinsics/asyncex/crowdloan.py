@@ -77,8 +77,8 @@ async def create_crowdloan_extrinsic(
     target_address: Optional[str] = None,
     period: Optional[int] = None,
     raise_error: bool = False,
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
 ) -> "ExtrinsicResponse":
     """
     Creates a new crowdloan campaign on-chain.
