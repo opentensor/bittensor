@@ -1,9 +1,11 @@
+import importlib.metadata
 import os
 import subprocess
 import sys
 
-from bittensor import __version__
 from bittensor.utils.version import check_latest_version_in_pypi
+
+__version__ = importlib.metadata.version("bittensor")
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "certifi":

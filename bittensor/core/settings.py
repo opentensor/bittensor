@@ -141,8 +141,8 @@ DEFAULTS = munchify(
 # Parsing version without any literals.
 __version__ = re.match(r"^\d+\.\d+\.\d+", __version__).group(0)
 
-version_split = __version__.split(".")
-_version_info = tuple(int(part) for part in version_split)
+__version_split = __version__.split(".")
+_version_info = tuple(int(part) for part in __version_split)
 _version_int_base = 1000
 assert max(_version_info) < _version_int_base
 
