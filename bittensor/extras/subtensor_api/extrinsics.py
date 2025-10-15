@@ -12,9 +12,14 @@ class Extrinsics:
         self.add_stake_multiple = subtensor.add_stake_multiple
         self.burned_register = subtensor.burned_register
         self.commit_weights = subtensor.commit_weights
+        self.contribute_crowdloan = subtensor.contribute_crowdloan
+        self.create_crowdloan = subtensor.create_crowdloan
+        self.dissolve_crowdloan = subtensor.dissolve_crowdloan
+        self.finalize_crowdloan = subtensor.finalize_crowdloan
         self.get_extrinsic_fee = subtensor.get_extrinsic_fee
         self.modify_liquidity = subtensor.modify_liquidity
         self.move_stake = subtensor.move_stake
+        self.refund_crowdloan = subtensor.refund_crowdloan
         self.register = subtensor.register
         self.register_subnet = subtensor.register_subnet
         self.remove_liquidity = subtensor.remove_liquidity
@@ -36,4 +41,10 @@ class Extrinsics:
         self.unstake = subtensor.unstake
         self.unstake_all = subtensor.unstake_all
         self.unstake_multiple = subtensor.unstake_multiple
+        self.update_cap_crowdloan = subtensor.update_cap_crowdloan
+        self.update_end_crowdloan = subtensor.update_end_crowdloan
+        self.update_min_contribution_crowdloan = (
+            subtensor.update_min_contribution_crowdloan
+        )
         self.validate_extrinsic_params = subtensor.validate_extrinsic_params
+        self.withdraw_crowdloan = subtensor.withdraw_crowdloan

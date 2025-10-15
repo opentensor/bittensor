@@ -19,6 +19,10 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.chain_endpoint = subtensor.inner_subtensor.chain_endpoint
     subtensor.commit_reveal_enabled = subtensor.inner_subtensor.commit_reveal_enabled
     subtensor.commit_weights = subtensor.inner_subtensor.commit_weights
+    subtensor.contribute_crowdloan = subtensor.inner_subtensor.contribute_crowdloan
+    subtensor.create_crowdloan = subtensor.inner_subtensor.create_crowdloan
+    subtensor.dissolve_crowdloan = subtensor.inner_subtensor.dissolve_crowdloan
+    subtensor.finalize_crowdloan = subtensor.inner_subtensor.finalize_crowdloan
     subtensor.get_crowdloan_constants = (
         subtensor.inner_subtensor.get_crowdloan_constants
     )
@@ -176,6 +180,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.query_runtime_api = subtensor.inner_subtensor.query_runtime_api
     subtensor.query_subtensor = subtensor.inner_subtensor.query_subtensor
     subtensor.recycle = subtensor.inner_subtensor.recycle
+    subtensor.refund_crowdloan = subtensor.inner_subtensor.refund_crowdloan
     subtensor.register = subtensor.inner_subtensor.register
     subtensor.register_subnet = subtensor.inner_subtensor.register_subnet
     subtensor.remove_liquidity = subtensor.inner_subtensor.remove_liquidity
@@ -212,9 +217,15 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.unstake = subtensor.inner_subtensor.unstake
     subtensor.unstake_all = subtensor.inner_subtensor.unstake_all
     subtensor.unstake_multiple = subtensor.inner_subtensor.unstake_multiple
+    subtensor.update_cap_crowdloan = subtensor.inner_subtensor.update_cap_crowdloan
+    subtensor.update_end_crowdloan = subtensor.inner_subtensor.update_end_crowdloan
+    subtensor.update_min_contribution_crowdloan = (
+        subtensor.inner_subtensor.update_min_contribution_crowdloan
+    )
     subtensor.validate_extrinsic_params = (
         subtensor.inner_subtensor.validate_extrinsic_params
     )
     subtensor.wait_for_block = subtensor.inner_subtensor.wait_for_block
     subtensor.weights = subtensor.inner_subtensor.weights
     subtensor.weights_rate_limit = subtensor.inner_subtensor.weights_rate_limit
+    subtensor.withdraw_crowdloan = subtensor.inner_subtensor.withdraw_crowdloan
