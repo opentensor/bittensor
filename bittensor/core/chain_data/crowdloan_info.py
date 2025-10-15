@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
+
 from bittensor.core.chain_data.utils import decode_account_id
-from scalecodec import ScaleBytes
 from bittensor.utils.balance import Balance
 
 
