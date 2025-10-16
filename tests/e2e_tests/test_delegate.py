@@ -712,6 +712,7 @@ async def test_nominator_min_required_stake_async(
     assert stake == Balance.from_tao(0, alice_sn.netuid)
 
 
+# Read https://github.com/opentensor/bittensor/pull/3102
 # def test_get_vote_data(subtensor, alice_wallet):
 #     """
 #     Tests:
