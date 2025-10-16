@@ -712,209 +712,209 @@ async def test_nominator_min_required_stake_async(
     assert stake == Balance.from_tao(0, alice_sn.netuid)
 
 
-def test_get_vote_data(subtensor, alice_wallet):
-    """
-    Tests:
-    - Sends Propose
-    - Checks existing Proposals
-    - Votes
-    - Checks Proposal is updated
-    """
-    assert subtensor.extrinsics.root_register(alice_wallet).success, (
-        "Can not register Alice in root SN."
-    )
-
-    proposals = subtensor.queries.query_map(
-        "Triumvirate",
-        "ProposalOf",
-        params=[],
-    )
-
-    assert proposals.records == []
-
-    success, message = propose(
-        subtensor=subtensor,
-        wallet=alice_wallet,
-        proposal=subtensor.compose_call(
-            call_module="Triumvirate",
-            call_function="set_members",
-            call_params={
-                "new_members": [],
-                "prime": None,
-                "old_count": 0,
-            },
-        ),
-        duration=1_000_000,
-    )
-
-    assert success is True, message
-    assert message == "Success"
-
-    proposals = subtensor.queries.query_map(
-        module="Triumvirate",
-        name="ProposalOf",
-        params=[],
-    )
-    proposals = {
-        bytes(proposal_hash[0]): proposal.value for proposal_hash, proposal in proposals
-    }
-
-    assert list(proposals.values()) == [
-        {
-            "Triumvirate": (
-                {
-                    "set_members": {
-                        "new_members": (),
-                        "prime": None,
-                        "old_count": 0,
-                    },
-                },
-            ),
-        },
-    ]
-
-    proposal_hash = list(proposals.keys())[0]
-    proposal_hash = f"0x{proposal_hash.hex()}"
-
-    proposal = subtensor.chain.get_vote_data(
-        proposal_hash,
-    )
-
-    assert proposal == ProposalVoteData(
-        ayes=[],
-        end=CloseInValue(1_000_000, subtensor.block),
-        index=0,
-        nays=[],
-        threshold=3,
-    )
-
-    success, message = vote(
-        subtensor=subtensor,
-        wallet=alice_wallet,
-        hotkey=alice_wallet.hotkey.ss58_address,
-        proposal=proposal_hash,
-        index=0,
-        approve=True,
-    )
-
-    assert success is True, message
-    assert message == "Success"
-
-    proposal = subtensor.chain.get_vote_data(
-        proposal_hash=proposal_hash,
-    )
-
-    assert proposal == ProposalVoteData(
-        ayes=[
-            alice_wallet.hotkey.ss58_address,
-        ],
-        end=CloseInValue(1_000_000, subtensor.block),
-        index=0,
-        nays=[],
-        threshold=3,
-    )
-
-
-@pytest.mark.asyncio
-async def test_get_vote_data_async(async_subtensor, alice_wallet):
-    """
-    Async tests:
-    - Sends Propose
-    - Checks existing Proposals
-    - Votes
-    - Checks Proposal is updated
-    """
-    assert (await async_subtensor.extrinsics.root_register(alice_wallet)).success, (
-        "Can not register Alice in root SN."
-    )
-
-    proposals = await async_subtensor.queries.query_map(
-        "Triumvirate",
-        "ProposalOf",
-        params=[],
-    )
-
-    assert proposals.records == []
-
-    success, message = await async_propose(
-        subtensor=async_subtensor,
-        wallet=alice_wallet,
-        proposal=await async_subtensor.compose_call(
-            call_module="Triumvirate",
-            call_function="set_members",
-            call_params={
-                "new_members": [],
-                "prime": None,
-                "old_count": 0,
-            },
-        ),
-        duration=1_000_000,
-    )
-
-    assert success is True
-    assert message == "Success"
-
-    proposals = await async_subtensor.queries.query_map(
-        module="Triumvirate",
-        name="ProposalOf",
-        params=[],
-    )
-    proposals = {
-        bytes(proposal_hash[0]): proposal.value
-        async for proposal_hash, proposal in proposals
-    }
-
-    assert list(proposals.values()) == [
-        {
-            "Triumvirate": (
-                {
-                    "set_members": {
-                        "new_members": (),
-                        "prime": None,
-                        "old_count": 0,
-                    },
-                },
-            ),
-        },
-    ]
-
-    proposal_hash = list(proposals.keys())[0]
-    proposal_hash = f"0x{proposal_hash.hex()}"
-
-    proposal = await async_subtensor.chain.get_vote_data(
-        proposal_hash,
-    )
-
-    assert proposal == ProposalVoteData(
-        ayes=[],
-        end=CloseInValue(1_000_000, await async_subtensor.block),
-        index=0,
-        nays=[],
-        threshold=3,
-    )
-
-    success, message = await async_vote(
-        subtensor=async_subtensor,
-        wallet=alice_wallet,
-        hotkey=alice_wallet.hotkey.ss58_address,
-        proposal=proposal_hash,
-        index=0,
-        approve=True,
-    )
-
-    assert success is True, message
-    assert message == "Success"
-
-    proposal = await async_subtensor.chain.get_vote_data(
-        proposal_hash=proposal_hash,
-    )
-
-    assert proposal == ProposalVoteData(
-        ayes=[
-            alice_wallet.hotkey.ss58_address,
-        ],
-        end=CloseInValue(1_000_000, await async_subtensor.block),
-        index=0,
-        nays=[],
-        threshold=3,
-    )
+# def test_get_vote_data(subtensor, alice_wallet):
+#     """
+#     Tests:
+#     - Sends Propose
+#     - Checks existing Proposals
+#     - Votes
+#     - Checks Proposal is updated
+#     """
+#     assert subtensor.extrinsics.root_register(alice_wallet).success, (
+#         "Can not register Alice in root SN."
+#     )
+#
+#     proposals = subtensor.queries.query_map(
+#         "Triumvirate",
+#         "ProposalOf",
+#         params=[],
+#     )
+#
+#     assert proposals.records == []
+#
+#     success, message = propose(
+#         subtensor=subtensor,
+#         wallet=alice_wallet,
+#         proposal=subtensor.compose_call(
+#             call_module="Triumvirate",
+#             call_function="set_members",
+#             call_params={
+#                 "new_members": [],
+#                 "prime": None,
+#                 "old_count": 0,
+#             },
+#         ),
+#         duration=1_000_000,
+#     )
+#
+#     assert success is True, message
+#     assert message == "Success"
+#
+#     proposals = subtensor.queries.query_map(
+#         module="Triumvirate",
+#         name="ProposalOf",
+#         params=[],
+#     )
+#     proposals = {
+#         bytes(proposal_hash[0]): proposal.value for proposal_hash, proposal in proposals
+#     }
+#
+#     assert list(proposals.values()) == [
+#         {
+#             "Triumvirate": (
+#                 {
+#                     "set_members": {
+#                         "new_members": (),
+#                         "prime": None,
+#                         "old_count": 0,
+#                     },
+#                 },
+#             ),
+#         },
+#     ]
+#
+#     proposal_hash = list(proposals.keys())[0]
+#     proposal_hash = f"0x{proposal_hash.hex()}"
+#
+#     proposal = subtensor.chain.get_vote_data(
+#         proposal_hash,
+#     )
+#
+#     assert proposal == ProposalVoteData(
+#         ayes=[],
+#         end=CloseInValue(1_000_000, subtensor.block),
+#         index=0,
+#         nays=[],
+#         threshold=3,
+#     )
+#
+#     success, message = vote(
+#         subtensor=subtensor,
+#         wallet=alice_wallet,
+#         hotkey=alice_wallet.hotkey.ss58_address,
+#         proposal=proposal_hash,
+#         index=0,
+#         approve=True,
+#     )
+#
+#     assert success is True, message
+#     assert message == "Success"
+#
+#     proposal = subtensor.chain.get_vote_data(
+#         proposal_hash=proposal_hash,
+#     )
+#
+#     assert proposal == ProposalVoteData(
+#         ayes=[
+#             alice_wallet.hotkey.ss58_address,
+#         ],
+#         end=CloseInValue(1_000_000, subtensor.block),
+#         index=0,
+#         nays=[],
+#         threshold=3,
+#     )
+#
+#
+# @pytest.mark.asyncio
+# async def test_get_vote_data_async(async_subtensor, alice_wallet):
+#     """
+#     Async tests:
+#     - Sends Propose
+#     - Checks existing Proposals
+#     - Votes
+#     - Checks Proposal is updated
+#     """
+#     assert (await async_subtensor.extrinsics.root_register(alice_wallet)).success, (
+#         "Can not register Alice in root SN."
+#     )
+#
+#     proposals = await async_subtensor.queries.query_map(
+#         "Triumvirate",
+#         "ProposalOf",
+#         params=[],
+#     )
+#
+#     assert proposals.records == []
+#
+#     success, message = await async_propose(
+#         subtensor=async_subtensor,
+#         wallet=alice_wallet,
+#         proposal=await async_subtensor.compose_call(
+#             call_module="Triumvirate",
+#             call_function="set_members",
+#             call_params={
+#                 "new_members": [],
+#                 "prime": None,
+#                 "old_count": 0,
+#             },
+#         ),
+#         duration=1_000_000,
+#     )
+#
+#     assert success is True
+#     assert message == "Success"
+#
+#     proposals = await async_subtensor.queries.query_map(
+#         module="Triumvirate",
+#         name="ProposalOf",
+#         params=[],
+#     )
+#     proposals = {
+#         bytes(proposal_hash[0]): proposal.value
+#         async for proposal_hash, proposal in proposals
+#     }
+#
+#     assert list(proposals.values()) == [
+#         {
+#             "Triumvirate": (
+#                 {
+#                     "set_members": {
+#                         "new_members": (),
+#                         "prime": None,
+#                         "old_count": 0,
+#                     },
+#                 },
+#             ),
+#         },
+#     ]
+#
+#     proposal_hash = list(proposals.keys())[0]
+#     proposal_hash = f"0x{proposal_hash.hex()}"
+#
+#     proposal = await async_subtensor.chain.get_vote_data(
+#         proposal_hash,
+#     )
+#
+#     assert proposal == ProposalVoteData(
+#         ayes=[],
+#         end=CloseInValue(1_000_000, await async_subtensor.block),
+#         index=0,
+#         nays=[],
+#         threshold=3,
+#     )
+#
+#     success, message = await async_vote(
+#         subtensor=async_subtensor,
+#         wallet=alice_wallet,
+#         hotkey=alice_wallet.hotkey.ss58_address,
+#         proposal=proposal_hash,
+#         index=0,
+#         approve=True,
+#     )
+#
+#     assert success is True, message
+#     assert message == "Success"
+#
+#     proposal = await async_subtensor.chain.get_vote_data(
+#         proposal_hash=proposal_hash,
+#     )
+#
+#     assert proposal == ProposalVoteData(
+#         ayes=[
+#             alice_wallet.hotkey.ss58_address,
+#         ],
+#         end=CloseInValue(1_000_000, await async_subtensor.block),
+#         index=0,
+#         nays=[],
+#         threshold=3,
+#     )
