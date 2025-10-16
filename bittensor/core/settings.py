@@ -3,7 +3,6 @@ import os
 import re
 from pathlib import Path
 
-import scalecodec.types
 from munch import munchify
 
 ROOT_TAO_STAKE_WEIGHT = 0.18
@@ -166,24 +165,3 @@ def __apply_nest_asyncio():
 
 
 __apply_nest_asyncio()
-
-
-def __apply_scalecodec_patch():
-    # the following patches the `scalecodec.types.Option.process` that allows for decoding certain extrinsics (specifically
-    # the ones used by crowdloan using Option<scale_info::227>.
-    # There is a PR up for this: https://github.com/JAMdotTech/py-scale-codec/pull/134
-    # and this patch will be removed when this is applied/released.
-
-    def patched_process(self):
-        option_byte = self.get_next_bytes(1)
-
-        if self.sub_type and option_byte != b"\x00":
-            self.value_object = self.process_type(self.sub_type, metadata=self.metadata)
-            return self.value_object.value
-
-        return None
-
-    scalecodec.types.Option.process = patched_process
-
-
-__apply_scalecodec_patch()
