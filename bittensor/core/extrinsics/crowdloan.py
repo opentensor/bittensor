@@ -274,7 +274,7 @@ def refund_crowdloan_extrinsic(
         ExtrinsicResponse: The result object of the extrinsic execution.
 
     Notes:
-        - Can be called by any signed account (not only the creator).
+        - Can be called by only creator signed account.
         - Refunds contributors (excluding the creator) whose funds were locked in a failed campaign.
         - Each call processes a limited number of refunds (`RefundContributorsLimit`).
         - If the campaign has too many contributors, multiple refund calls are required.
