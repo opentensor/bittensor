@@ -27,6 +27,7 @@ def test_crowdloan_with_target(
     - Validate post-finalization errors
     - Create second crowdloan for refund test
     - Contribute from Alice and Dave
+    - Verify that refund imposable from non creator account
     - Refund all contributors
     - Verify balances after refund
     - Dissolve refunded crowdloan
@@ -382,7 +383,15 @@ def test_crowdloan_with_target(
         == bob_deposit + alice_contribute_amount + dave_contribution_amount
     )
 
-    # refund crowdloan
+    # refund crowdloan from wrong account
+    response = subtensor.crowdloans.refund_crowdloan(
+        wallet=charlie_wallet,
+        crowdloan_id=next_crowdloan,
+    )
+    assert "InvalidOrigin" in response.message
+    assert response.error["name"] == "InvalidOrigin"
+
+    # refund crowdloan from creator account
     response = subtensor.crowdloans.refund_crowdloan(
         wallet=bob_wallet,
         crowdloan_id=next_crowdloan,
@@ -446,6 +455,7 @@ async def test_crowdloan_with_target_async(
     - Validate post-finalization errors
     - Create second crowdloan for refund test
     - Contribute from Alice and Dave
+    - Verify that refund imposable from non creator account
     - Refund all contributors
     - Verify balances after refund
     - Dissolve refunded crowdloan
@@ -819,7 +829,15 @@ async def test_crowdloan_with_target_async(
         == bob_deposit + alice_contribute_amount + dave_contribution_amount
     )
 
-    # refund crowdloan
+    # refund crowdloan from wrong account
+    response = await subtensor.crowdloans.refund_crowdloan(
+        wallet=charlie_wallet,
+        crowdloan_id=next_crowdloan,
+    )
+    assert "InvalidOrigin" in response.message
+    assert response.error["name"] == "InvalidOrigin"
+
+    # refund crowdloan from creator account
     response = await async_subtensor.crowdloans.refund_crowdloan(
         wallet=bob_wallet,
         crowdloan_id=next_crowdloan,
