@@ -4707,3 +4707,49 @@ def test_get_crowdloans(mocker, subtensor):
         block_hash=mocked_determine_block_hash.return_value,
     )
     assert result == [mocked_decode_crowdloan_entry.return_value]
+
+
+@pytest.mark.parametrize(
+    "method, add_salt",
+    [
+        ("commit_weights", True),
+        ("reveal_weights", True),
+        ("set_weights", False),
+    ],
+    ids=["commit_weights", "reveal_weights", "set_weights"],
+)
+def test_commit_weights_with_zero_max_attempts(
+    mocker, subtensor, caplog, method, add_salt
+):
+    """Verify that commit_weights returns response with proper error message."""
+    # Preps
+    wallet = mocker.Mock(spec=Wallet)
+    netuid = mocker.Mock(spec=int)
+    salt = mocker.Mock(spec=list)
+    uids = mocker.Mock(spec=list)
+    weights = mocker.Mock(spec=list)
+    max_attempts = 0
+    expected_message = (
+        f"`max_attempts` parameter must be greater than 0, not {max_attempts}."
+    )
+
+    params = {
+        "wallet": wallet,
+        "netuid": netuid,
+        "uids": uids,
+        "weights": weights,
+        "max_attempts": max_attempts,
+    }
+    if add_salt:
+        params["salt"] = salt
+
+    # Call
+    # with caplog.at_level(logging.WARNING):
+    response = getattr(subtensor, method)(**params)
+
+    # Asserts
+    assert response.success is False
+    assert response.message == expected_message
+    assert isinstance(response.error, ValueError)
+    assert expected_message in str(response.error)
+    assert expected_message in caplog.text

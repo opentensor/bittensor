@@ -19,14 +19,14 @@ def get_dynamic_balance(rao: int, netuid: int = 0):
 
 
 def execute_and_wait_for_next_nonce(
-    subtensor: "SubtensorApi", wallet, sleep=0.25, timeout=60.0, max_retries=3
+    subtensor: "SubtensorApi", wallet, sleep=0.25, timeout=60.0, max_attempts=3
 ):
     """Decorator that ensures the nonce has been consumed after a blockchain extrinsic call."""
 
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            for attempt in range(max_retries):
+            for attempt in range(max_attempts):
                 start_nonce = subtensor.substrate.get_account_next_index(
                     wallet.hotkey.ss58_address
                 )
@@ -52,9 +52,11 @@ def execute_and_wait_for_next_nonce(
                     time.sleep(sleep)
 
                 logging.warning(
-                    f"⚠️ Attempt {attempt + 1}/{max_retries}: Nonce did not increment."
+                    f"⚠️ Attempt {attempt + 1}/{max_attempts}: Nonce did not increment."
                 )
-            raise TimeoutError(f"❌ Nonce did not change after {max_retries} attempts.")
+            raise TimeoutError(
+                f"❌ Nonce did not change after {max_attempts} attempts."
+            )
 
         return wrapper
 

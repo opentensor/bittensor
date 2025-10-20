@@ -122,6 +122,7 @@ from bittensor.utils import (
     is_valid_ss58_address,
     u16_normalized_float,
     u64_normalized_float,
+    validate_max_attempts,
 )
 from bittensor.utils.balance import (
     Balance,
@@ -3883,7 +3884,7 @@ class Subtensor(SubtensorMixin):
         weights: Weights,
         mechid: int = 0,
         version_key: int = version_as_int,
-        max_retries: int = 5,
+        max_attempts: int = 5,
         period: Optional[int] = 16,
         raise_error: bool = True,
         wait_for_inclusion: bool = False,
@@ -3901,7 +3902,7 @@ class Subtensor(SubtensorMixin):
             weights: NumPy array of weight values corresponding to each UID.
             mechid: Subnet mechanism unique identifier.
             version_key: Version key for compatibility with the network.
-            max_retries: The number of maximum attempts to commit weights.
+            max_attempts: The number of maximum attempts to commit weights.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -3915,8 +3916,11 @@ class Subtensor(SubtensorMixin):
         This function allows neurons to create a tamper-proof record of their weight distribution at a specific point in
         time, enhancing transparency and accountability within the Bittensor network.
         """
-        retries = 0
+        attempt = 0
         response = ExtrinsicResponse(False)
+
+        if attempt_check := validate_max_attempts(max_attempts, response):
+            return attempt_check
 
         logging.debug(
             f"Committing weights with params: "
@@ -3924,7 +3928,7 @@ class Subtensor(SubtensorMixin):
             f"version_key=[blue]{version_key}[/blue]"
         )
 
-        while retries < max_retries and response.success is False:
+        while attempt < max_attempts and response.success is False:
             try:
                 response = commit_weights_extrinsic(
                     subtensor=self,
@@ -3943,7 +3947,7 @@ class Subtensor(SubtensorMixin):
                 return ExtrinsicResponse.from_exception(
                     raise_error=raise_error, error=error
                 )
-            retries += 1
+            attempt += 1
 
         if not response.success:
             logging.debug(
@@ -4437,7 +4441,7 @@ class Subtensor(SubtensorMixin):
         weights: Weights,
         salt: Salt,
         mechid: int = 0,
-        max_retries: int = 5,
+        max_attempts: int = 5,
         version_key: int = version_as_int,
         period: Optional[int] = 16,
         raise_error: bool = False,
@@ -4455,7 +4459,7 @@ class Subtensor(SubtensorMixin):
             weights: NumPy array of weight values corresponding to each UID.
             salt: NumPy array of salt values corresponding to the hash function.
             mechid: The subnet mechanism unique identifier.
-            max_retries: The number of maximum attempts to reveal weights.
+            max_attempts: The number of maximum attempts to reveal weights.
             version_key: Version key for compatibility with the network.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
@@ -4472,10 +4476,13 @@ class Subtensor(SubtensorMixin):
 
         See also: <https://docs.learnbittensor.org/glossary#commit-reveal>,
         """
-        retries = 0
+        attempt = 0
         response = ExtrinsicResponse(False)
 
-        while retries < max_retries and response.success is False:
+        if attempt_check := validate_max_attempts(max_attempts, response):
+            return attempt_check
+
+        while attempt < max_attempts and response.success is False:
             try:
                 response = reveal_weights_extrinsic(
                     subtensor=self,
@@ -4495,7 +4502,7 @@ class Subtensor(SubtensorMixin):
                 return ExtrinsicResponse.from_exception(
                     raise_error=raise_error, error=error
                 )
-            retries += 1
+            attempt += 1
 
         if not response.success:
             logging.debug("No attempt made. Perhaps it is too soon to reveal weights!")
@@ -4779,7 +4786,7 @@ class Subtensor(SubtensorMixin):
         mechid: int = 0,
         block_time: float = 12.0,
         commit_reveal_version: int = 4,
-        max_retries: int = 5,
+        max_attempts: int = 5,
         version_key: int = version_as_int,
         period: Optional[int] = 8,
         raise_error: bool = False,
@@ -4800,7 +4807,7 @@ class Subtensor(SubtensorMixin):
             mechid: The subnet mechanism unique identifier.
             block_time: The number of seconds for block duration.
             commit_reveal_version: The version of the chain commit-reveal protocol to use.
-            max_retries: The number of maximum attempts to set weights.
+            max_attempts: The number of maximum attempts to set weights.
             version_key: Version key for compatibility with the network.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
@@ -4818,14 +4825,16 @@ class Subtensor(SubtensorMixin):
         Notes:
             See <https://docs.learnbittensor.org/glossary#yuma-consensus>
         """
+        attempt = 0
+        response = ExtrinsicResponse(False)
+
+        if attempt_check := validate_max_attempts(max_attempts, response):
+            return attempt_check
 
         def _blocks_weight_limit() -> bool:
             bslu = cast(int, self.blocks_since_last_update(netuid, cast(int, uid)))
             wrl = cast(int, self.weights_rate_limit(netuid))
             return bslu > wrl
-
-        retries = 0
-        response = ExtrinsicResponse(False)
 
         if (
             uid := self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
@@ -4839,13 +4848,13 @@ class Subtensor(SubtensorMixin):
             # go with `commit_reveal_weights_extrinsic` extrinsic
 
             while (
-                retries < max_retries
+                attempt < max_attempts
                 and response.success is False
                 and _blocks_weight_limit()
             ):
                 logging.debug(
                     f"Committing weights {weights} for subnet [blue]{netuid}[/blue]. "
-                    f"Attempt [blue]{retries + 1}[blue] of [green]{max_retries}[/green]."
+                    f"Attempt [blue]{attempt + 1}[blue] of [green]{max_attempts}[/green]."
                 )
                 try:
                     response = commit_timelocked_weights_extrinsic(
@@ -4867,19 +4876,19 @@ class Subtensor(SubtensorMixin):
                     return ExtrinsicResponse.from_exception(
                         raise_error=raise_error, error=error
                     )
-                retries += 1
+                attempt += 1
         else:
             # go with `set_mechanism_weights_extrinsic`
 
             while (
-                retries < max_retries
+                attempt < max_attempts
                 and response.success is False
                 and _blocks_weight_limit()
             ):
                 try:
                     logging.debug(
                         f"Setting weights for subnet [blue]{netuid}[/blue]. "
-                        f"Attempt [blue]{retries + 1}[/blue] of [green]{max_retries}[/green]."
+                        f"Attempt [blue]{attempt + 1}[/blue] of [green]{max_attempts}[/green]."
                     )
                     response = set_weights_extrinsic(
                         subtensor=self,
@@ -4898,7 +4907,7 @@ class Subtensor(SubtensorMixin):
                     return ExtrinsicResponse.from_exception(
                         raise_error=raise_error, error=error
                     )
-                retries += 1
+                attempt += 1
 
         if not response.success:
             logging.debug(

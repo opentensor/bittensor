@@ -489,11 +489,11 @@ async def test_commit_weights_uses_next_nonce_async(async_subtensor, alice_walle
             )
             return success_, message_
 
-        max_retries = 3
+        max_attempts = 3
         timeout = 60.0
         sleep = 0.25 if async_subtensor.chain.is_fast_blocks() else 12.0
 
-        for attempt in range(1, max_retries + 1):
+        for attempt in range(1, max_attempts + 1):
             try:
                 start_nonce = await async_subtensor.substrate.get_account_nonce(
                     alice_wallet.hotkey.ss58_address
@@ -518,7 +518,7 @@ async def test_commit_weights_uses_next_nonce_async(async_subtensor, alice_walle
                     time.sleep(sleep)
             except Exception as e:
                 raise e
-        raise Exception(f"Failed to commit weights after {max_retries} attempts.")
+        raise Exception(f"Failed to commit weights after {max_attempts} attempts.")
 
     # Send some number of commit weights
     AMOUNT_OF_COMMIT_WEIGHTS = 3
