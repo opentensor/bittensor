@@ -5,6 +5,7 @@
 * [v10] Remove deprecated `bittensor.version_split` by @basfroman in https://github.com/opentensor/bittensor/pull/3100
 * [v10] Fix `bittensor.core.types.Weights` type annotation by @basfroman in https://github.com/opentensor/bittensor/pull/3103
 * [v10] Integrate Crowdloan by @basfroman in https://github.com/opentensor/bittensor/pull/3098
+* [v10] Rename max_retries to max_attempts to be more obvious by @basfroman in https://github.com/opentensor/bittensor/pull/3108
 
 **Full Changelog**: https://github.com/opentensor/bittensor/compare/release/v10.0.0rc1...release/v10.0.0rc2
 
