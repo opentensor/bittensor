@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 
 # Type annotations for UIDs and weights.
 UIDs = Union[NDArray[np.int64], list[Union[int]]]
-Weights = Union[NDArray[np.float32], list[Union[int, float]]]
+Weights = Union[NDArray[np.float32], list[Union[int, float]], list[int], list[float]]
 Salt = Union[NDArray[np.int64], list[int]]
 
 
