@@ -1,5 +1,15 @@
 # Changelog
 
+## 9.12.1 /2025-10-20
+
+## What's Changed
+* replace error by @basfroman in https://github.com/opentensor/bittensor/pull/3092
+* Update type hint/docstring for ws_shutdown_timer by @thewhaleking in https://github.com/opentensor/bittensor/pull/3090
+* Commenting on the test until the new governance come by @basfroman in https://github.com/opentensor/bittensor/pull/3101
+* Bumping scalecodec to 1.2.12 by @basfroman in https://github.com/opentensor/bittensor/pull/3104
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.12.0...v9.12.1
+
 ## 9.12.0 /2025-10-08
 
 ## What's Changed
