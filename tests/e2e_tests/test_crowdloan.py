@@ -830,7 +830,7 @@ async def test_crowdloan_with_target_async(
     )
 
     # refund crowdloan from wrong account
-    response = await subtensor.crowdloans.refund_crowdloan(
+    response = await async_subtensor.crowdloans.refund_crowdloan(
         wallet=charlie_wallet,
         crowdloan_id=next_crowdloan,
     )
