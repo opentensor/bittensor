@@ -15,6 +15,8 @@ from bittensor_wallet.utils import SS58_FORMAT
 from bittensor.core.async_subtensor import ProposalVoteData
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import (
+    CrowdloanInfo,
+    CrowdloanConstants,
     DelegatedInfo,
     DelegateInfo,
     DynamicInfo,
@@ -42,6 +44,17 @@ from bittensor.core.errors import ChainError
 from bittensor.core.extrinsics.children import (
     set_children_extrinsic,
     root_set_pending_childkey_cooldown_extrinsic,
+)
+from bittensor.core.extrinsics.crowdloan import (
+    contribute_crowdloan_extrinsic,
+    create_crowdloan_extrinsic,
+    dissolve_crowdloan_extrinsic,
+    finalize_crowdloan_extrinsic,
+    refund_crowdloan_extrinsic,
+    update_cap_crowdloan_extrinsic,
+    update_end_crowdloan_extrinsic,
+    update_min_contribution_crowdloan_extrinsic,
+    withdraw_crowdloan_extrinsic,
 )
 from bittensor.core.extrinsics.liquidity import (
     add_liquidity_extrinsic,
@@ -195,6 +208,32 @@ class Subtensor(SubtensorMixin):
         self.close()
 
     # Helpers ==========================================================================================================
+
+    def _decode_crowdloan_entry(
+        self,
+        crowdloan_id: int,
+        data: dict,
+        block_hash: Optional[str] = None,
+    ) -> "CrowdloanInfo":
+        """
+        Internal helper to parse and decode a single Crowdloan record.
+
+        Automatically decodes the embedded `call` field if present (Inline SCALE format).
+        """
+        call_data = data.get("call")
+        if call_data and "Inline" in call_data:
+            try:
+                inline_bytes = bytes(call_data["Inline"][0][0])
+                decoded_call = self.substrate.create_scale_object(
+                    type_string="Call",
+                    data=scalecodec.ScaleBytes(inline_bytes),
+                    block_hash=block_hash,
+                ).decode()
+                data["call"] = decoded_call
+            except Exception as e:
+                data["call"] = {"decode_error": str(e), "raw": call_data}
+
+        return CrowdloanInfo.from_dict(crowdloan_id, data)
 
     @lru_cache(maxsize=128)
     def _get_block_hash(self, block_id: int):
@@ -1232,6 +1271,170 @@ class Subtensor(SubtensorMixin):
             block_hash=self.determine_block_hash(block),
         )
         return commit_data
+
+    def get_crowdloan_constants(
+        self,
+        constants: Optional[list[str]] = None,
+        block: Optional[int] = None,
+    ) -> "CrowdloanConstants":
+        """
+        Fetches runtime configuration constants from the `Crowdloan` pallet.
+
+        If a list of constant names is provided, only those constants will be queried.
+        Otherwise, all known constants defined in `CrowdloanConstants.field_names()` are fetched.
+
+        Parameters:
+            constants: A list of specific constant names to fetch from the pallet. If omitted, all constants from
+                `CrowdloanConstants` are queried.
+            block: The blockchain block number for the query.
+
+        Returns:
+            CrowdloanConstants:
+                A structured dataclass containing the retrieved values. Missing constants are returned as `None`.
+
+        Example:
+            print(subtensor.get_crowdloan_constants())
+            CrowdloanConstants(
+                AbsoluteMinimumContribution=τ1.000000000,
+                MaxContributors=1000,
+                MaximumBlockDuration=86400,
+                MinimumDeposit=τ10.000000000,
+                MinimumBlockDuration=600,
+                RefundContributorsLimit=50
+            )
+
+            crowdloan_consts = subtensor.get_crowdloan_constants(
+                constants=["MaxContributors", "RefundContributorsLimit"]
+            )
+            print(crowdloan_consts)
+            CrowdloanConstants(MaxContributors=1000, RefundContributorsLimit=50)
+
+            print(crowdloan_consts.MaxContributors)
+            1000
+        """
+        result = {}
+        const_names = constants or CrowdloanConstants.constants_names()
+
+        for const_name in const_names:
+            query = self.query_constant(
+                module_name="Crowdloan",
+                constant_name=const_name,
+                block=block,
+            )
+
+            if query is not None:
+                result[const_name] = query.value
+
+        return CrowdloanConstants.from_dict(result)
+
+    def get_crowdloan_contributions(
+        self,
+        crowdloan_id: int,
+        block: Optional[int] = None,
+    ) -> dict[str, "Balance"]:
+        """
+        Returns a mapping of contributor SS58 addresses to their contribution amounts for a specific crowdloan.
+
+        Parameters:
+            crowdloan_id: The unique identifier of the crowdloan.
+            block: The blockchain block number for the query.
+
+        Returns:
+            Dict[address -> Balance].
+        """
+        block_hash = self.determine_block_hash(block)
+        query = self.substrate.query_map(
+            module="Crowdloan",
+            storage_function="Contributions",
+            params=[crowdloan_id],
+            block_hash=block_hash,
+        )
+        result = {}
+        for record in query.records:
+            if record[1].value:
+                result[decode_account_id(record[0])] = Balance.from_rao(record[1].value)
+        return result
+
+    def get_crowdloan_by_id(
+        self, crowdloan_id: int, block: Optional[int] = None
+    ) -> Optional["CrowdloanInfo"]:
+        """
+        Returns detailed information about a specific crowdloan by ID.
+
+        Parameters:
+            crowdloan_id: Unique identifier of the crowdloan.
+            block: The blockchain block number for the query.
+
+        Returns:
+            CrowdloanInfo if found, else None.
+        """
+        block_hash = self.determine_block_hash(block)
+        query = self.substrate.query(
+            module="Crowdloan",
+            storage_function="Crowdloans",
+            params=[crowdloan_id],
+            block_hash=block_hash,
+        )
+        if not query:
+            return None
+        return self._decode_crowdloan_entry(
+            crowdloan_id=crowdloan_id, data=query.value, block_hash=block_hash
+        )
+
+    def get_crowdloan_next_id(
+        self,
+        block: Optional[int] = None,
+    ) -> int:
+        """
+        Returns the next available crowdloan ID (auto-increment value).
+
+        Parameters:
+            block: The blockchain block number for the query.
+
+        Returns:
+            The next crowdloan ID to be used when creating a new campaign.
+        """
+        block_hash = self.determine_block_hash(block)
+        result = self.substrate.query(
+            module="Crowdloan",
+            storage_function="NextCrowdloanId",
+            block_hash=block_hash,
+        )
+        return int(result.value or 0)
+
+    def get_crowdloans(
+        self,
+        block: Optional[int] = None,
+    ) -> list["CrowdloanInfo"]:
+        """
+        Returns a list of all existing crowdloans with their metadata.
+
+        Parameters:
+            block: The blockchain block number for the query.
+
+        Returns:
+            List of CrowdloanInfo which contains (id, creator, cap, raised, end, finalized, etc.)
+        """
+        block_hash = self.determine_block_hash(block)
+        query = self.substrate.query_map(
+            module="Crowdloan",
+            storage_function="Crowdloans",
+            block_hash=block_hash,
+        )
+
+        crowdloans = []
+
+        for c_id, value_obj in getattr(query, "records", []):
+            data = value_obj.value
+            if not data:
+                continue
+            crowdloans.append(
+                self._decode_crowdloan_entry(
+                    crowdloan_id=c_id, data=data, block_hash=block_hash
+                )
+            )
+
+        return crowdloans
 
     def get_delegate_by_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
@@ -3749,6 +3952,173 @@ class Subtensor(SubtensorMixin):
             )
         return response
 
+    def contribute_crowdloan(
+        self,
+        wallet: "Wallet",
+        crowdloan_id: int,
+        amount: "Balance",
+        period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Contributes funds to an active crowdloan campaign.
+
+        Parameters:
+            wallet: Bittensor Wallet instance used to sign the transaction.
+            crowdloan_id: The unique identifier of the crowdloan to contribute to.
+            amount: Amount to contribute.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+        """
+        return contribute_crowdloan_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            crowdloan_id=crowdloan_id,
+            amount=amount,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+    def create_crowdloan(
+        self,
+        wallet: "Wallet",
+        deposit: "Balance",
+        min_contribution: "Balance",
+        cap: "Balance",
+        end: int,
+        call: Optional["GenericCall"] = None,
+        target_address: Optional[str] = None,
+        period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Creates a new crowdloan campaign on-chain.
+
+        Parameters:
+            wallet: Bittensor Wallet instance used to sign the transaction.
+            deposit: Initial deposit in RAO from the creator.
+            min_contribution: Minimum contribution amount.
+            cap: Maximum cap to be raised.
+            end: Block number when the campaign ends.
+            call: Runtime call data (e.g., subtensor::register_leased_network).
+            target_address: SS58 address to transfer funds to on success.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+        """
+        return create_crowdloan_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            deposit=deposit,
+            min_contribution=min_contribution,
+            cap=cap,
+            end=end,
+            call=call,
+            target_address=target_address,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+    def dissolve_crowdloan(
+        self,
+        wallet: "Wallet",
+        crowdloan_id: int,
+        period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Dissolves a completed or failed crowdloan campaign after all refunds are processed.
+
+        This permanently removes the campaign from on-chain storage and refunds the creator's remaining deposit, if
+        applicable. Can only be called by the campaign creator.
+
+        Parameters:
+            wallet: Bittensor Wallet instance used to sign the transaction.
+            crowdloan_id: The unique identifier of the crowdloan to dissolve.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Notes:
+            - Only the creator can dissolve their own crowdloan.
+            - All contributors (except the creator) must have been refunded first.
+            - The creator’s remaining contribution (deposit) is returned during dissolution.
+            - After this call, the crowdloan is removed from chain storage.
+        """
+        return dissolve_crowdloan_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            crowdloan_id=crowdloan_id,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+    def finalize_crowdloan(
+        self,
+        wallet: "Wallet",
+        crowdloan_id: int,
+        period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Finalizes a successful crowdloan campaign once the cap has been reached and the end block has passed.
+
+        This executes the stored call or transfers the raised funds to the target address, completing the campaign.
+
+        Parameters:
+            wallet: Bittensor Wallet instance used to sign the transaction.
+            crowdloan_id: The unique identifier of the crowdloan to finalize.
+            period: The number of blocks during which the transaction will remain valid after it's submitted.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+        """
+        return finalize_crowdloan_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            crowdloan_id=crowdloan_id,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
     def modify_liquidity(
         self,
         wallet: "Wallet",
@@ -3866,6 +4236,50 @@ class Subtensor(SubtensorMixin):
             destination_hotkey_ss58=destination_hotkey_ss58,
             amount=amount,
             move_all_stake=move_all_stake,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+    def refund_crowdloan(
+        self,
+        wallet: "Wallet",
+        crowdloan_id: int,
+        period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Refunds contributors from a failed or expired crowdloan campaign.
+
+        This call attempts to refund up to the limit defined by `RefundContributorsLimit` in a single dispatch. If there are
+        more contributors than the limit, the call may need to be executed multiple times until all refunds are processed.
+
+        Parameters:
+            wallet: Bittensor Wallet instance used to sign the transaction.
+            crowdloan_id: The unique identifier of the crowdloan to refund.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Notes:
+            - Can be called by only creator signed account.
+            - Refunds contributors (excluding the creator) whose funds were locked in a failed campaign.
+            - Each call processes a limited number of refunds (`RefundContributorsLimit`).
+            - If the campaign has too many contributors, multiple refund calls are required.
+        """
+        return refund_crowdloan_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            crowdloan_id=crowdloan_id,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -5059,6 +5473,184 @@ class Subtensor(SubtensorMixin):
             hotkey_ss58s=hotkey_ss58s,
             amounts=amounts,
             unstake_all=unstake_all,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+    def update_cap_crowdloan(
+        self,
+        wallet: "Wallet",
+        crowdloan_id: int,
+        new_cap: "Balance",
+        period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Updates the fundraising cap (maximum total contribution) of a non-finalized crowdloan.
+
+        Only the creator of the crowdloan can perform this action, and the new cap must be greater than or equal to the
+        current amount already raised.
+
+        Parameters:
+            wallet: Bittensor Wallet instance used to sign the transaction.
+            crowdloan_id: The unique identifier of the crowdloan to update.
+            new_cap: The new fundraising cap (in TAO or Balance).
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Notes:
+            - Only the creator can update the cap.
+            - The crowdloan must not be finalized.
+            - The new cap must be greater than or equal to the total funds already raised.
+        """
+        return update_cap_crowdloan_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            crowdloan_id=crowdloan_id,
+            new_cap=new_cap,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+    def update_end_crowdloan(
+        self,
+        wallet: "Wallet",
+        crowdloan_id: int,
+        new_end: int,
+        period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Updates the end block of a non-finalized crowdloan campaign.
+
+        Only the creator of the crowdloan can perform this action. The new end block must be valid — meaning it cannot be in
+        the past and must respect the minimum and maximum duration limits enforced by the chain.
+
+        Parameters:
+            wallet: Bittensor Wallet instance used to sign the transaction.
+            crowdloan_id: The unique identifier of the crowdloan to update.
+            new_end: The new block number at which the crowdloan will end.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Notes:
+            - Only the creator can call this extrinsic.
+            - The crowdloan must not be finalized.
+            - The new end block must be later than the current block and within valid duration bounds (between
+                `MinimumBlockDuration` and `MaximumBlockDuration`).
+        """
+        return update_end_crowdloan_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            crowdloan_id=crowdloan_id,
+            new_end=new_end,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+    def update_min_contribution_crowdloan(
+        self,
+        wallet: "Wallet",
+        crowdloan_id: int,
+        new_min_contribution: "Balance",
+        period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Updates the minimum contribution amount of a non-finalized crowdloan.
+
+        Only the creator of the crowdloan can perform this action, and the new value must be greater than or equal to the
+        absolute minimum contribution defined in the chain configuration.
+
+        Parameters:
+            wallet: Bittensor Wallet instance used to sign the transaction.
+            crowdloan_id: The unique identifier of the crowdloan to update.
+            new_min_contribution: The new minimum contribution amount (in TAO or Balance).
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Notes:
+            - Can only be called by the creator of the crowdloan.
+            - The crowdloan must not be finalized.
+            - The new minimum contribution must not fall below the absolute minimum defined in the runtime.
+        """
+        return update_min_contribution_crowdloan_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            crowdloan_id=crowdloan_id,
+            new_min_contribution=new_min_contribution,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+    def withdraw_crowdloan(
+        self,
+        wallet: "Wallet",
+        crowdloan_id: int,
+        period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Withdraws a contribution from an active (not yet finalized or dissolved) crowdloan.
+
+        Parameters:
+            wallet: Wallet instance used to sign the transaction (must be unlocked).
+            crowdloan_id: The unique identifier of the crowdloan to withdraw from.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Note:
+            - Regular contributors can fully withdraw their contribution before finalization.
+            - The creator cannot withdraw the initial deposit, but may withdraw any amount exceeding his deposit.
+        """
+        return withdraw_crowdloan_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            crowdloan_id=crowdloan_id,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,

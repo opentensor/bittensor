@@ -1,4 +1,5 @@
 from .children import ChildrenParams
+from .crowdloan import CrowdloanParams
 from .liquidity import LiquidityParams
 from .move_stake import MoveStakeParams
 from .registration import RegistrationParams
@@ -15,6 +16,7 @@ from .weights import WeightsParams
 __all__ = [
     "get_transfer_fn_params",
     "ChildrenParams",
+    "CrowdloanParams",
     "LiquidityParams",
     "MoveStakeParams",
     "RegistrationParams",

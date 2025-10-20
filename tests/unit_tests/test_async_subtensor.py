@@ -4,6 +4,7 @@ import unittest.mock as mock
 import pytest
 from async_substrate_interface.types import ScaleObj
 from bittensor_wallet import Wallet
+from scalecodec import GenericCall
 
 from bittensor import u64_normalized_float
 from bittensor.core import async_subtensor, settings
@@ -4222,3 +4223,390 @@ async def test_get_block_info(subtensor, mocker):
         explorer=f"{settings.TAO_APP_BLOCK_EXPLORER}{fake_block}",
     )
     assert result == mocked_BlockInfo.return_value
+
+
+@pytest.mark.asyncio
+async def test_contribute_crowdloan(mocker, subtensor):
+    """Tests subtensor `contribute_crowdloan` method."""
+    # Preps
+    wallet = mocker.Mock()
+    crowdloan_id = mocker.Mock()
+    amount = mocker.Mock(spec=Balance)
+
+    mocked_extrinsic = mocker.patch.object(
+        async_subtensor, "contribute_crowdloan_extrinsic"
+    )
+
+    # Call
+    response = await subtensor.contribute_crowdloan(
+        wallet=wallet,
+        crowdloan_id=crowdloan_id,
+        amount=amount,
+    )
+
+    # asserts
+    mocked_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        crowdloan_id=crowdloan_id,
+        amount=amount,
+        period=None,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_create_crowdloan(mocker, subtensor):
+    """Tests subtensor `create_crowdloan` method."""
+    # Preps
+    wallet = mocker.Mock(spec=Wallet)
+    deposit = mocker.Mock(spec=Balance)
+    min_contribution = mocker.Mock(spec=Balance)
+    cap = mocker.Mock(spec=Balance)
+    end = mocker.Mock(spec=int)
+    call = mocker.Mock(spec=GenericCall)
+    target_address = mocker.Mock(spec=str)
+
+    mocked_extrinsic = mocker.patch.object(
+        async_subtensor, "create_crowdloan_extrinsic"
+    )
+
+    # Call
+    response = await subtensor.create_crowdloan(
+        wallet=wallet,
+        deposit=deposit,
+        min_contribution=min_contribution,
+        cap=cap,
+        end=end,
+        call=call,
+        target_address=target_address,
+    )
+
+    # asserts
+    mocked_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        deposit=deposit,
+        min_contribution=min_contribution,
+        cap=cap,
+        end=end,
+        call=call,
+        target_address=target_address,
+        period=None,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_extrinsic.return_value
+
+
+@pytest.mark.parametrize(
+    "method, extrinsic",
+    [
+        ("dissolve_crowdloan", "dissolve_crowdloan_extrinsic"),
+        ("finalize_crowdloan", "finalize_crowdloan_extrinsic"),
+        ("refund_crowdloan", "refund_crowdloan_extrinsic"),
+        ("withdraw_crowdloan", "withdraw_crowdloan_extrinsic"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_crowdloan_methods_with_crowdloan_id_parameter(
+    mocker, subtensor, method, extrinsic
+):
+    """Tests subtensor methods with the same list of parameters."""
+    # Preps
+    wallet = mocker.Mock()
+    crowdloan_id = mocker.Mock()
+
+    mocked_extrinsic = mocker.patch.object(async_subtensor, extrinsic)
+
+    # Call
+    response = await getattr(subtensor, method)(
+        wallet=wallet,
+        crowdloan_id=crowdloan_id,
+    )
+
+    # asserts
+    mocked_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        crowdloan_id=crowdloan_id,
+        period=None,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_update_cap_crowdloan(mocker, subtensor):
+    """Tests subtensor `update_cap_crowdloan` method."""
+    # Preps
+    wallet = mocker.Mock()
+    crowdloan_id = mocker.Mock()
+    new_cap = mocker.Mock(spec=Balance)
+
+    mocked_extrinsic = mocker.patch.object(
+        async_subtensor, "update_cap_crowdloan_extrinsic"
+    )
+
+    # Call
+    response = await subtensor.update_cap_crowdloan(
+        wallet=wallet,
+        crowdloan_id=crowdloan_id,
+        new_cap=new_cap,
+    )
+
+    # asserts
+    mocked_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        crowdloan_id=crowdloan_id,
+        new_cap=new_cap,
+        period=None,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_update_end_crowdloan(mocker, subtensor):
+    """Tests subtensor `update_end_crowdloan` method."""
+    # Preps
+    wallet = mocker.Mock()
+    crowdloan_id = mocker.Mock()
+    new_end = mocker.Mock(spec=int)
+
+    mocked_extrinsic = mocker.patch.object(
+        async_subtensor, "update_end_crowdloan_extrinsic"
+    )
+
+    # Call
+    response = await subtensor.update_end_crowdloan(
+        wallet=wallet,
+        crowdloan_id=crowdloan_id,
+        new_end=new_end,
+    )
+
+    # asserts
+    mocked_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        crowdloan_id=crowdloan_id,
+        new_end=new_end,
+        period=None,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_update_min_contribution_crowdloan(mocker, subtensor):
+    """Tests subtensor `update_min_contribution_crowdloan` method."""
+    # Preps
+    wallet = mocker.Mock()
+    crowdloan_id = mocker.Mock()
+    new_min_contribution = mocker.Mock(spec=Balance)
+
+    mocked_extrinsic = mocker.patch.object(
+        async_subtensor, "update_min_contribution_crowdloan_extrinsic"
+    )
+
+    # Call
+    response = await subtensor.update_min_contribution_crowdloan(
+        wallet=wallet,
+        crowdloan_id=crowdloan_id,
+        new_min_contribution=new_min_contribution,
+    )
+
+    # asserts
+    mocked_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        crowdloan_id=crowdloan_id,
+        new_min_contribution=new_min_contribution,
+        period=None,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_crowdloan_constants(mocker, subtensor):
+    """Test subtensor `get_crowdloan_constants` method."""
+    # Preps
+    fake_constant_name = mocker.Mock(spec=str)
+    mocked_crowdloan_constants = mocker.patch.object(
+        async_subtensor.CrowdloanConstants,
+        "constants_names",
+        return_value=[fake_constant_name],
+    )
+    mocked_query_constant = mocker.patch.object(subtensor, "query_constant")
+    mocked_from_dict = mocker.patch.object(
+        async_subtensor.CrowdloanConstants, "from_dict"
+    )
+
+    # Call
+    result = await subtensor.get_crowdloan_constants()
+
+    # Asserts
+    mocked_crowdloan_constants.assert_called_once()
+    mocked_query_constant.assert_awaited_once_with(
+        module_name="Crowdloan",
+        constant_name=fake_constant_name,
+        block=None,
+        block_hash=None,
+        reuse_block=False,
+    )
+    mocked_from_dict.assert_called_once_with(
+        {fake_constant_name: mocked_query_constant.return_value.value}
+    )
+    assert result == mocked_from_dict.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_crowdloan_contributions(mocker, subtensor):
+    """Tests subtensor `get_crowdloan_contributions` method."""
+    # Preps
+    fake_hk_array = mocker.Mock(spec=list)
+    fake_contribution = mocker.Mock(value=mocker.Mock(spec=Balance))
+    fake_crowdloan_id = mocker.Mock(spec=int)
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+
+    records = [(fake_hk_array, fake_contribution)]
+    fake_result = mocker.AsyncMock(autospec=list)
+    fake_result.records = records
+    fake_result.__aiter__.return_value = iter(records)
+
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate, "query_map", return_value=fake_result
+    )
+
+    mocked_decode_account_id = mocker.patch.object(async_subtensor, "decode_account_id")
+    mocked_from_rao = mocker.patch.object(async_subtensor.Balance, "from_rao")
+
+    # Call
+    result = await subtensor.get_crowdloan_contributions(fake_crowdloan_id)
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(None, None, False)
+    mocked_query_map.assert_awaited_once_with(
+        module="Crowdloan",
+        storage_function="Contributions",
+        params=[fake_crowdloan_id],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    assert result == {
+        mocked_decode_account_id.return_value: mocked_from_rao.return_value
+    }
+
+
+@pytest.mark.parametrize(
+    "query_return, expected_result", [(None, None), ("Some", "decode_crowdloan_entry")]
+)
+@pytest.mark.asyncio
+async def test_get_crowdloan_by_id(mocker, subtensor, query_return, expected_result):
+    """Tests subtensor `get_crowdloan_by_id` method."""
+    # Preps
+    fake_crowdloan_id = mocker.Mock(spec=int)
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+
+    mocked_query_return = (
+        None if query_return is None else mocker.Mock(value=query_return)
+    )
+    mocked_query = mocker.patch.object(
+        subtensor.substrate, "query", return_value=mocked_query_return
+    )
+
+    mocked_decode_crowdloan_entry = mocker.patch.object(
+        subtensor, "_decode_crowdloan_entry"
+    )
+
+    # Call
+    result = await subtensor.get_crowdloan_by_id(fake_crowdloan_id)
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(None, None, False)
+    mocked_query.assert_awaited_once_with(
+        module="Crowdloan",
+        storage_function="Crowdloans",
+        params=[fake_crowdloan_id],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    assert (
+        result == expected_result
+        if query_return is None
+        else mocked_decode_crowdloan_entry.return_value
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_crowdloan_next_id(mocker, subtensor):
+    """Tests subtensor `get_crowdloan_next_id` method."""
+    # Preps
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query = mocker.patch.object(
+        subtensor.substrate, "query", return_value=mocker.Mock(value=3)
+    )
+
+    # Call
+    result = await subtensor.get_crowdloan_next_id()
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(None, None, False)
+    mocked_query.assert_awaited_once_with(
+        module="Crowdloan",
+        storage_function="NextCrowdloanId",
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    assert result == int(mocked_query.return_value.value)
+
+
+@pytest.mark.asyncio
+async def test_get_crowdloans(mocker, subtensor):
+    """Tests subtensor `get_crowdloans` method."""
+    # Preps
+    fake_id = mocker.Mock(spec=int)
+    fake_crowdloan = mocker.Mock(value=mocker.Mock(spec=dict))
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+
+    records = [(fake_id, fake_crowdloan)]
+    fake_result = mocker.AsyncMock(autospec=list)
+    fake_result.records = records
+    fake_result.__aiter__.return_value = iter(records)
+
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate,
+        "query_map",
+        return_value=fake_result,
+    )
+    mocked_decode_crowdloan_entry = mocker.patch.object(
+        subtensor, "_decode_crowdloan_entry"
+    )
+
+    # Call
+    result = await subtensor.get_crowdloans()
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(None, None, False)
+    mocked_query_map.assert_awaited_once_with(
+        module="Crowdloan",
+        storage_function="Crowdloans",
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    mocked_decode_crowdloan_entry.assert_awaited_once_with(
+        crowdloan_id=fake_id,
+        data=fake_crowdloan.value,
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    assert result == [mocked_decode_crowdloan_entry.return_value]

@@ -1,5 +1,5 @@
-import os
 import importlib.metadata
+import os
 import re
 from pathlib import Path
 
