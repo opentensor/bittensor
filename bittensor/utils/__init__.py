@@ -13,6 +13,7 @@ from async_substrate_interface.utils import (
 )
 from bittensor_wallet import Keypair
 from bittensor_wallet.errors import KeyFileError, PasswordError
+from bittensor_wallet.utils import SS58_FORMAT
 from scalecodec import (
     ss58_decode,
     ss58_encode,
@@ -20,13 +21,13 @@ from scalecodec import (
 )
 
 from bittensor.core import settings
-from bittensor_wallet.utils import SS58_FORMAT
 from bittensor.utils.btlogging import logging
 from .registration import torch, use_torch
 from .version import check_version, VersionCheckError
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
+    from bittensor.core.types import ExtrinsicResponse
     from bittensor.utils.balance import Balance
 
 # keep save from import analyzer as obvious aliases
@@ -498,3 +499,16 @@ def get_caller_name(depth: int = 2) -> str:
         if frame is not None:
             frame = frame.f_back
     return frame.f_code.co_name if frame else "unknown"
+
+
+def validate_max_attempts(
+    max_attempts: int, response: "ExtrinsicResponse"
+) -> Optional["ExtrinsicResponse"]:
+    """Common guard for all subtensor methods with max_attempts parameter."""
+    if max_attempts <= 0:
+        response.message = (
+            f"`max_attempts` parameter must be greater than 0, not {max_attempts}."
+        )
+        response.error = ValueError(response.message)
+        return response.with_log("warning")
+    return None
