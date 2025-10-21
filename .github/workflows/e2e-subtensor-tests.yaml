@@ -40,8 +40,8 @@ jobs:
 
       - name: Install deps for collection
         run: |
-         python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+         python -m pip install --upgrade pip uv
+          uv pip install -e ".[dev]"
 
       - name: Find test files
         id: get-tests
