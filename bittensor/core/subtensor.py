@@ -1648,7 +1648,7 @@ class Subtensor(SubtensorMixin):
         )
         fee_global_tao_query, fee_global_alpha_query, sqrt_price_query = (
             self.substrate.query_multi(
-                [
+                storage_keys=[
                     fee_global_tao_query_sk,
                     fee_global_alpha_query_sk,
                     sqrt_price_query_sk,
