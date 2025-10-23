@@ -3492,7 +3492,7 @@ async def test_get_liquidity_list_happy_path(subtensor, fake_wallet, mocker):
         ],
     ]
 
-    fake_result = mocker.AsyncMock(autospec=list)
+    fake_result = mocker.AsyncMock(records=fake_positions, autospec=list)
     fake_result.__aiter__.return_value = iter(fake_positions)
 
     mocked_query_map = mocker.AsyncMock(return_value=fake_result)
@@ -3512,8 +3512,10 @@ async def test_get_liquidity_list_happy_path(subtensor, fake_wallet, mocker):
     mocked_query_map.assert_awaited_once_with(
         module="Swap",
         name="Positions",
-        block=None,
         params=[netuid, fake_wallet.coldkeypub.ss58_address],
+        block=None,
+        block_hash=None,
+        reuse_block=False,
     )
     assert len(result) == len(fake_positions)
     assert all([isinstance(p, async_subtensor.LiquidityPosition) for p in result])

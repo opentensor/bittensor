@@ -3668,7 +3668,10 @@ def test_get_liquidity_list_happy_path(subtensor, fake_wallet, mocker):
             ),
         ],
     ]
-    mocked_query_map = mocker.MagicMock(return_value=fake_positions)
+    fake_result = mocker.MagicMock(records=fake_positions, autospec=list)
+    fake_result.__iter__.return_value = iter(fake_positions)
+
+    mocked_query_map = mocker.Mock(return_value=fake_result)
     mocker.patch.object(subtensor, "query_map", new=mocked_query_map)
 
     # Mock storage key creation
@@ -3713,8 +3716,8 @@ def test_get_liquidity_list_happy_path(subtensor, fake_wallet, mocker):
     mocked_query_map.assert_called_once_with(
         module="Swap",
         name="Positions",
-        block=None,
         params=[netuid, fake_wallet.coldkeypub.ss58_address],
+        block=None,
     )
     assert mock_query_multi.call_count == 2  # one for fees, one for ticks
     assert len(result) == len(fake_positions)
