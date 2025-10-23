@@ -1615,6 +1615,16 @@ class Subtensor(SubtensorMixin):
             logging.debug(f"Subnet {netuid} is not active.")
             return None
 
+        # Fetch positions
+        positions_response = self.query_map(
+            module="Swap",
+            name="Positions",
+            block=block,
+            params=[netuid, wallet.coldkeypub.ss58_address],
+        )
+        if len(positions_response.records) == 0:
+            return []
+
         block_hash = self.determine_block_hash(block)
 
         # Fetch global fees and current price
@@ -1638,7 +1648,7 @@ class Subtensor(SubtensorMixin):
         )
         fee_global_tao_query, fee_global_alpha_query, sqrt_price_query = (
             self.substrate.query_multi(
-                [
+                storage_keys=[
                     fee_global_tao_query_sk,
                     fee_global_alpha_query_sk,
                     sqrt_price_query_sk,
@@ -1652,13 +1662,6 @@ class Subtensor(SubtensorMixin):
         sqrt_price = fixed_to_float(sqrt_price_query[1])
         current_tick = price_to_tick(sqrt_price**2)
 
-        # Fetch positions
-        positions_response = self.query_map(
-            module="Swap",
-            name="Positions",
-            block=block,
-            params=[netuid, wallet.coldkeypub.ss58_address],
-        )
         positions_values: list[tuple[dict, int, int]] = []
         positions_storage_keys: list[StorageKey] = []
         for _, p in positions_response:

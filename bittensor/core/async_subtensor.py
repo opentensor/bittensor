@@ -2385,6 +2385,17 @@ class AsyncSubtensor(SubtensorMixin):
             logging.debug(f"Subnet {netuid} is not active.")
             return None
 
+        positions_response = await self.query_map(
+            module="Swap",
+            name="Positions",
+            params=[netuid, wallet.coldkeypub.ss58_address],
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        if len(positions_response.records) == 0:
+            return []
+
         block_hash = await self.determine_block_hash(
             block=block, block_hash=block_hash, reuse_block=reuse_block
         )
@@ -2408,25 +2419,20 @@ class AsyncSubtensor(SubtensorMixin):
             params=[netuid],
             block_hash=block_hash,
         )
+
         (
-            (fee_global_tao_query, fee_global_alpha_query, sqrt_price_query),
-            positions_response,
-        ) = await asyncio.gather(
-            self.substrate.query_multi(
-                [
-                    fee_global_tao_query_sk,
-                    fee_global_alpha_query_sk,
-                    sqrt_price_query_sk,
-                ],
-                block_hash=block_hash,
-            ),
-            self.query_map(
-                module="Swap",
-                name="Positions",
-                block=block,
-                params=[netuid, wallet.coldkeypub.ss58_address],
-            ),
+            fee_global_tao_query,
+            fee_global_alpha_query,
+            sqrt_price_query,
+        ) = await self.substrate.query_multi(
+            storage_keys=[
+                fee_global_tao_query_sk,
+                fee_global_alpha_query_sk,
+                sqrt_price_query_sk,
+            ],
+            block_hash=block_hash,
         )
+
         # convert to floats
         fee_global_tao = fixed_to_float(fee_global_tao_query[1])
         fee_global_alpha = fixed_to_float(fee_global_alpha_query[1])
