@@ -71,7 +71,7 @@ SS58_ADDRESS_LENGTH = 48
 
 # Default period for extrinsics Era
 # details https://paritytech.github.io/polkadot-sdk/master/src/sp_runtime/generic/era.rs.html#65-72
-DEFAULT_PERIOD = 8
+DEFAULT_PERIOD = 128
 
 # Block Explorers map network to explorer url
 # Must all be polkadotjs explorer urls
