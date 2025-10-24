@@ -101,6 +101,7 @@ from bittensor.core.extrinsics.params.transfer import get_transfer_fn_params
 from bittensor.core.metagraph import AsyncMetagraph
 from bittensor.core.settings import (
     version_as_int,
+    DEFAULT_PERIOD,
     TYPE_REGISTRY,
     TAO_APP_BLOCK_EXPLORER,
 )
@@ -4768,7 +4769,7 @@ class AsyncSubtensor(SubtensorMixin):
         sign_with: str = "coldkey",
         use_nonce: bool = False,
         nonce_key: str = "hotkey",
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -4818,12 +4819,10 @@ class AsyncSubtensor(SubtensorMixin):
                 getattr(wallet, nonce_key).ss58_address
             )
             extrinsic_data["nonce"] = next_nonce
+
         if period is not None:
             extrinsic_data["era"] = {"period": period}
 
-        extrinsic_response.extrinsic_fee = await self.get_extrinsic_fee(
-            call=call, keypair=signing_keypair
-        )
         extrinsic_response.extrinsic = await self.substrate.create_signed_extrinsic(
             **extrinsic_data
         )
@@ -4836,6 +4835,9 @@ class AsyncSubtensor(SubtensorMixin):
             extrinsic_response.extrinsic_receipt = response
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
+                extrinsic_response.extrinsic_fee = await self.get_extrinsic_fee(
+                    call=call, keypair=signing_keypair
+                )
                 extrinsic_response.message = (
                     "Not waiting for finalization or inclusion."
                 )
@@ -4843,6 +4845,9 @@ class AsyncSubtensor(SubtensorMixin):
                 return extrinsic_response
 
             if await response.is_success:
+                extrinsic_response.extrinsic_fee = Balance.from_rao(
+                    await response.total_fee_amount
+                )
                 extrinsic_response.message = "Success"
                 return extrinsic_response
 
@@ -4897,7 +4902,7 @@ class AsyncSubtensor(SubtensorMixin):
         safe_staking: bool = False,
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -4956,7 +4961,7 @@ class AsyncSubtensor(SubtensorMixin):
         price_low: Balance,
         price_high: Balance,
         hotkey_ss58: Optional[str] = None,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -5004,7 +5009,7 @@ class AsyncSubtensor(SubtensorMixin):
         netuids: UIDs,
         hotkey_ss58s: list[str],
         amounts: list[Balance],
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -5047,7 +5052,7 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         netuid: int,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -5179,7 +5184,7 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         crowdloan_id: int,
         amount: "Balance",
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -5221,7 +5226,7 @@ class AsyncSubtensor(SubtensorMixin):
         end: int,
         call: Optional["GenericCall"] = None,
         target_address: Optional[str] = None,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -5266,7 +5271,7 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         crowdloan_id: int,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -5310,7 +5315,7 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         crowdloan_id: int,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -5348,7 +5353,7 @@ class AsyncSubtensor(SubtensorMixin):
         position_id: int,
         liquidity_delta: Balance,
         hotkey_ss58: Optional[str] = None,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -5422,7 +5427,7 @@ class AsyncSubtensor(SubtensorMixin):
         destination_hotkey_ss58: str,
         amount: Optional[Balance] = None,
         move_all_stake: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -5468,7 +5473,7 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         crowdloan_id: int,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -5520,7 +5525,7 @@ class AsyncSubtensor(SubtensorMixin):
         num_processes: Optional[int] = None,
         update_interval: Optional[int] = None,
         log_verbose: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -5577,7 +5582,7 @@ class AsyncSubtensor(SubtensorMixin):
     async def register_subnet(
         self: "AsyncSubtensor",
         wallet: "Wallet",
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -5612,7 +5617,7 @@ class AsyncSubtensor(SubtensorMixin):
         netuid: int,
         position_id: int,
         hotkey_ss58: Optional[str] = None,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -5729,7 +5734,7 @@ class AsyncSubtensor(SubtensorMixin):
     async def root_register(
         self,
         wallet: "Wallet",
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -5763,7 +5768,7 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         cooldown: int,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -5800,7 +5805,7 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         netuid: int,
         hotkey_ss58: str,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -5842,7 +5847,7 @@ class AsyncSubtensor(SubtensorMixin):
         hotkey_ss58: str,
         netuid: int,
         children: list[tuple[float, str]],
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -5895,7 +5900,7 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         hotkey_ss58: str,
         take: float,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -5967,7 +5972,7 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         netuid: int,
         subnet_identity: SubnetIdentity,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -6158,7 +6163,7 @@ class AsyncSubtensor(SubtensorMixin):
         netuid: int,
         axon: "Axon",
         certificate: Optional[Certificate] = None,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -6202,7 +6207,7 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         netuid: int,
         data: str,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -6255,7 +6260,7 @@ class AsyncSubtensor(SubtensorMixin):
         data: str,
         blocks_until_reveal: int = 360,
         block_time: Union[int, float] = 12,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -6308,7 +6313,7 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         netuid: int,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -6350,7 +6355,7 @@ class AsyncSubtensor(SubtensorMixin):
         safe_swapping: bool = False,
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -6411,7 +6416,7 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         netuid: int,
         enable: bool,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -6452,7 +6457,7 @@ class AsyncSubtensor(SubtensorMixin):
         amount: Optional[Balance],
         transfer_all: bool = False,
         keep_alive: bool = True,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -6498,7 +6503,7 @@ class AsyncSubtensor(SubtensorMixin):
         origin_netuid: int,
         destination_netuid: int,
         amount: Balance,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -6547,7 +6552,7 @@ class AsyncSubtensor(SubtensorMixin):
         allow_partial_stake: bool = False,
         safe_unstaking: bool = False,
         rate_tolerance: float = 0.005,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -6603,7 +6608,7 @@ class AsyncSubtensor(SubtensorMixin):
         netuid: int,
         hotkey_ss58: str,
         rate_tolerance: Optional[float] = 0.005,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -6684,7 +6689,7 @@ class AsyncSubtensor(SubtensorMixin):
         hotkey_ss58s: list[str],
         amounts: Optional[list[Balance]] = None,
         unstake_all: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -6730,7 +6735,7 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         crowdloan_id: int,
         new_cap: "Balance",
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -6776,7 +6781,7 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         crowdloan_id: int,
         new_end: int,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -6823,7 +6828,7 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         crowdloan_id: int,
         new_min_contribution: "Balance",
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -6868,7 +6873,7 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         crowdloan_id: int,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
