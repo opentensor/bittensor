@@ -1694,6 +1694,7 @@ async def test_sign_and_send_extrinsic_success_finalization(
     fake_call = mocker.Mock()
     fake_extrinsic = mocker.Mock()
     fake_response = mocker.Mock()
+    fake_response.total_fee_amount = mocker.AsyncMock(spec=int, return_value=1)()
 
     mocked_get_extrinsic_fee = mocker.patch.object(subtensor, "get_extrinsic_fee")
 
@@ -1719,9 +1720,7 @@ async def test_sign_and_send_extrinsic_success_finalization(
     )
 
     # Asserts
-    mocked_get_extrinsic_fee.assert_awaited_once_with(
-        call=fake_call, keypair=fake_wallet.coldkey
-    )
+    mocked_get_extrinsic_fee.assert_not_awaited()
     mocked_create_signed_extrinsic.assert_called_once_with(
         call=fake_call,
         keypair=fake_wallet.coldkey,
@@ -1783,9 +1782,7 @@ async def test_sign_and_send_extrinsic_error_finalization(
     )
 
     # Asserts
-    mocked_get_extrinsic_fee.assert_awaited_once_with(
-        call=fake_call, keypair=fake_wallet.coldkey
-    )
+    mocked_get_extrinsic_fee.assert_not_awaited()
     mocked_create_signed_extrinsic.assert_called_once_with(
         call=fake_call,
         keypair=fake_wallet.coldkey,
@@ -1799,7 +1796,7 @@ async def test_sign_and_send_extrinsic_error_finalization(
     assert result == (False, mocked_format_error_message.return_value)
     assert result.extrinsic_function == get_function_name()
     assert result.extrinsic == fake_extrinsic
-    assert result.extrinsic_fee == mocked_get_extrinsic_fee.return_value
+    assert result.extrinsic_fee == None
     assert result.error is fake_error
     assert result.data is None
 
@@ -1886,13 +1883,11 @@ async def test_sign_and_send_extrinsic_substrate_request_exception(
     )
 
     # Asserts
-    mocked_get_extrinsic_fee.assert_awaited_once_with(
-        call=fake_call, keypair=fake_wallet.coldkey
-    )
+    mocked_get_extrinsic_fee.assert_not_awaited()
     assert result == (False, str(fake_exception))
     assert result.extrinsic_function == get_function_name()
     assert result.extrinsic == fake_extrinsic
-    assert result.extrinsic_fee == mocked_get_extrinsic_fee.return_value
+    assert result.extrinsic_fee == None
     assert result.error == fake_exception
     assert result.data is None
 
@@ -1924,7 +1919,7 @@ async def test_sign_and_send_extrinsic_raises_error(
             wallet=fake_wallet,
             raise_error=True,
         )
-    mocked_get_extrinsic_fee.assert_awaited_once()
+    mocked_get_extrinsic_fee.assert_not_awaited()
 
 
 @pytest.mark.asyncio
