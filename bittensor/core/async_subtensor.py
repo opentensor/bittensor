@@ -4823,9 +4823,6 @@ class AsyncSubtensor(SubtensorMixin):
         if period is not None:
             extrinsic_data["era"] = {"period": period}
 
-        extrinsic_response.extrinsic_fee = await self.get_extrinsic_fee(
-            call=call, keypair=signing_keypair
-        )
         extrinsic_response.extrinsic = await self.substrate.create_signed_extrinsic(
             **extrinsic_data
         )
@@ -4838,6 +4835,9 @@ class AsyncSubtensor(SubtensorMixin):
             extrinsic_response.extrinsic_receipt = response
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
+                extrinsic_response.extrinsic_fee = await self.get_extrinsic_fee(
+                    call=call, keypair=signing_keypair
+                )
                 extrinsic_response.message = (
                     "Not waiting for finalization or inclusion."
                 )
@@ -4845,6 +4845,9 @@ class AsyncSubtensor(SubtensorMixin):
                 return extrinsic_response
 
             if await response.is_success:
+                extrinsic_response.extrinsic_fee = Balance.from_rao(
+                    await response.total_fee_amount
+                )
                 extrinsic_response.message = "Success"
                 return extrinsic_response
 
