@@ -5,6 +5,7 @@ import torch
 from bittensor.core import subtensor as subtensor_module
 from bittensor.core.chain_data import SubnetHyperparameters
 from bittensor.core.extrinsics import commit_reveal
+from bittensor.core.settings import DEFAULT_PERIOD
 
 
 @pytest.fixture
@@ -133,7 +134,7 @@ def test_do_commit_reveal_v3_failure_due_to_error(mocker, subtensor, fake_wallet
         },
     )
     mocked_create_signed_extrinsic.assert_called_once_with(
-        call=mocked_compose_call.return_value, keypair=fake_wallet.hotkey
+        call=mocked_compose_call.return_value, keypair=fake_wallet.hotkey, era={"period": DEFAULT_PERIOD}
     )
     mocked_submit_extrinsic.assert_called_once_with(
         mocked_create_signed_extrinsic.return_value,

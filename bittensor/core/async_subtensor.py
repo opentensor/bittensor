@@ -93,7 +93,7 @@ from bittensor.core.extrinsics.asyncex.unstaking import (
     unstake_multiple_extrinsic,
 )
 from bittensor.core.metagraph import AsyncMetagraph
-from bittensor.core.settings import version_as_int, TYPE_REGISTRY
+from bittensor.core.settings import version_as_int, TYPE_REGISTRY, DEFAULT_PERIOD
 from bittensor.core.types import (
     ParamWithTypes,
     Salt,
@@ -4476,7 +4476,13 @@ class AsyncSubtensor(SubtensorMixin):
                 f"'sign_with' must be either 'coldkey', 'hotkey' or 'coldkeypub', not '{sign_with}'"
             )
         signing_keypair = getattr(wallet, sign_with)
-        extrinsic_data = {"call": call, "keypair": signing_keypair}
+        extrinsic_data = {
+            "call": call,
+            "keypair": signing_keypair,
+            "era": {
+                "period": period or DEFAULT_PERIOD,
+            },
+        }
         if use_nonce:
             if nonce_key not in possible_keys:
                 raise AttributeError(
@@ -4486,8 +4492,6 @@ class AsyncSubtensor(SubtensorMixin):
                 getattr(wallet, nonce_key).ss58_address
             )
             extrinsic_data["nonce"] = next_nonce
-        if period is not None:
-            extrinsic_data["era"] = {"period": period}
 
         extrinsic = await self.substrate.create_signed_extrinsic(**extrinsic_data)
         try:

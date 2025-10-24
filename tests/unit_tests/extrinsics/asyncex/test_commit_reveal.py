@@ -1,6 +1,7 @@
 from bittensor.core import async_subtensor as subtensor_module
 from bittensor.core.chain_data import SubnetHyperparameters
 from bittensor.core.extrinsics.asyncex import commit_reveal as async_commit_reveal
+from bittensor.core.settings import DEFAULT_PERIOD
 import pytest
 import torch
 import numpy as np
@@ -82,7 +83,7 @@ async def test_do_commit_reveal_v3_success(mocker, subtensor, fake_wallet):
         },
     )
     mocked_create_signed_extrinsic.assert_awaited_once_with(
-        call=mocked_compose_call.return_value, keypair=fake_wallet.hotkey
+        call=mocked_compose_call.return_value, keypair=fake_wallet.hotkey, era={"period": DEFAULT_PERIOD}
     )
     mocked_submit_extrinsic.assert_awaited_once_with(
         mocked_create_signed_extrinsic.return_value,
@@ -142,7 +143,7 @@ async def test_do_commit_reveal_v3_failure_due_to_error(mocker, subtensor, fake_
         },
     )
     mocked_create_signed_extrinsic.assert_awaited_once_with(
-        call=mocked_compose_call.return_value, keypair=fake_wallet.hotkey
+        call=mocked_compose_call.return_value, keypair=fake_wallet.hotkey, era={"period": DEFAULT_PERIOD}
     )
     mocked_submit_extrinsic.assert_awaited_once_with(
         mocked_create_signed_extrinsic.return_value,

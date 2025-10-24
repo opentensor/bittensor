@@ -15,6 +15,7 @@ from bittensor.core.chain_data import (
     StakeInfo,
     SelectiveMetagraphIndex,
 )
+from bittensor.core.settings import DEFAULT_PERIOD
 from bittensor.utils import U64_MAX
 from bittensor.utils.balance import Balance
 from tests.helpers.helpers import assert_submit_signed_extrinsic
@@ -1727,7 +1728,7 @@ async def test_sign_and_send_extrinsic_success_finalization(
 
     # Asserts
     mocked_create_signed_extrinsic.assert_called_once_with(
-        call=fake_call, keypair=fake_wallet.coldkey
+        call=fake_call, keypair=fake_wallet.coldkey, era={"period": DEFAULT_PERIOD}
     )
     mocked_submit_extrinsic.assert_called_once_with(
         fake_extrinsic,
@@ -1778,7 +1779,7 @@ async def test_sign_and_send_extrinsic_error_finalization(
 
     # Asserts
     mocked_create_signed_extrinsic.assert_called_once_with(
-        call=fake_call, keypair=fake_wallet.coldkey
+        call=fake_call, keypair=fake_wallet.coldkey, era={"period": DEFAULT_PERIOD}
     )
     mocked_submit_extrinsic.assert_called_once_with(
         fake_extrinsic,
@@ -1814,7 +1815,7 @@ async def test_sign_and_send_extrinsic_success_without_inclusion_finalization(
     # Asserts
     mocked_create_signed_extrinsic.assert_awaited_once()
     mocked_create_signed_extrinsic.assert_called_once_with(
-        call=fake_call, keypair=fake_wallet.coldkey
+        call=fake_call, keypair=fake_wallet.coldkey, era={"period": DEFAULT_PERIOD}
     )
     mocked_submit_extrinsic.assert_awaited_once()
     mocked_submit_extrinsic.assert_called_once_with(
