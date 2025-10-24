@@ -2604,7 +2604,7 @@ async def test_transfer_success(subtensor, fake_wallet, mocker):
         wait_for_inclusion=True,
         wait_for_finalization=False,
         keep_alive=True,
-        period=None,
+        period=DEFAULT_PERIOD,
     )
     assert result == mocked_transfer_extrinsic.return_value
 
@@ -2638,7 +2638,7 @@ async def test_register_success(subtensor, fake_wallet, mocker):
         wait_for_finalization=True,
         wait_for_inclusion=False,
         wallet=fake_wallet,
-        period=None,
+        period=DEFAULT_PERIOD,
     )
     assert result == mocked_register_extrinsic.return_value
 
@@ -2676,7 +2676,7 @@ async def test_set_children(subtensor, fake_wallet, mocker):
         wait_for_finalization=True,
         wait_for_inclusion=True,
         raise_error=False,
-        period=None,
+        period=DEFAULT_PERIOD,
     )
     assert result == mocked_set_children_extrinsic.return_value
 
@@ -2803,7 +2803,7 @@ async def test_set_weights_success(subtensor, fake_wallet, mocker):
         wait_for_finalization=False,
         wait_for_inclusion=False,
         weights=fake_weights,
-        period=8,
+        period=DEFAULT_PERIOD,
         mechid=0,
     )
     mocked_weights_rate_limit.assert_called_once_with(fake_netuid)
@@ -2892,7 +2892,7 @@ async def test_root_set_weights_success(subtensor, fake_wallet, mocker):
         version_key=0,
         wait_for_finalization=True,
         wait_for_inclusion=True,
-        period=None,
+        period=DEFAULT_PERIOD,
     )
     assert result == mocked_set_root_weights_extrinsic.return_value
 
@@ -2934,7 +2934,7 @@ async def test_commit_weights_success(subtensor, fake_wallet, mocker):
         weights=fake_weights,
         wait_for_inclusion=False,
         wait_for_finalization=False,
-        period=16,
+        period=DEFAULT_PERIOD,
         mechid=0,
     )
     assert result is True
@@ -3036,7 +3036,7 @@ async def test_set_subnet_identity(mocker, subtensor, fake_wallet):
         additional=fake_subnet_identity.additional,
         wait_for_finalization=True,
         wait_for_inclusion=False,
-        period=None,
+        period=DEFAULT_PERIOD,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3142,7 +3142,7 @@ async def test_start_call(subtensor, mocker):
         netuid=netuid,
         wait_for_inclusion=True,
         wait_for_finalization=False,
-        period=None,
+        period=DEFAULT_PERIOD,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3494,7 +3494,7 @@ async def test_unstake_all(subtensor, fake_wallet, mocker):
         rate_tolerance=0.005,
         wait_for_inclusion=True,
         wait_for_finalization=False,
-        period=None,
+        period=DEFAULT_PERIOD,
     )
     assert result == fake_unstake_all_extrinsic.return_value
 
@@ -3719,7 +3719,7 @@ async def test_add_liquidity(subtensor, fake_wallet, mocker):
         hotkey=None,
         wait_for_inclusion=True,
         wait_for_finalization=False,
-        period=None,
+        period=DEFAULT_PERIOD,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3752,7 +3752,7 @@ async def test_modify_liquidity(subtensor, fake_wallet, mocker):
         hotkey=None,
         wait_for_inclusion=True,
         wait_for_finalization=False,
-        period=None,
+        period=DEFAULT_PERIOD,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3783,7 +3783,7 @@ async def test_remove_liquidity(subtensor, fake_wallet, mocker):
         hotkey=None,
         wait_for_inclusion=True,
         wait_for_finalization=False,
-        period=None,
+        period=DEFAULT_PERIOD,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3813,7 +3813,7 @@ async def test_toggle_user_liquidity(subtensor, fake_wallet, mocker):
         enable=enable,
         wait_for_inclusion=True,
         wait_for_finalization=False,
-        period=None,
+        period=DEFAULT_PERIOD,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -4323,7 +4323,7 @@ async def test_set_auto_stake(subtensor, mocker):
         wallet=wallet,
         netuid=netuid,
         hotkey_ss58=hotkey,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
