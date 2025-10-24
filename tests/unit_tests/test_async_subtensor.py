@@ -18,6 +18,7 @@ from bittensor.core.chain_data import (
 )
 from bittensor.core.errors import BalanceTypeError
 from bittensor.core.types import ExtrinsicResponse
+from bittensor.core.settings import DEFAULT_PERIOD
 from bittensor.utils import U64_MAX, get_function_name
 from bittensor.utils.balance import Balance
 
@@ -205,7 +206,7 @@ async def test_burned_register(subtensor, fake_wallet, mocker):
     mocked_sign_and_send_extrinsic.assert_awaited_once_with(
         call=mocked_compose_call.return_value,
         wallet=fake_wallet,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_finalization=True,
         wait_for_inclusion=True,
@@ -2658,7 +2659,7 @@ async def test_transfer_success(subtensor, fake_wallet, mocker):
         wait_for_inclusion=True,
         wait_for_finalization=False,
         keep_alive=True,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
     )
     assert result == mocked_transfer_extrinsic.return_value
@@ -2691,7 +2692,7 @@ async def test_register_success(subtensor, fake_wallet, mocker):
         subtensor=subtensor,
         tpb=256,
         update_interval=None,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_finalization=True,
         wait_for_inclusion=True,
@@ -2732,7 +2733,7 @@ async def test_set_children(subtensor, fake_wallet, mocker):
         wait_for_finalization=True,
         wait_for_inclusion=True,
         raise_error=False,
-        period=None,
+        period=DEFAULT_PERIOD,
     )
     assert result == mocked_set_children_extrinsic.return_value
 
@@ -2858,7 +2859,7 @@ async def test_set_subnet_identity(mocker, subtensor, fake_wallet):
         discord=fake_subnet_identity.discord,
         description=fake_subnet_identity.description,
         additional=fake_subnet_identity.additional,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_finalization=True,
         wait_for_inclusion=True,
@@ -2967,7 +2968,7 @@ async def test_start_call(subtensor, mocker):
         netuid=netuid,
         wait_for_inclusion=True,
         wait_for_finalization=False,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
     )
     assert result == mocked_extrinsic.return_value
@@ -3328,7 +3329,7 @@ async def test_unstake_all(subtensor, fake_wallet, mocker):
         rate_tolerance=0.005,
         wait_for_inclusion=True,
         wait_for_finalization=True,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
     )
     assert result == fake_unstake_all_extrinsic.return_value
@@ -3552,7 +3553,7 @@ async def test_add_liquidity(subtensor, fake_wallet, mocker):
         hotkey_ss58=None,
         wait_for_inclusion=True,
         wait_for_finalization=True,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
     )
     assert result == mocked_extrinsic.return_value
@@ -3586,7 +3587,7 @@ async def test_modify_liquidity(subtensor, fake_wallet, mocker):
         hotkey_ss58=None,
         wait_for_inclusion=True,
         wait_for_finalization=True,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
     )
     assert result == mocked_extrinsic.return_value
@@ -3618,7 +3619,7 @@ async def test_remove_liquidity(subtensor, fake_wallet, mocker):
         hotkey_ss58=None,
         wait_for_inclusion=True,
         wait_for_finalization=True,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
     )
     assert result == mocked_extrinsic.return_value
@@ -3649,7 +3650,7 @@ async def test_toggle_user_liquidity(subtensor, fake_wallet, mocker):
         enable=enable,
         wait_for_inclusion=True,
         wait_for_finalization=True,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
     )
     assert result == mocked_extrinsic.return_value
@@ -4140,7 +4141,7 @@ async def test_set_auto_stake(subtensor, mocker):
         wallet=wallet,
         netuid=netuid,
         hotkey_ss58=hotkey,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -4256,7 +4257,7 @@ async def test_contribute_crowdloan(mocker, subtensor):
         wallet=wallet,
         crowdloan_id=crowdloan_id,
         amount=amount,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -4301,7 +4302,7 @@ async def test_create_crowdloan(mocker, subtensor):
         end=end,
         call=call,
         target_address=target_address,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -4340,7 +4341,7 @@ async def test_crowdloan_methods_with_crowdloan_id_parameter(
         subtensor=subtensor,
         wallet=wallet,
         crowdloan_id=crowdloan_id,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -4373,7 +4374,7 @@ async def test_update_cap_crowdloan(mocker, subtensor):
         wallet=wallet,
         crowdloan_id=crowdloan_id,
         new_cap=new_cap,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -4406,7 +4407,7 @@ async def test_update_end_crowdloan(mocker, subtensor):
         wallet=wallet,
         crowdloan_id=crowdloan_id,
         new_end=new_end,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -4439,7 +4440,7 @@ async def test_update_min_contribution_crowdloan(mocker, subtensor):
         wallet=wallet,
         crowdloan_id=crowdloan_id,
         new_min_contribution=new_min_contribution,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,

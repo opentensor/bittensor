@@ -16,7 +16,7 @@ from bittensor.core import subtensor as subtensor_module
 from bittensor.core.async_subtensor import AsyncSubtensor, logging
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import SubnetHyperparameters, SelectiveMetagraphIndex
-from bittensor.core.settings import version_as_int
+from bittensor.core.settings import version_as_int, DEFAULT_PERIOD
 from bittensor.core.subtensor import Subtensor
 from bittensor.core.types import AxonServeCallParams
 from bittensor.core.types import ExtrinsicResponse
@@ -1180,7 +1180,7 @@ def test_serve_axon(subtensor, mocker):
         netuid=fake_netuid,
         axon=fake_axon,
         certificate=fake_certificate,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
@@ -1220,7 +1220,7 @@ def test_commit(subtensor, fake_wallet, mocker):
         netuid=fake_netuid,
         data_type=f"Raw{len(fake_data)}",
         data=fake_data.encode(),
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -1281,7 +1281,7 @@ def test_transfer(subtensor, fake_wallet, mocker):
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
         keep_alive=True,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
     )
     assert result == mocked_transfer_extrinsic.return_value
@@ -2645,7 +2645,7 @@ def test_add_stake_success(mocker, fake_wallet, subtensor):
         safe_staking=False,
         allow_partial_stake=False,
         rate_tolerance=0.005,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
     )
     assert result == mock_add_stake_extrinsic.return_value
@@ -2688,7 +2688,7 @@ def test_add_stake_with_safe_staking(mocker, fake_wallet, subtensor):
         safe_staking=True,
         allow_partial_stake=False,
         rate_tolerance=fake_rate_tolerance,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
     )
     assert result == mock_add_stake_extrinsic.return_value
@@ -2723,7 +2723,7 @@ def test_add_stake_multiple_success(mocker, fake_wallet, subtensor):
         amounts=fake_amount,
         wait_for_inclusion=True,
         wait_for_finalization=False,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
     )
     assert result == mock_add_stake_multiple_extrinsic.return_value
@@ -2761,7 +2761,7 @@ def test_unstake_success(mocker, subtensor, fake_wallet):
         safe_unstaking=False,
         allow_partial_stake=False,
         rate_tolerance=0.005,
-        period=None,
+        period=DEFAULT_PERIOD,
         wait_for_inclusion=True,
         wait_for_finalization=False,
         raise_error=False,
@@ -2801,7 +2801,7 @@ def test_unstake_with_safe_unstaking(mocker, subtensor, fake_wallet):
         safe_unstaking=True,
         allow_partial_stake=True,
         rate_tolerance=fake_rate_tolerance,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=False,
@@ -2848,7 +2848,7 @@ def test_swap_stake_success(mocker, subtensor, fake_wallet):
         safe_swapping=False,
         allow_partial_stake=False,
         rate_tolerance=0.005,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
     )
     assert result == mock_swap_stake_extrinsic.return_value
@@ -2894,7 +2894,7 @@ def test_swap_stake_with_safe_staking(mocker, subtensor, fake_wallet):
         safe_swapping=True,
         allow_partial_stake=True,
         rate_tolerance=fake_rate_tolerance,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
     )
     assert result == mock_swap_stake_extrinsic.return_value
@@ -2929,7 +2929,7 @@ def test_unstake_multiple_success(mocker, subtensor, fake_wallet):
         amounts=fake_amounts,
         wait_for_inclusion=True,
         wait_for_finalization=False,
-        period=None,
+        period=DEFAULT_PERIOD,
         unstake_all=False,
         raise_error=False,
     )
@@ -3042,7 +3042,7 @@ def test_set_subnet_identity(mocker, subtensor, fake_wallet):
         discord=fake_subnet_identity.discord,
         description=fake_subnet_identity.description,
         additional=fake_subnet_identity.additional,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_finalization=True,
         wait_for_inclusion=True,
@@ -3143,7 +3143,7 @@ def test_start_call(subtensor, mocker):
         netuid=netuid,
         wait_for_inclusion=True,
         wait_for_finalization=False,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
     )
     assert result == mocked_extrinsic.return_value
@@ -3573,7 +3573,7 @@ def test_set_children(subtensor, fake_wallet, mocker):
         wait_for_finalization=True,
         wait_for_inclusion=True,
         raise_error=False,
-        period=None,
+        period=DEFAULT_PERIOD,
     )
     assert result == mocked_set_children_extrinsic.return_value
 
@@ -3600,7 +3600,7 @@ def test_unstake_all(subtensor, fake_wallet, mocker):
         rate_tolerance=0.005,
         wait_for_inclusion=True,
         wait_for_finalization=True,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
     )
     assert result == fake_unstake_all_extrinsic.return_value
@@ -3747,7 +3747,7 @@ def test_add_liquidity(subtensor, fake_wallet, mocker):
         hotkey_ss58=None,
         wait_for_inclusion=True,
         wait_for_finalization=True,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
     )
     assert result == mocked_extrinsic.return_value
@@ -3780,7 +3780,7 @@ def test_modify_liquidity(subtensor, fake_wallet, mocker):
         hotkey_ss58=None,
         wait_for_inclusion=True,
         wait_for_finalization=True,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
     )
     assert result == mocked_extrinsic.return_value
@@ -3811,7 +3811,7 @@ def test_remove_liquidity(subtensor, fake_wallet, mocker):
         hotkey_ss58=None,
         wait_for_inclusion=True,
         wait_for_finalization=True,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
     )
     assert result == mocked_extrinsic.return_value
@@ -3841,7 +3841,7 @@ def test_toggle_user_liquidity(subtensor, fake_wallet, mocker):
         enable=enable,
         wait_for_inclusion=True,
         wait_for_finalization=True,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
     )
     assert result == mocked_extrinsic.return_value
@@ -4294,7 +4294,7 @@ def test_set_auto_stake(subtensor, mocker):
         wallet=wallet,
         netuid=netuid,
         hotkey_ss58=hotkey,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -4375,7 +4375,7 @@ def test_contribute_crowdloan(mocker, subtensor):
         wallet=wallet,
         crowdloan_id=crowdloan_id,
         amount=amount,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -4419,7 +4419,7 @@ def test_create_crowdloan(mocker, subtensor):
         end=end,
         call=call,
         target_address=target_address,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -4457,7 +4457,7 @@ def test_crowdloan_methods_with_crowdloan_id_parameter(
         subtensor=subtensor,
         wallet=wallet,
         crowdloan_id=crowdloan_id,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -4489,7 +4489,7 @@ def test_update_cap_crowdloan(mocker, subtensor):
         wallet=wallet,
         crowdloan_id=crowdloan_id,
         new_cap=new_cap,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -4521,7 +4521,7 @@ def test_update_end_crowdloan(mocker, subtensor):
         wallet=wallet,
         crowdloan_id=crowdloan_id,
         new_end=new_end,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -4553,7 +4553,7 @@ def test_update_min_contribution_crowdloan(mocker, subtensor):
         wallet=wallet,
         crowdloan_id=crowdloan_id,
         new_min_contribution=new_min_contribution,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
