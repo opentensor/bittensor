@@ -1497,7 +1497,7 @@ def test_do_serve_axon_is_success(
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
         sign_with="hotkey",
-        period=DEFAULT_PERIOD,
+        period=None,
     )
 
     assert result[0] is True
@@ -1536,7 +1536,7 @@ def test_do_serve_axon_is_not_success(subtensor, fake_wallet, mocker, fake_call_
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
         sign_with="hotkey",
-        period=DEFAULT_PERIOD,
+        period=None,
     )
 
     assert result == (False, None)
@@ -1575,7 +1575,7 @@ def test_do_serve_axon_no_waits(subtensor, fake_wallet, mocker, fake_call_params
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
         sign_with="hotkey",
-        period=DEFAULT_PERIOD,
+        period=None,
     )
     assert result == (True, "")
 
