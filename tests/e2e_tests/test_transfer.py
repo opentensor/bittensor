@@ -23,30 +23,25 @@ def test_transfer(subtensor, alice_wallet):
     transfer_value = Balance.from_tao(2)
     dest_coldkey = "5GpzQgpiAKHMWNSH3RN4GLf96GVTDct9QxYEFAY7LWcVzTbx"
 
-    # Fetch transfer fee
-    transfer_fee = subtensor.wallets.get_transfer_fee(
-        wallet=alice_wallet,
-        destination_ss58=dest_coldkey,
-        amount=transfer_value,
-    )
-
     # Account details before transfer
     balance_before = subtensor.wallets.get_balance(alice_wallet.coldkeypub.ss58_address)
 
     # Transfer Tao
-    assert subtensor.extrinsics.transfer(
+    response = subtensor.extrinsics.transfer(
         wallet=alice_wallet,
         destination_ss58=dest_coldkey,
         amount=transfer_value,
         wait_for_finalization=True,
         wait_for_inclusion=True,
-    ).success
+    )
+    assert response.success, response.message
+
     # Account details after transfer
     balance_after = subtensor.wallets.get_balance(alice_wallet.coldkeypub.ss58_address)
 
     # Assert correct transfer calculations
-    assert balance_before - transfer_fee - transfer_value == balance_after, (
-        f"Expected {balance_before - transfer_value - transfer_fee}, got {balance_after}"
+    assert balance_before - response.extrinsic_fee - transfer_value == balance_after, (
+        f"Expected {balance_before - transfer_value - response.extrinsic_fee}, got {balance_after}"
     )
 
 
@@ -64,36 +59,29 @@ async def test_transfer_async(async_subtensor, alice_wallet):
     transfer_value = Balance.from_tao(2)
     dest_coldkey = "5GpzQgpiAKHMWNSH3RN4GLf96GVTDct9QxYEFAY7LWcVzTbx"
 
-    # Fetch transfer fee
-    transfer_fee = await async_subtensor.wallets.get_transfer_fee(
-        wallet=alice_wallet,
-        destination_ss58=dest_coldkey,
-        amount=transfer_value,
-    )
-
     # Account details before transfer
     balance_before = await async_subtensor.wallets.get_balance(
         alice_wallet.coldkeypub.ss58_address
     )
 
     # Transfer Tao
-    assert (
-        await async_subtensor.extrinsics.transfer(
-            wallet=alice_wallet,
-            destination_ss58=dest_coldkey,
-            amount=transfer_value,
-            wait_for_finalization=True,
-            wait_for_inclusion=True,
-        )
-    ).success
+    response = await async_subtensor.extrinsics.transfer(
+        wallet=alice_wallet,
+        destination_ss58=dest_coldkey,
+        amount=transfer_value,
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
+    )
+    assert response.success, response.message
+
     # Account details after transfer
     balance_after = await async_subtensor.wallets.get_balance(
         alice_wallet.coldkeypub.ss58_address
     )
 
     # Assert correct transfer calculations
-    assert balance_before - transfer_fee - transfer_value == balance_after, (
-        f"Expected {balance_before - transfer_value - transfer_fee}, got {balance_after}"
+    assert balance_before - response.extrinsic_fee - transfer_value == balance_after, (
+        f"Expected {balance_before - transfer_value - response.extrinsic_fee}, got {balance_after}"
     )
 
 
