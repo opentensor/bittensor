@@ -1,6 +1,7 @@
 from bittensor.core import async_subtensor as subtensor_module
 from bittensor.core.chain_data import SubnetHyperparameters
 from bittensor.core.extrinsics.asyncex import commit_reveal as async_commit_reveal
+from bittensor.core.settings import DEFAULT_PERIOD
 import pytest
 import torch
 import numpy as np

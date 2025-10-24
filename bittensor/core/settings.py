@@ -70,6 +70,9 @@ SS58_FORMAT = 42
 # Wallet ss58 address length
 SS58_ADDRESS_LENGTH = 48
 
+# Default period for extrinsic Era
+DEFAULT_PERIOD = 32
+
 # Block Explorers map network to explorer url
 # Must all be polkadotjs explorer urls
 NETWORK_EXPLORER_MAP = {

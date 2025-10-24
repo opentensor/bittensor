@@ -5,6 +5,7 @@ import torch
 from bittensor.core import subtensor as subtensor_module
 from bittensor.core.chain_data import SubnetHyperparameters
 from bittensor.core.extrinsics import commit_reveal
+from bittensor.core.settings import DEFAULT_PERIOD
 
 
 @pytest.fixture

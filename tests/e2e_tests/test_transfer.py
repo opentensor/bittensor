@@ -43,8 +43,9 @@ def test_transfer(subtensor: "SubtensorApi", alice_wallet):
         wallet=alice_wallet,
         dest=dest_coldkey,
         amount=transfer_value,
+        period=None,
         wait_for_finalization=True,
-        wait_for_inclusion=True,
+        wait_for_inclusion=False,
     )
     # Account details after transfer
     balance_after = subtensor.get_balance(alice_wallet.coldkeypub.ss58_address)

@@ -14,6 +14,7 @@ from websockets.asyncio.client import ClientConnection, ClientProtocol
 from websockets.uri import parse_uri
 
 from bittensor.core.chain_data import AxonInfo, NeuronInfo, PrometheusInfo
+from bittensor.core.subtensor import DEFAULT_PERIOD
 from bittensor.utils.balance import Balance
 from tests.helpers.integration_websocket_data import WEBSOCKET_RESPONSES
 
@@ -96,6 +97,7 @@ def assert_submit_signed_extrinsic(
     extrinsic = {
         "call": substrate.compose_call.return_value,
         "keypair": keypair,
+        "era": {"period": DEFAULT_PERIOD}
     }
 
     if era:
