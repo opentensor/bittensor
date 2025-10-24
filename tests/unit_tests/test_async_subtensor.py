@@ -1722,7 +1722,9 @@ async def test_sign_and_send_extrinsic_success_finalization(
         call=fake_call, keypair=fake_wallet.coldkey
     )
     mocked_create_signed_extrinsic.assert_called_once_with(
-        call=fake_call, keypair=fake_wallet.coldkey
+        call=fake_call,
+        keypair=fake_wallet.coldkey,
+        era={"period": settings.DEFAULT_PERIOD},
     )
     mocked_submit_extrinsic.assert_called_once_with(
         extrinsic=fake_extrinsic,
@@ -1784,7 +1786,9 @@ async def test_sign_and_send_extrinsic_error_finalization(
         call=fake_call, keypair=fake_wallet.coldkey
     )
     mocked_create_signed_extrinsic.assert_called_once_with(
-        call=fake_call, keypair=fake_wallet.coldkey
+        call=fake_call,
+        keypair=fake_wallet.coldkey,
+        era={"period": settings.DEFAULT_PERIOD},
     )
     mocked_submit_extrinsic.assert_called_once_with(
         extrinsic=fake_extrinsic,
@@ -1830,7 +1834,9 @@ async def test_sign_and_send_extrinsic_success_without_inclusion_finalization(
     )
     mocked_create_signed_extrinsic.assert_awaited_once()
     mocked_create_signed_extrinsic.assert_called_once_with(
-        call=fake_call, keypair=fake_wallet.coldkey
+        call=fake_call,
+        keypair=fake_wallet.coldkey,
+        era={"period": settings.DEFAULT_PERIOD},
     )
     mocked_submit_extrinsic.assert_awaited_once()
     mocked_submit_extrinsic.assert_called_once_with(
@@ -1913,7 +1919,7 @@ async def test_sign_and_send_extrinsic_raises_error(
         match="{'name': 'Exception'}",
     ):
         await subtensor.sign_and_send_extrinsic(
-            call=mocker.Mock(),
+            call=mocker.MagicMock(spec=GenericCall),
             wallet=fake_wallet,
             raise_error=True,
         )

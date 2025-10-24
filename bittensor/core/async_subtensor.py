@@ -101,6 +101,7 @@ from bittensor.core.extrinsics.params.transfer import get_transfer_fn_params
 from bittensor.core.metagraph import AsyncMetagraph
 from bittensor.core.settings import (
     version_as_int,
+    DEFAULT_PERIOD,
     TYPE_REGISTRY,
     TAO_APP_BLOCK_EXPLORER,
 )
@@ -4808,7 +4809,13 @@ class AsyncSubtensor(SubtensorMixin):
                 f"'sign_with' must be either 'coldkey', 'hotkey' or 'coldkeypub', not '{sign_with}'"
             )
         signing_keypair = getattr(wallet, sign_with)
-        extrinsic_data = {"call": call, "keypair": signing_keypair}
+        extrinsic_data = {
+            "call": call,
+            "keypair": signing_keypair,
+            "era": {
+                "period": period or DEFAULT_PERIOD,
+            },
+        }
         if use_nonce:
             if nonce_key not in possible_keys:
                 raise AttributeError(
@@ -4818,8 +4825,6 @@ class AsyncSubtensor(SubtensorMixin):
                 getattr(wallet, nonce_key).ss58_address
             )
             extrinsic_data["nonce"] = next_nonce
-        if period is not None:
-            extrinsic_data["era"] = {"period": period}
 
         extrinsic_response.extrinsic_fee = await self.get_extrinsic_fee(
             call=call, keypair=signing_keypair
