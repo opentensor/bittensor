@@ -2,7 +2,7 @@ import asyncio
 import copy
 import ssl
 from datetime import datetime, timezone
-from typing import cast, Optional, Any, Union, Iterable, TYPE_CHECKING
+from typing import cast, Optional, Any, Union, Iterable, TYPE_CHECKING, Literal
 
 import asyncstdlib as a
 import scalecodec
@@ -73,7 +73,11 @@ from bittensor.core.extrinsics.asyncex.registration import (
     register_subnet_extrinsic,
     set_subnet_identity_extrinsic,
 )
-from bittensor.core.extrinsics.asyncex.root import root_register_extrinsic
+from bittensor.core.extrinsics.asyncex.root import (
+    claim_root_extrinsic,
+    root_register_extrinsic,
+    set_root_claim_type_extrinsic,
+)
 from bittensor.core.extrinsics.asyncex.serving import (
     publish_metadata_extrinsic,
 )
@@ -3035,6 +3039,21 @@ class AsyncSubtensor(SubtensorMixin):
             return None
         return tuple(decode_revealed_commitment(pair) for pair in query)
 
+    async def get_root_claim_type(
+        self,
+        coldkey_ss58: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> dict:
+        """Retrieves the root claim type for a given coldkey address."""
+        return await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="RootClaimType",
+            params=[coldkey_ss58],
+            block_hash=await self.determine_block_hash(block, block_hash, reuse_block),
+        )
+
     async def get_stake(
         self,
         coldkey_ss58: str,
@@ -5101,6 +5120,37 @@ class AsyncSubtensor(SubtensorMixin):
                 wait_for_finalization=wait_for_finalization,
             )
 
+    async def claim_root(
+        self,
+        wallet: "Wallet",
+        period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ):
+        """Claims the root emissions for a coldkey.
+
+        Parameters:
+            wallet: Bittensor Wallet instance.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+        """
+        return await claim_root_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
     async def commit_weights(
         self,
         wallet: "Wallet",
@@ -5972,6 +6022,40 @@ class AsyncSubtensor(SubtensorMixin):
 
         logging.error(f"[red]{response.message}[/red]")
         return response
+
+    async def set_root_claim_type(
+        self,
+        wallet: "Wallet",
+        new_root_claim_type: Literal["Swap", "Keep"],
+        period: Optional[int] = None,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ):
+        """Sets the root claim type for the coldkey in provided wallet.
+
+        Parameters:
+            wallet: Bittensor Wallet instance.
+            new_root_claim_type: The new root claim type to set. Could be either "Swap" or "Keep".
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+        """
+        return await set_root_claim_type_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            new_root_claim_type=new_root_claim_type,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
 
     async def set_subnet_identity(
         self,
