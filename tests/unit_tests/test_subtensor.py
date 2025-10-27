@@ -4763,7 +4763,11 @@ def test_get_root_claim_type(mocker, subtensor):
     # Preps
     fake_coldkey_ss58 = mocker.Mock(spec=str)
     mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
-    mocked_map = mocker.patch.object(subtensor.substrate, "query")
+    fake_type = mocker.Mock(spec=str)
+    fake_result = {fake_type: ()}
+    mocked_map = mocker.patch.object(
+        subtensor.substrate, "query", return_value=fake_result
+    )
 
     # call
     result = subtensor.get_root_claim_type(fake_coldkey_ss58)
@@ -4776,7 +4780,7 @@ def test_get_root_claim_type(mocker, subtensor):
         params=[fake_coldkey_ss58],
         block_hash=mocked_determine_block_hash.return_value,
     )
-    assert result == mocked_map.return_value
+    assert result == fake_type
 
 
 def test_set_root_claim_type(mocker, subtensor):
