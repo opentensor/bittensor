@@ -4756,3 +4756,51 @@ def test_commit_weights_with_zero_max_attempts(
     assert isinstance(response.error, ValueError)
     assert expected_message in str(response.error)
     assert expected_message in caplog.text
+
+
+def test_get_root_claim_type(mocker, subtensor):
+    """Tests that `get_root_claim_type` calls proper methods and returns the correct value."""
+    # Preps
+    fake_coldkey_ss58 = mocker.Mock(spec=str)
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_map = mocker.patch.object(subtensor.substrate, "query")
+
+    # call
+    result = subtensor.get_root_claim_type(fake_coldkey_ss58)
+
+    # asserts
+    mocked_determine_block_hash.assert_called_once()
+    mocked_map.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="RootClaimType",
+        params=[fake_coldkey_ss58],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    assert result == mocked_map.return_value
+
+
+def test_set_root_claim_type(mocker, subtensor):
+    """Tests that `set_root_claim_type` calls proper methods and returns the correct value."""
+    # Preps
+    faked_wallet = mocker.Mock(spec=Wallet)
+    fake_new_root_claim_type = mocker.Mock(spec=str)
+    mocked_set_root_claim_type_extrinsic = mocker.patch.object(
+        subtensor_module, "set_root_claim_type_extrinsic"
+    )
+
+    # call
+    response = subtensor.set_root_claim_type(
+        wallet=faked_wallet, new_root_claim_type=fake_new_root_claim_type
+    )
+
+    # asserts
+    mocked_set_root_claim_type_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=faked_wallet,
+        new_root_claim_type=fake_new_root_claim_type,
+        period=None,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_set_root_claim_type_extrinsic.return_value
