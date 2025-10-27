@@ -19,6 +19,7 @@ def setup_wallet(
     encrypt_hotkey: bool = False,
     coldkey_password: Optional[str] = None,
     hotkey_password: Optional[str] = None,
+    hk_uri: Optional[str] = None,
 ) -> tuple[Keypair, Wallet]:
     """
     Sets up a wallet using the provided URI.
@@ -30,25 +31,27 @@ def setup_wallet(
         - Creates a wallet in a temporary directory.
         - Sets keys in the wallet without encryption and with overwriting enabled.
     """
-    keypair = Keypair.create_from_uri(uri)
+    keypair_ck = Keypair.create_from_uri(uri)
+    keypair_hk = Keypair.create_from_uri(f"{uri}_hk") if hk_uri else keypair_ck
     name = uri.strip("/")
     wallet_path = f"/tmp/btcli-e2e-wallet-{name}"
     wallet = Wallet(name=name, path=wallet_path)
     wallet.set_coldkey(
-        keypair=keypair,
+        keypair=keypair_ck,
         encrypt=encrypt_coldkey,
         overwrite=True,
         coldkey_password=coldkey_password,
     )
-    wallet.set_coldkeypub(keypair=keypair, encrypt=False, overwrite=True)
+    wallet.set_coldkeypub(keypair=keypair_ck, encrypt=False, overwrite=True)
     wallet.set_hotkey(
-        keypair=keypair,
+        keypair=keypair_hk,
         encrypt=encrypt_hotkey,
         overwrite=True,
         hotkey_password=hotkey_password,
     )
-    wallet.set_hotkeypub(keypair=keypair, encrypt=False, overwrite=True)
-    return keypair, wallet
+    wallet.set_hotkeypub(keypair=keypair_hk, encrypt=False, overwrite=True)
+    # TODO: return just wallet and update all usage places
+    return keypair_ck, wallet
 
 
 def clone_or_update_templates(specific_commit=None):
