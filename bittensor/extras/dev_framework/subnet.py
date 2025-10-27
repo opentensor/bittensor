@@ -8,6 +8,7 @@ from bittensor.core.extrinsics.asyncex.utils import (
     sudo_call_extrinsic as async_sudo_call_extrinsic,
 )
 from bittensor.core.extrinsics.utils import sudo_call_extrinsic
+from bittensor.core.settings import DEFAULT_PERIOD
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.extras import SubtensorApi
 from bittensor.utils.btlogging import logging
@@ -33,7 +34,8 @@ class TestSubnet:
     def __init__(
         self,
         subtensor: SubtensorApi,
-        period: Optional[int] = None,
+        netuid: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -46,9 +48,12 @@ class TestSubnet:
         self.wait_for_inclusion = wait_for_inclusion
         self.wait_for_finalization = wait_for_finalization
 
-        self._netuid: Optional[int] = None
+        self._netuid = netuid
         self._owner: Optional[Wallet] = None
         self._calls: list[CALL_RECORD] = []
+
+    def __str__(self):
+        return f"TestSubnet(netuid={self._netuid}, owner={self._owner})"
 
     @property
     def calls(self) -> list[CALL_RECORD]:
@@ -270,7 +275,7 @@ class TestSubnet:
             "SubtensorModule", "DurationOfStartCall"
         ).value
         # added 10 blocks bc 2.5 seconds is not always enough for the chain to update.
-        self.s.wait_for_block(current_block + activation_block + 10)
+        self.s.wait_for_block(current_block + activation_block + 1)
         response = self.s.subnets.start_call(
             wallet=owner_wallet,
             netuid=netuid or self._netuid,
