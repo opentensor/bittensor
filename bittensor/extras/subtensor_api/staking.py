@@ -9,9 +9,11 @@ class Staking:
     def __init__(self, subtensor: Union["_Subtensor", "_AsyncSubtensor"]):
         self.add_stake = subtensor.add_stake
         self.add_stake_multiple = subtensor.add_stake_multiple
+        self.claim_root = subtensor.claim_root
         self.get_auto_stakes = subtensor.get_auto_stakes
         self.get_hotkey_stake = subtensor.get_hotkey_stake
         self.get_minimum_required_stake = subtensor.get_minimum_required_stake
+        self.get_root_claim_type = subtensor.get_root_claim_type
         self.get_stake = subtensor.get_stake
         self.get_stake_add_fee = subtensor.get_stake_add_fee
         self.get_stake_for_coldkey_and_hotkey = (
@@ -23,6 +25,7 @@ class Staking:
         self.get_unstake_fee = subtensor.get_unstake_fee
         self.move_stake = subtensor.move_stake
         self.set_auto_stake = subtensor.set_auto_stake
+        self.set_root_claim_type = subtensor.set_root_claim_type
         self.sim_swap = subtensor.sim_swap
         self.swap_stake = subtensor.swap_stake
         self.transfer_stake = subtensor.transfer_stake

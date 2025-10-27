@@ -109,6 +109,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.get_revealed_commitment_by_hotkey = (
         subtensor.inner_subtensor.get_revealed_commitment_by_hotkey
     )
+    subtensor.get_root_claim_type = subtensor.inner_subtensor.get_root_claim_type
     subtensor.get_stake = subtensor.inner_subtensor.get_stake
     subtensor.get_stake_add_fee = subtensor.inner_subtensor.get_stake_add_fee
     subtensor.get_stake_for_coldkey_and_hotkey = (
