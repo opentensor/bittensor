@@ -3046,13 +3046,171 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> dict:
-        """Retrieves the root claim type for a given coldkey address."""
-        return await self.substrate.query(
+        """Retrieves the root claim type for a given coldkey address.
+
+        Parameters:
+            coldkey_ss58: The ss58 address of the coldkey.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+
+        Returns:
+            RootClaimType value in string representation. Could be `Swap` or `Keep`.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query = await self.substrate.query(
             module="SubtensorModule",
             storage_function="RootClaimType",
             params=[coldkey_ss58],
-            block_hash=await self.determine_block_hash(block, block_hash, reuse_block),
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
         )
+        return next(iter(query.keys()))
+
+    async def get_root_claimable_rate(
+        self,
+        hotkey_ss58: str,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> float:
+        """Retrieves the root claimable rate from a given hotkey address for provided netuid.
+
+        Parameters:
+            hotkey_ss58: The ss58 address of the root validator.
+            netuid: The unique identifier of the subnet to get the rate.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+
+        Returns:
+            The rate of claimable stake from validator's hotkey ss58 address for provided subnet.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        all_rates = await self.get_root_claimable_all_rates(
+            hotkey_ss58=hotkey_ss58,
+            block=block_hash,
+        )
+        return all_rates.get(netuid, 0.0)
+
+    async def get_root_claimable_all_rates(
+        self,
+        hotkey_ss58: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> dict[int, float]:
+        """Retrieves all root claimable rates from a given hotkey address for all subnets with this validator.
+
+        Parameters:
+            hotkey_ss58: The ss58 address of the root validator.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+
+        Returns:
+            The rate of claimable stake from validator's hotkey ss58 address for provided subnet.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="RootClaimable",
+            params=[hotkey_ss58],
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+        bits_list = next(iter(query.value))
+        return {bits[0]: fixed_to_float(bits[1], frac_bits=32) for bits in bits_list}
+
+    async def get_root_claimable_stake(
+        self,
+        coldkey_ss58: str,
+        hotkey_ss58: str,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Balance:
+        """
+        Retrieves the root claimable stake for a given coldkey address.
+
+        Parameters:
+            coldkey_ss58: Delegate's ColdKey ss58 address.
+            hotkey_ss58: The root validator hotkey ss58 address.
+            netuid: Delegate's netuid where stake will be claimed.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+
+        Returns:
+            Available for claiming root stake.
+
+        Note:
+            After manual claim, claimable (available) stake will be added to subtends stake.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        root_stake = await self.get_stake(
+            coldkey_ss58=coldkey_ss58,
+            hotkey_ss58=hotkey_ss58,
+            netuid=0,  # root netuid
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        root_claimable_rate = await self.get_root_claimable_rate(
+            hotkey_ss58=hotkey_ss58,
+            netuid=netuid,
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        root_claimable_stake = (root_claimable_rate * root_stake).set_unit(
+            netuid=netuid
+        )
+        root_claimed = await self.get_root_claimed(
+            coldkey_ss58=coldkey_ss58,
+            hotkey_ss58=hotkey_ss58,
+            netuid=netuid,
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        return max(
+            root_claimable_stake - root_claimed, Balance(0).set_unit(netuid=netuid)
+        )
+
+    async def get_root_claimed(
+        self,
+        coldkey_ss58: str,
+        hotkey_ss58: str,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Balance:
+        """Retrieves the root claimed Alpha shares for coldkey from hotkey in provided subnet.
+
+        Parameters:
+            coldkey_ss58: The ss58 address of the staker.
+            hotkey_ss58: The ss58 address of the root validator.
+            netuid: The unique identifier of the subnet.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+
+        Returns:
+            The number of Alpha stake claimed from the root validator in Rao.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="RootClaimed",
+            params=[hotkey_ss58, coldkey_ss58, netuid],
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+        return Balance.from_rao(query.value).set_unit(netuid=netuid)
 
     async def get_stake(
         self,
@@ -5123,7 +5281,7 @@ class AsyncSubtensor(SubtensorMixin):
     async def claim_root(
         self,
         wallet: "Wallet",
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -6027,7 +6185,7 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         new_root_claim_type: Literal["Swap", "Keep"],
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,

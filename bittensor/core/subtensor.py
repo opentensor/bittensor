@@ -2228,7 +2228,15 @@ class Subtensor(SubtensorMixin):
         coldkey_ss58: str,
         block: Optional[int] = None,
     ) -> str:
-        """Retrieves the root claim type for a given coldkey address."""
+        """Retrieves the root claim type for a given coldkey address.
+
+        Parameters:
+            coldkey_ss58: The ss58 address of the coldkey.
+            block: The block number to query.
+
+        Returns:
+            RootClaimType value in string representation. Could be `Swap` or `Keep`.
+        """
         query = self.substrate.query(
             module="SubtensorModule",
             storage_function="RootClaimType",
@@ -2236,6 +2244,123 @@ class Subtensor(SubtensorMixin):
             block_hash=self.determine_block_hash(block),
         )
         return next(iter(query.keys()))
+
+    def get_root_claimable_rate(
+        self,
+        hotkey_ss58: str,
+        netuid: int,
+        block: Optional[int] = None,
+    ) -> float:
+        """Retrieves the root claimable rate from a given hotkey address for provided netuid.
+
+        Parameters:
+            hotkey_ss58: The ss58 address of the root validator.
+            netuid: The unique identifier of the subnet to get the rate.
+            block: The blockchain block number for the query.
+
+        Returns:
+            The rate of claimable stake from validator's hotkey ss58 address for provided subnet.
+        """
+        all_rates = self.get_root_claimable_all_rates(
+            hotkey_ss58=hotkey_ss58,
+            block=block,
+        )
+        return all_rates.get(netuid, 0.0)
+
+    def get_root_claimable_all_rates(
+        self,
+        hotkey_ss58: str,
+        block: Optional[int] = None,
+    ) -> dict[int, float]:
+        """Retrieves all root claimable rates from a given hotkey address for all subnets with this validator.
+
+        Parameters:
+            hotkey_ss58: The ss58 address of the root validator.
+            block: The blockchain block number for the query.
+
+        Returns:
+            The rate of claimable stake from validator's hotkey ss58 address for provided subnet.
+        """
+        query = self.substrate.query(
+            module="SubtensorModule",
+            storage_function="RootClaimable",
+            params=[hotkey_ss58],
+            block_hash=self.determine_block_hash(block),
+        )
+        bits_list = next(iter(query.value))
+        return {bits[0]: fixed_to_float(bits[1], frac_bits=32) for bits in bits_list}
+
+    def get_root_claimable_stake(
+        self,
+        coldkey_ss58: str,
+        hotkey_ss58: str,
+        netuid: int,
+        block: Optional[int] = None,
+    ) -> Balance:
+        """
+        Retrieves the root claimable stake for a given coldkey address.
+
+        Parameters:
+            coldkey_ss58: Delegate's ColdKey ss58 address.
+            hotkey_ss58: The root validator hotkey ss58 address.
+            netuid: Delegate's netuid where stake will be claimed.
+            block: The blockchain block number for the query.
+
+        Returns:
+            Available for claiming root stake.
+
+        Note:
+            After manual claim, claimable (available) stake will be added to subtends stake.
+        """
+        root_stake = self.get_stake(
+            coldkey_ss58=coldkey_ss58,
+            hotkey_ss58=hotkey_ss58,
+            netuid=0,  # root netuid
+            block=block,
+        )
+        root_claimable_rate = self.get_root_claimable_rate(
+            hotkey_ss58=hotkey_ss58,
+            netuid=netuid,
+            block=block,
+        )
+        root_claimable_stake = (root_claimable_rate * root_stake).set_unit(
+            netuid=netuid
+        )
+        root_claimed = self.get_root_claimed(
+            coldkey_ss58=coldkey_ss58,
+            hotkey_ss58=hotkey_ss58,
+            block=block,
+            netuid=netuid,
+        )
+        return max(
+            root_claimable_stake - root_claimed, Balance(0).set_unit(netuid=netuid)
+        )
+
+    def get_root_claimed(
+        self,
+        coldkey_ss58: str,
+        hotkey_ss58: str,
+        netuid: int,
+        block: Optional[int] = None,
+    ) -> Balance:
+        """Retrieves the root claimed Alpha shares for coldkey from hotkey in provided subnet.
+
+        Parameters:
+            coldkey_ss58: The ss58 address of the staker.
+            hotkey_ss58: The ss58 address of the root validator.
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query.
+
+        Returns:
+            The number of Alpha stake claimed from the root validator in Rao.
+        """
+        query = self.substrate.query(
+            module="SubtensorModule",
+            storage_function="RootClaimed",
+            params=[hotkey_ss58, coldkey_ss58, netuid],
+            block_hash=self.determine_block_hash(block),
+        )
+        return Balance.from_rao(query.value).set_unit(netuid=netuid)
 
     def get_stake(
         self,
@@ -3904,7 +4029,7 @@ class Subtensor(SubtensorMixin):
     def claim_root(
         self,
         wallet: "Wallet",
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -4792,7 +4917,7 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         new_root_claim_type: Literal["Swap", "Keep"],
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
