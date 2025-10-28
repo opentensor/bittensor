@@ -916,7 +916,9 @@ def test_crowdloan_with_call(
     crowdloan_cap = Balance.from_tao(30)
     crowdloan_deposit = Balance.from_tao(10)
 
-    bob_balance_before = subtensor.wallets.get_balance(bob_wallet.hotkey.ss58_address)
+    bob_balance_before = subtensor.wallets.get_balance(
+        bob_wallet.coldkeypub.ss58_address
+    )
 
     response = subtensor.crowdloans.create_crowdloan(
         wallet=bob_wallet,
@@ -934,7 +936,9 @@ def test_crowdloan_with_call(
     assert response.success, response.message
 
     # check bob balance decreased
-    bob_balance_after = subtensor.wallets.get_balance(bob_wallet.hotkey.ss58_address)
+    bob_balance_after = subtensor.wallets.get_balance(
+        address=bob_wallet.coldkeypub.ss58_address
+    )
     assert (
         bob_balance_after
         == bob_balance_before - crowdloan_deposit - response.extrinsic_fee
@@ -980,7 +984,9 @@ def test_crowdloan_with_call(
 
     # get new subnet id and owner
     new_subnet_id = subnets_after[-1]
-    new_subnet_owner_hk = subtensor.subnets.get_subnet_owner_hotkey(new_subnet_id)
+    new_subnet_owner_hk = subtensor.subnets.get_subnet_owner_hotkey(
+        netuid=new_subnet_id
+    )
 
     # make sure subnet owner is fred
     assert new_subnet_owner_hk == fred_wallet.hotkey.ss58_address
@@ -1023,7 +1029,7 @@ async def test_crowdloan_with_call_async(
     ) = await asyncio.gather(
         async_subtensor.crowdloans.get_crowdloan_next_id(),
         async_subtensor.subnets.get_all_subnets_netuid(),
-        async_subtensor.wallets.get_balance(bob_wallet.hotkey.ss58_address),
+        async_subtensor.wallets.get_balance(address=bob_wallet.coldkeypub.ss58_address),
         async_subtensor.block,
     )
     end_block = current_block + 2400
@@ -1045,7 +1051,7 @@ async def test_crowdloan_with_call_async(
 
     # check bob balance decreased
     bob_balance_after = await async_subtensor.wallets.get_balance(
-        bob_wallet.hotkey.ss58_address
+        address=bob_wallet.coldkeypub.ss58_address
     )
     assert (
         bob_balance_after
@@ -1096,7 +1102,7 @@ async def test_crowdloan_with_call_async(
     # get new subnet id and owner
     new_subnet_id = subnets_after[-1]
     new_subnet_owner_hk = await async_subtensor.subnets.get_subnet_owner_hotkey(
-        new_subnet_id
+        netuid=new_subnet_id
     )
 
     # make sure subnet owner is fred
