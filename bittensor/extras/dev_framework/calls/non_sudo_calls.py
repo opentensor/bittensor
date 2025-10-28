@@ -11,7 +11,7 @@ For developers:
 
 Note:
     Any manual changes will be overwritten the next time the generator is run.
-    Subtensor spec version: 325
+    Subtensor spec version: 331
 """
 
 from collections import namedtuple
@@ -21,12 +21,6 @@ ADD_LIQUIDITY = namedtuple(
     "ADD_LIQUIDITY",
     ["wallet", "pallet", "hotkey", "netuid", "tick_low", "tick_high", "liquidity"],
 )  # args: [hotkey: T::AccountId, netuid: NetUid, tick_low: TickIndex, tick_high: TickIndex, liquidity: u64]  | Pallet: Swap
-ADD_MEMBER = namedtuple(
-    "ADD_MEMBER", ["wallet", "pallet", "who"]
-)  # args: [who: AccountIdLookupOf<T>]  | Pallet: SenateMembers
-ADD_MEMBER = namedtuple(
-    "ADD_MEMBER", ["wallet", "pallet", "who"]
-)  # args: [who: AccountIdLookupOf<T>]  | Pallet: TriumvirateMembers
 ADD_PROXY = namedtuple(
     "ADD_PROXY", ["wallet", "pallet", "delegate", "proxy_type", "delay"]
 )  # args: [delegate: AccountIdLookupOf<T>, proxy_type: T::ProxyType, delay: BlockNumberFor<T>]  | Pallet: Proxy
@@ -45,9 +39,6 @@ ADD_STAKE_LIMIT = namedtuple(
         "allow_partial",
     ],
 )  # args: [hotkey: T::AccountId, netuid: NetUid, amount_staked: TaoCurrency, limit_price: TaoCurrency, allow_partial: bool]  | Pallet: SubtensorModule
-ADJUST_SENATE = namedtuple(
-    "ADJUST_SENATE", ["wallet", "pallet", "hotkey"]
-)  # args: [hotkey: T::AccountId]  | Pallet: SubtensorModule
 ANNOUNCE = namedtuple(
     "ANNOUNCE", ["wallet", "pallet", "real", "call_hash"]
 )  # args: [real: AccountIdLookupOf<T>, call_hash: CallHashOf<T>]  | Pallet: Proxy
@@ -160,40 +151,16 @@ CANCEL_RETRY = namedtuple(
 CANCEL_RETRY_NAMED = namedtuple(
     "CANCEL_RETRY_NAMED", ["wallet", "pallet", "id"]
 )  # args: [id: TaskName]  | Pallet: Scheduler
-CHANGE_KEY = namedtuple(
-    "CHANGE_KEY", ["wallet", "pallet", "new"]
-)  # args: [new: AccountIdLookupOf<T>]  | Pallet: SenateMembers
-CHANGE_KEY = namedtuple(
-    "CHANGE_KEY", ["wallet", "pallet", "new"]
-)  # args: [new: AccountIdLookupOf<T>]  | Pallet: TriumvirateMembers
+CLAIM_ROOT = namedtuple(
+    "CLAIM_ROOT",
+    [
+        "wallet",
+        "pallet",
+    ],
+)  # args: []  | Pallet: SubtensorModule
 CLEAR_IDENTITY = namedtuple(
     "CLEAR_IDENTITY", ["wallet", "pallet", "identified"]
 )  # args: [identified: T::AccountId]  | Pallet: Registry
-CLEAR_PRIME = namedtuple(
-    "CLEAR_PRIME",
-    [
-        "wallet",
-        "pallet",
-    ],
-)  # args: []  | Pallet: SenateMembers
-CLEAR_PRIME = namedtuple(
-    "CLEAR_PRIME",
-    [
-        "wallet",
-        "pallet",
-    ],
-)  # args: []  | Pallet: TriumvirateMembers
-CLOSE = namedtuple(
-    "CLOSE",
-    [
-        "wallet",
-        "pallet",
-        "proposal_hash",
-        "index",
-        "proposal_weight_bound",
-        "length_bound",
-    ],
-)  # args: [proposal_hash: T::Hash, index: ProposalIndex, proposal_weight_bound: Weight, length_bound: u32]  | Pallet: Triumvirate
 COMMIT_CRV3_MECHANISM_WEIGHTS = namedtuple(
     "COMMIT_CRV3_MECHANISM_WEIGHTS",
     ["wallet", "pallet", "netuid", "mecid", "commit", "reveal_round"],
@@ -278,9 +245,6 @@ DECREASE_TAKE = namedtuple(
 DISABLE_WHITELIST = namedtuple(
     "DISABLE_WHITELIST", ["wallet", "pallet", "disabled"]
 )  # args: [disabled: bool]  | Pallet: EVM
-DISAPPROVE_PROPOSAL = namedtuple(
-    "DISAPPROVE_PROPOSAL", ["wallet", "pallet", "proposal_hash"]
-)  # args: [proposal_hash: T::Hash]  | Pallet: Triumvirate
 DISPATCH_AS = namedtuple(
     "DISPATCH_AS", ["wallet", "pallet", "as_origin", "call"]
 )  # args: [as_origin: Box<T::PalletsOrigin>, call: Box<<T as Config>::RuntimeCall>]  | Pallet: Utility
@@ -303,9 +267,6 @@ ENTER = namedtuple(
         "pallet",
     ],
 )  # args: []  | Pallet: SafeMode
-EXECUTE = namedtuple(
-    "EXECUTE", ["wallet", "pallet", "proposal", "length_bound"]
-)  # args: [proposal: Box<<T as Config<I>>::Proposal>, length_bound: u32]  | Pallet: Triumvirate
 EXTEND = namedtuple(
     "EXTEND",
     [
@@ -409,9 +370,6 @@ POKE_DEPOSIT = namedtuple(
         "pallet",
     ],
 )  # args: []  | Pallet: Proxy
-PROPOSE = namedtuple(
-    "PROPOSE", ["wallet", "pallet", "proposal", "length_bound", "duration"]
-)  # args: [proposal: Box<<T as Config<I>>::Proposal>, length_bound: u32, duration: BlockNumberFor<T>]  | Pallet: Triumvirate
 PROXY = namedtuple(
     "PROXY", ["wallet", "pallet", "real", "force_proxy_type", "call"]
 )  # args: [real: AccountIdLookupOf<T>, force_proxy_type: Option<T::ProxyType>, call: Box<<T as Config>::RuntimeCall>]  | Pallet: Proxy
@@ -472,12 +430,6 @@ REMOVE_KEY = namedtuple(
 REMOVE_LIQUIDITY = namedtuple(
     "REMOVE_LIQUIDITY", ["wallet", "pallet", "hotkey", "netuid", "position_id"]
 )  # args: [hotkey: T::AccountId, netuid: NetUid, position_id: PositionId]  | Pallet: Swap
-REMOVE_MEMBER = namedtuple(
-    "REMOVE_MEMBER", ["wallet", "pallet", "who"]
-)  # args: [who: AccountIdLookupOf<T>]  | Pallet: SenateMembers
-REMOVE_MEMBER = namedtuple(
-    "REMOVE_MEMBER", ["wallet", "pallet", "who"]
-)  # args: [who: AccountIdLookupOf<T>]  | Pallet: TriumvirateMembers
 REMOVE_PROXIES = namedtuple(
     "REMOVE_PROXIES",
     [
@@ -516,12 +468,6 @@ REPORT_EQUIVOCATION_UNSIGNED = namedtuple(
 REQUEST_PREIMAGE = namedtuple(
     "REQUEST_PREIMAGE", ["wallet", "pallet", "hash"]
 )  # args: [hash: T::Hash]  | Pallet: Preimage
-RESET_MEMBERS = namedtuple(
-    "RESET_MEMBERS", ["wallet", "pallet", "members"]
-)  # args: [members: Vec<T::AccountId>]  | Pallet: SenateMembers
-RESET_MEMBERS = namedtuple(
-    "RESET_MEMBERS", ["wallet", "pallet", "members"]
-)  # args: [members: Vec<T::AccountId>]  | Pallet: TriumvirateMembers
 REVEAL_MECHANISM_WEIGHTS = namedtuple(
     "REVEAL_MECHANISM_WEIGHTS",
     ["wallet", "pallet", "netuid", "mecid", "uids", "values", "salt", "version_key"],
@@ -656,27 +602,21 @@ SET_MECHANISM_WEIGHTS = namedtuple(
     "SET_MECHANISM_WEIGHTS",
     ["wallet", "pallet", "netuid", "mecid", "dests", "weights", "version_key"],
 )  # args: [netuid: NetUid, mecid: MechId, dests: Vec<u16>, weights: Vec<u16>, version_key: u64]  | Pallet: SubtensorModule
-SET_MEMBERS = namedtuple(
-    "SET_MEMBERS", ["wallet", "pallet", "new_members", "prime", "old_count"]
-)  # args: [new_members: Vec<T::AccountId>, prime: Option<T::AccountId>, old_count: MemberCount]  | Pallet: Triumvirate
 SET_OLDEST_STORED_ROUND = namedtuple(
     "SET_OLDEST_STORED_ROUND", ["wallet", "pallet", "oldest_round"]
 )  # args: [oldest_round: u64]  | Pallet: Drand
 SET_PENDING_CHILDKEY_COOLDOWN = namedtuple(
     "SET_PENDING_CHILDKEY_COOLDOWN", ["wallet", "pallet", "cooldown"]
 )  # args: [cooldown: u64]  | Pallet: SubtensorModule
-SET_PRIME = namedtuple(
-    "SET_PRIME", ["wallet", "pallet", "who"]
-)  # args: [who: AccountIdLookupOf<T>]  | Pallet: SenateMembers
-SET_PRIME = namedtuple(
-    "SET_PRIME", ["wallet", "pallet", "who"]
-)  # args: [who: AccountIdLookupOf<T>]  | Pallet: TriumvirateMembers
 SET_RETRY = namedtuple(
     "SET_RETRY", ["wallet", "pallet", "task", "retries", "period"]
 )  # args: [task: TaskAddress<BlockNumberFor<T>>, retries: u8, period: BlockNumberFor<T>]  | Pallet: Scheduler
 SET_RETRY_NAMED = namedtuple(
     "SET_RETRY_NAMED", ["wallet", "pallet", "id", "retries", "period"]
 )  # args: [id: TaskName, retries: u8, period: BlockNumberFor<T>]  | Pallet: Scheduler
+SET_ROOT_CLAIM_TYPE = namedtuple(
+    "SET_ROOT_CLAIM_TYPE", ["wallet", "pallet", "new_root_claim_type"]
+)  # args: [new_root_claim_type: RootClaimTypeEnum]  | Pallet: SubtensorModule
 SET_STORAGE = namedtuple(
     "SET_STORAGE", ["wallet", "pallet", "items"]
 )  # args: [items: Vec<KeyValue>]  | Pallet: System
@@ -708,9 +648,6 @@ START_CALL = namedtuple(
 SUDO = namedtuple(
     "SUDO", ["wallet", "pallet", "call"]
 )  # args: [call: Box<<T as Config>::RuntimeCall>]  | Pallet: Sudo
-SUDO = namedtuple(
-    "SUDO", ["wallet", "pallet", "call"]
-)  # args: [call: Box<T::SudoRuntimeCall>]  | Pallet: SubtensorModule
 SWAP_AUTHORITIES = namedtuple(
     "SWAP_AUTHORITIES", ["wallet", "pallet", "new_authorities"]
 )  # args: [new_authorities: BoundedVec<<T as Config>::AuthorityId, T::MaxAuthorities>]  | Pallet: AdminUtils
@@ -720,12 +657,6 @@ SWAP_COLDKEY = namedtuple(
 SWAP_HOTKEY = namedtuple(
     "SWAP_HOTKEY", ["wallet", "pallet", "hotkey", "new_hotkey", "netuid"]
 )  # args: [hotkey: T::AccountId, new_hotkey: T::AccountId, netuid: Option<NetUid>]  | Pallet: SubtensorModule
-SWAP_MEMBER = namedtuple(
-    "SWAP_MEMBER", ["wallet", "pallet", "remove", "add"]
-)  # args: [remove: AccountIdLookupOf<T>, add: AccountIdLookupOf<T>]  | Pallet: SenateMembers
-SWAP_MEMBER = namedtuple(
-    "SWAP_MEMBER", ["wallet", "pallet", "remove", "add"]
-)  # args: [remove: AccountIdLookupOf<T>, add: AccountIdLookupOf<T>]  | Pallet: TriumvirateMembers
 SWAP_STAKE = namedtuple(
     "SWAP_STAKE",
     [
@@ -811,12 +742,6 @@ UPDATE_SYMBOL = namedtuple(
 UPGRADE_ACCOUNTS = namedtuple(
     "UPGRADE_ACCOUNTS", ["wallet", "pallet", "who"]
 )  # args: [who: Vec<T::AccountId>]  | Pallet: Balances
-VOTE = namedtuple(
-    "VOTE", ["wallet", "pallet", "hotkey", "proposal", "index", "approve"]
-)  # args: [hotkey: T::AccountId, proposal: T::Hash, index: u32, approve: bool]  | Pallet: SubtensorModule
-VOTE = namedtuple(
-    "VOTE", ["wallet", "pallet", "proposal", "index", "approve"]
-)  # args: [proposal: T::Hash, index: ProposalIndex, approve: bool]  | Pallet: Triumvirate
 WITHDRAW = namedtuple(
     "WITHDRAW", ["wallet", "pallet", "address", "value"]
 )  # args: [address: H160, value: BalanceOf<T>]  | Pallet: EVM

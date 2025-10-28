@@ -11,7 +11,7 @@ For developers:
 
 Note:
     Any manual changes will be overwritten the next time the generator is run.
-    Subtensor spec version: 325
+    Subtensor spec version: 331
 """
 
 from collections import namedtuple
@@ -121,10 +121,6 @@ SUDO_SET_MAX_REGISTRATIONS_PER_BLOCK = namedtuple(
     "SUDO_SET_MAX_REGISTRATIONS_PER_BLOCK",
     ["wallet", "pallet", "sudo", "netuid", "max_registrations_per_block"],
 )  # args: [netuid: NetUid, max_registrations_per_block: u16]  | Pallet: AdminUtils
-SUDO_SET_MAX_WEIGHT_LIMIT = namedtuple(
-    "SUDO_SET_MAX_WEIGHT_LIMIT",
-    ["wallet", "pallet", "sudo", "netuid", "max_weight_limit"],
-)  # args: [netuid: NetUid, max_weight_limit: u16]  | Pallet: AdminUtils
 SUDO_SET_MECHANISM_COUNT = namedtuple(
     "SUDO_SET_MECHANISM_COUNT",
     ["wallet", "pallet", "sudo", "netuid", "mechanism_count"],
@@ -173,6 +169,9 @@ SUDO_SET_NETWORK_REGISTRATION_ALLOWED = namedtuple(
 SUDO_SET_NOMINATOR_MIN_REQUIRED_STAKE = namedtuple(
     "SUDO_SET_NOMINATOR_MIN_REQUIRED_STAKE", ["wallet", "pallet", "sudo", "min_stake"]
 )  # args: [min_stake: u64]  | Pallet: AdminUtils
+SUDO_SET_NUM_ROOT_CLAIMS = namedtuple(
+    "SUDO_SET_NUM_ROOT_CLAIMS", ["wallet", "pallet", "sudo", "new_value"]
+)  # args: [new_value: u64]  | Pallet: SubtensorModule
 SUDO_SET_OWNER_HPARAM_RATE_LIMIT = namedtuple(
     "SUDO_SET_OWNER_HPARAM_RATE_LIMIT", ["wallet", "pallet", "sudo", "epochs"]
 )  # args: [epochs: u16]  | Pallet: AdminUtils
@@ -190,6 +189,9 @@ SUDO_SET_RECYCLE_OR_BURN = namedtuple(
 SUDO_SET_RHO = namedtuple(
     "SUDO_SET_RHO", ["wallet", "pallet", "sudo", "netuid", "rho"]
 )  # args: [netuid: NetUid, rho: u16]  | Pallet: AdminUtils
+SUDO_SET_ROOT_CLAIM_THRESHOLD = namedtuple(
+    "SUDO_SET_ROOT_CLAIM_THRESHOLD", ["wallet", "pallet", "sudo", "netuid", "new_value"]
+)  # args: [netuid: NetUid, new_value: u64]  | Pallet: SubtensorModule
 SUDO_SET_SERVING_RATE_LIMIT = namedtuple(
     "SUDO_SET_SERVING_RATE_LIMIT",
     ["wallet", "pallet", "sudo", "netuid", "serving_rate_limit"],
@@ -261,6 +263,3 @@ SUDO_TRIM_TO_MAX_ALLOWED_UIDS = namedtuple(
 SUDO_UNCHECKED_WEIGHT = namedtuple(
     "SUDO_UNCHECKED_WEIGHT", ["wallet", "pallet", "sudo", "call", "weight"]
 )  # args: [call: Box<<T as Config>::RuntimeCall>, weight: Weight]  | Pallet: Sudo
-SUDO_UNCHECKED_WEIGHT = namedtuple(
-    "SUDO_UNCHECKED_WEIGHT", ["wallet", "pallet", "sudo", "call", "weight"]
-)  # args: [call: Box<T::SudoRuntimeCall>, weight: Weight]  | Pallet: SubtensorModule
