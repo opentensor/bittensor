@@ -14,6 +14,10 @@ class Staking:
         self.get_hotkey_stake = subtensor.get_hotkey_stake
         self.get_minimum_required_stake = subtensor.get_minimum_required_stake
         self.get_root_claim_type = subtensor.get_root_claim_type
+        self.get_root_claimable_all_rates = subtensor.get_root_claimable_all_rates
+        self.get_root_claimable_rate = subtensor.get_root_claimable_rate
+        self.get_root_claimable_stake = subtensor.get_root_claimable_stake
+        self.get_root_claimed = subtensor.get_root_claimed
         self.get_stake = subtensor.get_stake
         self.get_stake_add_fee = subtensor.get_stake_add_fee
         self.get_stake_for_coldkey_and_hotkey = (
