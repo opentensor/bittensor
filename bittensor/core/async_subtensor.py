@@ -153,9 +153,9 @@ if TYPE_CHECKING:
 class AsyncSubtensor(SubtensorMixin):
     """Asynchronous interface for interacting with the Bittensor blockchain.
 
-    This class provides a thin layer over the Substrate Interface, offering a collection of frequently-used calls for
-    querying blockchain data, managing stakes, registering neurons, and interacting with the Bittensor network.
-
+    This class provides a thin layer over the Substrate Interface offering async functionality for Bittensor. This
+     includes frequently-used calls for querying blockchain data, managing stakes and liquidity positions, registering
+     neurons, submitting weights, and many other functions for participating in Bittensor.
 
     """
 
@@ -388,7 +388,7 @@ class AsyncSubtensor(SubtensorMixin):
 
     @property
     async def block(self):
-        """Provides an asynchronous property to retrieve the current block."""
+        """Provides an asynchronous getter to retrieve the current block."""
         return await self.get_current_block()
 
     async def determine_block_hash(
@@ -397,7 +397,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[str]:
-        """Determine the appropriate block hash based on the provided parameters.
+        """Determine the block hash for the block specified with the provided parameters.
 
         Ensures that only one of the block specification parameters is used and returns the appropriate block hash
         for blockchain queries.
@@ -537,6 +537,9 @@ class AsyncSubtensor(SubtensorMixin):
 
             # Get immunity period using block hash
             immunity = await subtensor.get_hyperparameter(param_name="ImmunityPeriod", netuid=1, block_hash="0x1234...")
+
+        Notes:
+            - See <https://docs.learnbittensor.org/subnets/subnet-hyperparameters>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not await self.subnet_exists(
@@ -564,7 +567,8 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> SimSwapResult:
         """
         Hits the SimSwap Runtime API to calculate the fee and result for a given transaction. The SimSwapResult contains
-        the staking fees and expected returned amounts of a given transaction. This does not include the transaction
+        the swap fees in alpha or TAO, and quantities of alpha or TAO token expected as output from the transaction.
+        Does not include the transaction extrinsic fee.
         (extrinsic) fee.
 
         Args:
@@ -575,6 +579,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             SimSwapResult object representing the result.
+
+        Notes:
+            See: Transaction Fees in Bittensor: <https://docs.learnbittensor.org/learn/fees>
         """
         check_balance_amount(amount)
         block_hash = block_hash or await self.substrate.get_chain_head()
