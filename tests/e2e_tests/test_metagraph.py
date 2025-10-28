@@ -821,14 +821,16 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
 
     bob_sn = TestSubnet(subtensor)
     bob_sn.execute_one(REGISTER_SUBNET(bob_wallet))
+    print(">>> bob_sn", bob_sn.netuid)
 
     block = subtensor.chain.get_current_block()
     metagraph_info = subtensor.metagraphs.get_metagraph_info(
         netuid=bob_sn.netuid, block=block
     )
+    print(">>> metagraph_info", metagraph_info)
 
-    assert metagraph_info.owner_coldkey == bob_wallet.hotkey.ss58_address
-    assert metagraph_info.owner_hotkey == bob_wallet.coldkey.ss58_address
+    assert metagraph_info.owner_coldkey == bob_wallet.coldkey.ss58_address
+    assert metagraph_info.owner_hotkey == bob_wallet.hotkey.ss58_address
 
     metagraph_infos = subtensor.metagraphs.get_all_metagraphs_info(block)
 
@@ -1080,8 +1082,8 @@ async def test_metagraph_info_async(async_subtensor, alice_wallet, bob_wallet):
         netuid=bob_sn.netuid, block=block
     )
 
-    assert metagraph_info.owner_coldkey == bob_wallet.hotkey.ss58_address
-    assert metagraph_info.owner_hotkey == bob_wallet.coldkey.ss58_address
+    assert metagraph_info.owner_coldkey == bob_wallet.coldkey.ss58_address
+    assert metagraph_info.owner_hotkey == bob_wallet.hotkey.ss58_address
 
     metagraph_infos = await async_subtensor.metagraphs.get_all_metagraphs_info(block)
 

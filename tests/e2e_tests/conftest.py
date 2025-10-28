@@ -294,38 +294,32 @@ async def async_subtensor(local_chain):
 
 @pytest.fixture
 def alice_wallet():
-    keypair, wallet = setup_wallet("//Alice")
-    return wallet
+    return setup_wallet("//Alice")
 
 
 @pytest.fixture
 def bob_wallet():
-    keypair, wallet = setup_wallet("//Bob")
-    return wallet
+    return setup_wallet("//Bob")
 
 
 @pytest.fixture
 def charlie_wallet():
-    keypair, wallet = setup_wallet("//Charlie")
-    return wallet
+    return setup_wallet("//Charlie")
 
 
 @pytest.fixture
 def dave_wallet():
-    keypair, wallet = setup_wallet("//Dave")
-    return wallet
+    return setup_wallet("//Dave")
 
 
 @pytest.fixture
 def eve_wallet():
-    keypair, wallet = setup_wallet("//Eve")
-    return wallet
+    return setup_wallet("//Eve")
 
 
 @pytest.fixture
 def fred_wallet():
-    keypair, wallet = setup_wallet("//Fred")
-    return wallet
+    return setup_wallet("//Fred")
 
 
 @pytest.fixture(autouse=True)

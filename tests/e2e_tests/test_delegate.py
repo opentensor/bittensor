@@ -401,8 +401,8 @@ def test_delegates(subtensor, alice_wallet, bob_wallet):
     delegates = subtensor.delegates.get_delegates()
 
     assert delegates == [
-        bob_delegate,
         alice_delegate,
+        bob_delegate,
     ]
 
     assert subtensor.delegates.get_delegated(bob_wallet.coldkey.ss58_address) == []
@@ -541,8 +541,8 @@ async def test_delegates_async(async_subtensor, alice_wallet, bob_wallet):
     delegates = await async_subtensor.delegates.get_delegates()
 
     assert delegates == [
-        bob_delegate,
         alice_delegate,
+        bob_delegate,
     ]
 
     assert (

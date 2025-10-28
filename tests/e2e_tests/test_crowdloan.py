@@ -153,7 +153,9 @@ def test_crowdloan_with_target(
     assert response.error["name"] == "BlockDurationTooLong"
 
     # === SUCCESSFUL creation ===
-    fred_balance = subtensor.wallets.get_balance(fred_wallet.hotkey.ss58_address)
+    fred_balance = subtensor.wallets.get_balance(
+        address=fred_wallet.hotkeypub.ss58_address
+    )
     assert fred_balance == Balance.from_tao(0)
 
     end_block = subtensor.block + 240
@@ -163,7 +165,7 @@ def test_crowdloan_with_target(
         min_contribution=Balance.from_tao(1),
         cap=crowdloan_cap,
         end=end_block,
-        target_address=fred_wallet.hotkey.ss58_address,
+        target_address=fred_wallet.hotkeypub.ss58_address,
     )
     assert response.success, response.message
 
@@ -175,6 +177,7 @@ def test_crowdloan_with_target(
     assert crowdloan.contributors_count == 1
     assert crowdloan.min_contribution == Balance.from_tao(1)
     assert crowdloan.end == end_block
+    assert crowdloan.target_address == fred_wallet.hotkeypub.ss58_address
 
     # check update end block
     new_end_block = end_block + 100
@@ -232,14 +235,14 @@ def test_crowdloan_with_target(
 
     # check charlie_wallet withdraw amount back
     charlie_balance_before = subtensor.wallets.get_balance(
-        charlie_wallet.hotkey.ss58_address
+        address=charlie_wallet.coldkeypub.ss58_address
     )
     response = subtensor.crowdloans.withdraw_crowdloan(
         wallet=charlie_wallet, crowdloan_id=next_crowdloan
     )
     assert response.success, response.message
     charlie_balance_after = subtensor.wallets.get_balance(
-        charlie_wallet.hotkey.ss58_address
+        address=charlie_wallet.coldkeypub.ss58_address
     )
     assert (
         charlie_balance_after
@@ -260,17 +263,17 @@ def test_crowdloan_with_target(
     assert response.error["name"] == "CapRaised"
 
     crowdloan_contributions = subtensor.crowdloans.get_crowdloan_contributions(
-        next_crowdloan
+        crowdloan_id=next_crowdloan
     )
     assert len(crowdloan_contributions) == 3
-    assert crowdloan_contributions[bob_wallet.hotkey.ss58_address] == Balance.from_tao(
-        10
-    )
     assert crowdloan_contributions[
-        alice_wallet.hotkey.ss58_address
+        bob_wallet.coldkeypub.ss58_address
+    ] == Balance.from_tao(10)
+    assert crowdloan_contributions[
+        alice_wallet.coldkeypub.ss58_address
     ] == Balance.from_tao(5)
     assert crowdloan_contributions[
-        charlie_wallet.hotkey.ss58_address
+        charlie_wallet.coldkeypub.ss58_address
     ] == Balance.from_tao(5)
 
     # check finalization
@@ -281,7 +284,7 @@ def test_crowdloan_with_target(
 
     # make sure fred received raised amount
     fred_balance_after_finalize = subtensor.wallets.get_balance(
-        fred_wallet.hotkey.ss58_address
+        address=fred_wallet.hotkeypub.ss58_address
     )
     assert fred_balance_after_finalize == updated_crowdloan_cap
 
@@ -335,10 +338,12 @@ def test_crowdloan_with_target(
     assert crowdloan.raised == bob_deposit
 
     alice_balance_before = subtensor.wallets.get_balance(
-        alice_wallet.hotkey.ss58_address
+        address=alice_wallet.coldkeypub.ss58_address
     )
     alice_contribute_amount = Balance.from_tao(5)
-    dave_balance_before = subtensor.wallets.get_balance(dave_wallet.hotkey.ss58_address)
+    dave_balance_before = subtensor.wallets.get_balance(
+        address=dave_wallet.coldkeypub.ss58_address
+    )
     dave_contribution_amount = Balance.from_tao(5)
 
     # contribution from alice
@@ -349,7 +354,7 @@ def test_crowdloan_with_target(
 
     # check alice balance decreased
     alice_balance_after_contrib = subtensor.wallets.get_balance(
-        alice_wallet.hotkey.ss58_address
+        alice_wallet.coldkeypub.ss58_address
     )
     assert (
         alice_balance_after_contrib
@@ -366,7 +371,7 @@ def test_crowdloan_with_target(
 
     # check dave balance decreased
     dave_balance_after_contrib = subtensor.wallets.get_balance(
-        dave_wallet.hotkey.ss58_address
+        address=dave_wallet.coldkeypub.ss58_address
     )
     assert (
         dave_balance_after_contrib
@@ -405,7 +410,7 @@ def test_crowdloan_with_target(
 
     # check alice balance increased after refund
     alice_balance_after_refund = subtensor.wallets.get_balance(
-        alice_wallet.hotkey.ss58_address
+        address=alice_wallet.coldkeypub.ss58_address
     )
     assert (
         alice_balance_after_refund
@@ -414,7 +419,7 @@ def test_crowdloan_with_target(
 
     # check dave balance increased after refund
     dave_balance_after_refund = subtensor.wallets.get_balance(
-        dave_wallet.hotkey.ss58_address
+        address=dave_wallet.coldkeypub.ss58_address
     )
     assert (
         dave_balance_after_refund
@@ -596,7 +601,7 @@ async def test_crowdloan_with_target_async(
 
     # === SUCCESSFUL creation ===
     fred_balance = await async_subtensor.wallets.get_balance(
-        fred_wallet.hotkey.ss58_address
+        address=fred_wallet.hotkeypub.ss58_address
     )
     assert fred_balance == Balance.from_tao(0)
 
@@ -607,7 +612,7 @@ async def test_crowdloan_with_target_async(
         min_contribution=Balance.from_tao(1),
         cap=crowdloan_cap,
         end=end_block,
-        target_address=fred_wallet.hotkey.ss58_address,
+        target_address=fred_wallet.hotkeypub.ss58_address,
     )
     assert response.success, response.message
 
@@ -619,6 +624,7 @@ async def test_crowdloan_with_target_async(
     assert crowdloan.contributors_count == 1
     assert crowdloan.min_contribution == Balance.from_tao(1)
     assert crowdloan.end == end_block
+    assert crowdloan.target_address == fred_wallet.hotkeypub.ss58_address
 
     # check update end block
     new_end_block = end_block + 100
@@ -676,14 +682,14 @@ async def test_crowdloan_with_target_async(
 
     # check charlie_wallet withdraw amount back
     charlie_balance_before = await async_subtensor.wallets.get_balance(
-        charlie_wallet.hotkey.ss58_address
+        address=charlie_wallet.coldkeypub.ss58_address
     )
     response = await async_subtensor.crowdloans.withdraw_crowdloan(
         wallet=charlie_wallet, crowdloan_id=next_crowdloan
     )
     assert response.success, response.message
     charlie_balance_after = await async_subtensor.wallets.get_balance(
-        charlie_wallet.hotkey.ss58_address
+        address=charlie_wallet.coldkeypub.ss58_address
     )
     assert (
         charlie_balance_after
@@ -704,17 +710,19 @@ async def test_crowdloan_with_target_async(
     assert response.error["name"] == "CapRaised"
 
     crowdloan_contributions = (
-        await async_subtensor.crowdloans.get_crowdloan_contributions(next_crowdloan)
+        await async_subtensor.crowdloans.get_crowdloan_contributions(
+            crowdloan_id=next_crowdloan
+        )
     )
     assert len(crowdloan_contributions) == 3
-    assert crowdloan_contributions[bob_wallet.hotkey.ss58_address] == Balance.from_tao(
-        10
-    )
     assert crowdloan_contributions[
-        alice_wallet.hotkey.ss58_address
+        bob_wallet.coldkeypub.ss58_address
+    ] == Balance.from_tao(10)
+    assert crowdloan_contributions[
+        alice_wallet.coldkeypub.ss58_address
     ] == Balance.from_tao(5)
     assert crowdloan_contributions[
-        charlie_wallet.hotkey.ss58_address
+        charlie_wallet.coldkeypub.ss58_address
     ] == Balance.from_tao(5)
 
     # check finalization
@@ -725,7 +733,7 @@ async def test_crowdloan_with_target_async(
 
     # make sure fred received raised amount
     fred_balance_after_finalize = await async_subtensor.wallets.get_balance(
-        fred_wallet.hotkey.ss58_address
+        address=fred_wallet.hotkeypub.ss58_address
     )
     assert fred_balance_after_finalize == updated_crowdloan_cap
 
@@ -779,11 +787,11 @@ async def test_crowdloan_with_target_async(
     assert crowdloan.raised == bob_deposit
 
     alice_balance_before = await async_subtensor.wallets.get_balance(
-        alice_wallet.hotkey.ss58_address
+        address=alice_wallet.coldkeypub.ss58_address
     )
     alice_contribute_amount = Balance.from_tao(5)
     dave_balance_before = await async_subtensor.wallets.get_balance(
-        dave_wallet.hotkey.ss58_address
+        address=dave_wallet.coldkeypub.ss58_address
     )
     dave_contribution_amount = Balance.from_tao(5)
 
@@ -795,7 +803,7 @@ async def test_crowdloan_with_target_async(
 
     # check alice balance decreased
     alice_balance_after_contrib = await async_subtensor.wallets.get_balance(
-        alice_wallet.hotkey.ss58_address
+        alice_wallet.coldkeypub.ss58_address
     )
     assert (
         alice_balance_after_contrib
@@ -812,7 +820,7 @@ async def test_crowdloan_with_target_async(
 
     # check dave balance decreased
     dave_balance_after_contrib = await async_subtensor.wallets.get_balance(
-        dave_wallet.hotkey.ss58_address
+        address=dave_wallet.coldkeypub.ss58_address
     )
     assert (
         dave_balance_after_contrib
@@ -851,7 +859,7 @@ async def test_crowdloan_with_target_async(
 
     # check alice balance increased after refund
     alice_balance_after_refund = await async_subtensor.wallets.get_balance(
-        alice_wallet.hotkey.ss58_address
+        address=alice_wallet.coldkeypub.ss58_address
     )
     assert (
         alice_balance_after_refund
@@ -860,7 +868,7 @@ async def test_crowdloan_with_target_async(
 
     # check dave balance increased after refund
     dave_balance_after_refund = await async_subtensor.wallets.get_balance(
-        dave_wallet.hotkey.ss58_address
+        address=dave_wallet.coldkeypub.ss58_address
     )
     assert (
         dave_balance_after_refund
@@ -908,7 +916,9 @@ def test_crowdloan_with_call(
     crowdloan_cap = Balance.from_tao(30)
     crowdloan_deposit = Balance.from_tao(10)
 
-    bob_balance_before = subtensor.wallets.get_balance(bob_wallet.hotkey.ss58_address)
+    bob_balance_before = subtensor.wallets.get_balance(
+        bob_wallet.coldkeypub.ss58_address
+    )
 
     response = subtensor.crowdloans.create_crowdloan(
         wallet=bob_wallet,
@@ -926,7 +936,9 @@ def test_crowdloan_with_call(
     assert response.success, response.message
 
     # check bob balance decreased
-    bob_balance_after = subtensor.wallets.get_balance(bob_wallet.hotkey.ss58_address)
+    bob_balance_after = subtensor.wallets.get_balance(
+        address=bob_wallet.coldkeypub.ss58_address
+    )
     assert (
         bob_balance_after
         == bob_balance_before - crowdloan_deposit - response.extrinsic_fee
@@ -972,7 +984,9 @@ def test_crowdloan_with_call(
 
     # get new subnet id and owner
     new_subnet_id = subnets_after[-1]
-    new_subnet_owner_hk = subtensor.subnets.get_subnet_owner_hotkey(new_subnet_id)
+    new_subnet_owner_hk = subtensor.subnets.get_subnet_owner_hotkey(
+        netuid=new_subnet_id
+    )
 
     # make sure subnet owner is fred
     assert new_subnet_owner_hk == fred_wallet.hotkey.ss58_address
@@ -1015,7 +1029,7 @@ async def test_crowdloan_with_call_async(
     ) = await asyncio.gather(
         async_subtensor.crowdloans.get_crowdloan_next_id(),
         async_subtensor.subnets.get_all_subnets_netuid(),
-        async_subtensor.wallets.get_balance(bob_wallet.hotkey.ss58_address),
+        async_subtensor.wallets.get_balance(address=bob_wallet.coldkeypub.ss58_address),
         async_subtensor.block,
     )
     end_block = current_block + 2400
@@ -1037,7 +1051,7 @@ async def test_crowdloan_with_call_async(
 
     # check bob balance decreased
     bob_balance_after = await async_subtensor.wallets.get_balance(
-        bob_wallet.hotkey.ss58_address
+        address=bob_wallet.coldkeypub.ss58_address
     )
     assert (
         bob_balance_after
@@ -1088,7 +1102,7 @@ async def test_crowdloan_with_call_async(
     # get new subnet id and owner
     new_subnet_id = subnets_after[-1]
     new_subnet_owner_hk = await async_subtensor.subnets.get_subnet_owner_hotkey(
-        new_subnet_id
+        netuid=new_subnet_id
     )
 
     # make sure subnet owner is fred
