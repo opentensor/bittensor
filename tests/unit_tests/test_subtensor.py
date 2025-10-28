@@ -4783,6 +4783,163 @@ def test_get_root_claim_type(mocker, subtensor):
     assert result == fake_type
 
 
+def test_get_root_claimable_rate(mocker, subtensor):
+    """Tests `get_root_claimable_rate` method."""
+    # Preps
+    hotkey_ss58 = mocker.Mock(spec=str)
+    netuid = mocker.Mock(spec=int)
+
+    mocked_get_root_claimable_all_rates = mocker.patch.object(
+        subtensor, "get_root_claimable_all_rates"
+    )
+
+    # Call
+    result = subtensor.get_root_claimable_rate(
+        hotkey_ss58=hotkey_ss58,
+        netuid=netuid,
+    )
+
+    # Asserts
+    mocked_get_root_claimable_all_rates.assert_called_once_with(
+        hotkey_ss58=hotkey_ss58,
+        block=None,
+    )
+    mocked_get_root_claimable_all_rates.return_value.get.assert_called_once_with(
+        netuid, 0.0
+    )
+    assert result == mocked_get_root_claimable_all_rates.return_value.get.return_value
+
+
+def test_get_root_claimable_all_rates(mocker, subtensor):
+    """Tests `get_root_claimable_all_rates` method."""
+    # Preps
+    hotkey_ss58 = mocker.Mock(spec=str)
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    fake_value = [((14, {"bits": 6520190}),)]
+    fake_result = mocker.MagicMock(value=fake_value)
+    fake_result.__iter__ = fake_value
+    mocked_query = mocker.patch.object(
+        subtensor.substrate, "query", return_value=fake_result
+    )
+    mocked_fixed_to_float = mocker.patch.object(subtensor_module, "fixed_to_float")
+
+    # Call
+    result = subtensor.get_root_claimable_all_rates(
+        hotkey_ss58=hotkey_ss58,
+    )
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once()
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="RootClaimable",
+        params=[hotkey_ss58],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    mocked_fixed_to_float.assert_called_once_with({"bits": 6520190}, frac_bits=32)
+    assert result == {14: mocked_fixed_to_float.return_value}
+
+
+def test_get_root_claimable_stake(mocker, subtensor):
+    """Tests `get_root_claimable_stake` method."""
+    # Preps
+    coldkey_ss58 = mocker.Mock(spec=str)
+    hotkey_ss58 = mocker.Mock(spec=str)
+    netuid = 14
+
+    mocked_get_stake = mocker.patch.object(
+        subtensor, "get_stake", return_value=Balance.from_tao(1)
+    )
+    mocked_get_root_claimable_rate = mocker.patch.object(
+        subtensor, "get_root_claimable_rate", return_value=0.5
+    )
+    mocked_get_root_claimed = mocker.patch.object(
+        subtensor, "get_root_claimed", spec=int
+    )
+
+    # Call
+    result = subtensor.get_root_claimable_stake(
+        coldkey_ss58=coldkey_ss58,
+        hotkey_ss58=hotkey_ss58,
+        netuid=netuid,
+    )
+
+    # Asserts
+    mocked_get_stake.assert_called_once_with(
+        coldkey_ss58=coldkey_ss58,
+        hotkey_ss58=hotkey_ss58,
+        netuid=0,
+        block=None,
+    )
+    mocked_get_root_claimable_rate.assert_called_once_with(
+        hotkey_ss58=hotkey_ss58,
+        netuid=netuid,
+        block=None,
+    )
+    mocked_get_root_claimed.assert_called_once_with(
+        coldkey_ss58=coldkey_ss58,
+        hotkey_ss58=hotkey_ss58,
+        block=None,
+        netuid=netuid,
+    )
+    assert result == Balance.from_rao(1).set_unit(netuid)
+
+
+def test_get_root_claimed(mocker, subtensor):
+    """Tests `get_root_claimed` method."""
+    # Preps
+    coldkey_ss58 = mocker.Mock(spec=str)
+    hotkey_ss58 = mocker.Mock(spec=str)
+    netuid = 14
+    fake_value = mocker.Mock(value=1)
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query = mocker.patch.object(
+        subtensor.substrate, "query", return_value=fake_value
+    )
+
+    # Call
+    result = subtensor.get_root_claimed(
+        coldkey_ss58=coldkey_ss58,
+        hotkey_ss58=hotkey_ss58,
+        netuid=netuid,
+    )
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once()
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="RootClaimed",
+        params=[hotkey_ss58, coldkey_ss58, netuid],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    assert result == Balance.from_rao(1).set_unit(netuid)
+
+
+def test_claim_root(mocker, subtensor):
+    """Tests `claim_root` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    mocked_claim_root_extrinsic = mocker.patch.object(
+        subtensor_module, "claim_root_extrinsic"
+    )
+
+    # call
+    response = subtensor.claim_root(
+        wallet=wallet,
+    )
+
+    # asserts
+    mocked_claim_root_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_claim_root_extrinsic.return_value
+
+
 def test_set_root_claim_type(mocker, subtensor):
     """Tests that `set_root_claim_type` calls proper methods and returns the correct value."""
     # Preps
@@ -4802,7 +4959,7 @@ def test_set_root_claim_type(mocker, subtensor):
         subtensor=subtensor,
         wallet=faked_wallet,
         new_root_claim_type=fake_new_root_claim_type,
-        period=None,
+        period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,

@@ -331,3 +331,73 @@ async def test_root_register_extrinsic_uid_not_found(subtensor, fake_wallet, moc
         reuse_block_hash=False,
     )
     assert result.success is False
+
+
+@pytest.mark.asyncio
+async def test_set_root_claim_type_extrinsic(subtensor, fake_wallet, mocker):
+    """Tests `set_root_claim_type_extrinsic` extrinsic function."""
+    # Preps
+    new_root_claim_type = mocker.Mock(spec=int)
+    mocked_root_params = mocker.patch.object(
+        async_root.RootParams, "set_root_claim_type"
+    )
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
+    mocked_sign_and_send_extrinsic = mocker.patch.object(
+        subtensor, "sign_and_send_extrinsic"
+    )
+
+    # call
+    response = await async_root.set_root_claim_type_extrinsic(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        new_root_claim_type=new_root_claim_type,
+    )
+
+    # asserts
+    mocked_root_params.assert_called_once_with(new_root_claim_type)
+    mocked_compose_call.assert_called_once_with(
+        call_module="SubtensorModule",
+        call_function="set_root_claim_type",
+        call_params=mocked_root_params.return_value,
+    )
+    mocked_sign_and_send_extrinsic.assert_awaited_once_with(
+        call=mocked_compose_call.return_value,
+        wallet=fake_wallet,
+        period=None,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_sign_and_send_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_claim_root_extrinsic(subtensor, fake_wallet, mocker):
+    """Tests `claim_root_extrinsic` extrinsic function."""
+    # Preps
+    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
+    mocked_sign_and_send_extrinsic = mocker.patch.object(
+        subtensor, "sign_and_send_extrinsic"
+    )
+
+    # call
+    response = await async_root.claim_root_extrinsic(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+    )
+
+    # asserts
+    mocked_compose_call.assert_awaited_once_with(
+        call_module="SubtensorModule",
+        call_function="claim_root",
+        call_params={},
+    )
+    mocked_sign_and_send_extrinsic.assert_awaited_once_with(
+        call=mocked_compose_call.return_value,
+        wallet=fake_wallet,
+        period=None,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_sign_and_send_extrinsic.return_value
