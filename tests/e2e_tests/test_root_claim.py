@@ -33,8 +33,6 @@ def test_root_claim_swap(subtensor, alice_wallet, bob_wallet, charlie_wallet):
         [
             SUDO_SET_TEMPO(alice_wallet, AdminUtils, True, NETUID, TEMPO_TO_SET),
             ACTIVATE_SUBNET(alice_wallet),
-            # Until owner HK isn't Alice HK, we need to register Alice to stake on its HK
-            REGISTER_NEURON(alice_wallet),
         ]
     )
 
@@ -141,7 +139,6 @@ def test_root_claim_keep_with_zero_num_root_auto_claims(
             SUDO_SET_NUM_ROOT_CLAIMS(alice_wallet, "SubtensorModule", True, 0),
             SUDO_SET_TEMPO(alice_wallet, AdminUtils, True, NETUID, TEMPO_TO_SET),
             ACTIVATE_SUBNET(alice_wallet),
-            REGISTER_NEURON(alice_wallet),
         ]
     )
 
@@ -242,7 +239,7 @@ def test_root_claim_keep_with_zero_num_root_auto_claims(
     logging.console.info(f"SN2 Stake: {stake_before_charlie}")
 
     # === ROOT CLAIM MANUAL ===
-    response = subtensor.staking.claim_root(charlie_wallet)
+    response = subtensor.staking.claim_root(wallet=charlie_wallet, netuids=[sn2.netuid])
     assert response.success, response.message
     block = subtensor.block
 
@@ -304,7 +301,6 @@ def test_root_claim_keep_with_random_auto_claims(
             SUDO_SET_ADMIN_FREEZE_WINDOW(alice_wallet, AdminUtils, True, 0),
             SUDO_SET_TEMPO(alice_wallet, AdminUtils, True, NETUID, TEMPO_TO_SET),
             ACTIVATE_SUBNET(alice_wallet),
-            REGISTER_NEURON(alice_wallet),
         ]
     )
 
