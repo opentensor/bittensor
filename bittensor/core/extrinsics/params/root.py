@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from bittensor.core.types import UIDs
 
 
 @dataclass
@@ -18,3 +19,11 @@ class RootParams:
     ) -> dict:
         """Returns the parameters for the `set_root_claim_type`."""
         return {"new_root_claim_type": new_root_claim_type}
+
+    @classmethod
+    def claim_root(
+        cls,
+        netuids: UIDs,
+    ) -> dict:
+        """Returns the parameters for the `claim_root`."""
+        return {"subnets": netuids}

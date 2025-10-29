@@ -10,6 +10,7 @@ from bittensor.utils.btlogging import logging
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.async_subtensor import AsyncSubtensor
+    from bittensor.core.types import UIDs
 
 
 async def _get_limits(subtensor: "AsyncSubtensor") -> tuple[int, float]:
@@ -196,6 +197,7 @@ async def set_root_claim_type_extrinsic(
 async def claim_root_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
+    netuids: "UIDs",
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
@@ -206,6 +208,7 @@ async def claim_root_extrinsic(
     Parameters:
         subtensor: Subtensor instance to interact with the blockchain.
         wallet: Bittensor Wallet instance.
+        netuids: The netuids to claim root emissions for.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
@@ -225,7 +228,7 @@ async def claim_root_extrinsic(
         call = await subtensor.compose_call(
             call_module="SubtensorModule",
             call_function="claim_root",
-            call_params={},
+            call_params=RootParams.claim_root(netuids),
         )
         return await subtensor.sign_and_send_extrinsic(
             call=call,
