@@ -330,21 +330,21 @@ def log_test_start_and_end(request):
     logging.console.success(f"✅ [green]Finished[/green] [yellow]{test_name}[/yellow]")
 
 
-@pytest_asyncio.fixture(scope="session")
-def event_loop():
-    """Create an instance of the default event loop for each test case and close all alive tasks at the end."""
-    loop = asyncio.get_event_loop()
-    yield loop
-
-    # 1) cance all alive tasks
-    pending = [t for t in asyncio.all_tasks(loop) if not t.done()]
-    for t in pending:
-        t.cancel()
-    with contextlib.suppress(Exception):
-        loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
-
-    # 2) cleanup async generators
-    with contextlib.suppress(Exception):
-        loop.run_until_complete(loop.shutdown_asyncgens())
-
-    loop.close()
+# @pytest_asyncio.fixture(scope="session")
+# def event_loop():
+#     """Create an instance of the default event loop for each test case and close all alive tasks at the end."""
+#     loop = asyncio.get_event_loop()
+#     yield loop
+#
+#     # 1) cance all alive tasks
+#     pending = [t for t in asyncio.all_tasks(loop) if not t.done()]
+#     for t in pending:
+#         t.cancel()
+#     with contextlib.suppress(Exception):
+#         loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+#
+#     # 2) cleanup async generators
+#     with contextlib.suppress(Exception):
+#         loop.run_until_complete(loop.shutdown_asyncgens())
+#
+#     loop.close()
