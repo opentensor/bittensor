@@ -375,6 +375,8 @@ async def test_set_root_claim_type_extrinsic(subtensor, fake_wallet, mocker):
 async def test_claim_root_extrinsic(subtensor, fake_wallet, mocker):
     """Tests `claim_root_extrinsic` extrinsic function."""
     # Preps
+    netuids = mocker.Mock(spec=list)
+    mocked_root_params = mocker.patch.object(async_root.RootParams, "claim_root")
     mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor, "sign_and_send_extrinsic"
@@ -384,13 +386,15 @@ async def test_claim_root_extrinsic(subtensor, fake_wallet, mocker):
     response = await async_root.claim_root_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
+        netuids=netuids,
     )
 
     # asserts
+    mocked_root_params.assert_called_once_with(netuids)
     mocked_compose_call.assert_awaited_once_with(
         call_module="SubtensorModule",
         call_function="claim_root",
-        call_params={},
+        call_params=mocked_root_params.return_value,
     )
     mocked_sign_and_send_extrinsic.assert_awaited_once_with(
         call=mocked_compose_call.return_value,

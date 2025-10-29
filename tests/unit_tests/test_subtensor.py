@@ -4919,6 +4919,7 @@ def test_claim_root(mocker, subtensor):
     """Tests `claim_root` extrinsic call method."""
     # preps
     wallet = mocker.Mock(spec=Wallet)
+    netuids = mocker.Mock(spec=list)
     mocked_claim_root_extrinsic = mocker.patch.object(
         subtensor_module, "claim_root_extrinsic"
     )
@@ -4926,12 +4927,14 @@ def test_claim_root(mocker, subtensor):
     # call
     response = subtensor.claim_root(
         wallet=wallet,
+        netuids=netuids,
     )
 
     # asserts
     mocked_claim_root_extrinsic.assert_called_once_with(
         subtensor=subtensor,
         wallet=wallet,
+        netuids=netuids,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,

@@ -4835,6 +4835,7 @@ async def test_claim_root(mocker, subtensor):
     """Tests `claim_root` extrinsic call method."""
     # preps
     wallet = mocker.Mock(spec=Wallet)
+    netuids = mocker.Mock(spec=int)
     mocked_claim_root_extrinsic = mocker.patch.object(
         async_subtensor, "claim_root_extrinsic"
     )
@@ -4842,12 +4843,14 @@ async def test_claim_root(mocker, subtensor):
     # call
     response = await subtensor.claim_root(
         wallet=wallet,
+        netuids=netuids,
     )
 
     # asserts
     mocked_claim_root_extrinsic.assert_awaited_once_with(
         subtensor=subtensor,
         wallet=wallet,
+        netuids=netuids,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
