@@ -5281,6 +5281,7 @@ class AsyncSubtensor(SubtensorMixin):
     async def claim_root(
         self,
         wallet: "Wallet",
+        netuids: "UIDs",
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -5290,6 +5291,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             wallet: Bittensor Wallet instance.
+            netuids: The netuids to claim root emissions for.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -5303,6 +5305,7 @@ class AsyncSubtensor(SubtensorMixin):
         return await claim_root_extrinsic(
             subtensor=self,
             wallet=wallet,
+            netuids=netuids,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
