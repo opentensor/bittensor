@@ -109,8 +109,15 @@ class Templates:
             self.wallet = wallet
             self.netuid = netuid
             self.process = None
-
+            self.loop = asyncio.get_event_loop()
             self.started = asyncio.Event()
+
+        def __enter__(self):
+            self.loop.run_until_complete(self.__aenter__())
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            self.loop.run_until_complete(self.__aexit__(exc_type, exc_value, traceback))
 
         async def __aenter__(self):
             env = os.environ.copy()
@@ -172,6 +179,7 @@ class Templates:
             self.netuid = netuid
             self.process = None
 
+            self.loop = asyncio.get_event_loop()
             self.started = asyncio.Event()
             self.set_weights = asyncio.Event()
 
@@ -209,11 +217,18 @@ class Templates:
 
             return self
 
+        def __enter__(self):
+            self.loop.run_until_complete(self.__aenter__())
+            return self
+
         async def __aexit__(self, exc_type, exc_value, traceback):
             self.process.terminate()
             self.__reader_task.cancel()
 
             await self.process.wait()
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            self.loop.run_until_complete(self.__aexit__(exc_type, exc_value, traceback))
 
         async def _reader(self):
             async for line in self.process.stdout:
