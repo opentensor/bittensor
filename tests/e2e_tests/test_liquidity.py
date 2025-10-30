@@ -5,8 +5,7 @@ from tests.e2e_tests.utils.e2e_test_utils import wait_to_start_call
 from bittensor.utils.liquidity import LiquidityPosition
 
 
-@pytest.mark.asyncio
-async def test_liquidity(local_chain, subtensor, alice_wallet, bob_wallet):
+def test_liquidity(subtensor, alice_wallet, bob_wallet):
     """
     Tests the liquidity mechanism
 

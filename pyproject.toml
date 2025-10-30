@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bittensor"
-version = "9.12.1"
+version = "9.12.2"
 description = "Bittensor"
 readme = "README.md"
 authors = [
     {name = "bittensor.com"}
 ]
 license = { file = "LICENSE" }
-requires-python = ">=3.9,<3.14"
+requires-python = ">=3.9,<3.15"
 dependencies = [
     "wheel",
     "setuptools~=70.0.0",

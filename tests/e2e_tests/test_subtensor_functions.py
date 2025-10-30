@@ -65,25 +65,13 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
     pre_subnet_creation_cost = subtensor.get_subnet_burn_cost()
 
     # Register subnet
-    assert subtensor.register_subnet(alice_wallet, True, True), (
+    assert subtensor.register_subnet(alice_wallet, True, True, None), (
         "Unable to register the subnet"
     )
-
-    # TODO: in SDKv10 replace this logic with using `ExtrinsicResponse.extrinsic_fee`
-    call = subtensor.substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="register_network",
-        call_params={
-            "hotkey": alice_wallet.hotkey.ss58_address,
-            "mechid": 1,
-        },
-    )
-    register_fee = get_extrinsic_fee(call, alice_wallet.hotkey, subtensor)
 
     # Subnet burn cost is increased immediately after a subnet is registered
     post_subnet_creation_cost = subtensor.get_subnet_burn_cost()
 
-    # TODO: in SDKv10 replace this logic with using `ExtrinsicResponse.extrinsic_fee`
     call = subtensor.substrate.compose_call(
         call_module="SubtensorModule",
         call_function="register_network",
@@ -158,7 +146,7 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
     assert wait_to_start_call(subtensor, alice_wallet, netuid)
 
     # Register Bob to the subnet
-    assert subtensor.burned_register(bob_wallet, netuid), (
+    assert subtensor.burned_register(bob_wallet, netuid, period=None), (
         "Unable to register Bob as a neuron"
     )
 

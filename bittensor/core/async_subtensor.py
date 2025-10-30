@@ -93,7 +93,7 @@ from bittensor.core.extrinsics.asyncex.unstaking import (
     unstake_multiple_extrinsic,
 )
 from bittensor.core.metagraph import AsyncMetagraph
-from bittensor.core.settings import version_as_int, TYPE_REGISTRY
+from bittensor.core.settings import version_as_int, TYPE_REGISTRY, DEFAULT_PERIOD
 from bittensor.core.types import (
     ParamWithTypes,
     Salt,
@@ -956,7 +956,11 @@ class AsyncSubtensor(SubtensorMixin):
         return b_map
 
     async def commit(
-        self, wallet: "Wallet", netuid: int, data: str, period: Optional[int] = None
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        data: str,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> bool:
         """Commits arbitrary data to the Bittensor network by publishing metadata.
 
@@ -2385,6 +2389,17 @@ class AsyncSubtensor(SubtensorMixin):
             logging.debug(f"Subnet {netuid} is not active.")
             return None
 
+        positions_response = await self.query_map(
+            module="Swap",
+            name="Positions",
+            params=[netuid, wallet.coldkeypub.ss58_address],
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        if len(positions_response.records) == 0:
+            return []
+
         block_hash = await self.determine_block_hash(
             block=block, block_hash=block_hash, reuse_block=reuse_block
         )
@@ -2408,25 +2423,20 @@ class AsyncSubtensor(SubtensorMixin):
             params=[netuid],
             block_hash=block_hash,
         )
+
         (
-            (fee_global_tao_query, fee_global_alpha_query, sqrt_price_query),
-            positions_response,
-        ) = await asyncio.gather(
-            self.substrate.query_multi(
-                [
-                    fee_global_tao_query_sk,
-                    fee_global_alpha_query_sk,
-                    sqrt_price_query_sk,
-                ],
-                block_hash=block_hash,
-            ),
-            self.query_map(
-                module="Swap",
-                name="Positions",
-                block=block,
-                params=[netuid, wallet.coldkeypub.ss58_address],
-            ),
+            fee_global_tao_query,
+            fee_global_alpha_query,
+            sqrt_price_query,
+        ) = await self.substrate.query_multi(
+            storage_keys=[
+                fee_global_tao_query_sk,
+                fee_global_alpha_query_sk,
+                sqrt_price_query_sk,
+            ],
+            block_hash=block_hash,
         )
+
         # convert to floats
         fee_global_tao = fixed_to_float(fee_global_tao_query[1])
         fee_global_alpha = fixed_to_float(fee_global_alpha_query[1])
@@ -4043,7 +4053,7 @@ class AsyncSubtensor(SubtensorMixin):
         data: str,
         blocks_until_reveal: int = 360,
         block_time: Union[int, float] = 12,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> tuple[bool, int]:
         """
         Commits arbitrary data to the Bittensor network by publishing metadata.
@@ -4437,7 +4447,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = False,
         sign_with: str = "coldkey",
         use_nonce: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         nonce_key: str = "hotkey",
         raise_error: bool = False,
     ) -> tuple[bool, str]:
@@ -4480,6 +4490,7 @@ class AsyncSubtensor(SubtensorMixin):
                 getattr(wallet, nonce_key).ss58_address
             )
             extrinsic_data["nonce"] = next_nonce
+
         if period is not None:
             extrinsic_data["era"] = {"period": period}
 
@@ -4523,7 +4534,7 @@ class AsyncSubtensor(SubtensorMixin):
         safe_staking: bool = False,
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> bool:
         """
         Adds a stake from the specified wallet to the neuron identified by the SS58 address of its hotkey in specified
@@ -4581,7 +4592,7 @@ class AsyncSubtensor(SubtensorMixin):
         hotkey: Optional[str] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> tuple[bool, str]:
         """
         Adds liquidity to the specified price range.
@@ -4664,7 +4675,7 @@ class AsyncSubtensor(SubtensorMixin):
         netuid: int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> bool:
         """
         Registers a neuron on the Bittensor network by recycling TAO. This method of registration involves recycling
@@ -4713,7 +4724,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         max_retries: int = 5,
-        period: Optional[int] = 16,
+        period: Optional[int] = DEFAULT_PERIOD,
         mechid: int = 0,
     ) -> tuple[bool, str]:
         """
@@ -4788,7 +4799,7 @@ class AsyncSubtensor(SubtensorMixin):
         hotkey: Optional[str] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> tuple[bool, str]:
         """Modifies liquidity in liquidity position by adding or removing liquidity from it.
 
@@ -4861,7 +4872,7 @@ class AsyncSubtensor(SubtensorMixin):
         amount: Optional[Balance] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         move_all_stake: bool = False,
     ) -> bool:
         """
@@ -4913,7 +4924,7 @@ class AsyncSubtensor(SubtensorMixin):
         num_processes: Optional[int] = None,
         update_interval: Optional[int] = None,
         log_verbose: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ):
         """
         Registers a neuron on the Bittensor network using the provided wallet.
@@ -4967,7 +4978,7 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> bool:
         """
         Registers a new subnetwork on the Bittensor network.
@@ -5001,7 +5012,7 @@ class AsyncSubtensor(SubtensorMixin):
         hotkey: Optional[str] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> tuple[bool, str]:
         """Remove liquidity and credit balances back to wallet's hotkey stake.
 
@@ -5049,7 +5060,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         max_retries: int = 5,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         mechid: int = 0,
     ) -> tuple[bool, str]:
         """
@@ -5114,7 +5125,7 @@ class AsyncSubtensor(SubtensorMixin):
         cooldown: int,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> tuple[bool, str]:
         """Sets the pending childkey cooldown.
 
@@ -5150,7 +5161,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> bool:
         """
         Register neuron by recycling some TAO.
@@ -5185,7 +5196,7 @@ class AsyncSubtensor(SubtensorMixin):
         version_key: int = 0,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> bool:
         """
         Set weights for the root network.
@@ -5223,7 +5234,7 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         netuid: int,
         hotkey_ss58: str,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -5267,7 +5278,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
         raise_error: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> tuple[bool, str]:
         """
         Allows a coldkey to set children-keys.
@@ -5321,7 +5332,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
         raise_error: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> tuple[bool, str]:
         """
         Sets the delegate 'take' percentage for a neuron identified by its hotkey.
@@ -5404,7 +5415,7 @@ class AsyncSubtensor(SubtensorMixin):
         subnet_identity: SubnetIdentity,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> tuple[bool, str]:
         """
         Sets the identity of a subnet for a specific wallet and network.
@@ -5454,7 +5465,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = False,
         max_retries: int = 5,
         block_time: float = 12.0,
-        period: Optional[int] = 8,
+        period: Optional[int] = DEFAULT_PERIOD,
         mechid: int = 0,
         commit_reveal_version: int = 4,
     ):
@@ -5579,7 +5590,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
         certificate: Optional[Certificate] = None,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> bool:
         """
         Registers an ``Axon`` serving endpoint on the Bittensor network for a specific neuron. This function is used to
@@ -5617,7 +5628,7 @@ class AsyncSubtensor(SubtensorMixin):
         netuid: int,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> tuple[bool, str]:
         """
         Submits a start_call extrinsic to the blockchain, to trigger the start call process for a subnet (used to start
@@ -5658,7 +5669,7 @@ class AsyncSubtensor(SubtensorMixin):
         safe_staking: bool = False,
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> bool:
         """
         Moves stake between subnets while keeping the same coldkey-hotkey pair ownership.
@@ -5717,7 +5728,7 @@ class AsyncSubtensor(SubtensorMixin):
         enable: bool,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> tuple[bool, str]:
         """Allow to toggle user liquidity for specified subnet.
 
@@ -5757,7 +5768,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         keep_alive: bool = True,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> bool:
         """
         Transfer token of amount to destination.
@@ -5800,7 +5811,7 @@ class AsyncSubtensor(SubtensorMixin):
         amount: Balance,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> bool:
         """
         Transfers stake from one subnet to another while changing the coldkey owner.
@@ -5846,7 +5857,7 @@ class AsyncSubtensor(SubtensorMixin):
         safe_staking: bool = False,
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         unstake_all: bool = False,
     ) -> bool:
         """
@@ -5903,7 +5914,7 @@ class AsyncSubtensor(SubtensorMixin):
         rate_tolerance: Optional[float] = 0.005,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> tuple[bool, str]:
         """Unstakes all TAO/Alpha associated with a hotkey from the specified subnets on the Bittensor network.
 
@@ -5987,7 +5998,7 @@ class AsyncSubtensor(SubtensorMixin):
         amounts: Optional[list[Balance]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         unstake_all: bool = False,
     ) -> bool:
         """

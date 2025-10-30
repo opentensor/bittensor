@@ -93,6 +93,7 @@ from bittensor.core.extrinsics.unstaking import (
 from bittensor.core.metagraph import Metagraph
 from bittensor.core.settings import (
     version_as_int,
+    DEFAULT_PERIOD,
     SS58_FORMAT,
     TYPE_REGISTRY,
 )
@@ -544,7 +545,11 @@ class Subtensor(SubtensorMixin):
         return b_map
 
     def commit(
-        self, wallet, netuid: int, data: str, period: Optional[int] = None
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        data: str,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> bool:
         """
         Commits arbitrary data to the Bittensor network by publishing metadata.
@@ -1615,6 +1620,16 @@ class Subtensor(SubtensorMixin):
             logging.debug(f"Subnet {netuid} is not active.")
             return None
 
+        # Fetch positions
+        positions_response = self.query_map(
+            module="Swap",
+            name="Positions",
+            block=block,
+            params=[netuid, wallet.coldkeypub.ss58_address],
+        )
+        if len(positions_response.records) == 0:
+            return []
+
         block_hash = self.determine_block_hash(block)
 
         # Fetch global fees and current price
@@ -1638,7 +1653,7 @@ class Subtensor(SubtensorMixin):
         )
         fee_global_tao_query, fee_global_alpha_query, sqrt_price_query = (
             self.substrate.query_multi(
-                [
+                storage_keys=[
                     fee_global_tao_query_sk,
                     fee_global_alpha_query_sk,
                     sqrt_price_query_sk,
@@ -1652,13 +1667,6 @@ class Subtensor(SubtensorMixin):
         sqrt_price = fixed_to_float(sqrt_price_query[1])
         current_tick = price_to_tick(sqrt_price**2)
 
-        # Fetch positions
-        positions_response = self.query_map(
-            module="Swap",
-            name="Positions",
-            block=block,
-            params=[netuid, wallet.coldkeypub.ss58_address],
-        )
         positions_values: list[tuple[dict, int, int]] = []
         positions_storage_keys: list[StorageKey] = []
         for _, p in positions_response:
@@ -2962,7 +2970,7 @@ class Subtensor(SubtensorMixin):
         data: str,
         blocks_until_reveal: int = 360,
         block_time: Union[int, float] = 12,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> tuple[bool, int]:
         """
         Commits arbitrary data to the Bittensor network by publishing metadata.
@@ -3255,7 +3263,7 @@ class Subtensor(SubtensorMixin):
         wait_for_finalization: bool = False,
         sign_with: str = "coldkey",
         use_nonce: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         nonce_key: str = "hotkey",
         raise_error: bool = False,
     ) -> tuple[bool, str]:
@@ -3298,6 +3306,7 @@ class Subtensor(SubtensorMixin):
                 getattr(wallet, nonce_key).ss58_address
             )
             extrinsic_data["nonce"] = next_nonce
+
         if period is not None:
             extrinsic_data["era"] = {"period": period}
 
@@ -3341,7 +3350,7 @@ class Subtensor(SubtensorMixin):
         safe_staking: bool = False,
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> bool:
         """
         Adds a stake from the specified wallet to the neuron identified by the SS58 address of its hotkey in specified
@@ -3400,7 +3409,7 @@ class Subtensor(SubtensorMixin):
         hotkey: Optional[str] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> tuple[bool, str]:
         """
         Adds liquidity to the specified price range.
@@ -3448,7 +3457,7 @@ class Subtensor(SubtensorMixin):
         amounts: Optional[list[Balance]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> bool:
         """
         Adds stakes to multiple neurons identified by their hotkey SS58 addresses.
@@ -3488,7 +3497,7 @@ class Subtensor(SubtensorMixin):
         netuid: int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> bool:
         """
         Registers a neuron on the Bittensor network by recycling TAO. This method of registration involves recycling
@@ -3538,7 +3547,7 @@ class Subtensor(SubtensorMixin):
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         max_retries: int = 5,
-        period: Optional[int] = 16,
+        period: Optional[int] = DEFAULT_PERIOD,
         mechid: int = 0,
     ) -> tuple[bool, str]:
         """
@@ -3609,7 +3618,7 @@ class Subtensor(SubtensorMixin):
         hotkey: Optional[str] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> tuple[bool, str]:
         """Modifies liquidity in liquidity position by adding or removing liquidity from it.
 
@@ -3682,7 +3691,7 @@ class Subtensor(SubtensorMixin):
         amount: Optional[Balance] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         move_all_stake: bool = False,
     ) -> bool:
         """
@@ -3734,7 +3743,7 @@ class Subtensor(SubtensorMixin):
         num_processes: Optional[int] = None,
         update_interval: Optional[int] = None,
         log_verbose: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> bool:
         """
         Registers a neuron on the Bittensor network using the provided wallet.
@@ -3789,7 +3798,7 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> bool:
         """
         Registers a new subnetwork on the Bittensor network.
@@ -3823,7 +3832,7 @@ class Subtensor(SubtensorMixin):
         hotkey: Optional[str] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> tuple[bool, str]:
         """Remove liquidity and credit balances back to wallet's hotkey stake.
 
@@ -3871,7 +3880,7 @@ class Subtensor(SubtensorMixin):
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         max_retries: int = 5,
-        period: Optional[int] = 16,
+        period: Optional[int] = DEFAULT_PERIOD,
         mechid: int = 0,
     ) -> tuple[bool, str]:
         """
@@ -3935,7 +3944,7 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> bool:
         """
         Register neuron by recycling some TAO.
@@ -3967,7 +3976,7 @@ class Subtensor(SubtensorMixin):
         cooldown: int,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> tuple[bool, str]:
         """Sets the pending childkey cooldown.
 
@@ -4004,7 +4013,7 @@ class Subtensor(SubtensorMixin):
         version_key: int = 0,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> bool:
         """
         Set weights for the root network.
@@ -4043,7 +4052,7 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         netuid: int,
         hotkey_ss58: str,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -4087,7 +4096,7 @@ class Subtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
         raise_error: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> tuple[bool, str]:
         """
         Allows a coldkey to set children-keys.
@@ -4129,7 +4138,7 @@ class Subtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
         raise_error: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> tuple[bool, str]:
         """
         Sets the delegate 'take' percentage for a neuron identified by its hotkey.
@@ -4211,7 +4220,7 @@ class Subtensor(SubtensorMixin):
         subnet_identity: SubnetIdentity,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> tuple[bool, str]:
         """
         Sets the identity of a subnet for a specific wallet and network.
@@ -4261,7 +4270,7 @@ class Subtensor(SubtensorMixin):
         wait_for_finalization: bool = False,
         max_retries: int = 5,
         block_time: float = 12.0,
-        period: Optional[int] = 8,
+        period: Optional[int] = DEFAULT_PERIOD,
         mechid: int = 0,
         commit_reveal_version: int = 4,
     ) -> tuple[bool, str]:
@@ -4372,7 +4381,7 @@ class Subtensor(SubtensorMixin):
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
         certificate: Optional[Certificate] = None,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> bool:
         """
         Registers an ``Axon`` serving endpoint on the Bittensor network for a specific neuron. This function is used to
@@ -4412,7 +4421,7 @@ class Subtensor(SubtensorMixin):
         netuid: int,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> tuple[bool, str]:
         """
         Submits a start_call extrinsic to the blockchain, to trigger the start call process for a subnet (used to start
@@ -4455,7 +4464,7 @@ class Subtensor(SubtensorMixin):
         safe_staking: bool = False,
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> bool:
         """
         Moves stake between subnets while keeping the same coldkey-hotkey pair ownership.
@@ -4515,7 +4524,7 @@ class Subtensor(SubtensorMixin):
         enable: bool,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> tuple[bool, str]:
         """Allow to toggle user liquidity for specified subnet.
 
@@ -4555,7 +4564,7 @@ class Subtensor(SubtensorMixin):
         wait_for_finalization: bool = False,
         transfer_all: bool = False,
         keep_alive: bool = True,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> bool:
         """
         Transfer token of amount to destination.
@@ -4600,7 +4609,7 @@ class Subtensor(SubtensorMixin):
         amount: Balance,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> bool:
         """
         Transfers stake from one subnet to another while changing the coldkey owner.
@@ -4646,7 +4655,7 @@ class Subtensor(SubtensorMixin):
         safe_staking: bool = False,
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         unstake_all: bool = False,
     ) -> bool:
         """
@@ -4703,7 +4712,7 @@ class Subtensor(SubtensorMixin):
         rate_tolerance: Optional[float] = 0.005,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
     ) -> tuple[bool, str]:
         """Unstakes all TAO/Alpha associated with a hotkey from the specified subnets on the Bittensor network.
 
@@ -4786,7 +4795,7 @@ class Subtensor(SubtensorMixin):
         amounts: Optional[list[Balance]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-        period: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
         unstake_all: bool = False,
     ) -> bool:
         """
