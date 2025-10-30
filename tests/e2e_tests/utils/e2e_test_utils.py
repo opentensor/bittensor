@@ -102,6 +102,16 @@ def uninstall_templates(install_dir):
     shutil.rmtree(install_dir)
 
 
+def get_event_loop():
+    """Returns the current event loop or creates a new one if there is none."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop
+
+
 class Templates:
     class Miner:
         def __init__(self, dir, wallet, netuid):
@@ -109,7 +119,7 @@ class Templates:
             self.wallet = wallet
             self.netuid = netuid
             self.process = None
-            self.loop = asyncio.get_event_loop()
+            self.loop = get_event_loop()
             self.started = asyncio.Event()
 
         def __enter__(self):
@@ -179,7 +189,7 @@ class Templates:
             self.netuid = netuid
             self.process = None
 
-            self.loop = asyncio.get_event_loop()
+            self.loop = get_event_loop()
             self.started = asyncio.Event()
             self.set_weights = asyncio.Event()
 
