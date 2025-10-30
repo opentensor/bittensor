@@ -7,8 +7,7 @@ from tests.e2e_tests.utils import (
 )
 
 
-@pytest.mark.asyncio
-async def test_neuron_certificate(subtensor, alice_wallet):
+def test_neuron_certificate(subtensor, alice_wallet):
     """
     Tests the metagraph
 

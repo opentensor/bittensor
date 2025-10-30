@@ -1,5 +1,5 @@
 import asyncio
-
+import time
 import pytest
 
 from bittensor.extras.dev_framework import REGISTER_NEURON
@@ -36,8 +36,7 @@ Verifies:
 """
 
 
-@pytest.mark.asyncio
-async def test_root_reg_hyperparams(subtensor, templates, alice_wallet, bob_wallet):
+def test_root_reg_hyperparams(subtensor, templates, alice_wallet, bob_wallet):
     """
     Test root weights and hyperparameters in the Subtensor network.
 
@@ -93,8 +92,8 @@ async def test_root_reg_hyperparams(subtensor, templates, alice_wallet, bob_wall
         period=16,
     ).success, "Unable to stake from Bob to Alice"
 
-    async with templates.validator(alice_wallet, alice_sn.netuid):
-        await asyncio.sleep(5)  # Wait a bit for chain to process data
+    with templates.validator(alice_wallet, alice_sn.netuid):
+        time.sleep(5)  # Wait a bit for chain to process data
 
         # Fetch uid against Alice's hotkey on sn 2 (it will be 0 as she is the only registered neuron)
         alice_uid_sn_2 = subtensor.subnets.get_uid_for_hotkey_on_subnet(

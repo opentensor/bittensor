@@ -1,5 +1,5 @@
 import asyncio
-
+import time
 import pytest
 
 from bittensor.utils.btlogging import logging
@@ -16,8 +16,7 @@ from tests.e2e_tests.utils import (
 )
 
 
-@pytest.mark.asyncio
-async def test_incentive(subtensor, templates, alice_wallet, bob_wallet):
+def test_incentive(subtensor, templates, alice_wallet, bob_wallet):
     """
     Test the incentive mechanism and interaction of miners/validators
 
@@ -78,14 +77,11 @@ async def test_incentive(subtensor, templates, alice_wallet, bob_wallet):
     max_attempt = 3
     while True:
         try:
-            async with templates.miner(bob_wallet, alice_sn.netuid) as miner:
-                await asyncio.wait_for(miner.started.wait(), 60)
+            with templates.miner(bob_wallet, alice_sn.netuid):
+                time.sleep(5)
+                with templates.validator(alice_wallet, alice_sn.netuid):
+                    time.sleep(5)
 
-                async with templates.validator(
-                    alice_wallet, alice_sn.netuid
-                ) as validator:
-                    # wait for the Validator to process and set_weights
-                    await asyncio.wait_for(validator.set_weights.wait(), 60)
             break
         except asyncio.TimeoutError:
             if max_attempt > 0:
