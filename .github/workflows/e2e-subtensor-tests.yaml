@@ -41,7 +41,8 @@ jobs:
       - name: Install deps for collection
         run: |
          python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+          python -m pip install uv
+          uv pip install -e ".[dev]" --system
 
       - name: Find test files
         id: get-tests

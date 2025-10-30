@@ -304,8 +304,8 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
             symbol="Τ",
             identity=None,
             network_registered_at=0,
-            owner_hotkey="5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
-            owner_coldkey="5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
+            owner_hotkey="5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",  # //Alice_hk
+            owner_coldkey="5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",  # //Alice
             block=1,
             tempo=100,
             last_step=0,
