@@ -1,4 +1,12 @@
 # Changelog
+## 9.12.2 /2025-10-30
+* Use uv pip for e2e dependency installation by @thewhaleking in https://github.com/opentensor/bittensor/pull/3109
+* Fix for `test_liquidity` by @basfroman in https://github.com/opentensor/bittensor/pull/3114
+* Apply default `era.period` to all subtensor extrinsic calls by @basfroman in https://github.com/opentensor/bittensor/pull/3115
+* set root owner for fast runtime time by @basfroman in https://github.com/opentensor/bittensor/pull/3118
+* Allow python 3.14 by @thewhaleking in https://github.com/opentensor/bittensor/pull/3122
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.12.1...v9.12.2
 
 ## 9.12.1 /2025-10-20
 
