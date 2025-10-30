@@ -102,6 +102,16 @@ def uninstall_templates(install_dir):
     shutil.rmtree(install_dir)
 
 
+def get_event_loop():
+    """Returns the current event loop or creates a new one if there is none."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop
+
+
 class Templates:
     class Miner:
         def __init__(self, dir, wallet, netuid):
@@ -109,8 +119,15 @@ class Templates:
             self.wallet = wallet
             self.netuid = netuid
             self.process = None
-
+            self.loop = get_event_loop()
             self.started = asyncio.Event()
+
+        def __enter__(self):
+            self.loop.run_until_complete(self.__aenter__())
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            self.loop.run_until_complete(self.__aexit__(exc_type, exc_value, traceback))
 
         async def __aenter__(self):
             env = os.environ.copy()
@@ -172,6 +189,7 @@ class Templates:
             self.netuid = netuid
             self.process = None
 
+            self.loop = get_event_loop()
             self.started = asyncio.Event()
             self.set_weights = asyncio.Event()
 
@@ -209,11 +227,18 @@ class Templates:
 
             return self
 
+        def __enter__(self):
+            self.loop.run_until_complete(self.__aenter__())
+            return self
+
         async def __aexit__(self, exc_type, exc_value, traceback):
             self.process.terminate()
             self.__reader_task.cancel()
 
             await self.process.wait()
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            self.loop.run_until_complete(self.__aexit__(exc_type, exc_value, traceback))
 
         async def _reader(self):
             async for line in self.process.stdout:

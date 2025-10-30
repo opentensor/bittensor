@@ -1,4 +1,5 @@
 import asyncio
+import time
 
 import pytest
 
@@ -21,8 +22,7 @@ FAST_RUNTIME_TEMPO = 100
 NON_FAST_RUNTIME_TEMPO = 10
 
 
-@pytest.mark.asyncio
-async def test_dendrite(subtensor, templates, alice_wallet, bob_wallet):
+def test_dendrite(subtensor, templates, alice_wallet, bob_wallet):
     """
     Test the Dendrite mechanism
 
@@ -114,8 +114,8 @@ async def test_dendrite(subtensor, templates, alice_wallet, bob_wallet):
     assert bob_neuron.validator_trust == 0.0
     assert bob_neuron.pruning_score == 0
 
-    async with templates.validator(bob_wallet, alice_sn.netuid):
-        await asyncio.sleep(5)  # wait for 5 seconds for the Validator to process
+    with templates.validator(bob_wallet, alice_sn.netuid):
+        time.sleep(5)  # wait for 5 seconds for the Validator to process
 
         subtensor.wait_for_block(
             subtensor.subnets.get_next_epoch_start_block(alice_sn.netuid) + 1

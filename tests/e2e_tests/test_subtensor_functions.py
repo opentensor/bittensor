@@ -1,5 +1,7 @@
 import asyncio
 import re
+import time
+
 import pytest
 
 from bittensor.utils.balance import Balance
@@ -32,8 +34,7 @@ Verifies:
 """
 
 
-@pytest.mark.asyncio
-async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wallet):
+def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wallet):
     """
     Tests subtensor extrinsics
 
@@ -165,10 +166,9 @@ async def test_subtensor_extrinsics(subtensor, templates, alice_wallet, bob_wall
         "Balance for Bob is not correct after burned register"
     )
 
-    async with templates.validator(alice_wallet, netuid):
-        await asyncio.sleep(
-            5
-        )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
+    with templates.validator(alice_wallet, netuid):
+        # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
+        time.sleep(5)
 
         alice_sn.wait_next_epoch()
 

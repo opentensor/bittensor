@@ -1,4 +1,5 @@
 import asyncio
+import time
 
 import pytest
 
@@ -10,8 +11,7 @@ from tests.e2e_tests.utils import (
 )
 
 
-@pytest.mark.asyncio
-async def test_axon(subtensor, templates, alice_wallet):
+def test_axon(subtensor, templates, alice_wallet):
     """
     Test the Axon mechanism and successful registration on the network with sync Subtensor.
 
@@ -45,9 +45,9 @@ async def test_axon(subtensor, templates, alice_wallet):
     assert old_axon.port == 0, f"Expected port 0, but got {old_axon.port}"
     assert old_axon.ip_type == 0, f"Expected IP type 0, but got {old_axon.ip_type}"
 
-    async with templates.miner(alice_wallet, alice_sn.netuid):
+    with templates.miner(alice_wallet, alice_sn.netuid):
         # Waiting for 5 seconds for metagraph to be updated
-        await asyncio.sleep(5)
+        time.sleep(5)
 
         # Refresh the metagraph
         metagraph = subtensor.metagraphs.metagraph(alice_sn.netuid)
