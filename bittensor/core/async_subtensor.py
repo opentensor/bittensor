@@ -153,9 +153,9 @@ if TYPE_CHECKING:
 class AsyncSubtensor(SubtensorMixin):
     """Asynchronous interface for interacting with the Bittensor blockchain.
 
-    This class provides a thin layer over the Substrate Interface, offering a collection of frequently-used calls for
-    querying blockchain data, managing stakes, registering neurons, and interacting with the Bittensor network.
-
+    This class provides a thin layer over the Substrate Interface offering async functionality for Bittensor. This
+     includes frequently-used calls for querying blockchain data, managing stakes and liquidity positions, registering
+     neurons, submitting weights, and many other functions for participating in Bittensor.
 
     """
 
@@ -241,7 +241,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             None
 
-        Example:
+        Example::
+
             subtensor = AsyncSubtensor(network="finney")
             await subtensor.initialize()
 
@@ -266,7 +267,8 @@ class AsyncSubtensor(SubtensorMixin):
         Raises:
             ConnectionError: If unable to connect to the blockchain due to timeout or connection refusal.
 
-        Example:
+        Example::
+
             subtensor = AsyncSubtensor(network="finney")
 
             # Initialize the connection
@@ -386,7 +388,7 @@ class AsyncSubtensor(SubtensorMixin):
 
     @property
     async def block(self):
-        """Provides an asynchronous property to retrieve the current block."""
+        """Provides an asynchronous getter to retrieve the current block."""
         return await self.get_current_block()
 
     async def determine_block_hash(
@@ -395,7 +397,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[str]:
-        """Determine the appropriate block hash based on the provided parameters.
+        """Determine the block hash for the block specified with the provided parameters.
 
         Ensures that only one of the block specification parameters is used and returns the appropriate block hash
         for blockchain queries.
@@ -414,7 +416,8 @@ class AsyncSubtensor(SubtensorMixin):
             ValueError: If reuse_block is set, while also supplying a block/block_hash, or if supplying a block and
                 block_hash, but the hash of the block does not match the supplied block hash.
 
-        Example:
+        Example::
+
             # Get hash for specific block
             block_hash = await subtensor.determine_block_hash(block=1000000)
 
@@ -466,7 +469,8 @@ class AsyncSubtensor(SubtensorMixin):
         Raises:
             ValueError: If a required parameter is missing from the params dictionary.
 
-        Example:
+        Example::
+
             # Define parameter types
             call_def = {
                 "params": [
@@ -474,14 +478,14 @@ class AsyncSubtensor(SubtensorMixin):
                     {"name": "coldkey_ss58", "type": "str"}
                 ]
             }
-
+            
             # Encode parameters as a dictionary
             params_dict = {
                 "amount": 1000000,
                 "coldkey_ss58": "5F..."
             }
             encoded = await subtensor.encode_params(call_definition=call_def, params=params_dict)
-
+            
             # Or encode as a list (positional)
             params_list = [1000000, "5F..."]
             encoded = await subtensor.encode_params(call_definition=call_def, params=params_list)
@@ -523,7 +527,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             The value of the specified hyperparameter if the subnet exists, None otherwise.
 
-        Example:
+        Example::
+
             # Get difficulty for subnet 1
             difficulty = await subtensor.get_hyperparameter(param_name="Difficulty", netuid=1)
 
@@ -532,6 +537,9 @@ class AsyncSubtensor(SubtensorMixin):
 
             # Get immunity period using block hash
             immunity = await subtensor.get_hyperparameter(param_name="ImmunityPeriod", netuid=1, block_hash="0x1234...")
+
+        Notes:
+            - See <https://docs.learnbittensor.org/subnets/subnet-hyperparameters>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not await self.subnet_exists(
@@ -559,7 +567,8 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> SimSwapResult:
         """
         Hits the SimSwap Runtime API to calculate the fee and result for a given transaction. The SimSwapResult contains
-        the staking fees and expected returned amounts of a given transaction. This does not include the transaction
+        the swap fees in alpha or TAO, and quantities of alpha or TAO token expected as output from the transaction.
+        Does not include the transaction extrinsic fee.
         (extrinsic) fee.
 
         Args:
@@ -570,6 +579,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             SimSwapResult object representing the result.
+
+        Notes:
+            See: Transaction Fees in Bittensor: <https://docs.learnbittensor.org/learn/fees>
         """
         check_balance_amount(amount)
         block_hash = block_hash or await self.substrate.get_chain_head()
@@ -652,13 +664,14 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             The value of the constant if found, ``None`` otherwise.
 
-        Example:
+        Example::
+
             # Get existential deposit constant
             existential_deposit = await subtensor.query_constant(
                 module_name="Balances",
                 constant_name="ExistentialDeposit"
             )
-
+            
             # Get constant at specific block
             constant = await subtensor.query_constant(
                 module_name="SubtensorModule",
@@ -699,7 +712,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             AsyncQueryMapResult: A data structure representing the map storage if found, None otherwise.
 
-        Example:
+        Example::
+
             # Query bonds for subnet 1
             bonds = await subtensor.query_map(module="SubtensorModule", name="Bonds", params=[1])
 
@@ -907,7 +921,8 @@ class AsyncSubtensor(SubtensorMixin):
             Optional[list[DynamicInfo]]: A list of DynamicInfo objects, each containing detailed information about a
             subnet, or None if the query fails.
 
-        Example:
+        Example::
+
             # Get all subnets at current block
             subnets = await subtensor.all_subnets()
         """
@@ -956,7 +971,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             The number of blocks since the last step in the subnet, or None if the query fails.
 
-        Example:
+        Example::
+
             # Get blocks since last step for subnet 1
             blocks = await subtensor.blocks_since_last_step(netuid=1)
 
@@ -992,7 +1008,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             The number of blocks since the last update, or None if the subnetwork or UID does not exist.
 
-        Example:
+        Example::
+
             # Get blocks since last update for UID 5 in subnet 1
             blocks = await subtensor.blocks_since_last_update(netuid=1, uid=5)
 
@@ -1034,7 +1051,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             List of tuples mapping each neuron's UID to its bonds with other neurons.
 
-        Example:
+        Example::
+
             # Get bonds for subnet 1 at block 1000000
             bonds = await subtensor.bonds(netuid=1, block=1000000)
 
@@ -1079,7 +1097,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             True if commit-reveal mechanism is enabled, False otherwise.
 
-        Example:
+        Example::
+
             # Check if commit-reveal is enabled for subnet 1
             enabled = await subtensor.commit_reveal_enabled(netuid=1)
 
@@ -1121,7 +1140,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             The value of the 'Difficulty' hyperparameter if the subnet exists, None otherwise.
 
-        Example:
+        Example::
+
             # Get difficulty for subnet 1
             difficulty = await subtensor.difficulty(netuid=1)
 
@@ -1162,7 +1182,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             True if the hotkey is known by the chain and there are accounts, False otherwise.
 
-        Example:
+        Example::
+
             # Check if hotkey exists
             exists = await subtensor.does_hotkey_exist(hotkey_ss58="5F...")
 
@@ -1230,7 +1251,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             A list of SubnetInfo objects, each containing detailed information about a subnet.
 
-        Example:
+        Example::
+
             # Get all subnet information
             subnets = await subtensor.get_all_subnets_info()
 
@@ -1241,12 +1263,9 @@ class AsyncSubtensor(SubtensorMixin):
             for subnet in subnets:
                 print(f"Subnet {subnet.netuid}: {subnet.name}")
 
-        Note:
-            Gaining insights into the subnets' details assists in understanding the network's composition, the roles
-            of different subnets, and their unique features.
-
         Notes:
-            See also: <https://docs.learnbittensor.org/glossary#subnet>
+            Gaining insights into the subnets' details assists in understanding the network's composition, the roles
+            of different subnets, and their unique features. See also: <https://docs.learnbittensor.org/glossary#subnet>
         """
         result, prices = await asyncio.gather(
             self.query_runtime_api(
@@ -1296,7 +1315,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             A mapping of the ss58:commitment with the commitment as a string.
 
-        Example:
+        Example::
+
             # Get all commitments for subnet 1
             commitments = await subtensor.get_all_commitments(netuid=1)
 
@@ -1411,11 +1431,12 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             result: A dictionary of all revealed commitments in view {ss58_address: (reveal block, commitment message)}.
 
-        Example of result:
-        {
-            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY": ( (12, "Alice message 1"), (152, "Alice message 2") ),
-            "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty": ( (12, "Bob message 1"), (147, "Bob message 2") ),
-        }
+        Example::
+            
+            {
+                "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY": ( (12, "Alice message 1"), (152, "Alice message 2") ),
+                "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty": ( (12, "Bob message 1"), (147, "Bob message 2") ),
+            }
         """
         query = await self.query_map(
             module="Commitments",
@@ -1484,7 +1505,8 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            dict[int, str]:
+            dict[int, str]: Dictionary mapping netuid to hotkey, where:
+
                 - netuid: The unique identifier of the subnet.
                 - hotkey: The hotkey of the wallet.
         """
@@ -1525,7 +1547,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             Balance: The balance object containing the account's TAO balance.
 
-        Example:
+        Example::
+
             # Get balance for an address
             balance = await subtensor.get_balance(address="5F...")
             print(f"Balance: {balance.tao} TAO")
@@ -1565,7 +1588,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             A dictionary mapping each address to its Balance object.
 
-        Example:
+        Example::
+
             # Get balances for multiple addresses
             balances = await subtensor.get_balances("5F...", "5G...", "5H...")
         """
@@ -1601,7 +1625,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             int: The current chain block number.
 
-        Example:
+        Example::
+
             # Get current block number
             current_block = await subtensor.get_current_block()
             print(f"Current block: {current_block}")
@@ -1629,7 +1654,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             str: The cryptographic hash of the specified block.
 
-        Example:
+        Example::
+
             # Get hash for specific block
             block_hash = await subtensor.get_block_hash(block=1000000)
             print(f"Block 1000000 hash: {block_hash}")
@@ -1662,8 +1688,8 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash: The hash of the block to retrieve the block from.
 
         Returns:
-            BlockInfo instance:
-                A dataclass containing all available information about the specified block, including:
+            BlockInfo instance: A dataclass containing all available information about the specified block, including:
+
                 - number: The block number.
                 - hash: The corresponding block hash.
                 - timestamp: The timestamp of the block (based on the `Timestamp.Now` extrinsic).
@@ -1718,7 +1744,8 @@ class AsyncSubtensor(SubtensorMixin):
             A tuple containing a boolean indicating success or failure, a list of formatted children with their
                 proportions, and an error message (if applicable).
 
-        Example:
+        Example::
+
             # Get children for a hotkey in subnet 1
             success, children, error = await subtensor.get_children(hotkey="5F...", netuid=1)
 
@@ -1772,8 +1799,10 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            list[tuple[float, str]]: A list of children with their proportions.
-            int: The cool-down block number.
+            tuple: A tuple containing:
+
+                - list[tuple[float, str]]: A list of children with their proportions.
+                - int: The cool-down block number.
         """
 
         response = await self.substrate.query(
@@ -1823,7 +1852,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             The commitment data as a string.
 
-        Example:
+        Example::
+
             # Get commitment for UID 5 in subnet 1
             commitment = await subtensor.get_commitment(netuid=1, uid=5)
             print(f"Commitment: {commitment}")
@@ -1910,7 +1940,8 @@ class AsyncSubtensor(SubtensorMixin):
             CrowdloanConstants:
                 A structured dataclass containing the retrieved values. Missing constants are returned as `None`.
 
-        Example:
+        Example::
+
             print(subtensor.get_crowdloan_constants())
             CrowdloanConstants(
                 AbsoluteMinimumContribution=τ1.000000000,
@@ -2675,19 +2706,20 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             MetagraphInfo object with the requested subnet mechanism data, None if the subnet mechanism does not exist.
 
-        Example:
+        Example::
+
             # Retrieve all fields from the metagraph from subnet 2 mechanism 0
             meta_info = subtensor.get_metagraph_info(netuid=2)
-
+            
             # Retrieve all fields from the metagraph from subnet 2 mechanism 1
             meta_info = subtensor.get_metagraph_info(netuid=2, mechid=1)
-
+            
             # Retrieve selective data from the metagraph from subnet 2 mechanism 0
             partial_meta_info = subtensor.get_metagraph_info(
                 netuid=2,
                 selected_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
             )
-
+            
             # Retrieve selective data from the metagraph from subnet 2 mechanism 1
             partial_meta_info = subtensor.get_metagraph_info(
                 netuid=2,
@@ -2987,7 +3019,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             A tuple of reveal block and commitment message.
 
-        Example of result:
+        Example::
+            
             ( (12, "Alice message 1"), (152, "Alice message 2") )
             ( (12, "Bob message 1"), (147, "Bob message 2") )
         """
@@ -3660,9 +3693,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            dict:
-                - subnet unique ID
-                - The current Alpha price in TAO units for the specified subnet.
+            A dictionary mapping subnet unique ID to the current Alpha price in TAO units.
         """
         block_hash = await self.determine_block_hash(
             block=block, block_hash=block_hash, reuse_block=reuse_block
@@ -3743,6 +3774,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             A list of commit details, where each item contains:
+
                 - ss58_address: The address of the committer.
                 - commit_block: The block number when the commitment was made.
                 - commit_message: The commit message.
@@ -4242,7 +4274,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ``True`` if subnet is active, ``False`` otherwise.
 
-        Note: This means whether the ``start_call`` was initiated or not.
+        Note:
+            This means whether the ``start_call`` was initiated or not.
         """
         query = await self.query_subtensor(
             name="FirstEmissionBlockNumber",
@@ -4502,8 +4535,8 @@ class AsyncSubtensor(SubtensorMixin):
         network-specific details, providing insights into the neuron's role and status within the Bittensor network.
 
         Note:
-            See the ``Bittensor CLI documentation <https://docs.bittensor.com/reference/btcli>``_ for supported identity
-                parameters.
+            See the `Bittensor CLI documentation <https://docs.bittensor.com/reference/btcli>`_ for supported identity
+            parameters.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         identity_info = cast(
@@ -4732,7 +4765,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ``True`` if the target block was reached, ``False`` if timeout occurred.
 
-        Example:
+        Example::
+
             import bittensor as bt
             subtensor = bt.Subtensor()
 
@@ -5593,14 +5627,15 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Example:
-            import bittensor as bt
+        Example::
 
+            import bittensor as bt
+            
             subtensor = bt.AsyncSubtensor(network="local")
             await subtensor.initialize()
-
+            
             my_wallet = bt.Wallet()
-
+            
             # if `liquidity_delta` is negative
             my_liquidity_delta = Balance.from_tao(100) * -1
             await subtensor.modify_liquidity(
@@ -5609,7 +5644,7 @@ class AsyncSubtensor(SubtensorMixin):
                 position_id=2,
                 liquidity_delta=my_liquidity_delta
             )
-
+            
             # if `liquidity_delta` is positive
             my_liquidity_delta = Balance.from_tao(120)
             await subtensor.modify_liquidity(
@@ -5619,8 +5654,9 @@ class AsyncSubtensor(SubtensorMixin):
                 liquidity_delta=my_liquidity_delta
             )
 
-        Note: Modifying is allowed even when user liquidity is enabled in specified subnet. Call `toggle_user_liquidity`
-        to enable/disable user liquidity.
+        Note:
+            Modifying is allowed even when user liquidity is enabled in specified subnet. Call `toggle_user_liquidity`
+            to enable/disable user liquidity.
         """
         return await modify_liquidity_extrinsic(
             subtensor=self,
@@ -5858,7 +5894,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Note:
             - Adding is allowed even when user liquidity is enabled in specified subnet. Call `toggle_user_liquidity`
-        extrinsic to enable/disable user liquidity.
+              extrinsic to enable/disable user liquidity.
             - To get the `position_id` use `get_liquidity_list` method.
         """
         return await remove_liquidity_extrinsic(
@@ -6483,7 +6519,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Example:
+        Example::
+
             # Commit some data to subnet 1
             success = await subtensor.commit(wallet=my_wallet, netuid=1, data="Hello Bittensor!")
 
@@ -6882,9 +6919,10 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Example:
+        Example::
+
             # If you would like to unstake all stakes in all subnets safely, use default `rate_tolerance` or pass your
-                value:
+            # value:
             import bittensor as bt
 
             subtensor = bt.AsyncSubtensor()
