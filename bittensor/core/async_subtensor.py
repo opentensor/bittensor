@@ -3045,7 +3045,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> dict:
+    ) -> str:
         """Retrieves the root claim type for a given coldkey address.
 
         Parameters:
