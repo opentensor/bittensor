@@ -1,5 +1,5 @@
 """ "
-Subtensor spec version: 325
+Subtensor spec version: 331
 """
 
 System = "System"
@@ -7,9 +7,6 @@ Timestamp = "Timestamp"
 Grandpa = "Grandpa"
 Balances = "Balances"
 SubtensorModule = "SubtensorModule"
-Triumvirate = "Triumvirate"
-TriumvirateMembers = "TriumvirateMembers"
-SenateMembers = "SenateMembers"
 Utility = "Utility"
 Sudo = "Sudo"
 Multisig = "Multisig"

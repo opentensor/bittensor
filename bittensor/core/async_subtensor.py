@@ -2,7 +2,7 @@ import asyncio
 import copy
 import ssl
 from datetime import datetime, timezone
-from typing import cast, Optional, Any, Union, Iterable, TYPE_CHECKING
+from typing import cast, Optional, Any, Union, Iterable, TYPE_CHECKING, Literal
 
 import asyncstdlib as a
 import scalecodec
@@ -73,7 +73,11 @@ from bittensor.core.extrinsics.asyncex.registration import (
     register_subnet_extrinsic,
     set_subnet_identity_extrinsic,
 )
-from bittensor.core.extrinsics.asyncex.root import root_register_extrinsic
+from bittensor.core.extrinsics.asyncex.root import (
+    claim_root_extrinsic,
+    root_register_extrinsic,
+    set_root_claim_type_extrinsic,
+)
 from bittensor.core.extrinsics.asyncex.serving import (
     publish_metadata_extrinsic,
 )
@@ -2424,6 +2428,17 @@ class AsyncSubtensor(SubtensorMixin):
             logging.debug(f"Subnet {netuid} is not active.")
             return None
 
+        positions_response = await self.query_map(
+            module="Swap",
+            name="Positions",
+            params=[netuid, wallet.coldkeypub.ss58_address],
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        if len(positions_response.records) == 0:
+            return []
+
         block_hash = await self.determine_block_hash(
             block=block, block_hash=block_hash, reuse_block=reuse_block
         )
@@ -2447,25 +2462,20 @@ class AsyncSubtensor(SubtensorMixin):
             params=[netuid],
             block_hash=block_hash,
         )
+
         (
-            (fee_global_tao_query, fee_global_alpha_query, sqrt_price_query),
-            positions_response,
-        ) = await asyncio.gather(
-            self.substrate.query_multi(
-                [
-                    fee_global_tao_query_sk,
-                    fee_global_alpha_query_sk,
-                    sqrt_price_query_sk,
-                ],
-                block_hash=block_hash,
-            ),
-            self.query_map(
-                module="Swap",
-                name="Positions",
-                block=block,
-                params=[netuid, wallet.coldkeypub.ss58_address],
-            ),
+            fee_global_tao_query,
+            fee_global_alpha_query,
+            sqrt_price_query,
+        ) = await self.substrate.query_multi(
+            storage_keys=[
+                fee_global_tao_query_sk,
+                fee_global_alpha_query_sk,
+                sqrt_price_query_sk,
+            ],
+            block_hash=block_hash,
         )
+
         # convert to floats
         fee_global_tao = fixed_to_float(fee_global_tao_query[1])
         fee_global_alpha = fixed_to_float(fee_global_alpha_query[1])
@@ -3028,6 +3038,179 @@ class AsyncSubtensor(SubtensorMixin):
         if query is None:
             return None
         return tuple(decode_revealed_commitment(pair) for pair in query)
+
+    async def get_root_claim_type(
+        self,
+        coldkey_ss58: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> str:
+        """Retrieves the root claim type for a given coldkey address.
+
+        Parameters:
+            coldkey_ss58: The ss58 address of the coldkey.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+
+        Returns:
+            RootClaimType value in string representation. Could be `Swap` or `Keep`.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="RootClaimType",
+            params=[coldkey_ss58],
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+        return next(iter(query.keys()))
+
+    async def get_root_claimable_rate(
+        self,
+        hotkey_ss58: str,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> float:
+        """Retrieves the root claimable rate from a given hotkey address for provided netuid.
+
+        Parameters:
+            hotkey_ss58: The ss58 address of the root validator.
+            netuid: The unique identifier of the subnet to get the rate.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+
+        Returns:
+            The rate of claimable stake from validator's hotkey ss58 address for provided subnet.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        all_rates = await self.get_root_claimable_all_rates(
+            hotkey_ss58=hotkey_ss58,
+            block=block_hash,
+        )
+        return all_rates.get(netuid, 0.0)
+
+    async def get_root_claimable_all_rates(
+        self,
+        hotkey_ss58: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> dict[int, float]:
+        """Retrieves all root claimable rates from a given hotkey address for all subnets with this validator.
+
+        Parameters:
+            hotkey_ss58: The ss58 address of the root validator.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+
+        Returns:
+            The rate of claimable stake from validator's hotkey ss58 address for provided subnet.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="RootClaimable",
+            params=[hotkey_ss58],
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+        bits_list = next(iter(query.value))
+        return {bits[0]: fixed_to_float(bits[1], frac_bits=32) for bits in bits_list}
+
+    async def get_root_claimable_stake(
+        self,
+        coldkey_ss58: str,
+        hotkey_ss58: str,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Balance:
+        """
+        Retrieves the root claimable stake for a given coldkey address.
+
+        Parameters:
+            coldkey_ss58: Delegate's ColdKey ss58 address.
+            hotkey_ss58: The root validator hotkey ss58 address.
+            netuid: Delegate's netuid where stake will be claimed.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+
+        Returns:
+            Available for claiming root stake.
+
+        Note:
+            After manual claim, claimable (available) stake will be added to subtends stake.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        root_stake = await self.get_stake(
+            coldkey_ss58=coldkey_ss58,
+            hotkey_ss58=hotkey_ss58,
+            netuid=0,  # root netuid
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        root_claimable_rate = await self.get_root_claimable_rate(
+            hotkey_ss58=hotkey_ss58,
+            netuid=netuid,
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        root_claimable_stake = (root_claimable_rate * root_stake).set_unit(
+            netuid=netuid
+        )
+        root_claimed = await self.get_root_claimed(
+            coldkey_ss58=coldkey_ss58,
+            hotkey_ss58=hotkey_ss58,
+            netuid=netuid,
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        return max(
+            root_claimable_stake - root_claimed, Balance(0).set_unit(netuid=netuid)
+        )
+
+    async def get_root_claimed(
+        self,
+        coldkey_ss58: str,
+        hotkey_ss58: str,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Balance:
+        """Retrieves the root claimed Alpha shares for coldkey from hotkey in provided subnet.
+
+        Parameters:
+            coldkey_ss58: The ss58 address of the staker.
+            hotkey_ss58: The ss58 address of the root validator.
+            netuid: The unique identifier of the subnet.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+
+        Returns:
+            The number of Alpha stake claimed from the root validator in Rao.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="RootClaimed",
+            params=[hotkey_ss58, coldkey_ss58, netuid],
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+        return Balance.from_rao(query.value).set_unit(netuid=netuid)
 
     async def get_stake(
         self,
@@ -5095,6 +5278,40 @@ class AsyncSubtensor(SubtensorMixin):
                 wait_for_finalization=wait_for_finalization,
             )
 
+    async def claim_root(
+        self,
+        wallet: "Wallet",
+        netuids: "UIDs",
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ):
+        """Claims the root emissions for a coldkey.
+
+        Parameters:
+            wallet: Bittensor Wallet instance.
+            netuids: The netuids to claim root emissions for.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+        """
+        return await claim_root_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuids=netuids,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
     async def commit_weights(
         self,
         wallet: "Wallet",
@@ -5966,6 +6183,40 @@ class AsyncSubtensor(SubtensorMixin):
 
         logging.error(f"[red]{response.message}[/red]")
         return response
+
+    async def set_root_claim_type(
+        self,
+        wallet: "Wallet",
+        new_root_claim_type: Literal["Swap", "Keep"],
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ):
+        """Sets the root claim type for the coldkey in provided wallet.
+
+        Parameters:
+            wallet: Bittensor Wallet instance.
+            new_root_claim_type: The new root claim type to set. Could be either "Swap" or "Keep".
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+        """
+        return await set_root_claim_type_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            new_root_claim_type=new_root_claim_type,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
 
     async def set_subnet_identity(
         self,

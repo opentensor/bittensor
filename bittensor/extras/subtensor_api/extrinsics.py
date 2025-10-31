@@ -11,6 +11,7 @@ class Extrinsics:
         self.add_stake = subtensor.add_stake
         self.add_stake_multiple = subtensor.add_stake_multiple
         self.burned_register = subtensor.burned_register
+        self.claim_root = subtensor.claim_root
         self.commit_weights = subtensor.commit_weights
         self.contribute_crowdloan = subtensor.contribute_crowdloan
         self.create_crowdloan = subtensor.create_crowdloan
@@ -33,6 +34,7 @@ class Extrinsics:
         self.set_weights = subtensor.set_weights
         self.serve_axon = subtensor.serve_axon
         self.set_commitment = subtensor.set_commitment
+        self.set_root_claim_type = subtensor.set_root_claim_type
         self.start_call = subtensor.start_call
         self.swap_stake = subtensor.swap_stake
         self.toggle_user_liquidity = subtensor.toggle_user_liquidity

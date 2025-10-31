@@ -3494,7 +3494,7 @@ async def test_get_liquidity_list_happy_path(subtensor, fake_wallet, mocker):
         ],
     ]
 
-    fake_result = mocker.AsyncMock(autospec=list)
+    fake_result = mocker.AsyncMock(records=fake_positions, autospec=list)
     fake_result.__aiter__.return_value = iter(fake_positions)
 
     mocked_query_map = mocker.AsyncMock(return_value=fake_result)
@@ -3514,8 +3514,10 @@ async def test_get_liquidity_list_happy_path(subtensor, fake_wallet, mocker):
     mocked_query_map.assert_awaited_once_with(
         module="Swap",
         name="Positions",
-        block=None,
         params=[netuid, fake_wallet.coldkeypub.ss58_address],
+        block=None,
+        block_hash=None,
+        reuse_block=False,
     )
     assert len(result) == len(fake_positions)
     assert all([isinstance(p, async_subtensor.LiquidityPosition) for p in result])
@@ -4659,3 +4661,227 @@ async def test_commit_weights_with_zero_max_attempts(
     assert isinstance(response.error, ValueError)
     assert expected_message in str(response.error)
     assert expected_message in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_get_root_claim_type(mocker, subtensor):
+    """Tests that `get_root_claim_type` calls proper methods and returns the correct value."""
+    # Preps
+    fake_coldkey_ss58 = mocker.Mock(spec=str)
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    fake_type = mocker.Mock(spec=str)
+    fake_result = {fake_type: ()}
+    mocked_map = mocker.patch.object(
+        subtensor.substrate, "query", return_value=fake_result
+    )
+
+    # call
+    result = await subtensor.get_root_claim_type(fake_coldkey_ss58)
+
+    # asserts
+    mocked_determine_block_hash.assert_awaited_once()
+    mocked_map.assert_awaited_once_with(
+        module="SubtensorModule",
+        storage_function="RootClaimType",
+        params=[fake_coldkey_ss58],
+        block_hash=mocked_determine_block_hash.return_value,
+        reuse_block_hash=False,
+    )
+    assert result == fake_type
+
+
+@pytest.mark.asyncio
+async def test_get_root_claimable_rate(mocker, subtensor):
+    """Tests `get_root_claimable_rate` method."""
+    # Preps
+    hotkey_ss58 = mocker.Mock(spec=str)
+    netuid = mocker.Mock(spec=int)
+
+    mocked_get_root_claimable_all_rates = mocker.patch.object(
+        subtensor, "get_root_claimable_all_rates", return_value={}
+    )
+
+    # Call
+    result = await subtensor.get_root_claimable_rate(
+        hotkey_ss58=hotkey_ss58,
+        netuid=netuid,
+    )
+
+    # Asserts
+    mocked_get_root_claimable_all_rates.assert_awaited_once_with(
+        hotkey_ss58=hotkey_ss58,
+        block=None,
+    )
+    assert result == 0.0
+
+
+@pytest.mark.asyncio
+async def test_get_root_claimable_all_rates(mocker, subtensor):
+    """Tests `get_root_claimable_all_rates` method."""
+    # Preps
+    hotkey_ss58 = mocker.Mock(spec=str)
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    fake_value = [((14, {"bits": 6520190}),)]
+    fake_result = mocker.MagicMock(value=fake_value)
+    fake_result.__iter__ = fake_value
+    mocked_query = mocker.patch.object(
+        subtensor.substrate, "query", return_value=fake_result
+    )
+    mocked_fixed_to_float = mocker.patch.object(async_subtensor, "fixed_to_float")
+
+    # Call
+    result = await subtensor.get_root_claimable_all_rates(
+        hotkey_ss58=hotkey_ss58,
+    )
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once()
+    mocked_query.assert_awaited_once_with(
+        module="SubtensorModule",
+        storage_function="RootClaimable",
+        params=[hotkey_ss58],
+        block_hash=mocked_determine_block_hash.return_value,
+        reuse_block_hash=False,
+    )
+    mocked_fixed_to_float.assert_called_once_with({"bits": 6520190}, frac_bits=32)
+    assert result == {14: mocked_fixed_to_float.return_value}
+
+
+@pytest.mark.asyncio
+async def test_get_root_claimable_stake(mocker, subtensor):
+    """Tests `get_root_claimable_stake` method."""
+    # Preps
+    coldkey_ss58 = mocker.Mock(spec=str)
+    hotkey_ss58 = mocker.Mock(spec=str)
+    netuid = 14
+
+    fake_result = mocker.AsyncMock(return_value=Balance.from_tao(1))
+    mocked_get_stake = mocker.patch.object(
+        subtensor, "get_stake", return_value=fake_result
+    )
+    mocked_get_root_claimable_rate = mocker.patch.object(
+        subtensor, "get_root_claimable_rate", return_value=0.5
+    )
+    mocked_get_root_claimed = mocker.patch.object(subtensor, "get_root_claimed")
+
+    # Call
+    result = await subtensor.get_root_claimable_stake(
+        coldkey_ss58=coldkey_ss58,
+        hotkey_ss58=hotkey_ss58,
+        netuid=netuid,
+    )
+
+    # Asserts
+    mocked_get_stake.assert_awaited_once_with(
+        coldkey_ss58=coldkey_ss58,
+        hotkey_ss58=hotkey_ss58,
+        netuid=0,
+        block=None,
+        block_hash=None,
+        reuse_block=False,
+    )
+    mocked_get_root_claimable_rate.assert_awaited_once_with(
+        hotkey_ss58=hotkey_ss58,
+        netuid=netuid,
+        block=None,
+        block_hash=None,
+        reuse_block=False,
+    )
+    mocked_get_root_claimed.assert_awaited_once_with(
+        coldkey_ss58=coldkey_ss58,
+        hotkey_ss58=hotkey_ss58,
+        netuid=netuid,
+        block=None,
+        block_hash=None,
+        reuse_block=False,
+    )
+    assert result == Balance.from_rao(1).set_unit(netuid)
+
+
+@pytest.mark.asyncio
+async def test_get_root_claimed(mocker, subtensor):
+    """Tests `get_root_claimed` method."""
+    # Preps
+    coldkey_ss58 = mocker.Mock(spec=str)
+    hotkey_ss58 = mocker.Mock(spec=str)
+    netuid = 14
+    fake_value = mocker.Mock(value=1)
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query = mocker.patch.object(
+        subtensor.substrate, "query", return_value=fake_value
+    )
+
+    # Call
+    result = await subtensor.get_root_claimed(
+        coldkey_ss58=coldkey_ss58,
+        hotkey_ss58=hotkey_ss58,
+        netuid=netuid,
+    )
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once()
+    mocked_query.assert_awaited_once_with(
+        module="SubtensorModule",
+        storage_function="RootClaimed",
+        params=[hotkey_ss58, coldkey_ss58, netuid],
+        block_hash=mocked_determine_block_hash.return_value,
+        reuse_block_hash=False,
+    )
+    assert result == Balance.from_rao(1).set_unit(netuid)
+
+
+@pytest.mark.asyncio
+async def test_claim_root(mocker, subtensor):
+    """Tests `claim_root` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    netuids = mocker.Mock(spec=int)
+    mocked_claim_root_extrinsic = mocker.patch.object(
+        async_subtensor, "claim_root_extrinsic"
+    )
+
+    # call
+    response = await subtensor.claim_root(
+        wallet=wallet,
+        netuids=netuids,
+    )
+
+    # asserts
+    mocked_claim_root_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        netuids=netuids,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_claim_root_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_set_root_claim_type(mocker, subtensor):
+    """Tests that `set_root_claim_type` calls proper methods and returns the correct value."""
+    # Preps
+    faked_wallet = mocker.Mock(spec=Wallet)
+    fake_new_root_claim_type = mocker.Mock(spec=str)
+    mocked_set_root_claim_type_extrinsic = mocker.patch.object(
+        async_subtensor, "set_root_claim_type_extrinsic"
+    )
+
+    # call
+    response = await subtensor.set_root_claim_type(
+        wallet=faked_wallet, new_root_claim_type=fake_new_root_claim_type
+    )
+
+    # asserts
+    mocked_set_root_claim_type_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=faked_wallet,
+        new_root_claim_type=fake_new_root_claim_type,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_set_root_claim_type_extrinsic.return_value

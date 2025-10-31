@@ -17,6 +17,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.bonds = subtensor.inner_subtensor.bonds
     subtensor.burned_register = subtensor.inner_subtensor.burned_register
     subtensor.chain_endpoint = subtensor.inner_subtensor.chain_endpoint
+    subtensor.claim_root = subtensor.inner_subtensor.claim_root
     subtensor.commit_reveal_enabled = subtensor.inner_subtensor.commit_reveal_enabled
     subtensor.commit_weights = subtensor.inner_subtensor.commit_weights
     subtensor.contribute_crowdloan = subtensor.inner_subtensor.contribute_crowdloan
@@ -109,6 +110,17 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.get_revealed_commitment_by_hotkey = (
         subtensor.inner_subtensor.get_revealed_commitment_by_hotkey
     )
+    subtensor.get_root_claim_type = subtensor.inner_subtensor.get_root_claim_type
+    subtensor.get_root_claimable_all_rates = (
+        subtensor.inner_subtensor.get_root_claimable_all_rates
+    )
+    subtensor.get_root_claimable_rate = (
+        subtensor.inner_subtensor.get_root_claimable_rate
+    )
+    subtensor.get_root_claimable_stake = (
+        subtensor.inner_subtensor.get_root_claimable_stake
+    )
+    subtensor.get_root_claimed = subtensor.inner_subtensor.get_root_claimed
     subtensor.get_stake = subtensor.inner_subtensor.get_stake
     subtensor.get_stake_add_fee = subtensor.inner_subtensor.get_stake_add_fee
     subtensor.get_stake_for_coldkey_and_hotkey = (
@@ -195,6 +207,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.set_commitment = subtensor.inner_subtensor.set_commitment
     subtensor.set_delegate_take = subtensor.inner_subtensor.set_delegate_take
     subtensor.set_reveal_commitment = subtensor.inner_subtensor.set_reveal_commitment
+    subtensor.set_root_claim_type = subtensor.inner_subtensor.set_root_claim_type
     subtensor.set_subnet_identity = subtensor.inner_subtensor.set_subnet_identity
     subtensor.set_weights = subtensor.inner_subtensor.set_weights
     subtensor.setup_config = subtensor.inner_subtensor.setup_config

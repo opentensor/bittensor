@@ -9,8 +9,7 @@ from tests.e2e_tests.utils import (
 )
 
 
-@pytest.mark.asyncio
-async def test_liquidity(subtensor, alice_wallet, bob_wallet):
+def test_liquidity(subtensor, alice_wallet, bob_wallet):
     """
     Tests the liquidity mechanism
 

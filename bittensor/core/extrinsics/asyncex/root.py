@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Literal
 
 from bittensor.core.extrinsics.params import RootParams
 from bittensor.core.types import ExtrinsicResponse
@@ -10,6 +10,7 @@ from bittensor.utils.btlogging import logging
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.async_subtensor import AsyncSubtensor
+    from bittensor.core.types import UIDs
 
 
 async def _get_limits(subtensor: "AsyncSubtensor") -> tuple[int, float]:
@@ -139,6 +140,104 @@ async def root_register_extrinsic(
 
         # neuron not found, try again
         return ExtrinsicResponse(False, "Unknown error. Neuron not found.").with_log()
+
+    except Exception as error:
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
+
+
+async def set_root_claim_type_extrinsic(
+    subtensor: "AsyncSubtensor",
+    wallet: "Wallet",
+    new_root_claim_type: Literal["Swap", "Keep"],
+    period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
+) -> ExtrinsicResponse:
+    """Sets the root claim type for the coldkey in provided wallet.
+
+    Parameters:
+        subtensor: Subtensor instance to interact with the blockchain.
+        wallet: Bittensor Wallet instance.
+        new_root_claim_type: The new root claim type to set. Could be either "Swap" or "Keep".
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+    Returns:
+        ExtrinsicResponse: The result object of the extrinsic execution.
+    """
+    try:
+        if not (
+            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+        ).success:
+            return unlocked
+
+        call = await subtensor.compose_call(
+            call_module="SubtensorModule",
+            call_function="set_root_claim_type",
+            call_params=RootParams.set_root_claim_type(new_root_claim_type),
+        )
+        return await subtensor.sign_and_send_extrinsic(
+            call=call,
+            wallet=wallet,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+    except Exception as error:
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
+
+
+async def claim_root_extrinsic(
+    subtensor: "AsyncSubtensor",
+    wallet: "Wallet",
+    netuids: "UIDs",
+    period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
+) -> ExtrinsicResponse:
+    """Claims the root emissions for a coldkey.
+
+    Parameters:
+        subtensor: Subtensor instance to interact with the blockchain.
+        wallet: Bittensor Wallet instance.
+        netuids: The netuids to claim root emissions for.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+    Returns:
+        ExtrinsicResponse: The result object of the extrinsic execution.
+    """
+    try:
+        if not (
+            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+        ).success:
+            return unlocked
+
+        call = await subtensor.compose_call(
+            call_module="SubtensorModule",
+            call_function="claim_root",
+            call_params=RootParams.claim_root(netuids),
+        )
+        return await subtensor.sign_and_send_extrinsic(
+            call=call,
+            wallet=wallet,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
 
     except Exception as error:
         return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)

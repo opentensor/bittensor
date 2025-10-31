@@ -393,21 +393,21 @@ def test_blocks(subtensor):
 
 
 @pytest.mark.asyncio
-async def test_blocks_async(subtensor):
+async def test_blocks_async(async_subtensor):
     """
     Async tests:
     - Get current block
     - Get block hash
     - Wait for block
     """
-    block = subtensor.chain.get_current_block()
-    assert block == subtensor.block
+    block = await async_subtensor.chain.get_current_block()
+    assert block == await async_subtensor.block
 
-    block_hash = subtensor.chain.get_block_hash(block)
+    block_hash = await async_subtensor.chain.get_block_hash(block)
     assert re.match("0x[a-z0-9]{64}", block_hash)
 
-    subtensor.wait_for_block(block + 10)
-    assert subtensor.chain.get_current_block() in [block + 10, block + 11]
+    await async_subtensor.wait_for_block(block + 10)
+    assert await async_subtensor.chain.get_current_block() in [block + 10, block + 11]
     logging.console.info("✅ Passed [blue]test_blocks_async[/blue]")
 
 
