@@ -2357,7 +2357,7 @@ class Subtensor(SubtensorMixin):
         query = self.substrate.query(
             module="SubtensorModule",
             storage_function="RootClaimed",
-            params=[hotkey_ss58, coldkey_ss58, netuid],
+            params=[netuid, hotkey_ss58, coldkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
         return Balance.from_rao(query.value).set_unit(netuid=netuid)

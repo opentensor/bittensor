@@ -3206,7 +3206,7 @@ class AsyncSubtensor(SubtensorMixin):
         query = await self.substrate.query(
             module="SubtensorModule",
             storage_function="RootClaimed",
-            params=[hotkey_ss58, coldkey_ss58, netuid],
+            params=[netuid, hotkey_ss58, coldkey_ss58],
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
