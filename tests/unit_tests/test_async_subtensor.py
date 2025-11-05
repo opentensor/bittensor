@@ -4710,7 +4710,7 @@ async def test_get_root_claimable_rate(mocker, subtensor):
     # Asserts
     mocked_get_root_claimable_all_rates.assert_awaited_once_with(
         hotkey_ss58=hotkey_ss58,
-        block=None,
+        block_hash=None,
     )
     assert result == 0.0
 
