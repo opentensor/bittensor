@@ -15,8 +15,10 @@ class Subnets:
         self.burned_register = subtensor.burned_register
         self.commit_reveal_enabled = subtensor.commit_reveal_enabled
         self.difficulty = subtensor.difficulty
+        self.get_all_ema_tao_inflow = subtensor.get_all_ema_tao_inflow
         self.get_all_subnets_info = subtensor.get_all_subnets_info
         self.get_all_subnets_netuid = subtensor.get_all_subnets_netuid
+        self.get_ema_tao_inflow = subtensor.get_ema_tao_inflow
         self.get_parents = subtensor.get_parents
         self.get_children = subtensor.get_children
         self.get_children_pending = subtensor.get_children_pending
