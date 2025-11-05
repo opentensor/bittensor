@@ -344,14 +344,12 @@ def test_root_claim_keep_with_zero_num_root_auto_claims(
     # === ROOT CLAIM MANUAL ===
     response = subtensor.staking.claim_root(wallet=charlie_wallet, netuids=[sn2.netuid])
     assert response.success, response.message
-    block = subtensor.block
 
     # === Check Charlie after manual claim ===
     claimed_after_charlie = subtensor.staking.get_root_claimed(
         coldkey_ss58=charlie_wallet.coldkey.ss58_address,
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
         netuid=sn2.netuid,
-        block=block,
     )
     assert claimed_after_charlie >= claimable_stake_before_charlie
 
@@ -359,7 +357,6 @@ def test_root_claim_keep_with_zero_num_root_auto_claims(
         coldkey_ss58=charlie_wallet.coldkey.ss58_address,
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
         netuid=sn2.netuid,
-        block=block,
     )
     assert claimable_stake_after_charlie == claimed_before_charlie
 
@@ -367,7 +364,6 @@ def test_root_claim_keep_with_zero_num_root_auto_claims(
         coldkey_ss58=charlie_wallet.coldkey.ss58_address,
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
         netuid=sn2.netuid,
-        block=block,
     )
     assert stake_after_charlie >= claimable_stake_before_charlie
 

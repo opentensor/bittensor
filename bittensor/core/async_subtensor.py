@@ -3156,7 +3156,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         all_rates = await self.get_root_claimable_all_rates(
             hotkey_ss58=hotkey_ss58,
-            block=block_hash,
+            block_hash=block_hash,
         )
         return all_rates.get(netuid, 0.0)
 
