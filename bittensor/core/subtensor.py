@@ -874,17 +874,45 @@ class Subtensor(SubtensorMixin):
                 )
         return result
 
-    def get_all_metagraphs_info(
+    def get_all_ema_tao_inflow(
         self,
         block: Optional[int] = None,
+    ) -> dict[int, tuple[int, Balance]]:
+        """
+        Query EMA TAO flow for all subnets using query_map.
+
+        The EMA TAO flow represents the exponential moving average of TAO flowing
+        into or out of a subnet. Negative values indicate net outflow.
+
+        Args:
+            block: The block number to retrieve the commitment from.
+
+        Returns:
+            Dict mapping netuid -> (block_number, Balance).
+        """
+        block_hash = self.determine_block_hash(block)
+        query = self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function="SubnetEmaTaoFlow",
+            block_hash=block_hash,
+        )
+        tao_inflow_ema = {}
+        for netuid, (block_updated, tao_bits) in query:
+            ema_value = int(fixed_to_float(tao_bits))
+            tao_inflow_ema[netuid] = (block_updated, Balance.from_rao(ema_value))
+        return tao_inflow_ema
+
+    def get_all_metagraphs_info(
+        self,
         all_mechanisms: bool = False,
+        block: Optional[int] = None,
     ) -> Optional[list[MetagraphInfo]]:
         """
         Retrieves a list of MetagraphInfo objects for all subnets
 
         Parameters:
-            block: The blockchain block number for the query.
             all_mechanisms: If True then returns all mechanisms, otherwise only those with index 0 for all subnets.
+            block: The blockchain block number for the query.
 
         Returns:
             List of MetagraphInfo objects for all existing subnets.
@@ -1597,6 +1625,40 @@ class Subtensor(SubtensorMixin):
             raise Exception("Unable to retrieve existential deposit amount.")
 
         return Balance.from_rao(getattr(result, "value", 0))
+
+    def get_ema_tao_inflow(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+    ) -> Optional[tuple[int, Balance]]:
+        """
+        Query EMA TAO flow for all subnets using query_map.
+
+        The EMA TAO flow represents the exponential moving average of TAO flowing into or out of a subnet. Negative
+        values indicate net outflow.
+
+        Args:
+            netuid: The unique identifier of the subnetwork.
+            block: The block number to retrieve the commitment from.
+
+        Returns:
+            The tuple with block_number, Balance
+        """
+        block_hash = self.determine_block_hash(block)
+        query = self.substrate.query(
+            module="SubtensorModule",
+            storage_function="SubnetEmaTaoFlow",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+
+        # sn0 doesn't have EmaTaoInflow
+        if query is None:
+            return None
+
+        block_updated, tao_bits = query.value
+        ema_value = int(fixed_to_float(tao_bits))
+        return block_updated, Balance.from_rao(ema_value)
 
     def get_hotkey_owner(
         self, hotkey_ss58: str, block: Optional[int] = None
