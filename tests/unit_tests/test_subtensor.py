@@ -4909,7 +4909,7 @@ def test_get_root_claimed(mocker, subtensor):
     mocked_query.assert_called_once_with(
         module="SubtensorModule",
         storage_function="RootClaimed",
-        params=[hotkey_ss58, coldkey_ss58, netuid],
+        params=[netuid, hotkey_ss58, coldkey_ss58],
         block_hash=mocked_determine_block_hash.return_value,
     )
     assert result == Balance.from_rao(1).set_unit(netuid)
