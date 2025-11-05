@@ -4823,7 +4823,7 @@ async def test_get_root_claimed(mocker, subtensor):
     mocked_query.assert_awaited_once_with(
         module="SubtensorModule",
         storage_function="RootClaimed",
-        params=[hotkey_ss58, coldkey_ss58, netuid],
+        params=[netuid, hotkey_ss58, coldkey_ss58],
         block_hash=mocked_determine_block_hash.return_value,
         reuse_block_hash=False,
     )
