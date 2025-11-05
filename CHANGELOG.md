@@ -1,5 +1,17 @@
 # Changelog
 
+## 10.0.0rc3 /2025-11-05
+
+## What's Changed
+* [v10] Apply default era.period to all extrinsics by @basfroman in https://github.com/opentensor/bittensor/pull/3116
+* [V10] python3.14 by @thewhaleking in https://github.com/opentensor/bittensor/pull/3123
+* [v10] Fix py3.14 tests issue by @basfroman in https://github.com/opentensor/bittensor/pull/3124
+* [v10] `Root claim/ Airdrop` mechanism implementation by @basfroman in https://github.com/opentensor/bittensor/pull/3117
+* [v10] RootClaim fix by @basfroman in https://github.com/opentensor/bittensor/pull/3130
+* [v10] EMA InFlow support by @basfroman in https://github.com/opentensor/bittensor/pull/3131
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v10.0.0rc2...v10.0.0rc3
+
 ## 10.0.0rc2 /2025-10-20
 
 * [v10] Remove deprecated `bittensor.version_split` by @basfroman in https://github.com/opentensor/bittensor/pull/3100
