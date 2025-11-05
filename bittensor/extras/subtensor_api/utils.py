@@ -44,6 +44,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
         subtensor.inner_subtensor.get_admin_freeze_window
     )
     subtensor.get_all_commitments = subtensor.inner_subtensor.get_all_commitments
+    subtensor.get_all_ema_tao_inflow = subtensor.inner_subtensor.get_all_ema_tao_inflow
     subtensor.get_all_metagraphs_info = (
         subtensor.inner_subtensor.get_all_metagraphs_info
     )
@@ -74,6 +75,7 @@ def add_legacy_methods(subtensor: "SubtensorApi"):
     subtensor.get_delegate_take = subtensor.inner_subtensor.get_delegate_take
     subtensor.get_delegated = subtensor.inner_subtensor.get_delegated
     subtensor.get_delegates = subtensor.inner_subtensor.get_delegates
+    subtensor.get_ema_tao_inflow = subtensor.inner_subtensor.get_ema_tao_inflow
     subtensor.get_existential_deposit = (
         subtensor.inner_subtensor.get_existential_deposit
     )
