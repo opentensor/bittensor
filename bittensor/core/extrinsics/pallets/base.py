@@ -65,13 +65,13 @@ class BasePallet:
             AttributeError: If `dynamic_function=False` and the attribute doesn't exist.
         """
         # Don't intercept special attributes or if dynamic_function is disabled
-        if name.startswith('_') or not self.dynamic_function:
+        if name.startswith("_") or not self.dynamic_function:
             raise AttributeError(
                 f"'{self.__class__.__name__}' object has no attribute '{name}'."
             )
 
         # Check if it's a real method that exists (shouldn't happen, but safety check)
-        if hasattr(type(self), name) and not name.startswith('_'):
+        if hasattr(type(self), name) and not name.startswith("_"):
             raise AttributeError(
                 f"'{self.__class__.__name__}' object has no attribute '{name}'."
             )
