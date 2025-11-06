@@ -2,14 +2,14 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
 
 from bittensor.utils.liquidity import price_to_tick
-from .base import BasePallet, Call
+from .base import CallBuilder, Call
 
 if TYPE_CHECKING:
     from bittensor.utils.balance import Balance
 
 
 @dataclass
-class Swap(BasePallet):
+class Swap(CallBuilder):
     """Factory class for creating GenericCall objects for Swap pallet functions.
 
     This class provides methods to create GenericCall instances for all Swap pallet extrinsics.
@@ -47,7 +47,7 @@ class Swap(BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(
+        return self.create_composed_call(
             netuid=netuid,
             hotkey=hotkey_ss58,
             liquidity=liquidity.rao,
@@ -73,7 +73,7 @@ class Swap(BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(
+        return self.create_composed_call(
             netuid=netuid,
             hotkey=hotkey_ss58,
             position_id=position_id,
@@ -96,7 +96,7 @@ class Swap(BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(
+        return self.create_composed_call(
             netuid=netuid,
             hotkey=hotkey_ss58,
             position_id=position_id,
@@ -115,7 +115,7 @@ class Swap(BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(
+        return self.create_composed_call(
             netuid=netuid,
             enable=enable,
         )

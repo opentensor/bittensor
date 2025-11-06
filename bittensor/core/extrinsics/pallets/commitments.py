@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from .base import BasePallet as _BasePallet, Call
+from .base import CallBuilder as _BasePallet, Call
 
 
 @dataclass
@@ -36,7 +36,7 @@ class Commitments(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(
+        return self.create_composed_call(
             netuid=netuid,
             info={"fields": [info_fields]},
         )

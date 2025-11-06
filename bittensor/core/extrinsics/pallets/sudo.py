@@ -1,14 +1,14 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from .base import BasePallet, Call
+from .base import CallBuilder, Call
 
 if TYPE_CHECKING:
     from scalecodec import GenericCall
 
 
 @dataclass
-class Sudo(BasePallet):
+class Sudo(CallBuilder):
     """Factory class for creating GenericCall objects for Sudo pallet functions.
 
     This class provides methods to create GenericCall instances for all Sudo pallet extrinsics.
@@ -40,4 +40,4 @@ class Sudo(BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(call=call)
+        return self.create_composed_call(call=call)

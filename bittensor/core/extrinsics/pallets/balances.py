@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from bittensor.utils.balance import Balance
-from .base import BasePallet as _BasePallet, Call
+from .base import CallBuilder as _BasePallet, Call
 
 
 @dataclass
@@ -39,7 +39,7 @@ class Balances(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(dest=dest, keep_alive=keep_alive)
+        return self.create_composed_call(dest=dest, keep_alive=keep_alive)
 
     def transfer_allow_death(self, dest: str, value: "Balance") -> Call:
         """Returns GenericCall instance for Subtensor function Balances.transfer_allow_death.
@@ -51,7 +51,7 @@ class Balances(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(dest=dest, value=value)
+        return self.create_composed_call(dest=dest, value=value)
 
     def transfer_keep_alive(self, dest: str, value: "Balance") -> Call:
         """Returns GenericCall instance for Subtensor function Balances.transfer_keep_alive.
@@ -63,4 +63,4 @@ class Balances(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(dest=dest, value=value)
+        return self.create_composed_call(dest=dest, value=value)

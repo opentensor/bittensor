@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
 
 
-from .base import BasePallet, Call
+from .base import CallBuilder, Call
 
 if TYPE_CHECKING:
     from bittensor.utils.balance import Balance
@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class Crowdloan(BasePallet):
+class Crowdloan(CallBuilder):
     """Factory class for creating GenericCall objects for Crowdloan pallet functions.
 
     This class provides methods to create GenericCall instances for all Crowdloan pallet extrinsics.
@@ -42,7 +42,7 @@ class Crowdloan(BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(crowdloan_id=crowdloan_id, amount=amount.rao)
+        return self.create_composed_call(crowdloan_id=crowdloan_id, amount=amount.rao)
 
     def create(
         self,
@@ -66,7 +66,7 @@ class Crowdloan(BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(
+        return self.create_composed_call(
             deposit=deposit.rao,
             min_contribution=min_contribution.rao,
             cap=cap.rao,
@@ -87,7 +87,7 @@ class Crowdloan(BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(crowdloan_id=crowdloan_id)
+        return self.create_composed_call(crowdloan_id=crowdloan_id)
 
     def finalize(
         self,
@@ -101,7 +101,7 @@ class Crowdloan(BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(crowdloan_id=crowdloan_id)
+        return self.create_composed_call(crowdloan_id=crowdloan_id)
 
     def refund(
         self,
@@ -115,7 +115,7 @@ class Crowdloan(BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(crowdloan_id=crowdloan_id)
+        return self.create_composed_call(crowdloan_id=crowdloan_id)
 
     def update_cap(
         self,
@@ -131,9 +131,7 @@ class Crowdloan(BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(
-            crowdloan_id=crowdloan_id, new_cap=new_cap.rao
-        )
+        return self.create_composed_call(crowdloan_id=crowdloan_id, new_cap=new_cap.rao)
 
     def update_end(
         self,
@@ -149,7 +147,7 @@ class Crowdloan(BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(crowdloan_id=crowdloan_id, new_end=new_end)
+        return self.create_composed_call(crowdloan_id=crowdloan_id, new_end=new_end)
 
     def update_min_contribution(
         self,
@@ -165,7 +163,7 @@ class Crowdloan(BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(
+        return self.create_composed_call(
             crowdloan_id=crowdloan_id,
             new_min_contribution=new_min_contribution.rao,
         )
@@ -182,4 +180,4 @@ class Crowdloan(BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(crowdloan_id=crowdloan_id)
+        return self.create_composed_call(crowdloan_id=crowdloan_id)

@@ -5,7 +5,7 @@ import time
 import pytest
 from scalecodec import GenericCall
 
-from bittensor.core.extrinsics.pallets.base import BasePallet
+from bittensor.core.extrinsics.pallets.base import CallBuilder
 from bittensor.core.settings import DEFAULT_PERIOD
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -478,7 +478,7 @@ def test_call_creates_dynamically(subtensor, alice_wallet, bob_wallet):
     """
 
     # kinda empty class without defined functions
-    class SubtensorModule(BasePallet): ...
+    class SubtensorModule(CallBuilder): ...
 
     # check subnets amount before register
     all_subnets_before = subtensor.subnets.get_total_subnets()
@@ -509,9 +509,14 @@ def test_call_creates_dynamically(subtensor, alice_wallet, bob_wallet):
     assert len(neurons) == 1, "No neurons found or more than one."
 
     # create call dynamically
-    burned_register_call = SubtensorModule(
+    burned_register_call = CallBuilder(
         subtensor, dynamic_function=True
-    ).burned_register(netuid=netuid, hotkey=bob_wallet.hotkey.ss58_address)
+    ).create_composed_call(
+        call_module="SubtensorModule",
+        call_function="burned_register",
+        netuid=netuid,
+        hotkey=bob_wallet.hotkey.ss58_address,
+    )
     assert isinstance(burned_register_call, GenericCall), "GenericCall not created."
 
     # call extrinsic with dynamic call
@@ -546,7 +551,7 @@ async def test_call_creates_dynamically_async(
     """
 
     # kinda empty class without defined functions
-    class SubtensorModule(BasePallet): ...
+    class SubtensorModule(CallBuilder): ...
 
     # check subnets amount before register
     all_subnets_before = await async_subtensor.subnets.get_total_subnets()
@@ -577,9 +582,14 @@ async def test_call_creates_dynamically_async(
     assert len(neurons) == 1, "No neurons found or more than one."
 
     # create call dynamically
-    burned_register_call = await SubtensorModule(
+    burned_register_call = await CallBuilder(
         async_subtensor, dynamic_function=True
-    ).burned_register(netuid=netuid, hotkey=bob_wallet.hotkey.ss58_address)
+    ).create_composed_call(
+        call_module="SubtensorModule",
+        call_function="burned_register",
+        netuid=netuid,
+        hotkey=bob_wallet.hotkey.ss58_address,
+    )
     assert isinstance(burned_register_call, GenericCall), "GenericCall not created."
 
     # call extrinsic with dynamic call

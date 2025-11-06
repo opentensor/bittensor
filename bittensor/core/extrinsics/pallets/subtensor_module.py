@@ -4,7 +4,7 @@ from typing import Literal, Optional, TYPE_CHECKING
 from bittensor.core.types import UIDs, Weights, Salt
 from bittensor.utils import float_to_u64, Certificate
 from bittensor.utils.balance import Balance
-from .base import BasePallet as _BasePallet, Call
+from .base import CallBuilder as _BasePallet, Call
 
 if TYPE_CHECKING:
     from bittensor.core.chain_data import DynamicInfo
@@ -45,7 +45,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(
+        return self.create_composed_call(
             netuid=netuid,
             hotkey=hotkey_ss58,
             amount_staked=amount.rao,
@@ -78,7 +78,7 @@ class SubtensorModule(_BasePallet):
             base_price if pool.netuid == 0 else base_price * (1 + rate_tolerance)
         )
         limit_price = Balance.from_tao(price_with_tolerance).rao
-        return self._create_composed_call(
+        return self.create_composed_call(
             netuid=netuid,
             hotkey=hotkey_ss58,
             amount_staked=amount.rao,
@@ -100,7 +100,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(netuid=netuid, hotkey=hotkey_ss58)
+        return self.create_composed_call(netuid=netuid, hotkey=hotkey_ss58)
 
     def claim_root(self, netuids: list[int]) -> Call:
         """Returns GenericCall instance for Subtensor function SubtensorModule.claim_root.
@@ -111,7 +111,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(subnets=netuids)
+        return self.create_composed_call(subnets=netuids)
 
     def commit_mechanism_weights(
         self,
@@ -129,7 +129,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(
+        return self.create_composed_call(
             netuid=netuid, mecid=mechid, commit_hash=commit_hash
         )
 
@@ -153,7 +153,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(
+        return self.create_composed_call(
             netuid=netuid,
             mecid=mechid,
             commit=commit_for_reveal,
@@ -171,7 +171,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(hotkey=hotkey_ss58, take=take)
+        return self.create_composed_call(hotkey=hotkey_ss58, take=take)
 
     def increase_take(self, hotkey_ss58: str, take: int) -> Call:
         """Returns GenericCall instance for Subtensor function SubtensorModule.increase_take.
@@ -183,7 +183,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(hotkey=hotkey_ss58, take=take)
+        return self.create_composed_call(hotkey=hotkey_ss58, take=take)
 
     def move_stake(
         self,
@@ -205,7 +205,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(
+        return self.create_composed_call(
             origin_netuid=origin_netuid,
             origin_hotkey=origin_hotkey_ss58,
             destination_netuid=destination_netuid,
@@ -235,7 +235,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(
+        return self.create_composed_call(
             netuid=netuid,
             coldkey=coldkey_ss58,
             hotkey=hotkey_ss58,
@@ -253,7 +253,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(hotkey=hotkey_ss58)
+        return self.create_composed_call(hotkey=hotkey_ss58)
 
     def remove_stake(
         self,
@@ -271,7 +271,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(
+        return self.create_composed_call(
             netuid=netuid,
             hotkey=hotkey_ss58,
             amount_unstaked=amount.rao,
@@ -317,7 +317,7 @@ class SubtensorModule(_BasePallet):
                 "allow_partial": allow_partial_stake,
             }
         )
-        return self._create_composed_call(**params)
+        return self.create_composed_call(**params)
 
     def remove_stake_full_limit(
         self,
@@ -346,7 +346,7 @@ class SubtensorModule(_BasePallet):
             limit_price = pool.price * (1 - rate_tolerance)
             params.update({"limit_price": limit_price})
 
-        return self._create_composed_call(**params)
+        return self.create_composed_call(**params)
 
     def reveal_mechanism_weights(
         self,
@@ -358,7 +358,7 @@ class SubtensorModule(_BasePallet):
         version_key: int,
     ) -> Call:
         """Returns GenericCall instance for Subtensor function SubtensorModule.reveal_mechanism_weights."""
-        return self._create_composed_call(
+        return self.create_composed_call(
             netuid=netuid,
             mecid=mechid,
             uids=uids,
@@ -376,7 +376,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(hotkey=hotkey_ss58)
+        return self.create_composed_call(hotkey=hotkey_ss58)
 
     def serve_axon(
         self,
@@ -404,7 +404,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(
+        return self.create_composed_call(
             netuid=netuid,
             version=version,
             ip=ip,
@@ -443,7 +443,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(
+        return self.create_composed_call(
             netuid=netuid,
             version=version,
             ip=ip,
@@ -465,7 +465,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(netuid=netuid, hotkey=hotkey_ss58)
+        return self.create_composed_call(netuid=netuid, hotkey=hotkey_ss58)
 
     def set_children(
         self,
@@ -483,7 +483,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(
+        return self.create_composed_call(
             hotkey=hotkey_ss58,
             netuid=netuid,
             children=[
@@ -512,7 +512,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(
+        return self.create_composed_call(
             netuid=netuid,
             mecid=mechid,
             dests=uids,
@@ -532,7 +532,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(cooldown=cooldown)
+        return self.create_composed_call(cooldown=cooldown)
 
     def set_root_claim_type(
         self,
@@ -546,7 +546,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(new_root_claim_type=new_root_claim_type)
+        return self.create_composed_call(new_root_claim_type=new_root_claim_type)
 
     def set_subnet_identity(
         self,
@@ -578,7 +578,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(
+        return self.create_composed_call(
             hotkey=hotkey_ss58,
             netuid=netuid,
             subnet_name=subnet_name,
@@ -600,7 +600,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(netuid=netuid)
+        return self.create_composed_call(netuid=netuid)
 
     def swap_stake(
         self,
@@ -620,7 +620,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(
+        return self.create_composed_call(
             hotkey=hotkey_ss58,
             origin_netuid=origin_netuid,
             destination_netuid=destination_netuid,
@@ -657,7 +657,7 @@ class SubtensorModule(_BasePallet):
         swap_rate_ratio = origin_pool.price.rao / destination_pool.price.rao
         swap_rate_ratio_with_tolerance = swap_rate_ratio * (1 + rate_tolerance)
 
-        return self._create_composed_call(
+        return self.create_composed_call(
             hotkey=hotkey_ss58,
             origin_netuid=origin_netuid,
             destination_netuid=destination_netuid,
@@ -682,7 +682,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(dest=dest, keep_alive=keep_alive)
+        return self.create_composed_call(dest=dest, keep_alive=keep_alive)
 
     def transfer_allow_death(self, dest: str, value: "Balance") -> Call:
         """Returns GenericCall instance for Subtensor function SubtensorModule.transfer_allow_death.
@@ -694,7 +694,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(dest=dest, value=value)
+        return self.create_composed_call(dest=dest, value=value)
 
     def transfer_keep_alive(self, dest: str, value: "Balance") -> Call:
         """Returns GenericCall instance for Subtensor function SubtensorModule.transfer_keep_alive.
@@ -706,7 +706,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(dest=dest, value=value)
+        return self.create_composed_call(dest=dest, value=value)
 
     def transfer_stake(
         self,
@@ -728,7 +728,7 @@ class SubtensorModule(_BasePallet):
         Returns:
             GenericCall instance.
         """
-        return self._create_composed_call(
+        return self.create_composed_call(
             destination_coldkey=destination_coldkey_ss58,
             hotkey=hotkey_ss58,
             origin_netuid=origin_netuid,
