@@ -14,7 +14,7 @@ Call = Union[GenericCall, Awaitable[GenericCall]]
 
 
 @dataclass
-class BasePallet:
+class CallBuilder:
     """Base class for creating GenericCall objects for all Subtensor pallet functions.
 
     This class implements an interface for creating GenericCall objects that can be used with any Subtensor pallet
@@ -30,21 +30,27 @@ class BasePallet:
     subtensor: Union["Subtensor", "AsyncSubtensor"]
     dynamic_function: bool = False
 
-    def _create_composed_call(self, call_function: str = None, **kwargs):
+    def create_composed_call(
+        self, call_module: str = None, call_function: str = None, **kwargs
+    ) -> Call:
         """Create a call to the pallet function.
 
         Parameters:
+            call_module: If not provided, will be determined from the calling class name.
             call_function: If not provided, will be determined from the calling method name.
             **kwargs: Named parameters that will be passed to the function.
 
         Note:
             The key in kwargs must always match the parameter name in the subtensor's function.
         """
+        if call_module is None:
+            call_module = self.__class__.__name__
+
         if call_function is None:
             call_function = get_caller_name()
 
         return self.subtensor.compose_call(
-            call_module=self.__class__.__name__,
+            call_module=call_module,
             call_function=call_function,
             call_params=kwargs,
         )
@@ -85,6 +91,6 @@ class BasePallet:
             Returns:
                 GenericCall or Awaitable[GenericCall] depending on subtensor type.
             """
-            return self._create_composed_call(call_function=name, **kwargs)
+            return self.create_composed_call(call_function=name, **kwargs)
 
         return _dynamic_call
