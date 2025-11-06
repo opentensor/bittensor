@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Optional
 
-from bittensor.core.extrinsics.params import StartCallParams
+from bittensor.core.extrinsics.pallets import SubtensorModule
 from bittensor.core.types import ExtrinsicResponse
 
 if TYPE_CHECKING:
@@ -41,11 +41,7 @@ async def start_call_extrinsic(
         ).success:
             return unlocked
 
-        call = await subtensor.compose_call(
-            call_module="SubtensorModule",
-            call_function="start_call",
-            call_params=StartCallParams.start_call(netuid=netuid),
-        )
+        call = await SubtensorModule(subtensor).start_call(netuid)
 
         return await subtensor.sign_and_send_extrinsic(
             call=call,
