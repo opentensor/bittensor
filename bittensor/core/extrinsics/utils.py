@@ -1,7 +1,8 @@
 """Module with helper functions for extrinsics."""
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Union
 
+from bittensor.core.extrinsics.pallets import Sudo
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.balance import Balance
 
@@ -44,6 +45,37 @@ def get_old_stakes(
         )
         for hotkey_ss58, netuid in zip(hotkey_ss58s, netuids)
     ]
+
+
+def get_transfer_fn_params(
+    amount: Optional["Balance"], destination_ss58: str, keep_alive: bool
+) -> tuple[str, dict[str, Union[str, int, bool]]]:
+    """
+    Helper function to get the transfer call function and call params, depending on the value and keep_alive flag
+    provided.
+
+    Parameters:
+        amount: the amount of Tao to transfer. `None` if transferring all.
+        destination_ss58: the destination SS58 of the transfer
+        keep_alive: whether to enforce a retention of the existential deposit in the account after transfer.
+
+    Returns:
+        tuple[call function, call params]
+    """
+    call_params: dict[str, Union[str, int, bool]] = {"dest": destination_ss58}
+    if amount is None:
+        call_function = "transfer_all"
+        if keep_alive:
+            call_params["keep_alive"] = True
+        else:
+            call_params["keep_alive"] = False
+    else:
+        call_params["value"] = amount.rao
+        if keep_alive:
+            call_function = "transfer_keep_alive"
+        else:
+            call_function = "transfer_allow_death"
+    return call_function, call_params
 
 
 def sudo_call_extrinsic(
@@ -97,11 +129,7 @@ def sudo_call_extrinsic(
             call_params=call_params,
         )
         if not root_call:
-            call = subtensor.compose_call(
-                call_module="Sudo",
-                call_function="sudo",
-                call_params={"call": call},
-            )
+            call = Sudo(subtensor).sudo(call)
 
         return subtensor.sign_and_send_extrinsic(
             call=call,

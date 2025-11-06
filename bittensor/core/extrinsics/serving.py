@@ -1,8 +1,9 @@
 from typing import Optional, Union, TYPE_CHECKING
 
 from bittensor.core.errors import MetadataError
-from bittensor.core.extrinsics.params.serving import ServingParams
-from bittensor.core.types import ExtrinsicResponse
+from bittensor.core.extrinsics.pallets import Commitments, SubtensorModule
+from bittensor.core.settings import version_as_int
+from bittensor.core.types import AxonServeCallParams, ExtrinsicResponse
 from bittensor.utils import (
     networking as net,
     Certificate,
@@ -60,12 +61,14 @@ def serve_extrinsic(
             )
         ).success:
             return unlocked
-        params = ServingParams.serve_axon_and_tls(
-            hotkey_ss58=wallet.hotkey.ss58_address,
-            coldkey_ss58=wallet.coldkeypub.ss58_address,
-            netuid=netuid,
-            ip=ip,
+        params = AxonServeCallParams(
+            version=version_as_int,
+            ip=net.ip_to_int(ip),
             port=port,
+            ip_type=net.ip_version(ip),
+            netuid=netuid,
+            hotkey=wallet.hotkey.ss58_address,
+            coldkey=wallet.coldkeypub.ss58_address,
             protocol=protocol,
             placeholder1=placeholder1,
             placeholder2=placeholder2,
@@ -87,16 +90,12 @@ def serve_extrinsic(
             f"[green]{subtensor.network}:{netuid}[/green]"
         )
 
-        if params.certificate is None:
-            call_function = "serve_axon"
-        else:
-            call_function = "serve_axon_tls"
-
-        call = subtensor.compose_call(
-            call_module="SubtensorModule",
-            call_function=call_function,
-            call_params=params.dict(),
+        call_function = (
+            SubtensorModule(subtensor).serve_axon_tls
+            if certificate
+            else SubtensorModule(subtensor).serve_axon
         )
+        call = call_function(**params.as_dict())
 
         response = subtensor.sign_and_send_extrinsic(
             call=call,
@@ -245,11 +244,7 @@ def publish_metadata_extrinsic(
         if reset_bonds:
             fields.append({"ResetBondsFlag": b""})
 
-        call = subtensor.compose_call(
-            call_module="Commitments",
-            call_function="set_commitment",
-            call_params=ServingParams.set_commitment(netuid=netuid, info_fields=fields),
-        )
+        call = Commitments(subtensor).set_commitment(netuid=netuid, info_fields=fields)
 
         response = subtensor.sign_and_send_extrinsic(
             call=call,

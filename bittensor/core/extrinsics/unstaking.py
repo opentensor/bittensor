@@ -3,7 +3,7 @@ from typing import Optional, TYPE_CHECKING
 from async_substrate_interface.errors import SubstrateRequestException
 
 from bittensor.core.errors import BalanceTypeError
-from bittensor.core.extrinsics.params import UnstakingParams
+from bittensor.core.extrinsics.pallets import SubtensorModule
 from bittensor.core.extrinsics.utils import get_old_stakes
 from bittensor.core.types import ExtrinsicResponse, UIDs
 from bittensor.utils import format_error_message
@@ -81,9 +81,23 @@ def unstake_extrinsic(
         if safe_unstaking:
             pool = subtensor.subnet(netuid=netuid)
 
-            call_function = "remove_stake_limit"
+            if pool.netuid == 0:
+                price_with_tolerance = pool.price.tao
+            else:
+                price_with_tolerance = pool.price.tao * (1 - rate_tolerance)
 
-            call_params = UnstakingParams.remove_stake_limit(
+            limit_price = Balance.from_tao(price_with_tolerance).rao
+
+            logging_message = (
+                f":satellite: [magenta]Safe Unstaking from:[/magenta] "
+                f"netuid: [green]{netuid}[/green], amount: [green]{amount}[/green], "
+                f"tolerance percentage: [green]{rate_tolerance * 100}%[/green], "
+                f"price limit: [green]{Balance.from_rao(limit_price)}[/green], "
+                f"original price: [green]{pool.price.tao}[/green], "
+                f"with partial unstake: [green]{allow_partial_stake}[/green] "
+                f"on [blue]{subtensor.network}[/blue]"
+            )
+            call = SubtensorModule(subtensor).remove_stake_limit(
                 netuid=netuid,
                 hotkey_ss58=hotkey_ss58,
                 amount=amount,
@@ -92,35 +106,17 @@ def unstake_extrinsic(
                 pool=pool,
             )
 
-            logging_message = (
-                f":satellite: [magenta]Safe Unstaking from:[/magenta] "
-                f"netuid: [green]{netuid}[/green], amount: [green]{amount}[/green], "
-                f"tolerance percentage: [green]{rate_tolerance * 100}%[/green], "
-                f"price limit: [green]{Balance.from_rao(call_params['limit_price'])}[/green], "
-                f"original price: [green]{pool.price.tao}[/green], "
-                f"with partial unstake: [green]{allow_partial_stake}[/green] "
-                f"on [blue]{subtensor.network}[/blue]"
-            )
-
         else:
-            call_function = "remove_stake"
-            call_params = UnstakingParams.remove_stake(
-                netuid=netuid,
-                hotkey_ss58=hotkey_ss58,
-                amount=amount,
-            )
             logging_message = (
                 f":satellite: [magenta]Unstaking from:[/magenta] "
                 f"netuid: [green]{netuid}[/green], amount: [green]{amount}[/green] "
                 f"on [blue]{subtensor.network}[/blue]"
             )
+            call = SubtensorModule(subtensor).remove_stake(
+                netuid=netuid, hotkey_ss58=hotkey_ss58, amount=amount
+            )
 
         logging.debug(logging_message)
-        call = subtensor.compose_call(
-            call_module="SubtensorModule",
-            call_function=call_function,
-            call_params=call_params,
-        )
 
         block_before = subtensor.block
         response = subtensor.sign_and_send_extrinsic(
@@ -220,17 +216,12 @@ def unstake_all_extrinsic(
             return unlocked
 
         pool = subtensor.subnet(netuid=netuid) if rate_tolerance else None
-        call_params = UnstakingParams.remove_stake_full_limit(
+
+        call = SubtensorModule(subtensor).remove_stake_full_limit(
             netuid=netuid,
             hotkey_ss58=hotkey_ss58,
             rate_tolerance=rate_tolerance,
             pool=pool,
-        )
-
-        call = subtensor.compose_call(
-            call_module="SubtensorModule",
-            call_function="remove_stake_full_limit",
-            call_params=call_params,
         )
 
         return subtensor.sign_and_send_extrinsic(

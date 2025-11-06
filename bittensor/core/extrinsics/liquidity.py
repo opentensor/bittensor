@@ -1,6 +1,6 @@
 from typing import Optional, TYPE_CHECKING
 
-from bittensor.core.extrinsics.params import LiquidityParams
+from bittensor.core.extrinsics.pallets import Swap
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.balance import Balance
 
@@ -55,18 +55,12 @@ def add_liquidity_extrinsic(
         ).success:
             return unlocked
 
-        hotkey_ss58 = hotkey_ss58 or wallet.hotkey.ss58_address
-
-        call = subtensor.compose_call(
-            call_module="Swap",
-            call_function="add_liquidity",
-            call_params=LiquidityParams.add_liquidity(
-                netuid=netuid,
-                hotkey_ss58=hotkey_ss58 or wallet.hotkey.ss58_address,
-                liquidity=liquidity,
-                price_low=price_low,
-                price_high=price_high,
-            ),
+        call = Swap(subtensor).add_liquidity(
+            netuid=netuid,
+            liquidity=liquidity,
+            price_low=price_low,
+            price_high=price_high,
+            hotkey_ss58=hotkey_ss58 or wallet.hotkey.ss58_address,
         )
 
         return subtensor.sign_and_send_extrinsic(
@@ -124,15 +118,11 @@ def modify_liquidity_extrinsic(
         ).success:
             return unlocked
 
-        call = subtensor.compose_call(
-            call_module="Swap",
-            call_function="modify_position",
-            call_params=LiquidityParams.modify_position(
-                netuid=netuid,
-                hotkey_ss58=hotkey_ss58 or wallet.hotkey.ss58_address,
-                position_id=position_id,
-                liquidity_delta=liquidity_delta,
-            ),
+        call = Swap(subtensor).modify_position(
+            netuid=netuid,
+            hotkey_ss58=hotkey_ss58 or wallet.hotkey.ss58_address,
+            position_id=position_id,
+            liquidity_delta=liquidity_delta,
         )
 
         return subtensor.sign_and_send_extrinsic(
@@ -188,14 +178,10 @@ def remove_liquidity_extrinsic(
         ).success:
             return unlocked
 
-        call = subtensor.compose_call(
-            call_module="Swap",
-            call_function="remove_liquidity",
-            call_params=LiquidityParams.remove_liquidity(
-                netuid=netuid,
-                hotkey_ss58=hotkey_ss58 or wallet.hotkey.ss58_address,
-                position_id=position_id,
-            ),
+        call = Swap(subtensor).remove_liquidity(
+            netuid=netuid,
+            hotkey_ss58=hotkey_ss58 or wallet.hotkey.ss58_address,
+            position_id=position_id,
         )
 
         return subtensor.sign_and_send_extrinsic(
@@ -243,13 +229,9 @@ def toggle_user_liquidity_extrinsic(
         ).success:
             return unlocked
 
-        call = subtensor.compose_call(
-            call_module="Swap",
-            call_function="toggle_user_liquidity",
-            call_params=LiquidityParams.toggle_user_liquidity(
-                netuid=netuid,
-                enable=enable,
-            ),
+        call = Swap(subtensor).toggle_user_liquidity(
+            netuid=netuid,
+            enable=enable,
         )
 
         return subtensor.sign_and_send_extrinsic(

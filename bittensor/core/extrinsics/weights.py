@@ -4,7 +4,7 @@ from typing import Optional, Union, TYPE_CHECKING
 
 from bittensor_drand import get_encrypted_commit
 
-from bittensor.core.extrinsics.params import WeightsParams
+from bittensor.core.extrinsics.pallets import SubtensorModule
 from bittensor.core.settings import version_as_int
 from bittensor.core.types import ExtrinsicResponse, Salt, UIDs, Weights
 from bittensor.utils import get_mechid_storage_index
@@ -91,17 +91,14 @@ def commit_timelocked_weights_extrinsic(
             hotkey=wallet.hotkey.public_key,
         )
 
-        call = subtensor.compose_call(
-            call_module="SubtensorModule",
-            call_function="commit_timelocked_mechanism_weights",
-            call_params=WeightsParams.commit_timelocked_mechanism_weights(
-                netuid=netuid,
-                mechid=mechid,
-                commit_for_reveal=commit_for_reveal,
-                reveal_round=reveal_round,
-                commit_reveal_version=commit_reveal_version,
-            ),
+        call = SubtensorModule(subtensor).commit_timelocked_mechanism_weights(
+            netuid=netuid,
+            mechid=mechid,
+            commit_for_reveal=commit_for_reveal,
+            reveal_round=reveal_round,
+            commit_reveal_version=commit_reveal_version,
         )
+
         response = subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
@@ -184,15 +181,12 @@ def commit_weights_extrinsic(
             version_key=version_key,
         )
 
-        call = subtensor.compose_call(
-            call_module="SubtensorModule",
-            call_function="commit_mechanism_weights",
-            call_params=WeightsParams.commit_mechanism_weights(
-                netuid=netuid,
-                mechid=mechid,
-                commit_hash=commit_hash,
-            ),
+        call = SubtensorModule(subtensor).commit_mechanism_weights(
+            netuid=netuid,
+            mechid=mechid,
+            commit_hash=commit_hash,
         )
+
         response = subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
@@ -264,18 +258,15 @@ def reveal_weights_extrinsic(
         # Convert, reformat and normalize uids and weights.
         uids, weights = convert_and_normalize_weights_and_uids(uids, weights)
 
-        call = subtensor.compose_call(
-            call_module="SubtensorModule",
-            call_function="reveal_mechanism_weights",
-            call_params=WeightsParams.reveal_mechanism_weights(
-                netuid=netuid,
-                mechid=mechid,
-                uids=uids,
-                weights=weights,
-                salt=salt,
-                version_key=version_key,
-            ),
+        call = SubtensorModule(subtensor).reveal_mechanism_weights(
+            netuid=netuid,
+            mechid=mechid,
+            uids=uids,
+            weights=weights,
+            salt=salt,
+            version_key=version_key,
         )
+
         response = subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
@@ -345,17 +336,14 @@ def set_weights_extrinsic(
         # Convert, reformat and normalize uids and weights.
         uids, weights = convert_and_normalize_weights_and_uids(uids, weights)
 
-        call = subtensor.compose_call(
-            call_module="SubtensorModule",
-            call_function="set_mechanism_weights",
-            call_params=WeightsParams.set_mechanism_weights(
-                netuid=netuid,
-                mechid=mechid,
-                uids=uids,
-                weights=weights,
-                version_key=version_key,
-            ),
+        call = SubtensorModule(subtensor).set_mechanism_weights(
+            netuid=netuid,
+            mechid=mechid,
+            uids=uids,
+            weights=weights,
+            version_key=version_key,
         )
+
         response = subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,

@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Optional
 
-from bittensor.core.extrinsics.params import CrowdloanParams
+from bittensor.core.extrinsics.pallets import Crowdloan
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.balance import check_balance_amount
 
@@ -47,14 +47,10 @@ def contribute_crowdloan_extrinsic(
 
         check_balance_amount(amount)
 
-        extrinsic_call = subtensor.compose_call(
-            call_module="Crowdloan",
-            call_function="contribute",
-            call_params=CrowdloanParams.contribute(crowdloan_id, amount),
-        )
+        call = Crowdloan(subtensor).contribute(crowdloan_id=crowdloan_id, amount=amount)
 
         return subtensor.sign_and_send_extrinsic(
-            call=extrinsic_call,
+            call=call,
             wallet=wallet,
             period=period,
             raise_error=raise_error,
@@ -112,16 +108,17 @@ def create_crowdloan_extrinsic(
         check_balance_amount(min_contribution)
         check_balance_amount(cap)
 
-        extrinsic_call = subtensor.compose_call(
-            call_module="Crowdloan",
-            call_function="create",
-            call_params=CrowdloanParams.create(
-                deposit, min_contribution, cap, end, call, target_address
-            ),
+        call = Crowdloan(subtensor).create(
+            deposit=deposit,
+            min_contribution=min_contribution,
+            cap=cap,
+            end=end,
+            call=call,
+            target_address=target_address,
         )
 
         return subtensor.sign_and_send_extrinsic(
-            call=extrinsic_call,
+            call=call,
             wallet=wallet,
             period=period,
             raise_error=raise_error,
@@ -174,14 +171,10 @@ def dissolve_crowdloan_extrinsic(
         ).success:
             return unlocked
 
-        extrinsic_call = subtensor.compose_call(
-            call_module="Crowdloan",
-            call_function="dissolve",
-            call_params=CrowdloanParams.dissolve(crowdloan_id),
-        )
+        call = Crowdloan(subtensor).dissolve(crowdloan_id=crowdloan_id)
 
         return subtensor.sign_and_send_extrinsic(
-            call=extrinsic_call,
+            call=call,
             wallet=wallet,
             period=period,
             raise_error=raise_error,
@@ -225,14 +218,10 @@ def finalize_crowdloan_extrinsic(
         ).success:
             return unlocked
 
-        extrinsic_call = subtensor.compose_call(
-            call_module="Crowdloan",
-            call_function="finalize",
-            call_params=CrowdloanParams.finalize(crowdloan_id),
-        )
+        call = Crowdloan(subtensor).finalize(crowdloan_id=crowdloan_id)
 
         return subtensor.sign_and_send_extrinsic(
-            call=extrinsic_call,
+            call=call,
             wallet=wallet,
             period=period,
             raise_error=raise_error,
@@ -285,14 +274,10 @@ def refund_crowdloan_extrinsic(
         ).success:
             return unlocked
 
-        extrinsic_call = subtensor.compose_call(
-            call_module="Crowdloan",
-            call_function="refund",
-            call_params=CrowdloanParams.refund(crowdloan_id),
-        )
+        call = Crowdloan(subtensor).refund(crowdloan_id=crowdloan_id)
 
         return subtensor.sign_and_send_extrinsic(
-            call=extrinsic_call,
+            call=call,
             wallet=wallet,
             period=period,
             raise_error=raise_error,
@@ -348,14 +333,12 @@ def update_cap_crowdloan_extrinsic(
 
         check_balance_amount(new_cap)
 
-        extrinsic_call = subtensor.compose_call(
-            call_module="Crowdloan",
-            call_function="update_cap",
-            call_params=CrowdloanParams.update_cap(crowdloan_id, new_cap),
+        call = Crowdloan(subtensor).update_cap(
+            crowdloan_id=crowdloan_id, new_cap=new_cap
         )
 
         return subtensor.sign_and_send_extrinsic(
-            call=extrinsic_call,
+            call=call,
             wallet=wallet,
             period=period,
             raise_error=raise_error,
@@ -410,14 +393,12 @@ def update_end_crowdloan_extrinsic(
         ).success:
             return unlocked
 
-        extrinsic_call = subtensor.compose_call(
-            call_module="Crowdloan",
-            call_function="update_end",
-            call_params=CrowdloanParams.update_end(crowdloan_id, new_end),
+        call = Crowdloan(subtensor).update_end(
+            crowdloan_id=crowdloan_id, new_end=new_end
         )
 
         return subtensor.sign_and_send_extrinsic(
-            call=extrinsic_call,
+            call=call,
             wallet=wallet,
             period=period,
             raise_error=raise_error,
@@ -473,16 +454,12 @@ def update_min_contribution_crowdloan_extrinsic(
 
         check_balance_amount(new_min_contribution)
 
-        extrinsic_call = subtensor.compose_call(
-            call_module="Crowdloan",
-            call_function="update_min_contribution",
-            call_params=CrowdloanParams.update_min_contribution(
-                crowdloan_id, new_min_contribution
-            ),
+        call = Crowdloan(subtensor).update_min_contribution(
+            crowdloan_id=crowdloan_id, new_min_contribution=new_min_contribution
         )
 
         return subtensor.sign_and_send_extrinsic(
-            call=extrinsic_call,
+            call=call,
             wallet=wallet,
             period=period,
             raise_error=raise_error,
@@ -530,14 +507,10 @@ def withdraw_crowdloan_extrinsic(
         ).success:
             return unlocked
 
-        extrinsic_call = subtensor.compose_call(
-            call_module="Crowdloan",
-            call_function="withdraw",
-            call_params=CrowdloanParams.withdraw(crowdloan_id),
-        )
+        call = Crowdloan(subtensor).withdraw(crowdloan_id=crowdloan_id)
 
         return subtensor.sign_and_send_extrinsic(
-            call=extrinsic_call,
+            call=call,
             wallet=wallet,
             period=period,
             raise_error=raise_error,
