@@ -145,8 +145,9 @@ def test_set_root_claim_type_extrinsic(subtensor, fake_wallet, mocker):
     """Tests `set_root_claim_type_extrinsic` extrinsic function."""
     # Preps
     new_root_claim_type = mocker.Mock(spec=int)
-    mocked_root_params = mocker.patch.object(root.RootParams, "set_root_claim_type")
-    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
+    mocked_pallet_compose_call = mocker.patch.object(
+        root.SubtensorModule, "set_root_claim_type"
+    )
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor, "sign_and_send_extrinsic"
     )
@@ -159,14 +160,11 @@ def test_set_root_claim_type_extrinsic(subtensor, fake_wallet, mocker):
     )
 
     # asserts
-    mocked_root_params.assert_called_once_with(new_root_claim_type)
-    mocked_compose_call.assert_called_once_with(
-        call_module="SubtensorModule",
-        call_function="set_root_claim_type",
-        call_params=mocked_root_params.return_value,
+    mocked_pallet_compose_call.assert_called_once_with(
+        new_root_claim_type=new_root_claim_type
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
-        call=mocked_compose_call.return_value,
+        call=mocked_pallet_compose_call.return_value,
         wallet=fake_wallet,
         period=None,
         raise_error=False,
@@ -180,8 +178,7 @@ def test_claim_root_extrinsic(subtensor, fake_wallet, mocker):
     """Tests `claim_root_extrinsic` extrinsic function."""
     # Preps
     netuids = mocker.Mock(spec=list)
-    mocked_root_params = mocker.patch.object(root.RootParams, "claim_root")
-    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
+    mocked_pallet_compose_call = mocker.patch.object(root.SubtensorModule, "claim_root")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor, "sign_and_send_extrinsic"
     )
@@ -194,14 +191,9 @@ def test_claim_root_extrinsic(subtensor, fake_wallet, mocker):
     )
 
     # asserts
-    mocked_root_params.assert_called_once_with(netuids)
-    mocked_compose_call.assert_called_once_with(
-        call_module="SubtensorModule",
-        call_function="claim_root",
-        call_params=mocked_root_params.return_value,
-    )
+    mocked_pallet_compose_call.assert_called_once_with(netuids=netuids)
     mocked_sign_and_send_extrinsic.assert_called_once_with(
-        call=mocked_compose_call.return_value,
+        call=mocked_pallet_compose_call.return_value,
         wallet=fake_wallet,
         period=None,
         raise_error=False,

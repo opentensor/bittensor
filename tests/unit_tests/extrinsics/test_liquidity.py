@@ -9,11 +9,10 @@ def test_add_liquidity_extrinsic(subtensor, fake_wallet, mocker):
     fake_price_low = mocker.Mock()
     fake_price_high = mocker.Mock()
 
-    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor, "sign_and_send_extrinsic"
     )
-    mocked_params = mocker.patch.object(liquidity.LiquidityParams, "add_liquidity")
+    mocked_pallet_compose_call = mocker.patch.object(liquidity.Swap, "add_liquidity")
 
     # Call
     result = liquidity.add_liquidity_extrinsic(
@@ -26,13 +25,8 @@ def test_add_liquidity_extrinsic(subtensor, fake_wallet, mocker):
     )
 
     # Asserts
-    mocked_compose_call.assert_called_once_with(
-        call_module="Swap",
-        call_function="add_liquidity",
-        call_params=mocked_params.return_value,
-    )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
-        call=mocked_compose_call.return_value,
+        call=mocked_pallet_compose_call.return_value,
         wallet=fake_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
