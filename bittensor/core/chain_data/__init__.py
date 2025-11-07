@@ -55,6 +55,8 @@ __all__ = [
     "PrometheusInfo",
     "ProposalCallData",
     "ProposalVoteData",
+    "ProxyConstants",
+    "ProxyInfo",
     "ScheduledColdkeySwapInfo",
     "SelectiveMetagraphIndex",
     "SimSwapResult",
