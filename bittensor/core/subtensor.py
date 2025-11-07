@@ -2225,6 +2225,72 @@ class Subtensor(SubtensorMixin):
 
         return []
 
+    def get_proxies(
+        self,
+        real_account_ss58: str,
+        block: Optional[int] = None,
+    ) -> tuple[list[ProxyInfo], Balance]:
+        """Returns a list of proxies for the given account.
+
+        Parameters:
+            real_account_ss58: SS58 address of the real (delegator) account.
+            block: The blockchain block number for the query.
+
+        Returns:
+            The tuple containing a list of ProxiInfo objects and reserved deposit amount.
+        """
+        block_hash = self.determine_block_hash(block)
+        query = self.substrate.query(
+            module="Proxy",
+            storage_function="Proxies",
+            params=[real_account_ss58],
+            block_hash=block_hash,
+        )
+
+        if query is None or query.value is None or not query.value[0][0]:
+            return [], Balance.from_rao(0)
+
+        return ProxyInfo.from_query(query)
+
+    def get_proxy_constants(
+        self,
+        constants: Optional[list[str]] = None,
+        as_dict: bool = False,
+        block: Optional[int] = None,
+    ) -> Union["ProxyConstants", dict]:
+        """
+        Fetches runtime configuration constants from the `Proxy` pallet.
+
+        If a list of constant names is provided, only those constants will be queried.
+        Otherwise, all known constants defined in `ProxyConstants.field_names()` are fetched.
+
+        Parameters:
+            constants: A list of specific constant names to fetch from the pallet. If omitted, all constants from
+                `ProxyConstants` are queried.
+            as_dict: If True, returns the constants as a dictionary instead of a `ProxyConstants` object.
+            block: The blockchain block number for the query.
+
+        Returns:
+            ProxyConstants:
+                A structured dataclass containing the retrieved values. Missing constants are returned as `None`.
+        """
+        result = {}
+        const_names = constants or ProxyConstants.constants_names()
+
+        for const_name in const_names:
+            query = self.query_constant(
+                module_name="Proxy",
+                constant_name=const_name,
+                block=block,
+            )
+
+            if query is not None:
+                result[const_name] = query.value
+
+        proxy_constants = ProxyConstants.from_dict(result)
+
+        return proxy_constants.to_dict() if as_dict else proxy_constants
+
     def get_revealed_commitment(
         self,
         netuid: int,
