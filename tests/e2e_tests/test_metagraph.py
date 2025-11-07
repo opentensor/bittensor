@@ -199,7 +199,9 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
     alice_subnet_netuid = subtensor.get_total_subnets()  # 2
     subtensor.register_subnet(alice_wallet, True, True)
 
-    metagraph_info = subtensor.get_metagraph_info(netuid=1, block=1)
+    block = 1
+    alpha_per_block = 1
+    metagraph_info = subtensor.get_metagraph_info(netuid=1, block=block)
 
     expected_metagraph_info = MetagraphInfo(
         netuid=1,
@@ -209,18 +211,18 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
         network_registered_at=0,
         owner_hotkey="5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
         owner_coldkey="5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
-        block=1,
+        block=block,
         tempo=100,
         last_step=0,
         blocks_since_last_step=1,
         subnet_emission=Balance(0),
         alpha_in=Balance.from_tao(10).set_unit(1),
-        alpha_out=Balance.from_tao(2).set_unit(1), # it's been 2 blocks
+        alpha_out=Balance.from_tao((1 + block) * alpha_per_block).set_unit(1),  # it's been 2 blocks
         tao_in=Balance.from_tao(10),
-        alpha_out_emission=Balance(1).set_unit(1), # 1 alpha per block
+        alpha_out_emission=Balance.from_tao(block * alpha_per_block).set_unit(1),  # 1 alpha per block
         alpha_in_emission=Balance(0).set_unit(1),
         tao_in_emission=Balance(0),
-        pending_alpha_emission=Balance.from_tao(0.820_004_577).set_unit(1), # minus owner cut
+        pending_alpha_emission=Balance.from_tao(0.820_004_577).set_unit(1),  # minus owner cut already
         pending_root_emission=Balance(0),
         subnet_volume=Balance(0).set_unit(1),
         moving_price=Balance(0),
