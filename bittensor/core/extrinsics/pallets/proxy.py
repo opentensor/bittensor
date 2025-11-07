@@ -9,7 +9,8 @@ if TYPE_CHECKING:
 
 @dataclass
 class Proxy(_BasePallet):
-    """Factory class for creating GenericCall objects for Proxy pallet functions.
+    """
+    Factory class for creating GenericCall objects for Proxy pallet functions.
 
     This class provides methods to create GenericCall instances for all Proxy pallet extrinsics.
 

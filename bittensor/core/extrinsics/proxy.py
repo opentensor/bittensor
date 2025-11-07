@@ -82,24 +82,26 @@ def add_proxy_extrinsic(
         return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
 
 
-def announce_extrinsic(
+def remove_proxy_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
-    real_ss58: str,
-    call_hash: str,
+    delegate_ss58: str,
+    proxy_type: Union[str, ProxyType],
+    delay: int,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
 ) -> ExtrinsicResponse:
     """
-    Announces a future call that will be executed through a proxy.
+    Removes a proxy relationship.
 
     Parameters:
         subtensor: Subtensor instance with the connection to the chain.
-        wallet: Bittensor wallet object (should be the proxy account wallet).
-        real_ss58: The SS58 address of the real account on whose behalf the call will be made.
-        call_hash: The hash of the call that will be executed in the future.
+        wallet: Bittensor wallet object.
+        delegate_ss58: The SS58 address of the delegate proxy account to remove.
+        proxy_type: The type of proxy permissions to remove. Can be a string or ProxyType enum value.
+        delay: The number of blocks before the proxy removal takes effect.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You
             can think of it as an expiration date for the transaction.
@@ -116,15 +118,18 @@ def announce_extrinsic(
         ).success:
             return unlocked
 
+        proxy_type_str = ProxyType.normalize(proxy_type)
+
         logging.debug(
-            f"Announcing proxy call: real=[blue]{real_ss58}[/blue], "
-            f"call_hash=[blue]{call_hash}[/blue] "
+            f"Removing proxy: delegate=[blue]{delegate_ss58}[/blue], "
+            f"type=[blue]{proxy_type_str}[/blue], delay=[blue]{delay}[/blue] "
             f"on [blue]{subtensor.network}[/blue]."
         )
 
-        call = Proxy(subtensor).announce(
-            real=real_ss58,
-            call_hash=call_hash,
+        call = Proxy(subtensor).remove_proxy(
+            delegate=delegate_ss58,
+            proxy_type=proxy_type_str,
+            delay=delay,
         )
 
         response = subtensor.sign_and_send_extrinsic(
@@ -137,7 +142,7 @@ def announce_extrinsic(
         )
 
         if response.success:
-            logging.debug("[green]Proxy call announced successfully.[/green]")
+            logging.debug("[green]Proxy removed successfully.[/green]")
         else:
             logging.error(f"[red]{response.message}[/red]")
 
@@ -366,26 +371,32 @@ def proxy_extrinsic(
         return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
 
 
-def remove_proxy_extrinsic(
+def proxy_announced_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     delegate_ss58: str,
-    proxy_type: Union[str, ProxyType],
-    delay: int,
+    real_ss58: str,
+    force_proxy_type: Optional[Union[str, ProxyType]],
+    call: "GenericCall",
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
 ) -> ExtrinsicResponse:
     """
-    Removes a proxy relationship.
+    Executes an announced call on behalf of the real account through a proxy.
+
+    This extrinsic executes a call that was previously announced via `announce_extrinsic`. The call must match the
+    call_hash that was announced, and the delay period must have passed.
 
     Parameters:
         subtensor: Subtensor instance with the connection to the chain.
-        wallet: Bittensor wallet object.
-        delegate_ss58: The SS58 address of the delegate proxy account to remove.
-        proxy_type: The type of proxy permissions to remove. Can be a string or ProxyType enum value.
-        delay: The number of blocks before the proxy removal takes effect.
+        wallet: Bittensor wallet object (should be the proxy account wallet that made the announcement).
+        delegate_ss58: The SS58 address of the delegate proxy account that made the announcement.
+        real_ss58: The SS58 address of the real account on whose behalf the call will be made.
+        force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise, must
+            match one of the allowed proxy types. Can be a string or ProxyType enum value.
+        call: The inner call to be executed on behalf of the real account (must match the announced call_hash).
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You
             can think of it as an expiration date for the transaction.
@@ -402,18 +413,86 @@ def remove_proxy_extrinsic(
         ).success:
             return unlocked
 
-        proxy_type_str = ProxyType.normalize(proxy_type)
+        force_proxy_type_str = (
+            ProxyType.normalize(force_proxy_type) if force_proxy_type is not None else None
+        )
 
         logging.debug(
-            f"Removing proxy: delegate=[blue]{delegate_ss58}[/blue], "
-            f"type=[blue]{proxy_type_str}[/blue], delay=[blue]{delay}[/blue] "
+            f"Executing announced proxy call: delegate=[blue]{delegate_ss58}[/blue], "
+            f"real=[blue]{real_ss58}[/blue], force_type=[blue]{force_proxy_type_str}[/blue] "
             f"on [blue]{subtensor.network}[/blue]."
         )
 
-        call = Proxy(subtensor).remove_proxy(
+        proxy_call = Proxy(subtensor).proxy_announced(
             delegate=delegate_ss58,
-            proxy_type=proxy_type_str,
-            delay=delay,
+            real=real_ss58,
+            force_proxy_type=force_proxy_type_str,
+            call=call,
+        )
+
+        response = subtensor.sign_and_send_extrinsic(
+            call=proxy_call,
+            wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            period=period,
+            raise_error=raise_error,
+        )
+
+        if response.success:
+            logging.debug("[green]Announced proxy call executed successfully.[/green]")
+        else:
+            logging.error(f"[red]{response.message}[/red]")
+
+        return response
+
+    except Exception as error:
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
+
+
+def announce_extrinsic(
+    subtensor: "Subtensor",
+    wallet: "Wallet",
+    real_ss58: str,
+    call_hash: str,
+    period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
+) -> ExtrinsicResponse:
+    """
+    Announces a future call that will be executed through a proxy.
+
+    Parameters:
+        subtensor: Subtensor instance with the connection to the chain.
+        wallet: Bittensor wallet object (should be the proxy account wallet).
+        real_ss58: The SS58 address of the real account on whose behalf the call will be made.
+        call_hash: The hash of the call that will be executed in the future.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+            can think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+    Returns:
+        ExtrinsicResponse: The result object of the extrinsic execution.
+    """
+    try:
+        if not (
+            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+        ).success:
+            return unlocked
+
+        logging.debug(
+            f"Announcing proxy call: real=[blue]{real_ss58}[/blue], "
+            f"call_hash=[blue]{call_hash}[/blue] "
+            f"on [blue]{subtensor.network}[/blue]."
+        )
+
+        call = Proxy(subtensor).announce(
+            real=real_ss58,
+            call_hash=call_hash,
         )
 
         response = subtensor.sign_and_send_extrinsic(
@@ -426,7 +505,143 @@ def remove_proxy_extrinsic(
         )
 
         if response.success:
-            logging.debug("[green]Proxy removed successfully.[/green]")
+            logging.debug("[green]Proxy call announced successfully.[/green]")
+        else:
+            logging.error(f"[red]{response.message}[/red]")
+
+        return response
+
+    except Exception as error:
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
+
+
+def reject_announcement_extrinsic(
+    subtensor: "Subtensor",
+    wallet: "Wallet",
+    delegate_ss58: str,
+    call_hash: str,
+    period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
+) -> ExtrinsicResponse:
+    """
+    Rejects an announcement made by a proxy delegate.
+
+    This extrinsic allows the real account to reject an announcement made by a proxy delegate. This prevents the
+    announced call from being executed.
+
+    Parameters:
+        subtensor: Subtensor instance with the connection to the chain.
+        wallet: Bittensor wallet object (should be the real account wallet).
+        delegate_ss58: The SS58 address of the delegate proxy account whose announcement is being rejected.
+        call_hash: The hash of the call that was announced and is now being rejected.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+            can think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+    Returns:
+        ExtrinsicResponse: The result object of the extrinsic execution.
+    """
+    try:
+        if not (
+            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+        ).success:
+            return unlocked
+
+        logging.debug(
+            f"Rejecting announcement: delegate=[blue]{delegate_ss58}[/blue], "
+            f"call_hash=[blue]{call_hash}[/blue] "
+            f"on [blue]{subtensor.network}[/blue]."
+        )
+
+        call = Proxy(subtensor).reject_announcement(
+            delegate=delegate_ss58,
+            call_hash=call_hash,
+        )
+
+        response = subtensor.sign_and_send_extrinsic(
+            call=call,
+            wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            period=period,
+            raise_error=raise_error,
+        )
+
+        if response.success:
+            logging.debug("[green]Announcement rejected successfully.[/green]")
+        else:
+            logging.error(f"[red]{response.message}[/red]")
+
+        return response
+
+    except Exception as error:
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
+
+
+def remove_announcement_extrinsic(
+    subtensor: "Subtensor",
+    wallet: "Wallet",
+    real_ss58: str,
+    call_hash: str,
+    period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
+) -> ExtrinsicResponse:
+    """
+    Removes an announcement made by a proxy account.
+
+    This extrinsic allows the proxy account to remove its own announcement before it is executed or rejected. This
+    frees up the announcement deposit.
+
+    Parameters:
+        subtensor: Subtensor instance with the connection to the chain.
+        wallet: Bittensor wallet object (should be the proxy account wallet that made the announcement).
+        real_ss58: The SS58 address of the real account on whose behalf the call was announced.
+        call_hash: The hash of the call that was announced and is now being removed.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+            can think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+    Returns:
+        ExtrinsicResponse: The result object of the extrinsic execution.
+    """
+    try:
+        if not (
+            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+        ).success:
+            return unlocked
+
+        logging.debug(
+            f"Removing announcement: real=[blue]{real_ss58}[/blue], "
+            f"call_hash=[blue]{call_hash}[/blue] "
+            f"on [blue]{subtensor.network}[/blue]."
+        )
+
+        call = Proxy(subtensor).remove_announcement(
+            real=real_ss58,
+            call_hash=call_hash,
+        )
+
+        response = subtensor.sign_and_send_extrinsic(
+            call=call,
+            wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            period=period,
+            raise_error=raise_error,
+        )
+
+        if response.success:
+            logging.debug("[green]Announcement removed successfully.[/green]")
         else:
             logging.error(f"[red]{response.message}[/red]")
 
