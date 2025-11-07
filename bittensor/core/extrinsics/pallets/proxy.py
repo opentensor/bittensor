@@ -36,7 +36,8 @@ class Proxy(_BasePallet):
 
         Parameters:
             delegate: The SS58 address of the delegate proxy account.
-            proxy_type: The type of proxy permissions (e.g., "Any", "NonTransfer", "Governance", "Staking", "IdentityJudgement", "CancelProxy", "Auction").
+            proxy_type: The type of proxy permissions (e.g., "Any", "NonTransfer", "Governance", "Staking",
+                "IdentityJudgement", "CancelProxy", "Auction").
             delay: The number of blocks before the proxy can be used.
 
         Returns:
@@ -58,7 +59,8 @@ class Proxy(_BasePallet):
 
         Parameters:
             delegate: The SS58 address of the delegate proxy account to remove.
-            proxy_type: The type of proxy permissions to remove (e.g., "Any", "NonTransfer", "Governance", "Staking", "IdentityJudgement", "CancelProxy", "Auction").
+            proxy_type: The type of proxy permissions to remove (e.g., "Any", "NonTransfer", "Governance", "Staking",
+                "IdentityJudgement", "CancelProxy", "Auction").
             delay: The number of blocks before the proxy removal takes effect.
 
         Returns:
@@ -79,7 +81,8 @@ class Proxy(_BasePallet):
         """Returns GenericCall instance for Subtensor function Proxy.create_pure.
 
         Parameters:
-            proxy_type: The type of proxy permissions for the pure proxy (e.g., "Any", "NonTransfer", "Governance", "Staking", "IdentityJudgement", "CancelProxy", "Auction").
+            proxy_type: The type of proxy permissions for the pure proxy (e.g., "Any", "NonTransfer", "Governance",
+                "Staking", "IdentityJudgement", "CancelProxy", "Auction").
             delay: The number of blocks before the pure proxy can be used.
             index: The index to use for generating the pure proxy account address.
 
@@ -105,7 +108,8 @@ class Proxy(_BasePallet):
         Parameters:
             spawner: The SS58 address of the account that spawned the pure proxy.
             proxy: The SS58 address of the pure proxy account to kill.
-            proxy_type: The type of proxy permissions (e.g., "Any", "NonTransfer", "Governance", "Staking", "IdentityJudgement", "CancelProxy", "Auction").
+            proxy_type: The type of proxy permissions (e.g., "Any", "NonTransfer", "Governance", "Staking",
+                "IdentityJudgement", "CancelProxy", "Auction").
             height: The block height at which the pure proxy was created.
             ext_index: The extrinsic index at which the pure proxy was created.
 
@@ -130,7 +134,9 @@ class Proxy(_BasePallet):
 
         Parameters:
             real: The SS58 address of the real account on whose behalf the call is being made.
-            force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise, must match one of the allowed proxy types (e.g., "Any", "NonTransfer", "Governance", "Staking", "IdentityJudgement", "CancelProxy", "Auction").
+            force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise,
+                must match one of the allowed proxy types (e.g., "Any", "NonTransfer", "Governance", "Staking",
+                "IdentityJudgement", "CancelProxy", "Auction").
             call: The inner call to be executed on behalf of the real account.
 
         Returns:
