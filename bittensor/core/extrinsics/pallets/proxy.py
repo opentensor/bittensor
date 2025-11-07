@@ -1,8 +1,7 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional
 
 from .base import CallBuilder as _BasePallet, Call
-from bittensor.core.chain_data.proxy import ProxyType
 
 if TYPE_CHECKING:
     from scalecodec import GenericCall
@@ -30,69 +29,65 @@ class Proxy(_BasePallet):
     def add_proxy(
         self,
         delegate: str,
-        proxy_type: Union[str, ProxyType],
+        proxy_type: str,
         delay: int,
     ) -> Call:
         """Returns GenericCall instance for Subtensor function Proxy.add_proxy.
 
         Parameters:
             delegate: The SS58 address of the delegate proxy account.
-            proxy_type: The type of proxy permissions (e.g., "Any", "NonTransfer", "Governance", "Staking"). Can be a
-                string or ProxyType enum value.
+            proxy_type: The type of proxy permissions (e.g., "Any", "NonTransfer", "Governance", "Staking").
             delay: The number of blocks before the proxy can be used.
 
         Returns:
             GenericCall instance.
         """
-        proxy_type_str = ProxyType.normalize(proxy_type)
         return self.create_composed_call(
             delegate=delegate,
-            proxy_type=proxy_type_str,
+            proxy_type=proxy_type,
             delay=delay,
         )
 
     def remove_proxy(
         self,
         delegate: str,
-        proxy_type: Union[str, ProxyType],
+        proxy_type: str,
         delay: int,
     ) -> Call:
         """Returns GenericCall instance for Subtensor function Proxy.remove_proxy.
 
         Parameters:
             delegate: The SS58 address of the delegate proxy account to remove.
-            proxy_type: The type of proxy permissions to remove. Can be a string or ProxyType enum value.
+            proxy_type: The type of proxy permissions to remove.
             delay: The number of blocks before the proxy removal takes effect.
 
         Returns:
             GenericCall instance.
         """
-        proxy_type_str = ProxyType.normalize(proxy_type)
         return self.create_composed_call(
             delegate=delegate,
-            proxy_type=proxy_type_str,
+            proxy_type=proxy_type,
             delay=delay,
         )
 
     def create_pure(
         self,
-        proxy_type: Union[str, ProxyType],
+        proxy_type: str,
         delay: int,
         index: int,
     ) -> Call:
         """Returns GenericCall instance for Subtensor function Proxy.create_pure.
 
         Parameters:
-            proxy_type: The type of proxy permissions for the pure proxy. Can be a string or ProxyType enum value.
+            proxy_type: The type of proxy permissions for the pure proxy.
             delay: The number of blocks before the pure proxy can be used.
             index: The index to use for generating the pure proxy account address.
 
         Returns:
             GenericCall instance.
         """
-        proxy_type_str = ProxyType.normalize(proxy_type)
         return self.create_composed_call(
-            proxy_type=proxy_type_str,
+            proxy_type=proxy_type,
             delay=delay,
             index=index,
         )
@@ -101,7 +96,7 @@ class Proxy(_BasePallet):
         self,
         spawner: str,
         proxy: str,
-        proxy_type: Union[str, ProxyType],
+        proxy_type: str,
         height: int,
         ext_index: int,
     ) -> Call:
@@ -110,18 +105,17 @@ class Proxy(_BasePallet):
         Parameters:
             spawner: The SS58 address of the account that spawned the pure proxy.
             proxy: The SS58 address of the pure proxy account to kill.
-            proxy_type: The type of proxy permissions. Can be a string or ProxyType enum value.
+            proxy_type: The type of proxy permissions.
             height: The block height at which the pure proxy was created.
             ext_index: The extrinsic index at which the pure proxy was created.
 
         Returns:
             GenericCall instance.
         """
-        proxy_type_str = ProxyType.normalize(proxy_type)
         return self.create_composed_call(
             spawner=spawner,
             proxy=proxy,
-            proxy_type=proxy_type_str,
+            proxy_type=proxy_type,
             height=height,
             ext_index=ext_index,
         )
@@ -129,7 +123,7 @@ class Proxy(_BasePallet):
     def proxy(
         self,
         real: str,
-        force_proxy_type: Optional[Union[str, ProxyType]],
+        force_proxy_type: Optional[str],
         call: "GenericCall",
     ) -> Call:
         """Returns GenericCall instance for Subtensor function Proxy.proxy.
@@ -137,16 +131,15 @@ class Proxy(_BasePallet):
         Parameters:
             real: The SS58 address of the real account on whose behalf the call is being made.
             force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise,
-                must match one of the allowed proxy types. Can be a string or ProxyType enum value.
+                must match one of the allowed proxy types.
             call: The inner call to be executed on behalf of the real account.
 
         Returns:
             GenericCall instance.
         """
-        force_proxy_type_str = ProxyType.normalize(force_proxy_type) if force_proxy_type is not None else None
         return self.create_composed_call(
             real=real,
-            force_proxy_type=force_proxy_type_str,
+            force_proxy_type=force_proxy_type,
             call=call,
         )
 
@@ -160,6 +153,70 @@ class Proxy(_BasePallet):
         Parameters:
             real: The SS58 address of the real account on whose behalf the call will be made.
             call_hash: The hash of the call that will be executed in the future.
+
+        Returns:
+            GenericCall instance.
+        """
+        return self.create_composed_call(
+            real=real,
+            call_hash=call_hash,
+        )
+
+    def proxy_announced(
+        self,
+        delegate: str,
+        real: str,
+        force_proxy_type: Optional[str],
+        call: "GenericCall",
+    ) -> Call:
+        """Returns GenericCall instance for Subtensor function Proxy.proxy_announced.
+
+        Parameters:
+            delegate: The SS58 address of the delegate proxy account that made the announcement.
+            real: The SS58 address of the real account on whose behalf the call will be made.
+            force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise,
+                must match one of the allowed proxy types.
+            call: The inner call to be executed on behalf of the real account (must match the announced call_hash).
+
+        Returns:
+            GenericCall instance.
+        """
+        return self.create_composed_call(
+            delegate=delegate,
+            real=real,
+            force_proxy_type=force_proxy_type,
+            call=call,
+        )
+
+    def reject_announcement(
+        self,
+        delegate: str,
+        call_hash: str,
+    ) -> Call:
+        """Returns GenericCall instance for Subtensor function Proxy.reject_announcement.
+
+        Parameters:
+            delegate: The SS58 address of the delegate proxy account whose announcement is being rejected.
+            call_hash: The hash of the call that was announced and is now being rejected.
+
+        Returns:
+            GenericCall instance.
+        """
+        return self.create_composed_call(
+            delegate=delegate,
+            call_hash=call_hash,
+        )
+
+    def remove_announcement(
+        self,
+        real: str,
+        call_hash: str,
+    ) -> Call:
+        """Returns GenericCall instance for Subtensor function Proxy.remove_announcement.
+
+        Parameters:
+            real: The SS58 address of the real account on whose behalf the call was announced.
+            call_hash: The hash of the call that was announced and is now being removed.
 
         Returns:
             GenericCall instance.
