@@ -81,6 +81,20 @@ class ProxyType(str, Enum):
 
 @dataclass
 class ProxyInfo:
+    """
+    Dataclass representing proxy relationship information.
+
+    This class contains information about a proxy relationship between a real account and a delegate account. A proxy
+    relationship allows the delegate to perform certain operations on behalf of the real account, with restrictions
+    defined by the proxy type and a delay period.
+
+    Attributes:
+        delegate: The SS58 address of the delegate proxy account that can act on behalf of the real account.
+        proxy_type: The type of proxy permissions granted to the delegate (e.g., "Any", "NonTransfer", "Governance",
+            "Staking"). This determines what operations the delegate can perform.
+        delay: The number of blocks that must pass before the proxy relationship becomes active. This delay provides a
+            security mechanism allowing the real account to cancel the proxy if needed.
+    """
     delegate: str
     proxy_type: str
     delay: int
@@ -122,8 +136,27 @@ class ProxyConstants:
     """
     Represents all runtime constants defined in the `Proxy` pallet.
 
-    Attributes:
+    These attributes correspond directly to on-chain configuration constants exposed by the Proxy pallet. They define
+    deposit requirements, proxy limits, and announcement constraints that govern how proxy accounts operate within the
+    Subtensor network.
 
+    Each attribute is fetched directly from the runtime via `Subtensor.query_constant("Proxy", <name>)` and reflects the
+    current chain configuration at the time of retrieval.
+
+    Attributes:
+        AnnouncementDepositBase: Base deposit amount (in RAO) required to announce a future proxy call. This deposit is
+            held until the announced call is executed or cancelled.
+        AnnouncementDepositFactor: Additional deposit factor (in RAO) per byte of the call hash being announced. The
+            total announcement deposit is calculated as: AnnouncementDepositBase + (call_hash_size *
+            AnnouncementDepositFactor).
+        MaxProxies: Maximum number of proxy relationships that a single account can have. This limits the total number
+            of delegates that can act on behalf of an account.
+        MaxPending: Maximum number of pending proxy announcements that can exist for a single account at any given time.
+            This prevents spam and limits the storage requirements for pending announcements.
+        ProxyDepositBase: Base deposit amount (in RAO) required when adding a proxy relationship. This deposit is held as
+            long as the proxy relationship exists and is returned when the proxy is removed.
+        ProxyDepositFactor: Additional deposit factor (in RAO) per proxy type added. The total proxy deposit is
+            calculated as: ProxyDepositBase + (number_of_proxy_types * ProxyDepositFactor).
 
     Note:
         All Balance amounts are in RAO.
