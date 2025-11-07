@@ -23,6 +23,8 @@ from bittensor.core.chain_data import (
     MetagraphInfo,
     NeuronInfo,
     NeuronInfoLite,
+    ProxyInfo,
+    ProxyConstants,
     SelectiveMetagraphIndex,
     SimSwapResult,
     StakeInfo,
