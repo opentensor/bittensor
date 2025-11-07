@@ -41,7 +41,7 @@ def start_call_extrinsic(
         ).success:
             return unlocked
 
-        call = SubtensorModule(subtensor).start_call(netuid)
+        call = SubtensorModule(subtensor).start_call(netuid=netuid)
 
         return subtensor.sign_and_send_extrinsic(
             call=call,

@@ -49,7 +49,7 @@ async def contribute_crowdloan_extrinsic(
 
         call = await Crowdloan(subtensor).contribute(
             crowdloan_id=crowdloan_id,
-            amount=amount,
+            amount=amount.rao,
         )
 
         return await subtensor.sign_and_send_extrinsic(
@@ -112,9 +112,9 @@ async def create_crowdloan_extrinsic(
         check_balance_amount(cap)
 
         call = await Crowdloan(subtensor).create(
-            deposit=deposit,
-            min_contribution=min_contribution,
-            cap=cap,
+            deposit=deposit.rao,
+            min_contribution=min_contribution.rao,
+            cap=cap.rao,
             end=end,
             call=call,
             target_address=target_address,
@@ -337,7 +337,7 @@ async def update_cap_crowdloan_extrinsic(
         check_balance_amount(new_cap)
 
         call = await Crowdloan(subtensor).update_cap(
-            crowdloan_id=crowdloan_id, new_cap=new_cap
+            crowdloan_id=crowdloan_id, new_cap=new_cap.rao
         )
 
         return await subtensor.sign_and_send_extrinsic(
@@ -458,7 +458,7 @@ async def update_min_contribution_crowdloan_extrinsic(
         check_balance_amount(new_min_contribution)
 
         call = await Crowdloan(subtensor).update_min_contribution(
-            crowdloan_id=crowdloan_id, new_min_contribution=new_min_contribution
+            crowdloan_id=crowdloan_id, new_min_contribution=new_min_contribution.rao
         )
 
         return await subtensor.sign_and_send_extrinsic(

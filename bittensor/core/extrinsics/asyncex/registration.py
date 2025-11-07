@@ -81,7 +81,7 @@ async def burned_register_extrinsic(
         logging.debug(f"Recycling {recycle_amount} to register on subnet:{netuid}")
 
         call = await SubtensorModule(subtensor).burned_register(
-            netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
+            netuid=netuid, hotkey=wallet.hotkey.ss58_address
         )
 
         response = await subtensor.sign_and_send_extrinsic(
@@ -179,7 +179,7 @@ async def register_subnet_extrinsic(
             ).with_log()
 
         call = await SubtensorModule(subtensor).register_network(
-            hotkey_ss58=wallet.hotkey.ss58_address
+            hotkey=wallet.hotkey.ss58_address
         )
 
         response = await subtensor.sign_and_send_extrinsic(
@@ -337,8 +337,8 @@ async def register_extrinsic(
                 while not await pow_result.is_stale_async(subtensor=subtensor):
                     call = await SubtensorModule(subtensor).register(
                         netuid=netuid,
-                        coldkey_ss58=wallet.coldkeypub.ss58_address,
-                        hotkey_ss58=wallet.hotkey.ss58_address,
+                        coldkey=wallet.coldkeypub.ss58_address,
+                        hotkey=wallet.hotkey.ss58_address,
                         block_number=pow_result.block_number,
                         nonce=pow_result.nonce,
                         work=[int(byte_) for byte_ in pow_result.seal],
@@ -444,7 +444,6 @@ async def set_subnet_identity_extrinsic(
 
         call = await SubtensorModule(subtensor).set_subnet_identity(
             netuid=netuid,
-            hotkey_ss58=wallet.hotkey.ss58_address,
             subnet_name=subnet_name,
             github_repo=github_repo,
             subnet_contact=subnet_contact,

@@ -34,7 +34,7 @@ async def test_contribute_crowdloan_extrinsic(subtensor, mocker):
     # Assertions
     mocked_pallet_compose_call.assert_awaited_once_with(
         crowdloan_id=fake_crowdloan_id,
-        amount=fake_amount,
+        amount=fake_amount.rao,
     )
     mocked_sign_and_send_extrinsic.assert_awaited_once_with(
         call=mocked_pallet_compose_call.return_value,
@@ -84,9 +84,9 @@ async def test_create_crowdloan_extrinsic(subtensor, mocker):
 
     # Assertions
     mocked_pallet_compose_call.assert_awaited_once_with(
-        deposit=fake_deposit,
-        min_contribution=fake_min_contribution,
-        cap=fake_cap,
+        deposit=fake_deposit.rao,
+        min_contribution=fake_min_contribution.rao,
+        cap=fake_cap.rao,
         end=fake_end,
         call=fake_call,
         target_address=fake_target_address,
@@ -179,7 +179,7 @@ async def test_update_cap_crowdloan_extrinsic(subtensor, mocker):
     # Assertions
     mocked_pallet_compose_call.assert_awaited_once_with(
         crowdloan_id=fake_crowdloan_id,
-        new_cap=fake_new_cap,
+        new_cap=fake_new_cap.rao,
     )
     mocked_sign_and_send_extrinsic.assert_awaited_once_with(
         call=mocked_pallet_compose_call.return_value,
@@ -267,7 +267,7 @@ async def test_update_min_contribution_crowdloan_extrinsic(subtensor, mocker):
     # Assertions
     mocked_pallet_compose_call.assert_awaited_once_with(
         crowdloan_id=fake_crowdloan_id,
-        new_min_contribution=fake_new_min_contribution,
+        new_min_contribution=fake_new_min_contribution.rao,
     )
     mocked_sign_and_send_extrinsic.assert_awaited_once_with(
         call=mocked_pallet_compose_call.return_value,

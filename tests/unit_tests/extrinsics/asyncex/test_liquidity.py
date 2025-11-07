@@ -1,5 +1,6 @@
 import pytest
 from bittensor.core.extrinsics.asyncex import liquidity
+from bittensor.utils.balance import Balance
 
 
 @pytest.mark.asyncio
@@ -7,9 +8,9 @@ async def test_add_liquidity_extrinsic(subtensor, fake_wallet, mocker):
     """Test that the add `add_liquidity_extrinsic` executes correct calls."""
     # Preps
     fake_netuid = mocker.Mock()
-    fake_liquidity = mocker.Mock()
-    fake_price_low = mocker.Mock()
-    fake_price_high = mocker.Mock()
+    fake_liquidity = mocker.MagicMock(spec=Balance, rao=1000_000)
+    fake_price_low = mocker.MagicMock(spec=Balance, tao=1.1)
+    fake_price_high = mocker.MagicMock(spec=Balance, tao=1.5)
 
     mocked_pallet_compose_call = mocker.patch.object(
         liquidity.Swap, "add_liquidity", new=mocker.AsyncMock()
@@ -31,10 +32,10 @@ async def test_add_liquidity_extrinsic(subtensor, fake_wallet, mocker):
     # Asserts
     mocked_pallet_compose_call.assert_awaited_once_with(
         netuid=fake_netuid,
-        hotkey_ss58=fake_wallet.hotkey.ss58_address,
-        liquidity=fake_liquidity,
-        price_low=fake_price_low,
-        price_high=fake_price_high,
+        hotkey=fake_wallet.hotkey.ss58_address,
+        liquidity=1000000,
+        tick_low=953,
+        tick_high=4054,
     )
     mocked_sign_and_send_extrinsic.assert_awaited_once_with(
         call=mocked_pallet_compose_call.return_value,

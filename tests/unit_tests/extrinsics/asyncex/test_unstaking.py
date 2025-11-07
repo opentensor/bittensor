@@ -50,7 +50,7 @@ async def test_unstake_extrinsic(fake_wallet, mocker):
     assert result.success is True
 
     mocked_pallet_compose_call.assert_awaited_once_with(
-        netuid=fake_netuid, hotkey_ss58=hotkey_ss58, amount=amount
+        netuid=fake_netuid, hotkey=hotkey_ss58, amount_unstaked=amount.rao
     )
     fake_subtensor.sign_and_send_extrinsic.assert_awaited_once_with(
         call=mocked_pallet_compose_call.return_value,

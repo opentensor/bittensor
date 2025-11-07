@@ -114,7 +114,7 @@ def move_stake_extrinsic(
             origin_hotkey_ss58=origin_hotkey_ss58,
             destination_netuid=destination_netuid,
             destination_hotkey_ss58=destination_hotkey_ss58,
-            amount=amount,
+            alpha_amount=amount.rao,
         )
         block_before = subtensor.block
         response = subtensor.sign_and_send_extrinsic(
@@ -240,11 +240,11 @@ def transfer_stake_extrinsic(
             f"[yellow]{destination_netuid}[/yellow]"
         )
         call = SubtensorModule(subtensor).transfer_stake(
-            hotkey_ss58=hotkey_ss58,
+            destination_coldkey=destination_coldkey_ss58,
+            hotkey=hotkey_ss58,
             origin_netuid=origin_netuid,
-            destination_coldkey_ss58=destination_coldkey_ss58,
             destination_netuid=destination_netuid,
-            amount=amount,
+            alpha_amount=amount.rao,
         )
         block_before = subtensor.block
         response = subtensor.sign_and_send_extrinsic(
@@ -374,14 +374,12 @@ def swap_stake_extrinsic(
             )
 
             call = SubtensorModule(subtensor).swap_stake_limit(
-                hotkey_ss58=hotkey_ss58,
+                hotkey=hotkey_ss58,
                 origin_netuid=origin_netuid,
                 destination_netuid=destination_netuid,
-                amount=amount,
-                allow_partial_stake=allow_partial_stake,
-                rate_tolerance=rate_tolerance,
-                origin_pool=origin_pool,
-                destination_pool=destination_pool,
+                alpha_amount=amount.rao,
+                limit_price=swap_rate_ratio_with_tolerance,
+                allow_partial=allow_partial_stake,
             )
 
         else:
@@ -392,10 +390,10 @@ def swap_stake_extrinsic(
             )
 
             call = SubtensorModule(subtensor).swap_stake(
-                hotkey_ss58=hotkey_ss58,
+                hotkey=hotkey_ss58,
                 origin_netuid=origin_netuid,
                 destination_netuid=destination_netuid,
-                amount=amount,
+                alpha_amount=amount.rao,
             )
 
         block_before = subtensor.block

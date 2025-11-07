@@ -105,7 +105,7 @@ async def root_register_extrinsic(
             return ExtrinsicResponse(message="Already registered on root network.")
 
         call = await SubtensorModule(subtensor).root_register(
-            hotkey_ss58=wallet.hotkey.ss58_address
+            hotkey=wallet.hotkey.ss58_address
         )
 
         response = await subtensor.sign_and_send_extrinsic(
@@ -223,7 +223,7 @@ async def claim_root_extrinsic(
         ).success:
             return unlocked
 
-        call = await SubtensorModule(subtensor).claim_root(netuids=netuids)
+        call = await SubtensorModule(subtensor).claim_root(subnets=netuids)
 
         return await subtensor.sign_and_send_extrinsic(
             call=call,

@@ -25,18 +25,18 @@ class Commitments(_BasePallet):
     def set_commitment(
         self,
         netuid: int,
-        info_fields: list,
+        info: dict,
     ) -> Call:
         """Returns GenericCall instance for Subtensor function Commitments.set_commitment.
 
         Parameters:
             netuid: The netuid of the subnet to set commitment for.
-            info_fields: List of info fields to set.
+            info: Dictionary of info fields to set.
 
         Returns:
             GenericCall instance.
         """
         return self.create_composed_call(
             netuid=netuid,
-            info={"fields": [info_fields]},
+            info=info,
         )

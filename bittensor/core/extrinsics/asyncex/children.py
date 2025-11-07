@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Optional
 
 from bittensor.core.extrinsics.pallets import SubtensorModule, Sudo
 from bittensor.core.types import ExtrinsicResponse
+from bittensor.utils import float_to_u64
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -58,7 +59,12 @@ async def set_children_extrinsic(
             return unlocked
 
         call = await SubtensorModule(subtensor).set_children(
-            netuid=netuid, hotkey_ss58=hotkey_ss58, children=children
+            netuid=netuid,
+            hotkey=hotkey_ss58,
+            children=[
+                (float_to_u64(proportion), child_hotkey)
+                for proportion, child_hotkey in children
+            ],
         )
 
         response = await subtensor.sign_and_send_extrinsic(

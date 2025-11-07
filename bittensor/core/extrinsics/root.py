@@ -100,7 +100,7 @@ def root_register_extrinsic(
             return ExtrinsicResponse(message="Already registered on root network.")
 
         call = SubtensorModule(subtensor).root_register(
-            hotkey_ss58=wallet.hotkey.ss58_address
+            hotkey=wallet.hotkey.ss58_address
         )
 
         response = subtensor.sign_and_send_extrinsic(
@@ -218,7 +218,7 @@ def claim_root_extrinsic(
         ).success:
             return unlocked
 
-        call = SubtensorModule(subtensor).claim_root(netuids=netuids)
+        call = SubtensorModule(subtensor).claim_root(subnets=netuids)
 
         return subtensor.sign_and_send_extrinsic(
             call=call,

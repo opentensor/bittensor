@@ -3,6 +3,7 @@ from typing import Optional, TYPE_CHECKING
 from bittensor.core.extrinsics.pallets import Swap
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.balance import Balance
+from bittensor.utils.liquidity import price_to_tick
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -57,10 +58,10 @@ async def add_liquidity_extrinsic(
 
         call = await Swap(subtensor).add_liquidity(
             netuid=netuid,
-            liquidity=liquidity,
-            price_low=price_low,
-            price_high=price_high,
-            hotkey_ss58=hotkey_ss58 or wallet.hotkey.ss58_address,
+            liquidity=liquidity.rao,
+            tick_low=price_to_tick(price_low.tao),
+            tick_high=price_to_tick(price_high.tao),
+            hotkey=hotkey_ss58 or wallet.hotkey.ss58_address,
         )
 
         return await subtensor.sign_and_send_extrinsic(
@@ -120,9 +121,9 @@ async def modify_liquidity_extrinsic(
 
         call = await Swap(subtensor).modify_position(
             netuid=netuid,
-            hotkey_ss58=hotkey_ss58 or wallet.hotkey.ss58_address,
+            hotkey=hotkey_ss58 or wallet.hotkey.ss58_address,
             position_id=position_id,
-            liquidity_delta=liquidity_delta,
+            liquidity_delta=liquidity_delta.rao,
         )
 
         return await subtensor.sign_and_send_extrinsic(
@@ -180,7 +181,7 @@ async def remove_liquidity_extrinsic(
 
         call = await Swap(subtensor).remove_liquidity(
             netuid=netuid,
-            hotkey_ss58=hotkey_ss58 or wallet.hotkey.ss58_address,
+            hotkey=hotkey_ss58 or wallet.hotkey.ss58_address,
             position_id=position_id,
         )
 

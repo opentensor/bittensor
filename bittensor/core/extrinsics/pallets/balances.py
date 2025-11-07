@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-from bittensor.utils.balance import Balance
 from .base import CallBuilder as _BasePallet, Call
 
 
@@ -41,24 +40,24 @@ class Balances(_BasePallet):
         """
         return self.create_composed_call(dest=dest, keep_alive=keep_alive)
 
-    def transfer_allow_death(self, dest: str, value: "Balance") -> Call:
+    def transfer_allow_death(self, dest: str, value: int) -> Call:
         """Returns GenericCall instance for Subtensor function Balances.transfer_allow_death.
 
         Parameters:
             dest: The destination ss58 address.
-            value: The amount of tokens to transfer.
+            value: The Balance amount in RAO to transfer.
 
         Returns:
             GenericCall instance.
         """
         return self.create_composed_call(dest=dest, value=value)
 
-    def transfer_keep_alive(self, dest: str, value: "Balance") -> Call:
+    def transfer_keep_alive(self, dest: str, value: int) -> Call:
         """Returns GenericCall instance for Subtensor function Balances.transfer_keep_alive.
 
         Parameters:
             dest: The destination ss58 address.
-            value: The amount of tokens to transfer.
+            value: The Balance amount in RAO to transfer.
 
         Returns:
             GenericCall instance.

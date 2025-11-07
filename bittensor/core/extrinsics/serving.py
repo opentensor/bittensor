@@ -244,7 +244,9 @@ def publish_metadata_extrinsic(
         if reset_bonds:
             fields.append({"ResetBondsFlag": b""})
 
-        call = Commitments(subtensor).set_commitment(netuid=netuid, info_fields=fields)
+        info = {"fields": [fields]}
+
+        call = Commitments(subtensor).set_commitment(netuid=netuid, info=info)
 
         response = subtensor.sign_and_send_extrinsic(
             call=call,

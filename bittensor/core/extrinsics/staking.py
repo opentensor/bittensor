@@ -99,24 +99,22 @@ def add_stake_extrinsic(
                 if pool.netuid == 0
                 else pool.price.tao * (1 + rate_tolerance)
             )
-            limit_price = Balance.from_tao(price_with_tolerance).rao
 
             logging.debug(
                 f"Safe Staking to: [blue]netuid: [green]{netuid}[/green], amount: [green]{amount}[/green], "
                 f"tolerance percentage: [green]{rate_tolerance * 100}%[/green], "
-                f"price limit: [green]{limit_price}[/green], "
+                f"price limit: [green]{Balance.from_tao(price_with_tolerance)}[/green], "
                 f"original price: [green]{pool.price}[/green], "
                 f"with partial stake: [green]{allow_partial_stake}[/green] "
                 f"on [blue]{subtensor.network}[/blue]."
             )
 
             call = SubtensorModule(subtensor).add_stake_limit(
+                hotkey=hotkey_ss58,
                 netuid=netuid,
-                hotkey_ss58=hotkey_ss58,
-                amount=amount,
-                allow_partial_stake=allow_partial_stake,
-                rate_tolerance=rate_tolerance,
-                pool=pool,
+                amount_staked=amount.rao,
+                limit_price=price_with_tolerance,
+                allow_partial=allow_partial_stake,
             )
 
         else:
@@ -125,7 +123,7 @@ def add_stake_extrinsic(
                 f"on [blue]{subtensor.network}[/blue]."
             )
             call = SubtensorModule(subtensor).add_stake(
-                netuid=netuid, hotkey_ss58=hotkey_ss58, amount=amount
+                netuid=netuid, hotkey=hotkey_ss58, amount_staked=amount.rao
             )
 
         block_before = subtensor.block
@@ -441,7 +439,7 @@ def set_auto_stake_extrinsic(
             return unlocked
 
         call = SubtensorModule(subtensor).set_coldkey_auto_stake_hotkey(
-            netuid=netuid, hotkey_ss58=hotkey_ss58
+            netuid=netuid, hotkey=hotkey_ss58
         )
 
         response = subtensor.sign_and_send_extrinsic(

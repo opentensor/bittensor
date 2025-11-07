@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Optional
 from .base import CallBuilder, Call
 
 if TYPE_CHECKING:
-    from bittensor.utils.balance import Balance
     from scalecodec import GenericCall
 
 
@@ -31,24 +30,24 @@ class Crowdloan(CallBuilder):
     def contribute(
         self,
         crowdloan_id: int,
-        amount: "Balance",
+        amount: int,
     ) -> Call:
         """Returns GenericCall instance for Subtensor function Crowdloan.contribute.
 
         Parameters:
             crowdloan_id: The unique identifier of the crowdloan to contribute to.
-            amount: Amount to contribute.
+            amount: Amount in RAO to contribute.
 
         Returns:
             GenericCall instance.
         """
-        return self.create_composed_call(crowdloan_id=crowdloan_id, amount=amount.rao)
+        return self.create_composed_call(crowdloan_id=crowdloan_id, amount=amount)
 
     def create(
         self,
-        deposit: "Balance",
-        min_contribution: "Balance",
-        cap: "Balance",
+        deposit: int,
+        min_contribution: int,
+        cap: int,
         end: int,
         call: Optional["GenericCall"] = None,
         target_address: Optional[str] = None,
@@ -57,8 +56,8 @@ class Crowdloan(CallBuilder):
 
         Parameters:
             deposit: Initial deposit in RAO from the creator.
-            min_contribution: Minimum contribution amount.
-            cap: Maximum cap to be raised.
+            min_contribution: Minimum contribution amount in RAO.
+            cap: Maximum cap to be raised in RAO.
             end: Block number when the campaign ends.
             call: Runtime call data (e.g., subtensor::register_leased_network).
             target_address: SS58 address to transfer funds to on success.
@@ -67,9 +66,9 @@ class Crowdloan(CallBuilder):
             GenericCall instance.
         """
         return self.create_composed_call(
-            deposit=deposit.rao,
-            min_contribution=min_contribution.rao,
-            cap=cap.rao,
+            deposit=deposit,
+            min_contribution=min_contribution,
+            cap=cap,
             end=end,
             call=call,
             target_address=target_address,
@@ -120,18 +119,18 @@ class Crowdloan(CallBuilder):
     def update_cap(
         self,
         crowdloan_id: int,
-        new_cap: "Balance",
+        new_cap: int,
     ) -> Call:
         """Returns GenericCall instance for Subtensor function Crowdloan.update_cap.
 
         Parameters:
             crowdloan_id: The unique identifier of the crowdloan to update the cap for.
-            new_cap: New cap to be raised.
+            new_cap: New cap to be raised in RAO.
 
         Returns:
             GenericCall instance.
         """
-        return self.create_composed_call(crowdloan_id=crowdloan_id, new_cap=new_cap.rao)
+        return self.create_composed_call(crowdloan_id=crowdloan_id, new_cap=new_cap)
 
     def update_end(
         self,
@@ -152,20 +151,20 @@ class Crowdloan(CallBuilder):
     def update_min_contribution(
         self,
         crowdloan_id: int,
-        new_min_contribution: "Balance",
+        new_min_contribution: int,
     ) -> Call:
         """Returns GenericCall instance for Subtensor function Crowdloan.update_min_contribution.
 
         Parameters:
             crowdloan_id: The unique identifier of the crowdloan to update the minimum contribution amount for.
-            new_min_contribution: New minimum contribution amount.
+            new_min_contribution: New minimum contribution amount in RAO.
 
         Returns:
             GenericCall instance.
         """
         return self.create_composed_call(
             crowdloan_id=crowdloan_id,
-            new_min_contribution=new_min_contribution.rao,
+            new_min_contribution=new_min_contribution,
         )
 
     def withdraw(

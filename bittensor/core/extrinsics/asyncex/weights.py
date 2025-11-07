@@ -92,8 +92,8 @@ async def commit_timelocked_weights_extrinsic(
 
         call = await SubtensorModule(subtensor).commit_timelocked_mechanism_weights(
             netuid=netuid,
-            mechid=mechid,
-            commit_for_reveal=commit_for_reveal,
+            mecid=mechid,
+            commit=commit_for_reveal,
             reveal_round=reveal_round,
             commit_reveal_version=commit_reveal_version,
         )
@@ -182,7 +182,7 @@ async def commit_weights_extrinsic(
 
         call = await SubtensorModule(subtensor).commit_mechanism_weights(
             netuid=netuid,
-            mechid=mechid,
+            mecid=mechid,
             commit_hash=commit_hash,
         )
 
@@ -259,9 +259,9 @@ async def reveal_weights_extrinsic(
 
         call = await SubtensorModule(subtensor).reveal_mechanism_weights(
             netuid=netuid,
-            mechid=mechid,
+            mecid=mechid,
             uids=uids,
-            weights=weights,
+            values=weights,
             salt=salt,
             version_key=version_key,
         )
@@ -337,8 +337,8 @@ async def set_weights_extrinsic(
 
         call = await SubtensorModule(subtensor).set_mechanism_weights(
             netuid=netuid,
-            mechid=mechid,
-            uids=uids,
+            mecid=mechid,
+            dests=uids,
             weights=weights,
             version_key=version_key,
         )

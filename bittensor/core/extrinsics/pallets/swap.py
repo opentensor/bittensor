@@ -1,11 +1,7 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
-from bittensor.utils.liquidity import price_to_tick
 from .base import CallBuilder, Call
-
-if TYPE_CHECKING:
-    from bittensor.utils.balance import Balance
 
 
 @dataclass
@@ -30,60 +26,60 @@ class Swap(CallBuilder):
     def add_liquidity(
         self,
         netuid: int,
-        liquidity: "Balance",
-        price_low: "Balance",
-        price_high: "Balance",
-        hotkey_ss58: Optional[str] = None,
+        liquidity: int,
+        tick_low: int,
+        tick_high: int,
+        hotkey: Optional[str] = None,
     ) -> Call:
         """Returns GenericCall instance for Subtensor function Swap.add_liquidity.
 
         Parameters:
             netuid: The UID of the target subnet for which the call is being initiated.
-            liquidity: The amount of liquidity to be added.
-            price_low: The lower bound of the price tick range.
-            price_high: The upper bound of the price tick range.
-            hotkey_ss58: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
+            liquidity: The amount of liquidity in RAO to be added.
+            tick_low: The lower bound of the price tick range.
+            tick_high: The upper bound of the price tick range.
+            hotkey: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
 
         Returns:
             GenericCall instance.
         """
         return self.create_composed_call(
             netuid=netuid,
-            hotkey=hotkey_ss58,
-            liquidity=liquidity.rao,
-            tick_low=price_to_tick(price_low.tao),
-            tick_high=price_to_tick(price_high.tao),
+            hotkey=hotkey,
+            liquidity=liquidity,
+            tick_low=tick_low,
+            tick_high=tick_high,
         )
 
     def modify_position(
         self,
         netuid: int,
-        hotkey_ss58: str,
+        hotkey: str,
         position_id: int,
-        liquidity_delta: "Balance",
+        liquidity_delta: int,
     ) -> Call:
         """Returns GenericCall instance for Subtensor function Swap.modify_position.
 
         Parameters:
             netuid: The UID of the target subnet for which the call is being initiated.
-            hotkey_ss58: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
+            hotkey: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
             position_id: The id of the position record in the pool.
-            liquidity_delta: The amount of liquidity to be added or removed (add if positive or remove if negative).
+            liquidity_delta: The amount of liquidity in RAO to be added or removed (could be positive or negative).
 
         Returns:
             GenericCall instance.
         """
         return self.create_composed_call(
             netuid=netuid,
-            hotkey=hotkey_ss58,
+            hotkey=hotkey,
             position_id=position_id,
-            liquidity_delta=liquidity_delta.rao,
+            liquidity_delta=liquidity_delta,
         )
 
     def remove_liquidity(
         self,
         netuid: int,
-        hotkey_ss58: str,
+        hotkey: str,
         position_id: int,
     ) -> Call:
         """Returns GenericCall instance for Subtensor function Swap.remove_liquidity.
@@ -91,14 +87,14 @@ class Swap(CallBuilder):
         Parameters:
             netuid: The UID of the target subnet for which the call is being initiated.
             position_id: The id of the position record in the pool.
-            hotkey_ss58: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
+            hotkey: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
 
         Returns:
             GenericCall instance.
         """
         return self.create_composed_call(
             netuid=netuid,
-            hotkey=hotkey_ss58,
+            hotkey=hotkey,
             position_id=position_id,
         )
 

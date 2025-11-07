@@ -191,7 +191,7 @@ def test_claim_root_extrinsic(subtensor, fake_wallet, mocker):
     )
 
     # asserts
-    mocked_pallet_compose_call.assert_called_once_with(netuids=netuids)
+    mocked_pallet_compose_call.assert_called_once_with(subnets=netuids)
     mocked_sign_and_send_extrinsic.assert_called_once_with(
         call=mocked_pallet_compose_call.return_value,
         wallet=fake_wallet,

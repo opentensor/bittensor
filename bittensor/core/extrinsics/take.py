@@ -46,11 +46,11 @@ def set_take_extrinsic(
 
         if action == "increase_take":
             call = SubtensorModule(subtensor).increase_take(
-                hotkey_ss58=hotkey_ss58, take=take
+                hotkey=hotkey_ss58, take=take
             )
         elif action == "decrease_take":
             call = SubtensorModule(subtensor).decrease_take(
-                hotkey_ss58=hotkey_ss58, take=take
+                hotkey=hotkey_ss58, take=take
             )
         else:
             raise ValueError(f"Invalid action: {action}")
