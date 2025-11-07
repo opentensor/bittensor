@@ -100,10 +100,12 @@ def add_stake_extrinsic(
                 else pool.price.tao * (1 + rate_tolerance)
             )
 
+            limit_price = Balance.from_tao(price_with_tolerance).rao
+
             logging.debug(
                 f"Safe Staking to: [blue]netuid: [green]{netuid}[/green], amount: [green]{amount}[/green], "
                 f"tolerance percentage: [green]{rate_tolerance * 100}%[/green], "
-                f"price limit: [green]{Balance.from_tao(price_with_tolerance)}[/green], "
+                f"price limit: [green]{Balance.from_tao(limit_price)}[/green], "
                 f"original price: [green]{pool.price}[/green], "
                 f"with partial stake: [green]{allow_partial_stake}[/green] "
                 f"on [blue]{subtensor.network}[/blue]."
@@ -113,7 +115,7 @@ def add_stake_extrinsic(
                 hotkey=hotkey_ss58,
                 netuid=netuid,
                 amount_staked=amount.rao,
-                limit_price=price_with_tolerance,
+                limit_price=limit_price,
                 allow_partial=allow_partial_stake,
             )
 
