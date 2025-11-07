@@ -904,7 +904,7 @@ def test_crowdloan_with_call(
     """
     # create crowdloan's call
     crowdloan_call = SubtensorModule(subtensor).register_network(
-        hotkey_ss58=fred_wallet.hotkey.ss58_address
+        hotkey=fred_wallet.hotkey.ss58_address
     )
 
     next_crowdloan = subtensor.crowdloans.get_crowdloan_next_id()
@@ -1007,7 +1007,7 @@ async def test_crowdloan_with_call_async(
     """
     # create crowdloan's call
     crowdloan_call = await SubtensorModule(async_subtensor).register_network(
-        hotkey_ss58=fred_wallet.hotkey.ss58_address
+        hotkey=fred_wallet.hotkey.ss58_address
     )
 
     crowdloan_cap = Balance.from_tao(30)
