@@ -666,48 +666,6 @@ class SubtensorModule(_BasePallet):
             allow_partial=allow_partial_stake,
         )
 
-    def transfer_all(
-        self,
-        dest: str,
-        keep_alive: bool,
-    ) -> Call:
-        """Returns GenericCall instance for Subtensor function SubtensorModule.transfer_all.
-
-        Parameters:
-            dest: The destination ss58 address.
-            keep_alive: A boolean to determine if the transfer_all operation should send all of the funds the account
-                has, causing the sender account to be killed (false), or transfer everything except at least the
-                existential deposit, which will guarantee to keep the sender account alive (true).
-
-        Returns:
-            GenericCall instance.
-        """
-        return self.create_composed_call(dest=dest, keep_alive=keep_alive)
-
-    def transfer_allow_death(self, dest: str, value: "Balance") -> Call:
-        """Returns GenericCall instance for Subtensor function SubtensorModule.transfer_allow_death.
-
-        Parameters:
-            dest: The destination ss58 address.
-            value: The amount of tokens to transfer.
-
-        Returns:
-            GenericCall instance.
-        """
-        return self.create_composed_call(dest=dest, value=value)
-
-    def transfer_keep_alive(self, dest: str, value: "Balance") -> Call:
-        """Returns GenericCall instance for Subtensor function SubtensorModule.transfer_keep_alive.
-
-        Parameters:
-            dest: The destination ss58 address.
-            value: The amount of tokens to transfer.
-
-        Returns:
-            GenericCall instance.
-        """
-        return self.create_composed_call(dest=dest, value=value)
-
     def transfer_stake(
         self,
         destination_coldkey_ss58: str,
