@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Optional, Union
 
-from bittensor.core.extrinsics.pallets import Proxy
 from bittensor.core.chain_data.proxy import ProxyType
+from bittensor.core.extrinsics.pallets import Proxy
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.btlogging import logging
 
@@ -271,6 +271,24 @@ def create_pure_proxy_extrinsic(
 
         if response.success:
             logging.debug("[green]Pure proxy created successfully.[/green]")
+
+            # Extract pure proxy address from PureCreated triggered event
+            for event in response.extrinsic_receipt.triggered_events:
+                if event.get("event_id") == "PureCreated":
+                    # Event structure: PureProxyCreated { disambiguation_index, proxy_type, pure, who }
+                    attributes = event.get("attributes", [])
+                    if attributes:
+                        response.data = {
+                            "pure_account": attributes.get("pure"),
+                            "spawner": attributes.get("who"),
+                            "proxy_type": attributes.get("proxy_type"),
+                            "index": attributes.get("disambiguation_index"),
+                            "height": subtensor.substrate.get_block_number(
+                                response.extrinsic_receipt.block_hash
+                            ),
+                            "ext_index": response.extrinsic_receipt.extrinsic_idx,
+                        }
+                    break
         else:
             logging.error(f"[red]{response.message}[/red]")
 
@@ -283,8 +301,9 @@ def create_pure_proxy_extrinsic(
 def kill_pure_proxy_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
-    proxy_ss58: str,
-    proxy_type: Union[str, ProxyType],
+    spawner: str,
+    proxy_type: Union[str, "ProxyType"],
+    index: int,
     height: int,
     ext_index: int,
     period: Optional[int] = None,
@@ -299,8 +318,9 @@ def kill_pure_proxy_extrinsic(
         subtensor: Subtensor instance with the connection to the chain.
         wallet: Bittensor wallet object. The wallet.coldkey.ss58_address must be the spawner of the pure proxy (the
             account that created it via create_pure_proxy_extrinsic).
-        proxy_ss58: The SS58 address of the pure proxy account to kill.
+        spawner: The SS58 address of the pure proxy account to kill.
         proxy_type: The type of proxy permissions. Can be a string or ProxyType enum value.
+        index: The disambiguation index originally passed to `create_pure`.
         height: The block height at which the pure proxy was created.
         ext_index: The extrinsic index at which the pure proxy was created.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
@@ -321,16 +341,10 @@ def kill_pure_proxy_extrinsic(
 
         proxy_type_str = ProxyType.normalize(proxy_type)
 
-        logging.debug(
-            f"Killing pure proxy: spawner=[blue]{wallet.coldkey.ss58_address}[/blue], "
-            f"proxy=[blue]{proxy_ss58}[/blue], type=[blue]{proxy_type_str}[/blue] "
-            f"on [blue]{subtensor.network}[/blue]."
-        )
-
         call = Proxy(subtensor).kill_pure(
-            spawner=wallet.coldkey.ss58_address,
-            proxy=proxy_ss58,
+            spawner=spawner,
             proxy_type=proxy_type_str,
+            index=index,
             height=height,
             ext_index=ext_index,
         )
