@@ -71,6 +71,14 @@ class Proxy(_BasePallet):
             delay=delay,
         )
 
+    def remove_proxies(self) -> Call:
+        """Returns GenericCall instance for Proxy.remove_proxies.
+
+        Returns:
+            GenericCall instance.
+        """
+        return self.create_composed_call()
+
     def create_pure(
         self,
         proxy_type: str,
@@ -226,3 +234,11 @@ class Proxy(_BasePallet):
             real=real,
             call_hash=call_hash,
         )
+
+    def poke_deposit(self) -> Call:
+        """Returns GenericCall instance for Proxy.poke_deposit.
+
+        Returns:
+            GenericCall instance.
+        """
+        return self.create_composed_call()
