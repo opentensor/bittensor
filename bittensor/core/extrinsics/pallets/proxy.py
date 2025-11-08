@@ -104,8 +104,8 @@ class Proxy(_BasePallet):
     def kill_pure(
         self,
         spawner: str,
-        proxy: str,
         proxy_type: str,
+        index: int,
         height: int,
         ext_index: int,
     ) -> Call:
@@ -113,8 +113,8 @@ class Proxy(_BasePallet):
 
         Parameters:
             spawner: The SS58 address of the account that spawned the pure proxy.
-            proxy: The SS58 address of the pure proxy account to kill.
             proxy_type: The type of proxy permissions.
+            index: The disambiguation index originally passed to `create_pure`.
             height: The block height at which the pure proxy was created.
             ext_index: The extrinsic index at which the pure proxy was created.
 
@@ -123,8 +123,8 @@ class Proxy(_BasePallet):
         """
         return self.create_composed_call(
             spawner=spawner,
-            proxy=proxy,
             proxy_type=proxy_type,
+            index=index,
             height=height,
             ext_index=ext_index,
         )
