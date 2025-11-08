@@ -179,7 +179,7 @@ def remove_proxies_extrinsic(
     """
     try:
         if not (
-                unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
         ).success:
             return unlocked
 
@@ -740,7 +740,7 @@ def poke_deposit_extrinsic(
     """
     try:
         if not (
-                unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
         ).success:
             return unlocked
 
