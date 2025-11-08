@@ -235,28 +235,6 @@ class ProxyInfo:
 
 
 @dataclass
-class PureProxyInfo:
-    """
-    Dataclass representing pure proxy information.
-
-    Attributes:
-        spawner: The SS58 address of the account that spawned the pure proxy.
-        proxy: The SS58 address of the pure proxy account.
-        proxy_type: The type of proxy permissions.
-        delay: The number of blocks before the pure proxy can be used.
-        height: The block height at which the pure proxy was created.
-        ext_index: The extrinsic index at which the pure proxy was created.
-    """
-
-    spawner: str
-    proxy: str
-    proxy_type: str
-    delay: int
-    height: int
-    ext_index: int
-
-
-@dataclass
 class ProxyAnnouncementInfo:
     """
     Dataclass representing proxy announcement information.
