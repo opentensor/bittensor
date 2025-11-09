@@ -1,0 +1,223 @@
+name: Subtensor Consistency Tests
+
+concurrency:
+  group: consistency-subtensor-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+    branches:
+      - '**'
+    types: [ opened, synchronize, reopened, ready_for_review ]
+
+  workflow_dispatch:
+    inputs:
+      verbose:
+        description: "Output more information when triggered manually"
+        required: false
+        default: ""
+
+# job to run tests in parallel
+jobs:
+  # Looking for e2e tests
+  find-tests:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.draft == false }}
+    outputs:
+      test-files: ${{ steps.get-tests.outputs.test-files }}
+    steps:
+      - name: Check-out repository under $GITHUB_WORKSPACE
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: false
+          cache-dependency-glob: '**/pyproject.toml'
+          ignore-nothing-to-cache: true
+
+      - name: Cache uv and venv
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/uv
+            .venv
+          key: uv-${{ runner.os }}-py3.10-${{ hashFiles('pyproject.toml') }}
+          restore-keys: uv-${{ runner.os }}-py3.10-
+
+      - name: Install dependencies (faster if cache hit)
+        run: uv sync --extra dev --dev
+
+      - name: Find test files
+        id: get-tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          test_matrix=$(
+            uv run pytest -q --collect-only tests/consistency \
+            | sed -n '/^consistency\//p' \
+            | sed 's|^|tests/|' \
+            | jq -R -s -c '
+                split("\n")
+                | map(select(. != ""))
+                | map({nodeid: ., label: (sub("^tests/consistency/"; ""))})
+              '
+          )
+          echo "Found tests: $test_matrix"
+          echo "test-files=$test_matrix" >> "$GITHUB_OUTPUT"
+
+  # Pull docker image
+  pull-docker-image:
+    runs-on: ubuntu-latest
+    outputs:
+      image-name: ${{ steps.set-image.outputs.image }}
+    steps:
+      - name: Set Docker image tag based on label or branch
+        id: set-image
+        run: |
+          echo "Event: $GITHUB_EVENT_NAME"
+          echo "Branch: $GITHUB_REF_NAME"
+          
+          echo "Reading labels ..."
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            labels=$(jq -r '.pull_request.labels[].name' "$GITHUB_EVENT_PATH")
+          else
+            labels=""
+          fi
+    
+          image=""
+    
+          for label in $labels; do
+            echo "Found label: $label"
+            case "$label" in
+              "subtensor-localnet:main")
+                image="ghcr.io/opentensor/subtensor-localnet:main"
+                break
+                ;;
+              "subtensor-localnet:testnet")
+                image="ghcr.io/opentensor/subtensor-localnet:testnet"
+                break
+                ;;
+              "subtensor-localnet:devnet")
+                image="ghcr.io/opentensor/subtensor-localnet:devnet"
+                break
+                ;;
+            esac
+          done
+    
+          if [[ -z "$image" ]]; then
+            # fallback to default based on branch
+            if [[ "${GITHUB_REF_NAME}" == "master" ]]; then
+              image="ghcr.io/opentensor/subtensor-localnet:main"
+            else
+              image="ghcr.io/opentensor/subtensor-localnet:devnet-ready"
+            fi
+          fi
+    
+          echo "✅ Final selected image: $image"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
+
+      - name: Pull Docker Image
+        run: docker pull ${{ steps.set-image.outputs.image }}
+
+      - name: Save Docker Image to Cache
+        run: docker save -o subtensor-localnet.tar ${{ steps.set-image.outputs.image }}
+
+      - name: Upload Docker Image as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: subtensor-localnet
+          path: subtensor-localnet.tar
+          compression-level: 0
+
+  # Job to run tests in parallel
+  # Since GH Actions matrix has a limit of 256 jobs, we need to split the tests into multiple jobs with different
+  # Python versions. To reduce DRY we use reusable workflow.
+
+  consistency-tests:
+    name: "Consistency test: ${{ matrix.test-file }}"
+    needs:
+      - find-tests
+      - pull-docker-image
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      failed: ${{ steps.test-failed.outputs.failed }}
+
+    strategy:
+      fail-fast: false  # Allow other matrix jobs to run even if this job fails
+      max-parallel: 32  # Set the maximum number of parallel jobs (same as we have cores in ubuntu-latest runner)
+      matrix:
+        os:
+          - ubuntu-latest
+        test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
+    steps:
+      - name: Check-out repository
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Cache uv and venv
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/uv
+            .venv
+          key: uv-${{ runner.os }}-py3.10-${{ hashFiles('pyproject.toml') }}
+          restore-keys: uv-${{ runner.os }}-py3.10-
+
+      - name: install dependencies
+        run: uv sync --extra dev --dev
+
+      - name: Download Cached Docker Image
+        uses: actions/download-artifact@v4
+        with:
+          name: subtensor-localnet
+
+      - name: Load Docker Image
+        run: docker load -i subtensor-localnet.tar
+
+      - name: Run tests with retry
+        id: test-failed
+        env:
+          FAST_BLOCKS: "1"
+          LOCALNET_IMAGE_NAME: ${{ needs.pull-docker-image.outputs.image-name }}
+        run: |
+          set +e
+          for i in 1 2 3; do
+            echo "::group::🔁 Test attempt $i"
+            uv run pytest ${{ matrix.test-file }} -s
+            status=$?
+            if [ $status -eq 0 ]; then
+              echo "✅ Tests passed on attempt $i"
+              echo "::endgroup::"
+              echo "failed=false" >> "$GITHUB_OUTPUT"
+              break
+            else
+              echo "❌ Tests failed on attempt $i"
+              echo "::endgroup::"
+              if [ $i -eq 3 ]; then
+                echo "Tests failed after 3 attempts"
+                echo "failed=true" >> "$GITHUB_OUTPUT"
+                exit 1
+              fi
+              echo "Retrying..."
+              sleep 5
+            fi
+          done
