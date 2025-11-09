@@ -107,6 +107,12 @@ class ProxyType(str, Enum):
     SubnetLeaseBeneficiary = "SubnetLeaseBeneficiary"
     RootClaim = "RootClaim"
 
+    # deprecated proxy types
+    Triumvirate = "Triumvirate"
+    Governance = "Governance"
+    Senate = "Senate"
+    RootWeights = "RootWeights"
+
     @classmethod
     def all_types(cls) -> list[str]:
         """Returns a list of all proxy type values."""
