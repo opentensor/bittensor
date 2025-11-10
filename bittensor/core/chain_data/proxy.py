@@ -184,7 +184,7 @@ class ProxyInfo:
             data: Tuple of chain proxy data.
 
         Returns:
-            Tuple of ProxyInfo objects.
+            List of ProxyInfo objects.
         """
         return [
             cls(
