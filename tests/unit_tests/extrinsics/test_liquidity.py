@@ -1,19 +1,19 @@
 from bittensor.core.extrinsics import liquidity
+from bittensor.utils.balance import Balance
 
 
 def test_add_liquidity_extrinsic(subtensor, fake_wallet, mocker):
     """Test that the add `add_liquidity_extrinsic` executes correct calls."""
     # Preps
     fake_netuid = 1
-    fake_liquidity = mocker.Mock()
-    fake_price_low = mocker.Mock()
-    fake_price_high = mocker.Mock()
+    fake_liquidity = mocker.MagicMock(spec=Balance, rao=1000_000)
+    fake_price_low = mocker.MagicMock(spec=Balance, tao=1.1)
+    fake_price_high = mocker.MagicMock(spec=Balance, tao=1.5)
 
-    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor, "sign_and_send_extrinsic"
     )
-    mocked_params = mocker.patch.object(liquidity.LiquidityParams, "add_liquidity")
+    mocked_pallet_compose_call = mocker.patch.object(liquidity.Swap, "add_liquidity")
 
     # Call
     result = liquidity.add_liquidity_extrinsic(
@@ -26,13 +26,15 @@ def test_add_liquidity_extrinsic(subtensor, fake_wallet, mocker):
     )
 
     # Asserts
-    mocked_compose_call.assert_called_once_with(
-        call_module="Swap",
-        call_function="add_liquidity",
-        call_params=mocked_params.return_value,
+    mocked_pallet_compose_call.assert_called_once_with(
+        netuid=fake_netuid,
+        hotkey=fake_wallet.hotkey.ss58_address,
+        liquidity=1000000,
+        tick_low=953,
+        tick_high=4054,
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
-        call=mocked_compose_call.return_value,
+        call=mocked_pallet_compose_call.return_value,
         wallet=fake_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,

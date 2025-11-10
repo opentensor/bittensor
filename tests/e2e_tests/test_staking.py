@@ -305,10 +305,11 @@ async def test_single_operation_async(async_subtensor, alice_wallet, bob_wallet)
     logging.console.info(f"Alice stake before unstake: {stake}")
 
     # unstale all to check in later
-    success, message = await async_subtensor.staking.unstake_all(
+    success, message = await async_subtensor.staking.unstake(
         wallet=alice_wallet,
         netuid=alice_sn.netuid,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
+        amount=stake,
         period=16,
     )
     assert success is True, message

@@ -249,24 +249,19 @@ class AxonServeCallParams:
             self.certificate,
         )
 
-    def dict(self) -> dict:
-        """
-        Returns a dict representation of this object. If `self.certificate` is `None`,
-        it is not included in this.
-        """
-        d = {
+    def as_dict(self) -> dict:
+        """Returns a dict representation of this object. If `self.certificate` is `None`, it is not included in this."""
+        d: dict = {
             "version": self.version,
             "ip": self.ip,
             "port": self.port,
             "ip_type": self.ip_type,
             "netuid": self.netuid,
-            "hotkey": self.hotkey,
-            "coldkey": self.coldkey,
             "protocol": self.protocol,
             "placeholder1": self.placeholder1,
             "placeholder2": self.placeholder2,
         }
-        if self.certificate is not None:
+        if self.certificate:
             d["certificate"] = self.certificate
         return d
 

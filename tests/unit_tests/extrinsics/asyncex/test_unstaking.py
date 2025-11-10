@@ -24,7 +24,10 @@ async def test_unstake_extrinsic(fake_wallet, mocker):
         }
     )
 
-    mocked_params = mocker.patch.object(unstaking.UnstakingParams, "remove_stake")
+    mocked_return = mocker.AsyncMock()
+    mocked_pallet_compose_call = mocker.patch.object(
+        unstaking.SubtensorModule, "remove_stake", new=mocked_return
+    )
 
     fake_wallet.coldkeypub.ss58_address = "hotkey_owner"
     hotkey_ss58 = "hotkey"
@@ -46,13 +49,11 @@ async def test_unstake_extrinsic(fake_wallet, mocker):
     # Asserts
     assert result.success is True
 
-    fake_subtensor.compose_call.assert_awaited_once_with(
-        call_module="SubtensorModule",
-        call_function="remove_stake",
-        call_params=mocked_params.return_value,
+    mocked_pallet_compose_call.assert_awaited_once_with(
+        netuid=fake_netuid, hotkey=hotkey_ss58, amount_unstaked=amount.rao
     )
     fake_subtensor.sign_and_send_extrinsic.assert_awaited_once_with(
-        call=fake_subtensor.compose_call.return_value,
+        call=mocked_pallet_compose_call.return_value,
         wallet=fake_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,

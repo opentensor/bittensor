@@ -1,6 +1,6 @@
 from typing import Optional, TYPE_CHECKING
 
-from bittensor.core.extrinsics.params import MoveStakeParams
+from bittensor.core.extrinsics.pallets import SubtensorModule
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -109,18 +109,13 @@ def move_stake_extrinsic(
             f"Moving stake from hotkey [blue]{origin_hotkey_ss58}[/blue] to hotkey [blue]{destination_hotkey_ss58}[/blue]\n"
             f"Amount: [green]{amount}[/green] from netuid [yellow]{origin_netuid}[/yellow] to netuid [yellow]{destination_netuid}[/yellow]"
         )
-        call = subtensor.compose_call(
-            call_module="SubtensorModule",
-            call_function="move_stake",
-            call_params=MoveStakeParams.move_stake(
-                origin_netuid=origin_netuid,
-                origin_hotkey_ss58=origin_hotkey_ss58,
-                destination_netuid=destination_netuid,
-                destination_hotkey_ss58=destination_hotkey_ss58,
-                amount=amount,
-            ),
+        call = SubtensorModule(subtensor).move_stake(
+            origin_netuid=origin_netuid,
+            origin_hotkey_ss58=origin_hotkey_ss58,
+            destination_netuid=destination_netuid,
+            destination_hotkey_ss58=destination_hotkey_ss58,
+            alpha_amount=amount.rao,
         )
-
         block_before = subtensor.block
         response = subtensor.sign_and_send_extrinsic(
             call=call,
@@ -244,18 +239,13 @@ def transfer_stake_extrinsic(
             f"Amount: [green]{amount}[/green] from netuid [yellow]{origin_netuid}[/yellow] to netuid "
             f"[yellow]{destination_netuid}[/yellow]"
         )
-        call = subtensor.compose_call(
-            call_module="SubtensorModule",
-            call_function="transfer_stake",
-            call_params=MoveStakeParams.transfer_stake(
-                hotkey_ss58=hotkey_ss58,
-                origin_netuid=origin_netuid,
-                destination_coldkey_ss58=destination_coldkey_ss58,
-                destination_netuid=destination_netuid,
-                amount=amount,
-            ),
+        call = SubtensorModule(subtensor).transfer_stake(
+            destination_coldkey=destination_coldkey_ss58,
+            hotkey=hotkey_ss58,
+            origin_netuid=origin_netuid,
+            destination_netuid=destination_netuid,
+            alpha_amount=amount.rao,
         )
-
         block_before = subtensor.block
         response = subtensor.sign_and_send_extrinsic(
             call=call,
@@ -375,18 +365,6 @@ def swap_stake_extrinsic(
             swap_rate_ratio = origin_pool.price.rao / destination_pool.price.rao
             swap_rate_ratio_with_tolerance = swap_rate_ratio * (1 + rate_tolerance)
 
-            call_function = "swap_stake_limit"
-            call_params = MoveStakeParams.swap_stake_limit(
-                hotkey_ss58=hotkey_ss58,
-                origin_netuid=origin_netuid,
-                destination_netuid=destination_netuid,
-                amount=amount,
-                allow_partial_stake=allow_partial_stake,
-                rate_tolerance=rate_tolerance,
-                origin_pool=origin_pool,
-                destination_pool=destination_pool,
-            )
-
             logging.debug(
                 f"Swapping stake with safety for hotkey [blue]{hotkey_ss58}[/blue]\n"
                 f"Amount: [green]{amount}[/green] from netuid [green]{origin_netuid}[/green] to netuid "
@@ -394,25 +372,29 @@ def swap_stake_extrinsic(
                 f"Current price ratio: [green]{swap_rate_ratio:.4f}[/green], "
                 f"Ratio with tolerance: [green]{swap_rate_ratio_with_tolerance:.4f}[/green]"
             )
-        else:
-            call_function = "swap_stake"
-            call_params = MoveStakeParams.swap_stake(
-                hotkey_ss58=hotkey_ss58,
+
+            call = SubtensorModule(subtensor).swap_stake_limit(
+                hotkey=hotkey_ss58,
                 origin_netuid=origin_netuid,
                 destination_netuid=destination_netuid,
-                amount=amount,
+                alpha_amount=amount.rao,
+                limit_price=swap_rate_ratio_with_tolerance,
+                allow_partial=allow_partial_stake,
             )
+
+        else:
             logging.debug(
                 f"Swapping stake for hotkey [blue]{hotkey_ss58}[/blue]\n"
                 f"Amount: [green]{amount}[/green] from netuid [green]{origin_netuid}[/green] to netuid "
                 f"[green]{destination_netuid}[/green]"
             )
 
-        call = subtensor.compose_call(
-            call_module="SubtensorModule",
-            call_function=call_function,
-            call_params=call_params,
-        )
+            call = SubtensorModule(subtensor).swap_stake(
+                hotkey=hotkey_ss58,
+                origin_netuid=origin_netuid,
+                destination_netuid=destination_netuid,
+                alpha_amount=amount.rao,
+            )
 
         block_before = subtensor.block
         response = subtensor.sign_and_send_extrinsic(

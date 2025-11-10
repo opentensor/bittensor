@@ -67,7 +67,6 @@ from bittensor.core.extrinsics.move_stake import (
     swap_stake_extrinsic,
     move_stake_extrinsic,
 )
-from bittensor.core.extrinsics.params.transfer import get_transfer_fn_params
 from bittensor.core.extrinsics.registration import (
     burned_register_extrinsic,
     register_extrinsic,
@@ -96,6 +95,7 @@ from bittensor.core.extrinsics.unstaking import (
     unstake_extrinsic,
     unstake_multiple_extrinsic,
 )
+from bittensor.core.extrinsics.utils import get_transfer_fn_params
 from bittensor.core.extrinsics.weights import (
     commit_timelocked_weights_extrinsic,
     commit_weights_extrinsic,

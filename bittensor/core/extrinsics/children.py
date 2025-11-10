@@ -1,8 +1,8 @@
 from typing import TYPE_CHECKING, Optional
 
-from bittensor.core.extrinsics.params import ChildrenParams
-from bittensor.core.extrinsics.utils import sudo_call_extrinsic
+from bittensor.core.extrinsics.pallets import SubtensorModule, Sudo
 from bittensor.core.types import ExtrinsicResponse
+from bittensor.utils import float_to_u64
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -58,10 +58,13 @@ def set_children_extrinsic(
         ).success:
             return unlocked
 
-        call = subtensor.compose_call(
-            call_module="SubtensorModule",
-            call_function="set_children",
-            call_params=ChildrenParams.set_children(hotkey_ss58, netuid, children),
+        call = SubtensorModule(subtensor).set_children(
+            netuid=netuid,
+            hotkey=hotkey_ss58,
+            children=[
+                (float_to_u64(proportion), child_hotkey)
+                for proportion, child_hotkey in children
+            ],
         )
 
         response = subtensor.sign_and_send_extrinsic(
@@ -104,14 +107,27 @@ def root_set_pending_childkey_cooldown_extrinsic(
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
     """
-    return sudo_call_extrinsic(
-        subtensor=subtensor,
-        wallet=wallet,
-        call_module="SubtensorModule",
-        call_function="set_pending_childkey_cooldown",
-        call_params=ChildrenParams.set_pending_childkey_cooldown(cooldown),
-        period=period,
-        raise_error=raise_error,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
+    try:
+        if not (
+            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+        ).success:
+            return unlocked
+
+        call = SubtensorModule(subtensor).set_pending_childkey_cooldown(
+            cooldown=cooldown
+        )
+
+        sudo_call = Sudo(subtensor).sudo(call=call)
+
+        response = subtensor.sign_and_send_extrinsic(
+            call=sudo_call,
+            wallet=wallet,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+        return response
+
+    except Exception as error:
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
