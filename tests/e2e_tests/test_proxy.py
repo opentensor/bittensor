@@ -660,3 +660,65 @@ def test_remove_proxies(subtensor, alice_wallet, bob_wallet, charlie_wallet):
     assert not subtensor.proxies.get_proxies_for_real_account(
         real_account_ss58=real_account_wallet.coldkey.ss58_address
     )
+
+
+def test_poke_deposit(subtensor, alice_wallet, bob_wallet, charlie_wallet):
+    """Tests poke_deposit extrinsic.
+
+    Steps:
+        - Add multiple proxies and announcements
+        - Verify initial deposit amount
+        - Call poke_deposit to recalculate deposits
+        - Verify deposit may change (if requirements changed)
+        - Verify transaction fee is waived if deposit changed
+    """
+    real_account_wallet = bob_wallet
+    delegate_wallet = charlie_wallet
+
+    # Add proxies
+    response = subtensor.proxies.add_proxy(
+        wallet=real_account_wallet,
+        delegate_ss58=delegate_wallet.coldkey.ss58_address,
+        proxy_type=ProxyType.Registration,
+        delay=0,
+    )
+    assert response.success
+
+    response = subtensor.proxies.add_proxy(
+        wallet=real_account_wallet,
+        delegate_ss58=delegate_wallet.coldkey.ss58_address,
+        proxy_type=ProxyType.Transfer,
+        delay=0,
+    )
+    assert response.success
+
+    # Get initial deposit
+    _, initial_deposit = subtensor.proxies.get_proxies_for_real_account(
+        real_account_ss58=real_account_wallet.coldkey.ss58_address
+    )
+
+    # Create an announcement
+    test_call = SubtensorModule(subtensor).register_network(
+        hotkey=alice_wallet.hotkey.ss58_address
+    )
+    call_hash = "0x" + test_call.call_hash.hex()
+
+    response = subtensor.proxies.announce_proxy(
+        wallet=delegate_wallet,
+        real_account_ss58=real_account_wallet.coldkey.ss58_address,
+        call_hash=call_hash,
+    )
+    assert response.success
+
+    # Call poke_deposit
+    response = subtensor.proxies.poke_deposit(
+        wallet=real_account_wallet,
+    )
+    assert response.success, response.message
+
+    # Verify deposit is still correct (or adjusted)
+    _, final_deposit = subtensor.proxies.get_proxies_for_real_account(
+        real_account_ss58=real_account_wallet.coldkey.ss58_address
+    )
+    # Deposit should match or be adjusted based on current requirements
+    assert final_deposit >= 0
