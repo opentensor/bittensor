@@ -65,7 +65,6 @@ jobs:
             | jq -R -s -c '
                 split("\n")
                 | map(select(. != ""))
-                | map({nodeid: ., label: (sub("^tests/consistency/"; ""))})
               '
           )
           echo "Found tests: $test_matrix"
@@ -82,16 +81,16 @@ jobs:
         run: |
           echo "Event: $GITHUB_EVENT_NAME"
           echo "Branch: $GITHUB_REF_NAME"
-          
+
           echo "Reading labels ..."
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
             labels=$(jq -r '.pull_request.labels[].name' "$GITHUB_EVENT_PATH")
           else
             labels=""
           fi
-    
+
           image=""
-    
+
           for label in $labels; do
             echo "Found label: $label"
             case "$label" in
@@ -109,7 +108,7 @@ jobs:
                 ;;
             esac
           done
-    
+
           if [[ -z "$image" ]]; then
             # fallback to default based on branch
             if [[ "${GITHUB_REF_NAME}" == "master" ]]; then
@@ -118,7 +117,7 @@ jobs:
               image="ghcr.io/opentensor/subtensor-localnet:devnet-ready"
             fi
           fi
-    
+
           echo "✅ Final selected image: $image"
           echo "image=$image" >> "$GITHUB_OUTPUT"
 
@@ -202,7 +201,7 @@ jobs:
           set +e
           for i in 1 2 3; do
             echo "::group::🔁 Test attempt $i"
-            uv run pytest ${{ matrix.test-file }} -s
+            uv run pytest ${{ matrix.test-file.nodeid }} -s
             status=$?
             if [ $status -eq 0 ]; then
               echo "✅ Tests passed on attempt $i"
