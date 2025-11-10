@@ -12,7 +12,6 @@ from async_substrate_interface.utils.storage import StorageKey
 from bittensor_drand import get_encrypted_commitment
 from bittensor_wallet.utils import SS58_FORMAT
 
-from bittensor.core.async_subtensor import ProposalVoteData
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import (
     CrowdloanInfo,
@@ -23,6 +22,7 @@ from bittensor.core.chain_data import (
     MetagraphInfo,
     NeuronInfo,
     NeuronInfoLite,
+    ProposalVoteData,
     ProxyAnnouncementInfo,
     ProxyInfo,
     ProxyConstants,
@@ -2251,8 +2251,8 @@ class Subtensor(SubtensorMixin):
             block: The blockchain block number for the query. If None, queries the latest block.
 
         Returns:
-            Dictionary mapping real account SS58 addresses to lists of ProxyInfo objects. Each ProxyInfo
-            contains the delegate address, proxy type, and delay for that proxy relationship.
+            Dictionary mapping real account SS58 addresses to lists of ProxyInfo objects. Each ProxyInfo contains the
+                delegate address, proxy type, and delay for that proxy relationship.
 
         Note:
             This method queries all proxy relationships on the chain, which may be resource-intensive for large
