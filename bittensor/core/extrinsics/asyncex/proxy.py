@@ -624,6 +624,9 @@ async def announce_extrinsic(
         ).success:
             return unlocked
 
+        # make sure the call hash starts with 0x
+        call_hash = "0x" + call_hash.lstrip("0x")
+
         logging.debug(
             f"Announcing proxy call: real=[blue]{real_account_ss58}[/blue], "
             f"call_hash=[blue]{call_hash}[/blue] "
@@ -692,6 +695,9 @@ async def reject_announcement_extrinsic(
         ).success:
             return unlocked
 
+        # make sure the call hash starts with 0x
+        call_hash = "0x" + call_hash.lstrip("0x")
+
         logging.debug(
             f"Rejecting announcement: delegate=[blue]{delegate_ss58}[/blue], "
             f"call_hash=[blue]{call_hash}[/blue] "
@@ -759,6 +765,9 @@ async def remove_announcement_extrinsic(
             unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
         ).success:
             return unlocked
+
+        # make sure the call hash starts with 0x
+        call_hash = "0x" + call_hash.lstrip("0x")
 
         logging.debug(
             f"Removing announcement: real=[blue]{real_account_ss58}[/blue], "
