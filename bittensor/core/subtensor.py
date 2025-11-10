@@ -2069,7 +2069,9 @@ class Subtensor(SubtensorMixin):
             # Fall back to old metagraph
             return "get_metagraph", [netuid]
 
-        block_hash = self.determine_block_hash(block=block)
+        block_hash: str = (
+            self.determine_block_hash(block=block) or self.substrate.get_chain_head()
+        )
 
         # Normalize selected_indices to a list of integers
         if selected_indices is not None:

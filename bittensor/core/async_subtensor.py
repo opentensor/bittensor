@@ -2673,11 +2673,12 @@ class AsyncSubtensor(SubtensorMixin):
             whole numbers). Returns None if emission is evenly split or if the data is unavailable.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        runtime = await self.substrate.init_runtime(block_hash=block_hash)
         module = "SubtensorModule"
         storage_function = "MechanismEmissionSplit"
         if not await self.substrate.get_metadata_storage_function(
-            module, storage_function, block_hash=block_hash, runtime=runtime
+            module,
+            storage_function,
+            block_hash=block_hash,
         ):
             return None
         result = await self.substrate.query(
@@ -2685,7 +2686,6 @@ class AsyncSubtensor(SubtensorMixin):
             storage_function=storage_function,
             params=[netuid],
             block_hash=block_hash,
-            runtime=runtime,
         )
         if result is None or not hasattr(result, "value"):
             return None
@@ -2711,11 +2711,12 @@ class AsyncSubtensor(SubtensorMixin):
             The number of mechanisms for the given subnet.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        runtime = await self.substrate.init_runtime(block_hash=block_hash)
         module = "SubtensorModule"
         storage_function = "MechanismCountCurrent"
         if not await self.substrate.get_metadata_storage_function(
-            module, storage_function, block_hash=block_hash, runtime=runtime
+            module,
+            storage_function,
+            block_hash=block_hash,
         ):
             return 1
         query = await self.substrate.query(
@@ -2723,7 +2724,6 @@ class AsyncSubtensor(SubtensorMixin):
             storage_function=storage_function,
             params=[netuid],
             block_hash=block_hash,
-            runtime=runtime,
         )
         return getattr(query, "value", 1)
 
@@ -2799,6 +2799,8 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not block_hash and reuse_block:
             block_hash = self.substrate.last_block_hash
+        if not block_hash:
+            block_hash = await self.substrate.get_chain_head()
 
         async def _determine_fetch_method(block_hash_: str) -> tuple[str, list]:
             """Determine the best available runtime call method and its parameters for the given block/params"""
