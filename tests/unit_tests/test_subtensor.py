@@ -3161,6 +3161,11 @@ def test_get_metagraph_info_all_fields(subtensor, mocker):
         "runtime_call",
         return_value=mocker.Mock(value=mock_value),
     )
+    mock_chain_head = mocker.patch.object(
+        subtensor.substrate,
+        "get_chain_head",
+        return_value="0xfakechainhead",
+    )
     mock_from_dict = mocker.patch.object(
         subtensor_module.MetagraphInfo, "from_dict", return_value="parsed_metagraph"
     )
@@ -3176,7 +3181,7 @@ def test_get_metagraph_info_all_fields(subtensor, mocker):
         api="SubnetInfoRuntimeApi",
         method="get_selective_mechagraph",
         params=[netuid, default_mechid, SelectiveMetagraphIndex.all_indices()],
-        block_hash=subtensor.determine_block_hash(None),
+        block_hash=mock_chain_head.return_value,
     )
     mock_from_dict.assert_called_once_with(mock_value)
 
@@ -3193,6 +3198,11 @@ def test_get_metagraph_info_specific_fields(subtensor, mocker):
         subtensor.substrate,
         "runtime_call",
         return_value=mocker.Mock(value=mock_value),
+    )
+    mock_chain_head = mocker.patch.object(
+        subtensor.substrate,
+        "get_chain_head",
+        return_value="0xfakechainhead",
     )
     mock_from_dict = mocker.patch.object(
         subtensor_module.MetagraphInfo, "from_dict", return_value="parsed_metagraph"
@@ -3214,7 +3224,7 @@ def test_get_metagraph_info_specific_fields(subtensor, mocker):
                 f.value if isinstance(f, SelectiveMetagraphIndex) else f for f in fields
             ],
         ],
-        block_hash=subtensor.determine_block_hash(None),
+        block_hash=mock_chain_head.return_value,
     )
     mock_from_dict.assert_called_once_with(mock_value)
 
