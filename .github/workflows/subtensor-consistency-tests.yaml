@@ -65,6 +65,7 @@ jobs:
             | jq -R -s -c '
                 split("\n")
                 | map(select(. != ""))
+                | map({nodeid: ., label: (sub("^tests/consistency/"; ""))})
               '
           )
           echo "Found tests: $test_matrix"
@@ -142,7 +143,7 @@ jobs:
   # Python versions. To reduce DRY we use reusable workflow.
 
   consistency-tests:
-    name: "Consistency test: ${{ matrix.test-file }}"
+    name: "Consistency test: ${{ matrix.test-file.label }}"
     needs:
       - find-tests
       - pull-docker-image
