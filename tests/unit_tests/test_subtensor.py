@@ -5032,3 +5032,584 @@ def test_get_ema_tao_inflow(subtensor, mocker):
     )
     mocked_fixed_to_float.assert_called_once_with(fake_tao_bits)
     assert result == (fake_block_updated, Balance.from_rao(1000000))
+
+
+def test_get_proxies_success(subtensor, mocker):
+    """Test get_proxies returns correct data when proxy information is found."""
+    # Prep
+    block = 123
+    fake_real_account1 = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
+    fake_real_account2 = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+    fake_proxy_data1 = [
+        {
+            "delegate": {"Id": b"\x00" * 32},
+            "proxy_type": {"Any": None},
+            "delay": 0,
+        }
+    ]
+    fake_proxy_data2 = [
+        {
+            "delegate": {"Id": b"\x01" * 32},
+            "proxy_type": {"Transfer": None},
+            "delay": 100,
+        }
+    ]
+    fake_query_map_records = [
+        (fake_real_account1.encode(), mocker.Mock(value=([fake_proxy_data1], 1000000))),
+        (fake_real_account2.encode(), mocker.Mock(value=([fake_proxy_data2], 2000000))),
+    ]
+
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value="mock_block_hash"
+    )
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate,
+        "query_map",
+        return_value=fake_query_map_records,
+    )
+    mocked_from_query_map_record = mocker.patch.object(
+        subtensor_module.ProxyInfo,
+        "from_query_map_record",
+        side_effect=[
+            (fake_real_account1, [mocker.Mock()]),
+            (fake_real_account2, [mocker.Mock()]),
+        ],
+    )
+
+    # Call
+    result = subtensor.get_proxies(block=block)
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(block)
+    mocked_query_map.assert_called_once_with(
+        module="Proxy",
+        storage_function="Proxies",
+        block_hash="mock_block_hash",
+    )
+    assert mocked_from_query_map_record.call_count == 2
+    assert isinstance(result, dict)
+    assert fake_real_account1 in result
+    assert fake_real_account2 in result
+
+
+def test_get_proxies_no_data(subtensor, mocker):
+    """Test get_proxies returns empty dict when no proxy information is found."""
+    # Prep
+    block = 123
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value="mock_block_hash"
+    )
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate,
+        "query_map",
+        return_value=[],
+    )
+
+    # Call
+    result = subtensor.get_proxies(block=block)
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(block)
+    mocked_query_map.assert_called_once_with(
+        module="Proxy",
+        storage_function="Proxies",
+        block_hash="mock_block_hash",
+    )
+    assert result == {}
+
+
+def test_get_proxies_no_block(subtensor, mocker):
+    """Test get_proxies with no block specified."""
+    # Prep
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value="mock_block_hash"
+    )
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate,
+        "query_map",
+        return_value=[],
+    )
+
+    # Call
+    result = subtensor.get_proxies()
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(None)
+    mocked_query_map.assert_called_once_with(
+        module="Proxy",
+        storage_function="Proxies",
+        block_hash="mock_block_hash",
+    )
+    assert result == {}
+
+
+def test_get_proxies_for_real_account_success(subtensor, mocker):
+    """Test get_proxies_for_real_account returns correct data when proxy information is found."""
+    # Prep
+    fake_real_account_ss58 = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
+    block = 123
+    fake_proxy_data = [
+        {
+            "delegate": {"Id": b"\x00" * 32},
+            "proxy_type": {"Any": None},
+            "delay": 0,
+        }
+    ]
+    fake_balance = 1000000
+    fake_query_result = mocker.Mock(value=([fake_proxy_data], fake_balance))
+
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value="mock_block_hash"
+    )
+    mocked_query = mocker.patch.object(
+        subtensor.substrate,
+        "query",
+        return_value=fake_query_result,
+    )
+    mocked_from_query = mocker.patch.object(
+        subtensor_module.ProxyInfo,
+        "from_query",
+        return_value=([mocker.Mock()], Balance.from_rao(fake_balance)),
+    )
+
+    # Call
+    result = subtensor.get_proxies_for_real_account(
+        real_account_ss58=fake_real_account_ss58, block=block
+    )
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(block)
+    mocked_query.assert_called_once_with(
+        module="Proxy",
+        storage_function="Proxies",
+        params=[fake_real_account_ss58],
+        block_hash="mock_block_hash",
+    )
+    mocked_from_query.assert_called_once_with(fake_query_result)
+    assert isinstance(result, tuple)
+    assert len(result) == 2
+    assert isinstance(result[0], list)
+    assert isinstance(result[1], Balance)
+
+
+def test_get_proxies_for_real_account_no_data(subtensor, mocker):
+    """Test get_proxies_for_real_account returns empty list and zero balance when no proxy information is found."""
+    # Prep
+    fake_real_account_ss58 = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
+    block = 123
+    fake_query_result = mocker.Mock(value=([], 0))
+
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value="mock_block_hash"
+    )
+    mocked_query = mocker.patch.object(
+        subtensor.substrate,
+        "query",
+        return_value=fake_query_result,
+    )
+    mocked_from_query = mocker.patch.object(
+        subtensor_module.ProxyInfo,
+        "from_query",
+        return_value=([], Balance.from_rao(0)),
+    )
+
+    # Call
+    result = subtensor.get_proxies_for_real_account(
+        real_account_ss58=fake_real_account_ss58, block=block
+    )
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(block)
+    mocked_query.assert_called_once_with(
+        module="Proxy",
+        storage_function="Proxies",
+        params=[fake_real_account_ss58],
+        block_hash="mock_block_hash",
+    )
+    mocked_from_query.assert_called_once_with(fake_query_result)
+    assert result == ([], Balance.from_rao(0))
+
+
+def test_get_proxies_for_real_account_no_block(subtensor, mocker):
+    """Test get_proxies_for_real_account with no block specified."""
+    # Prep
+    fake_real_account_ss58 = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
+    fake_query_result = mocker.Mock(value=([], 0))
+
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value="mock_block_hash"
+    )
+    mocked_query = mocker.patch.object(
+        subtensor.substrate,
+        "query",
+        return_value=fake_query_result,
+    )
+    mocked_from_query = mocker.patch.object(
+        subtensor_module.ProxyInfo,
+        "from_query",
+        return_value=([], Balance.from_rao(0)),
+    )
+
+    # Call
+    result = subtensor.get_proxies_for_real_account(
+        real_account_ss58=fake_real_account_ss58
+    )
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(None)
+    mocked_query.assert_called_once_with(
+        module="Proxy",
+        storage_function="Proxies",
+        params=[fake_real_account_ss58],
+        block_hash="mock_block_hash",
+    )
+    mocked_from_query.assert_called_once_with(fake_query_result)
+    assert result == ([], Balance.from_rao(0))
+
+
+def test_get_proxy_announcement_success(subtensor, mocker):
+    """Test get_proxy_announcement returns correct data when announcement information is found."""
+    # Prep
+    fake_delegate_account_ss58 = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
+    block = 123
+    fake_announcement_data = [
+        {
+            "real": {"Id": b"\x00" * 32},
+            "call_hash": {"H256": b"\x01" * 32},
+            "height": 100,
+        }
+    ]
+    fake_query_result = mocker.Mock(value=[fake_announcement_data])
+
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value="mock_block_hash"
+    )
+    mocked_query = mocker.patch.object(
+        subtensor.substrate,
+        "query",
+        return_value=fake_query_result,
+    )
+    mocked_from_dict = mocker.patch.object(
+        subtensor_module.ProxyAnnouncementInfo,
+        "from_dict",
+        return_value=[mocker.Mock()],
+    )
+
+    # Call
+    result = subtensor.get_proxy_announcement(
+        delegate_account_ss58=fake_delegate_account_ss58, block=block
+    )
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(block)
+    mocked_query.assert_called_once_with(
+        module="Proxy",
+        storage_function="Announcements",
+        params=[fake_delegate_account_ss58],
+        block_hash="mock_block_hash",
+    )
+    mocked_from_dict.assert_called_once_with(fake_query_result.value[0])
+    assert isinstance(result, list)
+
+
+def test_get_proxy_announcement_no_data(subtensor, mocker):
+    """Test get_proxy_announcement returns empty list when no announcement information is found."""
+    # Prep
+    fake_delegate_account_ss58 = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
+    block = 123
+    fake_query_result = mocker.Mock(value=[[]])
+
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value="mock_block_hash"
+    )
+    mocked_query = mocker.patch.object(
+        subtensor.substrate,
+        "query",
+        return_value=fake_query_result,
+    )
+    mocked_from_dict = mocker.patch.object(
+        subtensor_module.ProxyAnnouncementInfo,
+        "from_dict",
+        return_value=[],
+    )
+
+    # Call
+    result = subtensor.get_proxy_announcement(
+        delegate_account_ss58=fake_delegate_account_ss58, block=block
+    )
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(block)
+    mocked_query.assert_called_once_with(
+        module="Proxy",
+        storage_function="Announcements",
+        params=[fake_delegate_account_ss58],
+        block_hash="mock_block_hash",
+    )
+    mocked_from_dict.assert_called_once_with(fake_query_result.value[0])
+    assert result == []
+
+
+def test_get_proxy_announcement_no_block(subtensor, mocker):
+    """Test get_proxy_announcement with no block specified."""
+    # Prep
+    fake_delegate_account_ss58 = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
+    fake_query_result = mocker.Mock(value=[[]])
+
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value="mock_block_hash"
+    )
+    mocked_query = mocker.patch.object(
+        subtensor.substrate,
+        "query",
+        return_value=fake_query_result,
+    )
+    mocked_from_dict = mocker.patch.object(
+        subtensor_module.ProxyAnnouncementInfo,
+        "from_dict",
+        return_value=[],
+    )
+
+    # Call
+    result = subtensor.get_proxy_announcement(
+        delegate_account_ss58=fake_delegate_account_ss58
+    )
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(None)
+    mocked_query.assert_called_once_with(
+        module="Proxy",
+        storage_function="Announcements",
+        params=[fake_delegate_account_ss58],
+        block_hash="mock_block_hash",
+    )
+    mocked_from_dict.assert_called_once_with(fake_query_result.value[0])
+    assert result == []
+
+
+def test_get_proxy_announcements_success(subtensor, mocker):
+    """Test get_proxy_announcements returns correct data when announcement information is found."""
+    # Prep
+    block = 123
+    fake_delegate1 = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
+    fake_delegate2 = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+    fake_announcement_data1 = [
+        {
+            "real": {"Id": b"\x00" * 32},
+            "call_hash": {"H256": b"\x01" * 32},
+            "height": 100,
+        }
+    ]
+    fake_announcement_data2 = [
+        {
+            "real": {"Id": b"\x02" * 32},
+            "call_hash": {"H256": b"\x03" * 32},
+            "height": 200,
+        }
+    ]
+    fake_query_map_records = [
+        (fake_delegate1.encode(), mocker.Mock(value=[fake_announcement_data1])),
+        (fake_delegate2.encode(), mocker.Mock(value=[fake_announcement_data2])),
+    ]
+
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value="mock_block_hash"
+    )
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate,
+        "query_map",
+        return_value=fake_query_map_records,
+    )
+    mocked_from_query_map_record = mocker.patch.object(
+        subtensor_module.ProxyAnnouncementInfo,
+        "from_query_map_record",
+        side_effect=[
+            (fake_delegate1, [mocker.Mock()]),
+            (fake_delegate2, [mocker.Mock()]),
+        ],
+    )
+
+    # Call
+    result = subtensor.get_proxy_announcements(block=block)
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(block)
+    mocked_query_map.assert_called_once_with(
+        module="Proxy",
+        storage_function="Announcements",
+        block_hash="mock_block_hash",
+    )
+    assert mocked_from_query_map_record.call_count == 2
+    assert isinstance(result, dict)
+    assert fake_delegate1 in result
+    assert fake_delegate2 in result
+
+
+def test_get_proxy_announcements_no_data(subtensor, mocker):
+    """Test get_proxy_announcements returns empty dict when no announcement information is found."""
+    # Prep
+    block = 123
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value="mock_block_hash"
+    )
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate,
+        "query_map",
+        return_value=[],
+    )
+
+    # Call
+    result = subtensor.get_proxy_announcements(block=block)
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(block)
+    mocked_query_map.assert_called_once_with(
+        module="Proxy",
+        storage_function="Announcements",
+        block_hash="mock_block_hash",
+    )
+    assert result == {}
+
+
+def test_get_proxy_announcements_no_block(subtensor, mocker):
+    """Test get_proxy_announcements with no block specified."""
+    # Prep
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value="mock_block_hash"
+    )
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate,
+        "query_map",
+        return_value=[],
+    )
+
+    # Call
+    result = subtensor.get_proxy_announcements()
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(None)
+    mocked_query_map.assert_called_once_with(
+        module="Proxy",
+        storage_function="Announcements",
+        block_hash="mock_block_hash",
+    )
+    assert result == {}
+
+
+def test_get_proxy_constants_success(subtensor, mocker):
+    """Test get_proxy_constants returns correct data when constants are found."""
+    # Prep
+    block = 123
+    fake_constants = {
+        "AnnouncementDepositBase": 1000000,
+        "AnnouncementDepositFactor": 500000,
+        "MaxProxies": 32,
+        "MaxPending": 32,
+        "ProxyDepositBase": 2000000,
+        "ProxyDepositFactor": 1000000,
+    }
+
+    mocked_query_constant = mocker.patch.object(
+        subtensor,
+        "query_constant",
+        side_effect=[
+            mocker.Mock(value=value) for value in fake_constants.values()
+        ],
+    )
+    mocked_from_dict = mocker.patch.object(
+        subtensor_module.ProxyConstants,
+        "from_dict",
+        return_value=mocker.Mock(),
+    )
+    mocked_to_dict = mocker.patch.object(
+        mocked_from_dict.return_value,
+        "to_dict",
+        return_value=fake_constants,
+    )
+
+    # Call
+    result = subtensor.get_proxy_constants(block=block)
+
+    # Asserts
+    assert mocked_query_constant.call_count == len(fake_constants)
+    mocked_from_dict.assert_called_once_with(fake_constants)
+    assert result == mocked_from_dict.return_value
+
+
+def test_get_proxy_constants_as_dict(subtensor, mocker):
+    """Test get_proxy_constants returns dict when as_dict=True."""
+    # Prep
+    block = 123
+    fake_constants = {
+        "AnnouncementDepositBase": 1000000,
+        "AnnouncementDepositFactor": 500000,
+        "MaxProxies": 32,
+        "MaxPending": 32,
+        "ProxyDepositBase": 2000000,
+        "ProxyDepositFactor": 1000000,
+    }
+
+    mocked_query_constant = mocker.patch.object(
+        subtensor,
+        "query_constant",
+        side_effect=[
+            mocker.Mock(value=value) for value in fake_constants.values()
+        ],
+    )
+    mocked_proxy_constants = mocker.Mock()
+    mocked_from_dict = mocker.patch.object(
+        subtensor_module.ProxyConstants,
+        "from_dict",
+        return_value=mocked_proxy_constants,
+    )
+    mocked_to_dict = mocker.patch.object(
+        mocked_proxy_constants,
+        "to_dict",
+        return_value=fake_constants,
+    )
+
+    # Call
+    result = subtensor.get_proxy_constants(block=block, as_dict=True)
+
+    # Asserts
+    assert mocked_query_constant.call_count == len(fake_constants)
+    mocked_from_dict.assert_called_once_with(fake_constants)
+    mocked_to_dict.assert_called_once()
+    assert result == fake_constants
+
+
+def test_get_proxy_constants_specific_constants(subtensor, mocker):
+    """Test get_proxy_constants with specific constants list."""
+    # Prep
+    block = 123
+    requested_constants = ["MaxProxies", "MaxPending"]
+    fake_constants = {
+        "MaxProxies": 32,
+        "MaxPending": 32,
+    }
+
+    mocked_query_constant = mocker.patch.object(
+        subtensor,
+        "query_constant",
+        side_effect=[
+            mocker.Mock(value=value) for value in fake_constants.values()
+        ],
+    )
+    mocked_from_dict = mocker.patch.object(
+        subtensor_module.ProxyConstants,
+        "from_dict",
+        return_value=mocker.Mock(),
+    )
+
+    # Call
+    result = subtensor.get_proxy_constants(constants=requested_constants, block=block)
+
+    # Asserts
+    assert mocked_query_constant.call_count == len(requested_constants)
+    for const_name in requested_constants:
+        mocked_query_constant.assert_any_call(
+            module_name="Proxy",
+            constant_name=const_name,
+            block=block,
+        )
+    mocked_from_dict.assert_called_once_with(fake_constants)
