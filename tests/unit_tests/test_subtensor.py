@@ -5613,3 +5613,358 @@ def test_get_proxy_constants_specific_constants(subtensor, mocker):
             block=block,
         )
     mocked_from_dict.assert_called_once_with(fake_constants)
+
+
+def test_add_proxy(mocker, subtensor):
+    """Tests `add_proxy` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    delegate_ss58 = mocker.Mock(spec=str)
+    proxy_type = mocker.Mock(spec=str)
+    delay = mocker.Mock(spec=int)
+    mocked_add_proxy_extrinsic = mocker.patch.object(
+        subtensor_module, "add_proxy_extrinsic"
+    )
+
+    # call
+    response = subtensor.add_proxy(
+        wallet=wallet,
+        delegate_ss58=delegate_ss58,
+        proxy_type=proxy_type,
+        delay=delay,
+    )
+
+    # asserts
+    mocked_add_proxy_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        delegate_ss58=delegate_ss58,
+        proxy_type=proxy_type,
+        delay=delay,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_add_proxy_extrinsic.return_value
+
+
+def test_announce_proxy(mocker, subtensor):
+    """Tests `announce_proxy` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    real_account_ss58 = mocker.Mock(spec=str)
+    call_hash = mocker.Mock(spec=str)
+    mocked_announce_extrinsic = mocker.patch.object(
+        subtensor_module, "announce_extrinsic"
+    )
+
+    # call
+    response = subtensor.announce_proxy(
+        wallet=wallet,
+        real_account_ss58=real_account_ss58,
+        call_hash=call_hash,
+    )
+
+    # asserts
+    mocked_announce_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        real_account_ss58=real_account_ss58,
+        call_hash=call_hash,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_announce_extrinsic.return_value
+
+
+def test_create_pure_proxy(mocker, subtensor):
+    """Tests `create_pure_proxy` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    proxy_type = mocker.Mock(spec=str)
+    delay = mocker.Mock(spec=int)
+    index = mocker.Mock(spec=int)
+    mocked_create_pure_proxy_extrinsic = mocker.patch.object(
+        subtensor_module, "create_pure_proxy_extrinsic"
+    )
+
+    # call
+    response = subtensor.create_pure_proxy(
+        wallet=wallet,
+        proxy_type=proxy_type,
+        delay=delay,
+        index=index,
+    )
+
+    # asserts
+    mocked_create_pure_proxy_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        proxy_type=proxy_type,
+        delay=delay,
+        index=index,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_create_pure_proxy_extrinsic.return_value
+
+
+def test_kill_pure_proxy(mocker, subtensor):
+    """Tests `kill_pure_proxy` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    pure_proxy_ss58 = mocker.Mock(spec=str)
+    spawner = mocker.Mock(spec=str)
+    proxy_type = mocker.Mock(spec=str)
+    index = mocker.Mock(spec=int)
+    height = mocker.Mock(spec=int)
+    ext_index = mocker.Mock(spec=int)
+    mocked_kill_pure_proxy_extrinsic = mocker.patch.object(
+        subtensor_module, "kill_pure_proxy_extrinsic"
+    )
+
+    # call
+    response = subtensor.kill_pure_proxy(
+        wallet=wallet,
+        pure_proxy_ss58=pure_proxy_ss58,
+        spawner=spawner,
+        proxy_type=proxy_type,
+        index=index,
+        height=height,
+        ext_index=ext_index,
+    )
+
+    # asserts
+    mocked_kill_pure_proxy_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        pure_proxy_ss58=pure_proxy_ss58,
+        spawner=spawner,
+        proxy_type=proxy_type,
+        index=index,
+        height=height,
+        ext_index=ext_index,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_kill_pure_proxy_extrinsic.return_value
+
+
+def test_poke_deposit(mocker, subtensor):
+    """Tests `poke_deposit` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    mocked_poke_deposit_extrinsic = mocker.patch.object(
+        subtensor_module, "poke_deposit_extrinsic"
+    )
+
+    # call
+    response = subtensor.poke_deposit(wallet=wallet)
+
+    # asserts
+    mocked_poke_deposit_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_poke_deposit_extrinsic.return_value
+
+
+def test_proxy(mocker, subtensor):
+    """Tests `proxy` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    real_account_ss58 = mocker.Mock(spec=str)
+    force_proxy_type = mocker.Mock(spec=str)
+    call = mocker.Mock(spec=GenericCall)
+    mocked_proxy_extrinsic = mocker.patch.object(
+        subtensor_module, "proxy_extrinsic"
+    )
+
+    # call
+    response = subtensor.proxy(
+        wallet=wallet,
+        real_account_ss58=real_account_ss58,
+        force_proxy_type=force_proxy_type,
+        call=call,
+    )
+
+    # asserts
+    mocked_proxy_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        real_account_ss58=real_account_ss58,
+        force_proxy_type=force_proxy_type,
+        call=call,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_proxy_extrinsic.return_value
+
+
+def test_proxy_announced(mocker, subtensor):
+    """Tests `proxy_announced` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    delegate_ss58 = mocker.Mock(spec=str)
+    real_account_ss58 = mocker.Mock(spec=str)
+    force_proxy_type = mocker.Mock(spec=str)
+    call = mocker.Mock(spec=GenericCall)
+    mocked_proxy_announced_extrinsic = mocker.patch.object(
+        subtensor_module, "proxy_announced_extrinsic"
+    )
+
+    # call
+    response = subtensor.proxy_announced(
+        wallet=wallet,
+        delegate_ss58=delegate_ss58,
+        real_account_ss58=real_account_ss58,
+        force_proxy_type=force_proxy_type,
+        call=call,
+    )
+
+    # asserts
+    mocked_proxy_announced_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        delegate_ss58=delegate_ss58,
+        real_account_ss58=real_account_ss58,
+        force_proxy_type=force_proxy_type,
+        call=call,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_proxy_announced_extrinsic.return_value
+
+
+def test_reject_proxy_announcement(mocker, subtensor):
+    """Tests `reject_proxy_announcement` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    delegate_ss58 = mocker.Mock(spec=str)
+    call_hash = mocker.Mock(spec=str)
+    mocked_reject_announcement_extrinsic = mocker.patch.object(
+        subtensor_module, "reject_announcement_extrinsic"
+    )
+
+    # call
+    response = subtensor.reject_proxy_announcement(
+        wallet=wallet,
+        delegate_ss58=delegate_ss58,
+        call_hash=call_hash,
+    )
+
+    # asserts
+    mocked_reject_announcement_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        delegate_ss58=delegate_ss58,
+        call_hash=call_hash,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_reject_announcement_extrinsic.return_value
+
+
+def test_remove_proxy_announcement(mocker, subtensor):
+    """Tests `remove_proxy_announcement` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    real_account_ss58 = mocker.Mock(spec=str)
+    call_hash = mocker.Mock(spec=str)
+    mocked_remove_announcement_extrinsic = mocker.patch.object(
+        subtensor_module, "remove_announcement_extrinsic"
+    )
+
+    # call
+    response = subtensor.remove_proxy_announcement(
+        wallet=wallet,
+        real_account_ss58=real_account_ss58,
+        call_hash=call_hash,
+    )
+
+    # asserts
+    mocked_remove_announcement_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        real_account_ss58=real_account_ss58,
+        call_hash=call_hash,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_remove_announcement_extrinsic.return_value
+
+
+def test_remove_proxies(mocker, subtensor):
+    """Tests `remove_proxies` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    mocked_remove_proxies_extrinsic = mocker.patch.object(
+        subtensor_module, "remove_proxies_extrinsic"
+    )
+
+    # call
+    response = subtensor.remove_proxies(wallet=wallet)
+
+    # asserts
+    mocked_remove_proxies_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_remove_proxies_extrinsic.return_value
+
+
+def test_remove_proxy(mocker, subtensor):
+    """Tests `remove_proxy` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    delegate_ss58 = mocker.Mock(spec=str)
+    proxy_type = mocker.Mock(spec=str)
+    delay = mocker.Mock(spec=int)
+    mocked_remove_proxy_extrinsic = mocker.patch.object(
+        subtensor_module, "remove_proxy_extrinsic"
+    )
+
+    # call
+    response = subtensor.remove_proxy(
+        wallet=wallet,
+        delegate_ss58=delegate_ss58,
+        proxy_type=proxy_type,
+        delay=delay,
+    )
+
+    # asserts
+    mocked_remove_proxy_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        delegate_ss58=delegate_ss58,
+        proxy_type=proxy_type,
+        delay=delay,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_remove_proxy_extrinsic.return_value
