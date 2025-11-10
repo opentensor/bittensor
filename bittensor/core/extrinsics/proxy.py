@@ -318,7 +318,8 @@ def kill_pure_proxy_extrinsic(
         subtensor: Subtensor instance with the connection to the chain.
         wallet: Bittensor wallet object. The wallet.coldkey.ss58_address must be the spawner of the pure proxy (the
             account that created it via create_pure_proxy_extrinsic).
-        spawner: The SS58 address of the pure proxy account to kill.
+        spawner: spawner: The SS58 address of the spawner account (the account that originally created the pure proxy
+            via `create_pure_proxy_extrinsic`). This should match wallet.coldkey.ss58_address.
         proxy_type: The type of proxy permissions. Can be a string or ProxyType enum value.
         index: The disambiguation index originally passed to `create_pure`.
         height: The block height at which the pure proxy was created.
