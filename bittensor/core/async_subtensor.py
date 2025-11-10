@@ -6249,8 +6249,8 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             wallet: Bittensor wallet object (should be the proxy account wallet).
             real_account_ss58: The SS58 address of the real account on whose behalf the call is being made.
-            force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise, must
-                match one of the allowed proxy types. Can be a string or ProxyType enum value.
+            force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise,
+                must match one of the allowed proxy types. Can be a string or ProxyType enum value.
             call: The inner call to be executed on behalf of the real account.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
@@ -6301,8 +6301,8 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: Bittensor wallet object (should be the proxy account wallet that made the announcement).
             delegate_ss58: The SS58 address of the delegate proxy account that made the announcement.
             real_account_ss58: The SS58 address of the real account on whose behalf the call will be made.
-            force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise, must
-                match one of the allowed proxy types. Can be a string or ProxyType enum value.
+            force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise,
+                must match one of the allowed proxy types. Can be a string or ProxyType enum value.
             call: The inner call to be executed on behalf of the real account (must match the announced call_hash).
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
