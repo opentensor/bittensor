@@ -2673,11 +2673,19 @@ class AsyncSubtensor(SubtensorMixin):
             whole numbers). Returns None if emission is evenly split or if the data is unavailable.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        runtime = await self.substrate.init_runtime(block_hash=block_hash)
+        module = "SubtensorModule"
+        storage_function = "MechanismEmissionSplit"
+        if not await self.substrate.get_metadata_storage_function(
+            module, storage_function, block_hash=block_hash, runtime=runtime
+        ):
+            return None
         result = await self.substrate.query(
-            module="SubtensorModule",
-            storage_function="MechanismEmissionSplit",
+            module=module,
+            storage_function=storage_function,
             params=[netuid],
             block_hash=block_hash,
+            runtime=runtime,
         )
         if result is None or not hasattr(result, "value"):
             return None
@@ -2703,13 +2711,35 @@ class AsyncSubtensor(SubtensorMixin):
             The number of mechanisms for the given subnet.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        runtime = await self.substrate.init_runtime(block_hash=block_hash)
+        module = "SubtensorModule"
+        storage_function = "MechanismCountCurrent"
+        if not await self.substrate.get_metadata_storage_function(
+            module, storage_function, block_hash=block_hash, runtime=runtime
+        ):
+            return 1
         query = await self.substrate.query(
-            module="SubtensorModule",
-            storage_function="MechanismCountCurrent",
+            module=module,
+            storage_function=storage_function,
             params=[netuid],
             block_hash=block_hash,
+            runtime=runtime,
         )
         return getattr(query, "value", 1)
+
+    async def _runtime_method_exists(
+        self, api: str, method: str, block_hash: str
+    ) -> bool:
+        """Check if a runtime call method exists at the given block."""
+        try:
+            await self.substrate.get_metadata_runtime_call_function(
+                api=api,
+                method=method,
+                block_hash=block_hash,
+            )
+            return True
+        except ValueError:
+            return False
 
     async def get_metagraph_info(
         self,
@@ -2770,21 +2800,63 @@ class AsyncSubtensor(SubtensorMixin):
         if not block_hash and reuse_block:
             block_hash = self.substrate.last_block_hash
 
-        indexes = (
-            [
+        async def _determine_fetch_method(block_hash_: str) -> tuple[str, list]:
+            """Determine the best available runtime call method and its parameters for the given block/params"""
+
+            # Try selective mechagraph first (newest)
+            if await self._runtime_method_exists(
+                "SubnetInfoRuntimeApi", "get_selective_mechagraph", block_hash_
+            ):
+                if indexes is not None:
+                    return "get_selective_mechagraph", [netuid, mechid, indexes]
+                return "get_selective_mechagraph", [
+                    netuid,
+                    mechid,
+                    list(range(len(SelectiveMetagraphIndex))),
+                ]
+
+            # Try selective metagraph (older)
+            if await self._runtime_method_exists(
+                "SubnetInfoRuntimeApi", "get_selective_metagraph", block_hash_
+            ):
+                if indexes is not None:
+                    return "get_selective_metagraph", [netuid, indexes]
+                # Fall through to get_metagraph if no indexes specified
+            elif indexes is not None:
+                # User requested selective retrieval but it's not available
+                raise ValueError(
+                    "You have specified `selected_indices` to retrieve metagraph info selectively, but the "
+                    "selective runtime calls are not available at this block (probably too old). Do not specify "
+                    "`selected_indices` to retrieve metagraph info selectively."
+                )
+
+            # Fall back to old metagraph
+            return "get_metagraph", [netuid]
+
+        # Normalize selected_indices to a list of integers
+        if selected_indices is not None:
+            indexes = [
                 f.value if isinstance(f, SelectiveMetagraphIndex) else f
                 for f in selected_indices
             ]
-            if selected_indices is not None
-            else [f for f in range(len(SelectiveMetagraphIndex))]
+            if 0 not in indexes:
+                indexes = [0] + indexes
+        else:
+            indexes = None
+
+        # Determine the best available fetch method
+        fetch_method, params = await _determine_fetch_method(
+            block_hash_=block_hash,
         )
 
+        # Execute the query
         query = await self.substrate.runtime_call(
             api="SubnetInfoRuntimeApi",
-            method="get_selective_mechagraph",
-            params=[netuid, mechid, indexes if 0 in indexes else [0] + indexes],
+            method=fetch_method,
+            params=params,
             block_hash=block_hash,
         )
+
         if getattr(query, "value", None) is None:
             logging.error(
                 f"Subnet mechanism {netuid}.{mechid if mechid else 0} does not exist."

@@ -1930,6 +1930,12 @@ class Subtensor(SubtensorMixin):
             whole numbers). Returns None if emission is evenly split or if the data is unavailable.
         """
         block_hash = self.determine_block_hash(block)
+        module = "SubtensorModule"
+        storage_function = "MechanismEmissionSplit"
+        if not self.substrate.get_metadata_storage_function(
+            module, storage_function, block_hash=block_hash
+        ):
+            return None
         result = self.substrate.query(
             module="SubtensorModule",
             storage_function="MechanismEmissionSplit",
@@ -1956,13 +1962,31 @@ class Subtensor(SubtensorMixin):
             The number of mechanisms for the given subnet.
         """
         block_hash = self.determine_block_hash(block)
+        module = "SubtensorModule"
+        storage_function = "MechanismCountCurrent"
+        if not self.substrate.get_metadata_storage_function(
+            module, storage_function, block_hash=block_hash
+        ):
+            return 1
         query = self.substrate.query(
-            module="SubtensorModule",
-            storage_function="MechanismCountCurrent",
+            module=module,
+            storage_function=storage_function,
             params=[netuid],
             block_hash=block_hash,
         )
         return query.value if query is not None and hasattr(query, "value") else 1
+
+    def _runtime_method_exists(self, api: str, method: str, block_hash: str) -> bool:
+        """Check if a runtime call method exists at the given block."""
+        try:
+            self.substrate.get_metadata_runtime_call_function(
+                api=api,
+                method=method,
+                block_hash=block_hash,
+            )
+            return True
+        except ValueError:
+            return False
 
     def get_metagraph_info(
         self,
@@ -2011,23 +2035,66 @@ class Subtensor(SubtensorMixin):
             - <https://docs.learnbittensor.org/glossary#metagraph>
             - <https://docs.learnbittensor.org/glossary#emission>
         """
+
+        def _determine_fetch_method(block_hash_: str) -> tuple[str, list]:
+            """Determine the best available runtime call method and its parameters for the given block/params"""
+
+            # Try selective mechagraph first (newest)
+            if self._runtime_method_exists(
+                "SubnetInfoRuntimeApi", "get_selective_mechagraph", block_hash_
+            ):
+                if indexes is not None:
+                    return "get_selective_mechagraph", [netuid, mechid, indexes]
+                return "get_selective_mechagraph", [
+                    netuid,
+                    mechid,
+                    list(range(len(SelectiveMetagraphIndex))),
+                ]
+
+            # Try selective metagraph (older)
+            if self._runtime_method_exists(
+                "SubnetInfoRuntimeApi", "get_selective_metagraph", block_hash_
+            ):
+                if indexes is not None:
+                    return "get_selective_metagraph", [netuid, indexes]
+                # Fall through to get_metagraph if no indexes specified
+            elif indexes is not None:
+                # User requested selective retrieval but it's not available
+                raise ValueError(
+                    "You have specified `selected_indices` to retrieve metagraph info selectively, but the "
+                    "selective runtime calls are not available at this block (probably too old). Do not specify "
+                    "`selected_indices` to retrieve metagraph info selectively."
+                )
+
+            # Fall back to old metagraph
+            return "get_metagraph", [netuid]
+
         block_hash = self.determine_block_hash(block=block)
 
-        indexes = (
-            [
+        # Normalize selected_indices to a list of integers
+        if selected_indices is not None:
+            indexes = [
                 f.value if isinstance(f, SelectiveMetagraphIndex) else f
                 for f in selected_indices
             ]
-            if selected_indices is not None
-            else [f for f in range(len(SelectiveMetagraphIndex))]
+            if 0 not in indexes:
+                indexes = [0] + indexes
+        else:
+            indexes = None
+
+        # Determine the best available fetch method
+        fetch_method, params = _determine_fetch_method(
+            block_hash_=block_hash,
         )
 
+        # Execute the query
         query = self.substrate.runtime_call(
             api="SubnetInfoRuntimeApi",
-            method="get_selective_mechagraph",
-            params=[netuid, mechid, indexes if 0 in indexes else [0] + indexes],
+            method=fetch_method,
+            params=params,
             block_hash=block_hash,
         )
+
         if query is None or not hasattr(query, "value") or query.value is None:
             logging.error(
                 f"Subnet mechanism {netuid}.{mechid if mechid else 0} does not exist."
