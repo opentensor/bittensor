@@ -414,7 +414,7 @@ def kill_pure_proxy_extrinsic(
             subtensor=subtensor,
             wallet=wallet,
             real_account_ss58=pure_proxy_ss58,
-            force_proxy_type=proxy_type_str,
+            force_proxy_type=ProxyType.Any,
             call=kill_pure_call,
             period=period,
             raise_error=raise_error,
