@@ -29,9 +29,11 @@ def test_proxy_and_errors(subtensor, alice_wallet, bob_wallet, charlie_wallet):
     delay = 100
 
     # === check that chain has no proxies ===
-    assert not subtensor.proxies.get_proxies_for_real_account(
+    proxies, deposit = subtensor.proxies.get_proxies_for_real_account(
         real_account_ss58=real_account_wallet.coldkey.ss58_address
     )
+    assert not proxies
+    assert deposit == 0
 
     # === add proxy with ProxyType.Registration ===
     response = subtensor.proxies.add_proxy(
@@ -127,9 +129,11 @@ def test_proxy_and_errors(subtensor, alice_wallet, bob_wallet, charlie_wallet):
     )
     assert response.success, response.message
 
-    assert not subtensor.proxies.get_proxies_for_real_account(
+    proxies, deposit = subtensor.proxies.get_proxies_for_real_account(
         real_account_ss58=real_account_wallet.coldkey.ss58_address
     )
+    assert not proxies
+    assert deposit == 0
 
     # === remove already deleted or unexisted proxy ===
     response = subtensor.proxies.remove_proxy(
@@ -485,14 +489,24 @@ def test_create_and_announcement_proxy(
 def test_create_and_kill_pure_proxy(subtensor, alice_wallet, bob_wallet):
     """Tests create_pure_proxy and kill_pure_proxy extrinsics.
 
+    This test verifies the complete lifecycle of a pure proxy account:
+        - Creation of a pure proxy with specific parameters
+        - Verification that the pure proxy can execute calls through the spawner
+        - Proper termination of the pure proxy
+        - Confirmation that the killed pure proxy can no longer be used
+
     Steps:
-        - Create pure proxy with specific index.
-        - Extract pure proxy address from response.data.
-        - Extract block height and ext_index from response.
+        - Create pure proxy with ProxyType.Any, delay=0, and index=0.
+        - Extract pure proxy address, spawner, and creation metadata from response.data.
+        - Verify all required data is present and correctly formatted.
         - Fund the pure proxy account so it can execute transfers.
-        - Execute a transfer through the pure proxy to verify it works.
-        - Kill pure proxy using proxy_extrinsic (spawner acts as any proxy for pure proxy).
-        - Verify pure proxy is killed by attempting to use it and getting an error.
+        - Execute a transfer through the pure proxy to verify it works correctly.
+          The spawner acts as an "Any" proxy for the pure proxy account.
+        - Kill the pure proxy using kill_pure_proxy() method, which automatically
+          executes the kill_pure call through proxy() (spawner acts as Any proxy
+          for pure proxy, with pure proxy as the origin).
+        - Verify pure proxy is killed by attempting to use it and confirming
+          it returns a NotProxy error.
     """
     spawner_wallet = bob_wallet
     proxy_type = ProxyType.Any
@@ -539,13 +553,14 @@ def test_create_and_kill_pure_proxy(subtensor, alice_wallet, bob_wallet):
     assert response.success, f"Failed to fund pure proxy account: {response.message}."
 
     # === Test that pure proxy works by executing a transfer through it ===
+    # The spawner acts as an "Any" proxy for the pure proxy account.
+    # The pure proxy account is the origin (real account), and the spawner signs the transaction.
     transfer_amount = Balance.from_tao(0.1)  # Transfer 0.1 TAO
     transfer_call = Balances(subtensor).transfer_keep_alive(
         dest=alice_wallet.coldkey.ss58_address,
         value=transfer_amount.rao,
     )
 
-    # === Execute transfer through pure proxy - spawner signs, but origin is pure_account ===
     response = subtensor.proxies.proxy(
         wallet=spawner_wallet,  # Spawner signs the transaction
         real_account_ss58=pure_account,  # Pure proxy account is the origin (real)
@@ -556,27 +571,20 @@ def test_create_and_kill_pure_proxy(subtensor, alice_wallet, bob_wallet):
         f"Pure proxy should be able to execute transfers, got: {response.message}."
     )
 
-    # === Kill pure proxy using proxy_extrinsic ===
-    # - Origin must be pure proxy account (keyless)
-    # - Spawner signs as any proxy for pure proxy
-    # - Use proxy_extrinsic where spawner signs, but real_account is pure proxy :D damn
-
-    # === Create kill_pure call ===
-    kill_pure_call = Proxy(subtensor).kill_pure(
-        spawner=spawner,  # The account that created the pure proxy
+    # === Kill pure proxy using kill_pure_proxy() method ===
+    # The kill_pure_proxy() method automatically executes the kill_pure call through proxy():
+    # - The spawner signs the transaction (wallet parameter)
+    # - The pure proxy account is the origin (real_account_ss58 parameter)
+    # - The spawner acts as an "Any" proxy for the pure proxy (force_proxy_type=Any)
+    # This is required because pure proxies are keyless accounts and cannot sign transactions directly.
+    response = subtensor.proxies.kill_pure_proxy(
+        wallet=spawner_wallet,
+        pure_proxy_ss58=pure_account,
+        spawner=spawner,
         proxy_type=proxy_type_from_response,
         index=index_from_response,
         height=height,
         ext_index=ext_index,
-    )
-
-    #  === Execute kill_pure via proxy_extrinsic ===
-    # spawner_wallet signs, but origin is pure_account
-    response = subtensor.proxies.proxy(
-        wallet=spawner_wallet,  # Spawner signs the transaction
-        real_account_ss58=pure_account,  # Pure proxy account is the origin (real)
-        force_proxy_type=ProxyType.Any,  # Spawner acts as Any proxy for pure proxy
-        call=kill_pure_call,
     )
     assert response.success, response.message
 
@@ -657,9 +665,11 @@ def test_remove_proxies(subtensor, alice_wallet, bob_wallet, charlie_wallet):
     assert response.success, response.message
 
     # === Verify all proxies removed ===
-    assert not subtensor.proxies.get_proxies_for_real_account(
+    proxies, deposit = subtensor.proxies.get_proxies_for_real_account(
         real_account_ss58=real_account_wallet.coldkey.ss58_address
     )
+    assert not proxies
+    assert deposit == 0
 
 
 def test_poke_deposit(subtensor, alice_wallet, bob_wallet, charlie_wallet):

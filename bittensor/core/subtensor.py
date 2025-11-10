@@ -4709,6 +4709,7 @@ class Subtensor(SubtensorMixin):
     def kill_pure_proxy(
         self,
         wallet: "Wallet",
+        pure_proxy_ss58: str,
         spawner: str,
         proxy_type: Union[str, "ProxyType"],
         index: int,
@@ -4722,16 +4723,20 @@ class Subtensor(SubtensorMixin):
         """
         Kills (removes) a pure proxy account.
 
-        This method removes a pure proxy account that was previously created via `create_pure_proxy()`. The pure proxy
-        must be killed by executing the `kill_pure` call through the pure proxy itself, using the spawner as a proxy.
-        This requires the spawner to have an "Any" proxy relationship with the pure proxy.
+        This method removes a pure proxy account that was previously created via `create_pure_proxy()`. The `kill_pure`
+        call must be executed through the pure proxy account itself, with the spawner acting as an "Any" proxy. This
+        method automatically handles this by executing the call via `proxy()`.
 
         Parameters:
             wallet: Bittensor wallet object. The wallet.coldkey.ss58_address must be the spawner of the pure proxy (the
-                account that created it via create_pure_proxy_extrinsic).
+                account that created it via `create_pure_proxy()`). The spawner must have an "Any" proxy relationship
+                with the pure proxy.
+            pure_proxy_ss58: The SS58 address of the pure proxy account to be killed. This is the address that was
+                returned in the `create_pure_proxy()` response.
             spawner: The SS58 address of the spawner account (the account that originally created the pure proxy via
-                `create_pure_proxy_extrinsic`). This should match wallet.coldkey.ss58_address.
-            proxy_type: The type of proxy permissions. Can be a string or ProxyType enum value.
+                `create_pure_proxy()`). This should match wallet.coldkey.ss58_address.
+            proxy_type: The type of proxy permissions. Can be a string or ProxyType enum value. Must match the
+                proxy_type used when creating the pure proxy.
             index: The disambiguation index originally passed to `create_pure`.
             height: The block height at which the pure proxy was created.
             ext_index: The extrinsic index at which the pure proxy was created.
@@ -4746,13 +4751,14 @@ class Subtensor(SubtensorMixin):
             ExtrinsicResponse: The result object of the extrinsic execution.
 
         Note:
-            The `kill_pure` call must be executed through the pure proxy account itself, with the spawner acting as a
-            proxy. This requires the spawner to have an "Any" proxy relationship with the pure proxy. Use `proxy()` to
-            execute the `kill_pure` call if needed.
+            The `kill_pure` call must be executed through the pure proxy account itself, with the spawner acting as an
+            "Any" proxy. This method automatically handles this by executing the call via `proxy()`. The spawner must
+            have an "Any" proxy relationship with the pure proxy for this to work.
         """
         return kill_pure_proxy_extrinsic(
             subtensor=self,
             wallet=wallet,
+            pure_proxy_ss58=pure_proxy_ss58,  # НОВЫЙ ПАРАМЕТР
             spawner=spawner,
             proxy_type=proxy_type,
             index=index,

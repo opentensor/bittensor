@@ -301,6 +301,7 @@ def create_pure_proxy_extrinsic(
 def kill_pure_proxy_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
+    pure_proxy_ss58: str,
     spawner: str,
     proxy_type: Union[str, "ProxyType"],
     index: int,
@@ -314,25 +315,65 @@ def kill_pure_proxy_extrinsic(
     """
     Kills (removes) a pure proxy account.
 
+    This method removes a pure proxy account that was previously created via `create_pure_proxy()`.
+    The `kill_pure` call must be executed through the pure proxy account itself, with the spawner
+    acting as an "Any" proxy. This method automatically handles this by executing the call via
+    `proxy()`.
+
     Parameters:
         subtensor: Subtensor instance with the connection to the chain.
-        wallet: Bittensor wallet object. The wallet.coldkey.ss58_address must be the spawner of the pure proxy (the
-            account that created it via create_pure_proxy_extrinsic).
-        spawner: spawner: The SS58 address of the spawner account (the account that originally created the pure proxy
-            via `create_pure_proxy_extrinsic`). This should match wallet.coldkey.ss58_address.
-        proxy_type: The type of proxy permissions. Can be a string or ProxyType enum value.
-        index: The disambiguation index originally passed to `create_pure`.
+        wallet: Bittensor wallet object. The wallet.coldkey.ss58_address must be the spawner of
+            the pure proxy (the account that created it via `create_pure_proxy()`). The spawner
+            must have an "Any" proxy relationship with the pure proxy.
+        pure_proxy_ss58: The SS58 address of the pure proxy account to be killed. This is the
+            address that was returned in the `create_pure_proxy()` response.
+        spawner: The SS58 address of the spawner account (the account that originally created
+            the pure proxy via `create_pure_proxy()`). This should match wallet.coldkey.ss58_address.
+        proxy_type: The type of proxy permissions. Can be a string or ProxyType enum value. Must
+            match the proxy_type used when creating the pure proxy.
+        index: The disambiguation index originally passed to `create_pure()`.
         height: The block height at which the pure proxy was created.
         ext_index: The extrinsic index at which the pure proxy was created.
-        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-            transaction is not included in a block within that number of blocks, it will expire and be rejected. You
-            can think of it as an expiration date for the transaction.
+        period: The number of blocks during which the transaction will remain valid after it's
+            submitted. If the transaction is not included in a block within that number of blocks,
+            it will expire and be rejected. You can think of it as an expiration date for the
+            transaction.
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
+
+    Note:
+        The `kill_pure` call must be executed through the pure proxy account itself, with the
+        spawner acting as an "Any" proxy. This method automatically handles this by executing
+        the call via `proxy()`. The spawner must have an "Any" proxy relationship with the pure
+        proxy for this to work.
+
+    Example:
+        # After creating a pure proxy
+        create_response = subtensor.proxies.create_pure_proxy(
+            wallet=spawner_wallet,
+            proxy_type=ProxyType.Any,
+            delay=0,
+            index=0,
+        )
+        pure_proxy_ss58 = create_response.data["pure_account"]
+        spawner = create_response.data["spawner"]
+        height = create_response.data["height"]
+        ext_index = create_response.data["ext_index"]
+
+        # Kill the pure proxy
+        kill_response = subtensor.proxies.kill_pure_proxy(
+            wallet=spawner_wallet,
+            pure_proxy_ss58=pure_proxy_ss58,
+            spawner=spawner,
+            proxy_type=ProxyType.Any,
+            index=0,
+            height=height,
+            ext_index=ext_index,
+        )
     """
     try:
         if not (
@@ -342,7 +383,25 @@ def kill_pure_proxy_extrinsic(
 
         proxy_type_str = ProxyType.normalize(proxy_type)
 
-        call = Proxy(subtensor).kill_pure(
+        # Validate that spawner matches wallet
+        if wallet.coldkey.ss58_address != spawner:
+            error_msg = (
+                f"Spawner address {spawner} does not match wallet address "
+                f"{wallet.coldkey.ss58_address}"
+            )
+            if raise_error:
+                raise ValueError(error_msg)
+            return ExtrinsicResponse(False, error_msg)
+
+        logging.debug(
+            f"Killing pure proxy: pure=[blue]{pure_proxy_ss58}[/blue], "
+            f"spawner=[blue]{spawner}[/blue], type=[blue]{proxy_type_str}[/blue], "
+            f"index=[blue]{index}[/blue], height=[blue]{height}[/blue], "
+            f"ext_index=[blue]{ext_index}[/blue] on [blue]{subtensor.network}[/blue]."
+        )
+
+        # Create the kill_pure call
+        kill_pure_call = Proxy(subtensor).kill_pure(
             spawner=spawner,
             proxy_type=proxy_type_str,
             index=index,
@@ -350,13 +409,20 @@ def kill_pure_proxy_extrinsic(
             ext_index=ext_index,
         )
 
-        response = subtensor.sign_and_send_extrinsic(
-            call=call,
+        # Execute kill_pure through proxy() where:
+        # - wallet (spawner) signs the transaction
+        # - real_account_ss58 (pure_proxy_ss58) is the origin (pure proxy account)
+        # - force_proxy_type=Any (spawner acts as Any proxy for pure proxy)
+        response = proxy_extrinsic(
+            subtensor=subtensor,
             wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
+            real_account_ss58=pure_proxy_ss58,
+            force_proxy_type=ProxyType.Any,
+            call=kill_pure_call,
             period=period,
             raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
         )
 
         if response.success:
