@@ -3169,6 +3169,27 @@ def test_get_metagraph_info_all_fields(subtensor, mocker):
     mock_from_dict = mocker.patch.object(
         subtensor_module.MetagraphInfo, "from_dict", return_value="parsed_metagraph"
     )
+    mocked_runtime_metadata_v15 = {
+        "apis": [
+            {
+                "name": "SubnetInfoRuntimeApi",
+                "methods": [
+                    {"name": "get_selective_metagraph"},
+                    {"name": "get_metagraph"},
+                    {"name": "get_selective_mechagraph"},
+                ],
+            },
+        ]
+    }
+    mocked_runtime = mocker.Mock(spec=Runtime)
+    mocked_metadata = mocker.Mock()
+    mocked_metadata.value.return_value = mocked_runtime_metadata_v15
+    mocked_runtime.metadata_v15 = mocked_metadata
+    mocker.patch.object(
+        subtensor.substrate,
+        "init_runtime",
+        return_value=mocked_runtime,
+    )
 
     # Call
     result = subtensor.get_metagraph_info(
@@ -3204,6 +3225,27 @@ def test_get_metagraph_info_specific_fields(subtensor, mocker):
         "get_chain_head",
         return_value="0xfakechainhead",
     )
+    mocked_runtime_metadata_v15 = {
+        "apis": [
+            {
+                "name": "SubnetInfoRuntimeApi",
+                "methods": [
+                    {"name": "get_selective_metagraph"},
+                    {"name": "get_metagraph"},
+                    {"name": "get_selective_mechagraph"},
+                ],
+            },
+        ]
+    }
+    mocked_runtime = mocker.Mock(spec=Runtime)
+    mocked_metadata = mocker.Mock()
+    mocked_metadata.value.return_value = mocked_runtime_metadata_v15
+    mocked_runtime.metadata_v15 = mocked_metadata
+    mocker.patch.object(
+        subtensor.substrate,
+        "init_runtime",
+        return_value=mocked_runtime,
+    )
     mock_from_dict = mocker.patch.object(
         subtensor_module.MetagraphInfo, "from_dict", return_value="parsed_metagraph"
     )
@@ -3237,6 +3279,27 @@ def test_get_metagraph_info_subnet_not_exist(subtensor, mocker):
         subtensor.substrate,
         "runtime_call",
         return_value=None,
+    )
+    mocked_runtime_metadata_v15 = {
+        "apis": [
+            {
+                "name": "SubnetInfoRuntimeApi",
+                "methods": [
+                    {"name": "get_selective_metagraph"},
+                    {"name": "get_metagraph"},
+                    {"name": "get_selective_mechagraph"},
+                ],
+            },
+        ]
+    }
+    mocked_runtime = mocker.Mock(spec=Runtime)
+    mocked_metadata = mocker.Mock()
+    mocked_metadata.value.return_value = mocked_runtime_metadata_v15
+    mocked_runtime.metadata_v15 = mocked_metadata
+    mocker.patch.object(
+        subtensor.substrate,
+        "init_runtime",
+        return_value=mocked_runtime,
     )
 
     mocked_logger = mocker.Mock()
