@@ -4921,6 +4921,12 @@ class Subtensor(SubtensorMixin):
         Note:
             This method automatically adjusts deposits for both proxy relationships and announcements. No parameters are
             needed as it operates on the account's current state.
+
+        When to use:
+            - After runtime upgrade, if deposit constants have changed.
+            - After removing proxies/announcements, to free up excess locked funds.
+            - Periodically to optimize locked deposit amounts.
+
         """
         return poke_deposit_extrinsic(
             subtensor=self,

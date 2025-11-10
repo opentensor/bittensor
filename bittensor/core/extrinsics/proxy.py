@@ -818,6 +818,11 @@ def poke_deposit_extrinsic(
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
+
+    When to use:
+        - After runtime upgrade, if deposit constants have changed.
+        - After removing proxies/announcements, to free up excess locked funds.
+        - Periodically to optimize locked deposit amounts.
     """
     try:
         if not (
