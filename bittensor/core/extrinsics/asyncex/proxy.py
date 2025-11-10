@@ -274,7 +274,7 @@ async def create_pure_proxy_extrinsic(
             logging.debug("[green]Pure proxy created successfully.[/green]")
 
             # Extract pure proxy address from PureCreated triggered event
-            for event in response.extrinsic_receipt.triggered_events:
+            for event in await response.extrinsic_receipt.triggered_events:
                 if event.get("event_id") == "PureCreated":
                     # Event structure: PureProxyCreated { disambiguation_index, proxy_type, pure, who }
                     attributes = event.get("attributes", [])
@@ -287,7 +287,7 @@ async def create_pure_proxy_extrinsic(
                             "height": await subtensor.substrate.get_block_number(
                                 response.extrinsic_receipt.block_hash
                             ),
-                            "ext_index": response.extrinsic_receipt.extrinsic_idx,
+                            "ext_index": await response.extrinsic_receipt.extrinsic_idx,
                         }
                     break
         else:
