@@ -19,13 +19,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
     outputs:
       py39: ${{ steps.set-output.outputs.py39 }}
       py310: ${{ steps.set-output.outputs.py310 }}
       py311: ${{ steps.set-output.outputs.py311 }}
       py312: ${{ steps.set-output.outputs.py312 }}
       py313: ${{ steps.set-output.outputs.py313 }}
+      py314: ${{ steps.set-output.outputs.py314 }}
 
     steps:
       - uses: actions/checkout@v4
@@ -52,6 +53,7 @@ jobs:
             3.11) echo "py311=$SIZE" >> $GITHUB_OUTPUT ;;
             3.12) echo "py312=$SIZE" >> $GITHUB_OUTPUT ;;
             3.13) echo "py313=$SIZE" >> $GITHUB_OUTPUT ;;
+            3.14) echo "py314=$SIZE" >> $GITHUB_OUTPUT ;;
           esac
 
   comment-on-pr:
@@ -69,6 +71,7 @@ jobs:
               "3.11": "${{ needs.measure-venv.outputs.py311 || 'N/A' }}",
               "3.12": "${{ needs.measure-venv.outputs.py312 || 'N/A' }}",
               "3.13": "${{ needs.measure-venv.outputs.py313 || 'N/A' }}",
+              "3.14": "${{ needs.measure-venv.outputs.py314 || 'N/A' }}",
             };
 
             const body = [
