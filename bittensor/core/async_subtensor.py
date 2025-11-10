@@ -2730,16 +2730,37 @@ class AsyncSubtensor(SubtensorMixin):
     async def _runtime_method_exists(
         self, api: str, method: str, block_hash: str
     ) -> bool:
-        """Check if a runtime call method exists at the given block."""
-        try:
-            await self.substrate.get_metadata_runtime_call_function(
-                api=api,
-                method=method,
-                block_hash=block_hash,
-            )
-            return True
-        except ValueError:
-            return False
+        """
+        Check if a runtime call method exists at the given block.
+
+        The complicated logic here comes from the fact that there are two ways in which runtime calls
+        are stored: the new and primary method is through the Metadata V15, but the V14 is a good backup (implemented
+        around mid 2024)
+
+        Returns:
+            True if the runtime call method exists, False otherwise.
+        """
+        runtime = await self.substrate.init_runtime(block_hash=block_hash)
+        if runtime.metadata_v15 is not None:
+            metadata_v15_value = runtime.metadata_v15.value()
+            apis = {entry["name"]: entry for entry in metadata_v15_value["apis"]}
+            try:
+                api_entry = apis[api]
+                methods = {entry["name"]: entry for entry in api_entry["methods"]}
+                _ = methods[method]
+                return True
+            except KeyError:
+                return False
+        else:
+            try:
+                await self.substrate.get_metadata_runtime_call_function(
+                    api=api,
+                    method=method,
+                    block_hash=block_hash,
+                )
+                return True
+            except ValueError:
+                return False
 
     async def get_metagraph_info(
         self,
