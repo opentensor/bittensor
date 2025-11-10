@@ -508,6 +508,15 @@ def test_call_creates_dynamically(subtensor, alice_wallet, bob_wallet):
     neurons = subtensor.neurons.neurons(netuid)
     assert len(neurons) == 1, "No neurons found or more than one."
 
+    # create call with wrong function name
+    with pytest.raises(ValueError):
+        CallBuilder(subtensor, dynamic_function=False).create_composed_call(
+            call_module="SubtensorModule",
+            call_function="some_call_function",
+            netuid=netuid,
+            hotkey=bob_wallet.hotkey.ss58_address,
+        )
+
     # create call dynamically
     burned_register_call = CallBuilder(
         subtensor, dynamic_function=True
@@ -580,6 +589,15 @@ async def test_call_creates_dynamically_async(
     # check neurons amount after register one more neuron
     neurons = await async_subtensor.neurons.neurons(netuid)
     assert len(neurons) == 1, "No neurons found or more than one."
+
+    # create call with wrong function name
+    with pytest.raises(ValueError):
+        await CallBuilder(async_subtensor, dynamic_function=False).create_composed_call(
+            call_module="SubtensorModule",
+            call_function="some_call_function",
+            netuid=netuid,
+            hotkey=bob_wallet.hotkey.ss58_address,
+        )
 
     # create call dynamically
     burned_register_call = await CallBuilder(

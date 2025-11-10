@@ -28,7 +28,7 @@ class CallBuilder:
     """
 
     subtensor: Union["Subtensor", "AsyncSubtensor"]
-    dynamic_function: bool = False
+    dynamic_function: bool = True
 
     def create_composed_call(
         self, call_module: str = None, call_function: str = None, **kwargs
