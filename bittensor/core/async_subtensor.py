@@ -22,6 +22,10 @@ from bittensor.core.chain_data import (
     NeuronInfoLite,
     NeuronInfo,
     ProposalVoteData,
+    ProxyAnnouncementInfo,
+    ProxyInfo,
+    ProxyConstants,
+    ProxyType,
     SelectiveMetagraphIndex,
     SimSwapResult,
     StakeInfo,
@@ -66,6 +70,19 @@ from bittensor.core.extrinsics.asyncex.move_stake import (
     transfer_stake_extrinsic,
     swap_stake_extrinsic,
     move_stake_extrinsic,
+)
+from bittensor.core.extrinsics.asyncex.proxy import (
+    add_proxy_extrinsic,
+    announce_extrinsic,
+    create_pure_proxy_extrinsic,
+    kill_pure_proxy_extrinsic,
+    poke_deposit_extrinsic,
+    proxy_announced_extrinsic,
+    proxy_extrinsic,
+    reject_announcement_extrinsic,
+    remove_announcement_extrinsic,
+    remove_proxy_extrinsic,
+    remove_proxies_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.registration import (
     burned_register_extrinsic,
@@ -3036,6 +3053,214 @@ class AsyncSubtensor(SubtensorMixin):
             return formatted_parents
 
         return []
+
+    async def get_proxies(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> dict[str, list[ProxyInfo]]:
+        """
+        Retrieves all proxy relationships from the chain.
+
+        This method queries the Proxy.Proxies storage map across all accounts and returns a dictionary mapping each real
+        account (delegator) to its list of proxy relationships.
+
+        Parameters:
+            block: The blockchain block number for the query. If None, queries the latest block.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using block or reuse_block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+
+        Returns:
+            Dictionary mapping real account SS58 addresses to lists of ProxyInfo objects. Each ProxyInfo contains the
+                delegate address, proxy type, and delay for that proxy relationship.
+
+        Note:
+            This method queries all proxy relationships on the chain, which may be resource-intensive for large
+            networks. Consider using `get_proxies_for_real_account()` for querying specific accounts.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query_map = await self.substrate.query_map(
+            module="Proxy",
+            storage_function="Proxies",
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+
+        proxies = {}
+        if query_map.records:
+            async for record in query_map:
+                real_account, proxy_list = ProxyInfo.from_query_map_record(record)
+                proxies[real_account] = proxy_list
+        return proxies
+
+    async def get_proxies_for_real_account(
+        self,
+        real_account_ss58: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> tuple[list[ProxyInfo], Balance]:
+        """
+        Returns proxy/ies associated with the provided real account.
+
+        This method queries the Proxy.Proxies storage for a specific real account and returns all proxy relationships
+        where this real account is the delegator. It also returns the deposit amount reserved for these proxies.
+
+        Parameters:
+            real_account_ss58: SS58 address of the real account (delegator) whose proxies to retrieve.
+            block: The blockchain block number for the query.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using block or reuse_block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+
+        Returns:
+            Tuple containing:
+                - List of ProxyInfo objects representing all proxy relationships for the real account. Each ProxyInfo
+                    contains delegate address, proxy type, and delay.
+                - Balance object representing the reserved deposit amount for these proxies. This deposit is held as
+                    long as the proxy relationships exist and is returned when proxies are removed.
+
+        Note:
+            If the account has no proxies, returns an empty list and a zero balance.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query = await self.substrate.query(
+            module="Proxy",
+            storage_function="Proxies",
+            params=[real_account_ss58],
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+        return ProxyInfo.from_query(query)
+
+    async def get_proxy_announcement(
+        self,
+        delegate_account_ss58: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> list[ProxyAnnouncementInfo]:
+        """
+        Retrieves proxy announcements for a specific delegate account.
+
+        This method queries the Proxy.Announcements storage for announcements made by the given delegate proxy account.
+        Announcements allow a proxy to declare its intention to execute a call on behalf of a real account after a delay
+        period.
+
+        Parameters:
+            delegate_account_ss58: SS58 address of the delegate proxy account whose announcements to retrieve.
+            block: The blockchain block number for the query. If None, queries the latest block.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using block or reuse_block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+
+        Returns:
+            List of ProxyAnnouncementInfo objects. Each object contains the real account address, call hash, and block
+                height at which the announcement was made.
+
+        Note:
+            If the delegate has no announcements, returns an empty list.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query = await self.substrate.query(
+            module="Proxy",
+            storage_function="Announcements",
+            params=[delegate_account_ss58],
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+        return ProxyAnnouncementInfo.from_dict(query.value[0])
+
+    async def get_proxy_announcements(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> dict[str, list[ProxyAnnouncementInfo]]:
+        """
+        Retrieves all proxy announcements from the chain.
+
+        This method queries the Proxy.Announcements storage map across all delegate accounts and returns a dictionary
+        mapping each delegate to its list of pending announcements.
+
+        Parameters:
+            block: The blockchain block number for the query. If None, queries the latest block.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using block or reuse_block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+
+        Returns:
+            Dictionary mapping delegate account SS58 addresses to lists of ProxyAnnouncementInfo objects.
+            Each ProxyAnnouncementInfo contains the real account address, call hash, and block height.
+
+        Note:
+            This method queries all announcements on the chain, which may be resource-intensive for large networks.
+            Consider using `get_proxy_announcement()` for querying specific delegates.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query_map = await self.substrate.query_map(
+            module="Proxy",
+            storage_function="Announcements",
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+        announcements = {}
+        if query_map.records:
+            async for record in query_map:
+                delegate, proxy_list = ProxyAnnouncementInfo.from_query_map_record(record)
+                announcements[delegate] = proxy_list
+        return announcements
+
+    async def get_proxy_constants(
+        self,
+        constants: Optional[list[str]] = None,
+        as_dict: bool = False,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Union["ProxyConstants", dict]:
+        """
+        Fetches runtime configuration constants from the `Proxy` pallet.
+
+        This method retrieves on-chain configuration constants that define deposit requirements, proxy limits, and
+        announcement constraints for the Proxy pallet. These constants govern how proxy accounts operate within the
+        Subtensor network.
+
+        Parameters:
+            constants: Optional list of specific constant names to fetch. If omitted, all constants defined in
+                `ProxyConstants.constants_names()` are queried. Valid constant names include: "AnnouncementDepositBase",
+                "AnnouncementDepositFactor", "MaxProxies", "MaxPending", "ProxyDepositBase", "ProxyDepositFactor".
+            as_dict: If True, returns the constants as a dictionary instead of a `ProxyConstants` object.
+            block: The blockchain block number for the query. If None, queries the latest block.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using block or reuse_block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+
+        Returns:
+            If `as_dict` is False: ProxyConstants object containing all requested constants.
+            If `as_dict` is True: Dictionary mapping constant names to their values (Balance objects for deposit
+                constants, integers for limit constants).
+
+        Note:
+            All Balance amounts are returned in RAO. Constants reflect the current chain configuration at the specified
+            block.
+        """
+        result = {}
+        const_names = constants or ProxyConstants.constants_names()
+
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        for const_name in const_names:
+            query = await self.query_constant(
+                module_name="Proxy",
+                constant_name=const_name,
+                block=block,
+                block_hash=block_hash,
+                reuse_block=reuse_block,
+            )
+
+            if query is not None:
+                result[const_name] = query.value
+
+        proxy_constants = ProxyConstants.from_dict(result)
+
+        return proxy_constants.to_dict() if as_dict else proxy_constants
 
     async def get_revealed_commitment(
         self,
