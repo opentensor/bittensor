@@ -3088,10 +3088,9 @@ class AsyncSubtensor(SubtensorMixin):
         )
 
         proxies = {}
-        if query_map.records:
-            async for record in query_map:
-                real_account, proxy_list = ProxyInfo.from_query_map_record(record)
-                proxies[real_account] = proxy_list
+        async for record in query_map:
+            real_account, proxy_list = ProxyInfo.from_query_map_record(record)
+            proxies[real_account] = proxy_list
         return proxies
 
     async def get_proxies_for_real_account(
@@ -3203,12 +3202,9 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block_hash=reuse_block,
         )
         announcements = {}
-        if query_map.records:
-            async for record in query_map:
-                delegate, proxy_list = ProxyAnnouncementInfo.from_query_map_record(
-                    record
-                )
-                announcements[delegate] = proxy_list
+        async for record in query_map:
+            delegate, proxy_list = ProxyAnnouncementInfo.from_query_map_record(record)
+            announcements[delegate] = proxy_list
         return announcements
 
     async def get_proxy_constants(
