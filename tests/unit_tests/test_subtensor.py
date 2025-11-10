@@ -5512,9 +5512,7 @@ def test_get_proxy_constants_success(subtensor, mocker):
     mocked_query_constant = mocker.patch.object(
         subtensor,
         "query_constant",
-        side_effect=[
-            mocker.Mock(value=value) for value in fake_constants.values()
-        ],
+        side_effect=[mocker.Mock(value=value) for value in fake_constants.values()],
     )
     mocked_from_dict = mocker.patch.object(
         subtensor_module.ProxyConstants,
@@ -5552,9 +5550,7 @@ def test_get_proxy_constants_as_dict(subtensor, mocker):
     mocked_query_constant = mocker.patch.object(
         subtensor,
         "query_constant",
-        side_effect=[
-            mocker.Mock(value=value) for value in fake_constants.values()
-        ],
+        side_effect=[mocker.Mock(value=value) for value in fake_constants.values()],
     )
     mocked_proxy_constants = mocker.Mock()
     mocked_from_dict = mocker.patch.object(
@@ -5591,9 +5587,7 @@ def test_get_proxy_constants_specific_constants(subtensor, mocker):
     mocked_query_constant = mocker.patch.object(
         subtensor,
         "query_constant",
-        side_effect=[
-            mocker.Mock(value=value) for value in fake_constants.values()
-        ],
+        side_effect=[mocker.Mock(value=value) for value in fake_constants.values()],
     )
     mocked_from_dict = mocker.patch.object(
         subtensor_module.ProxyConstants,
@@ -5787,9 +5781,7 @@ def test_proxy(mocker, subtensor):
     real_account_ss58 = mocker.Mock(spec=str)
     force_proxy_type = mocker.Mock(spec=str)
     call = mocker.Mock(spec=GenericCall)
-    mocked_proxy_extrinsic = mocker.patch.object(
-        subtensor_module, "proxy_extrinsic"
-    )
+    mocked_proxy_extrinsic = mocker.patch.object(subtensor_module, "proxy_extrinsic")
 
     # call
     response = subtensor.proxy(
