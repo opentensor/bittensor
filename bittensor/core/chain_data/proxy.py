@@ -212,9 +212,7 @@ class ProxyInfo:
         proxies = query.value[0][0]
         # balance data is always in that path
         balance = query.value[1]
-        return (
-            (cls.from_tuple(proxies), Balance.from_rao(balance)) if proxies else tuple()
-        )
+        return cls.from_tuple(proxies), Balance.from_rao(balance)
 
     @classmethod
     def from_query_map_record(cls, record: list) -> tuple[str, list["ProxyInfo"]]:
@@ -266,7 +264,7 @@ class ProxyAnnouncementInfo:
             data: Tuple of announcements data.
 
         Returns:
-            Tuple of ProxyAnnouncementInfo objects.
+            Tuple of ProxyAnnouncementInfo objects or None if no announcements aren't found.
         """
         return [
             cls(
