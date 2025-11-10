@@ -6,7 +6,7 @@ import asyncio
 from typing import Optional, Union, TYPE_CHECKING
 
 from bittensor.core.errors import RegistrationError
-from bittensor.core.extrinsics.params import RegistrationParams
+from bittensor.core.extrinsics.pallets import SubtensorModule
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import create_pow_async, log_no_torch_error, torch
@@ -80,13 +80,10 @@ async def burned_register_extrinsic(
 
         logging.debug(f"Recycling {recycle_amount} to register on subnet:{netuid}")
 
-        call = await subtensor.compose_call(
-            call_module="SubtensorModule",
-            call_function="burned_register",
-            call_params=RegistrationParams.burned_register(
-                netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
-            ),
+        call = await SubtensorModule(subtensor).burned_register(
+            netuid=netuid, hotkey=wallet.hotkey.ss58_address
         )
+
         response = await subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
@@ -181,12 +178,8 @@ async def register_subnet_extrinsic(
                 f"Insufficient balance {balance} to register subnet. Current burn cost is {burn_cost} TAO.",
             ).with_log()
 
-        call = await subtensor.compose_call(
-            call_module="SubtensorModule",
-            call_function="register_network",
-            call_params=RegistrationParams.register_network(
-                hotkey_ss58=wallet.hotkey.ss58_address
-            ),
+        call = await SubtensorModule(subtensor).register_network(
+            hotkey=wallet.hotkey.ss58_address
         )
 
         response = await subtensor.sign_and_send_extrinsic(
@@ -342,17 +335,13 @@ async def register_extrinsic(
             else:
                 # check if a pow result is still valid
                 while not await pow_result.is_stale_async(subtensor=subtensor):
-                    call = await subtensor.compose_call(
-                        call_module="SubtensorModule",
-                        call_function="register",
-                        call_params=RegistrationParams.register(
-                            netuid=netuid,
-                            coldkey_ss58=wallet.coldkeypub.ss58_address,
-                            hotkey_ss58=wallet.hotkey.ss58_address,
-                            block_number=pow_result.block_number,
-                            nonce=pow_result.nonce,
-                            work=[int(byte_) for byte_ in pow_result.seal],
-                        ),
+                    call = await SubtensorModule(subtensor).register(
+                        netuid=netuid,
+                        coldkey=wallet.coldkeypub.ss58_address,
+                        hotkey=wallet.hotkey.ss58_address,
+                        block_number=pow_result.block_number,
+                        nonce=pow_result.nonce,
+                        work=[int(byte_) for byte_ in pow_result.seal],
                     )
                     response = await subtensor.sign_and_send_extrinsic(
                         call=call,
@@ -453,21 +442,16 @@ async def set_subnet_identity_extrinsic(
         ).success:
             return unlocked
 
-        call = await subtensor.compose_call(
-            call_module="SubtensorModule",
-            call_function="set_subnet_identity",
-            call_params=RegistrationParams.set_subnet_identity(
-                hotkey_ss58=wallet.hotkey.ss58_address,
-                netuid=netuid,
-                subnet_name=subnet_name,
-                github_repo=github_repo,
-                subnet_contact=subnet_contact,
-                subnet_url=subnet_url,
-                logo_url=logo_url,
-                discord=discord,
-                description=description,
-                additional=additional,
-            ),
+        call = await SubtensorModule(subtensor).set_subnet_identity(
+            netuid=netuid,
+            subnet_name=subnet_name,
+            github_repo=github_repo,
+            subnet_contact=subnet_contact,
+            subnet_url=subnet_url,
+            logo_url=logo_url,
+            discord=discord,
+            description=description,
+            additional=additional,
         )
 
         response = await subtensor.sign_and_send_extrinsic(

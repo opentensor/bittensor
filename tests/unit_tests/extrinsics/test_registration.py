@@ -279,7 +279,6 @@ def test_set_subnet_identity_extrinsic_is_success(mock_subtensor, mock_wallet, m
         call_module="SubtensorModule",
         call_function="set_subnet_identity",
         call_params={
-            "hotkey": mock_wallet.hotkey.ss58_address,
             "netuid": netuid,
             "subnet_name": subnet_name,
             "github_repo": github_repo,
@@ -344,7 +343,6 @@ def test_set_subnet_identity_extrinsic_is_failed(mock_subtensor, mock_wallet, mo
         call_module="SubtensorModule",
         call_function="set_subnet_identity",
         call_params={
-            "hotkey": mock_wallet.hotkey.ss58_address,
             "netuid": netuid,
             "subnet_name": subnet_name,
             "github_repo": github_repo,

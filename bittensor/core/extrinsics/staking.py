@@ -3,7 +3,7 @@ from typing import Optional, TYPE_CHECKING, Sequence
 from async_substrate_interface.errors import SubstrateRequestException
 
 from bittensor.core.errors import BalanceTypeError
-from bittensor.core.extrinsics.params import StakingParams
+from bittensor.core.extrinsics.pallets import SubtensorModule
 from bittensor.core.extrinsics.utils import get_old_stakes
 from bittensor.core.types import ExtrinsicResponse, UIDs
 from bittensor.utils import format_error_message
@@ -94,40 +94,39 @@ def add_stake_extrinsic(
         if safe_staking:
             pool = subtensor.subnet(netuid=netuid)
 
-            call_function = "add_stake_limit"
-            call_params = StakingParams.add_stake_limit(
-                netuid=netuid,
-                hotkey_ss58=hotkey_ss58,
-                amount=amount,
-                allow_partial_stake=allow_partial_stake,
-                rate_tolerance=rate_tolerance,
-                pool=pool,
+            price_with_tolerance = (
+                pool.price.tao
+                if pool.netuid == 0
+                else pool.price.tao * (1 + rate_tolerance)
             )
+
+            limit_price = Balance.from_tao(price_with_tolerance).rao
 
             logging.debug(
                 f"Safe Staking to: [blue]netuid: [green]{netuid}[/green], amount: [green]{amount}[/green], "
                 f"tolerance percentage: [green]{rate_tolerance * 100}%[/green], "
-                f"price limit: [green]{call_params.get('limit_price')}[/green], "
+                f"price limit: [green]{Balance.from_tao(limit_price)}[/green], "
                 f"original price: [green]{pool.price}[/green], "
                 f"with partial stake: [green]{allow_partial_stake}[/green] "
                 f"on [blue]{subtensor.network}[/blue]."
             )
 
-        else:
-            call_function = "add_stake"
-            call_params = StakingParams.add_stake(
-                netuid=netuid, hotkey_ss58=hotkey_ss58, amount=amount
+            call = SubtensorModule(subtensor).add_stake_limit(
+                hotkey=hotkey_ss58,
+                netuid=netuid,
+                amount_staked=amount.rao,
+                limit_price=limit_price,
+                allow_partial=allow_partial_stake,
             )
+
+        else:
             logging.debug(
                 f"Staking to: [blue]netuid: [green]{netuid}[/green], amount: [green]{amount}[/green] "
                 f"on [blue]{subtensor.network}[/blue]."
             )
-
-        call = subtensor.compose_call(
-            call_module="SubtensorModule",
-            call_function=call_function,
-            call_params=call_params,
-        )
+            call = SubtensorModule(subtensor).add_stake(
+                netuid=netuid, hotkey=hotkey_ss58, amount_staked=amount.rao
+            )
 
         block_before = subtensor.block
         response = subtensor.sign_and_send_extrinsic(
@@ -441,13 +440,10 @@ def set_auto_stake_extrinsic(
         ).success:
             return unlocked
 
-        call = subtensor.compose_call(
-            call_module="SubtensorModule",
-            call_function="set_coldkey_auto_stake_hotkey",
-            call_params=StakingParams.set_coldkey_auto_stake_hotkey(
-                netuid, hotkey_ss58
-            ),
+        call = SubtensorModule(subtensor).set_coldkey_auto_stake_hotkey(
+            netuid=netuid, hotkey=hotkey_ss58
         )
+
         response = subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
