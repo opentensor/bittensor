@@ -12,12 +12,12 @@ import os
 import sys
 from logging import Logger
 from logging.handlers import QueueHandler, QueueListener, RotatingFileHandler
-from typing import NamedTuple
+from typing import NamedTuple, Union
 
 from statemachine import State, StateMachine
 
-from bittensor.core.settings import READ_ONLY
 from bittensor.core.config import Config
+from bittensor.core.settings import READ_ONLY
 from bittensor.utils.btlogging.console import BittensorConsole
 from .defines import (
     BITTENSOR_LOGGER_NAME,
@@ -176,7 +176,7 @@ class LoggingMachine(StateMachine, Logger):
         else:
             self.enable_default()
 
-    def _extract_logging_config(self, config: "Config") -> dict:
+    def _extract_logging_config(self, config: "Config") -> Union[dict, "Config"]:
         """Extract btlogging's config from bittensor config
 
         Parameters:
@@ -218,10 +218,16 @@ class LoggingMachine(StateMachine, Logger):
             config: Bittensor config instance.
         """
         self._config = self._extract_logging_config(config)
-        if self._config.logging_dir and self._config.record_log:
+
+        # Handle file logging configuration changes
+        if self._config.record_log and self._config.logging_dir:
             expanded_dir = os.path.expanduser(config.logging_dir)
             logfile = os.path.abspath(os.path.join(expanded_dir, DEFAULT_LOG_FILE_NAME))
             self._enable_file_logging(logfile)
+        else:
+            # If record_log is False or logging_dir is None, disable file logging
+            self._disable_file_logging()
+
         if self._config.trace:
             self.enable_trace()
         elif self._config.debug:
@@ -323,15 +329,61 @@ class LoggingMachine(StateMachine, Logger):
                 logger.removeHandler(handler)
 
     def _enable_file_logging(self, logfile: str):
-        # preserve idempotency; do not create extra filehandlers
-        # if one already exists
-        if any(
-            [isinstance(handler, RotatingFileHandler) for handler in self._handlers]
-        ):
-            return
+        """Enable file logging to the specified logfile path.
+
+        If a file handler already exists, it will be replaced if the path has changed. This ensures that runtime updates
+        to logging_dir correctly redirect output.
+
+        Parameters:
+            logfile: Absolute path to the log file.
+        """
+        # Check if a file handler already exists
+        existing_file_handler = None
+        for handler in self._handlers:
+            if isinstance(handler, RotatingFileHandler):
+                existing_file_handler = handler
+                break
+
+        # If file handler exists, check if path has changed
+        if existing_file_handler is not None:
+            current_path = os.path.abspath(existing_file_handler.baseFilename)
+            new_path = os.path.abspath(logfile)
+
+            # If path hasn't changed, no need to update
+            if current_path == new_path:
+                return
+
+            # Path has changed, remove old handler and create new one
+            self._handlers.remove(existing_file_handler)
+            existing_file_handler.close()
+
+        # Create and add new file handler
         file_handler = self._create_file_handler(logfile)
         self._handlers.append(file_handler)
+
+        # Update listener handlers
+        # Stop listener temporarily to update handlers safely (same pattern as state transitions)
+        self._listener.stop()
         self._listener.handlers = tuple(self._handlers)
+        self._listener.start()
+
+    def _disable_file_logging(self):
+        """Disable file logging by removing the file handler if it exists."""
+        file_handler = None
+        for handler in self._handlers:
+            if isinstance(handler, RotatingFileHandler):
+                file_handler = handler
+                break
+
+        if file_handler is not None:
+            self._handlers.remove(file_handler)
+            file_handler.close()
+
+            # Update listener handlers
+            # Stop listener temporarily to update handlers safely (same pattern as state transitions)
+            self._listener.stop()
+            self._listener.handlers = tuple(self._handlers)
+            self._listener.start()
 
     # state transitions
     def before_transition(self, event, state):
