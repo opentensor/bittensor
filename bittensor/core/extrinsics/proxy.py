@@ -357,6 +357,9 @@ def kill_pure_proxy_extrinsic(
         pass a different `force_proxy_type`, the spawner must have that specific proxy type relationship with the pure
         proxy.
 
+    Warning:
+        Any funds remaining in the pure proxy account will become permanently inaccessible after this operation.
+
     Example:
         # After creating a pure proxy
         create_response = subtensor.proxies.create_pure_proxy(

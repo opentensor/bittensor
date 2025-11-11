@@ -6054,6 +6054,9 @@ class AsyncSubtensor(SubtensorMixin):
             The `kill_pure` call must be executed through the pure proxy account itself, with the spawner acting as an
             "Any" proxy. This method automatically handles this by executing the call via `proxy()`. The spawner must
             have an "Any" proxy relationship with the pure proxy for this to work.
+
+        Warning:
+            Any funds remaining in the pure proxy account will become permanently inaccessible after this operation.
         """
         return await kill_pure_proxy_extrinsic(
             subtensor=self,
