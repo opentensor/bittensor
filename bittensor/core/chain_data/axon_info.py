@@ -52,20 +52,17 @@ class AxonInfo(InfoBase):
         return networking.ip__str__(self.ip_type, self.ip, self.port)
 
     def __eq__(self, other: "AxonInfo"):
-        if other is None:
+        if other is None or not isinstance(other, AxonInfo):
             return False
 
-        if (
+        return (
             self.version == other.version
             and self.ip == other.ip
             and self.port == other.port
             and self.ip_type == other.ip_type
             and self.coldkey == other.coldkey
             and self.hotkey == other.hotkey
-        ):
-            return True
-
-        return False
+        )
 
     def __str__(self):
         return f"AxonInfo( {self.ip_str()}, {self.hotkey}, {self.coldkey}, {self.version} )"
