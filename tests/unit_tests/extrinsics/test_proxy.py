@@ -1,9 +1,8 @@
-import pytest
+from bittensor_wallet import Wallet
+from scalecodec.types import GenericCall
 
 from bittensor.core.extrinsics import proxy
 from bittensor.core.types import ExtrinsicResponse
-from scalecodec.types import GenericCall
-from bittensor_wallet import Wallet
 
 
 def test_add_proxy_extrinsic(subtensor, mocker):
