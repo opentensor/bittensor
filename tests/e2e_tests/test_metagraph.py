@@ -217,12 +217,12 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
         blocks_since_last_step=1,
         subnet_emission=Balance(0),
         alpha_in=Balance.from_tao(10).set_unit(1),
-        alpha_out=Balance.from_tao(block * alpha_per_block).set_unit(1),  # it's been 2 blocks
+        alpha_out=Balance.from_tao(1 + block * alpha_per_block).set_unit(1),  # it's been 2 blocks
         tao_in=Balance.from_tao(10),
-        alpha_out_emission=Balance.from_tao(0).set_unit(1),  # 1 alpha per block
+        alpha_out_emission=Balance.from_tao(block).set_unit(1),  # 1 alpha per block
         alpha_in_emission=Balance(0).set_unit(1),
         tao_in_emission=Balance(0),
-        pending_alpha_emission=Balance.from_tao(0).set_unit(1),  # minus owner cut already
+        pending_alpha_emission=Balance.from_tao(0.820004576).set_unit(1),  # minus owner cut already
         pending_root_emission=Balance(0),
         subnet_volume=Balance(0).set_unit(1),
         moving_price=Balance(0),
