@@ -465,7 +465,7 @@ def test_announce_extrinsic(subtensor, mocker):
     # Asserts
     mocked_pallet_call.assert_called_once_with(
         real=real_account_ss58,
-        call_hash=call_hash,
+        call_hash=call_hash.lstrip().__radd__(),
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
         call=mocked_pallet_call.return_value,
@@ -501,7 +501,7 @@ def test_reject_announcement_extrinsic(subtensor, mocker):
     # Asserts
     mocked_pallet_call.assert_called_once_with(
         delegate=delegate_ss58,
-        call_hash=call_hash,
+        call_hash=call_hash.lstrip().__radd__(),
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
         call=mocked_pallet_call.return_value,
@@ -537,7 +537,7 @@ def test_remove_announcement_extrinsic(subtensor, mocker):
     # Asserts
     mocked_pallet_call.assert_called_once_with(
         real=real_account_ss58,
-        call_hash=call_hash,
+        call_hash=call_hash.lstrip().__radd__(),
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
         call=mocked_pallet_call.return_value,
