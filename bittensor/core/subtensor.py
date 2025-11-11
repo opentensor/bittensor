@@ -4758,7 +4758,7 @@ class Subtensor(SubtensorMixin):
         return kill_pure_proxy_extrinsic(
             subtensor=self,
             wallet=wallet,
-            pure_proxy_ss58=pure_proxy_ss58,  # НОВЫЙ ПАРАМЕТР
+            pure_proxy_ss58=pure_proxy_ss58,
             spawner=spawner,
             proxy_type=proxy_type,
             index=index,
