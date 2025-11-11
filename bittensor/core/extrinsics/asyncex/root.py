@@ -1,7 +1,7 @@
 import asyncio
 from typing import Optional, TYPE_CHECKING, Literal
 
-from bittensor.core.extrinsics.params import RootParams
+from bittensor.core.extrinsics.pallets import SubtensorModule
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils import u16_normalized_float
 from bittensor.utils.balance import Balance
@@ -104,11 +104,10 @@ async def root_register_extrinsic(
         if is_registered:
             return ExtrinsicResponse(message="Already registered on root network.")
 
-        call = await subtensor.compose_call(
-            call_module="SubtensorModule",
-            call_function="root_register",
-            call_params=RootParams.root_register(wallet.hotkey.ss58_address),
+        call = await SubtensorModule(subtensor).root_register(
+            hotkey=wallet.hotkey.ss58_address
         )
+
         response = await subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
@@ -176,11 +175,10 @@ async def set_root_claim_type_extrinsic(
         ).success:
             return unlocked
 
-        call = await subtensor.compose_call(
-            call_module="SubtensorModule",
-            call_function="set_root_claim_type",
-            call_params=RootParams.set_root_claim_type(new_root_claim_type),
+        call = await SubtensorModule(subtensor).set_root_claim_type(
+            new_root_claim_type=new_root_claim_type
         )
+
         return await subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
@@ -225,11 +223,8 @@ async def claim_root_extrinsic(
         ).success:
             return unlocked
 
-        call = await subtensor.compose_call(
-            call_module="SubtensorModule",
-            call_function="claim_root",
-            call_params=RootParams.claim_root(netuids),
-        )
+        call = await SubtensorModule(subtensor).claim_root(subnets=netuids)
+
         return await subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,

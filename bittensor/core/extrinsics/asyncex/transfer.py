@@ -1,7 +1,8 @@
 import asyncio
 from typing import TYPE_CHECKING, Optional
 
-from bittensor.core.extrinsics.params import get_transfer_fn_params
+from bittensor.core.extrinsics.pallets import Balances
+from bittensor.core.extrinsics.utils import get_transfer_fn_params
 from bittensor.core.settings import NETWORK_EXPLORER_MAP, DEFAULT_NETWORK
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils import (
@@ -45,7 +46,7 @@ async def transfer_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
-        bool: True if the subnet registration was successful, False otherwise.
+        ExtrinsicResponse: The result object of the extrinsic execution.
     """
     try:
         if not (
@@ -103,11 +104,7 @@ async def transfer_extrinsic(
             amount, destination_ss58, keep_alive
         )
 
-        call = await subtensor.compose_call(
-            call_module="Balances",
-            call_function=call_function,
-            call_params=call_params,
-        )
+        call = await getattr(Balances(subtensor), call_function)(**call_params)
 
         response = await subtensor.sign_and_send_extrinsic(
             call=call,

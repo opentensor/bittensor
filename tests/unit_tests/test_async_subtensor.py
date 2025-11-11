@@ -4710,7 +4710,7 @@ async def test_get_root_claimable_rate(mocker, subtensor):
     # Asserts
     mocked_get_root_claimable_all_rates.assert_awaited_once_with(
         hotkey_ss58=hotkey_ss58,
-        block=None,
+        block_hash=None,
     )
     assert result == 0.0
 
@@ -4885,3 +4885,75 @@ async def test_set_root_claim_type(mocker, subtensor):
         wait_for_finalization=True,
     )
     assert response == mocked_set_root_claim_type_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_all_ema_tao_inflow(subtensor, mocker):
+    """Test get_all_ema_tao_inflow returns correct values."""
+    # Preps
+    fake_block = 123
+    fake_netuid = 1
+    fake_block_updated = 100
+    fake_tao_bits = {"bits": 6520190}
+
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    fake_query_result = [(fake_netuid, (fake_block_updated, fake_tao_bits))]
+
+    fake_result = mocker.AsyncMock(autospec=list)
+    fake_result.__aiter__.return_value = iter(fake_query_result)
+
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate,
+        "query_map",
+        return_value=fake_result,
+    )
+    mocked_fixed_to_float = mocker.patch.object(
+        async_subtensor, "fixed_to_float", return_value=1000000
+    )
+
+    # Call
+    result = await subtensor.get_all_ema_tao_inflow(block=fake_block)
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(fake_block, None, False)
+    mocked_query_map.assert_awaited_once_with(
+        module="SubtensorModule",
+        storage_function="SubnetEmaTaoFlow",
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    mocked_fixed_to_float.assert_called_once_with(fake_tao_bits)
+    assert result == {fake_netuid: (fake_block_updated, Balance.from_rao(1000000))}
+
+
+@pytest.mark.asyncio
+async def test_get_ema_tao_inflow(subtensor, mocker):
+    """Test get_ema_tao_inflow returns correct values."""
+    # Preps
+    fake_block = 123
+    fake_netuid = 1
+    fake_block_updated = 100
+    fake_tao_bits = {"bits": 6520190}
+
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query = mocker.patch.object(
+        subtensor.substrate,
+        "query",
+        return_value=mocker.Mock(value=(fake_block_updated, fake_tao_bits)),
+    )
+    mocked_fixed_to_float = mocker.patch.object(
+        async_subtensor, "fixed_to_float", return_value=1000000
+    )
+
+    # Call
+    result = await subtensor.get_ema_tao_inflow(netuid=fake_netuid, block=fake_block)
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(fake_block)
+    mocked_query.assert_awaited_once_with(
+        module="SubtensorModule",
+        storage_function="SubnetEmaTaoFlow",
+        params=[fake_netuid],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    mocked_fixed_to_float.assert_called_once_with(fake_tao_bits)
+    assert result == (fake_block_updated, Balance.from_rao(1000000))
