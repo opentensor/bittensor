@@ -201,7 +201,7 @@ class ProxyInfo:
         Creates a list of ProxyInfo objects and deposit balance from a Substrate query result.
 
         Parameters:
-            query: Query result from Substrate containing proxy data structure.
+            query: Query result from Substrate `query()` call to `Proxy.Proxies` storage function.
 
         Returns:
             Tuple containing:
