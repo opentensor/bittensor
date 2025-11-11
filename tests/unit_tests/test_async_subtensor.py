@@ -5320,6 +5320,7 @@ async def test_kill_pure_proxy(mocker, subtensor):
         index=index,
         height=height,
         ext_index=ext_index,
+        force_proxy_type=async_subtensor.ProxyType.Any,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
