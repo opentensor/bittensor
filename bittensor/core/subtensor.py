@@ -4715,6 +4715,7 @@ class Subtensor(SubtensorMixin):
         index: int,
         height: int,
         ext_index: int,
+        force_proxy_type: Optional[Union[str, "ProxyType"]] = ProxyType.Any,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -4740,6 +4741,13 @@ class Subtensor(SubtensorMixin):
             index: The disambiguation index originally passed to `create_pure`.
             height: The block height at which the pure proxy was created.
             ext_index: The extrinsic index at which the pure proxy was created.
+            force_proxy_type: The proxy type relationship to use when executing `kill_pure` through the proxy mechanism.
+                Since pure proxies are keyless and cannot sign transactions, the spawner must act as a proxy for the
+                pure proxy to execute `kill_pure`. This parameter specifies which proxy type relationship between the
+                spawner and the pure proxy account should be used. The spawner must have a proxy relationship of this
+                type (or `Any`) with the pure proxy account. Defaults to `ProxyType.Any` for maximum compatibility. If
+                `None`, Substrate will automatically select an available proxy type from the spawner's proxy
+                relationships.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -4764,6 +4772,7 @@ class Subtensor(SubtensorMixin):
             index=index,
             height=height,
             ext_index=ext_index,
+            force_proxy_type=force_proxy_type,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
