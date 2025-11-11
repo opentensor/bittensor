@@ -308,6 +308,7 @@ async def kill_pure_proxy_extrinsic(
     index: int,
     height: int,
     ext_index: int,
+    force_proxy_type: Optional[Union[str, ProxyType]] = ProxyType.Any,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
@@ -329,11 +330,17 @@ async def kill_pure_proxy_extrinsic(
             in the `create_pure_proxy()` response.
         spawner: The SS58 address of the spawner account (the account that originally created the pure proxy via
             `create_pure_proxy()`). This should match wallet.coldkey.ss58_address.
-        proxy_type: The type of proxy permissions. Can be a string or ProxyType enum value. Must match the proxy_type
-            used when creating the pure proxy.
+        proxy_type: The type of proxy permissions that were used when creating the pure proxy. This must match exactly
+            the proxy_type that was passed to `create_pure_proxy()`.
         index: The disambiguation index originally passed to `create_pure()`.
         height: The block height at which the pure proxy was created.
         ext_index: The extrinsic index at which the pure proxy was created.
+        force_proxy_type: The proxy type relationship to use when executing `kill_pure` through the proxy mechanism.
+            Since pure proxies are keyless and cannot sign transactions, the spawner must act as a proxy for the pure
+            proxy to execute `kill_pure`. This parameter specifies which proxy type relationship between the spawner and
+            the pure proxy account should be used. The spawner must have a proxy relationship of this type (or `Any`)
+            with the pure proxy account. Defaults to `ProxyType.Any` for maximum compatibility. If `None`, Substrate
+            will automatically select an available proxy type from the spawner's proxy relationships.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
@@ -345,32 +352,37 @@ async def kill_pure_proxy_extrinsic(
         ExtrinsicResponse: The result object of the extrinsic execution.
 
     Note:
-        The `kill_pure` call must be executed through the pure proxy account itself, with the spawner acting as an "Any"
-        proxy. This method automatically handles this by executing the call via `proxy()`. The spawner must have an
-        "Any" proxy relationship with the pure proxy for this to work.
+        The `kill_pure` call must be executed through the pure proxy account itself, with the spawner acting as a proxy.
+        This method automatically handles this by executing the call via `proxy()`. By default, `force_proxy_type` is
+        set to `ProxyType.Any`, meaning the spawner must have an "Any" proxy relationship with the pure proxy. If you
+        pass a different `force_proxy_type`, the spawner must have that specific proxy type relationship with the pure
+        proxy.
 
     Example:
         # After creating a pure proxy
-        create_response = await subtensor.proxies.create_pure_proxy(
+        create_response = subtensor.proxies.create_pure_proxy(
             wallet=spawner_wallet,
-            proxy_type=ProxyType.Any,
+            proxy_type=ProxyType.Any,  # Type of proxy permissions for the pure proxy
             delay=0,
             index=0,
         )
         pure_proxy_ss58 = create_response.data["pure_account"]
         spawner = create_response.data["spawner"]
+        proxy_type_used = create_response.data["proxy_type"]  # The proxy_type used during creation
         height = create_response.data["height"]
         ext_index = create_response.data["ext_index"]
 
         # Kill the pure proxy
-        kill_response = await subtensor.proxies.kill_pure_proxy(
+        # Note: force_proxy_type defaults to ProxyType.Any (spawner must have Any proxy relationship)
+        kill_response = subtensor.proxies.kill_pure_proxy(
             wallet=spawner_wallet,
             pure_proxy_ss58=pure_proxy_ss58,
             spawner=spawner,
-            proxy_type=ProxyType.Any,
+            proxy_type=proxy_type_used,  # Must match the proxy_type used during creation
             index=0,
             height=height,
             ext_index=ext_index,
+            # force_proxy_type=ProxyType.Any,  # Optional: defaults to ProxyType.Any
         )
     """
     try:
@@ -410,12 +422,12 @@ async def kill_pure_proxy_extrinsic(
         # Execute kill_pure through proxy() where:
         # - wallet (spawner) signs the transaction
         # - real_account_ss58 (pure_proxy_ss58) is the origin (pure proxy account)
-        # - force_proxy_type=Any (spawner acts as Any proxy for pure proxy)
+        # - force_proxy_type (defaults to ProxyType.Any, spawner acts as proxy for pure proxy)
         response = await proxy_extrinsic(
             subtensor=subtensor,
             wallet=wallet,
             real_account_ss58=pure_proxy_ss58,
-            force_proxy_type=ProxyType.Any,
+            force_proxy_type=force_proxy_type,
             call=kill_pure_call,
             period=period,
             raise_error=raise_error,
