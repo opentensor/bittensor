@@ -2765,7 +2765,7 @@ class AsyncSubtensor(SubtensorMixin):
         result = await self._query_with_fallback(
             ("SubtensorModule", "MechanismEmissionSplit", [netuid]),
             block_hash=block_hash,
-            default_value=None
+            default_value=None,
         )
         if result is None or not hasattr(result, "value"):
             return None
