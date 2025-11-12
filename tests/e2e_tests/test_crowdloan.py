@@ -1,5 +1,5 @@
 from bittensor import Balance
-from bittensor.core.extrinsics.registration import RegistrationParams
+from bittensor.core.extrinsics.pallets import SubtensorModule
 from bittensor_wallet import Wallet
 import pytest
 import asyncio
@@ -903,12 +903,8 @@ def test_crowdloan_with_call(
         - Confirm subnet owner is Fred
     """
     # create crowdloan's call
-    crowdloan_call = subtensor.compose_call(
-        call_module="SubtensorModule",
-        call_function="register_network",
-        call_params=RegistrationParams.register_network(
-            hotkey_ss58=fred_wallet.hotkey.ss58_address
-        ),
+    crowdloan_call = SubtensorModule(subtensor).register_network(
+        hotkey=fred_wallet.hotkey.ss58_address
     )
 
     next_crowdloan = subtensor.crowdloans.get_crowdloan_next_id()
@@ -1010,12 +1006,8 @@ async def test_crowdloan_with_call_async(
         - Confirm subnet owner is Fred
     """
     # create crowdloan's call
-    crowdloan_call = await async_subtensor.compose_call(
-        call_module="SubtensorModule",
-        call_function="register_network",
-        call_params=RegistrationParams.register_network(
-            hotkey_ss58=fred_wallet.hotkey.ss58_address
-        ),
+    crowdloan_call = await SubtensorModule(async_subtensor).register_network(
+        hotkey=fred_wallet.hotkey.ss58_address
     )
 
     crowdloan_cap = Balance.from_tao(30)

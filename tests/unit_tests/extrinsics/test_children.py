@@ -64,7 +64,10 @@ def test_root_set_pending_childkey_cooldown_extrinsic(subtensor, mocker, fake_wa
     # Preps
     cooldown = 100
 
-    subtensor.compose_call = mocker.Mock()
+    mocked_pallet_compose_call = mocker.patch.object(
+        children.SubtensorModule, "set_pending_childkey_cooldown"
+    )
+    mocked_pallet_sudo_compose_call = mocker.patch.object(children.Sudo, "sudo")
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
@@ -78,13 +81,13 @@ def test_root_set_pending_childkey_cooldown_extrinsic(subtensor, mocker, fake_wa
         cooldown=cooldown,
     )
     # Asserts
-
+    mocked_pallet_compose_call.assert_called_once_with(cooldown=cooldown)
+    mocked_pallet_sudo_compose_call.assert_called_once_with(
+        call=mocked_pallet_compose_call.return_value
+    )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
-        call=subtensor.compose_call.return_value,
+        call=mocked_pallet_sudo_compose_call.return_value,
         wallet=fake_wallet,
-        nonce_key="hotkey",
-        sign_with="coldkey",
-        use_nonce=False,
         period=None,
         raise_error=False,
         wait_for_inclusion=True,

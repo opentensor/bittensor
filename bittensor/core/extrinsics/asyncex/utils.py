@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Optional
 
+from bittensor.core.extrinsics.pallets import Sudo
 from bittensor.core.types import ExtrinsicResponse
 
 if TYPE_CHECKING:
@@ -58,11 +59,7 @@ async def sudo_call_extrinsic(
             call_params=call_params,
         )
         if not root_call:
-            call = await subtensor.compose_call(
-                call_module="Sudo",
-                call_function="sudo",
-                call_params={"call": call},
-            )
+            call = await Sudo(subtensor).sudo(call)
 
         return await subtensor.sign_and_send_extrinsic(
             call=call,

@@ -469,7 +469,6 @@ def determine_chain_endpoint_and_network(
         "entrypoint-finney.opentensor.ai": ("finney", settings.FINNEY_ENTRYPOINT),
         "test.finney.opentensor.ai": ("test", settings.FINNEY_TEST_ENTRYPOINT),
         "archive.chain.opentensor.ai": ("archive", settings.ARCHIVE_ENTRYPOINT),
-        "subvortex": ("subvortex", settings.SUBVORTEX_ENTRYPOINT),
         "127.0.0.1": ("local", network),
         "localhost": ("local", network),
     }

@@ -14,7 +14,9 @@ async def test_contribute_crowdloan_extrinsic(subtensor, mocker):
     fake_crowdloan_id = mocker.Mock(spec=int)
     fake_amount = mocker.MagicMock(spec=Balance, rao=mocker.Mock(spec=int))
 
-    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
+    mocked_pallet_compose_call = mocker.patch.object(
+        crowdloan.Crowdloan, "contribute", new=mocker.AsyncMock()
+    )
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
@@ -30,16 +32,12 @@ async def test_contribute_crowdloan_extrinsic(subtensor, mocker):
     )
 
     # Assertions
-    mocked_compose_call.assert_awaited_once_with(
-        call_module="Crowdloan",
-        call_function="contribute",
-        call_params=crowdloan.CrowdloanParams.contribute(
-            fake_crowdloan_id, fake_amount
-        ),
+    mocked_pallet_compose_call.assert_awaited_once_with(
+        crowdloan_id=fake_crowdloan_id,
+        amount=fake_amount.rao,
     )
-
     mocked_sign_and_send_extrinsic.assert_awaited_once_with(
-        call=mocked_compose_call.return_value,
+        call=mocked_pallet_compose_call.return_value,
         wallet=faked_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -63,7 +61,9 @@ async def test_create_crowdloan_extrinsic(subtensor, mocker):
     fake_call = mocker.MagicMock(spec=GenericCall)
     fake_target_address = mocker.MagicMock(spec=str)
 
-    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
+    mocked_pallet_compose_call = mocker.patch.object(
+        crowdloan.Crowdloan, "create", new=mocker.AsyncMock()
+    )
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
@@ -83,21 +83,16 @@ async def test_create_crowdloan_extrinsic(subtensor, mocker):
     )
 
     # Assertions
-    mocked_compose_call.assert_awaited_once_with(
-        call_module="Crowdloan",
-        call_function="create",
-        call_params=crowdloan.CrowdloanParams.create(
-            fake_deposit,
-            fake_min_contribution,
-            fake_cap,
-            fake_end,
-            fake_call,
-            fake_target_address,
-        ),
+    mocked_pallet_compose_call.assert_awaited_once_with(
+        deposit=fake_deposit.rao,
+        min_contribution=fake_min_contribution.rao,
+        cap=fake_cap.rao,
+        end=fake_end,
+        call=fake_call,
+        target_address=fake_target_address,
     )
-
     mocked_sign_and_send_extrinsic.assert_awaited_once_with(
-        call=mocked_compose_call.return_value,
+        call=mocked_pallet_compose_call.return_value,
         wallet=faked_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -125,7 +120,9 @@ async def test_same_params_extrinsics(subtensor, mocker, extrinsic, subtensor_fu
     faked_wallet = mocker.Mock(spec=Wallet)
     fake_crowdloan_id = mocker.Mock(spec=int)
 
-    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
+    mocked_pallet_compose_call = mocker.patch.object(
+        crowdloan.Crowdloan, subtensor_function, new=mocker.AsyncMock()
+    )
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
@@ -140,16 +137,9 @@ async def test_same_params_extrinsics(subtensor, mocker, extrinsic, subtensor_fu
     )
 
     # Assertions
-    mocked_compose_call.assert_awaited_once_with(
-        call_module="Crowdloan",
-        call_function=subtensor_function,
-        call_params=getattr(crowdloan.CrowdloanParams, subtensor_function)(
-            fake_crowdloan_id
-        ),
-    )
-
+    mocked_pallet_compose_call.assert_awaited_once_with(crowdloan_id=fake_crowdloan_id)
     mocked_sign_and_send_extrinsic.assert_awaited_once_with(
-        call=mocked_compose_call.return_value,
+        call=mocked_pallet_compose_call.return_value,
         wallet=faked_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -169,7 +159,9 @@ async def test_update_cap_crowdloan_extrinsic(subtensor, mocker):
     fake_crowdloan_id = mocker.Mock(spec=int)
     fake_new_cap = mocker.MagicMock(spec=Balance, rao=mocker.Mock(spec=int))
 
-    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
+    mocked_pallet_compose_call = mocker.patch.object(
+        crowdloan.Crowdloan, "update_cap", new=mocker.AsyncMock()
+    )
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
@@ -185,16 +177,12 @@ async def test_update_cap_crowdloan_extrinsic(subtensor, mocker):
     )
 
     # Assertions
-    mocked_compose_call.assert_awaited_once_with(
-        call_module="Crowdloan",
-        call_function="update_cap",
-        call_params=crowdloan.CrowdloanParams.update_cap(
-            fake_crowdloan_id, fake_new_cap
-        ),
+    mocked_pallet_compose_call.assert_awaited_once_with(
+        crowdloan_id=fake_crowdloan_id,
+        new_cap=fake_new_cap.rao,
     )
-
     mocked_sign_and_send_extrinsic.assert_awaited_once_with(
-        call=mocked_compose_call.return_value,
+        call=mocked_pallet_compose_call.return_value,
         wallet=faked_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -214,7 +202,9 @@ async def test_update_end_crowdloan_extrinsic(subtensor, mocker):
     fake_crowdloan_id = mocker.Mock(spec=int)
     fake_new_end = mocker.MagicMock(spec=int)
 
-    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
+    mocked_pallet_compose_call = mocker.patch.object(
+        crowdloan.Crowdloan, "update_end", new=mocker.AsyncMock()
+    )
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
@@ -230,16 +220,12 @@ async def test_update_end_crowdloan_extrinsic(subtensor, mocker):
     )
 
     # Assertions
-    mocked_compose_call.assert_awaited_once_with(
-        call_module="Crowdloan",
-        call_function="update_end",
-        call_params=crowdloan.CrowdloanParams.update_end(
-            fake_crowdloan_id, fake_new_end
-        ),
+    mocked_pallet_compose_call.assert_awaited_once_with(
+        crowdloan_id=fake_crowdloan_id,
+        new_end=fake_new_end,
     )
-
     mocked_sign_and_send_extrinsic.assert_awaited_once_with(
-        call=mocked_compose_call.return_value,
+        call=mocked_pallet_compose_call.return_value,
         wallet=faked_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -261,7 +247,9 @@ async def test_update_min_contribution_crowdloan_extrinsic(subtensor, mocker):
         spec=Balance, rao=mocker.Mock(spec=int)
     )
 
-    mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
+    mocked_pallet_compose_call = mocker.patch.object(
+        crowdloan.Crowdloan, "update_min_contribution", new=mocker.AsyncMock()
+    )
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         subtensor,
         "sign_and_send_extrinsic",
@@ -277,16 +265,12 @@ async def test_update_min_contribution_crowdloan_extrinsic(subtensor, mocker):
     )
 
     # Assertions
-    mocked_compose_call.assert_awaited_once_with(
-        call_module="Crowdloan",
-        call_function="update_min_contribution",
-        call_params=crowdloan.CrowdloanParams.update_min_contribution(
-            fake_crowdloan_id, fake_new_min_contribution
-        ),
+    mocked_pallet_compose_call.assert_awaited_once_with(
+        crowdloan_id=fake_crowdloan_id,
+        new_min_contribution=fake_new_min_contribution.rao,
     )
-
     mocked_sign_and_send_extrinsic.assert_awaited_once_with(
-        call=mocked_compose_call.return_value,
+        call=mocked_pallet_compose_call.return_value,
         wallet=faked_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,

@@ -101,7 +101,7 @@ from bittensor.core.extrinsics.asyncex.weights import (
     reveal_weights_extrinsic,
     set_weights_extrinsic,
 )
-from bittensor.core.extrinsics.params.transfer import get_transfer_fn_params
+from bittensor.core.extrinsics.utils import get_transfer_fn_params
 from bittensor.core.metagraph import AsyncMetagraph
 from bittensor.core.settings import (
     version_as_int,

@@ -3,7 +3,10 @@ import re
 import time
 
 import pytest
+from scalecodec import GenericCall
 
+from bittensor.core.extrinsics.pallets.base import CallBuilder
+from bittensor.core.settings import DEFAULT_PERIOD
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils import (
@@ -458,3 +461,164 @@ async def test_block_info(async_subtensor, block, block_hash, result):
         assert (res is not None) == result
     except Exception as e:
         assert "Either block_hash or block_number should be set" in str(e)
+
+
+def test_call_creates_dynamically(subtensor, alice_wallet, bob_wallet):
+    """Tests that GenericCall can be created dynamically.
+
+    Steps:
+    - Create class-pallet SubtensorModule without any subtensor functions.
+    - Create GenericCall for register_network.
+    - Verify that the call is created successfully.
+    - Register subnet.
+    - Verify that the subnet is registered successfully.
+    - Create GenericCall for burned_register.
+    - Verify that the call is created successfully.
+    - Register neuron and verify that the neuron is registered successfully.
+    """
+
+    # kinda empty class without defined functions
+    class SubtensorModule(CallBuilder): ...
+
+    # check subnets amount before register
+    all_subnets_before = subtensor.subnets.get_total_subnets()
+
+    # create call dynamically
+    subnet_register_call = SubtensorModule(
+        subtensor, dynamic_function=True
+    ).register_network(hotkey=alice_wallet.hotkey.ss58_address)
+    assert isinstance(subnet_register_call, GenericCall), "GenericCall not created."
+
+    # call extrinsic with dynamic call
+    response = subtensor.inner_subtensor.sign_and_send_extrinsic(
+        call=subnet_register_call,
+        wallet=alice_wallet,
+        period=DEFAULT_PERIOD,
+        wait_for_finalization=True,
+    )
+    assert response.success, response.message
+
+    # check subnets amount after register
+    all_subnets_after = subtensor.subnets.get_total_subnets()
+    assert all_subnets_after == all_subnets_before + 1, "Subnet not registered."
+
+    netuid = all_subnets_after - 1
+
+    # check neurons amount after register one more neuron
+    neurons = subtensor.neurons.neurons(netuid)
+    assert len(neurons) == 1, "No neurons found or more than one."
+
+    # create call with wrong function name
+    with pytest.raises(ValueError):
+        CallBuilder(subtensor, dynamic_function=False).create_composed_call(
+            call_module="SubtensorModule",
+            call_function="some_call_function",
+            netuid=netuid,
+            hotkey=bob_wallet.hotkey.ss58_address,
+        )
+
+    # create call dynamically
+    burned_register_call = CallBuilder(
+        subtensor, dynamic_function=True
+    ).create_composed_call(
+        call_module="SubtensorModule",
+        call_function="burned_register",
+        netuid=netuid,
+        hotkey=bob_wallet.hotkey.ss58_address,
+    )
+    assert isinstance(burned_register_call, GenericCall), "GenericCall not created."
+
+    # call extrinsic with dynamic call
+    response = subtensor.inner_subtensor.sign_and_send_extrinsic(
+        call=burned_register_call,
+        wallet=bob_wallet,
+        period=DEFAULT_PERIOD,
+        wait_for_finalization=True,
+    )
+    assert response.success, response.message
+
+    # check neurons amount after register one more neuron
+    neurons = subtensor.neurons.neurons(netuid)
+    assert len(neurons) == 2, "Bon is not registered."
+
+
+@pytest.mark.asyncio
+async def test_call_creates_dynamically_async(
+    async_subtensor, alice_wallet, bob_wallet
+):
+    """Tests that GenericCall can be created dynamically.
+
+    Steps:
+    - Create class-pallet SubtensorModule without any subtensor functions.
+    - Create GenericCall for register_network.
+    - Verify that the call is created successfully.
+    - Register subnet.
+    - Verify that the subnet is registered successfully.
+    - Create GenericCall for burned_register.
+    - Verify that the call is created successfully.
+    - Register neuron and verify that the neuron is registered successfully.
+    """
+
+    # kinda empty class without defined functions
+    class SubtensorModule(CallBuilder): ...
+
+    # check subnets amount before register
+    all_subnets_before = await async_subtensor.subnets.get_total_subnets()
+
+    # create call dynamically
+    subnet_register_call = await SubtensorModule(
+        async_subtensor, dynamic_function=True
+    ).register_network(hotkey=alice_wallet.hotkey.ss58_address)
+    assert isinstance(subnet_register_call, GenericCall), "GenericCall not created."
+
+    # call extrinsic with dynamic call
+    response = await async_subtensor.inner_subtensor.sign_and_send_extrinsic(
+        call=subnet_register_call,
+        wallet=alice_wallet,
+        period=DEFAULT_PERIOD,
+        wait_for_finalization=True,
+    )
+    assert response.success, response.message
+
+    # check subnets amount after register
+    all_subnets_after = await async_subtensor.subnets.get_total_subnets()
+    assert all_subnets_after == all_subnets_before + 1, "Subnet not registered."
+
+    netuid = all_subnets_after - 1
+
+    # check neurons amount after register one more neuron
+    neurons = await async_subtensor.neurons.neurons(netuid)
+    assert len(neurons) == 1, "No neurons found or more than one."
+
+    # create call with wrong function name
+    with pytest.raises(ValueError):
+        await CallBuilder(async_subtensor, dynamic_function=False).create_composed_call(
+            call_module="SubtensorModule",
+            call_function="some_call_function",
+            netuid=netuid,
+            hotkey=bob_wallet.hotkey.ss58_address,
+        )
+
+    # create call dynamically
+    burned_register_call = await CallBuilder(
+        async_subtensor, dynamic_function=True
+    ).create_composed_call(
+        call_module="SubtensorModule",
+        call_function="burned_register",
+        netuid=netuid,
+        hotkey=bob_wallet.hotkey.ss58_address,
+    )
+    assert isinstance(burned_register_call, GenericCall), "GenericCall not created."
+
+    # call extrinsic with dynamic call
+    response = await async_subtensor.inner_subtensor.sign_and_send_extrinsic(
+        call=burned_register_call,
+        wallet=bob_wallet,
+        period=DEFAULT_PERIOD,
+        wait_for_finalization=True,
+    )
+    assert response.success, response.message
+
+    # check neurons amount after register one more neuron
+    neurons = await async_subtensor.neurons.neurons(netuid)
+    assert len(neurons) == 2, "Bon is not registered."
