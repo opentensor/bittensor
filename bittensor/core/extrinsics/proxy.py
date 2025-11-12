@@ -358,7 +358,8 @@ def kill_pure_proxy_extrinsic(
         proxy.
 
     Warning:
-        Any funds remaining in the pure proxy account will become permanently inaccessible after this operation.
+        All access to this account will be lost. Any funds remaining in the pure proxy account will become permanently
+        inaccessible after this operation.
 
     Example:
         # After creating a pure proxy
