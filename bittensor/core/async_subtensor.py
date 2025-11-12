@@ -500,6 +500,95 @@ class AsyncSubtensor(SubtensorMixin):
 
         return param_data.to_hex()
 
+    async def _runtime_method_exists(
+        self, api: str, method: str, block_hash: str
+    ) -> bool:
+        """
+        Check if a runtime call method exists at the given block.
+
+        The complicated logic here comes from the fact that there are two ways in which runtime calls
+        are stored: the new and primary method is through the Metadata V15, but the V14 is a good backup (implemented
+        around mid 2024)
+
+        Returns:
+            True if the runtime call method exists, False otherwise.
+        """
+        runtime = await self.substrate.init_runtime(block_hash=block_hash)
+        if runtime.metadata_v15 is not None:
+            metadata_v15_value = runtime.metadata_v15.value()
+            apis = {entry["name"]: entry for entry in metadata_v15_value["apis"]}
+            try:
+                api_entry = apis[api]
+                methods = {entry["name"]: entry for entry in api_entry["methods"]}
+                _ = methods[method]
+                return True
+            except KeyError:
+                return False
+        else:
+            try:
+                await self.substrate.get_metadata_runtime_call_function(
+                    api=api,
+                    method=method,
+                    block_hash=block_hash,
+                )
+                return True
+            except ValueError:
+                return False
+
+    async def _query_with_fallback(
+        self,
+        *args: tuple[str, str, Optional[list[Any]]],
+        block_hash: Optional[str] = None,
+        default_value: Any = ValueError,
+    ):
+        """
+        Queries the subtensor node with a given set of args, falling back to the next group if the method
+        does not exist at the given block. This method exists to support backwards compatibility for blocks.
+
+        Parameters:
+            *args: Tuples containing (module, storage_function, params) in the order they should be attempted.
+            block_hash: The hash of the block being queried. If not provided, the chain tip will be used.
+            default_value: The default value to return if none of the methods exist at the given block.
+
+        Returns:
+            The value returned by the subtensor node, or the default value if none of the methods exist at the given
+            block.
+
+        Raises:
+            ValueError: If no default value is provided, and none of the methods exist at the given block, a
+                ValueError will be raised.
+
+        Example:
+            value = await self._query_with_fallback(
+                # the first attempt will be made to SubtensorModule.MechanismEmissionSplit with params `[1]`
+                ("SubtensorModule", "MechanismEmissionSplit", [1]),
+                # if it does not exist at the given block, the next attempt will be made to
+                # SubtensorModule.MechanismEmission with params `None`
+                ("SubtensorModule", "MechanismEmission", None),
+                block_hash="0x1234",
+                # if none of the methods exist at the given block, the default value of `None` will be returned
+                default_value=None,
+            )
+        """
+        if block_hash is None:
+            block_hash = await self.substrate.get_chain_head()
+        for module, storage_function, params in args:
+            if await self.substrate.get_metadata_storage_function(
+                module_name=module,
+                storage_name=storage_function,
+                block_hash=block_hash,
+            ):
+                return await self.substrate.query(
+                    module=module,
+                    storage_function=storage_function,
+                    block_hash=block_hash,
+                    params=params,
+                )
+        if not isinstance(default_value, ValueError):
+            return default_value
+        else:
+            raise default_value
+
     async def get_hyperparameter(
         self,
         param_name: str,
@@ -2673,19 +2762,10 @@ class AsyncSubtensor(SubtensorMixin):
             whole numbers). Returns None if emission is evenly split or if the data is unavailable.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        module = "SubtensorModule"
-        storage_function = "MechanismEmissionSplit"
-        if not await self.substrate.get_metadata_storage_function(
-            module,
-            storage_function,
+        result = await self._query_with_fallback(
+            ("SubtensorModule", "MechanismEmissionSplit", [netuid]),
             block_hash=block_hash,
-        ):
-            return None
-        result = await self.substrate.query(
-            module=module,
-            storage_function=storage_function,
-            params=[netuid],
-            block_hash=block_hash,
+            default_value=None
         )
         if result is None or not hasattr(result, "value"):
             return None
@@ -2711,56 +2791,12 @@ class AsyncSubtensor(SubtensorMixin):
             The number of mechanisms for the given subnet.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        module = "SubtensorModule"
-        storage_function = "MechanismCountCurrent"
-        if not await self.substrate.get_metadata_storage_function(
-            module,
-            storage_function,
+        query = await self._query_with_fallback(
+            ("SubtensorModule", "MechanismCountCurrent", [netuid]),
             block_hash=block_hash,
-        ):
-            return 1
-        query = await self.substrate.query(
-            module=module,
-            storage_function=storage_function,
-            params=[netuid],
-            block_hash=block_hash,
+            default_value=None,
         )
         return getattr(query, "value", 1)
-
-    async def _runtime_method_exists(
-        self, api: str, method: str, block_hash: str
-    ) -> bool:
-        """
-        Check if a runtime call method exists at the given block.
-
-        The complicated logic here comes from the fact that there are two ways in which runtime calls
-        are stored: the new and primary method is through the Metadata V15, but the V14 is a good backup (implemented
-        around mid 2024)
-
-        Returns:
-            True if the runtime call method exists, False otherwise.
-        """
-        runtime = await self.substrate.init_runtime(block_hash=block_hash)
-        if runtime.metadata_v15 is not None:
-            metadata_v15_value = runtime.metadata_v15.value()
-            apis = {entry["name"]: entry for entry in metadata_v15_value["apis"]}
-            try:
-                api_entry = apis[api]
-                methods = {entry["name"]: entry for entry in api_entry["methods"]}
-                _ = methods[method]
-                return True
-            except KeyError:
-                return False
-        else:
-            try:
-                await self.substrate.get_metadata_runtime_call_function(
-                    api=api,
-                    method=method,
-                    block_hash=block_hash,
-                )
-                return True
-            except ValueError:
-                return False
 
     async def get_metagraph_info(
         self,
