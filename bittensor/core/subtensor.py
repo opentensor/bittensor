@@ -406,6 +406,59 @@ class Subtensor(SubtensorMixin):
         else:
             raise default_value
 
+    def _runtime_call_with_fallback(
+        self,
+        *args: tuple[str, str, Optional[list[Any]] | dict[str, Any]],
+        block_hash: Optional[str] = None,
+        default_value: Any = ValueError,
+    ):
+        """
+        Makes a runtime call to the subtensor node with a given set of args, falling back to the next group if the
+        api.method does not exist at the given block. This method exists to support backwards compatibility for blocks.
+
+        Parameters:
+            *args: Tuples containing (api, method, params) in the order they should be attempted.
+            block_hash: The hash of the block being queried. If not provided, the chain tip will be used.
+            default_value: The default value to return if none of the methods exist at the given block.
+
+        Raises:
+            ValueError: If no default value is provided, and none of the methods exist at the given block, a
+                ValueError will be raised.
+
+        Example:
+            query = self._runtime_call_with_fallback(
+                # the first attempt will be made to SubnetInfoRuntimeApi.get_selective_mechagraph with the
+                # given params
+                (
+                    "SubnetInfoRuntimeApi",
+                    "get_selective_mechagraph",
+                    [netuid, mechid, [f for f in range(len(SelectiveMetagraphIndex))]],
+                ),
+                # if it does not exist at the given block, the next attempt will be made as such:
+                ("SubnetInfoRuntimeApi", "get_metagraph", [[netuid]]),
+                block_hash=block_hash,
+                # if none of the methods exist at the given block, the default value will be returned
+                default_value=None,
+            )
+
+        """
+        if block_hash is None:
+            block_hash = self.substrate.get_chain_head()
+        for api, method, params in args:
+            if self._runtime_method_exists(
+                api=api, method=method, block_hash=block_hash
+            ):
+                return self.substrate.runtime_call(
+                    api=api,
+                    method=method,
+                    block_hash=block_hash,
+                    params=params,
+                )
+        if not isinstance(default_value, ValueError):
+            return default_value
+        else:
+            raise default_value
+
     def get_hyperparameter(
         self, param_name: str, netuid: int, block: Optional[int] = None
     ) -> Optional[Any]:
@@ -2111,39 +2164,6 @@ class Subtensor(SubtensorMixin):
             - <https://docs.learnbittensor.org/glossary#emission>
         """
 
-        def _determine_fetch_method(block_hash_: str) -> tuple[str, list]:
-            """Determine the best available runtime call method and its parameters for the given block/params"""
-
-            # Try selective mechagraph first (newest)
-            if self._runtime_method_exists(
-                "SubnetInfoRuntimeApi", "get_selective_mechagraph", block_hash_
-            ):
-                if indexes is not None:
-                    return "get_selective_mechagraph", [netuid, mechid, indexes]
-                return "get_selective_mechagraph", [
-                    netuid,
-                    mechid,
-                    list(range(len(SelectiveMetagraphIndex))),
-                ]
-
-            # Try selective metagraph (older)
-            if self._runtime_method_exists(
-                "SubnetInfoRuntimeApi", "get_selective_metagraph", block_hash_
-            ):
-                if indexes is not None:
-                    return "get_selective_metagraph", [netuid, indexes]
-                # Fall through to get_metagraph if no indexes specified
-            elif indexes is not None:
-                # User requested selective retrieval but it's not available
-                raise ValueError(
-                    "You have specified `selected_indices` to retrieve metagraph info selectively, but the "
-                    "selective runtime calls are not available at this block (probably too old). Do not specify "
-                    "`selected_indices` to retrieve metagraph info selectively."
-                )
-
-            # Fall back to old metagraph
-            return "get_metagraph", [netuid]
-
         block_hash: str = (
             self.determine_block_hash(block=block) or self.substrate.get_chain_head()
         )
@@ -2156,21 +2176,31 @@ class Subtensor(SubtensorMixin):
             ]
             if 0 not in indexes:
                 indexes = [0] + indexes
+            query = self._runtime_call_with_fallback(
+                (
+                    "SubnetInfoRuntimeApi",
+                    "get_selective_mechagraph",
+                    [netuid, mechid, indexes],
+                ),
+                ("SubnetInfoRuntimeApi", "get_selective_metagraph", [netuid, indexes]),
+                block_hash=block_hash,
+                default_value=ValueError(
+                    "You have specified `selected_indices` to retrieve metagraph info selectively, but the "
+                    "selective runtime calls are not available at this block (probably too old). Do not specify "
+                    "`selected_indices` to retrieve metagraph info selectively."
+                ),
+            )
         else:
-            indexes = None
-
-        # Determine the best available fetch method
-        fetch_method, params = _determine_fetch_method(
-            block_hash_=block_hash,
-        )
-
-        # Execute the query
-        query = self.substrate.runtime_call(
-            api="SubnetInfoRuntimeApi",
-            method=fetch_method,
-            params=params,
-            block_hash=block_hash,
-        )
+            query = self._runtime_call_with_fallback(
+                (
+                    "SubnetInfoRuntimeApi",
+                    "get_selective_mechagraph",
+                    [netuid, mechid, [f for f in range(len(SelectiveMetagraphIndex))]],
+                ),
+                ("SubnetInfoRuntimeApi", "get_metagraph", [[netuid]]),
+                block_hash=block_hash,
+                default_value=None,
+            )
 
         if query is None or not hasattr(query, "value") or query.value is None:
             logging.error(

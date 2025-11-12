@@ -595,18 +595,48 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         default_value: Any = ValueError,
     ):
+        """
+        Makes a runtime call to the subtensor node with a given set of args, falling back to the next group if the
+        api.method does not exist at the given block. This method exists to support backwards compatibility for blocks.
+
+        Parameters:
+            *args: Tuples containing (api, method, params) in the order they should be attempted.
+            block_hash: The hash of the block being queried. If not provided, the chain tip will be used.
+            default_value: The default value to return if none of the methods exist at the given block.
+
+        Raises:
+            ValueError: If no default value is provided, and none of the methods exist at the given block, a
+                ValueError will be raised.
+
+        Example:
+            query = await self._runtime_call_with_fallback(
+                # the first attempt will be made to SubnetInfoRuntimeApi.get_selective_mechagraph with the
+                # given params
+                (
+                    "SubnetInfoRuntimeApi",
+                    "get_selective_mechagraph",
+                    [netuid, mechid, [f for f in range(len(SelectiveMetagraphIndex))]],
+                ),
+                # if it does not exist at the given block, the next attempt will be made as such:
+                ("SubnetInfoRuntimeApi", "get_metagraph", [[netuid]]),
+                block_hash=block_hash,
+                # if none of the methods exist at the given block, the default value will be returned
+                default_value=None,
+            )
+
+        """
         if block_hash is None:
             block_hash = await self.substrate.get_chain_head()
-            for api, method, params in args:
-                if await self._runtime_method_exists(
-                    api=api, method=method, block_hash=block_hash
-                ):
-                    return await self.substrate.runtime_call(
-                        api=api,
-                        method=method,
-                        block_hash=block_hash,
-                        params=params,
-                    )
+        for api, method, params in args:
+            if await self._runtime_method_exists(
+                api=api, method=method, block_hash=block_hash
+            ):
+                return await self.substrate.runtime_call(
+                    api=api,
+                    method=method,
+                    block_hash=block_hash,
+                    params=params,
+                )
         if not isinstance(default_value, ValueError):
             return default_value
         else:
