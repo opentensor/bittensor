@@ -1053,14 +1053,12 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> Optional[int]:
-        # TODO: Specify units/scaling (raw integer) and typical ranges; link back to hyperparameters reference.
+    ) -> Optional[int]:        
         """Retrieves the 'Difficulty' hyperparameter for a specified subnet in the Bittensor network.
 
         This parameter determines the computational challenge required for neurons to participate in consensus and
-         validation processes. The difficulty directly impacts the network's security and integrity by setting the
-         computational effort required for validating transactions and participating in the network's consensus
-         mechanism.
+         validation processes, using proof of work (POW) registration.
+
 
         Parameters:
             netuid: The unique identifier of the subnet.
@@ -1080,8 +1078,12 @@ class AsyncSubtensor(SubtensorMixin):
             difficulty = await subtensor.difficulty(netuid=1, block=1000000)
 
         Notes:
+            Burn registration is much more common on Bittensor subnets currently, compared to POW registration.
+
             See also:
             - <https://docs.learnbittensor.org/subnets/subnet-hyperparameters>
+            - <https://docs.learnbittensor.org/validators#validator-registration>
+            - <https://docs.learnbittensor.org/miners#miner-registration>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
@@ -1101,9 +1103,13 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> bool:
-        """Returns true if the hotkey is known by the chain and there are accounts.
+        """Returns true if the hotkey has been associated with a coldkey through account creation.
 
-        This method queries the SubtensorModule's Owner storage function to determine if the hotkey is registered.
+        This method queries the Subtensor's Owner storage map to check if the hotkey has been paired with a 
+        coldkey, as it must be before it (the hotkey) can be used for neuron registration.
+
+        The Owner storage map defaults to the zero address (``5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM``) 
+        for unused hotkeys. This method returns True if the Owner value is anything other than this default.
 
         Parameters:
             hotkey_ss58: The SS58 address of the hotkey.
@@ -1112,7 +1118,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
 
         Returns:
-            True if the hotkey is known by the chain and there are accounts, False otherwise.
+            True if the hotkey has been associated with a coldkey, False otherwise.
 
         Example::
 
@@ -1147,8 +1153,11 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> int:
-        """
-        Returns the number of blocks when dependent transactions will be frozen for execution.
+        """Returns the duration, in blocks, of the administrative freeze window at the end of each epoch.
+
+        The admin freeze window is a period at the end of each epoch during which subnet owner 
+        operations are prohibited. This prevents subnet owners from modifying hyperparameters or performing certain
+        administrative actions right before validators submit weights at the epoch boundary.
 
         Parameters:
             block: The block number to query. Do not specify if using block_hash or reuse_block.
@@ -1156,7 +1165,10 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
 
         Returns:
-            AdminFreezeWindow as integer. The number of blocks are frozen.
+            The number of blocks in the administrative freeze window (default: 10 blocks, ~2 minutes).
+
+        Notes:
+            See: <https://docs.learnbittensor.org/learn/chain-rate-limits#administrative-freeze-window>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         return (
