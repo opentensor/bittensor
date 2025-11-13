@@ -154,8 +154,23 @@ class AsyncSubtensor(SubtensorMixin):
     """Asynchronous interface for interacting with the Bittensor blockchain.
 
     This class provides a thin layer over the Substrate Interface offering async functionality for Bittensor. This
-     includes frequently-used calls for querying blockchain data, managing stakes and liquidity positions, registering
-     neurons, submitting weights, and many other functions for participating in Bittensor.
+    includes frequently-used calls for querying blockchain data, managing stakes and liquidity positions, registering
+    neurons, submitting weights, and many other functions for participating in Bittensor.
+
+    Notes:
+        Key Bittensor concepts used throughout this class:
+
+        - **Coldkey**: The key pair corresponding to a user's overall wallet. Used to transfer, stake, manage subnets.
+        - **Hotkey**: A key pair (each wallet may have zero, one, or more) used for neuron operations (mining and validation).
+        - **Netuid**: Unique identifier for a subnet (0 is the Root Subnet)
+        - **UID**: Unique identifier for a neuron registered to a hotkey on a specific subnet.
+        - **Metagraph**: Data structure containing the complete state of a subnet at a block.        
+        - **TAO**: The base network token; subnet 0 stake is in TAO
+        - **Alpha**: Subnet-specific token representing some quantity of TAO staked into a subnet.
+        - **Rao**: Smallest unit of TAO (1 TAO = 1e9 Rao)
+
+        See: Bittensor Glossary <https://docs.learnbittensor.org/glossary>
+        See: Wallets, Coldkeys and Hotkeys in Bittensor <https://docs.learnbittensor.org/keys/wallets>
 
     """
 
@@ -173,37 +188,23 @@ class AsyncSubtensor(SubtensorMixin):
         """Initializes an AsyncSubtensor instance for blockchain interaction.
 
         Parameters:
-            network: The network name or type to connect to (e.g., "finney", "test"). If ``None``, uses the default
-                network from config.
+            network: The network name to connect to (e.g., ``"finney"`` for Bittensor mainnet, ``"test"``, for
+                Bittensor test network, ``"local"`` for a locally deployed blockchain).If ``None``, uses the
+                default network from config.
             config: Configuration object for the AsyncSubtensor instance. If ``None``, uses the default configuration.
             log_verbose: Enables or disables verbose logging.
-            fallback_endpoints: List of fallback endpoints to use if default or provided network is not available.
-            retry_forever: Whether to retry forever on connection errors.
-            mock: Whether this is a mock instance. Mainly for testing purposes.
-            archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in
-                cases where you are requesting a block that is too old for your current (presumably lite) node.
-            websocket_shutdown_timer: Amount of time, in seconds, to wait after the last response from the chain to
-                close the connection. Passing `None` will disable to automatic shutdown process
-                entirely.
+            fallback_endpoints: List of fallback WebSocket endpoints to use if the primary network endpoint is
+                unavailable. These are tried in order when the default endpoint fails.
+            retry_forever: Whether to retry connection attempts indefinitely on connection errors.
+            mock: Whether this is a mock instance. FOR TESTING ONLY.
+            archive_endpoints: List of archive node endpoints for queries requiring historical block data beyond the
+                retention period of lite nodes. These are only used when requesting blocks that the current node is
+                unable to serve.
+            websocket_shutdown_timer: Amount of time (in seconds) to wait after the last response from the chain before
+                automatically closing the WebSocket connection. Pass ``None`` to disable automatic shutdown entirely.
 
         Returns:
-            None
-
-        Raises:
-            ConnectionError: If unable to connect to the specified network.
-            ValueError: If invalid network or configuration parameters are provided.
-            Exception: Any other exceptions raised during setup or configuration.
-
-        Typical usage example:
-
-            import bittensor as bt
-            import asyncio
-
-            async def main():
-                async with bt.AsyncSubtensor(network="finney") as subtensor:
-                    block_hash = await subtensor.get_block_hash()
-
-            asyncio.run(main())
+            None        
         """
         if config is None:
             config = AsyncSubtensor.config()
@@ -242,43 +243,40 @@ class AsyncSubtensor(SubtensorMixin):
             None
 
         Example::
-
-            subtensor = AsyncSubtensor(network="finney")
+            
+            sub = bt.AsyncSubtensor(network="finney")
+            # Initialize the connection
             await subtensor.initialize()
-
-            # Use the subtensor...
-            balance = await subtensor.get_balance(address="5F...")
-
-            # Close when done
+            # calls to subtensor
             await subtensor.close()
+
         """
         if self.substrate:
             await self.substrate.close()
 
     async def initialize(self):
-        """Initializes the connection to the blockchain.
+        """
+         connection to the blockchain.
 
         This method establishes the connection to the Bittensor blockchain and should be called after creating an
         AsyncSubtensor instance before making any queries.
 
+        When using the ``async with`` context manager, this method is called automatically and does not need to be
+        invoked explicitly.
+
         Returns:
             AsyncSubtensor: The initialized instance (self) for method chaining.
 
-        Raises:
-            ConnectionError: If unable to connect to the blockchain due to timeout or connection refusal.
 
         Example::
 
             subtensor = AsyncSubtensor(network="finney")
 
             # Initialize the connection
-            await subtensor.initialize()
-
-            # Now you can make queries
-            balance = await subtensor.get_balance(address="5F...")
-
-            # Or chain the initialization
-            subtensor = await AsyncSubtensor(network="finney").initialize()
+            await subtensor.initialize()            
+            # calls to subtensor
+            await subtensor.close()
+            
         """
         logging.info(
             f"[magenta]Connecting to Substrate:[/magenta] [blue]{self}[/blue][magenta]...[/magenta]"
@@ -348,20 +346,25 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> Union[AsyncSubstrateInterface, RetryAsyncSubstrate]:
         """Creates the Substrate instance based on provided arguments.
 
-        This internal method creates either a standard AsyncSubstrateInterface or a RetryAsyncSubstrate depending on the
-        configuration parameters.
+        This internal method creates either a standard AsyncSubstrateInterface or a RetryAsyncSubstrate depending on
+        whether fallback/archive endpoints or infinite retry is requested.
+
+        When ``fallback_endpoints``, ``archive_endpoints``, or ``retry_forever`` are provided, a RetryAsyncSubstrate
+        is created with automatic failover and exponential backoff retry logic. Otherwise, a standard
+        AsyncSubstrateInterface is used.
 
         Parameters:
-            fallback_endpoints: List of fallback endpoints to use if default or provided network is not available.
-            retry_forever: Whether to retry forever on connection errors.
-            _mock: Whether this is a mock instance. Mainly for testing purposes.
-            archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in
-                cases where you are requesting a block that is too old for your current (presumably lite) node.
-            ws_shutdown_timer: Amount of time, in seconds, to wait after the last response from the chain to close the
-                connection.
+            fallback_endpoints: List of fallback WebSocket endpoints to use if the primary endpoint is unavailable.
+            retry_forever: Whether to retry connection attempts indefinitely on connection errors.
+            _mock: Whether this is a mock instance. Used primarily for testing purposes.
+            archive_endpoints: List of archive node endpoints for historical block queries. Archive nodes maintain full
+                block history, while lite nodes only keep recent blocks. Use these when querying blocks older than the
+                lite node's retention period (typically a few thousand blocks).
+            ws_shutdown_timer: Amount of time (in seconds) to wait after the last response from the chain before
+                automatically closing the WebSocket connection.
 
         Returns:
-            Either AsyncSubstrateInterface or RetryAsyncSubstrate.
+            Either AsyncSubstrateInterface (simple connection) or RetryAsyncSubstrate (with failover and retry logic).
         """
         if fallback_endpoints or retry_forever or archive_endpoints:
             return RetryAsyncSubstrate(
@@ -402,30 +405,26 @@ class AsyncSubtensor(SubtensorMixin):
         Ensures that only one of the block specification parameters is used and returns the appropriate block hash
         for blockchain queries.
 
-        Arguments:
-            block: The block number to get the hash for. If specifying along with `block_hash`, the hash of `block` will
-                be checked and compared with the supplied block hash, raising a ValueError if the two do not match.
-            block_hash: The hash of the blockchain block. If specifying along with `block`, the hash of `block` will be
-                checked and compared with the supplied block hash, raising a ValueError if the two do not match.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block or block_hash.
+        Parameter precedence (in order):
+            1. If ``reuse_block=True`` and ``block`` or ``block_hash`` is set → raises ValueError
+            2. If both ``block`` and ``block_hash`` are set → validates they match, raises ValueError if not
+            3. If only ``block_hash`` is set → returns it directly
+            4. If only ``block`` is set → fetches and returns its hash
+            5. If none are set → returns None
+
+        Parameters:
+            block: The block number to get the hash for. If specifying along with ``block_hash``, the hash of ``block``
+                will be checked and compared with the supplied block hash, raising a ValueError if the two do not match.
+            block_hash: The hash of the blockchain block (hex string prefixed with ``0x``). If specifying along with
+                ``block``, the hash of ``block`` will be checked and compared with the supplied block hash, raising a
+                ValueError if the two do not match.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block`` or ``block_hash``.
 
         Returns:
-            Optional[str]: The block hash if one can be determined, None otherwise.
+            The block hash (hex string with ``0x`` prefix) if one can be determined, ``None`` otherwise.
 
-        Raises:
-            ValueError: If reuse_block is set, while also supplying a block/block_hash, or if supplying a block and
-                block_hash, but the hash of the block does not match the supplied block hash.
-
-        Example::
-
-            # Get hash for specific block
-            block_hash = await subtensor.determine_block_hash(block=1000000)
-
-            # Use provided block hash
-            block_hash = await subtensor.determine_block_hash(block_hash="0x1234...")
-
-            # Reuse last block hash
-            block_hash = await subtensor.determine_block_hash(reuse_block=True)
+        Notes:
+            See: <https://docs.learnbittensor.org/glossary#block>
         """
         if reuse_block and any([block, block_hash]):
             raise ValueError("Cannot specify both reuse_block and block_hash/block")
@@ -452,43 +451,7 @@ class AsyncSubtensor(SubtensorMixin):
         call_definition: dict[str, list["ParamWithTypes"]],
         params: Union[list[Any], dict[str, Any]],
     ) -> str:
-        """Encodes parameters into a hex string using their type definitions.
-
-        This method takes a call definition (which specifies parameter types) and actual parameter values, then
-        encodes them into a hex string that can be used for blockchain transactions.
-
-        Parameters:
-            call_definition: A dictionary containing parameter type definitions. Should have a "params" key with a
-                list of parameter definitions.
-            params: The actual parameter values to encode. Can be either a list (for positional parameters) or a
-                dictionary (for named parameters).
-
-        Returns:
-            str: A hex-encoded string representation of the parameters.
-
-        Raises:
-            ValueError: If a required parameter is missing from the params dictionary.
-
-        Example::
-
-            # Define parameter types
-            call_def = {
-                "params": [
-                    {"name": "amount", "type": "u64"},
-                    {"name": "coldkey_ss58", "type": "str"}
-                ]
-            }
-            
-            # Encode parameters as a dictionary
-            params_dict = {
-                "amount": 1000000,
-                "coldkey_ss58": "5F..."
-            }
-            encoded = await subtensor.encode_params(call_definition=call_def, params=params_dict)
-            
-            # Or encode as a list (positional)
-            params_list = [1000000, "5F..."]
-            encoded = await subtensor.encode_params(call_definition=call_def, params=params_list)
+        """Deprecated
         """
         param_data = scalecodec.ScaleBytes(b"")
 
@@ -515,31 +478,21 @@ class AsyncSubtensor(SubtensorMixin):
         """Retrieves a specified hyperparameter for a specific subnet.
 
         This method queries the blockchain for subnet-specific hyperparameters such as difficulty, tempo, immunity
-        period, and other network configuration values.
+        period, and other network configuration values. Return types and units vary by parameter.
 
         Parameters:
-            param_name: The name of the hyperparameter to retrieve (e.g., "Difficulty", "Tempo", "ImmunityPeriod").
+            param_name: The name of the hyperparameter storage function to retrieve.
             netuid: The unique identifier of the subnet.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
             block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
 
         Returns:
-            The value of the specified hyperparameter if the subnet exists, None otherwise.
-
-        Example::
-
-            # Get difficulty for subnet 1
-            difficulty = await subtensor.get_hyperparameter(param_name="Difficulty", netuid=1)
-
-            # Get tempo at a specific block
-            tempo = await subtensor.get_hyperparameter(param_name="Tempo", netuid=1, block=1000000)
-
-            # Get immunity period using block hash
-            immunity = await subtensor.get_hyperparameter(param_name="ImmunityPeriod", netuid=1, block_hash="0x1234...")
+            The value of the specified hyperparameter if the subnet exists, ``None`` otherwise. Return type varies
+            by parameter (int, float, bool, or Balance).
 
         Notes:
-            - See <https://docs.learnbittensor.org/subnets/subnet-hyperparameters>
+            See: <https://docs.learnbittensor.org/subnets/subnet-hyperparameters>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not await self.subnet_exists(
