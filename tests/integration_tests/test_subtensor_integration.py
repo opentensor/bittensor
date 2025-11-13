@@ -46,7 +46,7 @@ async def test_metagraph(mocker):
     result = subtensor.metagraph(1)
     assert result.n == 1024
     assert result.netuid == 1
-    assert result.block.item() == 6530367
+    assert result.block.item() == 6852690
 
 
 @pytest.mark.asyncio

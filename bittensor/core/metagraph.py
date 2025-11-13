@@ -1413,7 +1413,7 @@ class AsyncMetagraph(NumpyOrTorch):
             lite = self.lite
 
         subtensor = await self._initialize_subtensor(subtensor)
-
+        cur_block = None
         if (
             subtensor.chain_endpoint != settings.ARCHIVE_ENTRYPOINT
             or subtensor.network != "archive"
@@ -1425,7 +1425,10 @@ class AsyncMetagraph(NumpyOrTorch):
                     "network for subtensor and retry."
                 )
         if block is None:
-            block = await subtensor.get_current_block()
+            if cur_block is not None:
+                block = cur_block
+            else:
+                block = await subtensor.get_current_block()
 
         # Assign neurons based on 'lite' flag
         await self._assign_neurons(block, lite, subtensor)
@@ -1654,11 +1657,11 @@ class AsyncMetagraph(NumpyOrTorch):
         )
         if metagraph_info:
             self._apply_metagraph_info_mixin(metagraph_info=metagraph_info)
-        self.mechanism_count = await self.subtensor.get_mechanism_count(
-            netuid=self.netuid, block=block
-        )
-        self.emissions_split = await self.subtensor.get_mechanism_emission_split(
-            netuid=self.netuid, block=block
+        self.mechanism_count, self.emissions_split = await asyncio.gather(
+            self.subtensor.get_mechanism_count(netuid=self.netuid, block=block),
+            self.subtensor.get_mechanism_emission_split(
+                netuid=self.netuid, block=block
+            ),
         )
 
 
