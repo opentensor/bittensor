@@ -5032,3 +5032,582 @@ def test_get_ema_tao_inflow(subtensor, mocker):
     )
     mocked_fixed_to_float.assert_called_once_with(fake_tao_bits)
     assert result == (fake_block_updated, Balance.from_rao(1000000))
+
+
+def test_get_proxies(subtensor, mocker):
+    """Test get_proxies returns correct data when proxy information is found."""
+    # Prep
+    block = 123
+    fake_real_account1 = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
+    fake_real_account2 = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+    fake_proxy_data1 = [
+        {
+            "delegate": {"Id": b"\x00" * 32},
+            "proxy_type": {"Any": None},
+            "delay": 0,
+        }
+    ]
+    fake_proxy_data2 = [
+        {
+            "delegate": {"Id": b"\x01" * 32},
+            "proxy_type": {"Transfer": None},
+            "delay": 100,
+        }
+    ]
+    fake_query_map_records = [
+        (fake_real_account1.encode(), mocker.Mock(value=([fake_proxy_data1], 1000000))),
+        (fake_real_account2.encode(), mocker.Mock(value=([fake_proxy_data2], 2000000))),
+    ]
+
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value="mock_block_hash"
+    )
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate,
+        "query_map",
+        return_value=fake_query_map_records,
+    )
+    mocked_from_query_map_record = mocker.patch.object(
+        subtensor_module.ProxyInfo,
+        "from_query_map_record",
+        side_effect=[
+            (fake_real_account1, [mocker.Mock()]),
+            (fake_real_account2, [mocker.Mock()]),
+        ],
+    )
+
+    # Call
+    result = subtensor.get_proxies(block=block)
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(block)
+    mocked_query_map.assert_called_once_with(
+        module="Proxy",
+        storage_function="Proxies",
+        block_hash="mock_block_hash",
+    )
+    assert mocked_from_query_map_record.call_count == 2
+    assert isinstance(result, dict)
+    assert fake_real_account1 in result
+    assert fake_real_account2 in result
+
+
+def test_get_proxies_for_real_account(subtensor, mocker):
+    """Test get_proxies_for_real_account returns correct data when proxy information is found."""
+    # Prep
+    fake_real_account_ss58 = mocker.Mock(spec=str)
+
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query = mocker.patch.object(
+        subtensor.substrate,
+        "query",
+    )
+    mocked_from_query = mocker.patch.object(
+        subtensor_module.ProxyInfo,
+        "from_query",
+    )
+
+    # Call
+    result = subtensor.get_proxies_for_real_account(
+        real_account_ss58=fake_real_account_ss58
+    )
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(None)
+    mocked_query.assert_called_once_with(
+        module="Proxy",
+        storage_function="Proxies",
+        params=[fake_real_account_ss58],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    mocked_from_query.assert_called_once_with(mocked_query.return_value)
+    assert result == mocked_from_query.return_value
+
+
+def test_get_proxy_announcement(subtensor, mocker):
+    """Test get_proxy_announcement returns correct data when announcement information is found."""
+    # Prep
+    fake_delegate_account_ss58 = mocker.Mock(spec=str)
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query = mocker.patch.object(
+        subtensor.substrate,
+        "query",
+    )
+    mocked_from_dict = mocker.patch.object(
+        subtensor_module.ProxyAnnouncementInfo,
+        "from_dict",
+    )
+
+    # Call
+    result = subtensor.get_proxy_announcement(
+        delegate_account_ss58=fake_delegate_account_ss58
+    )
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(None)
+    mocked_query.assert_called_once_with(
+        module="Proxy",
+        storage_function="Announcements",
+        params=[fake_delegate_account_ss58],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    mocked_from_dict.assert_called_once_with(mocked_query.return_value.value[0])
+    assert result == mocked_from_dict.return_value
+
+
+def test_get_proxy_announcements(subtensor, mocker):
+    """Test get_proxy_announcements returns correct data when announcement information is found."""
+    # Prep
+    fake_delegate = mocker.Mock(spec=str)
+    fake_proxies_list = mocker.Mock(spec=list)
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value="mock_block_hash"
+    )
+
+    fake_record = (fake_delegate, fake_proxies_list)
+    fake_query_map_records = [fake_record]
+
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate,
+        "query_map",
+        return_value=fake_query_map_records,
+    )
+    mocked_from_query_map_record = mocker.patch.object(
+        subtensor_module.ProxyAnnouncementInfo,
+        "from_query_map_record",
+        side_effect=fake_query_map_records,
+    )
+
+    # Call
+    result = subtensor.get_proxy_announcements()
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(None)
+    mocked_query_map.assert_called_once_with(
+        module="Proxy",
+        storage_function="Announcements",
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    mocked_from_query_map_record.assert_called_once_with(fake_record)
+    assert result == {fake_delegate: fake_proxies_list}
+
+
+def test_get_proxy_constants(subtensor, mocker):
+    """Test get_proxy_constants returns correct data when constants are found."""
+    # Prep
+    fake_constants = {
+        "AnnouncementDepositBase": 1000000,
+        "AnnouncementDepositFactor": 500000,
+        "MaxProxies": 32,
+        "MaxPending": 32,
+        "ProxyDepositBase": 2000000,
+        "ProxyDepositFactor": 1000000,
+    }
+
+    mocked_query_constant = mocker.patch.object(
+        subtensor,
+        "query_constant",
+        side_effect=[mocker.Mock(value=value) for value in fake_constants.values()],
+    )
+    mocked_from_dict = mocker.patch.object(subtensor_module.ProxyConstants, "from_dict")
+
+    # Call
+    result = subtensor.get_proxy_constants()
+
+    # Asserts
+    assert mocked_query_constant.call_count == len(fake_constants)
+    mocked_from_dict.assert_called_once_with(fake_constants)
+    assert result == mocked_from_dict.return_value
+
+
+def test_get_proxy_constants_as_dict(subtensor, mocker):
+    """Test get_proxy_constants returns dict when as_dict=True."""
+    # Prep
+    fake_constants = {
+        "AnnouncementDepositBase": 1000000,
+        "AnnouncementDepositFactor": 500000,
+        "MaxProxies": 32,
+        "MaxPending": 32,
+        "ProxyDepositBase": 2000000,
+        "ProxyDepositFactor": 1000000,
+    }
+
+    mocked_query_constant = mocker.patch.object(
+        subtensor,
+        "query_constant",
+        side_effect=[mocker.Mock(value=value) for value in fake_constants.values()],
+    )
+    mocked_proxy_constants = mocker.Mock()
+    mocked_from_dict = mocker.patch.object(
+        subtensor_module.ProxyConstants,
+        "from_dict",
+        return_value=mocked_proxy_constants,
+    )
+    mocked_to_dict = mocker.patch.object(
+        mocked_proxy_constants,
+        "to_dict",
+        return_value=fake_constants,
+    )
+
+    # Call
+    result = subtensor.get_proxy_constants(as_dict=True)
+
+    # Asserts
+    assert mocked_query_constant.call_count == len(fake_constants)
+    mocked_from_dict.assert_called_once_with(fake_constants)
+    mocked_to_dict.assert_called_once()
+    assert result == fake_constants
+
+
+def test_add_proxy(mocker, subtensor):
+    """Tests `add_proxy` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    delegate_ss58 = mocker.Mock(spec=str)
+    proxy_type = mocker.Mock(spec=str)
+    delay = mocker.Mock(spec=int)
+    mocked_add_proxy_extrinsic = mocker.patch.object(
+        subtensor_module, "add_proxy_extrinsic"
+    )
+
+    # call
+    response = subtensor.add_proxy(
+        wallet=wallet,
+        delegate_ss58=delegate_ss58,
+        proxy_type=proxy_type,
+        delay=delay,
+    )
+
+    # asserts
+    mocked_add_proxy_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        delegate_ss58=delegate_ss58,
+        proxy_type=proxy_type,
+        delay=delay,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_add_proxy_extrinsic.return_value
+
+
+def test_announce_proxy(mocker, subtensor):
+    """Tests `announce_proxy` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    real_account_ss58 = mocker.Mock(spec=str)
+    call_hash = mocker.Mock(spec=str)
+    mocked_announce_extrinsic = mocker.patch.object(
+        subtensor_module, "announce_extrinsic"
+    )
+
+    # call
+    response = subtensor.announce_proxy(
+        wallet=wallet,
+        real_account_ss58=real_account_ss58,
+        call_hash=call_hash,
+    )
+
+    # asserts
+    mocked_announce_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        real_account_ss58=real_account_ss58,
+        call_hash=call_hash,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_announce_extrinsic.return_value
+
+
+def test_create_pure_proxy(mocker, subtensor):
+    """Tests `create_pure_proxy` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    proxy_type = mocker.Mock(spec=str)
+    delay = mocker.Mock(spec=int)
+    index = mocker.Mock(spec=int)
+    mocked_create_pure_proxy_extrinsic = mocker.patch.object(
+        subtensor_module, "create_pure_proxy_extrinsic"
+    )
+
+    # call
+    response = subtensor.create_pure_proxy(
+        wallet=wallet,
+        proxy_type=proxy_type,
+        delay=delay,
+        index=index,
+    )
+
+    # asserts
+    mocked_create_pure_proxy_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        proxy_type=proxy_type,
+        delay=delay,
+        index=index,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_create_pure_proxy_extrinsic.return_value
+
+
+def test_kill_pure_proxy(mocker, subtensor):
+    """Tests `kill_pure_proxy` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    pure_proxy_ss58 = mocker.Mock(spec=str)
+    spawner = mocker.Mock(spec=str)
+    proxy_type = mocker.Mock(spec=str)
+    index = mocker.Mock(spec=int)
+    height = mocker.Mock(spec=int)
+    ext_index = mocker.Mock(spec=int)
+    mocked_kill_pure_proxy_extrinsic = mocker.patch.object(
+        subtensor_module, "kill_pure_proxy_extrinsic"
+    )
+
+    # call
+    response = subtensor.kill_pure_proxy(
+        wallet=wallet,
+        pure_proxy_ss58=pure_proxy_ss58,
+        spawner=spawner,
+        proxy_type=proxy_type,
+        index=index,
+        height=height,
+        ext_index=ext_index,
+    )
+
+    # asserts
+    mocked_kill_pure_proxy_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        pure_proxy_ss58=pure_proxy_ss58,
+        spawner=spawner,
+        proxy_type=proxy_type,
+        index=index,
+        height=height,
+        ext_index=ext_index,
+        force_proxy_type=subtensor_module.ProxyType.Any,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_kill_pure_proxy_extrinsic.return_value
+
+
+def test_poke_deposit(mocker, subtensor):
+    """Tests `poke_deposit` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    mocked_poke_deposit_extrinsic = mocker.patch.object(
+        subtensor_module, "poke_deposit_extrinsic"
+    )
+
+    # call
+    response = subtensor.poke_deposit(wallet=wallet)
+
+    # asserts
+    mocked_poke_deposit_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_poke_deposit_extrinsic.return_value
+
+
+def test_proxy(mocker, subtensor):
+    """Tests `proxy` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    real_account_ss58 = mocker.Mock(spec=str)
+    force_proxy_type = mocker.Mock(spec=str)
+    call = mocker.Mock(spec=GenericCall)
+    mocked_proxy_extrinsic = mocker.patch.object(subtensor_module, "proxy_extrinsic")
+
+    # call
+    response = subtensor.proxy(
+        wallet=wallet,
+        real_account_ss58=real_account_ss58,
+        force_proxy_type=force_proxy_type,
+        call=call,
+    )
+
+    # asserts
+    mocked_proxy_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        real_account_ss58=real_account_ss58,
+        force_proxy_type=force_proxy_type,
+        call=call,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_proxy_extrinsic.return_value
+
+
+def test_proxy_announced(mocker, subtensor):
+    """Tests `proxy_announced` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    delegate_ss58 = mocker.Mock(spec=str)
+    real_account_ss58 = mocker.Mock(spec=str)
+    force_proxy_type = mocker.Mock(spec=str)
+    call = mocker.Mock(spec=GenericCall)
+    mocked_proxy_announced_extrinsic = mocker.patch.object(
+        subtensor_module, "proxy_announced_extrinsic"
+    )
+
+    # call
+    response = subtensor.proxy_announced(
+        wallet=wallet,
+        delegate_ss58=delegate_ss58,
+        real_account_ss58=real_account_ss58,
+        force_proxy_type=force_proxy_type,
+        call=call,
+    )
+
+    # asserts
+    mocked_proxy_announced_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        delegate_ss58=delegate_ss58,
+        real_account_ss58=real_account_ss58,
+        force_proxy_type=force_proxy_type,
+        call=call,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_proxy_announced_extrinsic.return_value
+
+
+def test_reject_proxy_announcement(mocker, subtensor):
+    """Tests `reject_proxy_announcement` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    delegate_ss58 = mocker.Mock(spec=str)
+    call_hash = mocker.Mock(spec=str)
+    mocked_reject_announcement_extrinsic = mocker.patch.object(
+        subtensor_module, "reject_announcement_extrinsic"
+    )
+
+    # call
+    response = subtensor.reject_proxy_announcement(
+        wallet=wallet,
+        delegate_ss58=delegate_ss58,
+        call_hash=call_hash,
+    )
+
+    # asserts
+    mocked_reject_announcement_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        delegate_ss58=delegate_ss58,
+        call_hash=call_hash,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_reject_announcement_extrinsic.return_value
+
+
+def test_remove_proxy_announcement(mocker, subtensor):
+    """Tests `remove_proxy_announcement` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    real_account_ss58 = mocker.Mock(spec=str)
+    call_hash = mocker.Mock(spec=str)
+    mocked_remove_announcement_extrinsic = mocker.patch.object(
+        subtensor_module, "remove_announcement_extrinsic"
+    )
+
+    # call
+    response = subtensor.remove_proxy_announcement(
+        wallet=wallet,
+        real_account_ss58=real_account_ss58,
+        call_hash=call_hash,
+    )
+
+    # asserts
+    mocked_remove_announcement_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        real_account_ss58=real_account_ss58,
+        call_hash=call_hash,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_remove_announcement_extrinsic.return_value
+
+
+def test_remove_proxies(mocker, subtensor):
+    """Tests `remove_proxies` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    mocked_remove_proxies_extrinsic = mocker.patch.object(
+        subtensor_module, "remove_proxies_extrinsic"
+    )
+
+    # call
+    response = subtensor.remove_proxies(wallet=wallet)
+
+    # asserts
+    mocked_remove_proxies_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_remove_proxies_extrinsic.return_value
+
+
+def test_remove_proxy(mocker, subtensor):
+    """Tests `remove_proxy` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    delegate_ss58 = mocker.Mock(spec=str)
+    proxy_type = mocker.Mock(spec=str)
+    delay = mocker.Mock(spec=int)
+    mocked_remove_proxy_extrinsic = mocker.patch.object(
+        subtensor_module, "remove_proxy_extrinsic"
+    )
+
+    # call
+    response = subtensor.remove_proxy(
+        wallet=wallet,
+        delegate_ss58=delegate_ss58,
+        proxy_type=proxy_type,
+        delay=delay,
+    )
+
+    # asserts
+    mocked_remove_proxy_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        delegate_ss58=delegate_ss58,
+        proxy_type=proxy_type,
+        delay=delay,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_remove_proxy_extrinsic.return_value

@@ -9,6 +9,7 @@ from .delegates import Delegates as _Delegates
 from .extrinsics import Extrinsics as _Extrinsics
 from .metagraphs import Metagraphs as _Metagraphs
 from .neurons import Neurons as _Neurons
+from .proxy import Proxy as _Proxy
 from .queries import Queries as _Queries
 from .staking import Staking as _Staking
 from .subnets import Subnets as _Subnets
@@ -239,6 +240,11 @@ class SubtensorApi:
     def neurons(self, value):
         """Setter for neurons property."""
         self._neurons = value
+
+    @property
+    def proxies(self):
+        """Property to access subtensor proxy methods."""
+        return _Proxy(self.inner_subtensor)
 
     @property
     def queries(self):
