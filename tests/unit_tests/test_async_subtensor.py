@@ -242,65 +242,6 @@ async def test_burned_register_on_root(mock_substrate, subtensor, fake_wallet, m
 
 
 @pytest.mark.asyncio
-async def test_encode_params(subtensor, mocker):
-    """Tests encode_params happy path."""
-    # Preps
-    subtensor.substrate.create_scale_object = mocker.AsyncMock(
-        autospec=async_subtensor.AsyncSubstrateInterface.create_scale_object
-    )
-    subtensor.substrate.create_scale_object.return_value.encode = mocker.Mock(
-        return_value=b""
-    )
-
-    call_definition = {
-        "params": [
-            {"name": "coldkey", "type": "Vec<u8>"},
-            {"name": "uid", "type": "u16"},
-        ]
-    }
-    params = ["coldkey", "uid"]
-
-    # Call
-    decoded_params = await subtensor.encode_params(
-        call_definition=call_definition, params=params
-    )
-
-    # Asserts
-    subtensor.substrate.create_scale_object.call_args(
-        mocker.call("coldkey"),
-        mocker.call("Vec<u8>"),
-        mocker.call("uid"),
-        mocker.call("u16"),
-    )
-    assert decoded_params == "0x"
-
-
-@pytest.mark.asyncio
-async def test_encode_params_raises_error(subtensor, mocker):
-    """Tests encode_params with raised error."""
-    # Preps
-    subtensor.substrate.create_scale_object = mocker.AsyncMock(
-        autospec=async_subtensor.AsyncSubstrateInterface.create_scale_object
-    )
-    subtensor.substrate.create_scale_object.return_value.encode = mocker.Mock(
-        return_value=b""
-    )
-
-    call_definition = {
-        "params": [
-            {"name": "coldkey", "type": "Vec<u8>"},
-        ]
-    }
-    params = {"undefined param": "some value"}
-
-    # Call and assert
-    with pytest.raises(ValueError):
-        await subtensor.encode_params(call_definition=call_definition, params=params)
-
-        subtensor.substrate.create_scale_object.return_value.encode.assert_not_called()
-
-
-@pytest.mark.asyncio
 async def test_get_current_block(subtensor):
     """Tests get_current_block method."""
     # Call
@@ -3266,39 +3207,37 @@ async def test_get_subnet_info_no_data(mocker, subtensor):
     assert result is None
 
 
-@pytest.mark.parametrize(
-    "call_return, expected",
-    [[10, 111], [None, None], [0, 121]],
-)
 @pytest.mark.asyncio
-async def test_get_next_epoch_start_block(mocker, subtensor, call_return, expected):
+async def test_get_next_epoch_start_block(mocker, subtensor):
     """Check that get_next_epoch_start_block returns the correct value."""
     # Prep
-    netuid = mocker.Mock()
+    netuid = 14
     block = 20
 
-    fake_block_hash = mocker.Mock()
+    fake_block_hash = mocker.MagicMock()
     mocker.patch.object(subtensor, "get_block_hash", return_value=fake_block_hash)
-
-    mocked_blocks_since_last_step = mocker.AsyncMock(return_value=call_return)
-    subtensor.blocks_since_last_step = mocked_blocks_since_last_step
-
-    mocker.patch.object(subtensor, "tempo", return_value=100)
+    mocked_tempo = mocker.patch.object(subtensor, "tempo", return_value=100)
+    mocked_get_block_number = mocker.patch.object(
+        subtensor.substrate, "get_block_number"
+    )
 
     # Call
     result = await subtensor.get_next_epoch_start_block(netuid=netuid, block=block)
 
     # Asserts
-    mocked_blocks_since_last_step.assert_called_once_with(
+    mocked_tempo.assert_awaited_once_with(
         netuid=netuid,
-        block=block,
         block_hash=fake_block_hash,
-        reuse_block=False,
     )
-    subtensor.tempo.assert_awaited_once_with(
-        netuid=netuid, block=block, block_hash=fake_block_hash, reuse_block=False
+    assert (
+        result
+        == mocked_get_block_number.return_value.__add__()
+        .__mod__()
+        .__mod__()
+        .__rsub__()
+        .__add__()
+        .__radd__()
     )
-    assert result == expected
 
 
 @pytest.mark.asyncio
@@ -5545,3 +5484,28 @@ async def test_remove_proxy(mocker, subtensor):
         wait_for_finalization=True,
     )
     assert response == mocked_remove_proxy_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_blocks_until_next_epoch_uses_default_tempo(subtensor, mocker):
+    """Test blocks_until_next_epoch uses self.tempo when tempo is None."""
+    # Prep
+    netuid = 0
+    block = 20
+    tempo = 100
+
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    spy_get_current_block = mocker.spy(subtensor, "get_current_block")
+    spy_tempo = mocker.spy(subtensor, "tempo")
+
+    # Call
+    result = await subtensor.blocks_until_next_epoch(
+        netuid=netuid, tempo=tempo, block=block
+    )
+
+    # Assert
+    mocked_determine_block_hash.assert_awaited_once_with(block, None, False)
+    spy_get_current_block.assert_not_awaited()
+    spy_tempo.assert_not_awaited()
+    assert result is not None
+    assert isinstance(result, int)

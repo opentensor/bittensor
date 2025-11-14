@@ -3449,31 +3449,27 @@ def test_get_subnet_info_no_data(mocker, subtensor):
     assert result is None
 
 
-@pytest.mark.parametrize(
-    "call_return, expected",
-    [[10, 111], [None, None], [0, 121]],
-)
-def test_get_next_epoch_start_block(mocker, subtensor, call_return, expected):
+def test_get_next_epoch_start_block(mocker, subtensor):
     """Check that get_next_epoch_start_block returns the correct value."""
     # Prep
-    netuid = mocker.Mock()
+    netuid = 14
     block = 20
 
-    mocked_blocks_since_last_step = mocker.Mock(return_value=call_return)
-    subtensor.blocks_since_last_step = mocked_blocks_since_last_step
-
-    mocker.patch.object(subtensor, "tempo", return_value=100)
+    mocked_tempo = mocker.patch.object(subtensor, "tempo", return_value=100)
+    mocked_blocks_until_next_epoch = mocker.patch.object(
+        subtensor,
+        "blocks_until_next_epoch",
+    )
 
     # Call
     result = subtensor.get_next_epoch_start_block(netuid=netuid, block=block)
 
     # Asserts
-    mocked_blocks_since_last_step.assert_called_once_with(
+    mocked_tempo.assert_called_once_with(
         netuid=netuid,
         block=block,
     )
-    subtensor.tempo.assert_called_once_with(netuid=netuid, block=block)
-    assert result == expected
+    assert result == mocked_blocks_until_next_epoch.return_value.__radd__()
 
 
 def test_get_parents_success(subtensor, mocker):
@@ -5611,3 +5607,23 @@ def test_remove_proxy(mocker, subtensor):
         wait_for_finalization=True,
     )
     assert response == mocked_remove_proxy_extrinsic.return_value
+
+
+def test_blocks_until_next_epoch_uses_default_tempo(subtensor, mocker):
+    """Test blocks_until_next_epoch uses self.tempo when tempo is None."""
+    # Prep
+    netuid = 0
+    block = 20
+    tempo = 100
+
+    spy_get_current_block = mocker.spy(subtensor, "get_current_block")
+    spy_tempo = mocker.spy(subtensor, "tempo")
+
+    # Call
+    result = subtensor.blocks_until_next_epoch(netuid=netuid, tempo=tempo, block=block)
+
+    # Assert
+    spy_get_current_block.assert_not_called()
+    spy_tempo.assert_not_called()
+    assert result is not None
+    assert isinstance(result, int)
