@@ -276,11 +276,6 @@ class PrometheusServeCallParams(TypedDict):
     netuid: int
 
 
-class ParamWithTypes(TypedDict):
-    name: str  # Name of the parameter.
-    type: str  # ScaleType string of the parameter.
-
-
 @dataclass
 class ExtrinsicResponse:
     """

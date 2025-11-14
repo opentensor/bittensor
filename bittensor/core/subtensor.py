@@ -129,7 +129,6 @@ from bittensor.core.settings import (
 from bittensor.core.types import (
     BlockInfo,
     ExtrinsicResponse,
-    ParamWithTypes,
     Salt,
     SubtensorMixin,
     UIDs,
@@ -315,26 +314,6 @@ class Subtensor(SubtensorMixin):
             return None
         else:
             return self.get_block_hash(block=block)
-
-    def encode_params(
-        self,
-        call_definition: dict[str, list["ParamWithTypes"]],
-        params: Union[list[Any], dict[str, Any]],
-    ) -> str:
-        """Returns a hex encoded string of the params using their types."""
-        param_data = scalecodec.ScaleBytes(b"")
-
-        for i, param in enumerate(call_definition["params"]):
-            scale_obj = self.substrate.create_scale_object(param["type"])
-            if isinstance(params, list):
-                param_data += scale_obj.encode(params[i])
-            else:
-                if param["name"] not in params:
-                    raise ValueError(f"Missing param {param['name']} in params dict.")
-
-                param_data += scale_obj.encode(params[param["name"]])
-
-        return param_data.to_hex()
 
     def get_hyperparameter(
         self, param_name: str, netuid: int, block: Optional[int] = None
@@ -705,6 +684,32 @@ class Subtensor(SubtensorMixin):
             param_name="LastUpdate", netuid=netuid, block=block
         )
         return None if not call else (block - int(call[uid]))
+
+    def blocks_until_next_epoch(
+        self, netuid: int, tempo: Optional[int] = None, block: Optional[int] = None
+    ) -> Optional[int]:
+        """Returns the number of blocks until the next epoch of subnet with provided netuid.
+
+        Parameters:
+            netuid: The unique identifier of the subnetwork.
+            tempo: The tempo of the subnet.
+            block: the block number for this query.
+
+        Returns:
+            The number of blocks until the next epoch of the subnet with provided netuid.
+        """
+        block = block or self.block
+
+        tempo = tempo or self.tempo(netuid=netuid)
+        if not tempo:
+            return None
+
+        # the logic is the same as in SubtensorModule:blocks_until_next_epoch
+        netuid_plus_one = int(netuid) + 1
+        tempo_plus_one = tempo + 1
+        adjusted_block = (block + netuid_plus_one) % (2**64)
+        remainder = adjusted_block % tempo_plus_one
+        return tempo - remainder
 
     def bonds(
         self,
@@ -2165,24 +2170,33 @@ class Subtensor(SubtensorMixin):
         """
         Calculates the first block number of the next epoch for the given subnet.
 
-        If `block` is not provided, the current chain block will be used. Epochs are
-        determined based on the subnet's tempo (i.e., blocks per epoch). The result
-        is the block number at which the next epoch will begin.
+        If `block` is not provided, the current chain block will be used. Epochs are determined based on the subnet's
+        tempo (i.e., blocks per epoch). The result is the block number at which the next epoch will begin.
 
         Parameters:
             netuid: The unique identifier of the subnet.
             block: The reference block to calculate from. If None, uses the current chain block height.
 
         Returns:
-            int: The block number at which the next epoch will start.
-        """
-        block = block or self.block
-        blocks_since_last_step = self.blocks_since_last_step(netuid=netuid, block=block)
-        tempo = self.tempo(netuid=netuid, block=block)
+            int: The block number at which the next epoch will start, or None if tempo is 0 or invalid.
 
-        if block and blocks_since_last_step is not None and tempo:
-            return block - blocks_since_last_step + tempo + 1
-        return None
+        Notes:
+            See also: <https://docs.learnbittensor.org/glossary#tempo>
+        """
+        tempo = self.tempo(netuid=netuid, block=block)
+        current_block = block or self.block
+
+        if not tempo:
+            return None
+
+        blocks_until = self.blocks_until_next_epoch(
+            netuid=netuid, tempo=tempo, block=current_block
+        )
+
+        if not blocks_until:
+            return None
+
+        return current_block + blocks_until + 1
 
     def get_owned_hotkeys(
         self,
