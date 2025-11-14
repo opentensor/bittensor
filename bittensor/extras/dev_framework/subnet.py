@@ -1,4 +1,3 @@
-import time
 from typing import Optional, Union
 from collections import namedtuple
 from async_substrate_interface.async_substrate import AsyncExtrinsicReceipt
