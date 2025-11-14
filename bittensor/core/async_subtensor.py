@@ -1187,9 +1187,6 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> list["SubnetInfo"]:
         """Retrieves detailed information about all subnets within the Bittensor network.
 
-        This function provides comprehensive data on each subnet, including its characteristics and operational
-        parameters.
-
         Parameters:
             block: The block number to query. Do not specify if using block_hash or reuse_block.
             block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
@@ -1198,23 +1195,6 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             A list of SubnetInfo objects, each containing detailed information about a subnet.
 
-        Example::
-
-            # Get all subnet information
-            subnets = await subtensor.get_all_subnets_info()
-
-            # Get at specific block
-            subnets = await subtensor.get_all_subnets_info(block=1000000)
-
-            # Iterate over subnet information
-            for subnet in subnets:
-                print(f"Subnet {subnet.netuid}: {subnet.name}")
-
-        Notes:
-            See also:
-            - <https://docs.learnbittensor.org/glossary#subnet>
-            - `all_subnets()` for dynamic subnet information
-            - `get_subnet_info()` for single subnet details
         """
         result, prices = await asyncio.gather(
             self.query_runtime_api(
@@ -1297,19 +1277,29 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> dict[int, tuple[int, Balance]]:
-        """
-        Query EMA TAO flow for all subnets using query_map.
+        """Retrieves the EMA (exponential moving average) of net TAO flows for all subnets.
 
-        The EMA TAO flow represents the exponential moving average of TAO flowing into or out of a subnet. Negative
-        values indicate net outflow.
+        The EMA tracks net TAO flows (staking minus unstaking) with a 30-day half-life (~86.8 day window), smoothing 
+        out short-term fluctuations while capturing sustained staking trends. This metric determines the subnet's share 
+        of TAO emissions under the current, flow-based model. Positive values indicate net inflow (more staking than unstaking), 
+        negative values indicate net outflow. Subnets with negative EMA flows receive zero emissions.
 
         Parameters:
-            block: The blockchain block number for the query.
-            block_hash: The hash of the blockchain block number at which to perform the query.
-            reuse_block: Whether to reuse the last-used block hash when retrieving info.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
 
         Returns:
-            Dict mapping netuid -> (block_number, Balance).
+            Dict mapping netuid to (last_updated_block, ema_flow). The Balance represents the EMA of net TAO flow
+            in TAO units. Positive values indicate sustained net inflow, negative values indicate sustained net outflow.
+
+        The EMA uses a smoothing factor α ≈ 0.000003209, creating a 30-day half-life and ~86.8 day window. Only direct
+        stake/unstake operations count toward flows; neuron registrations and root claims are excluded. Subnet 0 (root
+        network) does not have an EMA TAO flow value.
+
+        Notes:
+            - Flow-based emissions: <https://docs.learnbittensor.org/learn/emissions#tao-reserve-injection>
+            - EMA smoothing: <https://docs.learnbittensor.org/learn/ema>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self.substrate.query_map(
@@ -1410,7 +1400,8 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
 
         Returns:
-            result: A dictionary of all revealed commitments in view {ss58_address: (reveal block, commitment message)}.
+            A dictionary mapping hotkey addresses to tuples of (reveal_block, commitment_message) pairs.
+            Each validator can have multiple revealed commitments (up to 10 most recent).
 
         Example::
             
@@ -2329,18 +2320,28 @@ class AsyncSubtensor(SubtensorMixin):
         netuid: int,
         block: Optional[int] = None,
     ) -> Optional[tuple[int, Balance]]:
-        """
-        Query EMA TAO flow for all subnets using query_map.
+        """Retrieves the EMA (exponential moving average) of net TAO flow for a specific subnet.
 
-        The EMA TAO flow represents the exponential moving average of TAO flowing into or out of a subnet. Negative
-        values indicate net outflow.
+        The EMA tracks net TAO flows (staking minus unstaking) with a 30-day half-life (~86.8 day window), smoothing
+        out short-term fluctuations while capturing sustained staking trends. This metric determines the subnet's share
+        of TAO emissions under the current, flow-based model. Positive values indicate net inflow (more staking than unstaking),
+        negative values indicate net outflow. Subnets with negative EMA flows receive zero emissions.
 
         Parameters:
-            netuid: The unique identifier of the subnetwork.
-            block: The block number to retrieve the commitment from.
+            netuid: The unique identifier of the subnet to query.
+            block: The block number to query. If None, uses latest finalized block.
 
         Returns:
-            The tuple with block_number, Balance
+            Tuple of (last_updated_block, ema_flow) where ema_flow is the EMA of net TAO flow in TAO units.
+            Returns None if the subnet does not exist or if querying subnet 0 (root network).
+
+        The EMA uses a smoothing factor α ≈ 0.000003209, creating a 30-day half-life and ~86.8 day window. Only direct
+        stake/unstake operations count toward flows; neuron registrations and root claims are excluded. Subnet 0 (root
+        network) does not have an EMA TAO flow value and will return None.
+
+        Notes:
+            - Flow-based emissions: <https://docs.learnbittensor.org/learn/emissions#tao-reserve-injection>
+            - EMA smoothing: <https://docs.learnbittensor.org/learn/ema>
         """
         block_hash = await self.determine_block_hash(block)
         query = await self.substrate.query(
