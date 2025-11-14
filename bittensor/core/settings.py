@@ -108,11 +108,17 @@ DEFAULTS = munchify(
             "max_workers": int(_BT_AXON_MAX_WORKERS) if _BT_AXON_MAX_WORKERS else 10,
         },
         "logging": {
-            "debug": os.getenv("BT_LOGGING_DEBUG") or False,
-            "trace": os.getenv("BT_LOGGING_TRACE") or False,
-            "info": os.getenv("BT_LOGGING_INFO") or False,
-            "record_log": os.getenv("BT_LOGGING_RECORD_LOG") or False,
-            "logging_dir": os.getenv("BT_LOGGING_LOGGING_DIR") or str(MINERS_DIR),
+            "debug": bool(os.getenv("BT_LOGGING_DEBUG")) or False,
+            "trace": bool(os.getenv("BT_LOGGING_TRACE")) or False,
+            "info": bool(os.getenv("BT_LOGGING_INFO")) or False,
+            "record_log": bool(os.getenv("BT_LOGGING_RECORD_LOG")) or False,
+            "logging_dir": None
+            if READ_ONLY
+            else os.getenv("BT_LOGGING_LOGGING_DIR") or str(MINERS_DIR),
+            "enable_third_party_loggers": os.getenv(
+                "BT_LOGGING_ENABLE_THIRD_PARTY_LOGGERS"
+            )
+            or False,
         },
         "priority": {
             "max_workers": int(_BT_PRIORITY_MAX_WORKERS)

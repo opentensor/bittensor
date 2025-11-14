@@ -17,7 +17,7 @@ from typing import NamedTuple, Union
 from statemachine import State, StateMachine
 
 from bittensor.core.config import Config
-from bittensor.core.settings import READ_ONLY
+from bittensor.core.settings import DEFAULTS
 from bittensor.utils.btlogging.console import BittensorConsole
 from .defines import (
     BITTENSOR_LOGGER_NAME,
@@ -53,6 +53,7 @@ class LoggingConfig(NamedTuple):
     info: bool
     record_log: bool
     logging_dir: str
+    enable_third_party_loggers: bool
 
 
 class LoggingMachine(StateMachine, Logger):
@@ -161,7 +162,12 @@ class LoggingMachine(StateMachine, Logger):
 
         # set up all the loggers
         self._logger = self._initialize_bt_logger(name)
-        self.disable_third_party_loggers()
+
+        if self._config.enable_third_party_loggers:
+            self.enable_third_party_loggers()
+        else:
+            self.disable_third_party_loggers()
+
         self._enable_initial_state(self._config)
         self.console = BittensorConsole(self)
 
@@ -632,45 +638,41 @@ class LoggingMachine(StateMachine, Logger):
         """Accept specific arguments fro parser"""
         prefix_str = "" if prefix is None else prefix + "."
         try:
-            default_logging_debug = os.getenv("BT_LOGGING_DEBUG") or False
-            default_logging_info = os.getenv("BT_LOGGING_INFO") or False
-            default_logging_trace = os.getenv("BT_LOGGING_TRACE") or False
-            default_logging_record_log = os.getenv("BT_LOGGING_RECORD_LOG") or False
-            default_logging_logging_dir = (
-                None
-                if READ_ONLY
-                else os.getenv("BT_LOGGING_LOGGING_DIR")
-                or os.path.join("~", ".bittensor", "miners")
-            )
             parser.add_argument(
                 "--" + prefix_str + "logging.debug",
                 action="store_true",
-                help="""Turn on bittensor debugging information""",
-                default=default_logging_debug,
+                help="Turn on bittensor debugging information.",
+                default=DEFAULTS.logging.debug,
             )
             parser.add_argument(
                 "--" + prefix_str + "logging.trace",
                 action="store_true",
-                help="""Turn on bittensor trace level information""",
-                default=default_logging_trace,
+                help="Turn on bittensor trace level information.",
+                default=DEFAULTS.logging.trace,
             )
             parser.add_argument(
                 "--" + prefix_str + "logging.info",
                 action="store_true",
-                help="""Turn on bittensor info level information""",
-                default=default_logging_info,
+                help="Turn on bittensor info level information.",
+                default=DEFAULTS.logging.info,
             )
             parser.add_argument(
                 "--" + prefix_str + "logging.record_log",
                 action="store_true",
-                help="""Turns on logging to file.""",
-                default=default_logging_record_log,
+                help="Turns on logging to file.",
+                default=DEFAULTS.logging.record_log,
             )
             parser.add_argument(
                 "--" + prefix_str + "logging.logging_dir",
                 type=str,
                 help="Logging default root directory.",
-                default=default_logging_logging_dir,
+                default=DEFAULTS.logging.logging_dir,
+            )
+            parser.add_argument(
+                "--" + prefix_str + "logging.enable_third_party_loggers",
+                action="store_true",
+                help="Enables logging for third-party loggers.",
+                default=DEFAULTS.logging.enable_third_party_loggers,
             )
         except argparse.ArgumentError:
             # re-parsing arguments.
@@ -695,6 +697,7 @@ class LoggingMachine(StateMachine, Logger):
         info: bool = None,
         record_log: bool = None,
         logging_dir: str = None,
+        enable_third_party_loggers: bool = None,
     ):
         if config is not None:
             cfg = self._extract_logging_config(config)
@@ -708,6 +711,8 @@ class LoggingMachine(StateMachine, Logger):
                 cfg.record_log = record_log
             if logging_dir is not None:
                 cfg.logging_dir = logging_dir
+            if enable_third_party_loggers is not None:
+                cfg.enable_third_party_loggers = enable_third_party_loggers
         else:
             cfg = LoggingConfig(
                 debug=debug,
@@ -715,5 +720,6 @@ class LoggingMachine(StateMachine, Logger):
                 info=info,
                 record_log=record_log,
                 logging_dir=logging_dir,
+                enable_third_party_loggers=enable_third_party_loggers,
             )
         self.set_config(cfg)

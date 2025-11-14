@@ -38,7 +38,12 @@ def mock_config(tmp_path):
     log_file_path = log_dir / DEFAULT_LOG_FILE_NAME
 
     mock_config = LoggingConfig(
-        debug=False, trace=False, info=False, record_log=True, logging_dir=str(log_dir)
+        debug=False,
+        trace=False,
+        info=False,
+        record_log=True,
+        logging_dir=str(log_dir),
+        enable_third_party_loggers=False,
     )
 
     yield mock_config, log_file_path
@@ -141,7 +146,12 @@ def test_enable_file_logging_with_new_config(tmp_path):
 
     # check no file handler is created
     config = LoggingConfig(
-        debug=False, trace=False, info=False, record_log=True, logging_dir=None
+        debug=False,
+        trace=False,
+        info=False,
+        record_log=True,
+        logging_dir=None,
+        enable_third_party_loggers=False,
     )
     lm = LoggingMachine(config)
     assert not any(
@@ -150,7 +160,12 @@ def test_enable_file_logging_with_new_config(tmp_path):
 
     # check file handler now exists
     new_config = LoggingConfig(
-        debug=False, trace=False, info=False, record_log=True, logging_dir=str(log_dir)
+        debug=False,
+        trace=False,
+        info=False,
+        record_log=True,
+        logging_dir=str(log_dir),
+        enable_third_party_loggers=False,
     )
     lm.set_config(new_config)
     assert any(isinstance(handler, stdlogging.FileHandler) for handler in lm._handlers)
@@ -263,6 +278,7 @@ def test_runtime_logging_dir_update(tmp_path):
         info=False,
         record_log=True,
         logging_dir=str(initial_log_dir),
+        enable_third_party_loggers=False,
     )
     lm = LoggingMachine(initial_config)
 
@@ -284,6 +300,7 @@ def test_runtime_logging_dir_update(tmp_path):
         info=False,
         record_log=True,
         logging_dir=str(new_log_dir),
+        enable_third_party_loggers=False,
     )
     lm.set_config(new_config)
 
@@ -312,7 +329,12 @@ def test_runtime_disable_file_logging(tmp_path):
 
     # Initialize with file logging enabled
     config = LoggingConfig(
-        debug=False, trace=False, info=False, record_log=True, logging_dir=str(log_dir)
+        debug=False,
+        trace=False,
+        info=False,
+        record_log=True,
+        logging_dir=str(log_dir),
+        enable_third_party_loggers=False,
     )
     lm = LoggingMachine(config)
 
@@ -321,7 +343,12 @@ def test_runtime_disable_file_logging(tmp_path):
 
     # Disable file logging at runtime
     new_config = LoggingConfig(
-        debug=False, trace=False, info=False, record_log=False, logging_dir=str(log_dir)
+        debug=False,
+        trace=False,
+        info=False,
+        record_log=False,
+        logging_dir=str(log_dir),
+        enable_third_party_loggers=False,
     )
     lm.set_config(new_config)
 
