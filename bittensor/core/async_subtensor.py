@@ -2170,8 +2170,11 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> dict[str, ChainIdentity]:
-        """
-        Fetches delegates identities from the chain.
+        """Fetches delegate identities.
+
+        Delegates are validators that accept stake from other TAO holders (nominators/delegators). This method
+        retrieves the on-chain identity information for all delegates, including display name, legal name, web URLs,
+        and other metadata they have set.
 
         Parameters:
             block: The block number to query. Do not specify if using block_hash or reuse_block.
@@ -2179,7 +2182,10 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
 
         Returns:
-            Dict {ss58: ChainIdentity, ...}
+            Dictionary mapping delegate SS58 addresses to their ChainIdentity objects.
+
+        Notes:
+            See: <https://docs.learnbittensor.org/staking-and-delegation/delegation>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         identities = await self.substrate.query_map(
