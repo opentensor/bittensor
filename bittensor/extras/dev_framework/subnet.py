@@ -311,12 +311,7 @@ class TestSubnet:
             )
         ).value
         # added 10 blocks bc 2.5 seconds is not always enough for the chain to update.
-
-        # === temporary solution while AsyncSubstrateInterface._get_block_handler is broken ===
-        # await self.s.wait_for_block(current_block + activation_block + 10)
-        block_time = 0.25 if self.s.chain.is_fast_blocks() else 12
-        time.sleep(block_time * activation_block)
-        # === temporary solution while AsyncSubstrateInterface._get_block_handler is broken ===
+        await self.s.wait_for_block(current_block + activation_block + 10)
 
         response = await self.s.subnets.start_call(
             wallet=owner_wallet,
