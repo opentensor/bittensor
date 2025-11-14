@@ -2222,8 +2222,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             float: The delegate take percentage.
 
-        The delegate take is a critical parameter in the network's incentive structure, influencing the distribution of
-        rewards among neurons and their nominators.
+        Notes:
+            See: <https://docs.learnbittensor.org/staking-and-delegation/delegation>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.query_subtensor(
@@ -2242,21 +2242,24 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> list[DelegatedInfo]:
-        """
-        Retrieves a list of delegates and their associated stakes for a given coldkey. This function identifies the
-        delegates that a specific account has staked tokens on.
+        """Retrieves delegates and their associated stakes for a given nominator coldkey.
+
+        This method identifies all delegates (validators) that a specific coldkey has staked tokens to, along with
+        stake amounts and other delegation information. This is useful for account holders to understand their stake
+        allocations and involvement in the network's delegation and consensus mechanisms.
 
         Parameters:
-            coldkey_ss58: The ``SS58`` address of the account's coldkey.
+            coldkey_ss58: The SS58 address of the account's coldkey.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
             block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
 
         Returns:
-            A list containing the delegated information for the specified coldkey.
+            List of DelegatedInfo objects containing stake amounts and delegate information. Returns empty list if no
+            delegations exist for the coldkey.
 
-        This function is important for account holders to understand their stake allocations and their involvement in
-        the network's delegation and consensus mechanisms.
+        Notes:
+            See: <https://docs.learnbittensor.org/staking-and-delegation/delegation>
         """
 
         result = await self.query_runtime_api(
@@ -2279,8 +2282,11 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> list[DelegateInfo]:
-        """
-        Fetches all delegates on the chain
+        """Fetches all delegates registered on the chain.
+
+        Delegates are validators that accept stake from other TAO holders (nominators/delegators). This method
+        retrieves comprehensive information about all delegates including their hotkeys, total stake, nominator count,
+        take percentage, and other metadata.
 
         Parameters:
             block: The block number to query. Do not specify if using block_hash or reuse_block.
@@ -2288,7 +2294,11 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
 
         Returns:
-            List of DelegateInfo objects, or an empty list if there are no delegates.
+            List of DelegateInfo objects containing comprehensive delegate information. Returns empty list if no
+            delegates are registered.
+
+        Notes:
+            See: <https://docs.learnbittensor.org/staking-and-delegation/delegation>
         """
         result = await self.query_runtime_api(
             runtime_api="DelegateInfoRuntimeApi",
@@ -2309,10 +2319,11 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Balance:
-        """
-        Retrieves the existential deposit amount for the Bittensor blockchain.
+        """Retrieves the existential deposit amount for the Bittensor blockchain.
+
         The existential deposit is the minimum amount of TAO required for an account to exist on the blockchain.
-        Accounts with balances below this threshold can be reaped to conserve network resources.
+        Accounts with balances below this threshold can be reaped (removed) to conserve network resources and prevent
+        blockchain bloat from dust accounts.
 
         Parameters:
             block: The blockchain block number for the query.
@@ -2320,10 +2331,10 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used blockchain block hash.
 
         Returns:
-            The existential deposit amount.
+            The existential deposit amount in RAO.
 
-        The existential deposit is a fundamental economic parameter in the Bittensor network, ensuring efficient use of
-        storage and preventing the proliferation of dust accounts.
+        Notes:
+            See: <https://docs.learnbittensor.org/glossary#existential-deposit>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.get_constant(
