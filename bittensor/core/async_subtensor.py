@@ -129,7 +129,6 @@ from bittensor.core.settings import (
 from bittensor.core.types import (
     BlockInfo,
     ExtrinsicResponse,
-    ParamWithTypes,
     Salt,
     SubtensorMixin,
     UIDs,
