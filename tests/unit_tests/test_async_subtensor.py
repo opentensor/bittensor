@@ -3235,8 +3235,8 @@ async def test_get_next_epoch_start_block(mocker, subtensor):
         .__mod__()
         .__mod__()
         .__rsub__()
-        .__add__()
         .__radd__()
+        .__add__()
     )
 
 

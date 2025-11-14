@@ -1002,7 +1002,7 @@ class AsyncSubtensor(SubtensorMixin):
         tempo_plus_one = tempo + 1
         adjusted_block = (block + netuid_plus_one) % (2**64)
         remainder = adjusted_block % tempo_plus_one
-        return tempo - remainder + 1
+        return tempo - remainder
 
     async def bonds(
         self,
@@ -2962,7 +2962,7 @@ class AsyncSubtensor(SubtensorMixin):
         if not blocks_until:
             return None
 
-        return current_block + blocks_until
+        return current_block + blocks_until + 1
 
     async def get_owned_hotkeys(
         self,

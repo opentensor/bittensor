@@ -3469,7 +3469,7 @@ def test_get_next_epoch_start_block(mocker, subtensor):
         netuid=netuid,
         block=block,
     )
-    assert result == mocked_blocks_until_next_epoch.return_value.__radd__()
+    assert result == mocked_blocks_until_next_epoch.return_value.__radd__().__add__()
 
 
 def test_get_parents_success(subtensor, mocker):
