@@ -36,6 +36,7 @@ def test_properties_methods_comparable(other_class: "Subtensor" = None):
         m for m in dir(subtensor_api.metagraphs) if not m.startswith("_")
     ]
     neurons_methods = [m for m in dir(subtensor_api.neurons) if not m.startswith("_")]
+    proxies_methods = [m for m in dir(subtensor_api.proxies) if not m.startswith("_")]
     queries_methods = [m for m in dir(subtensor_api.queries) if not m.startswith("_")]
     stakes_methods = [m for m in dir(subtensor_api.staking) if not m.startswith("_")]
     subnets_methods = [m for m in dir(subtensor_api.subnets) if not m.startswith("_")]
@@ -50,6 +51,7 @@ def test_properties_methods_comparable(other_class: "Subtensor" = None):
         + extrinsics_methods
         + metagraphs_methods
         + neurons_methods
+        + proxies_methods
         + queries_methods
         + stakes_methods
         + subnets_methods

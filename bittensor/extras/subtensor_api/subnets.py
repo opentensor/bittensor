@@ -11,6 +11,7 @@ class Subnets:
         self.all_subnets = subtensor.all_subnets
         self.blocks_since_last_step = subtensor.blocks_since_last_step
         self.blocks_since_last_update = subtensor.blocks_since_last_update
+        self.blocks_until_next_epoch = subtensor.blocks_until_next_epoch
         self.bonds = subtensor.bonds
         self.burned_register = subtensor.burned_register
         self.commit_reveal_enabled = subtensor.commit_reveal_enabled

@@ -12,7 +12,6 @@ from async_substrate_interface.utils.storage import StorageKey
 from bittensor_drand import get_encrypted_commitment
 from bittensor_wallet.utils import SS58_FORMAT
 
-from bittensor.core.async_subtensor import ProposalVoteData
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import (
     CrowdloanInfo,
@@ -23,6 +22,11 @@ from bittensor.core.chain_data import (
     MetagraphInfo,
     NeuronInfo,
     NeuronInfoLite,
+    ProposalVoteData,
+    ProxyAnnouncementInfo,
+    ProxyInfo,
+    ProxyConstants,
+    ProxyType,
     SelectiveMetagraphIndex,
     SimSwapResult,
     StakeInfo,
@@ -66,6 +70,19 @@ from bittensor.core.extrinsics.move_stake import (
     transfer_stake_extrinsic,
     swap_stake_extrinsic,
     move_stake_extrinsic,
+)
+from bittensor.core.extrinsics.proxy import (
+    add_proxy_extrinsic,
+    announce_extrinsic,
+    create_pure_proxy_extrinsic,
+    kill_pure_proxy_extrinsic,
+    poke_deposit_extrinsic,
+    proxy_announced_extrinsic,
+    proxy_extrinsic,
+    reject_announcement_extrinsic,
+    remove_announcement_extrinsic,
+    remove_proxy_extrinsic,
+    remove_proxies_extrinsic,
 )
 from bittensor.core.extrinsics.registration import (
     burned_register_extrinsic,
@@ -112,7 +129,6 @@ from bittensor.core.settings import (
 from bittensor.core.types import (
     BlockInfo,
     ExtrinsicResponse,
-    ParamWithTypes,
     Salt,
     SubtensorMixin,
     UIDs,
@@ -298,26 +314,6 @@ class Subtensor(SubtensorMixin):
             return None
         else:
             return self.get_block_hash(block=block)
-
-    def encode_params(
-        self,
-        call_definition: dict[str, list["ParamWithTypes"]],
-        params: Union[list[Any], dict[str, Any]],
-    ) -> str:
-        """Returns a hex encoded string of the params using their types."""
-        param_data = scalecodec.ScaleBytes(b"")
-
-        for i, param in enumerate(call_definition["params"]):
-            scale_obj = self.substrate.create_scale_object(param["type"])
-            if isinstance(params, list):
-                param_data += scale_obj.encode(params[i])
-            else:
-                if param["name"] not in params:
-                    raise ValueError(f"Missing param {param['name']} in params dict.")
-
-                param_data += scale_obj.encode(params[param["name"]])
-
-        return param_data.to_hex()
 
     def get_hyperparameter(
         self, param_name: str, netuid: int, block: Optional[int] = None
@@ -688,6 +684,32 @@ class Subtensor(SubtensorMixin):
             param_name="LastUpdate", netuid=netuid, block=block
         )
         return None if not call else (block - int(call[uid]))
+
+    def blocks_until_next_epoch(
+        self, netuid: int, tempo: Optional[int] = None, block: Optional[int] = None
+    ) -> Optional[int]:
+        """Returns the number of blocks until the next epoch of subnet with provided netuid.
+
+        Parameters:
+            netuid: The unique identifier of the subnetwork.
+            tempo: The tempo of the subnet.
+            block: the block number for this query.
+
+        Returns:
+            The number of blocks until the next epoch of the subnet with provided netuid.
+        """
+        block = block or self.block
+
+        tempo = tempo or self.tempo(netuid=netuid)
+        if not tempo:
+            return None
+
+        # the logic is the same as in SubtensorModule:blocks_until_next_epoch
+        netuid_plus_one = int(netuid) + 1
+        tempo_plus_one = tempo + 1
+        adjusted_block = (block + netuid_plus_one) % (2**64)
+        remainder = adjusted_block % tempo_plus_one
+        return tempo - remainder
 
     def bonds(
         self,
@@ -2148,24 +2170,33 @@ class Subtensor(SubtensorMixin):
         """
         Calculates the first block number of the next epoch for the given subnet.
 
-        If `block` is not provided, the current chain block will be used. Epochs are
-        determined based on the subnet's tempo (i.e., blocks per epoch). The result
-        is the block number at which the next epoch will begin.
+        If `block` is not provided, the current chain block will be used. Epochs are determined based on the subnet's
+        tempo (i.e., blocks per epoch). The result is the block number at which the next epoch will begin.
 
         Parameters:
             netuid: The unique identifier of the subnet.
             block: The reference block to calculate from. If None, uses the current chain block height.
 
         Returns:
-            int: The block number at which the next epoch will start.
-        """
-        block = block or self.block
-        blocks_since_last_step = self.blocks_since_last_step(netuid=netuid, block=block)
-        tempo = self.tempo(netuid=netuid, block=block)
+            int: The block number at which the next epoch will start, or None if tempo is 0 or invalid.
 
-        if block and blocks_since_last_step is not None and tempo:
-            return block - blocks_since_last_step + tempo + 1
-        return None
+        Notes:
+            See also: <https://docs.learnbittensor.org/glossary#tempo>
+        """
+        tempo = self.tempo(netuid=netuid, block=block)
+        current_block = block or self.block
+
+        if not tempo:
+            return None
+
+        blocks_until = self.blocks_until_next_epoch(
+            netuid=netuid, tempo=tempo, block=current_block
+        )
+
+        if not blocks_until:
+            return None
+
+        return current_block + blocks_until + 1
 
     def get_owned_hotkeys(
         self,
@@ -2222,6 +2253,179 @@ class Subtensor(SubtensorMixin):
             return formatted_parents
 
         return []
+
+    def get_proxies(self, block: Optional[int] = None) -> dict[str, list[ProxyInfo]]:
+        """
+        Retrieves all proxy relationships from the chain.
+
+        This method queries the Proxy.Proxies storage map across all accounts and returns a dictionary mapping each real
+        account (delegator) to its list of proxy relationships.
+
+        Parameters:
+            block: The blockchain block number for the query. If None, queries the latest block.
+
+        Returns:
+            Dictionary mapping real account SS58 addresses to lists of ProxyInfo objects. Each ProxyInfo contains the
+                delegate address, proxy type, and delay for that proxy relationship.
+
+        Note:
+            This method queries all proxy relationships on the chain, which may be resource-intensive for large
+            networks. Consider using `get_proxies_for_real_account()` for querying specific accounts.
+        """
+        block_hash = self.determine_block_hash(block)
+        query_map = self.substrate.query_map(
+            module="Proxy",
+            storage_function="Proxies",
+            block_hash=block_hash,
+        )
+
+        proxies = {}
+        for record in query_map:
+            real_account, proxy_list = ProxyInfo.from_query_map_record(record)
+            proxies[real_account] = proxy_list
+        return proxies
+
+    def get_proxies_for_real_account(
+        self,
+        real_account_ss58: str,
+        block: Optional[int] = None,
+    ) -> tuple[list[ProxyInfo], Balance]:
+        """
+        Returns proxy/ies associated with the provided real account.
+
+        This method queries the Proxy.Proxies storage for a specific real account and returns all proxy relationships
+        where this real account is the delegator. It also returns the deposit amount reserved for these proxies.
+
+        Parameters:
+            real_account_ss58: SS58 address of the real account (delegator) whose proxies to retrieve.
+            block: The blockchain block number for the query.
+
+        Returns:
+            Tuple containing:
+                - List of ProxyInfo objects representing all proxy relationships for the real account. Each ProxyInfo
+                    contains delegate address, proxy type, and delay.
+                - Balance object representing the reserved deposit amount for these proxies. This deposit is held as
+                    long as the proxy relationships exist and is returned when proxies are removed.
+        """
+        block_hash = self.determine_block_hash(block)
+        query = self.substrate.query(
+            module="Proxy",
+            storage_function="Proxies",
+            params=[real_account_ss58],
+            block_hash=block_hash,
+        )
+        return ProxyInfo.from_query(query)
+
+    def get_proxy_announcement(
+        self,
+        delegate_account_ss58: str,
+        block: Optional[int] = None,
+    ) -> list[ProxyAnnouncementInfo]:
+        """
+        Retrieves proxy announcements for a specific delegate account.
+
+        This method queries the Proxy.Announcements storage for announcements made by the given delegate proxy account.
+        Announcements allow a proxy to declare its intention to execute a call on behalf of a real account after a delay
+        period.
+
+        Parameters:
+            delegate_account_ss58: SS58 address of the delegate proxy account whose announcements to retrieve.
+            block: The blockchain block number for the query. If None, queries the latest block.
+
+        Returns:
+            List of ProxyAnnouncementInfo objects. Each object contains the real account address, call hash, and block
+                height at which the announcement was made.
+
+        Note:
+            If the delegate has no announcements, returns an empty list.
+        """
+        block_hash = self.determine_block_hash(block)
+        query = self.substrate.query(
+            module="Proxy",
+            storage_function="Announcements",
+            params=[delegate_account_ss58],
+            block_hash=block_hash,
+        )
+        return ProxyAnnouncementInfo.from_dict(query.value[0])
+
+    def get_proxy_announcements(
+        self,
+        block: Optional[int] = None,
+    ) -> dict[str, list[ProxyAnnouncementInfo]]:
+        """
+        Retrieves all proxy announcements from the chain.
+
+        This method queries the Proxy.Announcements storage map across all delegate accounts and returns a dictionary
+        mapping each delegate to its list of pending announcements.
+
+        Parameters:
+            block: The blockchain block number for the query. If None, queries the latest block.
+
+        Returns:
+            Dictionary mapping delegate account SS58 addresses to lists of ProxyAnnouncementInfo objects.
+            Each ProxyAnnouncementInfo contains the real account address, call hash, and block height.
+
+        Note:
+            This method queries all announcements on the chain, which may be resource-intensive for large networks.
+            Consider using `get_proxy_announcement()` for querying specific delegates.
+        """
+        block_hash = self.determine_block_hash(block)
+        query_map = self.substrate.query_map(
+            module="Proxy",
+            storage_function="Announcements",
+            block_hash=block_hash,
+        )
+        announcements = {}
+        for record in query_map:
+            delegate, proxy_list = ProxyAnnouncementInfo.from_query_map_record(record)
+            announcements[delegate] = proxy_list
+        return announcements
+
+    def get_proxy_constants(
+        self,
+        constants: Optional[list[str]] = None,
+        as_dict: bool = False,
+        block: Optional[int] = None,
+    ) -> Union["ProxyConstants", dict]:
+        """
+        Fetches runtime configuration constants from the `Proxy` pallet.
+
+        This method retrieves on-chain configuration constants that define deposit requirements, proxy limits, and
+        announcement constraints for the Proxy pallet. These constants govern how proxy accounts operate within the
+        Subtensor network.
+
+        Parameters:
+            constants: Optional list of specific constant names to fetch. If omitted, all constants defined in
+                `ProxyConstants.constants_names()` are queried. Valid constant names include: "AnnouncementDepositBase",
+                "AnnouncementDepositFactor", "MaxProxies", "MaxPending", "ProxyDepositBase", "ProxyDepositFactor".
+            as_dict: If True, returns the constants as a dictionary instead of a `ProxyConstants` object.
+            block: The blockchain block number for the query. If None, queries the latest block.
+
+        Returns:
+            If `as_dict` is False: ProxyConstants object containing all requested constants.
+            If `as_dict` is True: Dictionary mapping constant names to their values (Balance objects for deposit
+                constants, integers for limit constants).
+
+        Note:
+            All Balance amounts are returned in RAO. Constants reflect the current chain configuration at the specified
+            block.
+        """
+        result = {}
+        const_names = constants or ProxyConstants.constants_names()
+
+        for const_name in const_names:
+            query = self.query_constant(
+                module_name="Proxy",
+                constant_name=const_name,
+                block=block,
+            )
+
+            if query is not None:
+                result[const_name] = query.value
+
+        proxy_constants = ProxyConstants.from_dict(result)
+
+        return proxy_constants.to_dict() if as_dict else proxy_constants
 
     def get_revealed_commitment(
         self,
@@ -4041,6 +4245,102 @@ class Subtensor(SubtensorMixin):
             wait_for_finalization=wait_for_finalization,
         )
 
+    def add_proxy(
+        self,
+        wallet: "Wallet",
+        delegate_ss58: str,
+        proxy_type: Union[str, "ProxyType"],
+        delay: int,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Adds a proxy relationship.
+
+        This method creates a proxy relationship where the delegate can execute calls on behalf of the real account (the
+        wallet owner) with restrictions defined by the proxy type and a delay period. A deposit is required and held as
+        long as the proxy relationship exists.
+
+        Parameters:
+            wallet: Bittensor wallet object.
+            delegate_ss58: The SS58 address of the delegate proxy account.
+            proxy_type: The type of proxy permissions (e.g., "Any", "NonTransfer", "Governance", "Staking"). Can be a
+                string or ProxyType enum value.
+            delay: The number of blocks before the proxy can be used.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Note:
+            A deposit is required when adding a proxy. The deposit amount is determined by runtime constants and is
+            returned when the proxy is removed. Use `get_proxy_constants()` to check current deposit requirements.
+        """
+        return add_proxy_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            delegate_ss58=delegate_ss58,
+            proxy_type=proxy_type,
+            delay=delay,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+    def announce_proxy(
+        self,
+        wallet: "Wallet",
+        real_account_ss58: str,
+        call_hash: str,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Announces a future call that will be executed through a proxy.
+
+        This method allows a proxy account to declare its intention to execute a specific call on behalf of a real
+        account after a delay period. The real account can review and either approve (via `proxy_announced()`) or reject
+        (via `reject_proxy_announcement()`) the announcement.
+
+        Parameters:
+            wallet: Bittensor wallet object (should be the proxy account wallet).
+            real_account_ss58: The SS58 address of the real account on whose behalf the call will be made.
+            call_hash: The hash of the call that will be executed in the future.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Note:
+            A deposit is required when making an announcement. The deposit is returned when the announcement is
+            executed, rejected, or removed. The announcement can be executed after the delay period has passed.
+        """
+        return announce_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            real_account_ss58=real_account_ss58,
+            call_hash=call_hash,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
     def burned_register(
         self,
         wallet: "Wallet",
@@ -4291,6 +4591,56 @@ class Subtensor(SubtensorMixin):
             wait_for_finalization=wait_for_finalization,
         )
 
+    def create_pure_proxy(
+        self,
+        wallet: "Wallet",
+        proxy_type: Union[str, "ProxyType"],
+        delay: int,
+        index: int,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Creates a pure proxy account.
+
+        A pure proxy is a keyless account that can only be controlled through proxy relationships. Unlike regular
+        proxies, pure proxies do not have their own private keys, making them more secure for certain use cases. The
+        pure proxy address is deterministically generated based on the spawner account, proxy type, delay, and index.
+
+        Parameters:
+            wallet: Bittensor wallet object.
+            proxy_type: The type of proxy permissions for the pure proxy. Can be a string or ProxyType enum value.
+            delay: The number of blocks before the pure proxy can be used.
+            index: The index to use for generating the pure proxy account address.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Note:
+            The pure proxy account address can be extracted from the "PureCreated" event in the response. Store the
+            spawner address, proxy_type, index, height, and ext_index as they are required to kill the pure proxy later
+            via `kill_pure_proxy()`.
+        """
+        return create_pure_proxy_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            proxy_type=proxy_type,
+            delay=delay,
+            index=index,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
     def dissolve_crowdloan(
         self,
         wallet: "Wallet",
@@ -4364,6 +4714,83 @@ class Subtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             crowdloan_id=crowdloan_id,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+    def kill_pure_proxy(
+        self,
+        wallet: "Wallet",
+        pure_proxy_ss58: str,
+        spawner: str,
+        proxy_type: Union[str, "ProxyType"],
+        index: int,
+        height: int,
+        ext_index: int,
+        force_proxy_type: Optional[Union[str, "ProxyType"]] = ProxyType.Any,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Kills (removes) a pure proxy account.
+
+        This method removes a pure proxy account that was previously created via `create_pure_proxy()`. The `kill_pure`
+        call must be executed through the pure proxy account itself, with the spawner acting as an "Any" proxy. This
+        method automatically handles this by executing the call via `proxy()`.
+
+        Parameters:
+            wallet: Bittensor wallet object. The wallet.coldkey.ss58_address must be the spawner of the pure proxy (the
+                account that created it via `create_pure_proxy()`). The spawner must have an "Any" proxy relationship
+                with the pure proxy.
+            pure_proxy_ss58: The SS58 address of the pure proxy account to be killed. This is the address that was
+                returned in the `create_pure_proxy()` response.
+            spawner: The SS58 address of the spawner account (the account that originally created the pure proxy via
+                `create_pure_proxy()`). This should match wallet.coldkey.ss58_address.
+            proxy_type: The type of proxy permissions. Can be a string or ProxyType enum value. Must match the
+                proxy_type used when creating the pure proxy.
+            index: The disambiguation index originally passed to `create_pure`.
+            height: The block height at which the pure proxy was created.
+            ext_index: The extrinsic index at which the pure proxy was created.
+            force_proxy_type: The proxy type relationship to use when executing `kill_pure` through the proxy mechanism.
+                Since pure proxies are keyless and cannot sign transactions, the spawner must act as a proxy for the
+                pure proxy to execute `kill_pure`. This parameter specifies which proxy type relationship between the
+                spawner and the pure proxy account should be used. The spawner must have a proxy relationship of this
+                type (or `Any`) with the pure proxy account. Defaults to `ProxyType.Any` for maximum compatibility. If
+                `None`, Substrate will automatically select an available proxy type from the spawner's proxy
+                relationships.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Note:
+            The `kill_pure` call must be executed through the pure proxy account itself, with the spawner acting as an
+            "Any" proxy. This method automatically handles this by executing the call via `proxy()`. The spawner must
+            have an "Any" proxy relationship with the pure proxy for this to work.
+
+        Warning:
+            All access to this account will be lost. Any funds remaining in the pure proxy account will become
+            permanently inaccessible after this operation.
+        """
+        return kill_pure_proxy_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            pure_proxy_ss58=pure_proxy_ss58,
+            spawner=spawner,
+            proxy_type=proxy_type,
+            index=index,
+            height=height,
+            ext_index=ext_index,
+            force_proxy_type=force_proxy_type,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -4493,6 +4920,152 @@ class Subtensor(SubtensorMixin):
             wait_for_finalization=wait_for_finalization,
         )
 
+    def poke_deposit(
+        self,
+        wallet: "Wallet",
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Adjusts deposits made for proxies and announcements based on current values.
+
+        This method recalculates and updates the locked deposit amounts for both proxy relationships and announcements
+        for the signing account. It can be used to potentially lower the locked amount if the deposit requirements have
+        changed (e.g., due to runtime upgrades or changes in the number of proxies/announcements).
+
+        Parameters:
+            wallet: Bittensor wallet object (the account whose deposits will be adjusted).
+            period: The number of blocks during which the transaction will remain valid after it's submitted.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Note:
+            This method automatically adjusts deposits for both proxy relationships and announcements. No parameters are
+            needed as it operates on the account's current state.
+
+        When to use:
+            - After runtime upgrade, if deposit constants have changed.
+            - After removing proxies/announcements, to free up excess locked funds.
+            - Periodically to optimize locked deposit amounts.
+        """
+        return poke_deposit_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+    def proxy(
+        self,
+        wallet: "Wallet",
+        real_account_ss58: str,
+        force_proxy_type: Optional[Union[str, "ProxyType"]],
+        call: "GenericCall",
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Executes a call on behalf of the real account through a proxy.
+
+        This method allows a proxy account (delegate) to execute a call on behalf of the real account (delegator). The
+        call is subject to the permissions defined by the proxy type and must respect the delay period if one was set
+        when the proxy was added.
+
+        Parameters:
+            wallet: Bittensor wallet object (should be the proxy account wallet).
+            real_account_ss58: The SS58 address of the real account on whose behalf the call is being made.
+            force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise,
+                must match one of the allowed proxy types. Can be a string or ProxyType enum value.
+            call: The inner call to be executed on behalf of the real account.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Note:
+            The call must be permitted by the proxy type. For example, a "NonTransfer" proxy cannot execute transfer
+            calls. The delay period must also have passed since the proxy was added.
+        """
+        return proxy_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            real_account_ss58=real_account_ss58,
+            force_proxy_type=force_proxy_type,
+            call=call,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+    def proxy_announced(
+        self,
+        wallet: "Wallet",
+        delegate_ss58: str,
+        real_account_ss58: str,
+        force_proxy_type: Optional[Union[str, "ProxyType"]],
+        call: "GenericCall",
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Executes an announced call on behalf of the real account through a proxy.
+
+        This method executes a call that was previously announced via `announce_proxy()`. The call must match the
+        call_hash that was announced, and the delay period must have passed since the announcement was made. The real
+        account has the opportunity to review and reject the announcement before execution.
+
+        Parameters:
+            wallet: Bittensor wallet object (should be the proxy account wallet that made the announcement).
+            delegate_ss58: The SS58 address of the delegate proxy account that made the announcement.
+            real_account_ss58: The SS58 address of the real account on whose behalf the call will be made.
+            force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise,
+                must match one of the allowed proxy types. Can be a string or ProxyType enum value.
+            call: The inner call to be executed on behalf of the real account (must match the announced call_hash).
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Note:
+            The call_hash of the provided call must match the call_hash that was announced. The announcement must not
+            have been rejected by the real account, and the delay period must have passed.
+        """
+        return proxy_announced_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            delegate_ss58=delegate_ss58,
+            real_account_ss58=real_account_ss58,
+            force_proxy_type=force_proxy_type,
+            call=call,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
     def refund_crowdloan(
         self,
         wallet: "Wallet",
@@ -4531,6 +5104,51 @@ class Subtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             crowdloan_id=crowdloan_id,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+    def reject_proxy_announcement(
+        self,
+        wallet: "Wallet",
+        delegate_ss58: str,
+        call_hash: str,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Rejects an announcement made by a proxy delegate.
+
+        This method allows the real account to reject an announcement made by a proxy delegate, preventing the announced
+        call from being executed. Once rejected, the announcement cannot be executed and the announcement deposit is
+        returned to the delegate.
+
+        Parameters:
+            wallet: Bittensor wallet object (should be the real account wallet).
+            delegate_ss58: The SS58 address of the delegate proxy account whose announcement is being rejected.
+            call_hash: The hash of the call that was announced and is now being rejected.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Note:
+            Once rejected, the announcement cannot be executed. The delegate's announcement deposit is returned.
+        """
+        return reject_announcement_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            delegate_ss58=delegate_ss58,
+            call_hash=call_hash,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -4635,6 +5253,52 @@ class Subtensor(SubtensorMixin):
             wait_for_finalization=wait_for_finalization,
         )
 
+    def remove_proxy_announcement(
+        self,
+        wallet: "Wallet",
+        real_account_ss58: str,
+        call_hash: str,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Removes an announcement made by a proxy account.
+
+        This method allows the proxy account to remove its own announcement before it is executed or rejected. This
+        frees up the announcement deposit and prevents the call from being executed. Only the proxy account that made
+        the announcement can remove it.
+
+        Parameters:
+            wallet: Bittensor wallet object (should be the proxy account wallet that made the announcement).
+            real_account_ss58: The SS58 address of the real account on whose behalf the call was announced.
+            call_hash: The hash of the call that was announced and is now being removed.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Note:
+            Only the proxy account that made the announcement can remove it. The real account can reject it via
+            `reject_proxy_announcement()`, but cannot remove it directly.
+        """
+        return remove_announcement_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            real_account_ss58=real_account_ss58,
+            call_hash=call_hash,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
     def remove_liquidity(
         self,
         wallet: "Wallet",
@@ -4674,6 +5338,96 @@ class Subtensor(SubtensorMixin):
             netuid=netuid,
             position_id=position_id,
             hotkey_ss58=hotkey_ss58,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+    def remove_proxies(
+        self,
+        wallet: "Wallet",
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Removes all proxy relationships for the account in a single transaction.
+
+        This method removes all proxy relationships for the signing account in a single call, which is more efficient
+        than removing them one by one using `remove_proxy()`. The deposit for all proxies will be returned to the
+        account.
+
+        Parameters:
+            wallet: Bittensor wallet object. The account whose proxies will be removed (the delegator). All proxy
+                relationships where wallet.coldkey.ss58_address is the real account will be removed.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Note:
+            This removes all proxy relationships for the account, regardless of proxy type or delegate. Use
+            `remove_proxy()` if you need to remove specific proxy relationships selectively.
+        """
+        return remove_proxies_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+    def remove_proxy(
+        self,
+        wallet: "Wallet",
+        delegate_ss58: str,
+        proxy_type: Union[str, "ProxyType"],
+        delay: int,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Removes a specific proxy relationship.
+
+        This method removes a single proxy relationship between the real account and a delegate. The parameters must
+        exactly match those used when the proxy was added via `add_proxy()`. The deposit for this proxy will be returned
+        to the account.
+
+        Parameters:
+            wallet: Bittensor wallet object.
+            delegate_ss58: The SS58 address of the delegate proxy account to remove.
+            proxy_type: The type of proxy permissions to remove. Can be a string or ProxyType enum value.
+            delay: The number of blocks before the proxy removal takes effect.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Note:
+            The delegate_ss58, proxy_type, and delay parameters must exactly match those used when the proxy was added.
+            Use `get_proxies_for_real_account()` to retrieve the exact parameters for existing proxies.
+        """
+        return remove_proxy_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            delegate_ss58=delegate_ss58,
+            proxy_type=proxy_type,
+            delay=delay,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
