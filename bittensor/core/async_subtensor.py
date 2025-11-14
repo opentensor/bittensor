@@ -2950,7 +2950,7 @@ class AsyncSubtensor(SubtensorMixin):
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         tempo = await self.tempo(netuid=netuid, block_hash=block_hash)
-        current_block = block or self.block
+        current_block = block or await self.block
 
         if not tempo:
             return None
