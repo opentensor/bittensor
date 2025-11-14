@@ -16,7 +16,7 @@ Example:
 """
 
 from functools import wraps
-from typing import Callable, TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from .helpers import all_loggers
 
@@ -45,29 +45,29 @@ class BittensorConsole:
     @_print_wrapper
     def debug(self, message: str):
         """Logs a DEBUG message to the console."""
-        self.logger.debug(message)
+        self.logger.debug(message, stacklevel=3)
 
     @_print_wrapper
     def info(self, message: str):
         """Logs a INFO message to the console."""
-        self.logger.info(message)
+        self.logger.info(message, stacklevel=3)
 
     @_print_wrapper
     def success(self, message: str):
         """Logs a SUCCESS message to the console."""
-        self.logger.success(message)
+        self.logger.success(message, stacklevel=3)
 
     @_print_wrapper
     def warning(self, message: str):
         """Logs a WARNING message to the console."""
-        self.logger.warning(message)
+        self.logger.warning(message, stacklevel=3)
 
     @_print_wrapper
     def error(self, message: str):
         """Logs a ERROR message to the console."""
-        self.logger.error(message)
+        self.logger.error(message, stacklevel=3)
 
     @_print_wrapper
     def critical(self, message: str):
         """Logs a CRITICAL message to the console."""
-        self.logger.critical(message)
+        self.logger.critical(message, stacklevel=3)

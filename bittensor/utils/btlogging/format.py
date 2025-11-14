@@ -142,7 +142,7 @@ class BtStreamFormatter(logging.Formatter):
         """
 
         format_orig = self._style._fmt
-        record.levelname = f"{record.levelname:^16}"
+        record.levelname = f"{record.levelname:^8}"
 
         if record.levelno not in LOG_FORMATS:
             self._style._fmt = (

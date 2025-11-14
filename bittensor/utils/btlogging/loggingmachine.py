@@ -12,12 +12,12 @@ import os
 import sys
 from logging import Logger
 from logging.handlers import QueueHandler, QueueListener, RotatingFileHandler
-from typing import NamedTuple
+from typing import NamedTuple, Union
 
 from statemachine import State, StateMachine
 
-from bittensor.core.settings import READ_ONLY
 from bittensor.core.config import Config
+from bittensor.core.settings import DEFAULTS
 from bittensor.utils.btlogging.console import BittensorConsole
 from .defines import (
     BITTENSOR_LOGGER_NAME,
@@ -53,6 +53,7 @@ class LoggingConfig(NamedTuple):
     info: bool
     record_log: bool
     logging_dir: str
+    enable_third_party_loggers: bool
 
 
 class LoggingMachine(StateMachine, Logger):
@@ -161,7 +162,12 @@ class LoggingMachine(StateMachine, Logger):
 
         # set up all the loggers
         self._logger = self._initialize_bt_logger(name)
-        self.disable_third_party_loggers()
+
+        if self._config.enable_third_party_loggers:
+            self.enable_third_party_loggers()
+        else:
+            self.disable_third_party_loggers()
+
         self._enable_initial_state(self._config)
         self.console = BittensorConsole(self)
 
@@ -176,7 +182,7 @@ class LoggingMachine(StateMachine, Logger):
         else:
             self.enable_default()
 
-    def _extract_logging_config(self, config: "Config") -> dict:
+    def _extract_logging_config(self, config: "Config") -> Union[dict, "Config"]:
         """Extract btlogging's config from bittensor config
 
         Parameters:
@@ -218,10 +224,16 @@ class LoggingMachine(StateMachine, Logger):
             config: Bittensor config instance.
         """
         self._config = self._extract_logging_config(config)
-        if self._config.logging_dir and self._config.record_log:
+
+        # Handle file logging configuration changes
+        if self._config.record_log and self._config.logging_dir:
             expanded_dir = os.path.expanduser(config.logging_dir)
             logfile = os.path.abspath(os.path.join(expanded_dir, DEFAULT_LOG_FILE_NAME))
             self._enable_file_logging(logfile)
+        else:
+            # If record_log is False or logging_dir is None, disable file logging
+            self._disable_file_logging()
+
         if self._config.trace:
             self.enable_trace()
         elif self._config.debug:
@@ -323,15 +335,61 @@ class LoggingMachine(StateMachine, Logger):
                 logger.removeHandler(handler)
 
     def _enable_file_logging(self, logfile: str):
-        # preserve idempotency; do not create extra filehandlers
-        # if one already exists
-        if any(
-            [isinstance(handler, RotatingFileHandler) for handler in self._handlers]
-        ):
-            return
+        """Enable file logging to the specified logfile path.
+
+        If a file handler already exists, it will be replaced if the path has changed. This ensures that runtime updates
+        to logging_dir correctly redirect output.
+
+        Parameters:
+            logfile: Absolute path to the log file.
+        """
+        # Check if a file handler already exists
+        existing_file_handler = None
+        for handler in self._handlers:
+            if isinstance(handler, RotatingFileHandler):
+                existing_file_handler = handler
+                break
+
+        # If file handler exists, check if path has changed
+        if existing_file_handler is not None:
+            current_path = os.path.abspath(existing_file_handler.baseFilename)
+            new_path = os.path.abspath(logfile)
+
+            # If path hasn't changed, no need to update
+            if current_path == new_path:
+                return
+
+            # Path has changed, remove old handler and create new one
+            self._handlers.remove(existing_file_handler)
+            existing_file_handler.close()
+
+        # Create and add new file handler
         file_handler = self._create_file_handler(logfile)
         self._handlers.append(file_handler)
+
+        # Update listener handlers
+        # Stop listener temporarily to update handlers safely (same pattern as state transitions)
+        self._listener.stop()
         self._listener.handlers = tuple(self._handlers)
+        self._listener.start()
+
+    def _disable_file_logging(self):
+        """Disable file logging by removing the file handler if it exists."""
+        file_handler = None
+        for handler in self._handlers:
+            if isinstance(handler, RotatingFileHandler):
+                file_handler = handler
+                break
+
+        if file_handler is not None:
+            self._handlers.remove(file_handler)
+            file_handler.close()
+
+            # Update listener handlers
+            # Stop listener temporarily to update handlers safely (same pattern as state transitions)
+            self._listener.stop()
+            self._listener.handlers = tuple(self._handlers)
+            self._listener.start()
 
     # state transitions
     def before_transition(self, event, state):
@@ -580,45 +638,41 @@ class LoggingMachine(StateMachine, Logger):
         """Accept specific arguments fro parser"""
         prefix_str = "" if prefix is None else prefix + "."
         try:
-            default_logging_debug = os.getenv("BT_LOGGING_DEBUG") or False
-            default_logging_info = os.getenv("BT_LOGGING_INFO") or False
-            default_logging_trace = os.getenv("BT_LOGGING_TRACE") or False
-            default_logging_record_log = os.getenv("BT_LOGGING_RECORD_LOG") or False
-            default_logging_logging_dir = (
-                None
-                if READ_ONLY
-                else os.getenv("BT_LOGGING_LOGGING_DIR")
-                or os.path.join("~", ".bittensor", "miners")
-            )
             parser.add_argument(
                 "--" + prefix_str + "logging.debug",
                 action="store_true",
-                help="""Turn on bittensor debugging information""",
-                default=default_logging_debug,
+                help="Turn on bittensor debugging information.",
+                default=DEFAULTS.logging.debug,
             )
             parser.add_argument(
                 "--" + prefix_str + "logging.trace",
                 action="store_true",
-                help="""Turn on bittensor trace level information""",
-                default=default_logging_trace,
+                help="Turn on bittensor trace level information.",
+                default=DEFAULTS.logging.trace,
             )
             parser.add_argument(
                 "--" + prefix_str + "logging.info",
                 action="store_true",
-                help="""Turn on bittensor info level information""",
-                default=default_logging_info,
+                help="Turn on bittensor info level information.",
+                default=DEFAULTS.logging.info,
             )
             parser.add_argument(
                 "--" + prefix_str + "logging.record_log",
                 action="store_true",
-                help="""Turns on logging to file.""",
-                default=default_logging_record_log,
+                help="Turns on logging to file.",
+                default=DEFAULTS.logging.record_log,
             )
             parser.add_argument(
                 "--" + prefix_str + "logging.logging_dir",
                 type=str,
                 help="Logging default root directory.",
-                default=default_logging_logging_dir,
+                default=DEFAULTS.logging.logging_dir,
+            )
+            parser.add_argument(
+                "--" + prefix_str + "logging.enable_third_party_loggers",
+                action="store_true",
+                help="Enables logging for third-party loggers.",
+                default=DEFAULTS.logging.enable_third_party_loggers,
             )
         except argparse.ArgumentError:
             # re-parsing arguments.
@@ -643,6 +697,7 @@ class LoggingMachine(StateMachine, Logger):
         info: bool = None,
         record_log: bool = None,
         logging_dir: str = None,
+        enable_third_party_loggers: bool = None,
     ):
         if config is not None:
             cfg = self._extract_logging_config(config)
@@ -656,6 +711,8 @@ class LoggingMachine(StateMachine, Logger):
                 cfg.record_log = record_log
             if logging_dir is not None:
                 cfg.logging_dir = logging_dir
+            if enable_third_party_loggers is not None:
+                cfg.enable_third_party_loggers = enable_third_party_loggers
         else:
             cfg = LoggingConfig(
                 debug=debug,
@@ -663,5 +720,6 @@ class LoggingMachine(StateMachine, Logger):
                 info=info,
                 record_log=record_log,
                 logging_dir=logging_dir,
+                enable_third_party_loggers=enable_third_party_loggers,
             )
         self.set_config(cfg)
