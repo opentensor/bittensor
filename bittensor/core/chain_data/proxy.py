@@ -7,8 +7,7 @@ from bittensor.utils.balance import Balance
 
 
 class ProxyType(str, Enum):
-    """
-    Enumeration of all supported proxy types in the Bittensor network.
+    """Enumeration of all supported proxy types in the Bittensor network.
 
     These types define the permissions that a proxy account has when acting on behalf of the real account. Each type
     restricts what operations the proxy can perform.
@@ -80,16 +79,16 @@ class ProxyType(str, Enum):
         RootClaim: Allows only root claim operations. Permitted operations:
             - claim_root
 
-    Note:
-        The values match exactly with the ProxyType enum defined in the Subtensor runtime. Any changes to the runtime
-        enum must be reflected here.
-
-    Warning:
-        The permissions described above may change over time as the Subtensor runtime evolves. For the most up-to-date
+    Notes:
+        - The permissions described above may change over time as the Subtensor runtime evolves. For the most up-to-date
         and authoritative information about proxy type permissions, refer to the Subtensor source code at:
-        https://github.com/opentensor/subtensor/blob/main/runtime/src/lib.rs
-        Specifically, look for the `impl InstanceFilter<RuntimeCall> for ProxyType` implementation which defines the
-        exact filtering logic for each proxy type.
+          <https://github.com/opentensor/subtensor/blob/main/runtime/src/lib.rs>
+          Specifically, look for the ``impl InstanceFilter<RuntimeCall> for ProxyType`` implementation which defines the
+          exact filtering logic for each proxy type.
+        - The values match exactly with the ProxyType enum defined in the Subtensor runtime. Any changes to the
+          runtime enum must be reflected here.
+        - See: <https://docs.learnbittensor.org/keys/proxies>
+        - See: <https://docs.learnbittensor.org/keys/proxies/proxy-types>
     """
 
     Any = "Any"
@@ -115,18 +114,28 @@ class ProxyType(str, Enum):
 
     @classmethod
     def all_types(cls) -> list[str]:
-        """Returns a list of all proxy type values."""
+        """Returns a list of all proxy type values.
+
+        Returns:
+            List of all valid proxy type string values.
+        """
         return [member.value for member in cls]
 
     @classmethod
     def is_valid(cls, value: str) -> bool:
-        """Checks if a string value is a valid proxy type."""
+        """Checks if a string value is a valid proxy type.
+
+        Parameters:
+            value: String value to validate.
+
+        Returns:
+            True if the value is a valid proxy type, False otherwise.
+        """
         return value in cls.all_types()
 
     @classmethod
     def normalize(cls, proxy_type: Union[str, "ProxyType"]) -> str:
-        """
-        Normalizes a proxy type to a string value.
+        """Normalizes a proxy type to a string value.
 
         This method handles both string and ProxyType enum values, validates the input, and returns the string
         representation suitable for Substrate calls.
@@ -135,7 +144,7 @@ class ProxyType(str, Enum):
             proxy_type: Either a string or ProxyType enum value.
 
         Returns:
-            str: The normalized string value of the proxy type.
+            The normalized string value of the proxy type.
 
         Raises:
             ValueError: If the proxy_type is not a valid proxy type.
@@ -157,8 +166,7 @@ class ProxyType(str, Enum):
 
 @dataclass
 class ProxyInfo:
-    """
-    Dataclass representing proxy relationship information.
+    """Dataclass representing proxy relationship information.
 
     This class contains information about a proxy relationship between a real account and a delegate account. A proxy
     relationship allows the delegate to perform certain operations on behalf of the real account, with restrictions
@@ -166,10 +174,14 @@ class ProxyInfo:
 
     Attributes:
         delegate: The SS58 address of the delegate proxy account that can act on behalf of the real account.
-        proxy_type: The type of proxy permissions granted to the delegate (e.g., "Any", "NonTransfer", "ChildKeys",
-            "Staking"). This determines what operations the delegate can perform.
-        delay: The number of blocks that must pass before the proxy relationship becomes active. This delay provides a
-            security mechanism allowing the real account to cancel the proxy if needed.
+        proxy_type: The type of proxy permissions granted to the delegate (e.g., ``"Any"``, ``"NonTransfer"``,
+            ``"ChildKeys"``, ``"Staking"``). This determines what operations the delegate can perform.
+        delay: The number of blocks that must pass before the proxy relationship becomes active. This delay (in blocks)
+            provides a security mechanism allowing the real account to cancel the proxy if needed.
+
+    Notes:
+        See: <https://docs.learnbittensor.org/keys/proxies>
+        See: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
     """
 
     delegate: str
@@ -181,10 +193,12 @@ class ProxyInfo:
         """Returns a list of ProxyInfo objects from a tuple of proxy data.
 
         Parameters:
-            data: Tuple of chain proxy data.
+            data: Tuple of chain proxy data from the Proxy.Proxies storage function.
 
         Returns:
-            List of ProxyInfo objects.
+            List of ProxyInfo objects representing all proxy relationships.
+
+        # TODO: Add example of data structure or link to chain data format documentation.
         """
         return [
             cls(
@@ -197,16 +211,17 @@ class ProxyInfo:
 
     @classmethod
     def from_query(cls, query: Any) -> tuple[list["ProxyInfo"], Balance]:
-        """
-        Creates a list of ProxyInfo objects and deposit balance from a Substrate query result.
+        """Creates a list of ProxyInfo objects and deposit balance from a Substrate query result.
 
         Parameters:
-            query: Query result from Substrate `query()` call to `Proxy.Proxies` storage function.
+            query: Query result from Substrate ``query()`` call to ``Proxy.Proxies`` storage function.
 
         Returns:
             Tuple containing:
                 - List of ProxyInfo objects representing all proxy relationships for the real account.
-                - Balance object representing the reserved deposit amount.
+                - Balance object representing the reserved deposit amount (in RAO).
+
+        # TODO: Document the expected structure of query.value for better type clarity.
         """
         # proxies data is always in that path
         proxies = query.value[0][0]
@@ -216,14 +231,14 @@ class ProxyInfo:
 
     @classmethod
     def from_query_map_record(cls, record: list) -> tuple[str, list["ProxyInfo"]]:
-        """
-        Creates a dictionary mapping delegate addresses to their ProxyInfo lists from a query_map record.
+        """Creates a dictionary mapping delegate addresses to their ProxyInfo lists from a query_map record.
 
         Processes a single record from a query_map call to the Proxy.Proxies storage function. Each record represents
         one real account and its associated proxy/ies relationships.
 
         Parameters:
-            record: Data item from query_map records call to Proxies storage function.
+            record: Data item from query_map records call to Proxies storage function. Structure is [key, value] where
+                key is the real account and value contains proxies data.
 
         Returns:
             Tuple containing:
@@ -240,16 +255,20 @@ class ProxyInfo:
 
 @dataclass
 class ProxyAnnouncementInfo:
-    """
-    Dataclass representing proxy announcement information.
+    """Dataclass representing proxy announcement information.
 
     This class contains information about a pending proxy announcement. An announcement allows a proxy account to
     declare its intention to execute a call on behalf of the real account after a delay period.
 
     Attributes:
         real: The SS58 address of the real account on whose behalf the call will be made.
-        call_hash: The hash of the call that will be executed in the future.
-        height: The block height at which the announcement was made.
+        call_hash: The hash of the call that will be executed in the future (hex string with ``0x`` prefix).
+        height: The block height (in blocks) at which the announcement was made.
+
+    Notes:
+        See: <https://docs.learnbittensor.org/keys/proxies>
+
+    # TODO: Add clarification on how announcements relate to delayed proxies and time-locked operations. what even are announcements?
     """
 
     real: str
@@ -261,7 +280,7 @@ class ProxyAnnouncementInfo:
         """Returns a list of ProxyAnnouncementInfo objects from a tuple of announcement data.
 
         Parameters:
-            data: Tuple of announcements data.
+            data: Tuple of announcements data from the ``Proxy.Announcements`` storage function.
 
         Returns:
             Tuple of ProxyAnnouncementInfo objects or None if no announcements aren't found.
@@ -279,7 +298,17 @@ class ProxyAnnouncementInfo:
     def from_query_map_record(
         cls, record: tuple
     ) -> tuple[str, list["ProxyAnnouncementInfo"]]:
-        """Returns a list of ProxyAnnouncementInfo objects from a tuple of announcements data."""
+        """Returns a list of ProxyAnnouncementInfo objects from a tuple of announcements data.
+
+        Parameters:
+            record: Data item from query_map records call to Announcements storage function. Structure is [key, value]
+                where key is the delegate account and value contains announcements data.
+
+        Returns:
+            Tuple containing:
+                - SS58 address of the delegate account making the announcement.
+                - List of ProxyAnnouncementInfo objects for all pending announcements from this delegate.
+        """
         # record[0] is the real account (key from storage)
         # record[1] is the value containing announcements data
         delegate = decode_account_id(record[0])
@@ -290,33 +319,36 @@ class ProxyAnnouncementInfo:
 
 @dataclass
 class ProxyConstants:
-    """
-    Represents all runtime constants defined in the `Proxy` pallet.
+    """Represents all runtime constants defined in the Proxy pallet.
 
     These attributes correspond directly to on-chain configuration constants exposed by the Proxy pallet. They define
     deposit requirements, proxy limits, and announcement constraints that govern how proxy accounts operate within the
     Subtensor network.
 
-    Each attribute is fetched directly from the runtime via `Subtensor.query_constant("Proxy", <name>)` and reflects the
-    current chain configuration at the time of retrieval.
+    Each attribute is fetched directly from the runtime via ``Subtensor.query_constant("Proxy", <name>)`` and reflects
+    the current chain configuration at the time of retrieval.
 
     Attributes:
-        AnnouncementDepositBase: Base deposit amount (in RAO) required to announce a future proxy call. This deposit is
-            held until the announced call is executed or cancelled.
+        AnnouncementDepositBase: Base deposit amount (in RAO) required to announce a future proxy call. This deposit
+            is held until the announced call is executed or cancelled.
         AnnouncementDepositFactor: Additional deposit factor (in RAO) per byte of the call hash being announced. The
-            total announcement deposit is calculated as: AnnouncementDepositBase + (call_hash_size *
-            AnnouncementDepositFactor).
-        MaxProxies: Maximum number of proxy relationships that a single account can have. This limits the total number
-            of delegates that can act on behalf of an account.
-        MaxPending: Maximum number of pending proxy announcements that can exist for a single account at any given time.
-            This prevents spam and limits the storage requirements for pending announcements.
-        ProxyDepositBase: Base deposit amount (in RAO) required when adding a proxy relationship. This deposit is held as
-            long as the proxy relationship exists and is returned when the proxy is removed.
+            total announcement deposit is calculated as: ``AnnouncementDepositBase + (call_hash_size *
+            AnnouncementDepositFactor)``.
+        MaxProxies: Maximum number of proxy relationships that a single account can have. This limits the total
+            number of delegates that can act on behalf of an account.
+        MaxPending: Maximum number of pending proxy announcements that can exist for a single account at any given
+            time. This prevents spam and limits the storage requirements for pending announcements.
+        ProxyDepositBase: Base deposit amount (in RAO) required when adding a proxy relationship. This deposit is
+            held as long as the proxy relationship exists and is returned when the proxy is removed.
         ProxyDepositFactor: Additional deposit factor (in RAO) per proxy type added. The total proxy deposit is
-            calculated as: ProxyDepositBase + (number_of_proxy_types * ProxyDepositFactor).
+            calculated as: ``ProxyDepositBase + (number_of_proxy_types * ProxyDepositFactor)``.
 
-    Note:
-        All Balance amounts are in RAO.
+    Notes:
+        - All Balance amounts are in RAO.
+        - See: <https://docs.learnbittensor.org/keys/proxies>
+        - See: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
+
+
     """
 
     AnnouncementDepositBase: Optional[Balance]
@@ -328,25 +360,33 @@ class ProxyConstants:
 
     @classmethod
     def constants_names(cls) -> list[str]:
-        """Returns the list of all constant field names defined in this dataclass."""
+        """Returns the list of all constant field names defined in this dataclass.
+
+        Returns:
+            List of constant field names as strings (e.g., ``["AnnouncementDepositBase", "MaxProxies", ...]``).
+        """
         from dataclasses import fields
 
         return [f.name for f in fields(cls)]
 
     @classmethod
     def from_dict(cls, data: dict) -> "ProxyConstants":
-        """
-        Creates a `ProxyConstants` instance from a dictionary of decoded chain constants.
+        """Creates a ProxyConstants instance from a dictionary of decoded chain constants.
 
         Parameters:
-            data: Dictionary mapping constant names to their decoded values (returned by `Subtensor.query_constant()`).
+            data: Dictionary mapping constant names to their decoded values (returned by ``Subtensor.query_constant()``).
 
         Returns:
-            ProxyConstants: The structured dataclass with constants filled in.
+            The structured dataclass with constants filled in. Fields not found in data will be set to ``None``.
         """
         return cls(**{name: data.get(name) for name in cls.constants_names()})
 
     def to_dict(self) -> dict:
+        """Converts the ProxyConstants instance to a dictionary.
+
+        Returns:
+            Dictionary mapping constant names to their values. Balance objects remain as Balance instances.
+        """
         from dataclasses import asdict
 
         return asdict(self)
