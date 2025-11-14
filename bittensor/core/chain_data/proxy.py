@@ -88,7 +88,7 @@ class ProxyType(str, Enum):
         - The values match exactly with the ProxyType enum defined in the Subtensor runtime. Any changes to the
           runtime enum must be reflected here.
         - See: <https://docs.learnbittensor.org/keys/proxies>
-        - See: <https://docs.learnbittensor.org/keys/proxies/proxy-types>
+
     """
 
     Any = "Any"
@@ -346,9 +346,6 @@ class ProxyConstants:
     Notes:
         - All Balance amounts are in RAO.
         - See: <https://docs.learnbittensor.org/keys/proxies>
-        - See: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
-
-
     """
 
     AnnouncementDepositBase: Optional[Balance]
