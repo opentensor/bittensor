@@ -461,62 +461,6 @@ class AsyncSubtensor(SubtensorMixin):
             return await self.get_block_hash(block)
         return None
 
-    async def encode_params(
-        self,
-        call_definition: dict[str, list["ParamWithTypes"]],
-        params: Union[list[Any], dict[str, Any]],
-    ) -> str:
-        """Encodes parameters into a hex string using their type definitions.
-
-        This method takes a call definition (which specifies parameter types) and actual parameter values, then
-        encodes them into a hex string that can be used for blockchain transactions.
-
-        Parameters:
-            call_definition: A dictionary containing parameter type definitions. Should have a "params" key with a
-                list of parameter definitions.
-            params: The actual parameter values to encode. Can be either a list (for positional parameters) or a
-                dictionary (for named parameters).
-
-        Returns:
-            str: A hex-encoded string representation of the parameters.
-
-        Raises:
-            ValueError: If a required parameter is missing from the params dictionary.
-
-        Example:
-            # Define parameter types
-            call_def = {
-                "params": [
-                    {"name": "amount", "type": "u64"},
-                    {"name": "coldkey_ss58", "type": "str"}
-                ]
-            }
-
-            # Encode parameters as a dictionary
-            params_dict = {
-                "amount": 1000000,
-                "coldkey_ss58": "5F..."
-            }
-            encoded = await subtensor.encode_params(call_definition=call_def, params=params_dict)
-
-            # Or encode as a list (positional)
-            params_list = [1000000, "5F..."]
-            encoded = await subtensor.encode_params(call_definition=call_def, params=params_list)
-        """
-        param_data = scalecodec.ScaleBytes(b"")
-
-        for i, param in enumerate(call_definition["params"]):
-            scale_obj = await self.substrate.create_scale_object(param["type"])
-            if isinstance(params, list):
-                param_data += scale_obj.encode(params[i])
-            else:
-                if param["name"] not in params:
-                    raise ValueError(f"Missing param {param['name']} in params dict.")
-
-                param_data += scale_obj.encode(params[param["name"]])
-
-        return param_data.to_hex()
-
     async def get_hyperparameter(
         self,
         param_name: str,
@@ -1026,6 +970,40 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block=reuse_block,
         )
         return None if call is None else (block - int(call[uid]))
+
+    async def blocks_until_next_epoch(
+        self,
+        netuid: int,
+        tempo: Optional[int] = None,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional[int]:
+        """Returns the number of blocks until the next epoch of subnet with provided netuid.
+
+        Parameters:
+            netuid: The unique identifier of the subnetwork.
+            tempo: The tempo of the subnet.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+
+        Returns:
+            The number of blocks until the next epoch of the subnet with provided netuid.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        block = block or await self.substrate.get_block_number(block_hash=block_hash)
+        tempo = tempo or await self.tempo(netuid=netuid, block_hash=block_hash)
+
+        if not tempo:
+            return None
+
+        # the logic is the same as in SubtensorModule:blocks_until_next_epoch
+        netuid_plus_one = int(netuid) + 1
+        tempo_plus_one = tempo + 1
+        adjusted_block = (block + netuid_plus_one) % (2**64)
+        remainder = adjusted_block % tempo_plus_one
+        return tempo - remainder + 1
 
     async def bonds(
         self,
@@ -2972,17 +2950,20 @@ class AsyncSubtensor(SubtensorMixin):
             See also: <https://docs.learnbittensor.org/glossary#tempo>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        blocks_since_last_step = await self.blocks_since_last_step(
-            netuid=netuid, block=block, block_hash=block_hash, reuse_block=reuse_block
-        )
-        tempo = await self.tempo(
-            netuid=netuid, block=block, block_hash=block_hash, reuse_block=reuse_block
+        tempo = await self.tempo(netuid=netuid, block_hash=block_hash)
+        current_block = block or self.block
+
+        if not tempo:
+            return None
+
+        blocks_until = await self.blocks_until_next_epoch(
+            netuid=netuid, tempo=tempo, block_hash=block_hash
         )
 
-        block = block or await self.substrate.get_block_number(block_hash=block_hash)
-        if block and blocks_since_last_step is not None and tempo:
-            return block - blocks_since_last_step + tempo + 1
-        return None
+        if not blocks_until:
+            return None
+
+        return current_block + blocks_until
 
     async def get_owned_hotkeys(
         self,
