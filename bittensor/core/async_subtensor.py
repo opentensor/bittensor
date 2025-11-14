@@ -501,8 +501,8 @@ class AsyncSubtensor(SubtensorMixin):
             param_name: The name of the hyperparameter storage function to retrieve.
             netuid: The unique identifier of the subnet.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             The value of the specified hyperparameter if the subnet exists, ``None`` otherwise. Return type varies
@@ -648,8 +648,8 @@ class AsyncSubtensor(SubtensorMixin):
             module_name: The name of the module containing the constant (e.g., ``"Balances"``, ``"SubtensorModule"``).
             constant_name: The name of the constant to retrieve (e.g., ``"ExistentialDeposit"``).
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             A SCALE-decoded object if found, ``None`` otherwise. Access the actual value using ``.value`` attribute.
@@ -683,8 +683,8 @@ class AsyncSubtensor(SubtensorMixin):
             name: The specific storage function within the module to query (e.g., "Bonds", "Weights").
             params: Parameters to be passed to the query.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             AsyncQueryMapResult: A data structure representing the map storage if found, None otherwise.
@@ -716,8 +716,8 @@ class AsyncSubtensor(SubtensorMixin):
             name: The name of the map storage function to query.
             params: A list of parameters to pass to the query function.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             An object containing the map-like data structure, or ``None`` if not found.        
@@ -750,8 +750,8 @@ class AsyncSubtensor(SubtensorMixin):
             name: The name of the storage function within the module.
             params: A list of parameters to pass to the query function.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             An object containing the requested data if found, ``None`` otherwise.
@@ -784,8 +784,8 @@ class AsyncSubtensor(SubtensorMixin):
             method: The specific method within the runtime API to call.
             params: The parameters to pass to the method call.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             The decoded result from the runtime API call, or ``None`` if the call fails.
@@ -817,8 +817,8 @@ class AsyncSubtensor(SubtensorMixin):
             name: The name of the storage function to query.
             params: A list of parameters to pass to the query function.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             query_response: An object containing the requested data.
@@ -847,8 +847,8 @@ class AsyncSubtensor(SubtensorMixin):
             method: The method name for the state call.
             data: The data to be passed to the method.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             The result of the rpc call.
@@ -875,8 +875,8 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             Optional[list[DynamicInfo]]: A list of ``DynamicInfo`` objects, each containing detailed information about
@@ -921,8 +921,8 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             netuid: The unique identifier of the subnetwork.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             The number of blocks since the last step in the subnet, or None if the query fails.
@@ -953,7 +953,7 @@ class AsyncSubtensor(SubtensorMixin):
             uid: The unique identifier of the neuron.
             block: The block number for this query. Do not specify if using block_hash or reuse_block.
             block_hash: The hash of the block for the query. Do not specify if using reuse_block or block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             The number of blocks since the last update, or None if the subnetwork or UID does not exist.
@@ -987,7 +987,7 @@ class AsyncSubtensor(SubtensorMixin):
             mechid: Subnet mechanism identifier (default 0 for primary mechanism).
             block: The block number for this query. Do not specify if using block_hash or reuse_block.
             block_hash: The hash of the block for the query. Do not specify if using reuse_block or block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             List of tuples, where each tuple contains:
@@ -1037,8 +1037,8 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             netuid: The unique identifier of the subnet for which to check the commit-reveal mechanism.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             True if commit-reveal mechanism is enabled, False otherwise.
@@ -1080,8 +1080,8 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             netuid: The unique identifier of the subnet.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             The value of the 'Difficulty' hyperparameter if the subnet exists, None otherwise.
@@ -1131,8 +1131,8 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             hotkey_ss58: The SS58 address of the hotkey.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             True if the hotkey has been associated with a coldkey, False otherwise.
@@ -1178,8 +1178,8 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             The number of blocks in the administrative freeze window (default: 10 blocks, ~2 minutes).
@@ -1206,8 +1206,8 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             A list of SubnetInfo objects, each containing detailed information about a subnet.
@@ -1255,8 +1255,8 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             netuid: The unique identifier of the subnetwork.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             A mapping of the ss58:commitment with the commitment as a string.
@@ -1303,8 +1303,8 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             Dict mapping netuid to (last_updated_block, ema_flow). The Balance represents the EMA of net TAO flow
@@ -1381,12 +1381,16 @@ class AsyncSubtensor(SubtensorMixin):
             block: The blockchain block number for the query.
             block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
                 reuse_block.
-            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+            reuse_block: Whether to use the last-used block. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
-            {ss58: Certificate} for the key/Certificate pairs on the subnet
+            Dictionary mapping neuron hotkey SS58 addresses to their Certificate objects. Only includes neurons
+            that have registered certificates.
 
-        This function is used for certificate discovery for setting up mutual tls communication between neurons.
+        Notes:
+            This method is used for certificate discovery to establish mutual TLS communication between neurons.
+            
+            See: <https://docs.learnbittensor.org/subnets/neuron-tls-certificates>
         """
         query_certificates = await self.query_map(
             module="SubtensorModule",
@@ -1413,8 +1417,8 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             netuid: The unique identifier of the subnetwork.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             A dictionary mapping hotkey addresses to tuples of (reveal_block, commitment_message) pairs.
@@ -1538,20 +1542,11 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             address: The coldkey address in SS58 format.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             Balance: The balance object containing the account's TAO balance.
-
-        Example::
-
-            # Get balance for an address
-            balance = await subtensor.get_balance(address="5F...")
-            print(f"Balance: {balance.tao} TAO")
-
-            # Get balance at specific block
-            balance = await subtensor.get_balance(address="5F...", block=1000000)
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         balance = await self.substrate.query(
@@ -1579,16 +1574,11 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             *addresses: Variable number of coldkey addresses in SS58 format.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             A dictionary mapping each address to its Balance object.
-
-        Example::
-
-            # Get balances for multiple addresses
-            balances = await subtensor.get_balances("5F...", "5G...", "5H...")
         """
         if reuse_block:
             block_hash = self.substrate.last_block_hash
@@ -1733,8 +1723,8 @@ class AsyncSubtensor(SubtensorMixin):
             hotkey_ss58: The hotkey value.
             netuid: The netuid value.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             A tuple containing a boolean indicating success or failure, a list of formatted children with their
@@ -1848,8 +1838,8 @@ class AsyncSubtensor(SubtensorMixin):
             netuid: The unique identifier of the subnetwork.
             uid: The unique identifier of the neuron.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             The commitment data as a string.
@@ -1929,43 +1919,34 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> "CrowdloanConstants":
-        """
-        Fetches runtime configuration constants from the `Crowdloan` pallet.
+        """Retrieves runtime configuration constants governing crowdloan behavior and limitson the Bittensor blockchain.
 
         If a list of constant names is provided, only those constants will be queried.
         Otherwise, all known constants defined in `CrowdloanConstants.field_names()` are fetched.
+        
+        These constants define requirements and operational limits for crowdloan campaigns:
+
+        - ``AbsoluteMinimumContribution``: Minimum amount per contribution (TAO).
+        - ``MaxContributors``: Maximum number of unique contributors per crowdloan.
+        - ``MaximumBlockDuration``: Maximum duration (in blocks) for a crowdloan campaign (60 days = 432,000 blocks on production).
+        - ``MinimumDeposit``: Minimum deposit required from the creator (TAO).
+        - ``MinimumBlockDuration``: Minimum duration (in blocks) for a crowdloan campaign (7 days = 50,400 blocks on production).
+        - ``RefundContributorsLimit``: Maximum number of contributors refunded per ``refund_crowdloan`` call (typically 50).
 
         Parameters:
-            constants: A list of specific constant names to fetch from the pallet. If omitted, all constants from
-                `CrowdloanConstants` are queried.
+            constants: Specific constant names to query. If ``None``, retrieves all constants from ``CrowdloanConstants``.
             block: The blockchain block number for the query.
-            block_hash: The hash of the block at which to check the hotkey ownership.
-            reuse_block: Whether to reuse the last-used blockchain hash.
+            block_hash: The block hash at which to query. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
-            CrowdloanConstants:
-                A structured dataclass containing the retrieved values. Missing constants are returned as `None`.
+            A ``CrowdloanConstants`` data object containing the queried constants. Missing constants return ``None``.        
+        Notes:
+            These constants enforce contribution floors, duration bounds, and refund batching limits.
 
-        Example::
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
 
-            print(subtensor.get_crowdloan_constants())
-            CrowdloanConstants(
-                AbsoluteMinimumContribution=τ1.000000000,
-                MaxContributors=1000,
-                MaximumBlockDuration=86400,
-                MinimumDeposit=τ10.000000000,
-                MinimumBlockDuration=600,
-                RefundContributorsLimit=50
-            )
-
-            crowdloan_consts = subtensor.get_crowdloan_constants(
-                constants=["MaxContributors", "RefundContributorsLimit"]
-            )
-            print(crowdloan_consts)
-            CrowdloanConstants(MaxContributors=1000, RefundContributorsLimit=50)
-
-            print(crowdloan_consts.MaxContributors)
-            1000
         """
         result = {}
         const_names = constants or CrowdloanConstants.constants_names()
@@ -1992,17 +1973,26 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> dict[str, "Balance"]:
-        """
-        Returns a mapping of contributor SS58 addresses to their contribution amounts for a specific crowdloan.
+        """Retrieves all contributions made to a specific crowdloan campaign.
+
+        Returns a mapping of contributor coldkey addresses to their contribution amounts in Rao.
 
         Parameters:
             crowdloan_id: The unique identifier of the crowdloan.
             block: The blockchain block number for the query.
-            block_hash: The hash of the block at which to check the hotkey ownership.
-            reuse_block: Whether to reuse the last-used blockchain hash.
+            block_hash: The block hash at which to query. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
-            Dict[address -> Balance].
+            Dictionary mapping contributor SS58 addresses to their ``Balance`` contribution amounts (in Rao).
+            Returns empty dictionary if the crowdloan has no contributions or does not exist.
+
+        Notes:
+            Contributions are clipped to the remaining cap. Once the cap is reached, no further contributions are accepted.
+
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Crowdloan Tutorial: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#step-4-contribute-to-the-crowdloan>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self.substrate.query_map(
@@ -2030,17 +2020,26 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional["CrowdloanInfo"]:
-        """
-        Returns detailed information about a specific crowdloan by ID.
+        """Retrieves detailed information about a specific crowdloan campaign.
+
+        
 
         Parameters:
-            crowdloan_id: Unique identifier of the crowdloan.
+            crowdloan_id: Unique identifier of the crowdloan (auto-incremented starting from 0).
             block: The blockchain block number for the query.
-            block_hash: The hash of the block at which to check the hotkey ownership.
-            reuse_block: Whether to reuse the last-used blockchain hash.
+            block_hash: The block hash at which to query. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
-            CrowdloanInfo if found, else None.
+            ``CrowdloanInfo`` object containing: campaign ID, creator address, creator's deposit,
+            minimum contribution amount, end block, funding cap, funds account address, amount raised,
+            optional target address, optional embedded call, finalization status, and contributor count.
+            Returns ``None`` if the crowdloan does not exist.
+
+        Notes:
+
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self.substrate.query(
@@ -2061,16 +2060,23 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> int:
-        """
-        Returns the next available crowdloan ID (auto-increment value).
+        """Retrieves the next available crowdloan identifier.
+
+        Crowdloan IDs are allocated sequentially starting from 0. This method returns the ID that will be
+        assigned to the next crowdloan created via ``create_crowdloan``.
 
         Parameters:
             block: The blockchain block number for the query.
-            block_hash: The hash of the block at which to check the hotkey ownership.
-            reuse_block: Whether to reuse the last-used blockchain hash.
+            block_hash: The block hash at which to query. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
-            The next crowdloan ID to be used when creating a new campaign.
+            The next crowdloan ID (integer) to be assigned.
+
+        Notes:
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Crowdloan Tutorial: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#get-the-crowdloan-id>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query(
@@ -2086,18 +2092,26 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> list["CrowdloanInfo"]:
-        """Returns a list of all existing crowdloans with their metadata.
+        """Retrieves all existing crowdloan campaigns with their metadata.
+
+        Returns comprehensive information for all crowdloans registered on the blockchain, including
+        both active and finalized campaigns.
 
         Parameters:
             block: The blockchain block number for the query.
-            block_hash: The hash of the block at which to check the hotkey ownership.
-            reuse_block: Whether to reuse the last-used blockchain hash.
+            block_hash: The block hash at which to query. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
-            List of CrowdloanInfo which contains (id, creator, cap, raised, end, finalized, etc.)
+            List of ``CrowdloanInfo`` objects, each containing: campaign ID, creator address, creator's deposit,
+            minimum contribution amount, end block, funding cap, funds account address, amount raised,
+            optional target address, optional embedded call, finalization status, and contributor count.
+            Returns empty list if no crowdloans exist.
 
         Notes:
-            See: <https://docs.learnbittensor.org/subnets/crowdloans>
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Crowdloan Lifecycle: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self.substrate.query_map(
@@ -2135,8 +2149,8 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             hotkey_ss58: The ``SS58`` address of the delegate's hotkey.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             Detailed information about the delegate neuron, ``None`` if not found.
@@ -2178,8 +2192,8 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             Dictionary mapping delegate SS58 addresses to their ChainIdentity objects.
@@ -2216,8 +2230,8 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             float: The delegate take percentage.
@@ -2251,8 +2265,8 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             coldkey_ss58: The SS58 address of the account's coldkey.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             List of DelegatedInfo objects containing stake amounts and delegate information. Returns empty list if no
@@ -2290,8 +2304,8 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             List of DelegateInfo objects containing comprehensive delegate information. Returns empty list if no
@@ -2450,7 +2464,7 @@ class AsyncSubtensor(SubtensorMixin):
             hotkey_ss58: The hotkey of the neuron for which to fetch the last bonds reset.
             block: The block number to query.
             block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or reuse_block.
-            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+            reuse_block: Whether to use the last-used block. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             bytes: The last bonds reset data for the specified hotkey and netuid.
@@ -2481,7 +2495,7 @@ class AsyncSubtensor(SubtensorMixin):
             uid: The unique identifier of the neuron.
             block: The block number to query.
             block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or reuse_block.
-            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+            reuse_block: Whether to use the last-used block. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             The block number when the bonds were last reset, or None if not found.
@@ -2709,7 +2723,7 @@ class AsyncSubtensor(SubtensorMixin):
             netuid: The unique identifier of the subnet.
             block: The blockchain block number for the query.
             block_hash: The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block.
-            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+            reuse_block: Whether to use the last-used block. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             A list of integers representing the percentage of emission allocated to each subnet mechanism (rounded to
@@ -2743,7 +2757,7 @@ class AsyncSubtensor(SubtensorMixin):
             netuid: Subnet identifier.
             block: The blockchain block number for the query.
             block_hash: The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block.
-            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+            reuse_block: Whether to use the last-used block. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             The number of mechanisms for the given subnet.
@@ -2906,15 +2920,16 @@ class AsyncSubtensor(SubtensorMixin):
         subnet (netuid) of the Bittensor network.
 
         Parameters:
-            hotkey_ss58: The hotkey to query.
+            hotkey_ss58: The SS58 address of the neuron's hotkey.
             netuid: The unique identifier of the subnet.
             block: The blockchain block number for the query.
             block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
                 reuse_block.
-            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+            reuse_block: Whether to use the last-used block. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
-            the certificate of the neuron if found, ``None`` otherwise.
+            Certificate object containing the neuron's TLS public key and algorithm, or ``None`` if the neuron has
+            not registered a certificate.
 
         This function is used for certificate discovery for setting up mutual tls communication between neurons.
         """
@@ -3064,8 +3079,8 @@ class AsyncSubtensor(SubtensorMixin):
             hotkey_ss58: The child hotkey SS58.
             netuid: The netuid value.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             A list of formatted parents [(proportion, parent)]
@@ -3108,8 +3123,8 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             block: The blockchain block number for the query. If None, queries the latest block.
-            block_hash: The hash of the block at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             Dictionary mapping real account SS58 addresses to lists of ProxyInfo objects. Each ProxyInfo contains the
@@ -3149,8 +3164,8 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             real_account_ss58: SS58 address of the real account (delegator) whose proxies to retrieve.
             block: The blockchain block number for the query.
-            block_hash: The hash of the block at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             Tuple containing:
@@ -3189,8 +3204,8 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             delegate_account_ss58: SS58 address of the delegate proxy account whose announcements to retrieve.
             block: The blockchain block number for the query. If None, queries the latest block.
-            block_hash: The hash of the block at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             List of ProxyAnnouncementInfo objects. Each object contains the real account address, call hash, and block
@@ -3223,8 +3238,8 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             block: The blockchain block number for the query. If None, queries the latest block.
-            block_hash: The hash of the block at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             Dictionary mapping delegate account SS58 addresses to lists of ProxyAnnouncementInfo objects.
@@ -3268,8 +3283,8 @@ class AsyncSubtensor(SubtensorMixin):
                 "AnnouncementDepositFactor", "MaxProxies", "MaxPending", "ProxyDepositBase", "ProxyDepositFactor".
             as_dict: If True, returns the constants as a dictionary instead of a `ProxyConstants` object.
             block: The blockchain block number for the query. If None, queries the latest block.
-            block_hash: The hash of the block at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             If `as_dict` is False: ProxyConstants object containing all requested constants.
@@ -3352,8 +3367,8 @@ class AsyncSubtensor(SubtensorMixin):
             netuid: The unique identifier of the subnetwork.
             hotkey_ss58: The ss58 address of the committee member.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             A tuple of reveal block and commitment message.
@@ -3392,8 +3407,8 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             coldkey_ss58: The ss58 address of the coldkey.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             RootClaimType value in string representation. Could be `Swap` or `Keep`.
@@ -3425,8 +3440,8 @@ class AsyncSubtensor(SubtensorMixin):
             hotkey_ss58: The ss58 address of the root validator.
             netuid: The unique identifier of the subnet to get the rate.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             The rate of claimable stake from validator's hotkey ss58 address for provided subnet.
@@ -3450,8 +3465,8 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             hotkey_ss58: The ss58 address of the root validator.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             The rate of claimable stake from validator's hotkey ss58 address for provided subnet.
@@ -3484,8 +3499,8 @@ class AsyncSubtensor(SubtensorMixin):
             hotkey_ss58: The root validator hotkey ss58 address.
             netuid: Delegate's netuid where stake will be claimed.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             Available for claiming root stake.
@@ -3540,8 +3555,8 @@ class AsyncSubtensor(SubtensorMixin):
             hotkey_ss58: The ss58 address of the root validator.
             netuid: The unique identifier of the subnet.
             block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             The number of Alpha stake claimed from the root validator in Rao.
@@ -3575,7 +3590,7 @@ class AsyncSubtensor(SubtensorMixin):
             block: The block number at which to query the stake information.
             block_hash: The hash of the block to retrieve the stake from. Do not specify if using block
                 or reuse_block
-            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+            reuse_block: Whether to use the last-used block. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             Balance: The stake under the coldkey - hotkey pairing.
@@ -3977,7 +3992,7 @@ class AsyncSubtensor(SubtensorMixin):
             netuid: The unique identifier of the subnet.
             block: The blockchain block number for the query.
             block_hash: The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block.
-            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+            reuse_block: Whether to use the last-used block. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             The current Alpha price in TAO units for the specified subnet.
@@ -4089,7 +4104,7 @@ class AsyncSubtensor(SubtensorMixin):
             mechid: Subnet mechanism identifier.
             block: The blockchain block number for the query.
             block_hash: The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block.
-            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+            reuse_block: Whether to use the last-used block. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             A list of commit details, where each item contains:
@@ -5873,22 +5888,33 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Contributes funds to an active crowdloan campaign.
+        """Contributes TAO to an active crowdloan campaign.
+
+        Contributions must occur before the crowdloan's end block and are subject to minimum contribution
+        requirements. If a contribution would push the total raised above the cap, it is automatically clipped
+        to fit the remaining amount. Once the cap is reached, further contributions are rejected.
+
 
         Parameters:
-            wallet: Bittensor Wallet instance used to sign the transaction.
+            wallet: Bittensor wallet instance used to sign the transaction (coldkey pays, coldkey receives emissions).
             crowdloan_id: The unique identifier of the crowdloan to contribute to.
-            amount: Amount to contribute.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            amount: Amount to contribute (TAO). Must meet or exceed the campaign's ``min_contribution``.
+            period: The number of blocks during which the transaction will remain valid after it's submitted.
+            raise_error: If ``True``, raises an exception rather than returning failure in the response.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            ``ExtrinsicResponse`` indicating success or failure, with error details if applicable.
+
+        Notes:
+            - Contributions can be withdrawn before finalization via ``withdraw_crowdloan``.
+            - If the campaign does not reach its cap by the end block, contributors can be refunded via ``refund_crowdloan``.
+            - Contributions are counted toward ``MaxContributors`` limit per crowdloan.
+
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Crowdloan Tutorial: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#step-4-contribute-to-the-crowdloan>
         """
         return await contribute_crowdloan_extrinsic(
             subtensor=self,
@@ -5934,7 +5960,18 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            ``ExtrinsicResponse`` indicating success or failure. On success, the crowdloan ID can be extracted from the
+            ``Crowdloan.Created`` event in the response.
+
+        Notes:
+            - Creator cannot update ``call`` or ``target_address`` after creation.
+            - Creator can update ``cap``, ``end``, and ``min_contribution`` before finalization via ``update_*`` methods.
+            - Use ``get_crowdloan_next_id`` to determine the ID that will be assigned to the new crowdloan.
+
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Crowdloan Tutorial: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#step-3-create-a-crowdloan>
+            - Leasing: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
         """
         return await create_crowdloan_extrinsic(
             subtensor=self,
@@ -6010,30 +6047,33 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Dissolves a completed or failed crowdloan campaign after all refunds are processed.
+        """Dissolves a failed or refunded crowdloan, cleaning up storage and returning the creator's deposit.
 
-        This permanently removes the campaign from on-chain storage and refunds the creator's remaining deposit, if
-        applicable. Can only be called by the campaign creator.
+        This permanently removes the crowdloan from on-chain storage and returns the creator's deposit. Can only
+        be called by the creator after all non-creator contributors have been refunded via ``refund_crowdloan``.
+        This is the final step in the lifecycle of a failed crowdloan (one that did not reach its cap by the end
+        block).
 
         Parameters:
-            wallet: Bittensor Wallet instance used to sign the transaction.
+            wallet: Bittensor wallet instance used to sign the transaction (must be the creator's coldkey).
             crowdloan_id: The unique identifier of the crowdloan to dissolve.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            period: The number of blocks during which the transaction will remain valid after submission.
+            raise_error: If ``True``, raises an exception rather than returning failure in the response.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            ``ExtrinsicResponse`` indicating success or failure, with error details if applicable.
 
         Notes:
             - Only the creator can dissolve their own crowdloan.
-            - All contributors (except the creator) must have been refunded first.
-            - The creator’s remaining contribution (deposit) is returned during dissolution.
-            - After this call, the crowdloan is removed from chain storage.
+            - All non-creator contributors must be refunded first via ``refund_crowdloan``.
+            - The creator's deposit (and any remaining contribution above deposit) is returned.
+            - After dissolution, the crowdloan is permanently removed from chain storage.
+
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Refund and Dissolve: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#alternative-path-refund-and-dissolve>
         """
         return await dissolve_crowdloan_extrinsic(
             subtensor=self,
@@ -6054,21 +6094,38 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Finalizes a successful crowdloan campaign once the cap has been reached and the end block has passed.
+        """Finalizes a successful crowdloan after the cap is fully raised and the end block has passed.
 
-        This executes the stored call or transfers the raised funds to the target address, completing the campaign.
+        Finalization executes the stored call (e.g., ``register_leased_network``) or transfers raised funds to
+        the target address. For subnet lease crowdloans, this registers the subnet, creates a
+        ``SubnetLeaseBeneficiary`` proxy for the creator, and records contributor shares for pro-rata emissions
+        distribution. Leftover funds (after registration and proxy costs) are refunded to contributors.
+
+        Only the creator can finalize, and finalization can only occur after both the end block is reached and
+        the total raised equals the cap.
 
         Parameters:
-            wallet: Bittensor Wallet instance used to sign the transaction.
+            wallet: Bittensor wallet instance used to sign the transaction (must be the creator's coldkey).
             crowdloan_id: The unique identifier of the crowdloan to finalize.
-            period: The number of blocks during which the transaction will remain valid after it's submitted.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            period: The number of blocks during which the transaction will remain valid after submission.
+            raise_error: If ``True``, raises an exception rather than returning failure in the response.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            ``ExtrinsicResponse`` indicating success or failure. On success, a subnet lease is created (if applicable)
+            and contributor shares are recorded for emissions.
+
+        Notes:
+            - Only the creator can finalize.
+            - Finalization requires ``raised == cap`` and ``current_block >= end``.
+            - For subnet leases, emissions are swapped to TAO and distributed to contributors' coldkeys during the lease.
+            - Leftover cap (after subnet lock + proxy deposit) is refunded to contributors pro-rata.
+
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Crowdloan Tutorial: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#step-5-finalize-the-crowdloan>
+            - Emissions Distribution: <https://docs.learnbittensor.org/subnets/crowdloans#emissions-distribution-during-a-lease>
         """
         return await finalize_crowdloan_extrinsic(
             subtensor=self,
@@ -6437,30 +6494,30 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Refunds contributors from a failed or expired crowdloan campaign.
+        """Refunds contributors from a failed crowdloan campaign that did not reach its cap.
 
-        This call attempts to refund up to the limit defined by `RefundContributorsLimit` in a single dispatch. If there are
-        more contributors than the limit, the call may need to be executed multiple times until all refunds are processed.
+        Refunds are batched, processing up to ``RefundContributorsLimit`` (default 50) contributors per call.
+        For campaigns with more contributors, multiple calls are required. Only non-creator contributors are
+        refunded; the creator's deposit remains until dissolution via ``dissolve_crowdloan``.
+
+        Only the crowdloan creator can call this method for a non-finalized crowdloan.
 
         Parameters:
-            wallet: Bittensor Wallet instance used to sign the transaction.
+            wallet: Bittensor wallet instance used to sign the transaction (must be the crowdloan creator).
             crowdloan_id: The unique identifier of the crowdloan to refund.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            period: The number of blocks during which the transaction will remain valid after submission.
+            raise_error: If ``True``, raises an exception rather than returning failure in the response.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            ``ExtrinsicResponse`` indicating success or failure, with error details if applicable.
 
         Notes:
-            - Can be called by only creator signed account.
-            - Refunds contributors (excluding the creator) whose funds were locked in a failed campaign.
-            - Each call processes a limited number of refunds (`RefundContributorsLimit`).
-            - If the campaign has too many contributors, multiple refund calls are required.
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Crowdloan Lifecycle: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
+            - Refund and Dissolve: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#alternative-path-refund-and-dissolve>
         """
         return await refund_crowdloan_extrinsic(
             subtensor=self,
@@ -7345,30 +7402,32 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        # TODO: Link to 'Axon' concept docs and provide a minimal example (ports, TLS cert expectations).
-        # TODO: Clarify what happens when re-serving with updated metadata.
-        Registers an ``Axon`` serving endpoint on the Bittensor network for a specific neuron.
+        """Registers an Axon endpoint on the network for receiving queries from other neurons.
 
-        This function is used to set up the Axon, a key component of a neuron that handles incoming queries and data
-        processing tasks.
+        This method publishes your neuron's IP address, port, and protocol information to the blockchain, making it
+        discoverable by other neurons in the subnet. Optionally, you can include a TLS certificate to enable secure,
+        encrypted communication via mutual TLS (mTLS).
+
+        When a certificate is provided, the blockchain stores both your endpoint information and your TLS public key,
+        allowing other neurons to discover your certificate and establish encrypted connections. When re-serving with
+        updated metadata (including a new certificate), the previous values are overwritten.
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
-            axon: The Axon instance to be registered for serving.
-            certificate: Certificate to use for TLS. If ``None``, no TLS will be used.
-            period: The number of blocks during which the transaction will remain valid after it's
-                submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
-            wait_for_inclusion: Waits for the transaction to be included in a block.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            axon: The Axon instance containing your endpoint configuration (IP, port, protocol).
+            certificate: Optional TLS certificate for secure communication. Should contain a public key (up to 64
+                bytes) and algorithm identifier. If ``None``, standard unencrypted serving is used.
+            period: The number of blocks during which the transaction will remain valid after submission. If not
+                included in a block within this period, the transaction expires.
+            raise_error: If True, raises an exception on failure instead of returning an error response.
+            wait_for_inclusion: If True, waits for the transaction to be included in a block before returning.
+            wait_for_finalization: If True, waits for the transaction to be finalized on the blockchain.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            ExtrinsicResponse containing the success status and transaction details. On success, the response includes
+            the external IP and port that were registered.
 
-        By registering an Axon, the neuron becomes an active part of the network's distributed computing infrastructure,
-        contributing to the collective intelligence of Bittensor.
+            
         """
         return await serve_axon_extrinsic(
             subtensor=self,
@@ -7931,30 +7990,32 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Updates the fundraising cap (maximum total contribution) of a non-finalized crowdloan.
+        """Updates the fundraising cap of an active (non-finalized) crowdloan.
 
-        Only the creator of the crowdloan can perform this action, and the new cap must be greater than or equal to the
-        current amount already raised.
+        Allows the creator to adjust the maximum total contribution amount before finalization. The new cap
+        must be at least equal to the amount already raised. This is useful for adjusting campaign goals based
+        on contributor feedback or changing subnet costs.
 
         Parameters:
-            wallet: Bittensor Wallet instance used to sign the transaction.
+            wallet: Bittensor wallet instance used to sign the transaction (must be the creator's coldkey).
             crowdloan_id: The unique identifier of the crowdloan to update.
-            new_cap: The new fundraising cap (in TAO or Balance).
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            new_cap: The new fundraising cap (TAO). Must be ``>= raised``.
+            period: The number of blocks during which the transaction will remain valid after submission.
+            raise_error: If ``True``, raises an exception rather than returning failure in the response.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            ``ExtrinsicResponse`` indicating success or failure, with error details if applicable.
 
         Notes:
             - Only the creator can update the cap.
             - The crowdloan must not be finalized.
-            - The new cap must be greater than or equal to the total funds already raised.
+            - The new cap must be ``>=`` the total funds already raised.
+
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Update Parameters: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
         """
         return await update_cap_crowdloan_extrinsic(
             subtensor=self,
@@ -7977,31 +8038,34 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Updates the end block of a non-finalized crowdloan campaign.
+        """Updates the end block of an active (non-finalized) crowdloan.
 
-        Only the creator of the crowdloan can perform this action. The new end block must be valid — meaning it cannot be in
-        the past and must respect the minimum and maximum duration limits enforced by the chain.
+        Allows the creator to extend (or shorten) the contribution period before finalization. The new end block
+        must be in the future and respect the minimum and maximum duration bounds defined in the runtime constants.
+        This is useful for extending campaigns that need more time to reach their cap or shortening campaigns with
+        sufficient contributions.
 
         Parameters:
-            wallet: Bittensor Wallet instance used to sign the transaction.
+            wallet: Bittensor wallet instance used to sign the transaction (must be the creator's coldkey).
             crowdloan_id: The unique identifier of the crowdloan to update.
-            new_end: The new block number at which the crowdloan will end.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            new_end: The new block number at which the crowdloan will end. Must be between ``MinimumBlockDuration``
+                (7 days = 50,400 blocks) and ``MaximumBlockDuration`` (60 days = 432,000 blocks) from the current block.
+            period: The number of blocks during which the transaction will remain valid after submission.
+            raise_error: If ``True``, raises an exception rather than returning failure in the response.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            ``ExtrinsicResponse`` indicating success or failure, with error details if applicable.
 
         Notes:
-            - Only the creator can call this extrinsic.
+            - Only the creator can update the end block.
             - The crowdloan must not be finalized.
-            - The new end block must be later than the current block and within valid duration bounds (between
-                `MinimumBlockDuration` and `MaximumBlockDuration`).
+            - The new end block must respect duration bounds (``MinimumBlockDuration`` to ``MaximumBlockDuration``).
+
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Update Parameters: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
         """
         return await update_end_crowdloan_extrinsic(
             subtensor=self,
@@ -8024,30 +8088,32 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Updates the minimum contribution amount of a non-finalized crowdloan.
+        """Updates the minimum contribution amount of an active (non-finalized) crowdloan.
 
-        Only the creator of the crowdloan can perform this action, and the new value must be greater than or equal to the
-        absolute minimum contribution defined in the chain configuration.
+        Allows the creator to adjust the minimum per-contribution amount before finalization. The new value must
+        meet or exceed the ``AbsoluteMinimumContribution`` constant. This is useful for adjusting contribution
+        requirements based on the number of expected contributors or campaign strategy.
 
         Parameters:
-            wallet: Bittensor Wallet instance used to sign the transaction.
+            wallet: Bittensor wallet instance used to sign the transaction (must be the creator's coldkey).
             crowdloan_id: The unique identifier of the crowdloan to update.
-            new_min_contribution: The new minimum contribution amount (in TAO or Balance).
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            new_min_contribution: The new minimum contribution amount (TAO). Must be ``>= AbsoluteMinimumContribution``.
+            period: The number of blocks during which the transaction will remain valid after submission.
+            raise_error: If ``True``, raises an exception rather than returning failure in the response.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            ``ExtrinsicResponse`` indicating success or failure, with error details if applicable.
 
         Notes:
-            - Can only be called by the creator of the crowdloan.
+            - Only the creator can update the minimum contribution.
             - The crowdloan must not be finalized.
-            - The new minimum contribution must not fall below the absolute minimum defined in the runtime.
+            - The new minimum must be ``>= AbsoluteMinimumContribution`` (check via ``get_crowdloan_constants``).
+
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Update Parameters: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
         """
         return await update_min_contribution_crowdloan_extrinsic(
             subtensor=self,
@@ -8069,25 +8135,31 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Withdraws a contribution from an active (not yet finalized or dissolved) crowdloan.
+        """Withdraws a contribution from an active (not yet finalized or dissolved) crowdloan.
+
+        Contributors can withdraw their contributions at any time before finalization. For regular contributors,
+        the full contribution amount is returned. For the creator, only amounts exceeding the initial deposit can
+        be withdrawn; the deposit itself remains locked until dissolution.
 
         Parameters:
-            wallet: Wallet instance used to sign the transaction (must be unlocked).
+            wallet: Bittensor wallet instance used to sign the transaction (coldkey must match a contributor).
             crowdloan_id: The unique identifier of the crowdloan to withdraw from.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            period: The number of blocks during which the transaction will remain valid after submission, after which
+                it will be rejected.
+            raise_error: If ``True``, raises an exception rather than returning False in the response, in case the
+               transaction fails.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            ``ExtrinsicResponse`` indicating success or failure, with error details if applicable.
 
-        Note:
-            - Regular contributors can fully withdraw their contribution before finalization.
-            - The creator cannot withdraw the initial deposit, but may withdraw any amount exceeding his deposit.
+        Notes:
+
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Crowdloan Lifecycle: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
+            - Withdraw: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#optional-withdraw>
         """
         return await withdraw_crowdloan_extrinsic(
             subtensor=self,
