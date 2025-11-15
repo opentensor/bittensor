@@ -4860,13 +4860,21 @@ class Subtensor(SubtensorMixin):
             amount: Amount to contribute.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            ``ExtrinsicResponse`` indicating success or failure, with error details if applicable.
+
+        Notes:
+            - Contributions can be withdrawn before finalization via ``withdraw_crowdloan``.
+            - If the campaign does not reach its cap by the end block, contributors can be refunded via ``refund_crowdloan``.
+            - Contributions are counted toward ``MaxContributors`` limit per crowdloan.
+
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Crowdloan Tutorial: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#step-4-contribute-to-the-crowdloan>
         """
         return contribute_crowdloan_extrinsic(
             subtensor=self,
@@ -4906,13 +4914,23 @@ class Subtensor(SubtensorMixin):
             target_address: SS58 address to transfer funds to on success.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            ``ExtrinsicResponse`` indicating success or failure. On success, the crowdloan ID can be extracted from the
+            ``Crowdloan.Created`` event in the response.
+
+        Notes:
+            - Creator cannot update ``call`` or ``target_address`` after creation.
+            - Creator can update ``cap``, ``end``, and ``min_contribution`` before finalization via ``update_*`` methods.
+            - Use ``get_crowdloan_next_id`` to determine the ID that will be assigned to the new crowdloan.
+
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Crowdloan Tutorial: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#step-3-create-a-crowdloan>
+            - Leasing: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
         """
         return create_crowdloan_extrinsic(
             subtensor=self,
@@ -4988,30 +5006,31 @@ class Subtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Dissolves a completed or failed crowdloan campaign after all refunds are processed.
+        """Dissolves a failed or refunded crowdloan, cleaning up storage and returning the creator's deposit.
 
-        This permanently removes the campaign from on-chain storage and refunds the creator's remaining deposit, if
-        applicable. Can only be called by the campaign creator.
+        This permanently removes the crowdloan from on-chain storage and returns the creator's deposit. Can only
+        be called by the creator after all non-creator contributors have been refunded via ``refund_crowdloan``.
+        This is the final step in the lifecycle of a failed crowdloan (one that did not reach its cap by the end
+        block).
 
         Parameters:
-            wallet: Bittensor Wallet instance used to sign the transaction.
+            wallet: Bittensor wallet instance used to sign the transaction (must be the creator's coldkey).
             crowdloan_id: The unique identifier of the crowdloan to dissolve.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            period: The number of blocks during which the transaction will remain valid after submission.
+            raise_error: If ``True``, raises an exception rather than returning failure in the response.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            ``ExtrinsicResponse`` indicating success or failure, with error details if applicable.
 
         Notes:
             - Only the creator can dissolve their own crowdloan.
-            - All contributors (except the creator) must have been refunded first.
-            - The creator’s remaining contribution (deposit) is returned during dissolution.
-            - After this call, the crowdloan is removed from chain storage.
+            - All non-creator contributors must be refunded first via ``refund_crowdloan``.
+            - The creator's deposit (and any remaining contribution above deposit) is returned.
+            - After dissolution, the crowdloan is permanently removed from chain storage.
+
+            See: <https://docs.learnbittensor.org/subnets/crowdloans>
         """
         return dissolve_crowdloan_extrinsic(
             subtensor=self,
@@ -5032,21 +5051,38 @@ class Subtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Finalizes a successful crowdloan campaign once the cap has been reached and the end block has passed.
+        """Finalizes a successful crowdloan after the cap is fully raised and the end block has passed.
 
-        This executes the stored call or transfers the raised funds to the target address, completing the campaign.
+        Finalization executes the stored call (e.g., ``register_leased_network``) or transfers raised funds to
+        the target address. For subnet lease crowdloans, this registers the subnet, creates a
+        ``SubnetLeaseBeneficiary`` proxy for the creator, and records contributor shares for pro-rata emissions
+        distribution. Leftover funds (after registration and proxy costs) are refunded to contributors.
+
+        Only the creator can finalize, and finalization can only occur after both the end block is reached and
+        the total raised equals the cap.
 
         Parameters:
-            wallet: Bittensor Wallet instance used to sign the transaction.
+            wallet: Bittensor wallet instance used to sign the transaction (must be the creator's coldkey).
             crowdloan_id: The unique identifier of the crowdloan to finalize.
-            period: The number of blocks during which the transaction will remain valid after it's submitted.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            period: The number of blocks during which the transaction will remain valid after submission.
+            raise_error: If ``True``, raises an exception rather than returning failure in the response.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            ``ExtrinsicResponse`` indicating success or failure. On success, a subnet lease is created (if applicable)
+            and contributor shares are recorded for emissions.
+
+        Notes:
+            - Only the creator can finalize.
+            - Finalization requires ``raised == cap`` and ``current_block >= end``.
+            - For subnet leases, emissions are swapped to TAO and distributed to contributors' coldkeys during the lease.
+            - Leftover cap (after subnet lock + proxy deposit) is refunded to contributors pro-rata.
+
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Crowdloan Tutorial: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#step-5-finalize-the-crowdloan>
+            - Emissions Distribution: <https://docs.learnbittensor.org/subnets/crowdloans#emissions-distribution-during-a-lease>
         """
         return finalize_crowdloan_extrinsic(
             subtensor=self,
@@ -5413,30 +5449,30 @@ class Subtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Refunds contributors from a failed or expired crowdloan campaign.
+        """Refunds contributors from a failed crowdloan campaign that did not reach its cap.
 
-        This call attempts to refund up to the limit defined by `RefundContributorsLimit` in a single dispatch. If there are
-        more contributors than the limit, the call may need to be executed multiple times until all refunds are processed.
+        Refunds are batched, processing up to ``RefundContributorsLimit`` (default 50) contributors per call.
+        For campaigns with more contributors, multiple calls are required. Only non-creator contributors are
+        refunded; the creator's deposit remains until dissolution via ``dissolve_crowdloan``.
+
+        Only the crowdloan creator can call this method for a non-finalized crowdloan.
 
         Parameters:
-            wallet: Bittensor Wallet instance used to sign the transaction.
+            wallet: Bittensor wallet instance used to sign the transaction (must be the crowdloan creator).
             crowdloan_id: The unique identifier of the crowdloan to refund.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            period: The number of blocks during which the transaction will remain valid after submission.
+            raise_error: If ``True``, raises an exception rather than returning failure in the response.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            ``ExtrinsicResponse`` indicating success or failure, with error details if applicable.
 
         Notes:
-            - Can be called by only creator signed account.
-            - Refunds contributors (excluding the creator) whose funds were locked in a failed campaign.
-            - Each call processes a limited number of refunds (`RefundContributorsLimit`).
-            - If the campaign has too many contributors, multiple refund calls are required.
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Crowdloan Lifecycle: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
+            - Refund and Dissolve: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#alternative-path-refund-and-dissolve>
         """
         return refund_crowdloan_extrinsic(
             subtensor=self,
@@ -6871,30 +6907,32 @@ class Subtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Updates the fundraising cap (maximum total contribution) of a non-finalized crowdloan.
+        """Updates the fundraising cap of an active (non-finalized) crowdloan.
 
-        Only the creator of the crowdloan can perform this action, and the new cap must be greater than or equal to the
-        current amount already raised.
+        Allows the creator to adjust the maximum total contribution amount before finalization. The new cap
+        must be at least equal to the amount already raised. This is useful for adjusting campaign goals based
+        on contributor feedback or changing subnet costs.
 
         Parameters:
-            wallet: Bittensor Wallet instance used to sign the transaction.
+            wallet: Bittensor wallet instance used to sign the transaction (must be the creator's coldkey).
             crowdloan_id: The unique identifier of the crowdloan to update.
-            new_cap: The new fundraising cap (in TAO or Balance).
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            new_cap: The new fundraising cap (TAO). Must be ``>= raised``.
+            period: The number of blocks during which the transaction will remain valid after submission.
+            raise_error: If ``True``, raises an exception rather than returning failure in the response.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            ``ExtrinsicResponse`` indicating success or failure, with error details if applicable.
 
         Notes:
             - Only the creator can update the cap.
             - The crowdloan must not be finalized.
-            - The new cap must be greater than or equal to the total funds already raised.
+            - The new cap must be ``>=`` the total funds already raised.
+
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Update Parameters: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
         """
         return update_cap_crowdloan_extrinsic(
             subtensor=self,
@@ -6917,31 +6955,34 @@ class Subtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Updates the end block of a non-finalized crowdloan campaign.
+        """Updates the end block of an active (non-finalized) crowdloan.
 
-        Only the creator of the crowdloan can perform this action. The new end block must be valid — meaning it cannot be in
-        the past and must respect the minimum and maximum duration limits enforced by the chain.
+        Allows the creator to extend (or shorten) the contribution period before finalization. The new end block
+        must be in the future and respect the minimum and maximum duration bounds defined in the runtime constants.
+        This is useful for extending campaigns that need more time to reach their cap or shortening campaigns with
+        sufficient contributions.
 
         Parameters:
-            wallet: Bittensor Wallet instance used to sign the transaction.
+            wallet: Bittensor wallet instance used to sign the transaction (must be the creator's coldkey).
             crowdloan_id: The unique identifier of the crowdloan to update.
-            new_end: The new block number at which the crowdloan will end.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            new_end: The new block number at which the crowdloan will end. Must be between ``MinimumBlockDuration``
+                (7 days = 50,400 blocks) and ``MaximumBlockDuration`` (60 days = 432,000 blocks) from the current block.
+            period: The number of blocks during which the transaction will remain valid after submission.
+            raise_error: If ``True``, raises an exception rather than returning failure in the response.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            ``ExtrinsicResponse`` indicating success or failure, with error details if applicable.
 
         Notes:
-            - Only the creator can call this extrinsic.
+            - Only the creator can update the end block.
             - The crowdloan must not be finalized.
-            - The new end block must be later than the current block and within valid duration bounds (between
-                `MinimumBlockDuration` and `MaximumBlockDuration`).
+            - The new end block must respect duration bounds (``MinimumBlockDuration`` to ``MaximumBlockDuration``).
+
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Update Parameters: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
         """
         return update_end_crowdloan_extrinsic(
             subtensor=self,
@@ -6964,30 +7005,32 @@ class Subtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Updates the minimum contribution amount of a non-finalized crowdloan.
+        """Updates the minimum contribution amount of an active (non-finalized) crowdloan.
 
-        Only the creator of the crowdloan can perform this action, and the new value must be greater than or equal to the
-        absolute minimum contribution defined in the chain configuration.
+        Allows the creator to adjust the minimum per-contribution amount before finalization. The new value must
+        meet or exceed the ``AbsoluteMinimumContribution`` constant. This is useful for adjusting contribution
+        requirements based on the number of expected contributors or campaign strategy.
 
         Parameters:
-            wallet: Bittensor Wallet instance used to sign the transaction.
+            wallet: Bittensor wallet instance used to sign the transaction (must be the creator's coldkey).
             crowdloan_id: The unique identifier of the crowdloan to update.
-            new_min_contribution: The new minimum contribution amount (in TAO or Balance).
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            new_min_contribution: The new minimum contribution amount (TAO). Must be ``>= AbsoluteMinimumContribution``.
+            period: The number of blocks during which the transaction will remain valid after submission.
+            raise_error: If ``True``, raises an exception rather than returning failure in the response.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            ``ExtrinsicResponse`` indicating success or failure, with error details if applicable.
 
         Notes:
-            - Can only be called by the creator of the crowdloan.
+            - Only the creator can update the minimum contribution.
             - The crowdloan must not be finalized.
-            - The new minimum contribution must not fall below the absolute minimum defined in the runtime.
+            - The new minimum must be ``>= AbsoluteMinimumContribution`` (check via ``get_crowdloan_constants``).
+
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Update Parameters: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
         """
         return update_min_contribution_crowdloan_extrinsic(
             subtensor=self,
@@ -7009,25 +7052,31 @@ class Subtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Withdraws a contribution from an active (not yet finalized or dissolved) crowdloan.
+        """Withdraws a contribution from an active (not yet finalized or dissolved) crowdloan.
+
+        Contributors can withdraw their contributions at any time before finalization. For regular contributors,
+        the full contribution amount is returned. For the creator, only amounts exceeding the initial deposit can
+        be withdrawn; the deposit itself remains locked until dissolution.
 
         Parameters:
-            wallet: Wallet instance used to sign the transaction (must be unlocked).
+            wallet: Bittensor wallet instance used to sign the transaction (coldkey must match a contributor).
             crowdloan_id: The unique identifier of the crowdloan to withdraw from.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            period: The number of blocks during which the transaction will remain valid after submission, after which
+                it will be rejected.
+            raise_error: If ``True``, raises an exception rather than returning False in the response, in case the
+               transaction fails.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            ``ExtrinsicResponse`` indicating success or failure, with error details if applicable.
 
-        Note:
-            - Regular contributors can fully withdraw their contribution before finalization.
-            - The creator cannot withdraw the initial deposit, but may withdraw any amount exceeding his deposit.
+        Notes:
+
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Crowdloan Lifecycle: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
+            - Withdraw: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#optional-withdraw>
         """
         return withdraw_crowdloan_extrinsic(
             subtensor=self,
