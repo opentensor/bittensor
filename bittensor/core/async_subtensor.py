@@ -178,7 +178,8 @@ class AsyncSubtensor(SubtensorMixin):
         Key Bittensor concepts used throughout this class:
 
         - **Coldkey**: The key pair corresponding to a user's overall wallet. Used to transfer, stake, manage subnets.
-        - **Hotkey**: A key pair (each wallet may have zero, one, or more) used for neuron operations (mining and validation).
+        - **Hotkey**: A key pair (each wallet may have zero, one, or more) used for neuron operations (mining and
+          validation).
         - **Netuid**: Unique identifier for a subnet (0 is the Root Subnet)
         - **UID**: Unique identifier for a neuron registered to a hotkey on a specific subnet.
         - **Metagraph**: Data structure containing the complete state of a subnet at a block.        
@@ -272,8 +273,7 @@ class AsyncSubtensor(SubtensorMixin):
             await self.substrate.close()
 
     async def initialize(self):
-        """
-         connection to the blockchain.
+        """Establishes connection to the blockchain.
 
         This method establishes the connection to the Bittensor blockchain and should be called after creating an
         AsyncSubtensor instance before making any queries.
@@ -500,8 +500,9 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             param_name: The name of the hyperparameter storage function to retrieve.
             netuid: The unique identifier of the subnet.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -647,8 +648,9 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             module_name: The name of the module containing the constant (e.g., ``"Balances"``, ``"SubtensorModule"``).
             constant_name: The name of the constant to retrieve (e.g., ``"ExistentialDeposit"``).
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -682,8 +684,9 @@ class AsyncSubtensor(SubtensorMixin):
             module: The name of the module from which to query the map storage (e.g., "SubtensorModule", "System").
             name: The specific storage function within the module to query (e.g., "Bonds", "Weights").
             params: Parameters to be passed to the query.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -715,8 +718,9 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             name: The name of the map storage function to query.
             params: A list of parameters to pass to the query function.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -749,8 +753,9 @@ class AsyncSubtensor(SubtensorMixin):
             module: The name of the module from which to query data.
             name: The name of the storage function within the module.
             params: A list of parameters to pass to the query function.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -783,8 +788,9 @@ class AsyncSubtensor(SubtensorMixin):
             runtime_api: The name of the runtime API to query.
             method: The specific method within the runtime API to call.
             params: The parameters to pass to the method call.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -816,8 +822,9 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             name: The name of the storage function to query.
             params: A list of parameters to pass to the query function.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -846,8 +853,9 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             method: The method name for the state call.
             data: The data to be passed to the method.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -874,8 +882,9 @@ class AsyncSubtensor(SubtensorMixin):
         and operational status.
 
         Parameters:
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -920,14 +929,16 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
             The number of blocks since the last step in the subnet, or None if the query fails.
 
-        # TODO glossary link for epoch
+        Notes:
+            See: <https://docs.learnbittensor.org/glossary#epoch>
         """
         query = await self.query_subtensor(
             name="BlocksSinceLastStep",
@@ -1036,8 +1047,9 @@ class AsyncSubtensor(SubtensorMixin):
         
         Parameters:
             netuid: The unique identifier of the subnet for which to check the commit-reveal mechanism.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -1071,8 +1083,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             netuid: The unique identifier of the subnet.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -1114,8 +1127,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             hotkey_ss58: The SS58 address of the hotkey.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -1153,8 +1167,9 @@ class AsyncSubtensor(SubtensorMixin):
         administrative actions right before validators submit weights at the epoch boundary.
 
         Parameters:
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -1181,8 +1196,9 @@ class AsyncSubtensor(SubtensorMixin):
         """Retrieves detailed information about all subnets within the Bittensor network.
 
         Parameters:
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -1230,8 +1246,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -1273,17 +1290,18 @@ class AsyncSubtensor(SubtensorMixin):
         negative values indicate net outflow. Subnets with negative EMA flows receive zero emissions.
 
         Parameters:
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
-            Dict mapping netuid to (last_updated_block, ema_flow). The Balance represents the EMA of net TAO flow
-            in TAO units. Positive values indicate sustained net inflow, negative values indicate sustained net outflow.
+            Dict mapping netuid to (last_updated_block, ema_flow). The Balance represents the EMA of net TAO flow in
+            TAO units. Positive values indicate sustained net inflow, negative values indicate sustained net outflow.
 
-        The EMA uses a smoothing factor α ≈ 0.000003209, creating a 30-day half-life and ~86.8 day window. Only direct
-        stake/unstake operations count toward flows; neuron registrations and root claims are excluded. Subnet 0 (root
-        network) does not have an EMA TAO flow value.
+        The EMA uses a smoothing factor α ≈ 0.000003209, creating a 30-day half-life and ~86.8 day window. Only
+        direct stake/unstake operations count toward flows; neuron registrations and root claims are excluded.
+        Subnet 0 (root network) does not have an EMA TAO flow value.
 
         Notes:
             - Flow-based emissions: <https://docs.learnbittensor.org/learn/emissions#tao-reserve-injection>
@@ -1387,8 +1405,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -1512,8 +1531,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             address: The coldkey address in SS58 format.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -1544,8 +1564,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             *addresses: Variable number of coldkey addresses in SS58 format.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -1673,8 +1694,9 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             hotkey_ss58: The hotkey value.
             netuid: The netuid value.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -1788,8 +1810,9 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             netuid: The unique identifier of the subnetwork.
             uid: The unique identifier of the neuron.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -2099,8 +2122,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             hotkey_ss58: The ``SS58`` address of the delegate's hotkey.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -2142,8 +2166,9 @@ class AsyncSubtensor(SubtensorMixin):
         and other metadata they have set.
 
         Parameters:
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -2180,8 +2205,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -2215,8 +2241,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             coldkey_ss58: The SS58 address of the account's coldkey.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -2254,8 +2281,9 @@ class AsyncSubtensor(SubtensorMixin):
         take percentage, and other metadata.
 
         Parameters:
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -3029,8 +3057,9 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             hotkey_ss58: The child hotkey SS58.
             netuid: The netuid value.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -3317,8 +3346,9 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             netuid: The unique identifier of the subnetwork.
             hotkey_ss58: The ss58 address of the committee member.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -3357,8 +3387,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             coldkey_ss58: The ss58 address of the coldkey.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -3390,8 +3421,9 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             hotkey_ss58: The ss58 address of the root validator.
             netuid: The unique identifier of the subnet to get the rate.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -3415,8 +3447,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             hotkey_ss58: The ss58 address of the root validator.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -3449,8 +3482,9 @@ class AsyncSubtensor(SubtensorMixin):
             coldkey_ss58: Delegate's ColdKey ss58 address.
             hotkey_ss58: The root validator hotkey ss58 address.
             netuid: Delegate's netuid where stake will be claimed.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -3505,8 +3539,9 @@ class AsyncSubtensor(SubtensorMixin):
             coldkey_ss58: The ss58 address of the staker.
             hotkey_ss58: The ss58 address of the root validator.
             netuid: The unique identifier of the subnet.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -3741,15 +3776,17 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Balance:
-        """
-        Retrieves the stake information for a given hotkey.
+        """Retrieves the total stake for a given hotkey on a specific subnet.
 
         Parameters:
             hotkey_ss58: The SS58 address of the hotkey.
             netuid: The subnet ID to query for.
-            block: The block number for which the children are to be retrieved.
-            block_hash: The hash of the block to retrieve the subnet unique identifiers from.
+            block: The blockchain block number for the query.
+            block_hash: The hash of the block to retrieve the stake from.
             reuse_block: Whether to reuse the last-used block hash.
+
+        Returns:
+            Balance: The total stake for the hotkey on the specified subnet.
         """
         hotkey_alpha_query = await self.query_subtensor(
             name="TotalHotkeyAlpha",
@@ -3947,6 +3984,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             The current Alpha price in TAO units for the specified subnet.
+
+        Notes:
+            Subnet 0 (root network) always returns 1 TAO since it uses TAO directly rather than Alpha.
         """
         # SN0 price is always 1 TAO
         if netuid == 0:
@@ -3968,7 +4008,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> dict[int, Balance]:
-        """Gets the current Alpha price in TAO for a specified subnet.
+        """Gets the current Alpha price in TAO for all subnets.
 
         Parameters:
             block: The block number for which the children are to be retrieved.
@@ -3976,7 +4016,10 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            A dictionary mapping subnet unique ID to the current Alpha price in TAO units.
+            A dictionary mapping subnet unique ID (netuid) to the current Alpha price in TAO units.
+
+        Notes:
+            Subnet 0 (root network) always has a price of 1 TAO since it uses TAO directly rather than Alpha.
         """
         block_hash = await self.determine_block_hash(
             block=block, block_hash=block_hash, reuse_block=reuse_block
@@ -4233,7 +4276,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional["ProposalVoteData"]:
-        # TODO: Add Examples; specify `proposal_hash` format; link to governance docs; Raises for not found.
+        # TODO: is this all deprecated? Didn't subtensor senate stuff get removed?
         """
         Retrieves the voting data for a specific proposal on the Bittensor blockchain. This data includes information
         about how senate members have voted on the proposal.
@@ -7374,8 +7417,6 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse containing the success status and transaction details. On success, the response includes
             the external IP and port that were registered.
-
-            
         """
         return await serve_axon_extrinsic(
             subtensor=self,
