@@ -1043,14 +1043,6 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             True if commit-reveal mechanism is enabled, False otherwise.
 
-        Example::
-
-            # Check if commit-reveal is enabled for subnet 1
-            enabled = await subtensor.commit_reveal_enabled(netuid=1)
-
-            # Check at specific block
-            enabled = await subtensor.commit_reveal_enabled(netuid=1, block=1000000)
-
         Notes:
             See also: <https://docs.learnbittensor.org/glossary#commit-reveal>
             See: <https://docs.learnbittensor.org/subnets/subnet-hyperparameters>            
@@ -1085,14 +1077,6 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             The value of the 'Difficulty' hyperparameter if the subnet exists, None otherwise.
-
-        Example::
-
-            # Get difficulty for subnet 1
-            difficulty = await subtensor.difficulty(netuid=1)
-
-            # Get difficulty at specific block
-            difficulty = await subtensor.difficulty(netuid=1, block=1000000)
 
         Notes:
             Burn registration is much more common on Bittensor subnets currently, compared to POW registration.
@@ -1136,14 +1120,6 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             True if the hotkey has been associated with a coldkey, False otherwise.
-
-        Example::
-
-            # Check if hotkey exists
-            exists = await subtensor.does_hotkey_exist(hotkey_ss58="5F...")
-
-            # Check at specific block
-            exists = await subtensor.does_hotkey_exist(hotkey_ss58="5F...", block=1000000)
 
         Notes:
             See: <https://docs.learnbittensor.org/glossary#hotkey>
@@ -1263,12 +1239,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example::
 
-            # Get all commitments for subnet 1
-            commitments = await subtensor.get_all_commitments(netuid=1)
-
-            # Iterate over all commitments
-            for hotkey, commitment in commitments.items():
-                print(f"Hotkey {hotkey}: {commitment}")
+            # TODO add example of how to handle realistic commitment data
         """
         query = await self.query_map(
             module="Commitments",
@@ -1612,16 +1583,6 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             int: The current chain block number.
 
-        Example::
-
-            # Get current block number
-            current_block = await subtensor.get_current_block()
-            print(f"Current block: {current_block}")
-
-            block = await subtensor.get_current_block()
-            if block > 1000000:
-                print("Network has progressed past block 1M")
-
         Notes:
             See also: <https://docs.learnbittensor.org/glossary#block>
         """
@@ -1640,16 +1601,6 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             str: The cryptographic hash of the specified block.
-
-        Example::
-
-            # Get hash for specific block
-            block_hash = await subtensor.get_block_hash(block=1000000)
-            print(f"Block 1000000 hash: {block_hash}")
-
-            # Get latest block hash
-            latest_hash = await subtensor.get_block_hash()
-            print(f"Latest block hash: {latest_hash}")
 
         Notes:
             See also: <https://docs.learnbittensor.org/glossary#block>
@@ -1846,7 +1797,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example::
 
-            # Get commitment for UID 5 in subnet 1
+            # TODO: add a real example of how to handle realistic commitment data, or chop example
             commitment = await subtensor.get_commitment(netuid=1, uid=5)
             print(f"Commitment: {commitment}")
 
@@ -5112,10 +5063,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example::
 
-            import bittensor as bt
-            subtensor = bt.Subtensor()
 
-            await subtensor.wait_for_block() # Waits for next block
             await subtensor.wait_for_block(block=1234) # Waits for a specific block
         """
 
@@ -7473,12 +7421,8 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example::
 
-            # Commit some data to subnet 1
-            success = await subtensor.commit(wallet=my_wallet, netuid=1, data="Hello Bittensor!")
-
-            # Commit with custom period
-            success = await subtensor.commit(wallet=my_wallet, netuid=1, data="Model update v2.0", period=100)
-
+            #TODO: add a real example of how to prepare a valid commit
+            
         Note: See <https://docs.learnbittensor.org/glossary#commit-reveal>
         """
         return await publish_metadata_extrinsic(
