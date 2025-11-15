@@ -911,14 +911,20 @@ class Subtensor(SubtensorMixin):
         return return_val
 
     def get_admin_freeze_window(self, block: Optional[int] = None) -> int:
-        """
-        Returns the number of blocks when dependent transactions will be frozen for execution.
+        """Returns the duration, in blocks, of the administrative freeze window at the end of each epoch.
+
+        The admin freeze window is a period at the end of each epoch during which subnet owner 
+        operations are prohibited. This prevents subnet owners from modifying hyperparameters or performing certain
+        administrative actions right before validators submit weights at the epoch boundary.
 
         Parameters:
-            block: The block number for which the children are to be retrieved.
+            block: The block number to query.
 
         Returns:
-            AdminFreezeWindow as integer. The number of blocks are frozen.
+            The number of blocks in the administrative freeze window (default: 10 blocks, ~2 minutes).
+
+        Notes:
+            See: <https://docs.learnbittensor.org/learn/chain-rate-limits#administrative-freeze-window>
         """
 
         return self.substrate.query(
@@ -994,17 +1000,27 @@ class Subtensor(SubtensorMixin):
         self,
         block: Optional[int] = None,
     ) -> dict[int, tuple[int, Balance]]:
-        """
-        Query EMA TAO flow for all subnets using query_map.
+        """Retrieves the EMA (exponential moving average) of net TAO flows for all subnets.
 
-        The EMA TAO flow represents the exponential moving average of TAO flowing
-        into or out of a subnet. Negative values indicate net outflow.
+        The EMA tracks net TAO flows (staking minus unstaking) with a 30-day half-life (~86.8 day window), smoothing 
+        out short-term fluctuations while capturing sustained staking trends. This metric determines the subnet's share 
+        of TAO emissions under the current, flow-based model. Positive values indicate net inflow (more staking than unstaking), 
+        negative values indicate net outflow. Subnets with negative EMA flows receive zero emissions.
 
-        Args:
-            block: The block number to retrieve the commitment from.
+        Parameters:
+            block: The block number to query.
 
         Returns:
-            Dict mapping netuid -> (block_number, Balance).
+            Dict mapping netuid to (last_updated_block, ema_flow). The Balance represents the EMA of net TAO flow in
+            TAO units. Positive values indicate sustained net inflow, negative values indicate sustained net outflow.
+
+        The EMA uses a smoothing factor α ≈ 0.000003209, creating a 30-day half-life and ~86.8 day window. Only
+        direct stake/unstake operations count toward flows; neuron registrations and root claims are excluded.
+        Subnet 0 (root network) does not have an EMA TAO flow value.
+
+        Notes:
+            - Flow-based emissions: <https://docs.learnbittensor.org/learn/emissions#tao-reserve-injection>
+            - EMA smoothing: <https://docs.learnbittensor.org/learn/ema>
         """
         block_hash = self.determine_block_hash(block)
         query = self.substrate.query_map(
@@ -1744,19 +1760,20 @@ class Subtensor(SubtensorMixin):
             return []
 
     def get_existential_deposit(self, block: Optional[int] = None) -> Optional[Balance]:
-        """
-        Retrieves the existential deposit amount for the Bittensor blockchain. Always in TAO.
+        """Retrieves the existential deposit amount for the Bittensor blockchain.
+
         The existential deposit is the minimum amount of TAO required for an account to exist on the blockchain.
-        Accounts with balances below this threshold can be reaped to conserve network resources.
+        Accounts with balances below this threshold can be reaped (removed) to conserve network resources and prevent
+        blockchain bloat from dust accounts.
 
         Parameters:
             block: The blockchain block number for the query.
 
         Returns:
-            The existential deposit amount. Always in TAO.
+            The existential deposit amount in RAO.
 
-        The existential deposit is a fundamental economic parameter in the Bittensor network, ensuring efficient use of
-        storage and preventing the proliferation of dust accounts.
+        Notes:
+            See: <https://docs.learnbittensor.org/glossary#existential-deposit>
         """
         result = self.substrate.get_constant(
             module_name="Balances",
@@ -1774,18 +1791,28 @@ class Subtensor(SubtensorMixin):
         netuid: int,
         block: Optional[int] = None,
     ) -> Optional[tuple[int, Balance]]:
-        """
-        Query EMA TAO flow for all subnets using query_map.
+        """Retrieves the EMA (exponential moving average) of net TAO flow for a specific subnet.
 
-        The EMA TAO flow represents the exponential moving average of TAO flowing into or out of a subnet. Negative
-        values indicate net outflow.
+        The EMA tracks net TAO flows (staking minus unstaking) with a 30-day half-life (~86.8 day window), smoothing
+        out short-term fluctuations while capturing sustained staking trends. This metric determines the subnet's share
+        of TAO emissions under the current, flow-based model. Positive values indicate net inflow (more staking than unstaking),
+        negative values indicate net outflow. Subnets with negative EMA flows receive zero emissions.
 
-        Args:
-            netuid: The unique identifier of the subnetwork.
-            block: The block number to retrieve the commitment from.
+        Parameters:
+            netuid: The unique identifier of the subnet to query.
+            block: The block number to query. If ``None``, uses latest finalized block.
 
         Returns:
-            The tuple with block_number, Balance
+            Tuple of (last_updated_block, ema_flow) where ema_flow is the EMA of net TAO flow in TAO units.
+            Returns ``None`` if the subnet does not exist or if querying subnet 0 (root network).
+
+        The EMA uses a smoothing factor α ≈ 0.000003209, creating a 30-day half-life and ~86.8 day window. Only direct
+        stake/unstake operations count toward flows; neuron registrations and root claims are excluded. Subnet 0 (root
+        network) does not have an EMA TAO flow value and will return ``None``.
+
+        Notes:
+            - Flow-based emissions: <https://docs.learnbittensor.org/learn/emissions#tao-reserve-injection>
+            - EMA smoothing: <https://docs.learnbittensor.org/learn/ema>
         """
         block_hash = self.determine_block_hash(block)
         query = self.substrate.query(

@@ -207,7 +207,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             network: The network name to connect to (e.g., ``"finney"`` for Bittensor mainnet, ``"test"``, for
-                Bittensor test network, ``"local"`` for a locally deployed blockchain).If ``None``, uses the
+                Bittensor test network, ``"local"`` for a locally deployed blockchain). If ``None``, uses the
                 default network from config.
             config: Configuration object for the AsyncSubtensor instance. If ``None``, uses the default configuration.
             log_verbose: Enables or disables verbose logging.
@@ -222,7 +222,7 @@ class AsyncSubtensor(SubtensorMixin):
                 automatically closing the WebSocket connection. Pass ``None`` to disable automatic shutdown entirely.
 
         Returns:
-            None        
+            None
         """
         if config is None:
             config = AsyncSubtensor.config()
@@ -427,7 +427,7 @@ class AsyncSubtensor(SubtensorMixin):
             2. If both ``block`` and ``block_hash`` are set → validates they match, raises ValueError if not
             3. If only ``block_hash`` is set → returns it directly
             4. If only ``block`` is set → fetches and returns its hash
-            5. If none are set → returns None
+            5. If none are set → returns ``None``
 
         Parameters:
             block: The block number to get the hash for. If specifying along with ``block_hash``, the hash of ``block``
@@ -1089,7 +1089,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
-            The value of the 'Difficulty' hyperparameter if the subnet exists, None otherwise.
+            The value of the 'Difficulty' hyperparameter if the subnet exists, ``None`` otherwise.
 
         Notes:
             Burn registration is much more common on Bittensor subnets currently, compared to POW registration.
@@ -1123,7 +1123,7 @@ class AsyncSubtensor(SubtensorMixin):
         coldkey, as it must be before it (the hotkey) can be used for neuron registration.
 
         The Owner storage map defaults to the zero address (``5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM``) 
-        for unused hotkeys. This method returns True if the Owner value is anything other than this default.
+        for unused hotkeys. This method returns ``True`` if the Owner value is anything other than this default.
 
         Parameters:
             hotkey_ss58: The SS58 address of the hotkey.
@@ -1893,7 +1893,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> "CrowdloanConstants":
-        """Retrieves runtime configuration constants governing crowdloan behavior and limitson the Bittensor blockchain.
+        """Retrieves runtime configuration constants governing crowdloan behavior and limits on the Bittensor blockchain.
 
         If a list of constant names is provided, only those constants will be queried.
         Otherwise, all known constants defined in `CrowdloanConstants.field_names()` are fetched.
@@ -2356,7 +2356,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             netuid: The unique identifier of the subnet to query.
-            block: The block number to query. If None, uses latest finalized block.
+            block: The block number to query. If ``None``, uses latest finalized block.
 
         Returns:
             Tuple of (last_updated_block, ema_flow) where ema_flow is the EMA of net TAO flow in TAO units.
@@ -2396,7 +2396,7 @@ class AsyncSubtensor(SubtensorMixin):
         """
         Retrieves the owner of the given hotkey at a specific block hash.
         This function queries the blockchain for the owner of the provided hotkey. If the hotkey does not exist at the
-        specified block hash, it returns None.
+        specified block hash, it returns ``None``.
 
         Parameters:
             hotkey_ss58: The SS58 address of the hotkey.
@@ -2990,7 +2990,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             netuid: The unique identifier of the subnet.
-            block: The reference block to calculate from. If None, uses the current chain block height.
+            block: The reference block to calculate from. If ``None``, uses the current chain block height.
             block_hash: The blockchain block number at which to perform the query.
             reuse_block: Whether to reuse the last-used blockchain block hash.
 
@@ -3102,7 +3102,7 @@ class AsyncSubtensor(SubtensorMixin):
         account (delegator) to its list of proxy relationships.
 
         Parameters:
-            block: The blockchain block number for the query. If None, queries the latest block.
+            block: The blockchain block number for the query. If ``None``, queries the latest block.
             block_hash: The hash of the block at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
@@ -3183,7 +3183,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             delegate_account_ss58: SS58 address of the delegate proxy account whose announcements to retrieve.
-            block: The blockchain block number for the query. If None, queries the latest block.
+            block: The blockchain block number for the query. If ``None``, queries the latest block.
             block_hash: The hash of the block at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
@@ -3217,7 +3217,7 @@ class AsyncSubtensor(SubtensorMixin):
         mapping each delegate to its list of pending announcements.
 
         Parameters:
-            block: The blockchain block number for the query. If None, queries the latest block.
+            block: The blockchain block number for the query. If ``None``, queries the latest block.
             block_hash: The hash of the block at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
@@ -3262,7 +3262,7 @@ class AsyncSubtensor(SubtensorMixin):
                 `ProxyConstants.constants_names()` are queried. Valid constant names include: "AnnouncementDepositBase",
                 "AnnouncementDepositFactor", "MaxProxies", "MaxPending", "ProxyDepositBase", "ProxyDepositFactor".
             as_dict: If True, returns the constants as a dictionary instead of a `ProxyConstants` object.
-            block: The blockchain block number for the query. If None, queries the latest block.
+            block: The blockchain block number for the query. If ``None``, queries the latest block.
             block_hash: The hash of the block at which to check the parameter. Do not set if using ``block`` or ``reuse_block``.
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
@@ -3948,7 +3948,7 @@ class AsyncSubtensor(SubtensorMixin):
         Retrieves the hotkey of the subnet owner for a given network UID.
 
         This function queries the subtensor network to fetch the hotkey of the owner of a subnet specified by its
-        netuid. If no data is found or the query fails, the function returns None.
+        netuid. If no data is found or the query fails, the function returns ``None``.
 
         Parameters:
             netuid: The network UID of the subnet to fetch the owner's hotkey for.
@@ -6394,7 +6394,7 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             wallet: Bittensor wallet object (should be the proxy account wallet).
             real_account_ss58: The SS58 address of the real account on whose behalf the call is being made.
-            force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise,
+            force_proxy_type: The type of proxy to use for the call. If ``None``, any proxy type can be used. Otherwise,
                 must match one of the allowed proxy types. Can be a string or ProxyType enum value.
             call: The inner call to be executed on behalf of the real account.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
@@ -6446,7 +6446,7 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: Bittensor wallet object (should be the proxy account wallet that made the announcement).
             delegate_ss58: The SS58 address of the delegate proxy account that made the announcement.
             real_account_ss58: The SS58 address of the real account on whose behalf the call will be made.
-            force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise,
+            force_proxy_type: The type of proxy to use for the call. If ``None``, any proxy type can be used. Otherwise,
                 must match one of the allowed proxy types. Can be a string or ProxyType enum value.
             call: The inner call to be executed on behalf of the real account (must match the announced call_hash).
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
