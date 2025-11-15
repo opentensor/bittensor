@@ -177,7 +177,8 @@ class Subtensor(SubtensorMixin):
         Key Bittensor concepts used throughout this class:
 
         - **Coldkey**: The key pair corresponding to a user's overall wallet. Used to transfer, stake, manage subnets.
-        - **Hotkey**: A key pair (each wallet may have zero, one, or more) used for neuron operations (mining and validation).
+        - **Hotkey**: A key pair (each wallet may have zero, one, or more) used for neuron operations (mining and
+          validation).
         - **Netuid**: Unique identifier for a subnet (0 is the Root Subnet)
         - **UID**: Unique identifier for a neuron registered to a hotkey on a specific subnet.
         - **Metagraph**: Data structure containing the complete state of a subnet at a block.        
@@ -730,7 +731,8 @@ class Subtensor(SubtensorMixin):
         Returns:
             The number of blocks since the last step in the subnet, or None if the query fails.
 
-        # TODO glossary link for epoch
+        Notes:
+            See: <https://docs.learnbittensor.org/glossary#epoch>
         """
         query = self.query_subtensor(
             name="BlocksSinceLastStep", block=block, params=[netuid]
@@ -859,13 +861,12 @@ class Subtensor(SubtensorMixin):
         This parameter determines the computational challenge required for neurons to participate in consensus and
          validation processes, using proof of work (POW) registration.
 
-
         Parameters:
             netuid: The unique identifier of the subnet.
             block: The block number to query. If ``None``, queries the current chain head.
 
         Returns:
-            The value of the 'Difficulty' hyperparameter if the subnet exists, None otherwise.
+            The value of the 'Difficulty' hyperparameter if the subnet exists, ``None`` otherwise.
 
         Notes:
             Burn registration is much more common on Bittensor subnets currently, compared to POW registration.
@@ -889,7 +890,7 @@ class Subtensor(SubtensorMixin):
         coldkey, as it must be before it (the hotkey) can be used for neuron registration.
 
         The Owner storage map defaults to the zero address (``5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM``) 
-        for unused hotkeys. This method returns True if the Owner value is anything other than this default.
+        for unused hotkeys. This method returns ``True`` if the Owner value is anything other than this default.
 
         Parameters:
             hotkey_ss58: The SS58 address of the hotkey.
@@ -939,18 +940,14 @@ class Subtensor(SubtensorMixin):
         ).value
 
     def get_all_subnets_info(self, block: Optional[int] = None) -> list["SubnetInfo"]:
-        """
-        Retrieves detailed information about all subnets within the Bittensor network. This function provides
-        comprehensive data on each subnet, including its characteristics and operational parameters.
+        """Retrieves detailed information about all subnets within the Bittensor network.
 
         Parameters:
-            block: The blockchain block number for the query.
+            block: The block number to query. If ``None``, queries the current chain head.
 
         Returns:
             A list of SubnetInfo objects, each containing detailed information about a subnet.
 
-        Gaining insights into the subnets' details assists in understanding the network's composition, the roles of
-        different subnets, and their unique features.
         """
         result = self.query_runtime_api(
             runtime_api="SubnetInfoRuntimeApi",
@@ -979,11 +976,15 @@ class Subtensor(SubtensorMixin):
         commit-reveal patterns across an entire subnet.
 
         Parameters:
-            netuid: The unique subnet identifier.
-            block: The blockchain block number for the query.
+            netuid: The unique identifier of the subnetwork.
+            block: The block number to query. If ``None``, queries the current chain head.
 
         Returns:
-            The raw on-chain commitment metadata (as SCALE-decoded object or raw bytes) from specific subnet.
+            A mapping of the ss58:commitment with the commitment as a string.
+
+        Example::
+
+            # TODO add example of how to handle realistic commitment data
         """
         query = self.query_map(
             module="Commitments",
@@ -1080,9 +1081,13 @@ class Subtensor(SubtensorMixin):
             block: The blockchain block number for the query.
 
         Returns:
-            {ss58: Certificate} for the key/Certificate pairs on the subnet
+            Dictionary mapping neuron hotkey SS58 addresses to their Certificate objects. Only includes neurons
+            that have registered certificates.
 
-        This function is used for certificate discovery for setting up mutual tls communication between neurons.
+        Notes:
+            This method is used for certificate discovery to establish mutual TLS communication between neurons.
+            
+            See: <https://docs.learnbittensor.org/subnets/neuron-tls-certificates>
         """
         query_certificates = self.query_map(
             module="SubtensorModule",
@@ -1102,16 +1107,23 @@ class Subtensor(SubtensorMixin):
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
-            block: The block number to retrieve the commitment from.
+            block: The block number to query. If ``None``, queries the current chain head.
 
         Returns:
-            result: A dictionary of all revealed commitments in view {ss58_address: (reveal block, commitment message)}.
+            A dictionary mapping hotkey addresses to tuples of (reveal_block, commitment_message) pairs.
+            Each validator can have multiple revealed commitments (up to 10 most recent).
 
-        Example of result:
+        Example::
+            
         {
             "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY": ( (12, "Alice message 1"), (152, "Alice message 2") ),
             "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty": ( (12, "Bob message 1"), (147, "Bob message 2") ),
         }
+
+        Notes:
+            See also:
+            - <https://docs.learnbittensor.org/glossary#commit-reveal>
+
         """
         query = self.query_map(
             module="Commitments",
@@ -1162,12 +1174,16 @@ class Subtensor(SubtensorMixin):
 
         Parameters:
             coldkey_ss58: Coldkey ss58 address.
-            block: The block number for the query.
+            block: The block number for the query. If ``None``, queries the current chain head.
 
         Returns:
-            dict[int, str]:
+            Dictionary mapping netuid to hotkey, where:
+
                 - netuid: The unique identifier of the subnet.
                 - hotkey: The hotkey of the wallet.
+
+        Notes:
+            See: <https://docs.learnbittensor.org/miners/autostaking>
         """
         block_hash = self.determine_block_hash(block=block)
         query = self.substrate.query_map(
@@ -1327,18 +1343,32 @@ class Subtensor(SubtensorMixin):
     def get_children(
         self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
     ) -> tuple[bool, list[tuple[float, str]], str]:
-        """
-        This method retrieves the children of a given hotkey and netuid. It queries the SubtensorModule's ChildKeys
-        storage function to get the children and formats them before returning as a tuple.
+        """Retrieves the children of a given hotkey and netuid.
+
+        This method queries the SubtensorModule's ChildKeys storage function to get the children and formats them before
+        returning as a tuple. It provides information about the child neurons that a validator has set for weight
+        distribution.
 
         Parameters:
             hotkey_ss58: The hotkey value.
             netuid: The netuid value.
-            block: The block number for which the children are to be retrieved.
+            block: The block number to query. If ``None``, queries the current chain head.
 
         Returns:
-            A tuple containing a boolean indicating success or failure, a list of formatted children, and an error
-                message (if applicable)
+            A tuple containing a boolean indicating success or failure, a list of formatted children with their
+                proportions, and an error message (if applicable).
+
+        Example::
+
+            # Get children for a hotkey in subnet 1
+            success, children, error = subtensor.get_children(hotkey="5F...", netuid=1)
+
+            if success:
+                for proportion, child_hotkey in children:
+                    print(f"Child {child_hotkey}: {proportion}")
+
+        Notes:
+            See: <https://docs.learnbittensor.org/validators/child-hotkeys>
         """
         try:
             children = self.substrate.query(
@@ -1369,18 +1399,24 @@ class Subtensor(SubtensorMixin):
         list[tuple[float, str]],
         int,
     ]:
-        """
-        This method retrieves the pending children of a given hotkey and netuid.
-        It queries the SubtensorModule's PendingChildKeys storage function.
+        """Retrieves the pending children of a given hotkey and netuid.
+
+        This method queries the SubtensorModule's PendingChildKeys storage function to get children that are pending
+        approval or in a cooldown period. These are children that have been proposed but not yet finalized.
 
         Parameters:
             hotkey_ss58: The hotkey value.
             netuid: The netuid value.
-            block: The block number for which the children are to be retrieved.
+            block: The block number for which the children are to be retrieved. If ``None``, queries the current chain head.
 
         Returns:
-            - A list of children with their proportions.
-            - The cool-down block number.
+            tuple: A tuple containing:
+
+                - list[tuple[float, str]]: A list of children with their proportions.
+                - int: The cool-down block number.
+
+        Notes:
+            See: <https://docs.learnbittensor.org/validators/child-hotkeys>
         """
 
         children, cooldown = self.substrate.query(
@@ -1402,16 +1438,24 @@ class Subtensor(SubtensorMixin):
         )
 
     def get_commitment(self, netuid: int, uid: int, block: Optional[int] = None) -> str:
-        """
-        Retrieves the on-chain commitment for a specific neuron in the Bittensor network.
+        """Retrieves the on-chain commitment for a specific neuron in the Bittensor network.
+
+        This method retrieves the commitment data that a neuron has published to the blockchain. Commitments are used in
+        the commit-reveal mechanism for secure weight setting and other network operations.
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
             uid: The unique identifier of the neuron.
-            block: The block number to retrieve the commitment from. If None, the latest block is used.
+            block: The block number to query. If ``None``, queries the current chain head.
 
         Returns:
             The commitment data as a string.
+
+
+            # TODO: add a real example of how to handle realistic commitment data, or chop example            
+
+        Notes:
+            See: <https://docs.learnbittensor.org/glossary#commit-reveal>
         """
         metagraph = self.metagraph(netuid)
         try:
@@ -1432,6 +1476,7 @@ class Subtensor(SubtensorMixin):
     def get_commitment_metadata(
         self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
     ) -> Union[str, dict]:
+        # TODO: how to handle return data? need good example
         """Fetches raw commitment metadata from specific subnet for given hotkey.
 
         Parameters:
@@ -1455,40 +1500,32 @@ class Subtensor(SubtensorMixin):
         constants: Optional[list[str]] = None,
         block: Optional[int] = None,
     ) -> "CrowdloanConstants":
-        """
-        Fetches runtime configuration constants from the `Crowdloan` pallet.
+        """Retrieves runtime configuration constants governing crowdloan behavior and limits on the Bittensor blockchain.
 
         If a list of constant names is provided, only those constants will be queried.
         Otherwise, all known constants defined in `CrowdloanConstants.field_names()` are fetched.
+        
+        These constants define requirements and operational limits for crowdloan campaigns:
+
+        - ``AbsoluteMinimumContribution``: Minimum amount per contribution (TAO).
+        - ``MaxContributors``: Maximum number of unique contributors per crowdloan.
+        - ``MaximumBlockDuration``: Maximum duration (in blocks) for a crowdloan campaign (60 days = 432,000 blocks on production).
+        - ``MinimumDeposit``: Minimum deposit required from the creator (TAO).
+        - ``MinimumBlockDuration``: Minimum duration (in blocks) for a crowdloan campaign (7 days = 50,400 blocks on production).
+        - ``RefundContributorsLimit``: Maximum number of contributors refunded per ``refund_crowdloan`` call (typically 50).
 
         Parameters:
-            constants: A list of specific constant names to fetch from the pallet. If omitted, all constants from
-                `CrowdloanConstants` are queried.
-            block: The blockchain block number for the query.
+            constants: Specific constant names to query. If ``None``, retrieves all constants from ``CrowdloanConstants``.
+            block: The blockchain block number for the query. If ``None``, queries the current chain head.
 
         Returns:
-            CrowdloanConstants:
-                A structured dataclass containing the retrieved values. Missing constants are returned as `None`.
+            A ``CrowdloanConstants`` data object containing the queried constants. Missing constants return ``None``.        
+        Notes:
+            These constants enforce contribution floors, duration bounds, and refund batching limits.
 
-        Example:
-            print(subtensor.get_crowdloan_constants())
-            CrowdloanConstants(
-                AbsoluteMinimumContribution=τ1.000000000,
-                MaxContributors=1000,
-                MaximumBlockDuration=86400,
-                MinimumDeposit=τ10.000000000,
-                MinimumBlockDuration=600,
-                RefundContributorsLimit=50
-            )
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
 
-            crowdloan_consts = subtensor.get_crowdloan_constants(
-                constants=["MaxContributors", "RefundContributorsLimit"]
-            )
-            print(crowdloan_consts)
-            CrowdloanConstants(MaxContributors=1000, RefundContributorsLimit=50)
-
-            print(crowdloan_consts.MaxContributors)
-            1000
         """
         result = {}
         const_names = constants or CrowdloanConstants.constants_names()
@@ -1510,15 +1547,24 @@ class Subtensor(SubtensorMixin):
         crowdloan_id: int,
         block: Optional[int] = None,
     ) -> dict[str, "Balance"]:
-        """
-        Returns a mapping of contributor SS58 addresses to their contribution amounts for a specific crowdloan.
+        """Retrieves all contributions made to a specific crowdloan campaign.
+
+        Returns a mapping of contributor coldkey addresses to their contribution amounts in Rao.
 
         Parameters:
             crowdloan_id: The unique identifier of the crowdloan.
-            block: The blockchain block number for the query.
+            block: The blockchain block number for the query. If ``None``, queries the current chain head.
 
         Returns:
-            Dict[address -> Balance].
+            Dictionary mapping contributor SS58 addresses to their ``Balance`` contribution amounts (in Rao).
+            Returns empty dictionary if the crowdloan has no contributions or does not exist.
+
+        Notes:
+            Contributions are clipped to the remaining cap. Once the cap is reached, no further contributions are accepted.
+
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Crowdloan Tutorial: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#step-4-contribute-to-the-crowdloan>
         """
         block_hash = self.determine_block_hash(block)
         query = self.substrate.query_map(
@@ -1536,15 +1582,24 @@ class Subtensor(SubtensorMixin):
     def get_crowdloan_by_id(
         self, crowdloan_id: int, block: Optional[int] = None
     ) -> Optional["CrowdloanInfo"]:
-        """
-        Returns detailed information about a specific crowdloan by ID.
+        """Retrieves detailed information about a specific crowdloan campaign.
+
+        
 
         Parameters:
-            crowdloan_id: Unique identifier of the crowdloan.
-            block: The blockchain block number for the query.
+            crowdloan_id: Unique identifier of the crowdloan (auto-incremented starting from 0).
+            block: The blockchain block number for the query. If ``None``, queries the current chain head.
 
         Returns:
-            CrowdloanInfo if found, else None.
+            ``CrowdloanInfo`` object containing: campaign ID, creator address, creator's deposit,
+            minimum contribution amount, end block, funding cap, funds account address, amount raised,
+            optional target address, optional embedded call, finalization status, and contributor count.
+            Returns ``None`` if the crowdloan does not exist.
+
+        Notes:
+
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
         """
         block_hash = self.determine_block_hash(block)
         query = self.substrate.query(
@@ -1563,14 +1618,21 @@ class Subtensor(SubtensorMixin):
         self,
         block: Optional[int] = None,
     ) -> int:
-        """
-        Returns the next available crowdloan ID (auto-increment value).
+        """Retrieves the next available crowdloan identifier.
+
+        Crowdloan IDs are allocated sequentially starting from 0. This method returns the ID that will be
+        assigned to the next crowdloan created via ``create_crowdloan``.
 
         Parameters:
-            block: The blockchain block number for the query.
+            block: The blockchain block number for the query. If ``None``, queries the current chain head.
 
         Returns:
-            The next crowdloan ID to be used when creating a new campaign.
+            The next crowdloan ID (integer) to be assigned.
+
+        Notes:
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Crowdloan Tutorial: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#get-the-crowdloan-id>
         """
         block_hash = self.determine_block_hash(block)
         result = self.substrate.query(
@@ -1584,14 +1646,24 @@ class Subtensor(SubtensorMixin):
         self,
         block: Optional[int] = None,
     ) -> list["CrowdloanInfo"]:
-        """
-        Returns a list of all existing crowdloans with their metadata.
+        """Retrieves all existing crowdloan campaigns with their metadata.
+
+        Returns comprehensive information for all crowdloans registered on the blockchain, including
+        both active and finalized campaigns.
 
         Parameters:
-            block: The blockchain block number for the query.
+            block: The blockchain block number for the query. If ``None``, queries the current chain head.
 
         Returns:
-            List of CrowdloanInfo which contains (id, creator, cap, raised, end, finalized, etc.)
+            List of ``CrowdloanInfo`` objects, each containing: campaign ID, creator address, creator's deposit,
+            minimum contribution amount, end block, funding cap, funds account address, amount raised,
+            optional target address, optional embedded call, finalization status, and contributor count.
+            Returns empty list if no crowdloans exist.
+
+        Notes:
+            See:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Crowdloan Lifecycle: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
         """
         block_hash = self.determine_block_hash(block)
         query = self.substrate.query_map(
@@ -1841,14 +1913,14 @@ class Subtensor(SubtensorMixin):
         """
         Retrieves the owner of the given hotkey at a specific block hash.
         This function queries the blockchain for the owner of the provided hotkey. If the hotkey does not exist at the
-        specified block hash, it returns None.
+        specified block hash, it returns ``None``.
 
         Parameters:
             hotkey_ss58: The SS58 address of the hotkey.
-            block: The blockchain block number for the query.
+            block: The blockchain block number for the query. If ``None``, queries the current chain head.
 
         Returns:
-            The SS58 address of the owner if the hotkey exists, or None if it doesn't.
+            The SS58 address of the owner if the hotkey exists, or ``None`` if it doesn't.
         """
         hk_owner_query = self.substrate.query(
             module="SubtensorModule",
@@ -1871,7 +1943,7 @@ class Subtensor(SubtensorMixin):
         Parameters:
             netuid: The network uid to fetch from.
             hotkey_ss58: The hotkey of the neuron for which to fetch the last bonds reset.
-            block: The block number to query.
+            block: The block number to query. If ``None``, queries the current chain head.
 
         Returns:
             bytes: The last bonds reset data from given subnet for the specified hotkey.
@@ -1895,10 +1967,10 @@ class Subtensor(SubtensorMixin):
         Parameters:
             netuid: The unique identifier of the subnetwork.
             uid: The unique identifier of the neuron.
-            block: The block number to query.
+            block: The block number to query. If ``None``, queries the current chain head.
 
         Returns:
-            The block number when the bonds were last reset, or None if not found.
+            The block number when the bonds were last reset, or ``None`` if not found.
         """
 
         metagraph = self.metagraph(netuid, block=block)
@@ -2125,10 +2197,13 @@ class Subtensor(SubtensorMixin):
 
         Parameters:
             netuid: Subnet identifier.
-            block: The blockchain block number for the query.
+            block: The blockchain block number for the query. If ``None``, queries the current chain head.
 
         Returns:
             The number of mechanisms for the given subnet.
+
+        Notes:
+            See: <https://docs.learnbittensor.org/subnets/understanding-multiple-mech-subnets>
         """
         block_hash = self.determine_block_hash(block)
         query = self.substrate.query(
@@ -2148,20 +2223,24 @@ class Subtensor(SubtensorMixin):
         ] = None,
         block: Optional[int] = None,
     ) -> Optional[MetagraphInfo]:
-        """
-        Retrieves full or partial metagraph information for the specified subnet mechanism (netuid, mechid).
+        """Retrieves full or partial metagraph information for the specified subnet (netuid).
+
+        A metagraph is a data structure that contains comprehensive information about the current state of a subnet,
+        including detailed information on all the nodes (neurons) such as subnet validator stakes and subnet weights
+        and bonds.
 
         Parameters:
             netuid: Subnet unique identifier.
             mechid: Subnet mechanism unique identifier.
             selected_indices: Optional list of SelectiveMetagraphIndex or int values specifying which fields to retrieve.
                 If not provided, all available fields will be returned.
-            block: The block number at which to query the data.
+            block: The block number at which to query the data. If ``None``, queries the current chain head.
 
         Returns:
             MetagraphInfo object with the requested subnet mechanism data, None if the subnet mechanism does not exist.
 
-        Example:
+        Example::
+
             # Retrieve all fields from the metagraph from subnet 2 mechanism 0
             meta_info = subtensor.get_metagraph_info(netuid=2)
 
@@ -2183,8 +2262,8 @@ class Subtensor(SubtensorMixin):
 
         Notes:
             See also:
-            - <https://docs.learnbittensor.org/glossary#metagraph>
-            - <https://docs.learnbittensor.org/glossary#emission>
+            - <https://docs.learnbittensor.org/subnets/metagraph>
+
         """
         block_hash = self.determine_block_hash(block=block)
 
@@ -2227,16 +2306,19 @@ class Subtensor(SubtensorMixin):
     def get_netuids_for_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
     ) -> list[int]:
-        """
-        Retrieves a list of subnet UIDs (netuids) for which a given hotkey is a member. This function identifies the
+        """Retrieves a list of subnet UIDs (netuids) for which a given hotkey is a member. This function identifies the
             specific subnets within the Bittensor network where the neuron associated with the hotkey is active.
 
         Parameters:
             hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
-            block: The blockchain block number for the query.
+            block: The blockchain block number for the query. If ``None``, queries the current chain head.
 
         Returns:
             A list of netuids where the neuron is a member.
+
+        Notes:
+            See also:
+            - <https://docs.learnbittensor.org/glossary#hotkey>
         """
         result = self.substrate.query_map(
             module="SubtensorModule",
@@ -2259,12 +2341,13 @@ class Subtensor(SubtensorMixin):
         subnet (netuid) of the Bittensor network.
 
         Parameters:
-            hotkey_ss58: The hotkey to query.
+            hotkey_ss58: The SS58 address of the neuron's hotkey.
             netuid: The unique identifier of the subnet.
-            block: The blockchain block number for the query.
+            block: The blockchain block number for the query. If ``None``, queries the current chain head.
 
         Returns:
-            the certificate of the neuron if found, `None` otherwise.
+            Certificate object containing the neuron's TLS public key and algorithm, or ``None`` if the neuron has
+            not registered a certificate.
 
         This function is used for certificate discovery for setting up mutual tls communication between neurons.
         """
@@ -2384,11 +2467,16 @@ class Subtensor(SubtensorMixin):
 
         Parameters:
             hotkey_ss58: The child hotkey SS58.
-            netuid: The netuid.
-            block: The block number for which the children are to be retrieved.
+            netuid: The netuid value.
+            block: The block number to query. If ``None``, queries the current chain head.
 
         Returns:
             A list of formatted parents [(proportion, parent)]
+
+        Notes:
+            See also:
+            - <https://docs.learnbittensor.org/validators/child-hotkeys>
+            - `get_children()` for retrieving child keys
         """
         parents = self.substrate.query(
             module="SubtensorModule",
@@ -2591,14 +2679,18 @@ class Subtensor(SubtensorMixin):
         Parameters:
             netuid: The unique identifier of the subnetwork.
             uid: The neuron uid to retrieve the commitment from.
-            block: The block number to retrieve the commitment from.
+            block: The block number to retrieve the commitment from. If ``None``, queries the current chain head.
 
         Returns:
             A tuple of reveal block and commitment message.
 
-        Example of result:
+        Example::
+            
             ( (12, "Alice message 1"), (152, "Alice message 2") )
             ( (12, "Bob message 1"), (147, "Bob message 2") )
+
+        Notes:
+            See: <https://docs.learnbittensor.org/glossary#commit-reveal>
         """
         try:
             meta_info = self.get_metagraph_info(netuid, block=block)
@@ -2619,15 +2711,19 @@ class Subtensor(SubtensorMixin):
         hotkey_ss58: str,
         block: Optional[int] = None,
     ) -> Optional[tuple[tuple[int, str], ...]]:
+        # TODO: Clarify return ordering and units; add Examples
         """Retrieves hotkey related revealed commitment for a given subnet.
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
             hotkey_ss58: The ss58 address of the committee member.
-            block: The block number to retrieve the commitment from.
+            block: The block number to query. If ``None``, queries the current chain head.
 
         Returns:
             A tuple of reveal block and commitment message.
+
+        Notes:
+            See: <https://docs.learnbittensor.org/glossary#commit-reveal>
         """
         if not is_valid_ss58_address(address=hotkey_ss58):
             raise ValueError(f"Invalid ss58 address {hotkey_ss58} provided.")
@@ -2649,12 +2745,19 @@ class Subtensor(SubtensorMixin):
     ) -> str:
         """Retrieves the root claim type for a given coldkey address.
 
+        The root claim type determines how dividends from staking to the ROOT network (subnet 0) are handled:
+        - "Swap": Future Root Alpha Emissions are swapped to TAO at claim time and added to your root stake
+        - "Keep": Future Root Alpha Emissions are kept as Alpha
+
         Parameters:
             coldkey_ss58: The ss58 address of the coldkey.
-            block: The block number to query.
+            block: The block number to query. If ``None``, queries the current chain head.
 
         Returns:
             RootClaimType value in string representation. Could be `Swap` or `Keep`.
+
+        Notes:
+            See: <https://docs.learnbittensor.org/staking-and-delegation/root-claims>
         """
         query = self.substrate.query(
             module="SubtensorModule",
@@ -3079,14 +3182,14 @@ class Subtensor(SubtensorMixin):
         Retrieves the hotkey of the subnet owner for a given network UID.
 
         This function queries the subtensor network to fetch the hotkey of the owner of a subnet specified by its
-        netuid. If no data is found or the query fails, the function returns None.
+        netuid. If no data is found or the query fails, the function returns ``None``.
 
         Parameters:
             netuid: The network UID of the subnet to fetch the owner's hotkey for.
-            block: The specific block number to query the data from.
+            block: The blockchain block number for the query. If ``None``, queries the current chain head.
 
         Returns:
-            The hotkey of the subnet owner if available; None otherwise.
+            The hotkey of the subnet owner if available; ``None`` otherwise.
         """
         return self.query_subtensor(
             name="SubnetOwnerHotkey", params=[netuid], block=block
@@ -3097,14 +3200,17 @@ class Subtensor(SubtensorMixin):
         netuid: int,
         block: Optional[int] = None,
     ) -> Balance:
-        """Gets the current Alpha price in TAO for all subnets.
+        """Gets the current Alpha price in TAO for the specified subnet.
 
         Parameters:
             netuid: The unique identifier of the subnet.
-            block: The blockchain block number for the query.
+            block: The blockchain block number for the query. If ``None``, queries the current chain head.
 
         Returns:
             The current Alpha price in TAO units for the specified subnet.
+
+        Notes:
+            Subnet 0 (root network) always returns 1 TAO since it uses TAO directly rather than Alpha.
         """
         # SN0 price is always 1 TAO
         if netuid == 0:
@@ -3123,15 +3229,16 @@ class Subtensor(SubtensorMixin):
         self,
         block: Optional[int] = None,
     ) -> dict[int, Balance]:
-        """Gets the current Alpha price in TAO for a specified subnet.
+        """Gets the current Alpha price in TAO for all subnets.
 
         Parameters:
-            block: The blockchain block number for the query.
+            block: The blockchain block number for the query. If ``None``, queries the current chain head.
 
         Returns:
-            dict:
-                - subnet unique ID
-                - The current Alpha price in TAO units for the specified subnet.
+            A dictionary mapping subnet unique ID (netuid) to the current Alpha price in TAO units.
+
+        Notes:
+            Subnet 0 (root network) always has a price of 1 TAO since it uses TAO directly rather than Alpha.
         """
         block_hash = self.determine_block_hash(block=block)
 
@@ -3156,7 +3263,22 @@ class Subtensor(SubtensorMixin):
     def get_subnet_reveal_period_epochs(
         self, netuid: int, block: Optional[int] = None
     ) -> int:
-        """Retrieve the SubnetRevealPeriodEpochs hyperparameter."""
+        """Retrieves the SubnetRevealPeriodEpochs hyperparameter for a specified subnet.
+
+        This hyperparameter determines the number of epochs that must pass before a committed weight can be revealed
+        in the commit-reveal mechanism.
+
+        Parameters:
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query. If ``None``, queries the current chain head.
+
+        Returns:
+            The number of epochs in the reveal period for the subnet.
+
+        Notes:
+            See: <https://docs.learnbittensor.org/glossary#commit-reveal>
+
+        """
         return cast(
             int,
             self.get_hyperparameter(
@@ -3190,22 +3312,28 @@ class Subtensor(SubtensorMixin):
         mechid: int = 0,
         block: Optional[int] = None,
     ) -> list[tuple[str, int, str, int]]:
-        """
-        Retrieves CRv4 weight commit information for a specific subnet.
+        """Retrieves CRv4 (Commit-Reveal version 4) weight commit information for a specific subnet.
+
+        This method retrieves timelocked weight commitments made by validators using the commit-reveal mechanism.
+        The raw byte/vector encoding from the chain is automatically parsed and converted into a structured format
+        via `WeightCommitInfo`.
 
         Parameters:
-            netuid: Subnet identifier.
-            mechid: Subnet mechanism identifier.
-            block: The blockchain block number for the query.
+            netuid: The unique identifier of the subnet.
+            mechid: Subnet mechanism identifier (default 0 for primary mechanism).
+            block: The blockchain block number for the query. If ``None``, queries the current chain head.
 
         Returns:
-            A list of commit details, where each item contains:
-                - ss58_address: The address of the committer.
-                - commit_block: The block number when the commitment was made.
-                - commit_message: The commit message.
-                - reveal_round: The round when the commitment was revealed.
+            A list of commit details, where each item is a tuple containing:
 
+                - ss58_address: The SS58 address of the committer.
+                - commit_block: The block number when the commitment was made.
+                - commit_message: The commit message (encoded commitment data).
+                - reveal_round: The drand round when the commitment can be revealed.
+
+        Notes:
             The list may be empty if there are no commits found.
+            See: <https://docs.learnbittensor.org/resources/glossary#commit-reveal>
         """
         storage_index = get_mechid_storage_index(netuid, mechid)
         result = self.substrate.query_map(
@@ -3232,17 +3360,14 @@ class Subtensor(SubtensorMixin):
         return datetime.fromtimestamp(unix / 1000, tz=timezone.utc)
 
     def get_total_subnets(self, block: Optional[int] = None) -> Optional[int]:
-        """
-        Retrieves the total number of subnets within the Bittensor network as of a specific blockchain block.
+        """Retrieves the total number of subnets within the Bittensor network as of a specific blockchain block.
 
         Parameters:
-            block: The blockchain block number for the query.
+            block: The blockchain block number for the query. If ``None``, queries the current chain head.
 
         Returns:
             The total number of subnets in the network.
 
-        Understanding the total number of subnets is essential for assessing the network's growth and the extent of its
-        decentralized infrastructure.
         """
         result = self.substrate.query(
             module="SubtensorModule",
@@ -3272,11 +3397,15 @@ class Subtensor(SubtensorMixin):
                 deposit) or not.
 
         Returns:
-            The estimated transaction fee for the transfer, represented as a Balance object.
+            bittensor.utils.balance.Balance: The estimated transaction fee for the transfer, represented as a Balance
+                object.
 
-        Estimating the transfer fee is essential for planning and executing token transactions, ensuring that the wallet
-        has sufficient funds to cover both the transfer amount and the associated costs. This function provides a
-        crucial tool for managing financial operations within the Bittensor network.
+        Notes:
+            Estimating the transfer fee is essential for planning and executing token transactions, ensuring that the
+            wallet has sufficient funds to cover both the transfer amount and the associated costs. This function provides
+            a crucial tool for managing financial operations within the Bittensor network.
+            
+            See: <https://docs.learnbittensor.org/learn/fees>
         """
         check_balance_amount(amount)
         call_params: dict[str, Union[int, str, bool]]
@@ -3306,16 +3435,18 @@ class Subtensor(SubtensorMixin):
         amount: Balance,
         block: Optional[int] = None,
     ) -> Balance:
-        """
-        Calculates the fee for unstaking from a hotkey.
+        """Calculates the fee for unstaking from a hotkey.
 
         Parameters:
             netuid: The unique identifier of the subnet.
             amount: Amount of stake to unstake in TAO.
-            block: Block number at which to perform the calculation.
+            block: The blockchain block number for the query. If ``None``, queries the current chain head.
 
         Returns:
             The calculated stake fee as a Balance object in Alpha.
+
+        Notes:
+            See: <https://docs.learnbittensor.org/learn/fees>
         """
         check_balance_amount(amount)
         sim_swap_result = self.sim_swap(
@@ -3329,16 +3460,17 @@ class Subtensor(SubtensorMixin):
     def get_vote_data(
         self, proposal_hash: str, block: Optional[int] = None
     ) -> Optional["ProposalVoteData"]:
+        # TODO: is this all deprecated? Didn't subtensor senate stuff get removed?
         """
         Retrieves the voting data for a specific proposal on the Bittensor blockchain. This data includes information
         about how senate members have voted on the proposal.
 
         Parameters:
             proposal_hash: The hash of the proposal for which voting data is requested.
-            block: The blockchain block number for the query.
+            block: The blockchain block number for the query. If ``None``, queries the current chain head.
 
         Returns:
-            An object containing the proposal's voting data, or `None` if not found.
+            An object containing the proposal's voting data, or ``None`` if not found.
 
         This function is important for tracking and understanding the decision-making processes within the Bittensor
         network, particularly how proposals are received and acted upon by the governing body.
@@ -3485,8 +3617,19 @@ class Subtensor(SubtensorMixin):
             return remaining < window
         return False
 
-    def is_fast_blocks(self):
-        """Returns True if the node is running with fast blocks. False if not."""
+    def is_fast_blocks(self) -> bool:
+        """Checks if the node is running with fast blocks enabled.
+
+        Fast blocks have a block time of 10 seconds, compared to the standard 12-second block time. This affects
+        transaction timing and network synchronization.
+
+        Returns:
+            ``True`` if fast blocks are enabled (10-second block time), ``False`` otherwise (12-second block time).
+
+        Notes:
+            See: <https://docs.learnbittensor.org/resources/glossary#fast-blocks>
+
+        """
         return self.query_constant("SubtensorModule", "DurationOfStartCall").value == 10
 
     def is_hotkey_delegate(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
@@ -3560,23 +3703,41 @@ class Subtensor(SubtensorMixin):
     def is_hotkey_registered_on_subnet(
         self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
     ) -> bool:
-        """Checks if the hotkey is registered on a given netuid."""
+        """Checks if the hotkey is registered on a given subnet.
+
+        Parameters:
+            hotkey_ss58: The SS58 address of the hotkey to check.
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query. If ``None``, queries the current chain head.
+
+        Returns:
+            ``True`` if the hotkey is registered on the specified subnet, ``False`` otherwise.
+
+        Notes:
+            See: <https://docs.learnbittensor.org/glossary#hotkey>
+
+        """
         return (
             self.get_uid_for_hotkey_on_subnet(hotkey_ss58, netuid, block=block)
             is not None
         )
 
     def is_subnet_active(self, netuid: int, block: Optional[int] = None) -> bool:
-        """Verify if subnet with provided netuid is active.
+        """Verifies if a subnet with the provided netuid is active.
+
+        A subnet is considered active if the ``start_call`` extrinsic has been executed. A newly registered subnet
+        may exist but not be active until the subnet owner calls ``start_call`` to begin emissions.
 
         Parameters:
             netuid: The unique identifier of the subnet.
-            block: The blockchain block number for the query.
+            block: The blockchain block number for the query. If ``None``, queries the current chain head.
 
         Returns:
-            True if subnet is active, False otherwise.
+            ``True`` if the subnet is active (emissions have started), ``False`` otherwise.
 
-        This means whether the `start_call` was initiated or not.
+        Notes:
+            See: <https://docs.learnbittensor.org/subnets/working-with-subnets>
+
         """
         query = self.query_subtensor(
             name="FirstEmissionBlockNumber",
@@ -3586,11 +3747,18 @@ class Subtensor(SubtensorMixin):
         return True if query and query.value > 0 else False
 
     def last_drand_round(self) -> Optional[int]:
-        """
-        Retrieves the last drand round emitted in bittensor. This corresponds when committed weights will be revealed.
+        """Retrieves the last drand round emitted in Bittensor.
+
+        Drand (distributed randomness) rounds are used to determine when committed weights can be revealed in the
+        commit-reveal mechanism. This method returns the most recent drand round number, which corresponds to the
+        timing for weight reveals.
 
         Returns:
-            int: The latest Drand round emitted in bittensor.
+            The latest drand round number emitted in Bittensor, or ``None`` if no round has been stored.
+
+        Notes:
+            See: <https://docs.learnbittensor.org/resources/glossary#drandtime-lock-encryption>
+
         """
         result = self.substrate.query(
             module="Drand", storage_function="LastStoredRound"
@@ -4224,19 +4392,34 @@ class Subtensor(SubtensorMixin):
         self,
         call: "GenericCall",
         keypair: "Keypair",
-    ):
-        """
-        Get extrinsic fee for a given extrinsic call and keypair for a given SN's netuid.
+    ) -> Balance:
+        """Gets the extrinsic fee for a given extrinsic call and keypair.
+
+        This method estimates the transaction fee that will be charged for submitting the extrinsic to the
+        blockchain. The fee is returned in Rao (the smallest unit of TAO, where 1 TAO = 1e9 Rao).
 
         Parameters:
-            call: The extrinsic GenericCall.
-            keypair: The keypair associated with the extrinsic.
+            call: The extrinsic GenericCall object representing the transaction to estimate.
+            keypair: The keypair associated with the extrinsic (used to determine the account paying the fee).
 
         Returns:
-            Balance object representing the extrinsic fee in RAO.
+            Balance object representing the extrinsic fee in Rao.
 
-        Note:
-            To create the GenericCall object use `compose_call` method with proper parameters.
+        Example::
+
+            # Estimate fee before sending a transfer
+            call = subtensor.compose_call(
+                call_module="Balances",
+                call_function="transfer",
+                call_params={"dest": destination_ss58, "value": amount.rao}
+            )
+            fee = subtensor.get_extrinsic_fee(call=call, keypair=wallet.coldkey)
+            print(f"Estimated fee: {fee.tao} TAO")
+
+        Notes:
+            To create the GenericCall object, use the ``compose_call`` method with proper parameters.
+            See: <https://docs.learnbittensor.org/learn/fees>
+
         """
         payment_info = self.substrate.get_payment_info(call=call, keypair=keypair)
         return Balance.from_rao(amount=payment_info["partial_fee"])
