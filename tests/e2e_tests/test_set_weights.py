@@ -19,7 +19,7 @@ from tests.e2e_tests.utils.chain_interactions import (
 @pytest.mark.asyncio
 async def test_set_weights_uses_next_nonce(local_chain, subtensor, alice_wallet):
     """
-    Tests that setting weights doesn't re-use a nonce in the transaction pool.
+    Tests that setting weights doesn't reuse a nonce in the transaction pool.
 
     Steps:
         1. Register three subnets through Alice
