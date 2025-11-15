@@ -1851,18 +1851,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             The commitment data as a string.
 
-        Example::
 
-            # TODO: add a real example of how to handle realistic commitment data, or chop example
-            commitment = await subtensor.get_commitment(netuid=1, uid=5)
-            print(f"Commitment: {commitment}")
-
-            # Get commitment at specific block
-            commitment = await subtensor.get_commitment(
-                netuid=1,
-                uid=5,
-                block=1000000
-            )
+            # TODO: add a real example of how to handle realistic commitment data, or chop example            
 
         Notes:
             See: <https://docs.learnbittensor.org/glossary#commit-reveal>
