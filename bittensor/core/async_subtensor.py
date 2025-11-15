@@ -129,7 +129,6 @@ from bittensor.core.settings import (
 from bittensor.core.types import (
     BlockInfo,
     ExtrinsicResponse,
-    ParamWithTypes,
     Salt,
     SubtensorMixin,
     UIDs,
@@ -979,6 +978,40 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block=reuse_block,
         )
         return None if call is None else (block - int(call[uid]))
+
+    async def blocks_until_next_epoch(
+        self,
+        netuid: int,
+        tempo: Optional[int] = None,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional[int]:
+        """Returns the number of blocks until the next epoch of subnet with provided netuid.
+
+        Parameters:
+            netuid: The unique identifier of the subnetwork.
+            tempo: The tempo of the subnet.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+
+        Returns:
+            The number of blocks until the next epoch of the subnet with provided netuid.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        block = block or await self.substrate.get_block_number(block_hash=block_hash)
+        tempo = tempo or await self.tempo(netuid=netuid, block_hash=block_hash)
+
+        if not tempo:
+            return None
+
+        # the logic is the same as in SubtensorModule:blocks_until_next_epoch
+        netuid_plus_one = int(netuid) + 1
+        tempo_plus_one = tempo + 1
+        adjusted_block = (block + netuid_plus_one) % (2**64)
+        remainder = adjusted_block % tempo_plus_one
+        return tempo - remainder
 
     async def bonds(
         self,
@@ -3001,17 +3034,20 @@ class AsyncSubtensor(SubtensorMixin):
             See also: <https://docs.learnbittensor.org/glossary#tempo>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        blocks_since_last_step = await self.blocks_since_last_step(
-            netuid=netuid, block=block, block_hash=block_hash, reuse_block=reuse_block
-        )
-        tempo = await self.tempo(
-            netuid=netuid, block=block, block_hash=block_hash, reuse_block=reuse_block
+        tempo = await self.tempo(netuid=netuid, block_hash=block_hash)
+        current_block = block or await self.block
+
+        if not tempo:
+            return None
+
+        blocks_until = await self.blocks_until_next_epoch(
+            netuid=netuid, tempo=tempo, block_hash=block_hash
         )
 
-        block = block or await self.substrate.get_block_number(block_hash=block_hash)
-        if block and blocks_since_last_step is not None and tempo:
-            return block - blocks_since_last_step + tempo + 1
-        return None
+        if not blocks_until:
+            return None
+
+        return current_block + blocks_until + 1
 
     async def get_owned_hotkeys(
         self,
