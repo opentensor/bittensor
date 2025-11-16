@@ -1401,8 +1401,8 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             netuid: The unique identifier of the subnet.
             block: The blockchain block number for the query.
-            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
-                reuse_block.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using ``block`` or
+                ``reuse_block``.
             reuse_block: Whether to use the last-used block. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -2465,7 +2465,7 @@ class AsyncSubtensor(SubtensorMixin):
             netuid: The network uid to fetch from.
             hotkey_ss58: The hotkey of the neuron for which to fetch the last bonds reset.
             block: The block number to query.
-            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or reuse_block.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using ``block`` or ``reuse_block``.
             reuse_block: Whether to use the last-used block. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -2496,7 +2496,7 @@ class AsyncSubtensor(SubtensorMixin):
             netuid: The unique identifier of the subnetwork.
             uid: The unique identifier of the neuron.
             block: The block number to query.
-            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or reuse_block.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using ``block`` or ``reuse_block``.
             reuse_block: Whether to use the last-used block. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -2724,7 +2724,7 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             netuid: The unique identifier of the subnet.
             block: The blockchain block number for the query.
-            block_hash: The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block.
+            block_hash: The hash of the block to retrieve the stake from. Do not specify if using ``block`` or ``reuse_block``.
             reuse_block: Whether to use the last-used block. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -2758,7 +2758,7 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             netuid: Subnet identifier.
             block: The blockchain block number for the query.
-            block_hash: The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block.
+            block_hash: The hash of the block to retrieve the stake from. Do not specify if using ``block`` or ``reuse_block``.
             reuse_block: Whether to use the last-used block. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -3366,7 +3366,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[tuple[tuple[int, str], ...]]:
-        # TODO: Clarify return ordering and units; add Examples
+        
         """Retrieves hotkey related revealed commitment for a given subnet.
 
         Parameters:
@@ -3379,7 +3379,8 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             A tuple of reveal block and commitment message.
-
+        
+        # TODO: add example to clarify return ordering and units; @roman can you help w this?
         Notes:
             See: <https://docs.learnbittensor.org/glossary#commit-reveal>
         """
@@ -4005,7 +4006,7 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             netuid: The unique identifier of the subnet.
             block: The blockchain block number for the query.
-            block_hash: The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block.
+            block_hash: The hash of the block to retrieve the stake from. Do not specify if using ``block`` or ``reuse_block``.
             reuse_block: Whether to use the last-used block. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
@@ -7723,7 +7724,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = True,
     ) -> ExtrinsicResponse:
         """Moves stake between subnets while keeping the same coldkey-hotkey pair ownership.
-# TODO: linnk to price price protection docs, and within docs/staking-and-delegation, create a swap-stake page (follow price protection doc as a style exemplar)
+
         This method swaps stake from one subnet to another, effectively moving the same stake amount (minus fees) from
         the origin subnet to the destination subnet. Like subnet hopping - same owner, same hotkey, just changing which
         subnet the stake is in.
