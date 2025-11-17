@@ -117,7 +117,7 @@ class ProxyType(str, Enum):
         """Returns a list of all proxy type values.
 
         Returns:
-            List of all valid proxy type string values.
+            List of all valid proxy type string values (e.g., ``["Any", "Owner", "Staking", ...]``).
         """
         return [member.value for member in cls]
 
@@ -129,7 +129,7 @@ class ProxyType(str, Enum):
             value: String value to validate.
 
         Returns:
-            True if the value is a valid proxy type, False otherwise.
+            ``True`` if the value is a valid proxy type, ``False`` otherwise.
         """
         return value in cls.all_types()
 
@@ -176,8 +176,10 @@ class ProxyInfo:
         delegate: The SS58 address of the delegate proxy account that can act on behalf of the real account.
         proxy_type: The type of proxy permissions granted to the delegate (e.g., ``"Any"``, ``"NonTransfer"``,
             ``"ChildKeys"``, ``"Staking"``). This determines what operations the delegate can perform.
-        delay: The number of blocks that must pass before the proxy relationship becomes active. This delay (in blocks)
-            provides a security mechanism allowing the real account to cancel the proxy if needed.
+        delay: The number of blocks that must elapse between announcing a call and executing it. A delay of 0 allows
+            immediate execution without announcements. Non-zero delays require the delegate to announce the call first,
+            wait for the delay period, then execute it, giving the real account time to review and potentially reject
+            the call.
 
     Notes:
         See: <https://docs.learnbittensor.org/keys/proxies>
@@ -190,15 +192,19 @@ class ProxyInfo:
 
     @classmethod
     def from_tuple(cls, data: tuple) -> list["ProxyInfo"]:
-        """Returns a list of ProxyInfo objects from a tuple of proxy data.
+        """Creates a list of ProxyInfo objects from chain proxy data.
+
+        This method decodes the raw proxy data returned from the Proxy.Proxies storage function and creates
+        structured ProxyInfo objects.
 
         Parameters:
-            data: Tuple of chain proxy data from the Proxy.Proxies storage function.
+            data: Tuple of chain proxy data from the ``Proxy.Proxies`` storage function.
 
         Returns:
-            List of ProxyInfo objects representing all proxy relationships.
+            List of ProxyInfo objects representing all proxy relationships for a real account.
 
-        # TODO: Add example of data structure or link to chain data format documentation.
+        Notes:
+            See: <https://docs.learnbittensor.org/keys/proxies>
         """
         return [
             cls(
@@ -213,15 +219,22 @@ class ProxyInfo:
     def from_query(cls, query: Any) -> tuple[list["ProxyInfo"], Balance]:
         """Creates a list of ProxyInfo objects and deposit balance from a Substrate query result.
 
+        This method decodes the query result from the Proxy.Proxies storage function, extracting both the proxy
+        relationships and the deposit amount reserved for maintaining these proxies.
+
         Parameters:
             query: Query result from Substrate ``query()`` call to ``Proxy.Proxies`` storage function.
 
         Returns:
             Tuple containing:
+            
                 - List of ProxyInfo objects representing all proxy relationships for the real account.
                 - Balance object representing the reserved deposit amount (in RAO).
 
-        # TODO: Document the expected structure of query.value for better type clarity.
+        Notes:
+            The deposit is held as long as the proxy relationships exist and is returned when proxies are removed.
+            
+            See: <https://docs.learnbittensor.org/keys/proxies>
         """
         # proxies data is always in that path
         proxies = query.value[0][0]
@@ -257,18 +270,21 @@ class ProxyInfo:
 class ProxyAnnouncementInfo:
     """Dataclass representing proxy announcement information.
 
-    This class contains information about a pending proxy announcement. An announcement allows a proxy account to
-    declare its intention to execute a call on behalf of the real account after a delay period.
+    This class contains information about a pending proxy announcement. Announcements are used when a proxy account
+    with a delay period (time-lock) wants to declare its intention to execute a call on behalf of the real account.
+    The announcement must be made before the actual call can be executed, allowing the real account time to review
+    and potentially cancel the operation before it takes effect.
 
     Attributes:
         real: The SS58 address of the real account on whose behalf the call will be made.
         call_hash: The hash of the call that will be executed in the future (hex string with ``0x`` prefix).
-        height: The block height (in blocks) at which the announcement was made.
+        height: The block height at which the announcement was made.
 
     Notes:
+        Announcements are required when using delayed proxies, providing an additional security layer for time-locked
+        operations.
+        
         See: <https://docs.learnbittensor.org/keys/proxies>
-
-    # TODO: Add clarification on how announcements relate to delayed proxies and time-locked operations. what even are announcements?
     """
 
     real: str
@@ -277,13 +293,18 @@ class ProxyAnnouncementInfo:
 
     @classmethod
     def from_dict(cls, data: tuple) -> list["ProxyAnnouncementInfo"]:
-        """Returns a list of ProxyAnnouncementInfo objects from a tuple of announcement data.
+        """Creates a list of ProxyAnnouncementInfo objects from chain announcement data.
+
+        This method decodes the raw announcement data returned from the Proxy.Announcements storage function.
 
         Parameters:
             data: Tuple of announcements data from the ``Proxy.Announcements`` storage function.
 
         Returns:
-            Tuple of ProxyAnnouncementInfo objects or None if no announcements aren't found.
+            List of ProxyAnnouncementInfo objects representing all pending announcements.
+
+        Notes:
+            See: <https://docs.learnbittensor.org/keys/proxies>
         """
         return [
             cls(
@@ -319,11 +340,10 @@ class ProxyAnnouncementInfo:
 
 @dataclass
 class ProxyConstants:
-    """Represents all runtime constants defined in the Proxy pallet.
+    """Fetches all runtime constants defined in the Proxy pallet.
 
-    These attributes correspond directly to on-chain configuration constants exposed by the Proxy pallet. They define
-    deposit requirements, proxy limits, and announcement constraints that govern how proxy accounts operate within the
-    Subtensor network.
+    Displays current values for on-chain configuration constants for the Proxy pallet. They define
+    deposit requirements, account limits, and announcement constraints that govern the behavior of proxies.
 
     Each attribute is fetched directly from the runtime via ``Subtensor.query_constant("Proxy", <name>)`` and reflects
     the current chain configuration at the time of retrieval.
@@ -357,10 +377,10 @@ class ProxyConstants:
 
     @classmethod
     def constants_names(cls) -> list[str]:
-        """Returns the list of all constant field names defined in this dataclass.
+        """Returns the all constant field names defined in this dataclass.
 
         Returns:
-            List of constant field names as strings (e.g., ``["AnnouncementDepositBase", "MaxProxies", ...]``).
+            List of constant field names as strings.
         """
         from dataclasses import fields
 
@@ -374,7 +394,7 @@ class ProxyConstants:
             data: Dictionary mapping constant names to their decoded values (returned by ``Subtensor.query_constant()``).
 
         Returns:
-            The structured dataclass with constants filled in. Fields not found in data will be set to ``None``.
+            ProxyConstants object with constants filled in. Fields not found in data will be set to ``None``.
         """
         return cls(**{name: data.get(name) for name in cls.constants_names()})
 
