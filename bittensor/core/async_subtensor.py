@@ -462,27 +462,6 @@ class AsyncSubtensor(SubtensorMixin):
             return await self.get_block_hash(block)
         return None
 
-    async def encode_params(
-        self,
-        call_definition: dict[str, list["ParamWithTypes"]],
-        params: Union[list[Any], dict[str, Any]],
-    ) -> str:
-        """Deprecated
-        """
-        param_data = scalecodec.ScaleBytes(b"")
-
-        for i, param in enumerate(call_definition["params"]):
-            scale_obj = await self.substrate.create_scale_object(param["type"])
-            if isinstance(params, list):
-                param_data += scale_obj.encode(params[i])
-            else:
-                if param["name"] not in params:
-                    raise ValueError(f"Missing param {param['name']} in params dict.")
-
-                param_data += scale_obj.encode(params[param["name"]])
-
-        return param_data.to_hex()
-
     async def get_hyperparameter(
         self,
         param_name: str,
