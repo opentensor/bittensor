@@ -181,7 +181,7 @@ class Subtensor(SubtensorMixin):
           validation).
         - **Netuid**: Unique identifier for a subnet (0 is the Root Subnet)
         - **UID**: Unique identifier for a neuron registered to a hotkey on a specific subnet.
-        - **Metagraph**: Data structure containing the complete state of a subnet at a block.        
+        - **Metagraph**: Data structure containing the complete state of a subnet at a block.
         - **TAO**: The base network token; subnet 0 stake is in TAO
         - **Alpha**: Subnet-specific token representing some quantity of TAO staked into a subnet.
         - **Rao**: Smallest unit of TAO (1 TAO = 1e9 Rao)
@@ -218,7 +218,7 @@ class Subtensor(SubtensorMixin):
                 unable to serve.
 
         Returns:
-            None        
+            None
         """
         if config is None:
             config = self.config()
@@ -254,7 +254,7 @@ class Subtensor(SubtensorMixin):
             None
 
         Example::
-            
+
             sub = bt.Subtensor(network="finney")
             # calls to subtensor
             sub.close()
@@ -576,7 +576,7 @@ class Subtensor(SubtensorMixin):
             block: The block number to query. If ``None``, queries the current chain head.
 
         Returns:
-            An object containing the map-like data structure, or ``None`` if not found.        
+            An object containing the map-like data structure, or ``None`` if not found.
         """
         return self.substrate.query_map(
             module="SubtensorModule",
@@ -646,7 +646,6 @@ class Subtensor(SubtensorMixin):
         params: Optional[list] = None,
         block: Optional[int] = None,
     ) -> Optional[Union["ScaleObj", Any]]:
-        
         """Queries named storage from the Subtensor module on the Bittensor blockchain.
 
         Use this function for nonstandard queries to constants defined within the Bittensor blockchain, if these cannot
@@ -804,7 +803,7 @@ class Subtensor(SubtensorMixin):
             List of tuples, where each tuple contains:
                 - validator_uid: The UID of the validator
                 - bonds: List of (miner_uid, bond_value) pairs
-            
+
             Bond values are u16-normalized (0-65535, where 65535 = 1.0 or 100%).
 
         Example::
@@ -834,9 +833,7 @@ class Subtensor(SubtensorMixin):
 
         return b_map
 
-    def commit_reveal_enabled(
-        self, netuid: int, block: Optional[int] = None
-    ) -> bool:                
+    def commit_reveal_enabled(self, netuid: int, block: Optional[int] = None) -> bool:
         """Check if commit-reveal mechanism is enabled for a given subnet at a specific block.
 
         Parameters:
@@ -848,7 +845,7 @@ class Subtensor(SubtensorMixin):
 
         Notes:
             See also: <https://docs.learnbittensor.org/glossary#commit-reveal>
-            See: <https://docs.learnbittensor.org/subnets/subnet-hyperparameters>            
+            See: <https://docs.learnbittensor.org/subnets/subnet-hyperparameters>
         """
         call = self.get_hyperparameter(
             param_name="CommitRevealWeightsEnabled", block=block, netuid=netuid
@@ -886,10 +883,10 @@ class Subtensor(SubtensorMixin):
     def does_hotkey_exist(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         """Returns true if the hotkey has been associated with a coldkey through account creation.
 
-        This method queries the Subtensor's Owner storage map to check if the hotkey has been paired with a 
+        This method queries the Subtensor's Owner storage map to check if the hotkey has been paired with a
         coldkey, as it must be before it (the hotkey) can be used for neuron registration.
 
-        The Owner storage map defaults to the zero address (``5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM``) 
+        The Owner storage map defaults to the zero address (``5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM``)
         for unused hotkeys. This method returns ``True`` if the Owner value is anything other than this default.
 
         Parameters:
@@ -919,7 +916,7 @@ class Subtensor(SubtensorMixin):
     def get_admin_freeze_window(self, block: Optional[int] = None) -> int:
         """Returns the duration, in blocks, of the administrative freeze window at the end of each epoch.
 
-        The admin freeze window is a period at the end of each epoch during which subnet owner 
+        The admin freeze window is a period at the end of each epoch during which subnet owner
         operations are prohibited. This prevents subnet owners from modifying hyperparameters or performing certain
         administrative actions right before validators submit weights at the epoch boundary.
 
@@ -1008,9 +1005,9 @@ class Subtensor(SubtensorMixin):
     ) -> dict[int, tuple[int, Balance]]:
         """Retrieves the EMA (exponential moving average) of net TAO flows for all subnets.
 
-        The EMA tracks net TAO flows (staking minus unstaking) with a 30-day half-life (~86.8 day window), smoothing 
-        out short-term fluctuations while capturing sustained staking trends. This metric determines the subnet's share 
-        of TAO emissions under the current, flow-based model. Positive values indicate net inflow (more staking than unstaking), 
+        The EMA tracks net TAO flows (staking minus unstaking) with a 30-day half-life (~86.8 day window), smoothing
+        out short-term fluctuations while capturing sustained staking trends. This metric determines the subnet's share
+        of TAO emissions under the current, flow-based model. Positive values indicate net inflow (more staking than unstaking),
         negative values indicate net outflow. Subnets with negative EMA flows receive zero emissions.
 
         Parameters:
@@ -1086,7 +1083,7 @@ class Subtensor(SubtensorMixin):
 
         Notes:
             This method is used for certificate discovery to establish mutual TLS communication between neurons.
-            
+
             See: <https://docs.learnbittensor.org/subnets/neuron-tls-certificates>
         """
         query_certificates = self.query_map(
@@ -1114,7 +1111,7 @@ class Subtensor(SubtensorMixin):
             Each validator can have multiple revealed commitments (up to 10 most recent).
 
         Example::
-            
+
         {
             "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY": ( (12, "Alice message 1"), (152, "Alice message 2") ),
             "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty": ( (12, "Bob message 1"), (147, "Bob message 2") ),
@@ -1452,7 +1449,7 @@ class Subtensor(SubtensorMixin):
             The commitment data as a string.
 
 
-            # TODO: add a real example of how to handle realistic commitment data, or chop example            
+            # TODO: add a real example of how to handle realistic commitment data, or chop example
 
         Notes:
             See: <https://docs.learnbittensor.org/glossary#commit-reveal>
@@ -1504,7 +1501,7 @@ class Subtensor(SubtensorMixin):
 
         If a list of constant names is provided, only those constants will be queried.
         Otherwise, all known constants defined in `CrowdloanConstants.field_names()` are fetched.
-        
+
         These constants define requirements and operational limits for crowdloan campaigns:
 
         - ``AbsoluteMinimumContribution``: Minimum amount per contribution (TAO).
@@ -1519,7 +1516,7 @@ class Subtensor(SubtensorMixin):
             block: The blockchain block number for the query. If ``None``, queries the current chain head.
 
         Returns:
-            A ``CrowdloanConstants`` data object containing the queried constants. Missing constants return ``None``.        
+            A ``CrowdloanConstants`` data object containing the queried constants. Missing constants return ``None``.
         Notes:
             These constants enforce contribution floors, duration bounds, and refund batching limits.
 
@@ -1584,7 +1581,7 @@ class Subtensor(SubtensorMixin):
     ) -> Optional["CrowdloanInfo"]:
         """Retrieves detailed information about a specific crowdloan campaign.
 
-        
+
 
         Parameters:
             crowdloan_id: Unique identifier of the crowdloan (auto-incremented starting from 0).
@@ -1703,7 +1700,7 @@ class Subtensor(SubtensorMixin):
         Notes:
             This function is essential for understanding the roles and influence of delegate neurons within the Bittensor
             network's consensus and governance structures.
-            
+
             See also:
             - <https://docs.learnbittensor.org/glossary#delegate>
             - <https://docs.learnbittensor.org/glossary#nominator>
@@ -2685,7 +2682,7 @@ class Subtensor(SubtensorMixin):
             A tuple of reveal block and commitment message.
 
         Example::
-            
+
             ( (12, "Alice message 1"), (152, "Alice message 2") )
             ( (12, "Bob message 1"), (147, "Bob message 2") )
 
@@ -3404,7 +3401,7 @@ class Subtensor(SubtensorMixin):
             Estimating the transfer fee is essential for planning and executing token transactions, ensuring that the
             wallet has sufficient funds to cover both the transfer amount and the associated costs. This function provides
             a crucial tool for managing financial operations within the Bittensor network.
-            
+
             See: <https://docs.learnbittensor.org/learn/fees>
         """
         check_balance_amount(amount)
@@ -3630,7 +3627,7 @@ class Subtensor(SubtensorMixin):
             See: <https://docs.learnbittensor.org/resources/glossary#fast-blocks>
 
         """
-        return self.query_constant("SubtensorModule", "DurationOfStartCall").value == 10
+        return self.query_constant("SubtensorModule", "DurationOfStartCall") == 10
 
     def is_hotkey_delegate(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         """

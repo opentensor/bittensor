@@ -181,7 +181,7 @@ class AsyncSubtensor(SubtensorMixin):
           validation).
         - **Netuid**: Unique identifier for a subnet (0 is the Root Subnet)
         - **UID**: Unique identifier for a neuron registered to a hotkey on a specific subnet.
-        - **Metagraph**: Data structure containing the complete state of a subnet at a block.        
+        - **Metagraph**: Data structure containing the complete state of a subnet at a block.
         - **TAO**: The base network token; subnet 0 stake is in TAO
         - **Alpha**: Subnet-specific token representing some quantity of TAO staked into a subnet.
         - **Rao**: Smallest unit of TAO (1 TAO = 1e9 Rao)
@@ -260,7 +260,7 @@ class AsyncSubtensor(SubtensorMixin):
             None
 
         Example::
-            
+
             sub = bt.AsyncSubtensor(network="finney")
             # Initialize the connection
             await subtensor.initialize()
@@ -289,10 +289,10 @@ class AsyncSubtensor(SubtensorMixin):
             subtensor = AsyncSubtensor(network="finney")
 
             # Initialize the connection
-            await subtensor.initialize()            
+            await subtensor.initialize()
             # calls to subtensor
             await subtensor.close()
-            
+
         """
         logging.info(
             f"[magenta]Connecting to Substrate:[/magenta] [blue]{self}[/blue][magenta]...[/magenta]"
@@ -687,7 +687,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> "AsyncQueryMapResult":        
+    ) -> "AsyncQueryMapResult":
         """Queries map storage from the Subtensor module on the Bittensor blockchain.
 
         Use this function for nonstandard queries to constants defined within the Bittensor blockchain, if these cannot
@@ -702,7 +702,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
-            An object containing the map-like data structure, or ``None`` if not found.        
+            An object containing the map-like data structure, or ``None`` if not found.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         return await self.substrate.query_map(
@@ -721,7 +721,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> Optional[Union["ScaleObj", Any]]:        
+    ) -> Optional[Union["ScaleObj", Any]]:
         """Queries any module storage on the Bittensor blockchain with the specified parameters and block number.
         This function is a generic query interface that allows for flexible and diverse data retrieval from various
         blockchain modules. Use this function for nonstandard queries to constants defined within the Bittensor
@@ -757,7 +757,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> Optional[Any]:        
+    ) -> Optional[Any]:
         """Queries the runtime API of the Bittensor blockchain, providing a way to interact with the underlying runtime
         and retrieve data encoded in Scale Bytes format. Use this function for nonstandard queries to the runtime
          environment, if these cannot be accessed through other, standard getter methods.
@@ -791,7 +791,6 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[Union["ScaleObj", Any]]:
-        
         """Queries named storage from the Subtensor module on the Bittensor blockchain.
 
         Use this function for nonstandard queries to constants defined within the Bittensor blockchain, if these cannot
@@ -824,7 +823,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> dict[Any, Any]:        
+    ) -> dict[Any, Any]:
         """Makes a state call to the Bittensor blockchain, allowing for direct queries of the blockchain's state.
         This function is typically used for advanced, nonstandard queries not provided by other getter methods.
 
@@ -838,7 +837,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             The result of the rpc call.
-        
+
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         return await self.substrate.rpc_request(
@@ -1016,7 +1015,7 @@ class AsyncSubtensor(SubtensorMixin):
             List of tuples, where each tuple contains:
                 - validator_uid: The UID of the validator
                 - bonds: List of (miner_uid, bond_value) pairs
-            
+
             Bond values are u16-normalized (0-65535, where 65535 = 1.0 or 100%).
 
         Example::
@@ -1054,9 +1053,9 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> bool:                
+    ) -> bool:
         """Check if commit-reveal mechanism is enabled for a given subnet at a specific block.
-        
+
         Parameters:
             netuid: The unique identifier of the subnet for which to check the commit-reveal mechanism.
             block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
@@ -1069,7 +1068,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Notes:
             See also: <https://docs.learnbittensor.org/glossary#commit-reveal>
-            See: <https://docs.learnbittensor.org/subnets/subnet-hyperparameters>            
+            See: <https://docs.learnbittensor.org/subnets/subnet-hyperparameters>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
@@ -1086,7 +1085,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> Optional[int]:        
+    ) -> Optional[int]:
         """Retrieves the 'Difficulty' hyperparameter for a specified subnet in the Bittensor network.
 
         This parameter determines the computational challenge required for neurons to participate in consensus and
@@ -1131,10 +1130,10 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> bool:
         """Returns true if the hotkey has been associated with a coldkey through account creation.
 
-        This method queries the Subtensor's Owner storage map to check if the hotkey has been paired with a 
+        This method queries the Subtensor's Owner storage map to check if the hotkey has been paired with a
         coldkey, as it must be before it (the hotkey) can be used for neuron registration.
 
-        The Owner storage map defaults to the zero address (``5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM``) 
+        The Owner storage map defaults to the zero address (``5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM``)
         for unused hotkeys. This method returns ``True`` if the Owner value is anything other than this default.
 
         Parameters:
@@ -1174,7 +1173,7 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> int:
         """Returns the duration, in blocks, of the administrative freeze window at the end of each epoch.
 
-        The admin freeze window is a period at the end of each epoch during which subnet owner 
+        The admin freeze window is a period at the end of each epoch during which subnet owner
         operations are prohibited. This prevents subnet owners from modifying hyperparameters or performing certain
         administrative actions right before validators submit weights at the epoch boundary.
 
@@ -1296,9 +1295,9 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> dict[int, tuple[int, Balance]]:
         """Retrieves the EMA (exponential moving average) of net TAO flows for all subnets.
 
-        The EMA tracks net TAO flows (staking minus unstaking) with a 30-day half-life (~86.8 day window), smoothing 
-        out short-term fluctuations while capturing sustained staking trends. This metric determines the subnet's share 
-        of TAO emissions under the current, flow-based model. Positive values indicate net inflow (more staking than unstaking), 
+        The EMA tracks net TAO flows (staking minus unstaking) with a 30-day half-life (~86.8 day window), smoothing
+        out short-term fluctuations while capturing sustained staking trends. This metric determines the subnet's share
+        of TAO emissions under the current, flow-based model. Positive values indicate net inflow (more staking than unstaking),
         negative values indicate net outflow. Subnets with negative EMA flows receive zero emissions.
 
         Parameters:
@@ -1390,7 +1389,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Notes:
             This method is used for certificate discovery to establish mutual TLS communication between neurons.
-            
+
             See: <https://docs.learnbittensor.org/subnets/neuron-tls-certificates>
         """
         query_certificates = await self.query_map(
@@ -1427,7 +1426,7 @@ class AsyncSubtensor(SubtensorMixin):
             Each validator can have multiple revealed commitments (up to 10 most recent).
 
         Example::
-            
+
             {
                 "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY": ( (12, "Alice message 1"), (152, "Alice message 2") ),
                 "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty": ( (12, "Bob message 1"), (147, "Bob message 2") ),
@@ -1831,7 +1830,7 @@ class AsyncSubtensor(SubtensorMixin):
             The commitment data as a string.
 
 
-            # TODO: add a real example of how to handle realistic commitment data, or chop example            
+            # TODO: add a real example of how to handle realistic commitment data, or chop example
 
         Notes:
             See: <https://docs.learnbittensor.org/glossary#commit-reveal>
@@ -1899,7 +1898,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         If a list of constant names is provided, only those constants will be queried.
         Otherwise, all known constants defined in `CrowdloanConstants.field_names()` are fetched.
-        
+
         These constants define requirements and operational limits for crowdloan campaigns:
 
         - ``AbsoluteMinimumContribution``: Minimum amount per contribution (TAO).
@@ -1916,7 +1915,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
 
         Returns:
-            A ``CrowdloanConstants`` data object containing the queried constants. Missing constants return ``None``.        
+            A ``CrowdloanConstants`` data object containing the queried constants. Missing constants return ``None``.
         Notes:
             These constants enforce contribution floors, duration bounds, and refund batching limits.
 
@@ -1998,7 +1997,7 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> Optional["CrowdloanInfo"]:
         """Retrieves detailed information about a specific crowdloan campaign.
 
-        
+
 
         Parameters:
             crowdloan_id: Unique identifier of the crowdloan (auto-incremented starting from 0).
@@ -2135,7 +2134,7 @@ class AsyncSubtensor(SubtensorMixin):
         Notes:
             This function is essential for understanding the roles and influence of delegate neurons within the Bittensor
             network's consensus and governance structures.
-            
+
             See also:
             - <https://docs.learnbittensor.org/glossary#delegate>
             - <https://docs.learnbittensor.org/glossary#nominator>
@@ -2788,16 +2787,16 @@ class AsyncSubtensor(SubtensorMixin):
 
             # Retrieve all fields from the metagraph from subnet 2 mechanism 0
             meta_info = subtensor.get_metagraph_info(netuid=2)
-            
+
             # Retrieve all fields from the metagraph from subnet 2 mechanism 1
             meta_info = subtensor.get_metagraph_info(netuid=2, mechid=1)
-            
+
             # Retrieve selective data from the metagraph from subnet 2 mechanism 0
             partial_meta_info = subtensor.get_metagraph_info(
                 netuid=2,
                 selected_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
             )
-            
+
             # Retrieve selective data from the metagraph from subnet 2 mechanism 1
             partial_meta_info = subtensor.get_metagraph_info(
                 netuid=2,
@@ -3317,7 +3316,7 @@ class AsyncSubtensor(SubtensorMixin):
             A tuple of reveal block and commitment message.
 
         Example::
-            
+
             ( (12, "Alice message 1"), (152, "Alice message 2") )
             ( (12, "Bob message 1"), (147, "Bob message 2") )
 
@@ -3345,7 +3344,6 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[tuple[tuple[int, str], ...]]:
-        
         """Retrieves hotkey related revealed commitment for a given subnet.
 
         Parameters:
@@ -3358,7 +3356,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             A tuple of reveal block and commitment message.
-        
+
         # TODO: add example to clarify return ordering and units; @roman can you help w this?
         Notes:
             See: <https://docs.learnbittensor.org/glossary#commit-reveal>
@@ -4241,7 +4239,7 @@ class AsyncSubtensor(SubtensorMixin):
             Estimating the transfer fee is essential for planning and executing token transactions, ensuring that the
             wallet has sufficient funds to cover both the transfer amount and the associated costs. This function provides
             a crucial tool for managing financial operations within the Bittensor network.
-            
+
             See: <https://docs.learnbittensor.org/learn/fees>
         """
         check_balance_amount(amount)
@@ -4519,7 +4517,7 @@ class AsyncSubtensor(SubtensorMixin):
         """
         return (
             await self.query_constant("SubtensorModule", "DurationOfStartCall")
-        ).value == 10
+        ) == 10
 
     async def is_hotkey_delegate(
         self,
@@ -5279,7 +5277,6 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ):
-        
         # TODO: Examples: validate against metadata;
         """
         Validate and filter extrinsic parameters against on-chain metadata.
@@ -5306,7 +5303,7 @@ class AsyncSubtensor(SubtensorMixin):
         Notes:
             This method does not compose or submit the extrinsic. It only ensures that `call_params` conforms to the
             expected schema derived from on-chain metadata.
-            See also `compose_call` and `sign_and_send_extrinsic`. 
+            See also `compose_call` and `sign_and_send_extrinsic`.
 
         """
         block_hash = await self.determine_block_hash(
@@ -6321,12 +6318,12 @@ class AsyncSubtensor(SubtensorMixin):
         Example::
 
             import bittensor as bt
-            
+
             subtensor = bt.AsyncSubtensor(network="local")
             await subtensor.initialize()
-            
+
             my_wallet = bt.Wallet()
-            
+
             # if `liquidity_delta` is negative
             my_liquidity_delta = Balance.from_tao(100) * -1
             await subtensor.modify_liquidity(
@@ -6335,7 +6332,7 @@ class AsyncSubtensor(SubtensorMixin):
                 position_id=2,
                 liquidity_delta=my_liquidity_delta
             )
-            
+
             # if `liquidity_delta` is positive
             my_liquidity_delta = Balance.from_tao(120)
             await subtensor.modify_liquidity(
@@ -7540,30 +7537,30 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = True,
     ) -> ExtrinsicResponse:
         """Commits arbitrary data to the Bittensor network by publishing metadata.
-# TODO: check with @roman, is this about 'arbitrary data' or 'commit-reveal'? we need a real example here if this is important.
-        This method allows neurons to publish arbitrary data to the blockchain, which can be used for various purposes
-        such as sharing model updates, configuration data, or other network-relevant information. The data is encoded
-        and stored on-chain as metadata.
+        # TODO: check with @roman, is this about 'arbitrary data' or 'commit-reveal'? we need a real example here if this is important.
+                This method allows neurons to publish arbitrary data to the blockchain, which can be used for various purposes
+                such as sharing model updates, configuration data, or other network-relevant information. The data is encoded
+                and stored on-chain as metadata.
 
-        Parameters:
-            wallet: The wallet associated with the neuron committing the data.
-            netuid: The unique identifier of the subnetwork.
-            data: The data string to be committed to the network. The data will be encoded as bytes before submission.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-                transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
-            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
-            wait_for_finalization: Whether to wait for the finalization of the transaction.
+                Parameters:
+                    wallet: The wallet associated with the neuron committing the data.
+                    netuid: The unique identifier of the subnetwork.
+                    data: The data string to be committed to the network. The data will be encoded as bytes before submission.
+                    period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                        transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                    raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+                    wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+                    wait_for_finalization: Whether to wait for the finalization of the transaction.
 
-        Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+                Returns:
+                    ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Notes:
-            The data is automatically encoded as bytes before submission. There may be size limits on metadata
-            payloads enforced by the chain.
+                Notes:
+                    The data is automatically encoded as bytes before submission. There may be size limits on metadata
+                    payloads enforced by the chain.
 
-            See: <https://docs.learnbittensor.org/resources/glossary#commit-reveal>
-            See: <https://docs.learnbittensor.org/concepts/commit-reveal>
+                    See: <https://docs.learnbittensor.org/resources/glossary#commit-reveal>
+                    See: <https://docs.learnbittensor.org/concepts/commit-reveal>
         """
         return await publish_metadata_extrinsic(
             subtensor=self,
@@ -7590,39 +7587,39 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = True,
     ) -> ExtrinsicResponse:
         """Commits arbitrary data to the Bittensor network using timelock encryption for reveal scheduling.
-# TODO: check with @roman, is this about 'arbitrary data' or 'commit-reveal'? we need a real example here if this is important, and documentating a real commit reveal flow.
-        This method commits data that will be automatically revealed after a specified number of blocks using drand
-        timelock encryption. The data is encrypted using `get_encrypted_commitment`, which uses drand rounds to ensure
-        the data cannot be revealed before the specified reveal time.
-# TODO how does work, why do you need blocks until reveal? isn't this automatic for CR? does this allow you commit-reveal arbitrary other data for random reasons, or what?
-        The `blocks_until_reveal` parameter should match the subnet's tempo (blocks per epoch) for epoch-based
-        reveals. For fast blocks (10-second blocks), use `block_time=10.0`; for standard blocks (12-second blocks), use
-        `block_time=12.0`.
+        # TODO: check with @roman, is this about 'arbitrary data' or 'commit-reveal'? we need a real example here if this is important, and documentating a real commit reveal flow.
+                This method commits data that will be automatically revealed after a specified number of blocks using drand
+                timelock encryption. The data is encrypted using `get_encrypted_commitment`, which uses drand rounds to ensure
+                the data cannot be revealed before the specified reveal time.
+        # TODO how does work, why do you need blocks until reveal? isn't this automatic for CR? does this allow you commit-reveal arbitrary other data for random reasons, or what?
+                The `blocks_until_reveal` parameter should match the subnet's tempo (blocks per epoch) for epoch-based
+                reveals. For fast blocks (10-second blocks), use `block_time=10.0`; for standard blocks (12-second blocks), use
+                `block_time=12.0`.
 
-        Parameters:
-            wallet: The wallet associated with the neuron committing the data.
-            netuid: The unique identifier of the subnetwork.
-            data: The data string to be committed to the network.
-            blocks_until_reveal: The number of blocks from now after which the data will be revealed. Typically set to
-                the subnet's tempo (blocks per epoch) for epoch-aligned reveals.
-            block_time: The number of seconds between each block (default 12.0 for standard blocks, 10.0 for fast blocks).
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-                transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
-            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
-            wait_for_finalization: Whether to wait for the finalization of the transaction.
+                Parameters:
+                    wallet: The wallet associated with the neuron committing the data.
+                    netuid: The unique identifier of the subnetwork.
+                    data: The data string to be committed to the network.
+                    blocks_until_reveal: The number of blocks from now after which the data will be revealed. Typically set to
+                        the subnet's tempo (blocks per epoch) for epoch-aligned reveals.
+                    block_time: The number of seconds between each block (default 12.0 for standard blocks, 10.0 for fast blocks).
+                    period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                        transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                    raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+                    wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+                    wait_for_finalization: Whether to wait for the finalization of the transaction.
 
-        Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution. The response's "data" field contains
-            `{"encrypted": encrypted, "reveal_round": reveal_round}` on success.
+                Returns:
+                    ExtrinsicResponse: The result object of the extrinsic execution. The response's "data" field contains
+                    `{"encrypted": encrypted, "reveal_round": reveal_round}` on success.
 
-        Notes:
-            A commitment can be set once per subnet epoch and is reset at the next epoch automatically. The timelock
-            encryption ensures the data cannot be revealed before the specified drand round.
+                Notes:
+                    A commitment can be set once per subnet epoch and is reset at the next epoch automatically. The timelock
+                    encryption ensures the data cannot be revealed before the specified drand round.
 
-            See: <https://docs.learnbittensor.org/resources/glossary#commit-reveal>
-            See: <https://docs.learnbittensor.org/resources/glossary#drandtime-lock-encryption>
-            See: <https://docs.learnbittensor.org/concepts/commit-reveal>
+                    See: <https://docs.learnbittensor.org/resources/glossary#commit-reveal>
+                    See: <https://docs.learnbittensor.org/resources/glossary#drandtime-lock-encryption>
+                    See: <https://docs.learnbittensor.org/concepts/commit-reveal>
         """
 
         encrypted, reveal_round = get_encrypted_commitment(
@@ -8050,7 +8047,7 @@ class AsyncSubtensor(SubtensorMixin):
                 print(result)
 
         Notes:
-            See: 
+            See:
             - Slippage: <https://docs.learnbittensor.org/learn/slippage>
             - Price Protection: <https://docs.learnbittensor.org/learn/price-protection>
             - Managing Stake with SDK: <https://docs.learnbittensor.org/staking-and-delegation/managing-stake-sdk>

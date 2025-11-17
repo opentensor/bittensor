@@ -227,13 +227,13 @@ class ProxyInfo:
 
         Returns:
             Tuple containing:
-            
+
                 - List of ProxyInfo objects representing all proxy relationships for the real account.
                 - Balance object representing the reserved deposit amount (in RAO).
 
         Notes:
             The deposit is held as long as the proxy relationships exist and is returned when proxies are removed.
-            
+
             See: <https://docs.learnbittensor.org/keys/proxies>
         """
         # proxies data is always in that path
@@ -283,7 +283,7 @@ class ProxyAnnouncementInfo:
     Notes:
         Announcements are required when using delayed proxies, providing an additional security layer for time-locked
         operations.
-        
+
         See: <https://docs.learnbittensor.org/keys/proxies>
     """
 
