@@ -359,7 +359,7 @@ class Subtensor(SubtensorMixin):
         the staking fees and expected returned amounts of a given transaction. This does not include the transaction
         (extrinsic) fee.
 
-        Args:
+        Parameters:
             origin_netuid: Netuid of the source subnet (0 if add stake).
             destination_netuid: Netuid of the destination subnet.
             amount: Amount to stake operation.
@@ -906,7 +906,7 @@ class Subtensor(SubtensorMixin):
         The EMA TAO flow represents the exponential moving average of TAO flowing
         into or out of a subnet. Negative values indicate net outflow.
 
-        Args:
+        Parameters:
             block: The block number to retrieve the commitment from.
 
         Returns:
@@ -1166,7 +1166,7 @@ class Subtensor(SubtensorMixin):
         This method aggregates multiple low-level RPC calls into a single structured response, returning both the raw
         on-chain data and high-level decoded metadata for the given block.
 
-        Args:
+        Parameters:
             block: The block number for which the hash is to be retrieved.
             block_hash: The hash of the block to retrieve the block from.
 
@@ -1659,7 +1659,7 @@ class Subtensor(SubtensorMixin):
         The EMA TAO flow represents the exponential moving average of TAO flowing into or out of a subnet. Negative
         values indicate net outflow.
 
-        Args:
+        Parameters:
             netuid: The unique identifier of the subnetwork.
             block: The block number to retrieve the commitment from.
 
@@ -3876,7 +3876,7 @@ class Subtensor(SubtensorMixin):
         function) as defined in the Substrate metadata. It raises explicit errors for missing or invalid parameters and
         silently ignores any extra keys not present in the function definition.
 
-        Args:
+        Parameters:
             call_module: The pallet name, e.g. "SubtensorModule" or "AdminUtils".
             call_function: The extrinsic function name, e.g. "set_weights" or "sudo_set_tempo".
             call_params: A dictionary of parameters to validate.
@@ -3934,7 +3934,7 @@ class Subtensor(SubtensorMixin):
         """
         Dynamically compose a GenericCall using on-chain Substrate metadata after validating the provided parameters.
 
-        Args:
+        Parameters:
             call_module: Pallet name (e.g. "SubtensorModule", "AdminUtils").
             call_function: Function name (e.g. "set_weights", "sudo_set_tempo").
             call_params: Dictionary of parameters for the call.

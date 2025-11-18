@@ -71,8 +71,7 @@ class SubtensorMixin(ABC):
         Creates and returns a Bittensor configuration object.
 
         Returns:
-            config (bittensor.core.config.Config): A Bittensor configuration object configured with arguments added by
-                the `subtensor.add_args` method.
+            A Bittensor configuration object configured with arguments added by the `subtensor.add_args` method.
         """
         parser = argparse.ArgumentParser()
         SubtensorMixin.add_args(parser)

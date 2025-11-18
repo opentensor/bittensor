@@ -32,7 +32,7 @@ class SimSwapResult:
         from a dictionary. It parses the specified dictionary, converts values into
         Balance objects, and sets associated units based on parameters and context.
 
-        Args:
+        Parameters:
             data: A dictionary containing the swap result data. It must include  the keys "tao_amount",  "alpha_amount",
                 "tao_fee", and "alpha_fee" with their respective values.
             netuid: A network-specific unit identifier used to set the unit for alpha-related amounts.
