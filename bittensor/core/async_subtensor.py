@@ -460,62 +460,6 @@ class AsyncSubtensor(SubtensorMixin):
             return await self.get_block_hash(block)
         return None
 
-    async def encode_params(
-        self,
-        call_definition: dict[str, list["ParamWithTypes"]],
-        params: Union[list[Any], dict[str, Any]],
-    ) -> str:
-        """Encodes parameters into a hex string using their type definitions.
-
-        This method takes a call definition (which specifies parameter types) and actual parameter values, then
-        encodes them into a hex string that can be used for blockchain transactions.
-
-        Parameters:
-            call_definition: A dictionary containing parameter type definitions. Should have a "params" key with a
-                list of parameter definitions.
-            params: The actual parameter values to encode. Can be either a list (for positional parameters) or a
-                dictionary (for named parameters).
-
-        Returns:
-            str: A hex-encoded string representation of the parameters.
-
-        Raises:
-            ValueError: If a required parameter is missing from the params dictionary.
-
-        Example:
-            # Define parameter types
-            call_def = {
-                "params": [
-                    {"name": "amount", "type": "u64"},
-                    {"name": "coldkey_ss58", "type": "str"}
-                ]
-            }
-
-            # Encode parameters as a dictionary
-            params_dict = {
-                "amount": 1000000,
-                "coldkey_ss58": "5F..."
-            }
-            encoded = await subtensor.encode_params(call_definition=call_def, params=params_dict)
-
-            # Or encode as a list (positional)
-            params_list = [1000000, "5F..."]
-            encoded = await subtensor.encode_params(call_definition=call_def, params=params_list)
-        """
-        param_data = scalecodec.ScaleBytes(b"")
-
-        for i, param in enumerate(call_definition["params"]):
-            scale_obj = await self.substrate.create_scale_object(param["type"])
-            if isinstance(params, list):
-                param_data += scale_obj.encode(params[i])
-            else:
-                if param["name"] not in params:
-                    raise ValueError(f"Missing param {param['name']} in params dict.")
-
-                param_data += scale_obj.encode(params[param["name"]])
-
-        return param_data.to_hex()
-
     async def _runtime_method_exists(
         self, api: str, method: str, block_hash: str
     ) -> bool:
