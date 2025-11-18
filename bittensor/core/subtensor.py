@@ -315,6 +315,146 @@ class Subtensor(SubtensorMixin):
         else:
             return self.get_block_hash(block=block)
 
+    def _runtime_method_exists(self, api: str, method: str, block_hash: str) -> bool:
+        """
+        Check if a runtime call method exists at the given block.
+
+        The complicated logic here comes from the fact that there are two ways in which runtime calls
+        are stored: the new and primary method is through the Metadata V15, but the V14 is a good backup (implemented
+        around mid 2024)
+
+        Returns:
+            True if the runtime call method exists, False otherwise.
+        """
+        runtime = self.substrate.init_runtime(block_hash=block_hash)
+        if runtime.metadata_v15 is not None:
+            metadata_v15_value = runtime.metadata_v15.value()
+            apis = {entry["name"]: entry for entry in metadata_v15_value["apis"]}
+            try:
+                api_entry = apis[api]
+                methods = {entry["name"]: entry for entry in api_entry["methods"]}
+                _ = methods[method]
+                return True
+            except KeyError:
+                return False
+        else:
+            try:
+                self.substrate.get_metadata_runtime_call_function(
+                    api=api,
+                    method=method,
+                    block_hash=block_hash,
+                )
+                return True
+            except ValueError:
+                return False
+
+    def _query_with_fallback(
+        self,
+        *args: tuple[str, str, Optional[list[Any]]],
+        block_hash: Optional[str] = None,
+        default_value: Any = ValueError,
+    ):
+        """
+        Queries the subtensor node with a given set of args, falling back to the next group if the method
+        does not exist at the given block. This method exists to support backwards compatibility for blocks.
+
+        Parameters:
+            *args: Tuples containing (module, storage_function, params) in the order they should be attempted.
+            block_hash: The hash of the block being queried. If not provided, the chain tip will be used.
+            default_value: The default value to return if none of the methods exist at the given block.
+
+        Returns:
+            The value returned by the subtensor node, or the default value if none of the methods exist at the given
+            block.
+
+        Raises:
+            ValueError: If no default value is provided, and none of the methods exist at the given block, a
+                ValueError will be raised.
+
+        Example:
+            value = self._query_with_fallback(
+                # the first attempt will be made to SubtensorModule.MechanismEmissionSplit with params `[1]`
+                ("SubtensorModule", "MechanismEmissionSplit", [1]),
+                # if it does not exist at the given block, the next attempt will be made to
+                # SubtensorModule.MechanismEmission with params `None`
+                ("SubtensorModule", "MechanismEmission", None),
+                block_hash="0x1234",
+                # if none of the methods exist at the given block, the default value of `None` will be returned
+                default_value=None,
+            )
+        """
+        if block_hash is None:
+            block_hash = self.substrate.get_chain_head()
+        for module, storage_function, params in args:
+            if self.substrate.get_metadata_storage_function(
+                module_name=module,
+                storage_name=storage_function,
+                block_hash=block_hash,
+            ):
+                return self.substrate.query(
+                    module=module,
+                    storage_function=storage_function,
+                    block_hash=block_hash,
+                    params=params,
+                )
+        if not isinstance(default_value, ValueError):
+            return default_value
+        else:
+            raise default_value
+
+    def _runtime_call_with_fallback(
+        self,
+        *args: tuple[str, str, Optional[list[Any]] | dict[str, Any]],
+        block_hash: Optional[str] = None,
+        default_value: Any = ValueError,
+    ):
+        """
+        Makes a runtime call to the subtensor node with a given set of args, falling back to the next group if the
+        api.method does not exist at the given block. This method exists to support backwards compatibility for blocks.
+
+        Parameters:
+            *args: Tuples containing (api, method, params) in the order they should be attempted.
+            block_hash: The hash of the block being queried. If not provided, the chain tip will be used.
+            default_value: The default value to return if none of the methods exist at the given block.
+
+        Raises:
+            ValueError: If no default value is provided, and none of the methods exist at the given block, a
+                ValueError will be raised.
+
+        Example:
+            query = self._runtime_call_with_fallback(
+                # the first attempt will be made to SubnetInfoRuntimeApi.get_selective_mechagraph with the
+                # given params
+                (
+                    "SubnetInfoRuntimeApi",
+                    "get_selective_mechagraph",
+                    [netuid, mechid, [f for f in range(len(SelectiveMetagraphIndex))]],
+                ),
+                # if it does not exist at the given block, the next attempt will be made as such:
+                ("SubnetInfoRuntimeApi", "get_metagraph", [[netuid]]),
+                block_hash=block_hash,
+                # if none of the methods exist at the given block, the default value will be returned
+                default_value=None,
+            )
+
+        """
+        if block_hash is None:
+            block_hash = self.substrate.get_chain_head()
+        for api, method, params in args:
+            if self._runtime_method_exists(
+                api=api, method=method, block_hash=block_hash
+            ):
+                return self.substrate.runtime_call(
+                    api=api,
+                    method=method,
+                    block_hash=block_hash,
+                    params=params,
+                )
+        if not isinstance(default_value, ValueError):
+            return default_value
+        else:
+            raise default_value
+
     def get_hyperparameter(
         self, param_name: str, netuid: int, block: Optional[int] = None
     ) -> Optional[Any]:
@@ -1952,6 +2092,12 @@ class Subtensor(SubtensorMixin):
             whole numbers). Returns None if emission is evenly split or if the data is unavailable.
         """
         block_hash = self.determine_block_hash(block)
+        module = "SubtensorModule"
+        storage_function = "MechanismEmissionSplit"
+        if not self.substrate.get_metadata_storage_function(
+            module, storage_function, block_hash=block_hash
+        ):
+            return None
         result = self.substrate.query(
             module="SubtensorModule",
             storage_function="MechanismEmissionSplit",
@@ -1978,9 +2124,15 @@ class Subtensor(SubtensorMixin):
             The number of mechanisms for the given subnet.
         """
         block_hash = self.determine_block_hash(block)
+        module = "SubtensorModule"
+        storage_function = "MechanismCountCurrent"
+        if not self.substrate.get_metadata_storage_function(
+            module, storage_function, block_hash=block_hash
+        ):
+            return 1
         query = self.substrate.query(
-            module="SubtensorModule",
-            storage_function="MechanismCountCurrent",
+            module=module,
+            storage_function=storage_function,
             params=[netuid],
             block_hash=block_hash,
         )
@@ -2033,23 +2185,45 @@ class Subtensor(SubtensorMixin):
             - <https://docs.learnbittensor.org/glossary#metagraph>
             - <https://docs.learnbittensor.org/glossary#emission>
         """
-        block_hash = self.determine_block_hash(block=block)
 
-        indexes = (
-            [
+        block_hash: str = (
+            self.determine_block_hash(block=block) or self.substrate.get_chain_head()
+        )
+
+        # Normalize selected_indices to a list of integers
+        if selected_indices is not None:
+            indexes = [
                 f.value if isinstance(f, SelectiveMetagraphIndex) else f
                 for f in selected_indices
             ]
-            if selected_indices is not None
-            else [f for f in range(len(SelectiveMetagraphIndex))]
-        )
+            if 0 not in indexes:
+                indexes = [0] + indexes
+            query = self._runtime_call_with_fallback(
+                (
+                    "SubnetInfoRuntimeApi",
+                    "get_selective_mechagraph",
+                    [netuid, mechid, indexes],
+                ),
+                ("SubnetInfoRuntimeApi", "get_selective_metagraph", [netuid, indexes]),
+                block_hash=block_hash,
+                default_value=ValueError(
+                    "You have specified `selected_indices` to retrieve metagraph info selectively, but the "
+                    "selective runtime calls are not available at this block (probably too old). Do not specify "
+                    "`selected_indices` to retrieve metagraph info selectively."
+                ),
+            )
+        else:
+            query = self._runtime_call_with_fallback(
+                (
+                    "SubnetInfoRuntimeApi",
+                    "get_selective_mechagraph",
+                    [netuid, mechid, [f for f in range(len(SelectiveMetagraphIndex))]],
+                ),
+                ("SubnetInfoRuntimeApi", "get_metagraph", [[netuid]]),
+                block_hash=block_hash,
+                default_value=None,
+            )
 
-        query = self.substrate.runtime_call(
-            api="SubnetInfoRuntimeApi",
-            method="get_selective_mechagraph",
-            params=[netuid, mechid, indexes if 0 in indexes else [0] + indexes],
-            block_hash=block_hash,
-        )
         if query is None or not hasattr(query, "value") or query.value is None:
             logging.error(
                 f"Subnet mechanism {netuid}.{mechid if mechid else 0} does not exist."
