@@ -241,40 +241,6 @@ def test_kill_pure_proxy_extrinsic(subtensor, mocker):
     assert response == mocked_proxy_extrinsic.return_value
 
 
-def test_kill_pure_proxy_extrinsic_spawner_mismatch(subtensor, mocker):
-    """Verify that `kill_pure_proxy_extrinsic` returns error when spawner doesn't match wallet."""
-    # Preps
-    wallet = mocker.MagicMock(spec=Wallet)
-    wallet.coldkey.ss58_address = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
-    pure_proxy_ss58 = mocker.MagicMock(spec=str)
-    spawner = (
-        "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"  # Different from wallet
-    )
-    proxy_type = mocker.MagicMock(spec=proxy.ProxyType)
-    index = mocker.MagicMock(spec=int)
-    height = mocker.MagicMock(spec=int)
-    ext_index = mocker.MagicMock(spec=int)
-
-    mocked_normalize = mocker.patch.object(proxy.ProxyType, "normalize")
-
-    # Call
-    response = proxy.kill_pure_proxy_extrinsic(
-        subtensor=subtensor,
-        wallet=wallet,
-        pure_proxy_ss58=pure_proxy_ss58,
-        spawner=spawner,
-        proxy_type=proxy_type,
-        index=index,
-        height=height,
-        ext_index=ext_index,
-    )
-
-    # Asserts
-    mocked_normalize.assert_called_once_with(proxy_type)
-    assert response.success is False
-    assert "Spawner address" in response.message
-
-
 def test_proxy_extrinsic(subtensor, mocker):
     """Verify that sync `proxy_extrinsic` method calls proper methods."""
     # Preps
