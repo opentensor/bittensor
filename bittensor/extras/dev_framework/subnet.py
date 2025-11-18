@@ -248,7 +248,7 @@ class TestSubnet:
         )
         self._check_response(response)
         if netuid := _set_netuid_from_register_response(
-            await response.extrinsic_receipt.triggered_events
+            response.extrinsic_receipt.triggered_events
         ):
             self._netuid = netuid
         else:
