@@ -14,15 +14,14 @@ license = { file = "LICENSE" }
 requires-python = ">=3.10,<3.15"
 dependencies = [
     "wheel",
-    "setuptools~=70.0.0",
+    "setuptools~=70",
     "aiohttp~=3.9",
     "asyncstdlib~=3.13.0",
     "colorama~=0.4.6",
-    "fastapi~=0.110.1",
+    "fastapi>=0.110",
     "munch>=4.0.0",
     "numpy>=2.0.1,<3.0.0",
-    "msgpack-numpy-opentensor~=0.5.0",
-    "nest_asyncio==1.6.0",
+    "msgpack-numpy-opentensor~=0.5",
     "netaddr==1.3.0",
     "packaging",
     "python-statemachine~=2.1",
