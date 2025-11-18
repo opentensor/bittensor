@@ -1004,12 +1004,27 @@ def test_create_and_kill_pure_proxy(subtensor, alice_wallet, bob_wallet):
     delay = 0
     index = 0
 
+    # === Tests failed Create pure proxy without wait_for*=True ===
+    response = subtensor.proxies.create_pure_proxy(
+        wallet=spawner_wallet,
+        proxy_type=proxy_type,
+        delay=delay,
+        index=index,
+        wait_for_inclusion=False,
+        wait_for_finalization=False,
+    )
+    assert not response.success
+    assert "The ExtrinsicResponse doesn't contain pure_proxy data" in response.message
+
+    subtensor.wait_for_block()
+
     # === Create pure proxy ===
     response = subtensor.proxies.create_pure_proxy(
         wallet=spawner_wallet,
         proxy_type=proxy_type,
         delay=delay,
         index=index,
+        raise_error=True,
     )
     assert response.success, response.message
 
@@ -1132,6 +1147,20 @@ async def test_create_and_kill_pure_proxy_async(
     proxy_type = ProxyType.Any
     delay = 0
     index = 0
+
+    # === Tests failed Create pure proxy without wait_for*=True ===
+    response = await async_subtensor.proxies.create_pure_proxy(
+        wallet=spawner_wallet,
+        proxy_type=proxy_type,
+        delay=delay,
+        index=index,
+        wait_for_inclusion=False,
+        wait_for_finalization=False,
+    )
+    assert not response.success
+    assert "The ExtrinsicResponse doesn't contain pure_proxy data" in response.message
+
+    await async_subtensor.wait_for_block()
 
     # === Create pure proxy ===
     response = await async_subtensor.proxies.create_pure_proxy(
