@@ -247,10 +247,11 @@ class TestSubnet:
             wait_for_finalization=wait_for_finalization or self.wait_for_finalization,
         )
         self._check_response(response)
-        if netuid := _set_netuid_from_register_response(
-            response.extrinsic_receipt.triggered_events
-        ):
-            self._netuid = netuid
+
+        if wait_for_inclusion:
+            self._netuid = _set_netuid_from_register_response(
+                response.extrinsic_receipt.triggered_events
+            )
         else:
             self._netuid = self.s.subnets.get_total_subnets() - 1
         if response.success:
