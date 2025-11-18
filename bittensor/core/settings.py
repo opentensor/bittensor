@@ -156,19 +156,3 @@ version_as_int: int = sum(
     e * (_version_int_base**i) for i, e in enumerate(reversed(_version_info))
 )
 assert version_as_int < 2**31  # fits in int32
-
-
-def __apply_nest_asyncio():
-    """
-    Apply nest_asyncio if the environment variable NEST_ASYNCIO is set to "1" or not set.
-    If not set, warn the user that the default will change in the future.
-    """
-    nest_asyncio_env = os.getenv("NEST_ASYNCIO")
-    if nest_asyncio_env == "1":
-        # Install and apply nest asyncio to allow the async functions to run in a .ipynb
-        import nest_asyncio
-
-        nest_asyncio.apply()
-
-
-__apply_nest_asyncio()
