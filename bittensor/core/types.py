@@ -593,38 +593,44 @@ class ExtrinsicResponse:
         Parameters:
             receipt: AsyncExtrinsicReceipt instance.
         """
+        gather_tasks = [
+            receipt.error_message,
+            receipt.extrinsic_idx,
+            receipt.total_fee_amount,
+            receipt.weight,
+            receipt.substrate.get_block_number(receipt.block_hash),
+            receipt.triggered_events,
+            receipt.is_success,
+        ]
+
+        # Only request properties if block_hash is not None.
         (
             error_message,
             extrinsic_idx,
-            is_success,
             total_fee_amount,
-            triggered_events,
             weight,
-        ) = await asyncio.gather(
-            receipt.error_message,
-            receipt.extrinsic_idx,
-            receipt.is_success,
-            receipt.total_fee_amount,
-            receipt.triggered_events,
-            receipt.weight,
+            block_number,
+            triggered_events,
+            is_success,
+        ) = (
+            await asyncio.gather(*gather_tasks)
+            if receipt.block_hash is not None
+            else (None, None, None, None, None, None, None)
         )
+
         self.extrinsic_receipt = SDKExtrinsicReceipt(
             block_hash=receipt.block_hash,
-            block_number=receipt.block_number,
             error_message=error_message,
             extrinsic_hash=receipt.extrinsic_hash,
             extrinsic_idx=extrinsic_idx,
             finalized=receipt.finalized,
-            is_success=is_success,
             substrate=receipt.substrate,
             total_fee_amount=total_fee_amount,
-            triggered_events=triggered_events,
             weight=weight,
+            is_success=is_success,
+            block_number=block_number,
+            triggered_events=triggered_events,
         )
-        if not receipt.block_number:
-            self.extrinsic_receipt.block_number = (
-                await receipt.substrate.get_block_number(receipt.block_hash)
-            )
 
 
 @dataclass
