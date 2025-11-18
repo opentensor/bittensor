@@ -311,6 +311,7 @@ class TestSubnet:
         ).value
         # added 10 blocks bc 2.5 seconds is not always enough for the chain to update.
         await self.s.wait_for_block(current_block + activation_block + 10)
+
         response = await self.s.subnets.start_call(
             wallet=owner_wallet,
             netuid=netuid or self._netuid,
