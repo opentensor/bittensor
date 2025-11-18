@@ -196,7 +196,7 @@ async def test_create_pure_proxy_extrinsic(subtensor, mocker):
     assert (
         response.data["spawner"] == "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
     )
-    assert response.data["height"] == mock_response.extrinsic_receipt.block_number
+    assert response.data["height"] == subtensor.substrate.get_block_number.return_value
     assert response.data["ext_index"] == 1
 
 
