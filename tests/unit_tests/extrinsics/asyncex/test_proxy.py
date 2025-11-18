@@ -147,7 +147,7 @@ async def test_create_pure_proxy_extrinsic(subtensor, mocker):
     mock_response = mocker.MagicMock(spec=ExtrinsicResponse)
     mock_response.success = True
     mock_response.extrinsic_receipt = mocker.MagicMock()
-    mock_response.extrinsic_receipt.triggered_events = mocker.AsyncMock(
+    mock_response.extrinsic_receipt.triggered_events = mocker.Mock(
         return_value=[
             {
                 "event_id": "PureCreated",
@@ -160,13 +160,9 @@ async def test_create_pure_proxy_extrinsic(subtensor, mocker):
             }
         ]
     )()
-    mock_response.extrinsic_receipt.block_hash = mocker.AsyncMock(spec=str)
-    mock_response.extrinsic_receipt.extrinsic_idx = mocker.AsyncMock(return_value=1)()
+    mock_response.extrinsic_receipt.block_hash = mocker.Mock(spec=str)
+    mock_response.extrinsic_receipt.extrinsic_idx = mocker.Mock(return_value=1)()
     mocked_sign_and_send_extrinsic.return_value = mock_response
-
-    mocked_get_block_number = mocker.patch.object(
-        subtensor.substrate, "get_block_number", new=mocker.AsyncMock()
-    )
 
     # Call
     response = await proxy.create_pure_proxy_extrinsic(
@@ -192,7 +188,6 @@ async def test_create_pure_proxy_extrinsic(subtensor, mocker):
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
-    mocked_get_block_number.assert_called_once()
     assert response == mock_response
     assert (
         response.data["pure_account"]
@@ -201,7 +196,7 @@ async def test_create_pure_proxy_extrinsic(subtensor, mocker):
     assert (
         response.data["spawner"] == "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
     )
-    assert response.data["height"] == mocked_get_block_number.return_value
+    assert response.data["height"] == mock_response.extrinsic_receipt.block_number
     assert response.data["ext_index"] == 1
 
 

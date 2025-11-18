@@ -1634,23 +1634,22 @@ async def test_sign_and_send_extrinsic_success_finalization(
     # Preps
     fake_call = mocker.Mock()
     fake_extrinsic = mocker.Mock()
-    fake_response = mocker.Mock()
-    fake_response.total_fee_amount = mocker.AsyncMock(spec=int, return_value=1)()
 
     mocked_get_extrinsic_fee = mocker.patch.object(subtensor, "get_extrinsic_fee")
 
     mocked_create_signed_extrinsic = mocker.AsyncMock(return_value=fake_extrinsic)
     subtensor.substrate.create_signed_extrinsic = mocked_create_signed_extrinsic
 
-    mocked_submit_extrinsic = mocker.AsyncMock(return_value=fake_response)
-    subtensor.substrate.submit_extrinsic = mocked_submit_extrinsic
-
-    fake_response.process_events = mocker.AsyncMock()
-
-    async def fake_is_success():
-        return True
-
-    fake_response.is_success = fake_is_success()
+    subtensor.substrate.submit_extrinsic.return_value = mocker.AsyncMock(
+        error_message=mocker.AsyncMock(return_value=None)(),
+        extrinsic_idx=mocker.AsyncMock(return_value=1)(),
+        is_success=mocker.AsyncMock(return_value=True)(),
+        total_fee_amount=mocker.AsyncMock(return_value=1)(),
+        triggered_events=mocker.AsyncMock(return_value=[])(),
+        weight=mocker.AsyncMock(return_value={})(),
+        process_events=mocker.AsyncMock(return_value=None)(),
+        get_block_number=mocker.AsyncMock(return_value=1)(),
+    )
 
     # Call
     result = await subtensor.sign_and_send_extrinsic(
@@ -1658,6 +1657,7 @@ async def test_sign_and_send_extrinsic_success_finalization(
         wallet=fake_wallet,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        raise_error=True,
     )
 
     # Asserts
@@ -1667,7 +1667,7 @@ async def test_sign_and_send_extrinsic_success_finalization(
         keypair=fake_wallet.coldkey,
         era={"period": settings.DEFAULT_PERIOD},
     )
-    mocked_submit_extrinsic.assert_called_once_with(
+    subtensor.substrate.submit_extrinsic.assert_called_once_with(
         extrinsic=fake_extrinsic,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -1699,17 +1699,16 @@ async def test_sign_and_send_extrinsic_error_finalization(
     mocked_submit_extrinsic = mocker.AsyncMock(return_value=fake_response)
     subtensor.substrate.submit_extrinsic = mocked_submit_extrinsic
 
-    fake_response.process_events = mocker.AsyncMock()
-
-    async def fake_is_success():
-        return False
-
-    fake_response.is_success = fake_is_success()
-
-    async def fake_error_message():
-        return fake_error
-
-    fake_response.error_message = fake_error_message()
+    subtensor.substrate.submit_extrinsic.return_value = mocker.AsyncMock(
+        error_message=mocker.AsyncMock(return_value=fake_error)(),
+        extrinsic_idx=mocker.AsyncMock(return_value=1)(),
+        is_success=mocker.AsyncMock(return_value=False)(),
+        total_fee_amount=mocker.AsyncMock(return_value=1)(),
+        triggered_events=mocker.AsyncMock(return_value=[])(),
+        weight=mocker.AsyncMock(return_value={})(),
+        process_events=mocker.AsyncMock()(),
+        get_block_number=mocker.AsyncMock(return_value=1)(),
+    )
 
     mocked_format_error_message = mocker.Mock()
     async_subtensor.format_error_message = mocked_format_error_message
@@ -1737,7 +1736,7 @@ async def test_sign_and_send_extrinsic_error_finalization(
     assert result == (False, mocked_format_error_message.return_value)
     assert result.extrinsic_function == get_function_name()
     assert result.extrinsic == fake_extrinsic
-    assert result.extrinsic_fee == None
+    assert result.extrinsic_fee is None
     assert result.error is fake_error
     assert result.data is None
 
@@ -1756,8 +1755,16 @@ async def test_sign_and_send_extrinsic_success_without_inclusion_finalization(
     mocked_create_signed_extrinsic = mocker.AsyncMock(return_value=fake_extrinsic)
     subtensor.substrate.create_signed_extrinsic = mocked_create_signed_extrinsic
 
-    mocked_submit_extrinsic = mocker.AsyncMock()
-    subtensor.substrate.submit_extrinsic = mocked_submit_extrinsic
+    subtensor.substrate.submit_extrinsic.return_value = mocker.AsyncMock(
+        error_message=mocker.AsyncMock(return_value=None)(),
+        extrinsic_idx=mocker.AsyncMock(return_value=1)(),
+        is_success=mocker.AsyncMock(return_value=True)(),
+        total_fee_amount=mocker.AsyncMock(return_value=1)(),
+        triggered_events=mocker.AsyncMock(return_value=[])(),
+        weight=mocker.AsyncMock(return_value={})(),
+        process_events=mocker.AsyncMock(return_value=None)(),
+        get_block_number=mocker.AsyncMock(return_value=1)(),
+    )
 
     # Call
     result = await subtensor.sign_and_send_extrinsic(
@@ -1777,8 +1784,7 @@ async def test_sign_and_send_extrinsic_success_without_inclusion_finalization(
         keypair=fake_wallet.coldkey,
         era={"period": settings.DEFAULT_PERIOD},
     )
-    mocked_submit_extrinsic.assert_awaited_once()
-    mocked_submit_extrinsic.assert_called_once_with(
+    subtensor.substrate.submit_extrinsic.assert_awaited_once_with(
         extrinsic=fake_extrinsic,
         wait_for_inclusion=False,
         wait_for_finalization=False,
@@ -1848,6 +1854,10 @@ async def test_sign_and_send_extrinsic_raises_error(
             },
         )(),
         is_success=mocker.AsyncMock(return_value=False)(),
+        extrinsic_idx=mocker.AsyncMock(return_value=1)(),
+        total_fee_amount=mocker.AsyncMock(return_value=100)(),
+        triggered_events=mocker.AsyncMock(return_value=[])(),
+        weight=mocker.AsyncMock(return_value={})(),
     )
 
     # Call and asserts
