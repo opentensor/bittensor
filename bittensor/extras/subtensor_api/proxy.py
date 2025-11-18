@@ -1,0 +1,25 @@
+from typing import Union
+from bittensor.core.subtensor import Subtensor as _Subtensor
+from bittensor.core.async_subtensor import AsyncSubtensor as _AsyncSubtensor
+
+
+class Proxy:
+    """Class for managing proxy operations."""
+
+    def __init__(self, subtensor: Union["_Subtensor", "_AsyncSubtensor"]):
+        self.add_proxy = subtensor.add_proxy
+        self.announce_proxy = subtensor.announce_proxy
+        self.create_pure_proxy = subtensor.create_pure_proxy
+        self.get_proxies = subtensor.get_proxies
+        self.get_proxies_for_real_account = subtensor.get_proxies_for_real_account
+        self.get_proxy_announcement = subtensor.get_proxy_announcement
+        self.get_proxy_announcements = subtensor.get_proxy_announcements
+        self.get_proxy_constants = subtensor.get_proxy_constants
+        self.kill_pure_proxy = subtensor.kill_pure_proxy
+        self.poke_deposit = subtensor.poke_deposit
+        self.proxy_announced = subtensor.proxy_announced
+        self.proxy = subtensor.proxy
+        self.reject_proxy_announcement = subtensor.reject_proxy_announcement
+        self.remove_proxies = subtensor.remove_proxies
+        self.remove_proxy = subtensor.remove_proxy
+        self.remove_proxy_announcement = subtensor.remove_proxy_announcement

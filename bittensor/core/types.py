@@ -64,8 +64,7 @@ class SubtensorMixin(ABC):
         Creates and returns a Bittensor configuration object.
 
         Returns:
-            config (bittensor.core.config.Config): A Bittensor configuration object configured with arguments added by
-                the `subtensor.add_args` method.
+            A Bittensor configuration object configured with arguments added by the `subtensor.add_args` method.
         """
         parser = argparse.ArgumentParser()
         SubtensorMixin.add_args(parser)
@@ -276,11 +275,6 @@ class PrometheusServeCallParams(TypedDict):
     netuid: int
 
 
-class ParamWithTypes(TypedDict):
-    name: str  # Name of the parameter.
-    type: str  # ScaleType string of the parameter.
-
-
 @dataclass
 class ExtrinsicResponse:
     """
@@ -358,7 +352,7 @@ class ExtrinsicResponse:
     extrinsic_function: Optional[str] = None
     extrinsic: Optional["GenericExtrinsic"] = None
     extrinsic_fee: Optional["Balance"] = None
-    extrinsic_receipt: Optional[Union["AsyncExtrinsicReceipt", "ExtrinsicReceipt"]] = (
+    extrinsic_receipt: Optional[Union["ExtrinsicReceipt", "AsyncExtrinsicReceipt"]] = (
         None
     )
     transaction_tao_fee: Optional["Balance"] = None

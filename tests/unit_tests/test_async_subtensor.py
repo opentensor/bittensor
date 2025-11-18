@@ -242,65 +242,6 @@ async def test_burned_register_on_root(mock_substrate, subtensor, fake_wallet, m
 
 
 @pytest.mark.asyncio
-async def test_encode_params(subtensor, mocker):
-    """Tests encode_params happy path."""
-    # Preps
-    subtensor.substrate.create_scale_object = mocker.AsyncMock(
-        autospec=async_subtensor.AsyncSubstrateInterface.create_scale_object
-    )
-    subtensor.substrate.create_scale_object.return_value.encode = mocker.Mock(
-        return_value=b""
-    )
-
-    call_definition = {
-        "params": [
-            {"name": "coldkey", "type": "Vec<u8>"},
-            {"name": "uid", "type": "u16"},
-        ]
-    }
-    params = ["coldkey", "uid"]
-
-    # Call
-    decoded_params = await subtensor.encode_params(
-        call_definition=call_definition, params=params
-    )
-
-    # Asserts
-    subtensor.substrate.create_scale_object.call_args(
-        mocker.call("coldkey"),
-        mocker.call("Vec<u8>"),
-        mocker.call("uid"),
-        mocker.call("u16"),
-    )
-    assert decoded_params == "0x"
-
-
-@pytest.mark.asyncio
-async def test_encode_params_raises_error(subtensor, mocker):
-    """Tests encode_params with raised error."""
-    # Preps
-    subtensor.substrate.create_scale_object = mocker.AsyncMock(
-        autospec=async_subtensor.AsyncSubstrateInterface.create_scale_object
-    )
-    subtensor.substrate.create_scale_object.return_value.encode = mocker.Mock(
-        return_value=b""
-    )
-
-    call_definition = {
-        "params": [
-            {"name": "coldkey", "type": "Vec<u8>"},
-        ]
-    }
-    params = {"undefined param": "some value"}
-
-    # Call and assert
-    with pytest.raises(ValueError):
-        await subtensor.encode_params(call_definition=call_definition, params=params)
-
-        subtensor.substrate.create_scale_object.return_value.encode.assert_not_called()
-
-
-@pytest.mark.asyncio
 async def test_get_current_block(subtensor):
     """Tests get_current_block method."""
     # Call
@@ -3402,39 +3343,37 @@ async def test_get_subnet_info_no_data(mocker, subtensor):
     assert result is None
 
 
-@pytest.mark.parametrize(
-    "call_return, expected",
-    [[10, 111], [None, None], [0, 121]],
-)
 @pytest.mark.asyncio
-async def test_get_next_epoch_start_block(mocker, subtensor, call_return, expected):
+async def test_get_next_epoch_start_block(mocker, subtensor):
     """Check that get_next_epoch_start_block returns the correct value."""
     # Prep
-    netuid = mocker.Mock()
+    netuid = 14
     block = 20
 
-    fake_block_hash = mocker.Mock()
+    fake_block_hash = mocker.MagicMock()
     mocker.patch.object(subtensor, "get_block_hash", return_value=fake_block_hash)
-
-    mocked_blocks_since_last_step = mocker.AsyncMock(return_value=call_return)
-    subtensor.blocks_since_last_step = mocked_blocks_since_last_step
-
-    mocker.patch.object(subtensor, "tempo", return_value=100)
+    mocked_tempo = mocker.patch.object(subtensor, "tempo", return_value=100)
+    mocked_get_block_number = mocker.patch.object(
+        subtensor.substrate, "get_block_number"
+    )
 
     # Call
     result = await subtensor.get_next_epoch_start_block(netuid=netuid, block=block)
 
     # Asserts
-    mocked_blocks_since_last_step.assert_called_once_with(
+    mocked_tempo.assert_awaited_once_with(
         netuid=netuid,
-        block=block,
         block_hash=fake_block_hash,
-        reuse_block=False,
     )
-    subtensor.tempo.assert_awaited_once_with(
-        netuid=netuid, block=block, block_hash=fake_block_hash, reuse_block=False
+    assert (
+        result
+        == mocked_get_block_number.return_value.__add__()
+        .__mod__()
+        .__mod__()
+        .__rsub__()
+        .__radd__()
+        .__add__()
     )
-    assert result == expected
 
 
 @pytest.mark.asyncio
@@ -5093,3 +5032,616 @@ async def test_get_ema_tao_inflow(subtensor, mocker):
     )
     mocked_fixed_to_float.assert_called_once_with(fake_tao_bits)
     assert result == (fake_block_updated, Balance.from_rao(1000000))
+
+
+@pytest.mark.asyncio
+async def test_get_proxies(subtensor, mocker):
+    """Test get_proxies returns correct data when proxy information is found."""
+    # Prep
+    fake_real_account = mocker.Mock(spec=str)
+
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+
+    fake_proxy_data = mocker.Mock(spec=dict)
+    fake_record = (
+        fake_real_account,
+        mocker.Mock(value=([fake_proxy_data], mocker.Mock(spec=Balance))),
+    )
+    fake_result = [fake_record]
+    fake_query_map_records = mocker.MagicMock(return_value=fake_result)
+    fake_query_map_records.__aiter__.return_value = iter(fake_result)
+
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate,
+        "query_map",
+        return_value=fake_query_map_records,
+    )
+    fake_proxy_list = mocker.Mock()
+    mocked_from_query_map_record = mocker.patch.object(
+        async_subtensor.ProxyInfo,
+        "from_query_map_record",
+        side_effect=[
+            (fake_real_account, [fake_proxy_list]),
+        ],
+    )
+
+    # Call
+    result = await subtensor.get_proxies()
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(None, None, False)
+    mocked_query_map.assert_awaited_once_with(
+        module="Proxy",
+        storage_function="Proxies",
+        block_hash=mocked_determine_block_hash.return_value,
+        reuse_block_hash=False,
+    )
+    mocked_from_query_map_record.assert_called_once_with(fake_record)
+    assert result == {fake_real_account: [fake_proxy_list]}
+
+
+@pytest.mark.asyncio
+async def test_get_proxies_for_real_account(subtensor, mocker):
+    """Test get_proxies_for_real_account returns correct data when proxy information is found."""
+    # Prep
+    fake_real_account_ss58 = mocker.Mock(spec=str)
+
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query = mocker.patch.object(
+        subtensor.substrate,
+        "query",
+    )
+    mocked_from_query = mocker.patch.object(
+        async_subtensor.ProxyInfo,
+        "from_query",
+    )
+
+    # Call
+    result = await subtensor.get_proxies_for_real_account(
+        real_account_ss58=fake_real_account_ss58
+    )
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(None, None, False)
+    mocked_query.assert_awaited_once_with(
+        module="Proxy",
+        storage_function="Proxies",
+        params=[fake_real_account_ss58],
+        block_hash=mocked_determine_block_hash.return_value,
+        reuse_block_hash=False,
+    )
+    mocked_from_query.assert_called_once_with(mocked_query.return_value)
+    assert result == mocked_from_query.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_proxy_announcement(subtensor, mocker):
+    """Test get_proxy_announcement returns correct data when announcement information is found."""
+    # Prep
+    fake_delegate_account_ss58 = mocker.Mock(spec=str)
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query = mocker.patch.object(
+        subtensor.substrate,
+        "query",
+    )
+    mocked_from_dict = mocker.patch.object(
+        async_subtensor.ProxyAnnouncementInfo,
+        "from_dict",
+    )
+
+    # Call
+    result = await subtensor.get_proxy_announcement(
+        delegate_account_ss58=fake_delegate_account_ss58
+    )
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(None, None, False)
+    mocked_query.assert_awaited_once_with(
+        module="Proxy",
+        storage_function="Announcements",
+        params=[fake_delegate_account_ss58],
+        block_hash=mocked_determine_block_hash.return_value,
+        reuse_block_hash=False,
+    )
+    mocked_from_dict.assert_called_once_with(mocked_query.return_value.value[0])
+    assert result == mocked_from_dict.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_proxy_announcements(subtensor, mocker):
+    """Test get_proxy_announcements returns correct data when announcement information is found."""
+    # Prep
+    fake_delegate = mocker.Mock(spec=str)
+    fake_proxies_list = mocker.Mock(spec=list)
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value="mock_block_hash"
+    )
+
+    fake_record = (fake_delegate, fake_proxies_list)
+    fake_query_map_records = [fake_record]
+    mocked_query_map_return = mocker.MagicMock(return_value=fake_query_map_records)
+    mocked_query_map_return.__aiter__.return_value = iter(fake_query_map_records)
+
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate,
+        "query_map",
+        return_value=mocked_query_map_return,
+    )
+    mocked_from_query_map_record = mocker.patch.object(
+        async_subtensor.ProxyAnnouncementInfo,
+        "from_query_map_record",
+        side_effect=fake_query_map_records,
+    )
+
+    # Call
+    result = await subtensor.get_proxy_announcements()
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(None, None, False)
+    mocked_query_map.assert_awaited_once_with(
+        module="Proxy",
+        storage_function="Announcements",
+        block_hash=mocked_determine_block_hash.return_value,
+        reuse_block_hash=False,
+    )
+    mocked_from_query_map_record.assert_called_once_with(fake_record)
+    assert result == {fake_delegate: fake_proxies_list}
+
+
+@pytest.mark.asyncio
+async def test_get_proxy_constants(subtensor, mocker):
+    """Test get_proxy_constants returns correct data when constants are found."""
+    # Prep
+    fake_constants = {
+        "AnnouncementDepositBase": 1000000,
+        "AnnouncementDepositFactor": 500000,
+        "MaxProxies": 32,
+        "MaxPending": 32,
+        "ProxyDepositBase": 2000000,
+        "ProxyDepositFactor": 1000000,
+    }
+
+    mocked_query_constant = mocker.patch.object(
+        subtensor,
+        "query_constant",
+        side_effect=[mocker.Mock(value=value) for value in fake_constants.values()],
+    )
+    mocked_from_dict = mocker.patch.object(async_subtensor.ProxyConstants, "from_dict")
+
+    # Call
+    result = await subtensor.get_proxy_constants()
+
+    # Asserts
+    assert mocked_query_constant.call_count == len(fake_constants)
+    mocked_from_dict.assert_called_once_with(fake_constants)
+    assert result == mocked_from_dict.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_proxy_constants_as_dict(subtensor, mocker):
+    """Test get_proxy_constants returns dict when as_dict=True."""
+    # Prep
+    fake_constants = {
+        "AnnouncementDepositBase": 1000000,
+        "AnnouncementDepositFactor": 500000,
+        "MaxProxies": 32,
+        "MaxPending": 32,
+        "ProxyDepositBase": 2000000,
+        "ProxyDepositFactor": 1000000,
+    }
+
+    mocked_query_constant = mocker.patch.object(
+        subtensor,
+        "query_constant",
+        side_effect=[mocker.Mock(value=value) for value in fake_constants.values()],
+    )
+    mocked_proxy_constants = mocker.Mock()
+    mocked_from_dict = mocker.patch.object(
+        async_subtensor.ProxyConstants,
+        "from_dict",
+        return_value=mocked_proxy_constants,
+    )
+    mocked_to_dict = mocker.patch.object(
+        mocked_proxy_constants,
+        "to_dict",
+        return_value=fake_constants,
+    )
+
+    # Call
+    result = await subtensor.get_proxy_constants(as_dict=True)
+
+    # Asserts
+    assert mocked_query_constant.call_count == len(fake_constants)
+    mocked_from_dict.assert_called_once_with(fake_constants)
+    mocked_to_dict.assert_called_once()
+    assert result == fake_constants
+
+
+@pytest.mark.asyncio
+async def test_add_proxy(mocker, subtensor):
+    """Tests `add_proxy` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    delegate_ss58 = mocker.Mock(spec=str)
+    proxy_type = mocker.Mock(spec=str)
+    delay = mocker.Mock(spec=int)
+    mocked_add_proxy_extrinsic = mocker.patch.object(
+        async_subtensor, "add_proxy_extrinsic"
+    )
+
+    # call
+    response = await subtensor.add_proxy(
+        wallet=wallet,
+        delegate_ss58=delegate_ss58,
+        proxy_type=proxy_type,
+        delay=delay,
+    )
+
+    # asserts
+    mocked_add_proxy_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        delegate_ss58=delegate_ss58,
+        proxy_type=proxy_type,
+        delay=delay,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_add_proxy_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_announce_proxy(mocker, subtensor):
+    """Tests `announce_proxy` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    real_account_ss58 = mocker.Mock(spec=str)
+    call_hash = mocker.Mock(spec=str)
+    mocked_announce_extrinsic = mocker.patch.object(
+        async_subtensor, "announce_extrinsic"
+    )
+
+    # call
+    response = await subtensor.announce_proxy(
+        wallet=wallet,
+        real_account_ss58=real_account_ss58,
+        call_hash=call_hash,
+    )
+
+    # asserts
+    mocked_announce_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        real_account_ss58=real_account_ss58,
+        call_hash=call_hash,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_announce_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_create_pure_proxy(mocker, subtensor):
+    """Tests `create_pure_proxy` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    proxy_type = mocker.Mock(spec=str)
+    delay = mocker.Mock(spec=int)
+    index = mocker.Mock(spec=int)
+    mocked_create_pure_proxy_extrinsic = mocker.patch.object(
+        async_subtensor, "create_pure_proxy_extrinsic"
+    )
+
+    # call
+    response = await subtensor.create_pure_proxy(
+        wallet=wallet,
+        proxy_type=proxy_type,
+        delay=delay,
+        index=index,
+    )
+
+    # asserts
+    mocked_create_pure_proxy_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        proxy_type=proxy_type,
+        delay=delay,
+        index=index,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_create_pure_proxy_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_kill_pure_proxy(mocker, subtensor):
+    """Tests `kill_pure_proxy` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    pure_proxy_ss58 = mocker.Mock(spec=str)
+    spawner = mocker.Mock(spec=str)
+    proxy_type = mocker.Mock(spec=str)
+    index = mocker.Mock(spec=int)
+    height = mocker.Mock(spec=int)
+    ext_index = mocker.Mock(spec=int)
+    mocked_kill_pure_proxy_extrinsic = mocker.patch.object(
+        async_subtensor, "kill_pure_proxy_extrinsic"
+    )
+
+    # call
+    response = await subtensor.kill_pure_proxy(
+        wallet=wallet,
+        pure_proxy_ss58=pure_proxy_ss58,
+        spawner=spawner,
+        proxy_type=proxy_type,
+        index=index,
+        height=height,
+        ext_index=ext_index,
+    )
+
+    # asserts
+    mocked_kill_pure_proxy_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        pure_proxy_ss58=pure_proxy_ss58,
+        spawner=spawner,
+        proxy_type=proxy_type,
+        index=index,
+        height=height,
+        ext_index=ext_index,
+        force_proxy_type=async_subtensor.ProxyType.Any,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_kill_pure_proxy_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_poke_deposit(mocker, subtensor):
+    """Tests `poke_deposit` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    mocked_poke_deposit_extrinsic = mocker.patch.object(
+        async_subtensor, "poke_deposit_extrinsic"
+    )
+
+    # call
+    response = await subtensor.poke_deposit(wallet=wallet)
+
+    # asserts
+    mocked_poke_deposit_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_poke_deposit_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_proxy(mocker, subtensor):
+    """Tests `proxy` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    real_account_ss58 = mocker.Mock(spec=str)
+    force_proxy_type = mocker.Mock(spec=str)
+    call = mocker.Mock(spec=GenericCall)
+    mocked_proxy_extrinsic = mocker.patch.object(async_subtensor, "proxy_extrinsic")
+
+    # call
+    response = await subtensor.proxy(
+        wallet=wallet,
+        real_account_ss58=real_account_ss58,
+        force_proxy_type=force_proxy_type,
+        call=call,
+    )
+
+    # asserts
+    mocked_proxy_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        real_account_ss58=real_account_ss58,
+        force_proxy_type=force_proxy_type,
+        call=call,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_proxy_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_proxy_announced(mocker, subtensor):
+    """Tests `proxy_announced` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    delegate_ss58 = mocker.Mock(spec=str)
+    real_account_ss58 = mocker.Mock(spec=str)
+    force_proxy_type = mocker.Mock(spec=str)
+    call = mocker.Mock(spec=GenericCall)
+    mocked_proxy_announced_extrinsic = mocker.patch.object(
+        async_subtensor, "proxy_announced_extrinsic"
+    )
+
+    # call
+    response = await subtensor.proxy_announced(
+        wallet=wallet,
+        delegate_ss58=delegate_ss58,
+        real_account_ss58=real_account_ss58,
+        force_proxy_type=force_proxy_type,
+        call=call,
+    )
+
+    # asserts
+    mocked_proxy_announced_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        delegate_ss58=delegate_ss58,
+        real_account_ss58=real_account_ss58,
+        force_proxy_type=force_proxy_type,
+        call=call,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_proxy_announced_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_reject_proxy_announcement(mocker, subtensor):
+    """Tests `reject_proxy_announcement` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    delegate_ss58 = mocker.Mock(spec=str)
+    call_hash = mocker.Mock(spec=str)
+    mocked_reject_announcement_extrinsic = mocker.patch.object(
+        async_subtensor, "reject_announcement_extrinsic"
+    )
+
+    # call
+    response = await subtensor.reject_proxy_announcement(
+        wallet=wallet,
+        delegate_ss58=delegate_ss58,
+        call_hash=call_hash,
+    )
+
+    # asserts
+    mocked_reject_announcement_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        delegate_ss58=delegate_ss58,
+        call_hash=call_hash,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_reject_announcement_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_remove_proxy_announcement(mocker, subtensor):
+    """Tests `remove_proxy_announcement` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    real_account_ss58 = mocker.Mock(spec=str)
+    call_hash = mocker.Mock(spec=str)
+    mocked_remove_announcement_extrinsic = mocker.patch.object(
+        async_subtensor, "remove_announcement_extrinsic"
+    )
+
+    # call
+    response = await subtensor.remove_proxy_announcement(
+        wallet=wallet,
+        real_account_ss58=real_account_ss58,
+        call_hash=call_hash,
+    )
+
+    # asserts
+    mocked_remove_announcement_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        real_account_ss58=real_account_ss58,
+        call_hash=call_hash,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_remove_announcement_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_remove_proxies(mocker, subtensor):
+    """Tests `remove_proxies` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    mocked_remove_proxies_extrinsic = mocker.patch.object(
+        async_subtensor, "remove_proxies_extrinsic"
+    )
+
+    # call
+    response = await subtensor.remove_proxies(wallet=wallet)
+
+    # asserts
+    mocked_remove_proxies_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_remove_proxies_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_remove_proxy(mocker, subtensor):
+    """Tests `remove_proxy` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    delegate_ss58 = mocker.Mock(spec=str)
+    proxy_type = mocker.Mock(spec=str)
+    delay = mocker.Mock(spec=int)
+    mocked_remove_proxy_extrinsic = mocker.patch.object(
+        async_subtensor, "remove_proxy_extrinsic"
+    )
+
+    # call
+    response = await subtensor.remove_proxy(
+        wallet=wallet,
+        delegate_ss58=delegate_ss58,
+        proxy_type=proxy_type,
+        delay=delay,
+    )
+
+    # asserts
+    mocked_remove_proxy_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        delegate_ss58=delegate_ss58,
+        proxy_type=proxy_type,
+        delay=delay,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_remove_proxy_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_blocks_until_next_epoch_uses_default_tempo(subtensor, mocker):
+    """Test blocks_until_next_epoch uses self.tempo when tempo is None."""
+    # Prep
+    netuid = 0
+    block = 20
+    tempo = 100
+
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    spy_get_current_block = mocker.spy(subtensor, "get_current_block")
+    spy_tempo = mocker.spy(subtensor, "tempo")
+
+    # Call
+    result = await subtensor.blocks_until_next_epoch(
+        netuid=netuid, tempo=tempo, block=block
+    )
+
+    # Assert
+    mocked_determine_block_hash.assert_awaited_once_with(block, None, False)
+    spy_get_current_block.assert_not_awaited()
+    spy_tempo.assert_not_awaited()
+    assert result is not None
+    assert isinstance(result, int)
