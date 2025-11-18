@@ -858,7 +858,7 @@ def check_balance_amount(amount: Optional[Balance], allow_none: bool = True) -> 
     This function ensures that the `amount` argument is a `Balance` object.  If a non-Balance type is passed, it raises
     a `BalanceTypeError` to enforce consistent usage of Balance objects across arithmetic operations.
 
-    Args:
+    Parameters:
         amount: The value to validate.
         allow_none: if False then a `BalanceTypeError` is raised if the value is None.
 

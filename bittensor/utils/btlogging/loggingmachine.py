@@ -683,7 +683,7 @@ class LoggingMachine(StateMachine, Logger):
         """Get config from the argument parser.
 
         Return:
-            config (bittensor.core.config.Config): config object
+            Configuration object with settings from command-line arguments.
         """
         parser = argparse.ArgumentParser()
         cls.add_args(parser)

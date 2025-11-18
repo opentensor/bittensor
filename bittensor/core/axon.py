@@ -607,7 +607,7 @@ class Axon:
         Parses the command-line arguments to form a Bittensor configuration object.
 
         Returns:
-            bittensor.core.config.Config: Configuration object with settings from command-line arguments.
+            Configuration object with settings from command-line arguments.
         """
         parser = argparse.ArgumentParser()
         Axon.add_args(parser)  # Add specific axon-related arguments

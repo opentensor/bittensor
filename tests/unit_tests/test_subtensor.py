@@ -410,7 +410,7 @@ def normalize_hyperparameters(
     """
     Normalizes the hyperparameters of a subnet.
 
-    Args:
+    Parameters:
         subnet: The subnet hyperparameters object.
 
     Returns:
