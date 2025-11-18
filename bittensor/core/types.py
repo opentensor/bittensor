@@ -612,11 +612,7 @@ class ExtrinsicResponse:
             block_number,
             triggered_events,
             is_success,
-        ) = (
-            await asyncio.gather(*gather_tasks)
-            if receipt.block_hash is not None
-            else (None, None, None, None, None, None, None)
-        )
+        ) = await asyncio.gather(*gather_tasks)
 
         self.extrinsic_receipt = SDKExtrinsicReceipt(
             block_hash=receipt.block_hash,

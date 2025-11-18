@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Optional, Union
 
 from bittensor.core.chain_data.proxy import ProxyType
 from bittensor.core.extrinsics.pallets import Proxy
+from bittensor.core.extrinsics.utils import apply_pure_proxy_data
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.btlogging import logging
 
@@ -273,22 +274,12 @@ def create_pure_proxy_extrinsic(
             logging.debug("[green]Pure proxy created successfully.[/green]")
 
             # Extract pure proxy address from PureCreated triggered event
-            for event in response.extrinsic_receipt.triggered_events:
-                if event.get("event_id") == "PureCreated":
-                    # Event structure: PureProxyCreated { disambiguation_index, proxy_type, pure, who }
-                    attributes = event.get("attributes", [])
-                    if attributes:
-                        response.data = {
-                            "pure_account": attributes.get("pure"),
-                            "spawner": attributes.get("who"),
-                            "proxy_type": attributes.get("proxy_type"),
-                            "index": attributes.get("disambiguation_index"),
-                            "height": subtensor.substrate.get_block_number(
-                                response.extrinsic_receipt.block_hash
-                            ),
-                            "ext_index": response.extrinsic_receipt.extrinsic_idx,
-                        }
-                    break
+            block_number = subtensor.substrate.get_block_number(
+                response.extrinsic_receipt.block_hash
+                if response.extrinsic_receipt
+                else None
+            )
+            response = apply_pure_proxy_data(response, block_number, raise_error)
         else:
             logging.error(f"[red]{response.message}[/red]")
 

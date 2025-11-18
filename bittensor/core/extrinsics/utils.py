@@ -145,3 +145,62 @@ def sudo_call_extrinsic(
 
     except Exception as error:
         return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
+
+
+def apply_pure_proxy_data(
+    response: ExtrinsicResponse, block_number: int, raise_error: bool
+) -> ExtrinsicResponse:
+    """Apply pure proxy data to the response object.
+
+    Parameters:
+        response: The response object to update.
+        block_number: The block number of the transaction.
+        raise_error: Whether to raise an error if the data cannot be applied successfully.
+
+    Returns:
+        True if the data was applied successfully, False otherwise.
+    """
+    # Extract pure proxy address from PureCreated triggered event if wait_for_inclusion is True.
+    # Otherwise extrinsic receipt data is not available.
+    if (
+        response.extrinsic_receipt is not None
+        and hasattr(response.extrinsic_receipt, "triggered_events")
+        and response.extrinsic_receipt.triggered_events is not None
+    ):
+        for event in response.extrinsic_receipt.triggered_events:
+            if event.get("event_id") == "PureCreated":
+                # Event structure: PureProxyCreated { disambiguation_index, proxy_type, pure, who }
+                attributes = event.get("attributes", [])
+                if attributes:
+                    response.data = {
+                        "pure_account": attributes.get("pure"),
+                        "spawner": attributes.get("who"),
+                        "proxy_type": attributes.get("proxy_type"),
+                        "index": attributes.get("disambiguation_index"),
+                        "height": block_number,
+                        "ext_index": response.extrinsic_receipt.extrinsic_idx,
+                    }
+                return response
+    message = (
+        f"The ExtrinsicResponse doesn't contain pure_proxy data (`pure_account`, `spawner`, `proxy_type`, etc.) "
+        f"because the extrinsic receipt doesn't have triggered events. This typically happens when "
+        f"`wait_for_inclusion=False` or when `block_hash` is not available. To get this data, either pass "
+        f"`wait_for_inclusion=True` when calling this function, or retrieve the data manually from the blockchain "
+        f"using the extrinsic hash."
+    )
+    if response.extrinsic is not None and hasattr(response.extrinsic, "extrinsic_hash"):
+        extrinsic_hash = response.extrinsic.extrinsic_hash
+        hash_str = (
+            extrinsic_hash.hex()
+            if hasattr(extrinsic_hash, "hex")
+            else str(extrinsic_hash)
+        )
+        message += f" Extrinsic hash: `{hash_str}`"
+
+    response.success = False
+    response.message = message
+
+    if raise_error:
+        raise RuntimeError(message)
+
+    return response.with_log("warning")
