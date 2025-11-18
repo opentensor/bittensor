@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 from abc import ABC
 from dataclasses import dataclass
 from typing import Any, Literal, Optional, TypedDict, Union, TYPE_CHECKING
@@ -24,8 +25,14 @@ if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.utils.balance import Balance
     from scalecodec.types import GenericExtrinsic
-    from async_substrate_interface.sync_substrate import ExtrinsicReceipt
-    from async_substrate_interface.async_substrate import AsyncExtrinsicReceipt
+    from async_substrate_interface.sync_substrate import (
+        ExtrinsicReceipt,
+        SubstrateInterface,
+    )
+    from async_substrate_interface.async_substrate import (
+        AsyncExtrinsicReceipt,
+        AsyncSubstrateInterface,
+    )
 
 
 # Type annotations for UIDs and weights.
@@ -277,6 +284,32 @@ class PrometheusServeCallParams(TypedDict):
 
 
 @dataclass
+class SDKExtrinsicReceipt:
+    """
+    A standardized receipt container for extrinsic execution results in the Bittensor SDK.
+
+    This dataclass encapsulates all relevant information about a submitted extrinsic transaction, including its
+    execution status, block information, triggered events, fees, and weight. It provides a unified interface for
+    accessing extrinsic receipt data regardless of whether the underlying substrate interface is sync or async.
+
+    Instances of this class are typically created from ``ExtrinsicReceipt`` or ``AsyncExtrinsicReceipt`` objects and
+    stored in ``ExtrinsicResponse.extrinsic_receipt`` for easy access to detailed transaction execution information.
+    """
+
+    block_hash: Optional[str]
+    block_number: Optional[int]
+    error_message: Optional[dict | Exception]
+    extrinsic_hash: Optional[str]
+    extrinsic_idx: Optional[int]
+    finalized: bool
+    is_success: Optional[bool]
+    substrate: "AsyncSubstrateInterface | SubstrateInterface"
+    total_fee_amount: Optional[int]
+    triggered_events: Optional[list]
+    weight: Optional[dict]
+
+
+@dataclass
 class ExtrinsicResponse:
     """
     A standardized response container for handling the extrinsic results submissions and related operations in the SDK.
@@ -353,9 +386,7 @@ class ExtrinsicResponse:
     extrinsic_function: Optional[str] = None
     extrinsic: Optional["GenericExtrinsic"] = None
     extrinsic_fee: Optional["Balance"] = None
-    extrinsic_receipt: Optional[Union["ExtrinsicReceipt", "AsyncExtrinsicReceipt"]] = (
-        None
-    )
+    extrinsic_receipt: Optional[SDKExtrinsicReceipt] = None
     transaction_tao_fee: Optional["Balance"] = None
     transaction_alpha_fee: Optional["Balance"] = None
     error: Optional[Exception] = None
@@ -501,6 +532,7 @@ class ExtrinsicResponse:
     @classmethod
     def from_exception(cls, raise_error: bool, error: Exception) -> "ExtrinsicResponse":
         """Check if error is raised and return ExtrinsicResponse accordingly.
+
         Parameters:
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             error: Exception raised during extrinsic execution.
@@ -535,6 +567,65 @@ class ExtrinsicResponse:
         if self.message:
             getattr(logging, level)(self.message)
         return self
+
+    def apply_extrinsic_receipt(self, receipt: "ExtrinsicReceipt"):
+        """Applies the receipt from ExtrinsicReceipt instance.
+
+        Parameters:
+            receipt: ExtrinsicReceipt instance.
+        """
+        self.extrinsic_receipt = SDKExtrinsicReceipt(
+            block_hash=receipt.block_hash,
+            block_number=receipt.block_number,
+            error_message=receipt.error_message,
+            extrinsic_hash=receipt.extrinsic_hash,
+            extrinsic_idx=receipt.extrinsic_idx,
+            finalized=receipt.finalized,
+            is_success=receipt.is_success,
+            substrate=receipt.substrate,
+            total_fee_amount=receipt.total_fee_amount,
+            triggered_events=receipt.triggered_events,
+            weight=receipt.weight,
+        )
+
+    async def async_apply_extrinsic_receipt(self, receipt: "AsyncExtrinsicReceipt"):
+        """Applies the receipt from AsyncExtrinsicReceipt instance.
+
+        Parameters:
+            receipt: AsyncExtrinsicReceipt instance.
+        """
+        (
+            error_message,
+            extrinsic_idx,
+            is_success,
+            total_fee_amount,
+            triggered_events,
+            weight,
+        ) = await asyncio.gather(
+            receipt.error_message,
+            receipt.extrinsic_idx,
+            receipt.is_success,
+            receipt.total_fee_amount,
+            receipt.triggered_events,
+            receipt.weight,
+        )
+        self.extrinsic_receipt = SDKExtrinsicReceipt(
+            block_hash=receipt.block_hash,
+            block_number=receipt.block_number,
+            error_message=error_message,
+            extrinsic_hash=receipt.extrinsic_hash,
+            extrinsic_idx=extrinsic_idx,
+            finalized=receipt.finalized,
+            is_success=is_success,
+            substrate=receipt.substrate,
+            total_fee_amount=total_fee_amount,
+            triggered_events=triggered_events,
+            weight=weight,
+        )
+        if not receipt.block_number:
+            self.extrinsic_receipt.block_number = (
+                await receipt.substrate.get_block_number(receipt.block_hash)
+            )
 
 
 @dataclass
