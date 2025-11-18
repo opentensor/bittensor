@@ -5284,7 +5284,7 @@ class AsyncSubtensor(SubtensorMixin):
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
-            extrinsic_response.extrinsic_receipt = response
+            await extrinsic_response.async_apply_extrinsic_receipt(response)
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
                 extrinsic_response.extrinsic_fee = await self.get_extrinsic_fee(
@@ -5296,14 +5296,14 @@ class AsyncSubtensor(SubtensorMixin):
                 logging.debug(extrinsic_response.message)
                 return extrinsic_response
 
-            if await response.is_success:
+            if extrinsic_response.extrinsic_receipt.is_success:
                 extrinsic_response.extrinsic_fee = Balance.from_rao(
-                    await response.total_fee_amount
+                    extrinsic_response.extrinsic_receipt.total_fee_amount
                 )
                 extrinsic_response.message = "Success"
                 return extrinsic_response
 
-            response_error_message = await response.error_message
+            response_error_message = extrinsic_response.extrinsic_receipt.error_message
 
             if raise_error:
                 raise ChainError.from_error(response_error_message)
