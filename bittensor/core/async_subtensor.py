@@ -5710,6 +5710,10 @@ class AsyncSubtensor(SubtensorMixin):
         This function enables neurons to increase their stake in the network, enhancing their influence and potential.
         When safe_staking is enabled, it provides protection against price fluctuations during the time stake is
         executed and the time it is actually processed by the chain.
+
+        Notes:
+            - Price Protection: <https://docs.learnbittensor.org/learn/price-protection>
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#staking-operations-rate-limits>
         """
         check_balance_amount(amount)
         return await add_stake_extrinsic(
@@ -5807,6 +5811,10 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Notes:
+            - Price Protection: <https://docs.learnbittensor.org/learn/price-protection>
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#staking-operations-rate-limits>
         """
         return await add_stake_multiple_extrinsic(
             subtensor=self,
@@ -5941,6 +5949,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Notes:
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#registration-rate-limits>
         """
         async with self:
             if netuid == 0:
@@ -6040,6 +6051,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Notes:
             - <https://docs.learnbittensor.org/glossary#commit-reveal>
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#weights-setting-rate-limit>
 
         """
         attempt = 0
@@ -6521,6 +6533,10 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Notes:
+            - Price Protection: <https://docs.learnbittensor.org/learn/price-protection>
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#staking-operations-rate-limits>
         """
         check_balance_amount(amount)
         return await move_stake_extrinsic(
@@ -6819,6 +6835,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         This function facilitates the entry of new neurons into the network, supporting the decentralized growth and
         scalability of the Bittensor ecosystem.
+
+        Notes:
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#registration-rate-limits>
         """
         return await register_extrinsic(
             subtensor=self,
@@ -6860,6 +6879,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Notes:
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#network-registration-rate-limit>
         """
         return await register_subnet_extrinsic(
             subtensor=self,
@@ -7094,6 +7116,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Notes:
             - <https://docs.learnbittensor.org/glossary#commit-reveal>
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#weights-setting-rate-limit>
 
         """
         attempt = 0
@@ -7150,6 +7173,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Notes:
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#registration-rate-limits>
         """
 
         return await root_register_extrinsic(
@@ -7280,6 +7306,9 @@ class AsyncSubtensor(SubtensorMixin):
             TxRateLimitExceeded: Hotkey hit the rate limit.
             bittensor_wallet.errors.KeyFileError: Failed to decode keyfile data.
             bittensor_wallet.errors.PasswordError: Decryption failed or wrong password for decryption provided.
+
+        Notes:
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#child-hotkey-operations-rate-limit>
         """
         return await set_children_extrinsic(
             subtensor=self,
@@ -7333,6 +7362,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         The delegate take is a critical parameter in the network's incentive structure, influencing the distribution of
         rewards among neurons and their nominators.
+
+        Notes:
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#delegate-take-rate-limit>
         """
         # u16 representation of the take
         take_u16 = int(take * 0xFFFF)
@@ -7511,6 +7543,7 @@ class AsyncSubtensor(SubtensorMixin):
 
             - <https://docs.learnbittensor.org/resources/glossary#yuma-consensus>
             - <https://docs.learnbittensor.org/concepts/commit-reveal>
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#weights-setting-rate-limit>
 
         """
         attempt = 0
@@ -7641,6 +7674,9 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse containing the success status and transaction details. On success, the response includes
             the external IP and port that were registered.
+
+        Notes:
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#serving-rate-limits>
         """
         return await serve_axon_extrinsic(
             subtensor=self,
@@ -7867,6 +7903,8 @@ class AsyncSubtensor(SubtensorMixin):
               increasing more than ``rate_tolerance``.
             - With ``allow_partial_stake=True``: A partial amount will be swapped up to the point where the price ratio
               would increase by ``rate_tolerance``.
+            - Price Protection: <https://docs.learnbittensor.org/learn/price-protection>
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#staking-operations-rate-limits>
 
             - <https://docs.learnbittensor.org/navigating-subtensor/swap-stake>
         """
@@ -8025,6 +8063,10 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Notes:
+            - Price Protection: <https://docs.learnbittensor.org/learn/price-protection>
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#staking-operations-rate-limits>
         """
         check_balance_amount(amount)
         return await transfer_stake_extrinsic(
@@ -8083,6 +8125,10 @@ class AsyncSubtensor(SubtensorMixin):
 
         This function supports flexible stake management, allowing neurons to adjust their network participation and
         potential reward accruals.
+
+        Notes:
+            - Price Protection: <https://docs.learnbittensor.org/learn/price-protection>
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#staking-operations-rate-limits>
         """
         check_balance_amount(amount)
         return await unstake_extrinsic(
@@ -8176,6 +8222,7 @@ class AsyncSubtensor(SubtensorMixin):
         Notes:
             - Slippage: <https://docs.learnbittensor.org/learn/slippage>
             - Price Protection: <https://docs.learnbittensor.org/learn/price-protection>
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#staking-operations-rate-limits>
             - Managing Stake with SDK: <https://docs.learnbittensor.org/staking-and-delegation/managing-stake-sdk>
 
         """
@@ -8226,6 +8273,7 @@ class AsyncSubtensor(SubtensorMixin):
         Notes:
             - Slippage: <https://docs.learnbittensor.org/learn/slippage>
             - Price Protection: <https://docs.learnbittensor.org/learn/price-protection>
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#staking-operations-rate-limits>
             - Managing Stake with SDK: <https://docs.learnbittensor.org/staking-and-delegation/managing-stake-sdk>
 
         """
