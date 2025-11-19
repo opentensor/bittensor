@@ -3001,7 +3001,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> list[int]:
-        """Retrieves a list of subnet UIDs (netuids) for which a given hotkey is a member. This function identifies the
+        """Retrieves a list of subnet UIDs (netuids) where a given hotkey is a member. This function identifies the
         specific subnets within the Bittensor network where the neuron associated with the hotkey is active.
 
         Parameters:
@@ -3526,24 +3526,29 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> str:
-        """Retrieves the root claim type for a given coldkey address.
+        """Return the configured root claim type for a given coldkey.
 
-        The root claim type determines how dividends from staking to the ROOT network (subnet 0) are handled:
-        - "Swap": Future Root Alpha Emissions are swapped to TAO at claim time and added to your root stake
-        - "Keep": Future Root Alpha Emissions are kept as Alpha
+        The root claim type controls how dividends from staking to the Root Subnet (subnet 0) are processed when they
+        are claimed:
+
+        - ``"Swap"`` (default): Alpha dividends are swapped to TAO at claim time and restaked on the root subnet.
+        - ``"Keep"``: Alpha dividends remain as Alpha on the originating subnets.
 
         Parameters:
-            coldkey_ss58: The ss58 address of the coldkey.
+            coldkey_ss58: The SS58 address of the coldkey whose root claim preference to query.
             block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
+            block_hash: The block hash at which to query the claim type. Do not specify if using ``block`` or
                 ``reuse_block``.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not specify if using ``block`` or ``block_hash``.
 
         Returns:
-            RootClaimType value in string representation. Could be `Swap` or `Keep`.
+            The root claim type as a string, either ``"Swap"`` or ``"Keep"``.
 
         Notes:
-            - <https://docs.learnbittensor.org/staking-and-delegation/root-claims>
+            - The claim type applies to both automatic and manual root claims; it does not affect the original TAO stake
+              on subnet 0, only how Alpha dividends are treated.
+            - See: <https://docs.learnbittensor.org/staking-and-delegation/root-claims>
+            - See also: <https://docs.learnbittensor.org/staking-and-delegation/root-claims/managing-root-claims>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self.substrate.query(
@@ -3563,18 +3568,26 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> float:
-        """Retrieves the root claimable rate from a given hotkey address for provided netuid.
+        """Return the fraction of root stake currently claimable on a subnet.
+
+        This method returns a normalized rate representing how much Alpha dividends are currently claimable on the given
+        subnet relative to the validator's root stake. It is primarily a low-level helper; most users should call
+        :meth:`get_root_claimable_stake` instead to obtain a Balance.
 
         Parameters:
-            hotkey_ss58: The ss58 address of the root validator.
-            netuid: The unique identifier of the subnet to get the rate.
+            hotkey_ss58: The SS58 address of the root validator hotkey.
+            netuid: The unique identifier of the subnet whose claimable rate to compute.
             block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
-                ``reuse_block``.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
+            block_hash: The block hash at which to query. Do not specify if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not specify if using ``block`` or ``block_hash``.
 
         Returns:
-            The rate of claimable stake from validator's hotkey ss58 address for provided subnet.
+            A float representing the claimable rate for this subnet (approximately in the range ``[0.0, 1.0]``). A value
+            of 0.0 means there are currently no claimable Alpha dividends on the subnet.
+
+        Notes:
+            - Use :meth:`get_root_claimable_stake` to retrieve the actual claimable amount as a ``Balance`` object.
+            - See: <https://docs.learnbittensor.org/staking-and-delegation/root-claims/managing-root-claims>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         all_rates = await self.get_root_claimable_all_rates(
@@ -3593,14 +3606,17 @@ class AsyncSubtensor(SubtensorMixin):
         """Retrieves all root claimable rates from a given hotkey address for all subnets with this validator.
 
         Parameters:
-            hotkey_ss58: The ss58 address of the root validator.
+            hotkey_ss58: The SS58 address of the root validator hotkey.
             block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
-                ``reuse_block``.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
+            block_hash: The block hash at which to query. Do not specify if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not specify if using ``block`` or ``block_hash``.
 
         Returns:
-            The rate of claimable stake from validator's hotkey ss58 address for provided subnet.
+            Dictionary mapping ``netuid`` to a float claimable rate (approximately in the range ``[0.0, 1.0]``) for that
+            subnet. Missing entries imply no claimable Alpha dividends for that subnet.
+
+        Notes:
+            - See: <https://docs.learnbittensor.org/staking-and-delegation/root-claims/managing-root-claims>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self.substrate.query(
@@ -3622,23 +3638,27 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Balance:
-        """
-        Retrieves the root claimable stake for a given coldkey address.
+        """Return the currently claimable Alpha staking dividends for a coldkey from a root validator on a subnet.
 
         Parameters:
-            coldkey_ss58: Delegate's ColdKey ss58 address.
-            hotkey_ss58: The root validator hotkey ss58 address.
-            netuid: Delegate's netuid where stake will be claimed.
+            coldkey_ss58: The SS58 address of the delegator's coldkey.
+            hotkey_ss58: The SS58 address of the root validator hotkey.
+            netuid: The subnet ID where Alpha dividends will be claimed.
             block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
-                ``reuse_block``.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
+            block_hash: The block hash at which to query. Do not specify if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not specify if using ``block`` or ``block_hash``.
 
         Returns:
-            Available for claiming root stake.
+            ``Balance`` representing the Alpha stake currently available to claim on the specified subnet (unit is the
+            subnet's Alpha token).
 
-        Note:
-            After manual claim, claimable (available) stake will be added to subtends stake.
+        Notes:
+            - After a successful manual or automatic claim, this value typically drops to zero for that subnet until new
+              dividends accumulate.
+            - The underlying TAO stake on the Root Subnet remains unaffected; only Alpha dividends are moved or swapped
+              according to the configured root claim type.
+            - See: <https://docs.learnbittensor.org/staking-and-delegation/root-claims>
+            - See also: <https://docs.learnbittensor.org/staking-and-delegation/root-claims/managing-root-claims>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         root_stake = await self.get_stake(
@@ -3680,19 +3700,22 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Balance:
-        """Retrieves the root claimed Alpha shares for coldkey from hotkey in provided subnet.
+        """Return the total Alpha dividends already claimed for a coldkey from a root validator on a subnet.
 
         Parameters:
-            coldkey_ss58: The ss58 address of the staker.
-            hotkey_ss58: The ss58 address of the root validator.
+            coldkey_ss58: The SS58 address of the delegator's coldkey.
+            hotkey_ss58: The SS58 address of the root validator hotkey.
             netuid: The unique identifier of the subnet.
             block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
-            block_hash: The block hash at which to check the parameter. Do not set if using ``block`` or
-                ``reuse_block``.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
+            block_hash: The block hash at which to query. Do not specify if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not specify if using ``block`` or ``block_hash``.
 
         Returns:
-            The number of Alpha stake claimed from the root validator in Rao.
+            ``Balance`` representing the cumulative Alpha stake that has already been claimed from the root validator on
+            the specified subnet.
+
+        Notes:
+            - See: <https://docs.learnbittensor.org/staking-and-delegation/root-claims/managing-root-claims>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self.substrate.query(
@@ -5983,20 +6006,28 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
     ):
-        """Claims the root emissions for a coldkey.
+        """Submit an extrinsic to manually claim accumulated root dividends from one or more subnets.
 
         Parameters:
-            wallet: Bittensor Wallet instance.
-            netuids: The netuids to claim root emissions for.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
-                can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
-            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
-            wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wallet: Bittensor ``Wallet`` instance.
+            netuids: Iterable of subnet IDs to claim from in this call (the chain enforces a maximum number per
+                transaction).
+            period: Number of blocks during which the transaction remains valid after submission. If the extrinsic is
+                not included in a block within this window, it will expire and be rejected.
+            raise_error: Whether to raise a Python exception instead of returning a failed ``ExtrinsicResponse``.
+            wait_for_inclusion: Whether to wait until the extrinsic is included in a block before returning.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic in a block before returning.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            ``ExtrinsicResponse`` describing the result of the extrinsic execution.
+
+        Notes:
+            - Only Alpha dividends are claimed; the underlying TAO stake on the Root Subnet remains unchanged.
+            - The current root claim type (``"Swap"`` or ``"Keep"``) determines whether claimed Alpha is converted to
+              TAO and restaked on root or left as Alpha on the originating subnets.
+            - See: <https://docs.learnbittensor.org/staking-and-delegation/root-claims>
+            - See also: <https://docs.learnbittensor.org/staking-and-delegation/root-claims/managing-root-claims>
+            - Transaction fees: <https://docs.learnbittensor.org/learn/fees>
         """
         return await claim_root_extrinsic(
             subtensor=self,
@@ -7406,20 +7437,33 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
     ):
-        """Sets the root claim type for the coldkey in provided wallet.
+        """Submit an extrinsic to set the root claim type for the wallet's coldkey.
+
+        The root claim type determines how future Alpha dividends from subnets are handled when they are claimed for
+        the wallet's coldkey:
+
+        - ``"Swap"``: Alpha dividends are swapped to TAO at claim time and restaked on the Root Subnet (default).
+        - ``"Keep"``: Alpha dividends remain as Alpha on the originating subnets.
 
         Parameters:
-            wallet: Bittensor Wallet instance.
-            new_root_claim_type: The new root claim type to set. Could be either "Swap" or "Keep".
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
-                can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
-            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
-            wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wallet: Bittensor ``Wallet`` instance.
+            new_root_claim_type: The new root claim type to set, either ``"Swap"`` or ``"Keep"``.
+            period: Number of blocks during which the transaction remains valid after submission. If the extrinsic is
+                not included in a block within this window, it will expire and be rejected.
+            raise_error: Whether to raise a Python exception instead of returning a failed ``ExtrinsicResponse``.
+            wait_for_inclusion: Whether to wait until the extrinsic is included in a block before returning.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic in a block before returning.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            ``ExtrinsicResponse`` describing the result of the extrinsic execution.
+
+        Notes:
+            - This setting applies to both automatic and manual root claims going forward; it does not retroactively
+              change how already-claimed dividends were processed.
+            - Only the treatment of Alpha dividends is affected; the underlying TAO stake on the Root Subnet is
+              unchanged.
+            - See: <https://docs.learnbittensor.org/staking-and-delegation/root-claims>
+            - See also: <https://docs.learnbittensor.org/staking-and-delegation/root-claims/managing-root-claims>
         """
         return await set_root_claim_type_extrinsic(
             subtensor=self,
