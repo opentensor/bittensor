@@ -1249,10 +1249,10 @@ class Subtensor(SubtensorMixin):
 
         Example::
 
-        {
-            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY": ( (12, "Alice message 1"), (152, "Alice message 2") ),
-            "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty": ( (12, "Bob message 1"), (147, "Bob message 2") ),
-        }
+            {
+                "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY": ( (12, "Alice message 1"), (152, "Alice message 2") ),
+                "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty": ( (12, "Bob message 1"), (147, "Bob message 2") ),
+            }
 
         Notes:
             - <https://docs.learnbittensor.org/glossary#commit-reveal>
@@ -4248,11 +4248,10 @@ class Subtensor(SubtensorMixin):
             True if the target block was reached, False if timeout occurred.
 
         Example:
-            import bittensor as bt
-            subtensor = bt.Subtensor()
+            
+            # Waits for a specific block
 
-            subtensor.wait_for_block() # Waits for the next block
-            subtensor.wait_for_block(block=1234) # Waits for a specific block
+            subtensor.wait_for_block(block=1234) 
         """
 
         def handler(block_data: dict):
@@ -6577,10 +6576,12 @@ class Subtensor(SubtensorMixin):
 
         Example:
             # Commit some data to subnet 1
-            success = await subtensor.commit(wallet=my_wallet, netuid=1, data="Hello Bittensor!")
+
+            response = await subtensor.commit(wallet=my_wallet, netuid=1, data="Hello Bittensor!")
 
             # Commit with custom period
-            success = await subtensor.commit(wallet=my_wallet, netuid=1, data="Model update v2.0", period=100)
+
+            response = await subtensor.commit(wallet=my_wallet, netuid=1, data="Model update v2.0", period=100)
 
         Note: See <https://docs.learnbittensor.org/glossary#commit-reveal>
         """

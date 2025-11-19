@@ -5307,8 +5307,8 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example::
 
-
-            await subtensor.wait_for_block(block=1234) # Waits for a specific block
+            # Waits for a specific block
+            await subtensor.wait_for_block(block=1234) 
         """
 
         async def handler(block_data: dict):
