@@ -1,12 +1,12 @@
 import argparse
 import datetime
 import unittest.mock as mock
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, ANY
 
 import pytest
 import websockets
 from async_substrate_interface import sync_substrate
-from async_substrate_interface.types import ScaleObj
+from async_substrate_interface.types import ScaleObj, Runtime
 from bittensor_wallet import Wallet
 from scalecodec import GenericCall
 
@@ -410,7 +410,7 @@ def normalize_hyperparameters(
     """
     Normalizes the hyperparameters of a subnet.
 
-    Args:
+    Parameters:
         subnet: The subnet hyperparameters object.
 
     Returns:
@@ -3161,8 +3161,34 @@ def test_get_metagraph_info_all_fields(subtensor, mocker):
         "runtime_call",
         return_value=mocker.Mock(value=mock_value),
     )
+    mock_chain_head = mocker.patch.object(
+        subtensor.substrate,
+        "get_chain_head",
+        return_value="0xfakechainhead",
+    )
     mock_from_dict = mocker.patch.object(
         subtensor_module.MetagraphInfo, "from_dict", return_value="parsed_metagraph"
+    )
+    mocked_runtime_metadata_v15 = {
+        "apis": [
+            {
+                "name": "SubnetInfoRuntimeApi",
+                "methods": [
+                    {"name": "get_selective_metagraph"},
+                    {"name": "get_metagraph"},
+                    {"name": "get_selective_mechagraph"},
+                ],
+            },
+        ]
+    }
+    mocked_runtime = mocker.Mock(spec=Runtime)
+    mocked_metadata = mocker.Mock()
+    mocked_metadata.value.return_value = mocked_runtime_metadata_v15
+    mocked_runtime.metadata_v15 = mocked_metadata
+    mocker.patch.object(
+        subtensor.substrate,
+        "init_runtime",
+        return_value=mocked_runtime,
     )
 
     # Call
@@ -3176,7 +3202,7 @@ def test_get_metagraph_info_all_fields(subtensor, mocker):
         api="SubnetInfoRuntimeApi",
         method="get_selective_mechagraph",
         params=[netuid, default_mechid, SelectiveMetagraphIndex.all_indices()],
-        block_hash=subtensor.determine_block_hash(None),
+        block_hash=mock_chain_head.return_value,
     )
     mock_from_dict.assert_called_once_with(mock_value)
 
@@ -3193,6 +3219,32 @@ def test_get_metagraph_info_specific_fields(subtensor, mocker):
         subtensor.substrate,
         "runtime_call",
         return_value=mocker.Mock(value=mock_value),
+    )
+    mock_chain_head = mocker.patch.object(
+        subtensor.substrate,
+        "get_chain_head",
+        return_value="0xfakechainhead",
+    )
+    mocked_runtime_metadata_v15 = {
+        "apis": [
+            {
+                "name": "SubnetInfoRuntimeApi",
+                "methods": [
+                    {"name": "get_selective_metagraph"},
+                    {"name": "get_metagraph"},
+                    {"name": "get_selective_mechagraph"},
+                ],
+            },
+        ]
+    }
+    mocked_runtime = mocker.Mock(spec=Runtime)
+    mocked_metadata = mocker.Mock()
+    mocked_metadata.value.return_value = mocked_runtime_metadata_v15
+    mocked_runtime.metadata_v15 = mocked_metadata
+    mocker.patch.object(
+        subtensor.substrate,
+        "init_runtime",
+        return_value=mocked_runtime,
     )
     mock_from_dict = mocker.patch.object(
         subtensor_module.MetagraphInfo, "from_dict", return_value="parsed_metagraph"
@@ -3214,7 +3266,7 @@ def test_get_metagraph_info_specific_fields(subtensor, mocker):
                 f.value if isinstance(f, SelectiveMetagraphIndex) else f for f in fields
             ],
         ],
-        block_hash=subtensor.determine_block_hash(None),
+        block_hash=mock_chain_head.return_value,
     )
     mock_from_dict.assert_called_once_with(mock_value)
 
@@ -3228,6 +3280,27 @@ def test_get_metagraph_info_subnet_not_exist(subtensor, mocker):
         "runtime_call",
         return_value=None,
     )
+    mocked_runtime_metadata_v15 = {
+        "apis": [
+            {
+                "name": "SubnetInfoRuntimeApi",
+                "methods": [
+                    {"name": "get_selective_metagraph"},
+                    {"name": "get_metagraph"},
+                    {"name": "get_selective_mechagraph"},
+                ],
+            },
+        ]
+    }
+    mocked_runtime = mocker.Mock(spec=Runtime)
+    mocked_metadata = mocker.Mock()
+    mocked_metadata.value.return_value = mocked_runtime_metadata_v15
+    mocked_runtime.metadata_v15 = mocked_metadata
+    mocker.patch.object(
+        subtensor.substrate,
+        "init_runtime",
+        return_value=mocked_runtime,
+    )
 
     mocked_logger = mocker.Mock()
     mocker.patch("bittensor.core.subtensor.logging.error", new=mocked_logger)
@@ -3237,6 +3310,68 @@ def test_get_metagraph_info_subnet_not_exist(subtensor, mocker):
     assert result is None
     mocked_logger.assert_called_once_with(
         f"Subnet mechanism {netuid}.{default_mechid} does not exist."
+    )
+
+
+@pytest.mark.parametrize(
+    "block,selected_indices,expected",
+    [
+        (5_500_000, [1, 2], "get_selective_metagraph"),
+        (5_500_000, None, "get_metagraph"),
+        (6_500_000, [1, 2], "get_selective_metagraph"),
+        (6_500_000, None, "get_metagraph"),
+        (6_800_000, [1, 2], "get_selective_mechagraph"),
+        (6_800_000, None, "get_selective_mechagraph"),
+    ],
+)
+def test_get_metagraph_info_older_runtime_version(
+    subtensor, mocker, block, selected_indices, expected
+):
+    """Test get_metagraph_info with older runtime version."""
+    netuid = 0
+    mock_chain_head = mocker.patch.object(
+        subtensor,
+        "determine_block_hash",
+        return_value=str(block),
+    )
+    mocked_runtime_call = mocker.patch.object(
+        subtensor.substrate,
+        "runtime_call",
+    )
+    mocked_runtime_metadata_v15 = {
+        "apis": [
+            {
+                "name": "SubnetInfoRuntimeApi",
+                "methods": [
+                    {"name": "get_selective_metagraph"},
+                    {"name": "get_metagraph"},
+                ],
+            },
+        ]
+    }
+    if block == 6_800_000:
+        # only the newer block should have 'mechagraph' runtime
+        mocked_runtime_metadata_v15["apis"][0]["methods"].append(
+            {"name": "get_selective_mechagraph"}
+        )
+    mocked_runtime = mocker.Mock(spec=Runtime)
+    mocked_metadata = mocker.Mock()
+    mocked_metadata.value.return_value = mocked_runtime_metadata_v15
+    mocked_runtime.metadata_v15 = mocked_metadata
+    mocker.patch.object(
+        subtensor.substrate,
+        "init_runtime",
+        return_value=mocked_runtime,
+    )
+    mocker.patch.object(
+        subtensor_module.MetagraphInfo, "from_dict", return_value="parsed_metagraph"
+    )
+    subtensor.get_metagraph_info(netuid=netuid, selected_indices=selected_indices)
+    mocked_runtime_call.assert_called_once_with(
+        api="SubnetInfoRuntimeApi",
+        method=expected,
+        params=ANY,
+        block_hash=mock_chain_head.return_value,
     )
 
 

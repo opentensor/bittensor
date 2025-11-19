@@ -1,6 +1,8 @@
+import pytest
+
 from bittensor.core.chain_data.proxy import ProxyType
 from bittensor.core.extrinsics.pallets import SubtensorModule, Proxy, Balances
-import pytest
+from bittensor.utils.balance import Balance
 
 
 def test_proxy_and_errors(subtensor, alice_wallet, bob_wallet, charlie_wallet):
@@ -1479,3 +1481,383 @@ async def test_poke_deposit_async(
     )
     # Deposit should match or be adjusted based on current requirements
     assert final_deposit >= 0
+
+
+def test_kill_pure_proxy_by_non_spawner_with_multiple_proxies(
+    subtensor, alice_wallet, bob_wallet, charlie_wallet
+):
+    """Tests kill_pure_proxy when pure proxy has multiple proxy delegates.
+
+    This test verifies a multi-signature delegation scenario where a pure proxy account has multiple proxy delegates
+    (Alice and Charlie), and one of them (Charlie) can successfully kill the pure proxy even though it was created by a
+    different account (Bob). This demonstrates that:
+        - Multiple accounts can be proxy delegates for the same pure proxy
+        - Any proxy delegate can kill the pure proxy (not just the spawner)
+        - spawner parameter does not need to match wallet.coldkey.ss58_address
+
+    The test scenario:
+        - Bob creates a pure proxy account (spawner = Bob)
+        - Pure proxy adds Alice as a proxy delegate with ProxyType.Any
+        - Pure proxy adds Charlie as a proxy delegate with ProxyType.Any
+        - Pure proxy now has two proxy delegates: Alice and Charlie
+        - Charlie kills the pure proxy using kill_pure_proxy() with spawner=Bob but wallet=Charlie
+        - This verifies that spawner != wallet.coldkey.ss58_address is valid even in multi-proxy scenarios
+
+    Steps:
+        - Create pure proxy with ProxyType.Any, delay=0, and index=0 using Bob's wallet (spawner = Bob).
+        - Extract pure proxy address, spawner, and creation metadata from response.data.
+        - Verify spawner matches Bob's address and does not match Charlie's address.
+        - Fund the pure proxy account so it can execute transactions.
+        - Add Alice as a proxy for the pure proxy account. This is done by calling add_proxy through proxy() where Bob
+            acts as "Any" proxy for the pure proxy account to execute add_proxy on behalf of pure proxy.
+        - Verify Alice is now listed as a proxy delegate for the pure proxy account with ProxyType.Any.
+        - Add Charlie as a proxy for the pure proxy account using the same method (Bob acts as proxy for pure proxy).
+        - Verify Charlie is now listed as a proxy delegate for the pure proxy account with ProxyType.Any.
+        - Verify pure proxy now has two proxy delegates (Alice and Charlie).
+        - Verify that spawner (Bob) != wallet.coldkey.ss58_address (Charlie) for the upcoming kill_pure_proxy call.
+        - Kill the pure proxy using kill_pure_proxy() with wallet=Charlie but spawner=Bob. This demonstrates that in a
+            multi-proxy scenario, any proxy delegate can kill the pure proxy, not just the spawner.
+        - Verify the kill operation succeeds.
+        - Verify pure proxy is killed by attempting to use it and confirming it returns a NotProxy error.
+        - Verify that both Alice and Bob can no longer use the killed pure proxy (all proxy relationships are removed
+            when pure proxy is killed).
+    """
+    spawner_wallet = bob_wallet
+    proxy_delegate1_wallet = alice_wallet
+    proxy_delegate2_wallet = charlie_wallet
+    proxy_type = ProxyType.Any
+    delay = 0
+    index = 0
+
+    # === Create pure proxy (Bob creates it) ===
+    response = subtensor.proxies.create_pure_proxy(
+        wallet=spawner_wallet,
+        proxy_type=proxy_type,
+        delay=delay,
+        index=index,
+    )
+    assert response.success, response.message
+
+    # === Extract pure proxy data ===
+    pure_account = response.data.get("pure_account")
+    spawner = response.data.get("spawner")
+    proxy_type_from_response = response.data.get("proxy_type")
+    index_from_response = response.data.get("index")
+    height = response.data.get("height")
+    ext_index = response.data.get("ext_index")
+
+    # === Verify spawner is Bob ===
+    assert spawner == spawner_wallet.coldkey.ss58_address
+    assert spawner != proxy_delegate2_wallet.coldkey.ss58_address
+
+    fund_amount = Balance.from_tao(1.0)
+    response = subtensor.wallets.transfer(
+        wallet=spawner_wallet,
+        destination_ss58=pure_account,
+        amount=fund_amount,
+    )
+    assert response.success, f"Failed to fund pure proxy account: {response.message}."
+
+    # === Pure proxy adds Alice as a proxy (through Bob acting as proxy for pure proxy) ===
+    add_proxy_alice_call = Proxy(subtensor).add_proxy(
+        delegate=proxy_delegate1_wallet.coldkey.ss58_address,
+        proxy_type=ProxyType.Any.value,
+        delay=0,
+    )
+
+    response = subtensor.proxies.proxy(
+        wallet=spawner_wallet,  # Bob signs the transaction
+        real_account_ss58=pure_account,  # Pure proxy is the origin
+        force_proxy_type=ProxyType.Any,  # Bob acts as Any proxy for pure proxy
+        call=add_proxy_alice_call,
+    )
+    assert response.success, (
+        f"Failed to add Alice as proxy for pure proxy: {response.message}."
+    )
+
+    # === Verify Alice is now a proxy for pure proxy ===
+    proxies, _ = subtensor.proxies.get_proxies_for_real_account(
+        real_account_ss58=pure_account
+    )
+    assert any(
+        p.delegate == proxy_delegate1_wallet.coldkey.ss58_address
+        and p.proxy_type == ProxyType.Any
+        for p in proxies
+    ), "Alice should be a proxy for pure proxy."
+
+    # === Pure proxy adds Charlie as a proxy (through Bob acting as proxy for pure proxy) ===
+    add_proxy_charlie_call = Proxy(subtensor).add_proxy(
+        delegate=proxy_delegate2_wallet.coldkey.ss58_address,
+        proxy_type=ProxyType.Any.value,
+        delay=0,
+    )
+
+    response = subtensor.proxies.proxy(
+        wallet=spawner_wallet,  # Bob signs the transaction
+        real_account_ss58=pure_account,  # Pure proxy is the origin
+        force_proxy_type=ProxyType.Any,  # Bob acts as Any proxy for pure proxy
+        call=add_proxy_charlie_call,
+    )
+    assert response.success, (
+        f"Failed to add Charlie as proxy for pure proxy: {response.message}."
+    )
+
+    # === Verify Charlie is now a proxy for pure proxy ===
+    proxies, _ = subtensor.proxies.get_proxies_for_real_account(
+        real_account_ss58=pure_account
+    )
+    assert any(
+        p.delegate == proxy_delegate2_wallet.coldkey.ss58_address
+        and p.proxy_type == ProxyType.Any
+        for p in proxies
+    ), "Charlie should be a proxy for pure proxy."
+
+    # === Verify pure proxy has multiple proxies ===
+    proxies, _ = subtensor.proxies.get_proxies_for_real_account(
+        real_account_ss58=pure_account
+    )
+    assert len(proxies) >= 2, "Pure proxy should have at least two proxy delegates."
+    assert any(
+        p.delegate == proxy_delegate1_wallet.coldkey.ss58_address for p in proxies
+    )
+    assert any(
+        p.delegate == proxy_delegate2_wallet.coldkey.ss58_address for p in proxies
+    )
+
+    # === Charlie kills the pure proxy (spawner=Bob, wallet=Charlie) ===
+    # This verifies that spawner != wallet.coldkey.ss58_address
+    assert spawner != proxy_delegate2_wallet.coldkey.ss58_address, (
+        "Spawner should be different from wallet for this test."
+    )
+
+    response = subtensor.proxies.kill_pure_proxy(
+        wallet=proxy_delegate2_wallet,  # Charlie signs the transaction
+        pure_proxy_ss58=pure_account,
+        spawner=spawner,  # Bob is the spawner (who created the pure proxy)
+        proxy_type=proxy_type_from_response,
+        index=index_from_response,
+        height=height,
+        ext_index=ext_index,
+    )
+    assert response.success, (
+        f"Charlie should be able to kill pure proxy created by Bob: {response.message}."
+    )
+
+    # === Verify pure proxy is killed ===
+    # Attempt to use the killed pure proxy - should fail
+    simple_call = Balances(subtensor).transfer_keep_alive(
+        dest=alice_wallet.coldkey.ss58_address,
+        value=500,
+    )
+
+    # === Verify Bob can no longer use the killed pure proxy ===
+    response = subtensor.proxies.proxy(
+        wallet=spawner_wallet,
+        real_account_ss58=pure_account,  # Killed pure proxy account
+        force_proxy_type=ProxyType.Any,
+        call=simple_call,
+    )
+    assert not response.success, "Call through killed pure proxy should fail."
+    assert "NotProxy" in response.message
+
+    # === Verify Alice can no longer use the killed pure proxy ===
+    response = subtensor.proxies.proxy(
+        wallet=proxy_delegate1_wallet,
+        real_account_ss58=pure_account,  # Killed pure proxy account
+        force_proxy_type=ProxyType.Any,
+        call=simple_call,
+    )
+    assert not response.success, "Call through killed pure proxy should fail."
+    assert "NotProxy" in response.message
+
+
+@pytest.mark.asyncio
+async def test_kill_pure_proxy_by_non_spawner_with_multiple_proxies_async(
+    async_subtensor, alice_wallet, bob_wallet, charlie_wallet
+):
+    """Tests kill_pure_proxy when pure proxy has multiple proxy delegates with async implementation.
+
+    This test verifies a multi-signature delegation scenario where a pure proxy account has multiple proxy delegates
+    (Alice and Charlie), and one of them (Charlie) can successfully kill the pure proxy even though it was created by a
+    different account (Bob). This demonstrates that:
+        - Multiple accounts can be proxy delegates for the same pure proxy
+        - Any proxy delegate can kill the pure proxy (not just the spawner)
+        - spawner parameter does not need to match wallet.coldkey.ss58_address
+
+    The test scenario:
+        - Bob creates a pure proxy account (spawner = Bob)
+        - Pure proxy adds Alice as a proxy delegate with ProxyType.Any
+        - Pure proxy adds Charlie as a proxy delegate with ProxyType.Any
+        - Pure proxy now has two proxy delegates: Alice and Charlie
+        - Charlie kills the pure proxy using kill_pure_proxy() with spawner=Bob but wallet=Charlie
+        - This verifies that spawner != wallet.coldkey.ss58_address is valid even in multi-proxy scenarios
+
+    Steps:
+        - Create pure proxy with ProxyType.Any, delay=0, and index=0 using Bob's wallet (spawner = Bob).
+        - Extract pure proxy address, spawner, and creation metadata from response.data.
+        - Verify spawner matches Bob's address and does not match Charlie's address.
+        - Fund the pure proxy account so it can execute transactions.
+        - Add Alice as a proxy for the pure proxy account. This is done by calling add_proxy through proxy() where Bob
+            acts as "Any" proxy for the pure proxy account to execute add_proxy on behalf of pure proxy.
+        - Verify Alice is now listed as a proxy delegate for the pure proxy account with ProxyType.Any.
+        - Add Charlie as a proxy for the pure proxy account using the same method (Bob acts as proxy for pure proxy).
+        - Verify Charlie is now listed as a proxy delegate for the pure proxy account with ProxyType.Any.
+        - Verify pure proxy now has two proxy delegates (Alice and Charlie).
+        - Verify that spawner (Bob) != wallet.coldkey.ss58_address (Charlie) for the upcoming kill_pure_proxy call.
+        - Kill the pure proxy using kill_pure_proxy() with wallet=Charlie but spawner=Bob. This demonstrates that in a
+            multi-proxy scenario, any proxy delegate can kill the pure proxy, not just the spawner.
+        - Verify the kill operation succeeds.
+        - Verify pure proxy is killed by attempting to use it and confirming it returns a NotProxy error.
+        - Verify that both Alice and Bob can no longer use the killed pure proxy (all proxy relationships are removed
+            when pure proxy is killed).
+    """
+    spawner_wallet = bob_wallet
+    proxy_delegate1_wallet = alice_wallet
+    proxy_delegate2_wallet = charlie_wallet
+    proxy_type = ProxyType.Any
+    delay = 0
+    index = 0
+
+    # === Create pure proxy (Bob creates it) ===
+    response = await async_subtensor.proxies.create_pure_proxy(
+        wallet=spawner_wallet,
+        proxy_type=proxy_type,
+        delay=delay,
+        index=index,
+    )
+    assert response.success, response.message
+
+    # === Extract pure proxy data ===
+    pure_account = response.data.get("pure_account")
+    spawner = response.data.get("spawner")
+    proxy_type_from_response = response.data.get("proxy_type")
+    index_from_response = response.data.get("index")
+    height = response.data.get("height")
+    ext_index = response.data.get("ext_index")
+
+    # === Verify spawner is Bob ===
+    assert spawner == spawner_wallet.coldkey.ss58_address
+    assert spawner != proxy_delegate2_wallet.coldkey.ss58_address
+
+    # === Fund the pure proxy account ===
+    from bittensor.utils.balance import Balance
+
+    fund_amount = Balance.from_tao(1.0)
+    response = await async_subtensor.wallets.transfer(
+        wallet=spawner_wallet,
+        destination_ss58=pure_account,
+        amount=fund_amount,
+    )
+    assert response.success, f"Failed to fund pure proxy account: {response.message}."
+
+    # === Pure proxy adds Alice as a proxy (through Bob acting as proxy for pure proxy) ===
+    add_proxy_alice_call = await Proxy(async_subtensor).add_proxy(
+        delegate=proxy_delegate1_wallet.coldkey.ss58_address,
+        proxy_type=ProxyType.Any.value,
+        delay=0,
+    )
+
+    response = await async_subtensor.proxies.proxy(
+        wallet=spawner_wallet,  # Bob signs the transaction
+        real_account_ss58=pure_account,  # Pure proxy is the origin
+        force_proxy_type=ProxyType.Any,  # Bob acts as Any proxy for pure proxy
+        call=add_proxy_alice_call,
+    )
+    assert response.success, (
+        f"Failed to add Alice as proxy for pure proxy: {response.message}."
+    )
+
+    # === Verify Alice is now a proxy for pure proxy ===
+    proxies, _ = await async_subtensor.proxies.get_proxies_for_real_account(
+        real_account_ss58=pure_account
+    )
+    assert any(
+        p.delegate == proxy_delegate1_wallet.coldkey.ss58_address
+        and p.proxy_type == ProxyType.Any
+        for p in proxies
+    ), "Alice should be a proxy for pure proxy."
+
+    # === Pure proxy adds Charlie as a proxy (through Bob acting as proxy for pure proxy) ===
+    add_proxy_charlie_call = await Proxy(async_subtensor).add_proxy(
+        delegate=proxy_delegate2_wallet.coldkey.ss58_address,
+        proxy_type=ProxyType.Any.value,
+        delay=0,
+    )
+
+    response = await async_subtensor.proxies.proxy(
+        wallet=spawner_wallet,  # Bob signs the transaction
+        real_account_ss58=pure_account,  # Pure proxy is the origin
+        force_proxy_type=ProxyType.Any,  # Bob acts as Any proxy for pure proxy
+        call=add_proxy_charlie_call,
+    )
+    assert response.success, (
+        f"Failed to add Charlie as proxy for pure proxy: {response.message}."
+    )
+
+    # === Verify Charlie is now a proxy for pure proxy ===
+    proxies, _ = await async_subtensor.proxies.get_proxies_for_real_account(
+        real_account_ss58=pure_account
+    )
+    assert any(
+        p.delegate == proxy_delegate2_wallet.coldkey.ss58_address
+        and p.proxy_type == ProxyType.Any
+        for p in proxies
+    ), "Charlie should be a proxy for pure proxy."
+
+    # === Verify pure proxy has multiple proxies ===
+    proxies, _ = await async_subtensor.proxies.get_proxies_for_real_account(
+        real_account_ss58=pure_account
+    )
+    assert len(proxies) >= 2, "Pure proxy should have at least two proxy delegates."
+    assert any(
+        p.delegate == proxy_delegate1_wallet.coldkey.ss58_address for p in proxies
+    )
+    assert any(
+        p.delegate == proxy_delegate2_wallet.coldkey.ss58_address for p in proxies
+    )
+
+    # === Charlie kills the pure proxy (spawner=Bob, wallet=Charlie) ===
+    # This verifies that spawner != wallet.coldkey.ss58_address
+    assert spawner != proxy_delegate2_wallet.coldkey.ss58_address, (
+        "Spawner should be different from wallet for this test."
+    )
+
+    response = await async_subtensor.proxies.kill_pure_proxy(
+        wallet=proxy_delegate2_wallet,  # Charlie signs the transaction
+        pure_proxy_ss58=pure_account,
+        spawner=spawner,  # Bob is the spawner (who created the pure proxy)
+        proxy_type=proxy_type_from_response,
+        index=index_from_response,
+        height=height,
+        ext_index=ext_index,
+    )
+    assert response.success, (
+        f"Charlie should be able to kill pure proxy created by Bob: {response.message}."
+    )
+
+    # === Verify pure proxy is killed ===
+    # Attempt to use the killed pure proxy - should fail
+    simple_call = await Balances(async_subtensor).transfer_keep_alive(
+        dest=alice_wallet.coldkey.ss58_address,
+        value=500,
+    )
+
+    # === Verify Bob can no longer use the killed pure proxy ===
+    response = await async_subtensor.proxies.proxy(
+        wallet=spawner_wallet,
+        real_account_ss58=pure_account,  # Killed pure proxy account
+        force_proxy_type=ProxyType.Any,
+        call=simple_call,
+    )
+    assert not response.success, "Call through killed pure proxy should fail."
+    assert "NotProxy" in response.message
+
+    # === Verify Alice can no longer use the killed pure proxy ===
+    response = await async_subtensor.proxies.proxy(
+        wallet=proxy_delegate1_wallet,
+        real_account_ss58=pure_account,  # Killed pure proxy account
+        force_proxy_type=ProxyType.Any,
+        call=simple_call,
+    )
+    assert not response.success, "Call through killed pure proxy should fail."
+    assert "NotProxy" in response.message

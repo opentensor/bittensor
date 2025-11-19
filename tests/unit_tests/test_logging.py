@@ -38,7 +38,12 @@ def mock_config(tmp_path):
     log_file_path = log_dir / DEFAULT_LOG_FILE_NAME
 
     mock_config = LoggingConfig(
-        debug=False, trace=False, info=False, record_log=True, logging_dir=str(log_dir)
+        debug=False,
+        trace=False,
+        info=False,
+        record_log=True,
+        logging_dir=str(log_dir),
+        enable_third_party_loggers=False,
     )
 
     yield mock_config, log_file_path
@@ -141,7 +146,12 @@ def test_enable_file_logging_with_new_config(tmp_path):
 
     # check no file handler is created
     config = LoggingConfig(
-        debug=False, trace=False, info=False, record_log=True, logging_dir=None
+        debug=False,
+        trace=False,
+        info=False,
+        record_log=True,
+        logging_dir=None,
+        enable_third_party_loggers=False,
     )
     lm = LoggingMachine(config)
     assert not any(
@@ -150,7 +160,12 @@ def test_enable_file_logging_with_new_config(tmp_path):
 
     # check file handler now exists
     new_config = LoggingConfig(
-        debug=False, trace=False, info=False, record_log=True, logging_dir=str(log_dir)
+        debug=False,
+        trace=False,
+        info=False,
+        record_log=True,
+        logging_dir=str(log_dir),
+        enable_third_party_loggers=False,
     )
     lm.set_config(new_config)
     assert any(isinstance(handler, stdlogging.FileHandler) for handler in lm._handlers)
@@ -234,3 +249,108 @@ def test_logger_level(logging_machine, caplog):
 
     assert "info2" in caplog.text
     assert "warn2" in caplog.text
+
+
+def test_runtime_logging_dir_update(tmp_path):
+    """
+    Test that updating logging_dir at runtime correctly redirects output to the new path.
+    This test addresses issue #3128: runtime updates to logging_dir should redirect output.
+
+    The key test is that the file handler's path is updated when logging_dir changes.
+    """
+    import os
+    from logging.handlers import RotatingFileHandler
+
+    # Create initial logging directory
+    initial_log_dir = tmp_path / "logs1"
+    initial_log_dir.mkdir()
+    initial_log_file = initial_log_dir / DEFAULT_LOG_FILE_NAME
+
+    # Create second logging directory for runtime update
+    new_log_dir = tmp_path / "logs2"
+    new_log_dir.mkdir()
+    new_log_file = new_log_dir / DEFAULT_LOG_FILE_NAME
+
+    # Initialize LoggingMachine with initial directory
+    initial_config = LoggingConfig(
+        debug=False,
+        trace=False,
+        info=False,
+        record_log=True,
+        logging_dir=str(initial_log_dir),
+        enable_third_party_loggers=False,
+    )
+    lm = LoggingMachine(initial_config)
+
+    # Verify initial file handler exists and points to initial directory
+    file_handler = None
+    for handler in lm._handlers:
+        if isinstance(handler, RotatingFileHandler):
+            file_handler = handler
+            break
+
+    assert file_handler is not None
+    initial_path = os.path.abspath(file_handler.baseFilename)
+    assert initial_path == os.path.abspath(str(initial_log_file))
+
+    # Update logging_dir at runtime
+    new_config = LoggingConfig(
+        debug=False,
+        trace=False,
+        info=False,
+        record_log=True,
+        logging_dir=str(new_log_dir),
+        enable_third_party_loggers=False,
+    )
+    lm.set_config(new_config)
+
+    # Verify file handler now points to new directory (not old one)
+    file_handler = None
+    for handler in lm._handlers:
+        if isinstance(handler, RotatingFileHandler):
+            file_handler = handler
+            break
+
+    assert file_handler is not None
+    new_path = os.path.abspath(file_handler.baseFilename)
+    assert new_path == os.path.abspath(str(new_log_file))
+    # Verify it's NOT pointing to the old path
+    assert new_path != initial_path
+
+
+def test_runtime_disable_file_logging(tmp_path):
+    """
+    Test that disabling file logging at runtime correctly removes the file handler.
+    """
+    from logging.handlers import RotatingFileHandler
+
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+
+    # Initialize with file logging enabled
+    config = LoggingConfig(
+        debug=False,
+        trace=False,
+        info=False,
+        record_log=True,
+        logging_dir=str(log_dir),
+        enable_third_party_loggers=False,
+    )
+    lm = LoggingMachine(config)
+
+    # Verify file handler exists
+    assert any(isinstance(handler, RotatingFileHandler) for handler in lm._handlers)
+
+    # Disable file logging at runtime
+    new_config = LoggingConfig(
+        debug=False,
+        trace=False,
+        info=False,
+        record_log=False,
+        logging_dir=str(log_dir),
+        enable_third_party_loggers=False,
+    )
+    lm.set_config(new_config)
+
+    # Verify file handler is removed
+    assert not any(isinstance(handler, RotatingFileHandler) for handler in lm._handlers)

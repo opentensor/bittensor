@@ -397,16 +397,6 @@ async def kill_pure_proxy_extrinsic(
 
         proxy_type_str = ProxyType.normalize(proxy_type)
 
-        # Validate that spawner matches wallet
-        if wallet.coldkey.ss58_address != spawner:
-            error_msg = (
-                f"Spawner address {spawner} does not match wallet address "
-                f"{wallet.coldkey.ss58_address}"
-            )
-            if raise_error:
-                raise ValueError(error_msg)
-            return ExtrinsicResponse(False, error_msg)
-
         logging.debug(
             f"Killing pure proxy: pure=[blue]{pure_proxy_ss58}[/blue], "
             f"spawner=[blue]{spawner}[/blue], type=[blue]{proxy_type_str}[/blue], "
