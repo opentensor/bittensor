@@ -185,9 +185,8 @@ class Subtensor(SubtensorMixin):
         - **TAO**: The base network token; subnet 0 stake is in TAO
         - **Alpha**: Subnet-specific token representing some quantity of TAO staked into a subnet.
         - **Rao**: Smallest unit of TAO (1 TAO = 1e9 Rao)
-
-        See: Bittensor Glossary <https://docs.learnbittensor.org/glossary>
-        See: Wallets, Coldkeys and Hotkeys in Bittensor <https://docs.learnbittensor.org/keys/wallets>
+        - Bittensor Glossary <https://docs.learnbittensor.org/glossary>
+        - Wallets, Coldkeys and Hotkeys in Bittensor <https://docs.learnbittensor.org/keys/wallets>
 
     """
 
@@ -361,7 +360,7 @@ class Subtensor(SubtensorMixin):
             The block hash (hex string with ``0x`` prefix) if one can be determined, ``None`` otherwise.
 
         Notes:
-            See: <https://docs.learnbittensor.org/glossary#block>
+            - <https://docs.learnbittensor.org/glossary#block>
         """
         if block is None:
             return None
@@ -526,7 +525,7 @@ class Subtensor(SubtensorMixin):
             by parameter (int, float, bool, or Balance).
 
         Notes:
-            See: <https://docs.learnbittensor.org/subnets/subnet-hyperparameters>
+            - <https://docs.learnbittensor.org/subnets/subnet-hyperparameters>
         """
         block_hash = self.determine_block_hash(block)
         if not self.subnet_exists(netuid, block=block):
@@ -589,7 +588,6 @@ class Subtensor(SubtensorMixin):
             - **TAO**: Base network token; subnet 0 uses TAO directly
             - The returned fees do NOT include the extrinsic transaction fee
 
-            See:
             - Transaction Fees: <https://docs.learnbittensor.org/learn/fees>
             - Glossary: <https://docs.learnbittensor.org/glossary>
         """
@@ -871,7 +869,7 @@ class Subtensor(SubtensorMixin):
             The number of blocks since the last step in the subnet, or None if the query fails.
 
         Notes:
-            See: <https://docs.learnbittensor.org/glossary#epoch>
+            - <https://docs.learnbittensor.org/glossary#epoch>
         """
         query = self.query_subtensor(
             name="BlocksSinceLastStep", block=block, params=[netuid]
@@ -984,8 +982,8 @@ class Subtensor(SubtensorMixin):
             True if commit-reveal mechanism is enabled, False otherwise.
 
         Notes:
-            See also: <https://docs.learnbittensor.org/glossary#commit-reveal>
-            See: <https://docs.learnbittensor.org/subnets/subnet-hyperparameters>
+            - <https://docs.learnbittensor.org/glossary#commit-reveal>
+            - <https://docs.learnbittensor.org/subnets/subnet-hyperparameters>
         """
         call = self.get_hyperparameter(
             param_name="CommitRevealWeightsEnabled", block=block, netuid=netuid
@@ -1008,7 +1006,6 @@ class Subtensor(SubtensorMixin):
         Notes:
             Burn registration is much more common on Bittensor subnets currently, compared to POW registration.
 
-            See also:
             - <https://docs.learnbittensor.org/subnets/subnet-hyperparameters>
             - <https://docs.learnbittensor.org/validators#validator-registration>
             - <https://docs.learnbittensor.org/miners#miner-registration>
@@ -1037,7 +1034,7 @@ class Subtensor(SubtensorMixin):
             True if the hotkey has been associated with a coldkey, False otherwise.
 
         Notes:
-            See: <https://docs.learnbittensor.org/glossary#hotkey>
+            - <https://docs.learnbittensor.org/glossary#hotkey>
         """
         result = self.substrate.query(
             module="SubtensorModule",
@@ -1067,7 +1064,7 @@ class Subtensor(SubtensorMixin):
             The number of blocks in the administrative freeze window (default: 10 blocks, ~2 minutes).
 
         Notes:
-            See: <https://docs.learnbittensor.org/learn/chain-rate-limits#administrative-freeze-window>
+            - <https://docs.learnbittensor.org/learn/chain-rate-limits#administrative-freeze-window>
         """
 
         return self.substrate.query(
@@ -1193,7 +1190,7 @@ class Subtensor(SubtensorMixin):
             List of MetagraphInfo objects for all existing subnets.
 
         Notes:
-            See also: See <https://docs.learnbittensor.org/glossary#metagraph>
+            - <https://docs.learnbittensor.org/glossary#metagraph>
         """
         block_hash = self.determine_block_hash(block)
         method = "get_all_mechagraphs" if all_mechanisms else "get_all_metagraphs"
@@ -1224,7 +1221,7 @@ class Subtensor(SubtensorMixin):
         Notes:
             This method is used for certificate discovery to establish mutual TLS communication between neurons.
 
-            See: <https://docs.learnbittensor.org/subnets/neuron-tls-certificates>
+            - <https://docs.learnbittensor.org/subnets/neuron-tls-certificates>
         """
         query_certificates = self.query_map(
             module="SubtensorModule",
@@ -1258,7 +1255,6 @@ class Subtensor(SubtensorMixin):
         }
 
         Notes:
-            See also:
             - <https://docs.learnbittensor.org/glossary#commit-reveal>
 
         """
@@ -1320,7 +1316,7 @@ class Subtensor(SubtensorMixin):
                 - hotkey: The hotkey of the wallet.
 
         Notes:
-            See: <https://docs.learnbittensor.org/miners/autostaking>
+            - <https://docs.learnbittensor.org/miners/autostaking>
         """
         block_hash = self.determine_block_hash(block=block)
         query = self.substrate.query_map(
@@ -1397,15 +1393,13 @@ class Subtensor(SubtensorMixin):
     def get_current_block(self) -> int:
         """Returns the current block number on the Bittensor blockchain.
 
-        This function provides the latest block number, indicating the most recent state of the blockchain. Knowing
-        the current block number is essential for querying real-time data and performing time-sensitive operations on
-        the blockchain. It serves as a reference point for network activities and data synchronization.
+        This function provides the latest block number, indicating the most recent state of the blockchain.
 
         Returns:
             int: The current chain block number.
 
         Notes:
-            See also: <https://docs.learnbittensor.org/glossary#block>
+            - <https://docs.learnbittensor.org/glossary#block>
         """
         return self.substrate.get_block_number(None)
 
@@ -1424,7 +1418,7 @@ class Subtensor(SubtensorMixin):
             str: The cryptographic hash of the specified block.
 
         Notes:
-            See also: <https://docs.learnbittensor.org/glossary#block>
+            - <https://docs.learnbittensor.org/glossary#block>
         """
         if block is not None:
             return self._get_block_hash(block)
@@ -1505,7 +1499,7 @@ class Subtensor(SubtensorMixin):
                     print(f"Child {child_hotkey}: {proportion}")
 
         Notes:
-            See: <https://docs.learnbittensor.org/validators/child-hotkeys>
+            - <https://docs.learnbittensor.org/validators/child-hotkeys>
         """
         try:
             children = self.substrate.query(
@@ -1553,7 +1547,7 @@ class Subtensor(SubtensorMixin):
                 - int: The cool-down block number.
 
         Notes:
-            See: <https://docs.learnbittensor.org/validators/child-hotkeys>
+            - <https://docs.learnbittensor.org/validators/child-hotkeys>
         """
 
         children, cooldown = self.substrate.query(
@@ -1592,7 +1586,7 @@ class Subtensor(SubtensorMixin):
             # TODO: add a real example of how to handle realistic commitment data, or chop example
 
         Notes:
-            See: <https://docs.learnbittensor.org/glossary#commit-reveal>
+            - <https://docs.learnbittensor.org/glossary#commit-reveal>
         """
         metagraph = self.metagraph(netuid)
         try:
@@ -1660,7 +1654,6 @@ class Subtensor(SubtensorMixin):
         Notes:
             These constants enforce contribution floors, duration bounds, and refund batching limits.
 
-            See:
             - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
 
         """
@@ -1699,7 +1692,6 @@ class Subtensor(SubtensorMixin):
         Notes:
             Contributions are clipped to the remaining cap. Once the cap is reached, no further contributions are accepted.
 
-            See:
             - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
             - Crowdloan Tutorial: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#step-4-contribute-to-the-crowdloan>
         """
@@ -1735,7 +1727,6 @@ class Subtensor(SubtensorMixin):
 
         Notes:
 
-            See:
             - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
         """
         block_hash = self.determine_block_hash(block)
@@ -1767,7 +1758,6 @@ class Subtensor(SubtensorMixin):
             The next crowdloan ID (integer) to be assigned.
 
         Notes:
-            See:
             - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
             - Crowdloan Tutorial: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#get-the-crowdloan-id>
         """
@@ -1798,7 +1788,6 @@ class Subtensor(SubtensorMixin):
             Returns empty list if no crowdloans exist.
 
         Notes:
-            See:
             - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
             - Crowdloan Lifecycle: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
         """
@@ -1837,11 +1826,8 @@ class Subtensor(SubtensorMixin):
         Returns:
             Detailed information about the delegate neuron, ``None`` if not found.
 
-        Notes:
-            This function is essential for understanding the roles and influence of delegate neurons within the Bittensor
-            network's consensus and governance structures.
+        Notes:            
 
-            See also:
             - <https://docs.learnbittensor.org/glossary#delegate>
             - <https://docs.learnbittensor.org/glossary#nominator>
         """
@@ -1874,7 +1860,7 @@ class Subtensor(SubtensorMixin):
             Dictionary mapping delegate SS58 addresses to their ChainIdentity objects.
 
         Notes:
-            See: <https://docs.learnbittensor.org/staking-and-delegation/delegation>
+            - <https://docs.learnbittensor.org/staking-and-delegation/delegation>
         """
         identities = self.substrate.query_map(
             module="SubtensorModule",
@@ -1902,7 +1888,7 @@ class Subtensor(SubtensorMixin):
             float: The delegate take percentage.
 
         Notes:
-            See: <https://docs.learnbittensor.org/staking-and-delegation/delegation>
+            - <https://docs.learnbittensor.org/staking-and-delegation/delegation>
         """
         result = self.query_subtensor(
             name="Delegates",
@@ -1930,7 +1916,7 @@ class Subtensor(SubtensorMixin):
             delegations exist for the coldkey.
 
         Notes:
-            See: <https://docs.learnbittensor.org/staking-and-delegation/delegation>
+            - <https://docs.learnbittensor.org/staking-and-delegation/delegation>
         """
 
         result = self.query_runtime_api(
@@ -1960,7 +1946,7 @@ class Subtensor(SubtensorMixin):
             delegates are registered.
 
         Notes:
-            See: <https://docs.learnbittensor.org/staking-and-delegation/delegation>
+            - <https://docs.learnbittensor.org/staking-and-delegation/delegation>
         """
         result = self.query_runtime_api(
             runtime_api="DelegateInfoRuntimeApi",
@@ -1987,7 +1973,7 @@ class Subtensor(SubtensorMixin):
             The existential deposit amount in RAO.
 
         Notes:
-            See: <https://docs.learnbittensor.org/glossary#existential-deposit>
+            - <https://docs.learnbittensor.org/glossary#existential-deposit>
         """
         result = self.substrate.get_constant(
             module_name="Balances",
@@ -2346,7 +2332,7 @@ class Subtensor(SubtensorMixin):
             The number of mechanisms for the given subnet.
 
         Notes:
-            See: <https://docs.learnbittensor.org/subnets/understanding-multiple-mech-subnets>
+            - <https://docs.learnbittensor.org/subnets/understanding-multiple-mech-subnets>
         """
         block_hash = self.determine_block_hash(block)
         module = "SubtensorModule"
@@ -2410,7 +2396,6 @@ class Subtensor(SubtensorMixin):
             )
 
         Notes:
-            See also:
             - <https://docs.learnbittensor.org/subnets/metagraph>
 
         """
@@ -2488,7 +2473,6 @@ class Subtensor(SubtensorMixin):
             A list of netuids where the neuron is a member.
 
         Notes:
-            See also:
             - <https://docs.learnbittensor.org/glossary#hotkey>
         """
         result = self.substrate.query_map(
@@ -2588,7 +2572,7 @@ class Subtensor(SubtensorMixin):
             int: The block number at which the next epoch will start, or None if tempo is 0 or invalid.
 
         Notes:
-            See also: <https://docs.learnbittensor.org/glossary#tempo>
+            - <https://docs.learnbittensor.org/glossary#tempo>
         """
         tempo = self.tempo(netuid=netuid, block=block)
         current_block = block or self.block
@@ -2645,7 +2629,6 @@ class Subtensor(SubtensorMixin):
             A list of formatted parents [(proportion, parent)]
 
         Notes:
-            See also:
             - <https://docs.learnbittensor.org/validators/child-hotkeys>
             - `get_children()` for retrieving child keys
         """
@@ -2861,7 +2844,7 @@ class Subtensor(SubtensorMixin):
             ( (12, "Bob message 1"), (147, "Bob message 2") )
 
         Notes:
-            See: <https://docs.learnbittensor.org/glossary#commit-reveal>
+            - <https://docs.learnbittensor.org/glossary#commit-reveal>
         """
         try:
             meta_info = self.get_metagraph_info(netuid, block=block)
@@ -2894,7 +2877,7 @@ class Subtensor(SubtensorMixin):
             A tuple of reveal block and commitment message.
 
         Notes:
-            See: <https://docs.learnbittensor.org/glossary#commit-reveal>
+            - <https://docs.learnbittensor.org/glossary#commit-reveal>
         """
         if not is_valid_ss58_address(address=hotkey_ss58):
             raise ValueError(f"Invalid ss58 address {hotkey_ss58} provided.")
@@ -2928,7 +2911,7 @@ class Subtensor(SubtensorMixin):
             RootClaimType value in string representation. Could be `Swap` or `Keep`.
 
         Notes:
-            See: <https://docs.learnbittensor.org/staking-and-delegation/root-claims>
+            - <https://docs.learnbittensor.org/staking-and-delegation/root-claims>
         """
         query = self.substrate.query(
             module="SubtensorModule",
@@ -3447,7 +3430,7 @@ class Subtensor(SubtensorMixin):
             The number of epochs in the reveal period for the subnet.
 
         Notes:
-            See: <https://docs.learnbittensor.org/glossary#commit-reveal>
+            - <https://docs.learnbittensor.org/glossary#commit-reveal>
 
         """
         return cast(
@@ -3504,7 +3487,7 @@ class Subtensor(SubtensorMixin):
 
         Notes:
             The list may be empty if there are no commits found.
-            See: <https://docs.learnbittensor.org/resources/glossary#commit-reveal>
+            - <https://docs.learnbittensor.org/resources/glossary#commit-reveal>
         """
         storage_index = get_mechid_storage_index(netuid, mechid)
         result = self.substrate.query_map(
@@ -3572,11 +3555,7 @@ class Subtensor(SubtensorMixin):
                 object.
 
         Notes:
-            Estimating the transfer fee is essential for planning and executing token transactions, ensuring that the
-            wallet has sufficient funds to cover both the transfer amount and the associated costs. This function provides
-            a crucial tool for managing financial operations within the Bittensor network.
-
-            See: <https://docs.learnbittensor.org/learn/fees>
+            - <https://docs.learnbittensor.org/learn/fees>
         """
         check_balance_amount(amount)
         call_params: dict[str, Union[int, str, bool]]
@@ -3617,7 +3596,7 @@ class Subtensor(SubtensorMixin):
             The calculated stake fee as a Balance object in Alpha.
 
         Notes:
-            See: <https://docs.learnbittensor.org/learn/fees>
+            - <https://docs.learnbittensor.org/learn/fees>
         """
         check_balance_amount(amount)
         sim_swap_result = self.sim_swap(
@@ -3798,7 +3777,7 @@ class Subtensor(SubtensorMixin):
             ``True`` if fast blocks are enabled (10-second block time), ``False`` otherwise (12-second block time).
 
         Notes:
-            See: <https://docs.learnbittensor.org/resources/glossary#fast-blocks>
+            - <https://docs.learnbittensor.org/resources/glossary#fast-blocks>
 
         """
         return self.query_constant("SubtensorModule", "DurationOfStartCall") == 10
@@ -3865,8 +3844,6 @@ class Subtensor(SubtensorMixin):
 
         Returns:
             ``True`` if the hotkey is registered on any subnet, False otherwise.
-
-        This function is essential for determining the network-wide presence and participation of a neuron.
         """
         hotkeys = self.get_netuids_for_hotkey(hotkey_ss58, block)
         return len(hotkeys) > 0
@@ -3885,7 +3862,7 @@ class Subtensor(SubtensorMixin):
             ``True`` if the hotkey is registered on the specified subnet, ``False`` otherwise.
 
         Notes:
-            See: <https://docs.learnbittensor.org/glossary#hotkey>
+            - <https://docs.learnbittensor.org/glossary#hotkey>
 
         """
         return (
@@ -3907,7 +3884,7 @@ class Subtensor(SubtensorMixin):
             ``True`` if the subnet is active (emissions have started), ``False`` otherwise.
 
         Notes:
-            See: <https://docs.learnbittensor.org/subnets/working-with-subnets>
+            - <https://docs.learnbittensor.org/subnets/working-with-subnets>
 
         """
         query = self.query_subtensor(
@@ -3928,7 +3905,7 @@ class Subtensor(SubtensorMixin):
             The latest drand round number emitted in Bittensor, or ``None`` if no round has been stored.
 
         Notes:
-            See: <https://docs.learnbittensor.org/resources/glossary#drandtime-lock-encryption>
+            - <https://docs.learnbittensor.org/resources/glossary#drandtime-lock-encryption>
 
         """
         result = self.substrate.query(
@@ -4155,8 +4132,6 @@ class Subtensor(SubtensorMixin):
         Returns:
             The value of the 'Burn' hyperparameter if the subnet exists, None otherwise.
 
-        Understanding the 'Burn' rate is essential for analyzing the network registration usage, particularly how it is
-            correlated with user activity and the overall cost of participation in a given subnet.
         """
         call = self.get_hyperparameter(param_name="Burn", netuid=netuid, block=block)
         return None if call is None else Balance.from_rao(int(call))
@@ -4589,7 +4564,7 @@ class Subtensor(SubtensorMixin):
 
         Notes:
             To create the GenericCall object, use the ``compose_call`` method with proper parameters.
-            See: <https://docs.learnbittensor.org/learn/fees>
+            - <https://docs.learnbittensor.org/learn/fees>
 
         """
         payment_info = self.substrate.get_payment_info(call=call, keypair=keypair)
@@ -4641,7 +4616,7 @@ class Subtensor(SubtensorMixin):
             When safe_staking is enabled, it provides protection against price fluctuations during the time between when
             stake is submitted and when it is actually processed by the chain.
 
-            See: <https://docs.learnbittensor.org/staking-and-delegation/staking>
+            - <https://docs.learnbittensor.org/staking-and-delegation/staking>
         """
         check_balance_amount(amount)
         return add_stake_extrinsic(
@@ -4739,8 +4714,6 @@ class Subtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        This function is essential for managing stakes across multiple neurons, reflecting the dynamic and collaborative
-        nature of the Bittensor network.
         """
         return add_stake_multiple_extrinsic(
             subtensor=self,
@@ -5043,7 +5016,6 @@ class Subtensor(SubtensorMixin):
             - If the campaign does not reach its cap by the end block, contributors can be refunded via ``refund_crowdloan``.
             - Contributions are counted toward ``MaxContributors`` limit per crowdloan.
 
-            See:
             - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
             - Crowdloan Tutorial: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#step-4-contribute-to-the-crowdloan>
         """
@@ -5098,7 +5070,6 @@ class Subtensor(SubtensorMixin):
             - Creator can update ``cap``, ``end``, and ``min_contribution`` before finalization via ``update_*`` methods.
             - Use ``get_crowdloan_next_id`` to determine the ID that will be assigned to the new crowdloan.
 
-            See:
             - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
             - Crowdloan Tutorial: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#step-3-create-a-crowdloan>
             - Leasing: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
@@ -5201,7 +5172,7 @@ class Subtensor(SubtensorMixin):
             - The creator's deposit (and any remaining contribution above deposit) is returned.
             - After dissolution, the crowdloan is permanently removed from chain storage.
 
-            See: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - <https://docs.learnbittensor.org/subnets/crowdloans>
         """
         return dissolve_crowdloan_extrinsic(
             subtensor=self,
@@ -5250,7 +5221,6 @@ class Subtensor(SubtensorMixin):
             - For subnet leases, emissions are swapped to TAO and distributed to contributors' coldkeys during the lease.
             - Leftover cap (after subnet lock + proxy deposit) is refunded to contributors pro-rata.
 
-            See:
             - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
             - Crowdloan Tutorial: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#step-5-finalize-the-crowdloan>
             - Emissions Distribution: <https://docs.learnbittensor.org/subnets/crowdloans#emissions-distribution-during-a-lease>
@@ -5640,7 +5610,6 @@ class Subtensor(SubtensorMixin):
             ``ExtrinsicResponse`` indicating success or failure, with error details if applicable.
 
         Notes:
-            See:
             - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
             - Crowdloan Lifecycle: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
             - Refund and Dissolve: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#alternative-path-refund-and-dissolve>
@@ -6020,7 +5989,7 @@ class Subtensor(SubtensorMixin):
         This function allows neurons to reveal their previously committed weight distribution, ensuring transparency and
         accountability within the Bittensor network.
 
-        See also: <https://docs.learnbittensor.org/glossary#commit-reveal>,
+            - <https://docs.learnbittensor.org/glossary#commit-reveal>,
         """
         attempt = 0
         response = ExtrinsicResponse(False)
@@ -7101,7 +7070,6 @@ class Subtensor(SubtensorMixin):
             - The crowdloan must not be finalized.
             - The new cap must be ``>=`` the total funds already raised.
 
-            See:
             - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
             - Update Parameters: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
         """
@@ -7151,7 +7119,6 @@ class Subtensor(SubtensorMixin):
             - The crowdloan must not be finalized.
             - The new end block must respect duration bounds (``MinimumBlockDuration`` to ``MaximumBlockDuration``).
 
-            See:
             - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
             - Update Parameters: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
         """
@@ -7199,7 +7166,6 @@ class Subtensor(SubtensorMixin):
             - The crowdloan must not be finalized.
             - The new minimum must be ``>= AbsoluteMinimumContribution`` (check via ``get_crowdloan_constants``).
 
-            See:
             - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
             - Update Parameters: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
         """
@@ -7244,7 +7210,6 @@ class Subtensor(SubtensorMixin):
 
         Notes:
 
-            See:
             - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
             - Crowdloan Lifecycle: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
             - Withdraw: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#optional-withdraw>
