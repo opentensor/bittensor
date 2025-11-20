@@ -2172,7 +2172,7 @@ class AsyncSubtensor(SubtensorMixin):
         """Retrieves the next available crowdloan identifier.
 
         Crowdloan IDs are allocated sequentially starting from 0. This method returns the ID that will be
-        assigned to the next crowdloan created via ``create_crowdloan``.
+        assigned to the next crowdloan created via :meth:`create_crowdloan`.
 
         Parameters:
             block: The blockchain block number for the query.
@@ -3215,7 +3215,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Notes:
             - <https://docs.learnbittensor.org/validators/child-hotkeys>
-            - `get_children()` for retrieving child keys
+            - :meth:`get_children` for retrieving child keys
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         parents = await self.substrate.query(
@@ -3257,9 +3257,10 @@ class AsyncSubtensor(SubtensorMixin):
             Dictionary mapping real account SS58 addresses to lists of ProxyInfo objects. Each ProxyInfo contains the
                 delegate address, proxy type, and delay for that proxy relationship.
 
-        Note:
-            This method queries all proxy relationships on the chain, which may be resource-intensive for large
-            networks. Consider using `get_proxies_for_real_account()` for querying specific accounts.
+        Notes:
+            - This method queries all proxy relationships on the chain, which may be resource-intensive for large
+              networks. Consider using :meth:`get_proxies_for_real_account` for querying specific accounts.
+            - See: <https://docs.learnbittensor.org/keys/proxies>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query_map = await self.substrate.query_map(
@@ -3301,8 +3302,9 @@ class AsyncSubtensor(SubtensorMixin):
                 - Balance object representing the reserved deposit amount for these proxies. This deposit is held as
                     long as the proxy relationships exist and is returned when proxies are removed.
 
-        Note:
-            If the account has no proxies, returns an empty list and a zero balance.
+        Notes:
+            - If the account has no proxies, returns an empty list and a zero balance.
+            - See: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self.substrate.query(
@@ -3338,8 +3340,9 @@ class AsyncSubtensor(SubtensorMixin):
             List of ProxyAnnouncementInfo objects. Each object contains the real account address, call hash, and block
                 height at which the announcement was made.
 
-        Note:
-            If the delegate has no announcements, returns an empty list.
+        Notes:
+            - If the delegate has no announcements, returns an empty list.
+            - See: <https://docs.learnbittensor.org/keys/proxies>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self.substrate.query(
@@ -3372,9 +3375,10 @@ class AsyncSubtensor(SubtensorMixin):
             Dictionary mapping delegate account SS58 addresses to lists of ProxyAnnouncementInfo objects.
             Each ProxyAnnouncementInfo contains the real account address, call hash, and block height.
 
-        Note:
-            This method queries all announcements on the chain, which may be resource-intensive for large networks.
-            Consider using `get_proxy_announcement()` for querying specific delegates.
+        Notes:
+            - This method queries all announcements on the chain, which may be resource-intensive for large networks.
+              Consider using :meth:`get_proxy_announcement` for querying specific delegates.
+            - See: <https://docs.learnbittensor.org/keys/proxies>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query_map = await self.substrate.query_map(
@@ -3418,9 +3422,10 @@ class AsyncSubtensor(SubtensorMixin):
             If `as_dict` is True: Dictionary mapping constant names to their values (Balance objects for deposit
                 constants, integers for limit constants).
 
-        Note:
-            All Balance amounts are returned in RAO. Constants reflect the current chain configuration at the specified
-            block.
+        Notes:
+            - All Balance amounts are returned in RAO. Constants reflect the current chain configuration at the specified
+              block.
+            - See: <https://docs.learnbittensor.org/keys/proxies>
         """
         result = {}
         const_names = constants or ProxyConstants.constants_names()
@@ -5885,9 +5890,10 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Note:
-            A deposit is required when adding a proxy. The deposit amount is determined by runtime constants and is
-            returned when the proxy is removed. Use `get_proxy_constants()` to check current deposit requirements.
+        Notes:
+            - A deposit is required when adding a proxy. The deposit amount is determined by runtime constants and is
+              returned when the proxy is removed. Use :meth:`get_proxy_constants` to check current deposit requirements.
+            - See: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
         """
         return await add_proxy_extrinsic(
             subtensor=self,
@@ -5915,8 +5921,8 @@ class AsyncSubtensor(SubtensorMixin):
         Announces a future call that will be executed through a proxy.
 
         This method allows a proxy account to declare its intention to execute a specific call on behalf of a real
-        account after a delay period. The real account can review and either approve (via `proxy_announced()`) or reject
-        (via `reject_proxy_announcement()`) the announcement.
+        account after a delay period. The real account can review and either approve (via :meth:`proxy_announced`) or reject
+        (via :meth:`reject_proxy_announcement`) the announcement.
 
         Parameters:
             wallet: Bittensor wallet object (should be the proxy account wallet).
@@ -5932,9 +5938,10 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Note:
-            A deposit is required when making an announcement. The deposit is returned when the announcement is
-            executed, rejected, or removed. The announcement can be executed after the delay period has passed.
+        Notes:
+            - A deposit is required when making an announcement. The deposit is returned when the announcement is
+              executed, rejected, or removed. The announcement can be executed after the delay period has passed.
+            - See: <https://docs.learnbittensor.org/keys/proxies>
         """
         return await announce_extrinsic(
             subtensor=self,
@@ -6265,10 +6272,11 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Note:
-            The pure proxy account address can be extracted from the "PureCreated" event in the response. Store the
-            spawner address, proxy_type, index, height, and ext_index as they are required to kill the pure proxy later
-            via `kill_pure_proxy()`.
+        Notes:
+            - The pure proxy account address can be extracted from the "PureCreated" event in the response. Store the
+              spawner address, proxy_type, index, height, and ext_index as they are required to kill the pure proxy later
+              via :meth:`kill_pure_proxy`.
+            - See: <https://docs.learnbittensor.org/keys/proxies/pure-proxies>
         """
         return await create_pure_proxy_extrinsic(
             subtensor=self,
@@ -6397,21 +6405,21 @@ class AsyncSubtensor(SubtensorMixin):
         """
         Kills (removes) a pure proxy account.
 
-        This method removes a pure proxy account that was previously created via `create_pure_proxy()`. The `kill_pure`
+        This method removes a pure proxy account that was previously created via :meth:`create_pure_proxy`. The `kill_pure`
         call must be executed through the pure proxy account itself, with the spawner acting as an "Any" proxy. This
-        method automatically handles this by executing the call via `proxy()`.
+        method automatically handles this by executing the call via :meth:`proxy`.
 
         Parameters:
             wallet: Bittensor wallet object. The wallet.coldkey.ss58_address must be the spawner of the pure proxy (the
-                account that created it via `create_pure_proxy()`). The spawner must have an "Any" proxy relationship
+                account that created it via :meth:`create_pure_proxy`). The spawner must have an "Any" proxy relationship
                 with the pure proxy.
             pure_proxy_ss58: The SS58 address of the pure proxy account to be killed. This is the address that was
-                returned in the `create_pure_proxy()` response.
+                returned in the :meth:`create_pure_proxy` response.
             spawner: The SS58 address of the spawner account (the account that originally created the pure proxy via
-                `create_pure_proxy()`). This should match wallet.coldkey.ss58_address.
+                :meth:`create_pure_proxy`). This should match wallet.coldkey.ss58_address.
             proxy_type: The type of proxy permissions. Can be a string or ProxyType enum value. Must match the
                 proxy_type used when creating the pure proxy.
-            index: The disambiguation index originally passed to `create_pure()`.
+            index: The disambiguation index originally passed to :meth:`create_pure_proxy`.
             height: The block height at which the pure proxy was created.
             ext_index: The extrinsic index at which the pure proxy was created.
             force_proxy_type: The proxy type relationship to use when executing `kill_pure` through the proxy mechanism.
@@ -6431,10 +6439,11 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Note:
-            The `kill_pure` call must be executed through the pure proxy account itself, with the spawner acting as an
-            "Any" proxy. This method automatically handles this by executing the call via `proxy()`. The spawner must
-            have an "Any" proxy relationship with the pure proxy for this to work.
+        Notes:
+            - The ``kill_pure`` call must be executed through the pure proxy account itself, with the spawner acting as
+              an ``Any`` proxy. This method automatically handles this by executing the call via :meth:`proxy`. The spawner
+              must have an ``Any`` proxy relationship with the pure proxy for this to work.
+            - See: <https://docs.learnbittensor.org/keys/proxies/pure-proxies>
 
         Warning:
             All access to this account will be lost. Any funds remaining in the pure proxy account will become
@@ -6693,7 +6702,7 @@ class AsyncSubtensor(SubtensorMixin):
         """
         Executes an announced call on behalf of the real account through a proxy.
 
-        This method executes a call that was previously announced via `announce_proxy()`. The call must match the
+        This method executes a call that was previously announced via :meth:`announce_proxy`. The call must match the
         call_hash that was announced, and the delay period must have passed since the announcement was made. The real
         account has the opportunity to review and reject the announcement before execution.
 
@@ -6956,7 +6965,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Note:
             Only the proxy account that made the announcement can remove it. The real account can reject it via
-            `reject_proxy_announcement()`, but cannot remove it directly.
+            :meth:`reject_proxy_announcement`, but cannot remove it directly.
         """
         return await remove_announcement_extrinsic(
             subtensor=self,
@@ -7026,7 +7035,7 @@ class AsyncSubtensor(SubtensorMixin):
         Removes all proxy relationships for the account in a single transaction.
 
         This method removes all proxy relationships for the signing account in a single call, which is more efficient
-        than removing them one by one using `remove_proxy()`. The deposit for all proxies will be returned to the
+        than removing them one by one using :meth:`remove_proxy`. The deposit for all proxies will be returned to the
         account.
 
         Parameters:
@@ -7044,7 +7053,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Note:
             This removes all proxy relationships for the account, regardless of proxy type or delegate. Use
-            `remove_proxy()` if you need to remove specific proxy relationships selectively.
+            :meth:`remove_proxy` if you need to remove specific proxy relationships selectively.
         """
         return await remove_proxies_extrinsic(
             subtensor=self,
@@ -7070,7 +7079,7 @@ class AsyncSubtensor(SubtensorMixin):
         Removes a specific proxy relationship.
 
         This method removes a single proxy relationship between the real account and a delegate. The parameters must
-        exactly match those used when the proxy was added via `add_proxy()`. The deposit for this proxy will be returned
+        exactly match those used when the proxy was added via :meth:`add_proxy`. The deposit for this proxy will be returned
         to the account.
 
         Parameters:
@@ -7090,7 +7099,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Note:
             The delegate_ss58, proxy_type, and delay parameters must exactly match those used when the proxy was added.
-            Use `get_proxies_for_real_account()` to retrieve the exact parameters for existing proxies.
+            Use :meth:`get_proxies_for_real_account` to retrieve the exact parameters for existing proxies.
         """
         return await remove_proxy_extrinsic(
             subtensor=self,
@@ -8056,7 +8065,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Notes:
             The existential deposit is the minimum balance required to keep an account alive on the chain. Use
-            `get_existential_deposit()` to query the current value.
+            :meth:`get_existential_deposit` to query the current value.
 
             - <https://docs.learnbittensor.org/resources/glossary#existential-deposit>
             - <https://docs.learnbittensor.org/resources/glossary#transfer>

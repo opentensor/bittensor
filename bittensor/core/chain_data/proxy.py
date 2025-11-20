@@ -81,13 +81,15 @@ class ProxyType(str, Enum):
 
     Notes:
         - The permissions described above may change over time as the Subtensor runtime evolves. For the most up-to-date
-        and authoritative information about proxy type permissions, refer to the Subtensor source code at:
+          and authoritative information about proxy type permissions, refer to the Subtensor source code at:
           <https://github.com/opentensor/subtensor/blob/main/runtime/src/lib.rs>
           Specifically, look for the ``impl InstanceFilter<RuntimeCall> for ProxyType`` implementation which defines the
           exact filtering logic for each proxy type.
         - The values match exactly with the ProxyType enum defined in the Subtensor runtime. Any changes to the
           runtime enum must be reflected here.
-        - See: <https://docs.learnbittensor.org/keys/proxies>
+        - Proxy overview: <https://docs.learnbittensor.org/keys/proxies>
+        - Creating and managing proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
+        - Pure proxies: <https://docs.learnbittensor.org/keys/proxies/pure-proxies>
 
     """
 
