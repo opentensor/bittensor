@@ -280,14 +280,26 @@ def create_pure_proxy_extrinsic(
         if response.success:
             logging.debug("[green]Pure proxy created successfully.[/green]")
 
-            block_number = subtensor.substrate.get_block_number(
-                block_hash=response.extrinsic_receipt.block_hash
-                if response.extrinsic_receipt
-                else None
+            block_number, triggered_events, extrinsic_idx = (
+                (
+                    subtensor.substrate.get_block_number(
+                        block_hash=response.extrinsic_receipt.block_hash
+                        if response.extrinsic_receipt
+                        else None
+                    ),
+                    response.extrinsic_receipt.triggered_events,
+                    response.extrinsic_receipt.extrinsic_idx,
+                )
+                if (wait_for_finalization or wait_for_inclusion)
+                and response.extrinsic_receipt.block_hash
+                else (0, [], 0)
             )
+
             response = apply_pure_proxy_data(
                 response=response,
+                triggered_events=triggered_events,
                 block_number=block_number,
+                extrinsic_idx=extrinsic_idx,
                 raise_error=raise_error,
             )
         else:
