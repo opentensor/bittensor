@@ -145,7 +145,7 @@ def test_create_pure_proxy_extrinsic(subtensor, mocker):
             },
         }
     ]
-    mock_response.extrinsic_receipt.block_hash = mocker.MagicMock(spec=str)
+    mock_response.extrinsic_receipt.block_hash = "NOT NONE BLOCK HASH"
     mock_response.extrinsic_receipt.extrinsic_idx = 1
     mocked_sign_and_send_extrinsic.return_value = mock_response
 

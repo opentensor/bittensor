@@ -4203,7 +4203,7 @@ class Subtensor(SubtensorMixin):
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
-            extrinsic_response.extrinsic_receipt = response
+
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
                 extrinsic_response.extrinsic_fee = self.get_extrinsic_fee(
@@ -4214,6 +4214,8 @@ class Subtensor(SubtensorMixin):
                 )
                 logging.debug(extrinsic_response.message)
                 return extrinsic_response
+
+            extrinsic_response.extrinsic_receipt = response
 
             if response.is_success:
                 extrinsic_response.extrinsic_fee = Balance.from_rao(

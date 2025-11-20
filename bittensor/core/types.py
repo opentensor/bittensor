@@ -352,9 +352,7 @@ class ExtrinsicResponse:
     extrinsic_function: Optional[str] = None
     extrinsic: Optional["GenericExtrinsic"] = None
     extrinsic_fee: Optional["Balance"] = None
-    extrinsic_receipt: Optional[Union["ExtrinsicReceipt", "AsyncExtrinsicReceipt"]] = (
-        None
-    )
+    extrinsic_receipt: Optional["AsyncExtrinsicReceipt | ExtrinsicReceipt"] = None
     transaction_tao_fee: Optional["Balance"] = None
     transaction_alpha_fee: Optional["Balance"] = None
     error: Optional[Exception] = None
