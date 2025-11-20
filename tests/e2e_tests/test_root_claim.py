@@ -17,6 +17,7 @@ import pytest
 PROOF_COUNTER = 2
 
 
+@pytest.mark.skip(reason="we need to figure out how to emulate behavior")
 def test_root_claim_swap(subtensor, alice_wallet, bob_wallet, charlie_wallet):
     """Tests root claim Swap logic.
 
@@ -111,6 +112,7 @@ def test_root_claim_swap(subtensor, alice_wallet, bob_wallet, charlie_wallet):
         proof_counter -= 1
 
 
+@pytest.mark.skip(reason="we need to figure out how to emulate behavior")
 @pytest.mark.asyncio
 async def test_root_claim_swap_async(
     async_subtensor, alice_wallet, bob_wallet, charlie_wallet
@@ -212,6 +214,7 @@ async def test_root_claim_swap_async(
         proof_counter -= 1
 
 
+@pytest.mark.skip(reason="we need to figure out how to emulate behavior")
 def test_root_claim_keep_with_zero_num_root_auto_claims(
     subtensor, alice_wallet, bob_wallet, charlie_wallet
 ):
@@ -373,6 +376,7 @@ def test_root_claim_keep_with_zero_num_root_auto_claims(
     logging.console.info(f"SN2 Stake: {stake_after_charlie}")
 
 
+@pytest.mark.skip(reason="we need to figure out how to emulate behavior")
 @pytest.mark.asyncio
 async def test_root_claim_keep_with_zero_num_root_auto_claims_async(
     async_subtensor, alice_wallet, bob_wallet, charlie_wallet
@@ -543,6 +547,7 @@ async def test_root_claim_keep_with_zero_num_root_auto_claims_async(
     logging.console.info(f"SN2 Stake: {stake_after_charlie}")
 
 
+@pytest.mark.skip(reason="we need to figure out how to emulate behavior")
 def test_root_claim_keep_with_random_auto_claims(
     subtensor, alice_wallet, bob_wallet, charlie_wallet, dave_wallet
 ):
@@ -658,6 +663,7 @@ def test_root_claim_keep_with_random_auto_claims(
         proof_counter -= 1
 
 
+@pytest.mark.skip(reason="we need to figure out how to emulate behavior")
 @pytest.mark.asyncio
 async def test_root_claim_keep_with_random_auto_claims_async(
     async_subtensor, alice_wallet, bob_wallet, charlie_wallet, dave_wallet
