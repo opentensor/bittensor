@@ -148,39 +148,39 @@ def sudo_call_extrinsic(
 
 
 def apply_pure_proxy_data(
-    response: ExtrinsicResponse, block_number: int, raise_error: bool
+    response: ExtrinsicResponse,
+    triggered_events: list,
+    block_number: int,
+    extrinsic_idx: int,
+    raise_error: bool,
 ) -> ExtrinsicResponse:
     """Apply pure proxy data to the response object.
 
     Parameters:
         response: The response object to update.
+        triggered_events: The triggered events of the transaction.
         block_number: The block number of the transaction.
+        extrinsic_idx: The index of the extrinsic in the transaction.
         raise_error: Whether to raise an error if the data cannot be applied successfully.
 
     Returns:
         True if the data was applied successfully, False otherwise.
     """
     # Extract pure proxy address from PureCreated triggered event if wait_for_inclusion is True.
-    # Otherwise extrinsic receipt data is not available.
-    if (
-        response.extrinsic_receipt is not None
-        and hasattr(response.extrinsic_receipt, "triggered_events")
-        and response.extrinsic_receipt.triggered_events is not None
-    ):
-        for event in response.extrinsic_receipt.triggered_events:
-            if event.get("event_id") == "PureCreated":
-                # Event structure: PureProxyCreated { disambiguation_index, proxy_type, pure, who }
-                attributes = event.get("attributes", [])
-                if attributes:
-                    response.data = {
-                        "pure_account": attributes.get("pure"),
-                        "spawner": attributes.get("who"),
-                        "proxy_type": attributes.get("proxy_type"),
-                        "index": attributes.get("disambiguation_index"),
-                        "height": block_number,
-                        "ext_index": response.extrinsic_receipt.extrinsic_idx,
-                    }
-                return response
+    for event in triggered_events:
+        if event.get("event_id") == "PureCreated":
+            # Event structure: PureProxyCreated { disambiguation_index, proxy_type, pure, who }
+            attributes = event.get("attributes", [])
+            if attributes:
+                response.data = {
+                    "pure_account": attributes.get("pure"),
+                    "spawner": attributes.get("who"),
+                    "proxy_type": attributes.get("proxy_type"),
+                    "index": attributes.get("disambiguation_index"),
+                    "height": block_number,
+                    "ext_index": extrinsic_idx,
+                }
+            return response
 
     # If triggered events are not available or event PureCreated does not exist in the response, return the response
     # with warning message ot raise the error if raise_error is True.
