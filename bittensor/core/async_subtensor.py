@@ -3819,7 +3819,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> Optional[list["StakeInfo"]]:
+    ) -> list["StakeInfo"]:
         """
         Retrieves the stake information for a given coldkey.
 
@@ -3830,7 +3830,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            An optional list of StakeInfo objects, or ``None`` if no stake information is found.
+            List of StakeInfo objects.
         """
         result = await self.query_runtime_api(
             runtime_api="StakeInfoRuntimeApi",
@@ -3846,6 +3846,42 @@ class AsyncSubtensor(SubtensorMixin):
 
         stakes: list[StakeInfo] = StakeInfo.list_from_dicts(result)
         return [stake for stake in stakes if stake.stake > 0]
+
+    async def get_stake_info_for_coldkeys(
+        self,
+        coldkey_ss58s: list[str],
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> dict[str, list["StakeInfo"]]:
+        """
+        Retrieves the stake information for multiple coldkeys.
+
+        Parameters:
+            coldkey_ss58s: A list of SS58 addresses of the coldkeys to query.
+            block: The block number at which to query the stake information.
+            block_hash: The hash of the blockchain block number for the query.
+            reuse_block: Whether to reuse the last-used block hash.
+
+        Returns:
+            The dictionary mapping coldkey addresses to a list of StakeInfo objects.
+        """
+        query = await self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_stake_info_for_coldkeys",
+            params=[coldkey_ss58s],
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+
+        if query is None:
+            return {}
+
+        return {
+            decode_account_id(ck): StakeInfo.list_from_dicts(st_info)
+            for ck, st_info in query
+        }
 
     async def get_stake_for_hotkey(
         self,

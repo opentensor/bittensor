@@ -4210,7 +4210,7 @@ def test_get_stake_weight(subtensor, mocker):
     result = subtensor.get_stake_weight(netuid=netuid)
 
     # Asserts
-    mock_determine_block_hash.assert_called_once_with(block=None)
+    mock_determine_block_hash.assert_called_once()
     mocked_query.assert_called_once_with(
         module="SubtensorModule",
         storage_function="StakeWeight",
@@ -5762,3 +5762,107 @@ def test_blocks_until_next_epoch_uses_default_tempo(subtensor, mocker):
     spy_tempo.assert_not_called()
     assert result is not None
     assert isinstance(result, int)
+
+
+def test_get_stake_info_for_coldkeys_none(subtensor, mocker):
+    """Tests get_stake_info_for_coldkeys method when query_runtime_api returns None."""
+    # Preps
+    fake_coldkey_ss58s = ["coldkey1", "coldkey2"]
+    fake_block = 123
+
+    mocked_query_runtime_api = mocker.patch.object(
+        subtensor, "query_runtime_api", return_value=None
+    )
+
+    # Call
+    result = subtensor.get_stake_info_for_coldkeys(
+        coldkey_ss58s=fake_coldkey_ss58s, block=fake_block
+    )
+
+    # Asserts
+    assert result == {}
+    mocked_query_runtime_api.assert_called_once_with(
+        runtime_api="StakeInfoRuntimeApi",
+        method="get_stake_info_for_coldkeys",
+        params=[fake_coldkey_ss58s],
+        block=fake_block,
+    )
+
+
+def test_get_stake_info_for_coldkeys_success(subtensor, mocker):
+    """Tests get_stake_info_for_coldkeys method when query_runtime_api returns data."""
+    # Preps
+    fake_coldkey_ss58s = ["coldkey1", "coldkey2"]
+    fake_block = 123
+
+    fake_ck1 = b"\x16:\xech\r\xde,g\x03R1\xb9\x88q\xe79\xb8\x88\x93\xae\xd2)?*\rp\xb2\xe62\xads\x1c"
+    fake_ck2 = b"\x17:\xech\r\xde,g\x03R1\xb9\x88q\xe79\xb8\x88\x93\xae\xd2)?*\rp\xb2\xe62\xads\x1d"
+    fake_decoded_ck1 = "decoded_coldkey1"
+    fake_decoded_ck2 = "decoded_coldkey2"
+
+    stake_info_dict_1 = {
+        "netuid": 5,
+        "hotkey": b"\x16:\xech\r\xde,g\x03R1\xb9\x88q\xe79\xb8\x88\x93\xae\xd2)?*\rp\xb2\xe62\xads\x1c",
+        "coldkey": fake_ck1,
+        "stake": 1000,
+        "locked": 0,
+        "emission": 100,
+        "drain": 0,
+        "is_registered": True,
+    }
+    stake_info_dict_2 = {
+        "netuid": 14,
+        "hotkey": b"\x17:\xech\r\xde,g\x03R1\xb9\x88q\xe79\xb8\x88\x93\xae\xd2)?*\rp\xb2\xe62\xads\x1d",
+        "coldkey": fake_ck2,
+        "stake": 2000,
+        "locked": 0,
+        "emission": 200,
+        "drain": 0,
+        "is_registered": False,
+    }
+
+    fake_query_result = [
+        (fake_ck1, [stake_info_dict_1]),
+        (fake_ck2, [stake_info_dict_2]),
+    ]
+
+    mocked_query_runtime_api = mocker.patch.object(
+        subtensor, "query_runtime_api", return_value=fake_query_result
+    )
+
+    mocked_decode_account_id = mocker.patch.object(
+        subtensor_module,
+        "decode_account_id",
+        side_effect=[fake_decoded_ck1, fake_decoded_ck2],
+    )
+
+    mock_stake_info_1 = mocker.Mock(spec=StakeInfo)
+    mock_stake_info_2 = mocker.Mock(spec=StakeInfo)
+    mocked_stake_info_list_from_dicts = mocker.patch.object(
+        subtensor_module.StakeInfo,
+        "list_from_dicts",
+        side_effect=[[mock_stake_info_1], [mock_stake_info_2]],
+    )
+
+    # Call
+    result = subtensor.get_stake_info_for_coldkeys(
+        coldkey_ss58s=fake_coldkey_ss58s, block=fake_block
+    )
+
+    # Asserts
+    assert result == {
+        fake_decoded_ck1: [mock_stake_info_1],
+        fake_decoded_ck2: [mock_stake_info_2],
+    }
+    mocked_query_runtime_api.assert_called_once_with(
+        runtime_api="StakeInfoRuntimeApi",
+        method="get_stake_info_for_coldkeys",
+        params=[fake_coldkey_ss58s],
+        block=fake_block,
+    )
+    mocked_decode_account_id.assert_has_calls(
+        [mocker.call(fake_ck1), mocker.call(fake_ck2)]
+    )
+    mocked_stake_info_list_from_dicts.assert_has_calls(
+        [mocker.call([stake_info_dict_1]), mocker.call([stake_info_dict_2])]
+    )
