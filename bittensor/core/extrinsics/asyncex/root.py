@@ -1,6 +1,7 @@
 import asyncio
 from typing import Optional, TYPE_CHECKING, Literal
 
+from bittensor.core.chain_data import RootClaimType
 from bittensor.core.extrinsics.pallets import SubtensorModule
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils import u16_normalized_float
@@ -147,7 +148,7 @@ async def root_register_extrinsic(
 async def set_root_claim_type_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
-    new_root_claim_type: Literal["Swap", "Keep"],
+    new_root_claim_type: "Literal['Swap', 'Keep'] | RootClaimType | dict",
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
@@ -158,7 +159,11 @@ async def set_root_claim_type_extrinsic(
     Parameters:
         subtensor: Subtensor instance to interact with the blockchain.
         wallet: Bittensor Wallet instance.
-        new_root_claim_type: The new root claim type to set. Could be either "Swap" or "Keep".
+        new_root_claim_type: The new root claim type to set. Can be:
+            - String: "Swap" or "Keep"
+            - RootClaimType: RootClaimType.Swap, RootClaimType.Keep
+            - Dict: {"KeepSubnets": {"subnets": [1, 2, 3]}}
+            - Callable: RootClaimType.KeepSubnets([1, 2, 3])
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
@@ -175,8 +180,10 @@ async def set_root_claim_type_extrinsic(
         ).success:
             return unlocked
 
+        normalized_type = RootClaimType.normalize(new_root_claim_type)
+
         call = await SubtensorModule(subtensor).set_root_claim_type(
-            new_root_claim_type=new_root_claim_type
+            new_root_claim_type=normalized_type
         )
 
         return await subtensor.sign_and_send_extrinsic(

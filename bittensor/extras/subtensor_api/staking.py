@@ -13,6 +13,9 @@ class Staking:
         self.get_auto_stakes = subtensor.get_auto_stakes
         self.get_hotkey_stake = subtensor.get_hotkey_stake
         self.get_minimum_required_stake = subtensor.get_minimum_required_stake
+        self.get_root_alpha_dividends_per_subnet = (
+            subtensor.get_root_alpha_dividends_per_subnet
+        )
         self.get_root_claim_type = subtensor.get_root_claim_type
         self.get_root_claimable_all_rates = subtensor.get_root_claimable_all_rates
         self.get_root_claimable_rate = subtensor.get_root_claimable_rate

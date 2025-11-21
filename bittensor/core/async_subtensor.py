@@ -26,6 +26,7 @@ from bittensor.core.chain_data import (
     ProxyInfo,
     ProxyConstants,
     ProxyType,
+    RootClaimType,
     SelectiveMetagraphIndex,
     SimSwapResult,
     StakeInfo,
@@ -3475,7 +3476,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> str:
+    ) -> Union[str, dict]:
         """Retrieves the root claim type for a given coldkey address.
 
         Parameters:
@@ -3485,7 +3486,8 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
 
         Returns:
-            RootClaimType value in string representation. Could be `Swap` or `Keep`.
+            Union[str, dict]: RootClaimType value. Returns string for "Swap" or "Keep",
+            or dict for "KeepSubnets" in format {"KeepSubnets": {"subnets": [1, 2, 3]}}.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self.substrate.query(
@@ -3495,7 +3497,55 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        return next(iter(query.keys()))
+        # Query returns enum as dict: {"Swap": ()} or {"Keep": ()} or {"KeepSubnets": {"subnets": [1, 2, 3]}}
+        variant_name = next(iter(query.keys()))
+        variant_value = query[variant_name]
+
+        # For simple variants (Swap, Keep), value is empty tuple, return string
+        if not variant_value or variant_value == ():
+            return variant_name
+
+        # For KeepSubnets, value contains the data, return full dict structure
+        if isinstance(variant_value, dict) and "subnets" in variant_value:
+            subnets_raw = variant_value["subnets"]
+            subnets = list(subnets_raw[0])
+
+            return {variant_name: {"subnets": subnets}}
+
+        return {variant_name: variant_value}
+
+    async def get_root_alpha_dividends_per_subnet(
+        self,
+        hotkey_ss58: str,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Balance:
+        """Retrieves the root alpha dividends per subnet for a given hotkey.
+
+        This storage tracks the root alpha dividends that a hotkey has received on a specific subnet.
+        It is updated during block emission distribution when root alpha is distributed to validators.
+
+        Parameters:
+            hotkey_ss58: The ss58 address of the root validator hotkey.
+            netuid: The unique identifier of the subnet.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+
+        Returns:
+            Balance: The root alpha dividends for this hotkey on this subnet in Rao, with unit set to netuid.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="RootAlphaDividendsPerSubnet",
+            params=[netuid, hotkey_ss58],
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+        return Balance.from_rao(query.value).set_unit(netuid=netuid)
 
     async def get_root_claimable_rate(
         self,
@@ -7205,7 +7255,7 @@ class AsyncSubtensor(SubtensorMixin):
     async def set_root_claim_type(
         self,
         wallet: "Wallet",
-        new_root_claim_type: Literal["Swap", "Keep"],
+        new_root_claim_type: "Literal['Swap', 'Keep'] | RootClaimType | dict",
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -7215,7 +7265,11 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             wallet: Bittensor Wallet instance.
-            new_root_claim_type: The new root claim type to set. Could be either "Swap" or "Keep".
+            new_root_claim_type: The new root claim type to set. Can be:
+                - String: "Swap" or "Keep"
+                - RootClaimType: RootClaimType.Swap, RootClaimType.Keep
+                - Dict: {"KeepSubnets": {"subnets": [1, 2, 3]}}
+                - Callable: RootClaimType.KeepSubnets([1, 2, 3])
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.

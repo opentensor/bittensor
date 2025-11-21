@@ -24,6 +24,7 @@ from .neuron_info_lite import NeuronInfoLite
 from .prometheus_info import PrometheusInfo
 from .proposal_vote_data import ProposalVoteData
 from .proxy import ProxyConstants, ProxyInfo, ProxyType, ProxyAnnouncementInfo
+from .root_claim import RootClaimType
 from .scheduled_coldkey_swap_info import ScheduledColdkeySwapInfo
 from .stake_info import StakeInfo
 from .sim_swap import SimSwapResult
@@ -59,6 +60,7 @@ __all__ = [
     "ProxyAnnouncementInfo",
     "ProxyInfo",
     "ProxyType",
+    "RootClaimType",
     "ScheduledColdkeySwapInfo",
     "SelectiveMetagraphIndex",
     "SimSwapResult",
