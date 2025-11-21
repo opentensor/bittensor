@@ -1001,9 +1001,11 @@ async def test_root_claim_keep_subnets_basic_async(
     await async_subtensor.wait_for_block(next_epoch_start_block)
 
     # Check that root alpha dividends are accumulating for SN2
-    root_alpha_dividends = await async_subtensor.staking.get_root_alpha_dividends_per_subnet(
-        hotkey_ss58=alice_wallet.hotkey.ss58_address,
-        netuid=sn2.netuid,
+    root_alpha_dividends = (
+        await async_subtensor.staking.get_root_alpha_dividends_per_subnet(
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
+            netuid=sn2.netuid,
+        )
     )
     assert root_alpha_dividends >= Balance.from_tao(0).set_unit(sn2.netuid), (
         "Root alpha dividends should be non-negative"
@@ -1113,10 +1115,6 @@ def test_root_claim_keep_subnets_with_auto_claims(
         )
         prev_claimed_stake_charlie = claimed_stake_charlie
 
-        # Note: root_alpha_dividends may decrease when auto claims occur,
-        # as dividends are consumed during the claim process.
-        # We only verify that stake increases, which confirms auto claims are working.
-
         proof_counter -= 1
 
 
@@ -1212,8 +1210,8 @@ async def test_root_claim_keep_subnets_with_auto_claims_async(
 
     # Wait for epochs and check that stake increases on SN2 due to auto claims
     while proof_counter > 0:
-        next_epoch_start_block = await async_subtensor.subnets.get_next_epoch_start_block(
-            root_sn.netuid
+        next_epoch_start_block = (
+            await async_subtensor.subnets.get_next_epoch_start_block(root_sn.netuid)
         )
         await async_subtensor.wait_for_block(next_epoch_start_block)
 
@@ -1227,10 +1225,6 @@ async def test_root_claim_keep_subnets_with_auto_claims_async(
             f"Stake on SN2 did not increase: {claimed_stake_charlie} <= {prev_claimed_stake_charlie}"
         )
         prev_claimed_stake_charlie = claimed_stake_charlie
-
-        # Note: root_alpha_dividends may decrease when auto claims occur,
-        # as dividends are consumed during the claim process.
-        # We only verify that stake increases, which confirms auto claims are working.
 
         proof_counter -= 1
 
@@ -1482,17 +1476,23 @@ async def test_root_claim_keep_subnets_multiple_subnets_async(
     await async_subtensor.wait_for_block(next_epoch_start_block)
 
     # Check that root alpha dividends are accumulating for SN2 and SN3 (kept subnets)
-    root_alpha_dividends_sn2 = await async_subtensor.staking.get_root_alpha_dividends_per_subnet(
-        hotkey_ss58=alice_wallet.hotkey.ss58_address,
-        netuid=sn2.netuid,
+    root_alpha_dividends_sn2 = (
+        await async_subtensor.staking.get_root_alpha_dividends_per_subnet(
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
+            netuid=sn2.netuid,
+        )
     )
-    root_alpha_dividends_sn3 = await async_subtensor.staking.get_root_alpha_dividends_per_subnet(
-        hotkey_ss58=alice_wallet.hotkey.ss58_address,
-        netuid=sn3.netuid,
+    root_alpha_dividends_sn3 = (
+        await async_subtensor.staking.get_root_alpha_dividends_per_subnet(
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
+            netuid=sn3.netuid,
+        )
     )
-    root_alpha_dividends_sn4 = await async_subtensor.staking.get_root_alpha_dividends_per_subnet(
-        hotkey_ss58=alice_wallet.hotkey.ss58_address,
-        netuid=sn4.netuid,
+    root_alpha_dividends_sn4 = (
+        await async_subtensor.staking.get_root_alpha_dividends_per_subnet(
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
+            netuid=sn4.netuid,
+        )
     )
 
     # SN2 and SN3 should have dividends (kept), SN4 should have 0 (swapped)
@@ -1508,18 +1508,15 @@ async def test_root_claim_keep_subnets_multiple_subnets_async(
     )
 
 
-def test_root_claim_keep_subnets_various_formats(
+def test_root_claim_keep_subnets_validation_and_formats(
     subtensor, alice_wallet, bob_wallet, charlie_wallet
 ):
-    """Tests root claim KeepSubnets with various input formats.
+    """Tests root claim KeepSubnets validation and various input formats.
 
     Steps:
-    - Activate ROOT net to stake on Alice
-    - Register SN2 and the same validator (Alice) on that subnet
-    - Test setting KeepSubnets using different formats:
-      - Dict: {"KeepSubnets": {"subnets": [sn2.netuid]}}
-      - Callable: RootClaimType.KeepSubnets([sn2.netuid])
-    - Verify that all formats work correctly
+    - Test that setting KeepSubnets with empty list raises error
+    - Test that setting KeepSubnets with invalid format raises error
+    - Test that various input formats work correctly and produce expected behavior
     """
     TEMPO_TO_SET = 20 if subtensor.chain.is_fast_blocks() else 10
 
@@ -1546,7 +1543,31 @@ def test_root_claim_keep_subnets_various_formats(
         ]
     )
 
-    # Test format 1: Dict format
+    # Test 1: Empty subnets list should raise error
+    with pytest.raises((ValueError, Exception)):
+        subtensor.staking.set_root_claim_type(
+            wallet=charlie_wallet,
+            new_root_claim_type={"KeepSubnets": {"subnets": []}},
+            raise_error=True,
+        )
+
+    # Test 2: Invalid dict format should raise error
+    with pytest.raises((ValueError, Exception)):
+        subtensor.staking.set_root_claim_type(
+            wallet=charlie_wallet,
+            new_root_claim_type={"KeepSubnets": {}},
+            raise_error=True,
+        )
+
+    # Test 3: Invalid key should raise error
+    with pytest.raises((ValueError, Exception)):
+        subtensor.staking.set_root_claim_type(
+            wallet=charlie_wallet,
+            new_root_claim_type={"InvalidKey": {"subnets": [1]}},
+            raise_error=True,
+        )
+
+    # Test 4: Dict format should work correctly
     assert subtensor.staking.set_root_claim_type(
         wallet=charlie_wallet,
         new_root_claim_type={"KeepSubnets": {"subnets": [sn2.netuid]}},
@@ -1559,7 +1580,7 @@ def test_root_claim_keep_subnets_various_formats(
     assert "KeepSubnets" in root_claim_type
     assert sn2.netuid in root_claim_type["KeepSubnets"]["subnets"]
 
-    # Test format 2: Callable format
+    # Test 5: Callable format should work correctly
     assert subtensor.staking.set_root_claim_type(
         wallet=charlie_wallet,
         new_root_claim_type=RootClaimType.KeepSubnets([sn2.netuid]),
@@ -1574,18 +1595,15 @@ def test_root_claim_keep_subnets_various_formats(
 
 
 @pytest.mark.asyncio
-async def test_root_claim_keep_subnets_various_formats_async(
+async def test_root_claim_keep_subnets_validation_and_formats_async(
     async_subtensor, alice_wallet, bob_wallet, charlie_wallet
 ):
-    """Tests root claim KeepSubnets with various input formats.
+    """Tests root claim KeepSubnets validation and various input formats.
 
     Steps:
-    - Activate ROOT net to stake on Alice
-    - Register SN2 and the same validator (Alice) on that subnet
-    - Test setting KeepSubnets using different formats:
-      - Dict: {"KeepSubnets": {"subnets": [sn2.netuid]}}
-      - Callable: RootClaimType.KeepSubnets([sn2.netuid])
-    - Verify that all formats work correctly
+    - Test that setting KeepSubnets with empty list raises error
+    - Test that setting KeepSubnets with invalid format raises error
+    - Test that various input formats work correctly and produce expected behavior
     """
     TEMPO_TO_SET = 20 if await async_subtensor.chain.is_fast_blocks() else 10
 
@@ -1612,7 +1630,31 @@ async def test_root_claim_keep_subnets_various_formats_async(
         ]
     )
 
-    # Test format 1: Dict format
+    # Test 1: Empty subnets list should raise error
+    with pytest.raises((ValueError, Exception)):
+        await async_subtensor.staking.set_root_claim_type(
+            wallet=charlie_wallet,
+            new_root_claim_type={"KeepSubnets": {"subnets": []}},
+            raise_error=True,
+        )
+
+    # Test 2: Invalid dict format should raise error
+    with pytest.raises((ValueError, Exception)):
+        await async_subtensor.staking.set_root_claim_type(
+            wallet=charlie_wallet,
+            new_root_claim_type={"KeepSubnets": {}},
+            raise_error=True,
+        )
+
+    # Test 3: Invalid key should raise error
+    with pytest.raises((ValueError, Exception)):
+        await async_subtensor.staking.set_root_claim_type(
+            wallet=charlie_wallet,
+            new_root_claim_type={"InvalidKey": {"subnets": [1]}},
+            raise_error=True,
+        )
+
+    # Test 4: Dict format should work correctly
     assert (
         await async_subtensor.staking.set_root_claim_type(
             wallet=charlie_wallet,
@@ -1627,7 +1669,7 @@ async def test_root_claim_keep_subnets_various_formats_async(
     assert "KeepSubnets" in root_claim_type
     assert sn2.netuid in root_claim_type["KeepSubnets"]["subnets"]
 
-    # Test format 2: Callable format
+    # Test 5: Callable format should work correctly
     assert (
         await async_subtensor.staking.set_root_claim_type(
             wallet=charlie_wallet,
@@ -1641,72 +1683,3 @@ async def test_root_claim_keep_subnets_various_formats_async(
     assert isinstance(root_claim_type, dict)
     assert "KeepSubnets" in root_claim_type
     assert sn2.netuid in root_claim_type["KeepSubnets"]["subnets"]
-
-
-def test_root_claim_keep_subnets_validation(
-    subtensor, alice_wallet, bob_wallet, charlie_wallet
-):
-    """Tests root claim KeepSubnets validation.
-
-    Steps:
-    - Test that setting KeepSubnets with empty list raises error
-    - Test that setting KeepSubnets with invalid format raises error
-    """
-    # Test 1: Empty subnets list should raise error
-    with pytest.raises((ValueError, Exception)):
-        subtensor.staking.set_root_claim_type(
-            wallet=charlie_wallet,
-            new_root_claim_type={"KeepSubnets": {"subnets": []}},
-            raise_error=True,
-        )
-
-    # Test 2: Invalid dict format should raise error
-    with pytest.raises((ValueError, Exception)):
-        subtensor.staking.set_root_claim_type(
-            wallet=charlie_wallet,
-            new_root_claim_type={"KeepSubnets": {}},
-            raise_error=True,
-        )
-
-    # Test 3: Invalid key should raise error
-    with pytest.raises((ValueError, Exception)):
-        subtensor.staking.set_root_claim_type(
-            wallet=charlie_wallet,
-            new_root_claim_type={"InvalidKey": {"subnets": [1]}},
-            raise_error=True,
-        )
-
-
-@pytest.mark.asyncio
-async def test_root_claim_keep_subnets_validation_async(
-    async_subtensor, alice_wallet, bob_wallet, charlie_wallet
-):
-    """Tests root claim KeepSubnets validation.
-
-    Steps:
-    - Test that setting KeepSubnets with empty list raises error
-    - Test that setting KeepSubnets with invalid format raises error
-    """
-    # Test 1: Empty subnets list should raise error
-    with pytest.raises((ValueError, Exception)):
-        await async_subtensor.staking.set_root_claim_type(
-            wallet=charlie_wallet,
-            new_root_claim_type={"KeepSubnets": {"subnets": []}},
-            raise_error=True,
-        )
-
-    # Test 2: Invalid dict format should raise error
-    with pytest.raises((ValueError, Exception)):
-        await async_subtensor.staking.set_root_claim_type(
-            wallet=charlie_wallet,
-            new_root_claim_type={"KeepSubnets": {}},
-            raise_error=True,
-        )
-
-    # Test 3: Invalid key should raise error
-    with pytest.raises((ValueError, Exception)):
-        await async_subtensor.staking.set_root_claim_type(
-            wallet=charlie_wallet,
-            new_root_claim_type={"InvalidKey": {"subnets": [1]}},
-            raise_error=True,
-        )
