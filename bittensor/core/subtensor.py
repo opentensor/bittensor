@@ -27,6 +27,7 @@ from bittensor.core.chain_data import (
     ProxyInfo,
     ProxyConstants,
     ProxyType,
+    RootClaimType,
     SelectiveMetagraphIndex,
     SimSwapResult,
     StakeInfo,
@@ -2667,7 +2668,7 @@ class Subtensor(SubtensorMixin):
         self,
         coldkey_ss58: str,
         block: Optional[int] = None,
-    ) -> str:
+    ) -> Union[str, dict]:
         """Retrieves the root claim type for a given coldkey address.
 
         Parameters:
@@ -2675,7 +2676,8 @@ class Subtensor(SubtensorMixin):
             block: The block number to query.
 
         Returns:
-            RootClaimType value in string representation. Could be `Swap` or `Keep`.
+            Union[str, dict]: RootClaimType value. Returns string for "Swap" or "Keep",
+            or dict for "KeepSubnets" in format {"KeepSubnets": {"subnets": [1, 2, 3]}}.
         """
         query = self.substrate.query(
             module="SubtensorModule",
@@ -2683,7 +2685,52 @@ class Subtensor(SubtensorMixin):
             params=[coldkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
-        return next(iter(query.keys()))
+        # Query returns enum as dict: {"Swap": ()} or {"Keep": ()} or {"KeepSubnets": {"subnets": [1, 2, 3]}}
+        variant_name = next(iter(query.keys()))
+        variant_value = query[variant_name]
+
+        # For simple variants (Swap, Keep), value is empty tuple, return string
+        if not variant_value or variant_value == ():
+            return variant_name
+
+        # For KeepSubnets, value contains the data, return full dict structure
+        if isinstance(variant_value, dict) and "subnets" in variant_value:
+            subnets_raw = variant_value["subnets"]
+            subnets = [
+                item[0] if isinstance(item, tuple) and len(item) == 1 else item
+                for item in subnets_raw
+            ]
+
+            return {variant_name: {"subnets": subnets}}
+
+        return {variant_name: variant_value}
+
+    def get_root_alpha_dividends_per_subnet(
+        self,
+        hotkey_ss58: str,
+        netuid: int,
+        block: Optional[int] = None,
+    ) -> Balance:
+        """Retrieves the root alpha dividends per subnet for a given hotkey.
+
+        This storage tracks the root alpha dividends that a hotkey has received on a specific subnet.
+        It is updated during block emission distribution when root alpha is distributed to validators.
+
+        Parameters:
+            hotkey_ss58: The ss58 address of the root validator hotkey.
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query.
+
+        Returns:
+            Balance: The root alpha dividends for this hotkey on this subnet in Rao, with unit set to netuid.
+        """
+        query = self.substrate.query(
+            module="SubtensorModule",
+            storage_function="RootAlphaDividendsPerSubnet",
+            params=[netuid, hotkey_ss58],
+            block_hash=self.determine_block_hash(block),
+        )
+        return Balance.from_rao(query.value).set_unit(netuid=netuid)
 
     def get_root_claimable_rate(
         self,
@@ -5938,7 +5985,7 @@ class Subtensor(SubtensorMixin):
     def set_root_claim_type(
         self,
         wallet: "Wallet",
-        new_root_claim_type: Literal["Swap", "Keep"],
+        new_root_claim_type: "Literal['Swap', 'Keep'] | RootClaimType | dict",
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -5948,7 +5995,11 @@ class Subtensor(SubtensorMixin):
 
         Parameters:
             wallet: Bittensor Wallet instance.
-            new_root_claim_type: The new root claim type to set. Could be either "Swap" or "Keep".
+            new_root_claim_type: The new root claim type to set. Can be:
+                - String: "Swap" or "Keep"
+                - RootClaimType: RootClaimType.Swap, RootClaimType.Keep
+                - Dict: {"KeepSubnets": {"subnets": [1, 2, 3]}}
+                - Callable: RootClaimType.KeepSubnets([1, 2, 3])
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
