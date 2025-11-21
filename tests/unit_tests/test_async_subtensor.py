@@ -4744,12 +4744,27 @@ async def test_commit_weights_with_zero_max_attempts(
         ({"Swap": ()}, "Swap"),
         ({"Keep": ()}, "Keep"),
         (
-            {"KeepSubnets": {"subnets": ((2, 3,),)}},
+            {
+                "KeepSubnets": {
+                    "subnets": (
+                        (
+                            2,
+                            3,
+                        ),
+                    )
+                }
+            },
             {"KeepSubnets": {"subnets": [2, 3]}},
         ),
         (
             {"KeepSubnets": {"subnets": ((2,),)}},
-            {"KeepSubnets": {"subnets": [2,]}},
+            {
+                "KeepSubnets": {
+                    "subnets": [
+                        2,
+                    ]
+                }
+            },
         ),
     ],
 )
