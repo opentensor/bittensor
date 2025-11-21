@@ -2696,10 +2696,7 @@ class Subtensor(SubtensorMixin):
         # For KeepSubnets, value contains the data, return full dict structure
         if isinstance(variant_value, dict) and "subnets" in variant_value:
             subnets_raw = variant_value["subnets"]
-            subnets = [
-                item[0] if isinstance(item, tuple) and len(item) == 1 else item
-                for item in subnets_raw
-            ]
+            subnets = list(subnets_raw[0])
 
             return {variant_name: {"subnets": subnets}}
 
