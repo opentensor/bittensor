@@ -4889,13 +4889,37 @@ def test_commit_weights_with_zero_max_attempts(
     assert expected_message in caplog.text
 
 
-def test_get_root_claim_type(mocker, subtensor):
+@pytest.mark.parametrize(
+    "fake_result, expected_result",
+    [
+        ({"Swap": ()}, "Swap"),
+        ({"Keep": ()}, "Keep"),
+        (
+            {"KeepSubnets": {"subnets": [1, 2, 3]}},
+            {"KeepSubnets": {"subnets": [1, 2, 3]}},
+        ),
+        (
+            {"KeepSubnets": {"subnets": ((2,),)}},
+            {"KeepSubnets": {"subnets": [2]}},
+        ),  # Nested tuple case
+        (
+            {"KeepSubnets": {"subnets": (1, 2, 3)}},
+            {"KeepSubnets": {"subnets": [1, 2, 3]}},
+        ),  # Flat tuple case
+    ],
+    ids=[
+        "swap-variant",
+        "keep-variant",
+        "keep-subnets-dict",
+        "keep-subnets-nested-tuple",
+        "keep-subnets-flat-tuple",
+    ],
+)
+def test_get_root_claim_type(mocker, subtensor, fake_result, expected_result):
     """Tests that `get_root_claim_type` calls proper methods and returns the correct value."""
     # Preps
     fake_coldkey_ss58 = mocker.Mock(spec=str)
     mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
-    fake_type = mocker.Mock(spec=str)
-    fake_result = {fake_type: ()}
     mocked_map = mocker.patch.object(
         subtensor.substrate, "query", return_value=fake_result
     )
@@ -4911,7 +4935,7 @@ def test_get_root_claim_type(mocker, subtensor):
         params=[fake_coldkey_ss58],
         block_hash=mocked_determine_block_hash.return_value,
     )
-    assert result == fake_type
+    assert result == expected_result
 
 
 def test_get_root_claimable_rate(mocker, subtensor):
