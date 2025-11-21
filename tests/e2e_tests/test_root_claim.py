@@ -1,5 +1,9 @@
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
+from tests.e2e_tests.utils.set_subnet_moving_price import (
+    increase_subnet_ema,
+    async_increase_subnet_ema,
+)
 from tests.e2e_tests.utils import (
     AdminUtils,
     NETUID,
@@ -49,6 +53,9 @@ def test_root_claim_swap(subtensor, alice_wallet, bob_wallet, charlie_wallet):
             REGISTER_NEURON(alice_wallet),
         ]
     )
+
+    # Here is the damn magic with EMA
+    assert increase_subnet_ema(subtensor=subtensor, sudo_wallet=alice_wallet)
 
     stake_balance = Balance.from_tao(10)
 
@@ -145,6 +152,11 @@ async def test_root_claim_swap_async(
             ACTIVATE_SUBNET(bob_wallet),
             REGISTER_NEURON(alice_wallet),
         ]
+    )
+
+    # Here is the damn magic with EMA
+    assert await async_increase_subnet_ema(
+        subtensor=async_subtensor, sudo_wallet=alice_wallet
     )
 
     stake_balance = Balance.from_tao(10)
@@ -276,6 +288,9 @@ def test_root_claim_keep_with_zero_num_root_auto_claims(
         )
         == "Keep"
     )
+
+    # Here is the damn magic with EMA
+    assert increase_subnet_ema(subtensor=subtensor, sudo_wallet=alice_wallet)
 
     stake_balance = Balance.from_tao(1000)  # just a dream - stake 1000 TAO to SN0 :D
 
@@ -439,6 +454,11 @@ async def test_root_claim_keep_with_zero_num_root_auto_claims_async(
             coldkey_ss58=charlie_wallet.coldkey.ss58_address
         )
         == "Keep"
+    )
+
+    # Here is the damn magic with EMA
+    assert await async_increase_subnet_ema(
+        subtensor=async_subtensor, sudo_wallet=alice_wallet
     )
 
     stake_balance = Balance.from_tao(1000)  # just a dream - stake 1000 TAO to SN0 :D
@@ -605,7 +625,10 @@ def test_root_claim_keep_with_random_auto_claims(
         == "Keep"
     )
 
-    stake_balance = Balance.from_tao(1000)  # just a dream - stake 1000 TAO to SN0 :D
+    # Set EMA to enable root_sell_flag
+    assert increase_subnet_ema(subtensor=subtensor, sudo_wallet=alice_wallet)
+
+    stake_balance = Balance.from_tao(1000)
 
     # Stake from Charlie to Alice in ROOT
     response = subtensor.staking.add_stake(
@@ -615,6 +638,13 @@ def test_root_claim_keep_with_random_auto_claims(
         amount=stake_balance,
     )
     assert response.success, response.message
+
+    # Skip the epoch in which stake was installed. Emission doesn't occur in the same epoch as stake installation
+    logging.console.info("Skipping stake epoch")
+    next_epoch_start_block = subtensor.subnets.get_next_epoch_start_block(
+        netuid=root_sn.netuid
+    )
+    subtensor.wait_for_block(next_epoch_start_block)
 
     proof_counter = PROOF_COUNTER
 
@@ -630,8 +660,7 @@ def test_root_claim_keep_with_random_auto_claims(
         netuid=sn2.netuid,
     )
 
-    # proof that ROOT stake increases each epoch even RootClaimType is Keep bc of random auto claim takes min 5 coldkeys
-    # to do release emissions
+    # Wait for epochs and check that stake increases due to random auto claims
     while proof_counter > 0:
         next_epoch_start_block = subtensor.subnets.get_next_epoch_start_block(
             root_sn.netuid
@@ -644,7 +673,9 @@ def test_root_claim_keep_with_random_auto_claims(
             hotkey_ss58=alice_wallet.hotkey.ss58_address,
             netuid=sn2.netuid,
         )
-        assert claimed_stake_charlie > prev_claimed_stake_charlie
+        assert claimed_stake_charlie > prev_claimed_stake_charlie, (
+            f"Stake did not increase: {claimed_stake_charlie} <= {prev_claimed_stake_charlie}"
+        )
         prev_claimed_stake_charlie = claimed_stake_charlie
 
         root_claimed_charlie = subtensor.staking.get_root_claimed(
@@ -652,7 +683,9 @@ def test_root_claim_keep_with_random_auto_claims(
             hotkey_ss58=alice_wallet.hotkey.ss58_address,
             netuid=sn2.netuid,
         )
-        assert root_claimed_charlie > prev_root_claimed_charlie
+        assert root_claimed_charlie > prev_root_claimed_charlie, (
+            f"Root claimed did not increase: {root_claimed_charlie} <= {prev_root_claimed_charlie}"
+        )
         prev_root_claimed_charlie = root_claimed_charlie
 
         proof_counter -= 1
@@ -723,6 +756,11 @@ async def test_root_claim_keep_with_random_auto_claims_async(
         == "Keep"
     )
 
+    # Here is the damn magic with EMA
+    assert await async_increase_subnet_ema(
+        subtensor=async_subtensor, sudo_wallet=alice_wallet
+    )
+
     stake_balance = Balance.from_tao(1000)  # just a dream - stake 1000 TAO to SN0 :D
 
     # Stake from Charlie to Alice in ROOT
@@ -733,6 +771,13 @@ async def test_root_claim_keep_with_random_auto_claims_async(
         amount=stake_balance,
     )
     assert response.success, response.message
+
+    # Skip the epoch in which stake was installed. Emission doesn't occur in the same epoch as stake installation
+    logging.console.info("Skipping stake epoch")
+    next_epoch_start_block = await async_subtensor.subnets.get_next_epoch_start_block(
+        netuid=root_sn.netuid
+    )
+    await async_subtensor.wait_for_block(next_epoch_start_block)
 
     proof_counter = PROOF_COUNTER
 
@@ -748,8 +793,7 @@ async def test_root_claim_keep_with_random_auto_claims_async(
         netuid=sn2.netuid,
     )
 
-    # proof that ROOT stake increases each epoch even RootClaimType is Keep bc of random auto claim takes min 5 coldkeys
-    # to do release emissions
+    # Wait for epochs and check that stake increases due to random auto claims
     while proof_counter > 0:
         next_epoch_start_block = (
             await async_subtensor.subnets.get_next_epoch_start_block(root_sn.netuid)
@@ -762,7 +806,9 @@ async def test_root_claim_keep_with_random_auto_claims_async(
             hotkey_ss58=alice_wallet.hotkey.ss58_address,
             netuid=sn2.netuid,
         )
-        assert claimed_stake_charlie > prev_claimed_stake_charlie
+        assert claimed_stake_charlie > prev_claimed_stake_charlie, (
+            f"Stake did not increase: {claimed_stake_charlie} <= {prev_claimed_stake_charlie}"
+        )
         prev_claimed_stake_charlie = claimed_stake_charlie
 
         root_claimed_charlie = await async_subtensor.staking.get_root_claimed(
@@ -770,7 +816,9 @@ async def test_root_claim_keep_with_random_auto_claims_async(
             hotkey_ss58=alice_wallet.hotkey.ss58_address,
             netuid=sn2.netuid,
         )
-        assert root_claimed_charlie > prev_root_claimed_charlie
+        assert root_claimed_charlie > prev_root_claimed_charlie, (
+            f"Root claimed did not increase: {root_claimed_charlie} <= {prev_root_claimed_charlie}"
+        )
         prev_root_claimed_charlie = root_claimed_charlie
 
         proof_counter -= 1

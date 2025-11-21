@@ -3176,7 +3176,7 @@ class Subtensor(SubtensorMixin):
             block: The block number at which to query the stake information.
 
         Returns:
-            An optional list of StakeInfo objects, or ``None`` if no stake information is found.
+            List of StakeInfo objects.
         """
         result = self.query_runtime_api(
             runtime_api="StakeInfoRuntimeApi",
@@ -3187,8 +3187,35 @@ class Subtensor(SubtensorMixin):
 
         if result is None:
             return []
-        stakes: list[StakeInfo] = StakeInfo.list_from_dicts(result)
-        return [stake for stake in stakes if stake.stake > 0]
+        return StakeInfo.list_from_dicts(result)
+
+    def get_stake_info_for_coldkeys(
+        self, coldkey_ss58s: list[str], block: Optional[int] = None
+    ) -> dict[str, list["StakeInfo"]]:
+        """
+        Retrieves the stake information for multiple coldkeys.
+
+        Parameters:
+            coldkey_ss58s: A list of SS58 addresses of the coldkeys to query.
+            block: The block number at which to query the stake information.
+
+        Returns:
+            The dictionary mapping coldkey addresses to a list of StakeInfo objects.
+        """
+        query = self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_stake_info_for_coldkeys",
+            params=[coldkey_ss58s],
+            block=block,
+        )
+
+        if query is None:
+            return {}
+
+        return {
+            decode_account_id(ck): StakeInfo.list_from_dicts(st_info)
+            for ck, st_info in query
+        }
 
     def get_stake_for_hotkey(
         self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
@@ -4530,7 +4557,7 @@ class Subtensor(SubtensorMixin):
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
-            extrinsic_response.extrinsic_receipt = response
+
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
                 extrinsic_response.extrinsic_fee = self.get_extrinsic_fee(
@@ -4541,6 +4568,8 @@ class Subtensor(SubtensorMixin):
                 )
                 logging.debug(extrinsic_response.message)
                 return extrinsic_response
+
+            extrinsic_response.extrinsic_receipt = response
 
             if response.is_success:
                 extrinsic_response.extrinsic_fee = Balance.from_rao(

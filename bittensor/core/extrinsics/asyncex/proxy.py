@@ -1,7 +1,9 @@
+import asyncio
 from typing import TYPE_CHECKING, Optional, Union
 
 from bittensor.core.chain_data.proxy import ProxyType
 from bittensor.core.extrinsics.pallets import Proxy
+from bittensor.core.extrinsics.utils import apply_pure_proxy_data
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.btlogging import logging
 
@@ -42,6 +44,13 @@ async def add_proxy_extrinsic(
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
+
+    Warning:
+        If ``wait_for_inclusion=False`` or when ``block_hash`` is not available, the extrinsic receipt may not contain
+        triggered events. This means that any data that would normally be extracted from blockchain events (such as
+        proxy relationship details) will not be available in the response. To ensure complete event data is available,
+        either pass ``wait_for_inclusion=True`` when calling this function, or retrieve the data manually from the
+        blockchain using the extrinsic hash.
     """
     try:
         if not (
@@ -273,23 +282,30 @@ async def create_pure_proxy_extrinsic(
         if response.success:
             logging.debug("[green]Pure proxy created successfully.[/green]")
 
-            # Extract pure proxy address from PureCreated triggered event
-            for event in await response.extrinsic_receipt.triggered_events:
-                if event.get("event_id") == "PureCreated":
-                    # Event structure: PureProxyCreated { disambiguation_index, proxy_type, pure, who }
-                    attributes = event.get("attributes", [])
-                    if attributes:
-                        response.data = {
-                            "pure_account": attributes.get("pure"),
-                            "spawner": attributes.get("who"),
-                            "proxy_type": attributes.get("proxy_type"),
-                            "index": attributes.get("disambiguation_index"),
-                            "height": await subtensor.substrate.get_block_number(
-                                response.extrinsic_receipt.block_hash
-                            ),
-                            "ext_index": await response.extrinsic_receipt.extrinsic_idx,
-                        }
-                    break
+            block_hash = (
+                response.extrinsic_receipt.block_hash
+                if response.extrinsic_receipt
+                else None
+            )
+
+            block_number, triggered_events, extrinsic_idx = (
+                await asyncio.gather(
+                    subtensor.substrate.get_block_number(block_hash=block_hash),
+                    response.extrinsic_receipt.triggered_events,
+                    response.extrinsic_receipt.extrinsic_idx,
+                )
+                if (wait_for_finalization or wait_for_inclusion)
+                and response.extrinsic_receipt.block_hash
+                else (0, [], 0)
+            )
+
+            response = apply_pure_proxy_data(
+                response=response,
+                triggered_events=triggered_events,
+                block_number=block_number,
+                extrinsic_idx=extrinsic_idx,
+                raise_error=raise_error,
+            )
         else:
             logging.error(f"[red]{response.message}[/red]")
 
