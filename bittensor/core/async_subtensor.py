@@ -2263,7 +2263,7 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             Detailed information about the delegate neuron, ``None`` if not found.
 
-        Notes:            
+        Notes:
 
             - <https://docs.learnbittensor.org/glossary#delegate>
             - <https://docs.learnbittensor.org/glossary#nominator>
@@ -5372,7 +5372,7 @@ class AsyncSubtensor(SubtensorMixin):
         Example::
 
             # Waits for a specific block
-            await subtensor.wait_for_block(block=1234) 
+            await subtensor.wait_for_block(block=1234)
         """
 
         async def handler(block_data: dict):
@@ -6260,7 +6260,7 @@ class AsyncSubtensor(SubtensorMixin):
             - Use ``get_crowdloan_next_id`` to determine the ID that will be assigned to the new crowdloan.
 
             - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
-            - Crowdloan Tutorial: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#step-3-create-a-crowdloan>            
+            - Crowdloan Tutorial: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#step-3-create-a-crowdloan>
         """
         return await create_crowdloan_extrinsic(
             subtensor=self,

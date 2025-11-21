@@ -1826,7 +1826,7 @@ class Subtensor(SubtensorMixin):
         Returns:
             Detailed information about the delegate neuron, ``None`` if not found.
 
-        Notes:            
+        Notes:
 
             - <https://docs.learnbittensor.org/glossary#delegate>
             - <https://docs.learnbittensor.org/glossary#nominator>
@@ -4310,10 +4310,10 @@ class Subtensor(SubtensorMixin):
             True if the target block was reached, False if timeout occurred.
 
         Example:
-            
+
             # Waits for a specific block
 
-            subtensor.wait_for_block(block=1234) 
+            subtensor.wait_for_block(block=1234)
         """
 
         def handler(block_data: dict):
