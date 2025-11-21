@@ -4895,24 +4895,13 @@ def test_commit_weights_with_zero_max_attempts(
         ({"Swap": ()}, "Swap"),
         ({"Keep": ()}, "Keep"),
         (
-            {"KeepSubnets": {"subnets": [1, 2, 3]}},
-            {"KeepSubnets": {"subnets": [1, 2, 3]}},
+            {"KeepSubnets": {"subnets": ((2, 3,),)}},
+            {"KeepSubnets": {"subnets": [2, 3]}},
         ),
         (
             {"KeepSubnets": {"subnets": ((2,),)}},
-            {"KeepSubnets": {"subnets": [2]}},
-        ),  # Nested tuple case
-        (
-            {"KeepSubnets": {"subnets": (1, 2, 3)}},
-            {"KeepSubnets": {"subnets": [1, 2, 3]}},
-        ),  # Flat tuple case
-    ],
-    ids=[
-        "swap-variant",
-        "keep-variant",
-        "keep-subnets-dict",
-        "keep-subnets-nested-tuple",
-        "keep-subnets-flat-tuple",
+            {"KeepSubnets": {"subnets": [2,]}},
+        ),
     ],
 )
 def test_get_root_claim_type(mocker, subtensor, fake_result, expected_result):

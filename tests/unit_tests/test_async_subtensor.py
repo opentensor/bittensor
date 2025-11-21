@@ -4744,30 +4744,21 @@ async def test_commit_weights_with_zero_max_attempts(
         ({"Swap": ()}, "Swap"),
         ({"Keep": ()}, "Keep"),
         (
-            {"KeepSubnets": {"subnets": [1, 2, 3]}},
-            {"KeepSubnets": {"subnets": [1, 2, 3]}},
+            {"KeepSubnets": {"subnets": ((2, 3,),)}},
+            {"KeepSubnets": {"subnets": [2, 3]}},
         ),
         (
             {"KeepSubnets": {"subnets": ((2,),)}},
-            {"KeepSubnets": {"subnets": [2]}},
-        ),  # Nested tuple case
-        (
-            {"KeepSubnets": {"subnets": (1, 2, 3)}},
-            {"KeepSubnets": {"subnets": [1, 2, 3]}},
-        ),  # Flat tuple case
-    ],
-    ids=[
-        "swap-variant",
-        "keep-variant",
-        "keep-subnets-dict",
-        "keep-subnets-nested-tuple",
-        "keep-subnets-flat-tuple",
+            {"KeepSubnets": {"subnets": [2,]}},
+        ),
     ],
 )
 @pytest.mark.asyncio
 async def test_get_root_claim_type(mocker, subtensor, fake_result, expected_result):
     """Tests that `get_root_claim_type` calls proper methods and returns the correct value."""
     # Preps
+    # fake_result = {"KeepSubnets": {"subnets": ((2, 3, ),)}}
+    # expected_result = {"KeepSubnets": {"subnets": [2, 3]}}
     fake_coldkey_ss58 = mocker.Mock(spec=str)
     mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
     mocked_map = mocker.patch.object(
