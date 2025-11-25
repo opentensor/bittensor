@@ -14,12 +14,24 @@ permissions:
   contents: read
 
 jobs:
+  read-python-versions:
+    runs-on: ubuntu-latest
+    outputs:
+      python-versions: ${{ steps.read-versions.outputs.versions }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: read-versions
+        run: |
+          versions=$(cat .github/supported-python-versions.json)
+          echo "versions=$versions" >> $GITHUB_OUTPUT
+
   measure-venv:
+    needs: read-python-versions
     if: github.event_name == 'pull_request' && github.base_ref == 'master' || contains( github.event.pull_request.labels.*.name, 'show-venv-size')
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ${{ fromJson(vars.SDK_SUPPORTED_PYTHON_VERSIONS) }}
+        python-version: ${{ fromJson(needs.read-python-versions.outputs.python-versions) }}
     outputs:
       py310: ${{ steps.set-output.outputs.py310 }}
       py311: ${{ steps.set-output.outputs.py311 }}

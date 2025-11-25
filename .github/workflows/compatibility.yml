@@ -8,13 +8,25 @@ on:
       - "pyproject.toml"
 
 jobs:
+  read-python-versions:
+    runs-on: ubuntu-latest
+    outputs:
+      python-versions: ${{ steps.read-versions.outputs.versions }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: read-versions
+        run: |
+          versions=$(cat .github/supported-python-versions.json)
+          echo "versions=$versions" >> $GITHUB_OUTPUT
+
   compatibility:
+    needs: read-python-versions
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        python-version: ${{ fromJson(vars.SDK_SUPPORTED_PYTHON_VERSIONS) }}
+        python-version: ${{ fromJson(needs.read-python-versions.outputs.python-versions) }}
 
     steps:
       - uses: actions/checkout@v4
