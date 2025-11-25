@@ -157,3 +157,4 @@ jobs:
       nodeid: ${{ matrix.nodeid }}
       image-name: ${{ needs.pull-docker-image.outputs.image-name }}
     secrets: inherit
+    vars: inherit
