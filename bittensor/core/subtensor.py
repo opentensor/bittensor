@@ -543,6 +543,11 @@ class Subtensor(SubtensorMixin):
 
     @property
     def block(self) -> int:
+        """Provides an asynchronous getter to retrieve the current block number.
+
+        Returns:
+            The current blockchain block number.
+        """
         return self.get_current_block()
 
     def sim_swap(
@@ -677,7 +682,7 @@ class Subtensor(SubtensorMixin):
     ) -> "QueryMapResult":
         """Queries map storage from any module on the Bittensor blockchain.
 
-        Use this function for nonstandard queries to constants defined within the Bittensor blockchain, if these cannot
+        Use this function for nonstandard queries to map storage defined within the Bittensor blockchain, if these cannot
         be accessed through other, standard getter methods.
 
         Parameters:
@@ -705,7 +710,7 @@ class Subtensor(SubtensorMixin):
     ) -> "QueryMapResult":
         """Queries map storage from the Subtensor module on the Bittensor blockchain.
 
-        Use this function for nonstandard queries to constants defined within the Bittensor blockchain, if these cannot
+        Use this function for nonstandard queries to map storage defined within the Bittensor blockchain, if these cannot
         be accessed through other, standard getter methods.
 
         Parameters:
@@ -732,7 +737,7 @@ class Subtensor(SubtensorMixin):
     ) -> Optional[Union["ScaleObj", Any, FixedPoint]]:
         """Queries any module storage on the Bittensor blockchain with the specified parameters and block number.
         This function is a generic query interface that allows for flexible and diverse data retrieval from various
-        blockchain modules. Use this function for nonstandard queries to constants defined within the Bittensor
+        blockchain modules. Use this function for nonstandard queries to storage defined within the Bittensor
         blockchain, if these cannot be accessed through other, standard getter methods.
 
         Parameters:
@@ -810,9 +815,13 @@ class Subtensor(SubtensorMixin):
         """Makes a state call to the Bittensor blockchain, allowing for direct queries of the blockchain's state.
         This function is typically used for advanced, nonstandard queries not provided by other getter methods.
 
+        Use this method when you need to query runtime APIs or storage functions that don't have dedicated
+        wrapper methods in the SDK. For standard queries, prefer the specific getter methods (e.g., ``get_balance``,
+        ``get_stake``) which provide better type safety and error handling.
+
         Parameters:
-            method: The method name for the state call.
-            data: The data to be passed to the method.
+            method: The runtime API method name (e.g., "SubnetInfoRuntimeApi", "get_metagraph").
+            data: Hex-encoded string of the SCALE-encoded parameters to pass to the method.
             block: The block number to query. If ``None``, queries the current chain head.
 
         Returns:
@@ -1607,7 +1616,7 @@ class Subtensor(SubtensorMixin):
     def get_commitment_metadata(
         self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
     ) -> Union[str, dict]:
-        # TODO: how to handle return data? need good example
+        # TODO: how to handle return data? need good example @roman
         """Fetches raw commitment metadata from specific subnet for given hotkey.
 
         Parameters:
@@ -1616,7 +1625,11 @@ class Subtensor(SubtensorMixin):
             block: The blockchain block number for the query.
 
         Returns:
-            The raw commitment metadata from specific subnet for given hotkey.
+            The raw commitment metadata. Returns a dict when commitment data exists,
+            or an empty string when no commitment is found for the given hotkey on the subnet.
+
+        Notes:
+            - <https://docs.learnbittensor.org/glossary#commit-reveal>
         """
         commit_data = self.substrate.query(
             module="Commitments",
@@ -1712,8 +1725,6 @@ class Subtensor(SubtensorMixin):
         self, crowdloan_id: int, block: Optional[int] = None
     ) -> Optional["CrowdloanInfo"]:
         """Retrieves detailed information about a specific crowdloan campaign.
-
-
 
         Parameters:
             crowdloan_id: Unique identifier of the crowdloan (auto-incremented starting from 0).
@@ -2059,9 +2070,8 @@ class Subtensor(SubtensorMixin):
 
     def get_last_bonds_reset(
         self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
-    ) -> bytes:
-        """
-        Retrieves the last bonds reset triggered at commitment from given subnet for a specific hotkey.
+    ):
+        """Retrieves the block number when bonds were last reset for a specific hotkey on a subnet.
 
         Parameters:
             netuid: The network uid to fetch from.
@@ -2069,7 +2079,11 @@ class Subtensor(SubtensorMixin):
             block: The block number to query. If ``None``, queries the current chain head.
 
         Returns:
-            bytes: The last bonds reset data from given subnet for the specified hotkey.
+            The block number when bonds were last reset, or ``None`` if no bonds reset has occurred.
+
+        Notes:
+            - <https://docs.learnbittensor.org/resources/glossary#validator-miner-bonds>
+            - <https://docs.learnbittensor.org/resources/glossary#commit-reveal>
         """
         return self.substrate.query(
             module="Commitments",
@@ -2447,11 +2461,21 @@ class Subtensor(SubtensorMixin):
         return MetagraphInfo.from_dict(query.value)
 
     def get_minimum_required_stake(self) -> Balance:
-        """
-        Returns the minimum required stake for nominators in the Subtensor network.
+        """Returns the minimum required stake threshold for nominator cleanup operations.
+
+        This threshold is used ONLY for cleanup after unstaking operations. If a nominator's remaining stake
+        falls below this minimum after an unstake, the remaining stake is forcefully cleared and returned
+        to the coldkey to prevent dust accounts.
+
+        This is NOT the minimum checked during staking operations. The actual minimum for staking is determined
+        by DefaultMinStake (typically 0.001 TAO plus fees).
 
         Returns:
-            The minimum required stake as a Balance object in TAO.
+            The minimum stake threshold as a Balance object. Nominator stakes below this amount
+            are automatically cleared after unstake operations.
+
+        Notes:            
+            - <https://docs.learnbittensor.org/staking-and-delegation/delegation>
         """
         result = self.substrate.query(
             module="SubtensorModule", storage_function="NominatorMinRequiredStake"
@@ -3733,7 +3757,7 @@ class Subtensor(SubtensorMixin):
     ) -> list[int]:
         """
         Filters a given list of all netuids for certain specified netuids and hotkeys
-
+# TODO @roman I find this confusing, what is the difference between all_netuids and filter_for_netuids? what is the intent for this method's
         Parameters:
             all_netuids: A list of netuids to filter.
             filter_for_netuids: A subset of all_netuids to filter from the main list.
@@ -3978,16 +4002,20 @@ class Subtensor(SubtensorMixin):
     def max_weight_limit(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[float]:
-        """
-        Returns network MaxWeightsLimit hyperparameter.
+        """Returns the MaxWeightsLimit hyperparameter for a subnet.
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
             block: The blockchain block number for the query.
 
         Returns:
-            The value of the MaxWeightsLimit hyperparameter, or ``None`` if the subnetwork does not exist or the
-            parameter is not found.
+            The stored maximum weight limit as a normalized float in [0, 1], or ``None`` if the subnetwork
+                does not exist. Note: this value is not actually enforced - the weight validation code uses
+                a hardcoded u16::MAX instead.
+
+        Notes:
+            - This hyperparameter is now a constant rather than a settable variable.
+            - <https://docs.learnbittensor.org/subnets/subnet-hyperparameters>
         """
         call = self.get_hyperparameter(
             param_name="MaxWeightsLimit", netuid=netuid, block=block
@@ -4032,16 +4060,23 @@ class Subtensor(SubtensorMixin):
     def min_allowed_weights(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[int]:
-        """
-        Returns network MinAllowedWeights hyperparameter.
+        """Returns the MinAllowedWeights hyperparameter for a subnet.
+
+        This hyperparameter sets the minimum length of the weights vector that a validator must submit.
+        It checks ``weights.len() >= MinAllowedWeights``. For example, a validator could submit ``[1000, 0, 0, 0]``
+        to satisfy ``MinAllowedWeights=4``, but this would fail if ``MinAllowedWeights`` were set to 5.
+        This ensures validators distribute attention across the subnet.
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
             block: The blockchain block number for the query.
 
         Returns:
-            The value of the MinAllowedWeights hyperparameter, or ``None`` if the subnetwork does not exist or the
-            parameter is not found.
+            The minimum number of required weight connections, or ``None`` if the subnetwork does not
+                exist or the parameter is not found.
+
+        Notes:
+            - <https://docs.learnbittensor.org/subnets/subnet-hyperparameters>
         """
         call = self.get_hyperparameter(
             param_name="MinAllowedWeights", netuid=netuid, block=block
@@ -4183,17 +4218,21 @@ class Subtensor(SubtensorMixin):
             return None
 
     def recycle(self, netuid: int, block: Optional[int] = None) -> Optional[Balance]:
-        """
-        Retrieves the 'Burn' hyperparameter for a specified subnet. The 'Burn' parameter represents the amount of Tao
-        that is effectively recycled within the Bittensor network.
+        """Retrieves the 'Burn' hyperparameter for a specified subnet.
+
+        The 'Burn' parameter represents the amount of TAO that is recycled when registering a neuron
+        on this subnet. Recycled tokens are removed from circulation but can be re-emitted, unlike
+        burned tokens which are permanently removed.
 
         Parameters:
             netuid: The unique identifier of the subnet.
             block: The blockchain block number for the query.
 
         Returns:
-            The value of the 'Burn' hyperparameter if the subnet exists, None otherwise.
+            The amount of TAO recycled per neuron registration, or ``None`` if the subnet does not exist.
 
+        Notes:
+            - <https://docs.learnbittensor.org/resources/glossary#recycling-and-burning>
         """
         call = self.get_hyperparameter(param_name="Burn", netuid=netuid, block=block)
         return None if call is None else Balance.from_rao(int(call))
@@ -4249,16 +4288,15 @@ class Subtensor(SubtensorMixin):
         return getattr(result, "value", False)
 
     def subnetwork_n(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
-        """
-        Returns network SubnetworkN hyperparameter.
+        """Returns the current number of registered neurons (UIDs) in a subnet.
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
             block: The blockchain block number for the query.
 
         Returns:
-            The value of the SubnetworkN hyperparameter, or ``None`` if the subnetwork does not exist or the parameter
-                is not found.
+            The current number of registered neurons in the subnet, or ``None`` if the subnetwork does not exist.
+
         """
         call = self.get_hyperparameter(
             param_name="SubnetworkN", netuid=netuid, block=block
@@ -4266,16 +4304,22 @@ class Subtensor(SubtensorMixin):
         return None if call is None else int(call)
 
     def tempo(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
-        """
-        Returns network Tempo hyperparameter.
+        """Returns the Tempo hyperparameter for a subnet.
+
+        Tempo determines the length of an epoch in blocks. It defines how frequently the subnet's consensus mechanism
+        runs, calculating emissions and updating rankings. A tempo of 360 blocks equals approximately 72 minutes
+        (360 blocks × 12 seconds per block).
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
             block: The blockchain block number for the query.
 
         Returns:
-            The value of the Tempo hyperparameter, or ``None`` if the subnetwork does not exist or the parameter is not
-                found.
+            The tempo value in blocks, or ``None`` if the subnetwork does not exist.
+
+        Notes:
+            - <https://docs.learnbittensor.org/resources/glossary#tempo>
+            - <https://docs.learnbittensor.org/resources/glossary#epoch>
         """
         call = self.get_hyperparameter(param_name="Tempo", netuid=netuid, block=block)
         return None if call is None else int(call)
@@ -4372,16 +4416,19 @@ class Subtensor(SubtensorMixin):
     def weights_rate_limit(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[int]:
-        """
-        Returns network WeightsSetRateLimit hyperparameter.
+        """Returns the WeightsSetRateLimit hyperparameter for a subnet.
+
+        This hyperparameter limits how many times a validator can set weights per epoch. It prevents validators
+        from spamming weight updates and ensures stable consensus calculations. Once the limit is reached, validators
+        must wait until the next epoch to set weights again.
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
             block: The blockchain block number for the query.
 
         Returns:
-            The value of the WeightsSetRateLimit hyperparameter, or ``None`` if the subnetwork does not exist or the
-            parameter is not found.
+            The maximum number of weight set operations allowed per epoch, or ``None`` if the subnetwork does not
+                exist or the parameter is not found.
         """
         call = self.get_hyperparameter(
             param_name="WeightsSetRateLimit", netuid=netuid, block=block
