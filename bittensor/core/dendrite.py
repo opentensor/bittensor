@@ -389,7 +389,8 @@ class DendriteMixin:
             use_new_loop = True
         finally:
             self.close_session(using_new_loop=use_new_loop)
-            return result  # type: ignore
+
+        return result  # type: ignore
 
     async def forward(
         self,
@@ -597,8 +598,8 @@ class DendriteMixin:
             # Log synapse event history
             self.synapse_history.append(Synapse.from_headers(synapse.to_headers()))
 
-            # Return the updated synapse object after deserializing if requested
-            return synapse.deserialize() if deserialize else synapse
+        # Return the updated synapse object after deserializing if requested
+        return synapse.deserialize() if deserialize else synapse
 
     async def call_stream(
         self,
