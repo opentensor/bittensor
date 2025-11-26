@@ -79,6 +79,7 @@ class ProxyType(str, Enum):
 
         RootClaim: Allows only root claim operations. Permitted operations:
             - claim_root
+            - set_root_claim_type
 
     Note:
         The values match exactly with the ProxyType enum defined in the Subtensor runtime. Any changes to the runtime

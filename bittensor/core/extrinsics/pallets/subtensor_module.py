@@ -511,12 +511,14 @@ class SubtensorModule(_BasePallet):
 
     def set_root_claim_type(
         self,
-        new_root_claim_type: Literal["Swap", "Keep"],
+        new_root_claim_type: Literal["Swap", "Keep"] | dict,
     ) -> Call:
         """Returns GenericCall instance for Subtensor function SubtensorModule.set_root_claim_type.
 
         Parameters:
-            new_root_claim_type: The new root claim type.
+            new_root_claim_type: The new root claim type. Can be:
+                - String: "Swap" or "Keep"
+                - Dict: {"KeepSubnets": {"subnets": [1, 2, 3]}}
 
         Returns:
             GenericCall instance.
