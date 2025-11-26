@@ -120,7 +120,10 @@ def submit_encrypted_extrinsic(
 
         ml_kem_768_public_key = subtensor.get_mev_shield_next_key()
         if ml_kem_768_public_key is None:
-            return ExtrinsicResponse.from_exception(raise_error=raise_error, error=ValueError("MEV Shield NextKey not available in storage."))
+            return ExtrinsicResponse.from_exception(
+                raise_error=raise_error,
+                error=ValueError("MEV Shield NextKey not available in storage."),
+            )
 
         genesis_hash = subtensor.get_block_hash(block=0)
         nonce = subtensor.substrate.get_account_nonce(signer_keypair.ss58_address)
