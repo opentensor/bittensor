@@ -9,15 +9,14 @@ if TYPE_CHECKING:
 
 @dataclass
 class Proxy(_BasePallet):
-    """
-    Factory class for creating GenericCall objects for Proxy pallet functions.
+    """Factory class for creating GenericCall objects for Proxy pallet functions.
 
     This class provides methods to create GenericCall instances for all Proxy pallet extrinsics.
 
     Works with both sync (Subtensor) and async (AsyncSubtensor) instances. For async operations, pass an AsyncSubtensor
     instance and await the result.
 
-    Example:
+    Example::
         # Sync usage
         call = Proxy(subtensor).add_proxy(delegate="5DE..", proxy_type="Any", delay=0)
         response = subtensor.sign_and_send_extrinsic(call=call, ...)
@@ -33,15 +32,21 @@ class Proxy(_BasePallet):
         proxy_type: str,
         delay: int,
     ) -> Call:
-        """Returns GenericCall instance for Subtensor function Proxy.add_proxy.
+        """Add a proxy relationship between existing wallets.
 
         Parameters:
             delegate: The SS58 address of the delegate proxy account.
-            proxy_type: The type of proxy permissions (e.g., "Any", "NonTransfer", "Governance", "Staking").
-            delay: The number of blocks before the proxy can be used.
+            proxy_type: The type of proxy permissions (e.g., ``"Any"``, ``"NonTransfer"``, ``"Staking"``). For available
+                proxy types and their permissions, see the documentation link in the Notes section below.
+            delay: Optionally, include a delay in blocks. The time-lock period for proxy announcements. A delay of ``0``
+                means immediate execution without announcements.
 
         Returns:
-            GenericCall instance.
+            GenericCall instance for the ``Proxy.addProxy`` extrinsic.
+
+        Notes:
+            - For available proxy types and their specific permissions, see: <https://docs.learnbittensor.org/keys/proxies#types-of-proxies>
+            - See Working with Proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
         """
         return self.create_composed_call(
             delegate=delegate,
@@ -55,15 +60,20 @@ class Proxy(_BasePallet):
         proxy_type: str,
         delay: int,
     ) -> Call:
-        """Returns GenericCall instance for Subtensor function Proxy.remove_proxy.
+        """Remove a specific proxy relationship.
 
         Parameters:
             delegate: The SS58 address of the delegate proxy account to remove.
-            proxy_type: The type of proxy permissions to remove.
-            delay: The number of blocks before the proxy removal takes effect.
+            proxy_type: The type of proxy permissions to remove. Must match the value used when the proxy was added.
+            delay: The announcement delay value (in blocks) for the proxy being removed. Must exactly match the delay
+                value that was set when the proxy was originally added. This is a required identifier for the specific
+                proxy relationship.
 
         Returns:
-            GenericCall instance.
+            GenericCall instance for the ``Proxy.removeProxy`` extrinsic.
+
+        Notes:
+            See Working with Proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
         """
         return self.create_composed_call(
             delegate=delegate,
@@ -72,10 +82,14 @@ class Proxy(_BasePallet):
         )
 
     def remove_proxies(self) -> Call:
-        """Returns GenericCall instance for Proxy.remove_proxies.
+        """Remove all proxy relationships for the signing account.
 
         Returns:
-            GenericCall instance.
+            GenericCall instance for the ``Proxy.removeProxies`` extrinsic.
+
+        Notes:
+            - This removes all proxy relationships in a single call, which is more efficient than removing them one by one.
+            - See Working with Proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
         """
         return self.create_composed_call()
 
@@ -85,15 +99,24 @@ class Proxy(_BasePallet):
         delay: int,
         index: int,
     ) -> Call:
-        """Returns GenericCall instance for Subtensor function Proxy.create_pure.
+        """Create a pure proxy account.
 
         Parameters:
-            proxy_type: The type of proxy permissions for the pure proxy.
-            delay: The number of blocks before the pure proxy can be used.
-            index: The index to use for generating the pure proxy account address.
+            proxy_type: The type of proxy permissions for the pure proxy (e.g., ``"Any"``, ``"NonTransfer"``,
+                ``"Staking"``). For available proxy types and their permissions, see the documentation link in the Notes
+                section below.
+            delay: Optionally, include a delay in blocks. The time-lock period for proxy announcements. A delay of ``0``
+                means immediate execution without announcements.
+            index: A salt value (u16, range ``0-65535``) used to generate unique pure proxy addresses. This should
+                generally be left as ``0`` unless you are creating batches of proxies. Must be preserved for
+                ``kill_pure``.
 
         Returns:
-            GenericCall instance.
+            GenericCall instance for the ``Proxy.createPure`` extrinsic.
+
+        Notes:
+            - For available proxy types and their specific permissions, see: <https://docs.learnbittensor.org/keys/proxies#types-of-proxies>
+            - See Pure Proxies: <https://docs.learnbittensor.org/keys/proxies/pure-proxies>
         """
         return self.create_composed_call(
             proxy_type=proxy_type,
@@ -109,17 +132,29 @@ class Proxy(_BasePallet):
         height: int,
         ext_index: int,
     ) -> Call:
-        """Returns GenericCall instance for Subtensor function Proxy.kill_pure.
+        """Destroy a pure proxy account.
 
         Parameters:
-            spawner: The SS58 address of the account that spawned the pure proxy.
-            proxy_type: The type of proxy permissions.
-            index: The disambiguation index originally passed to `create_pure`.
-            height: The block height at which the pure proxy was created.
-            ext_index: The extrinsic index at which the pure proxy was created.
+            spawner: The SS58 address of the account that spawned the pure proxy (the account that called
+                ``create_pure``).
+            proxy_type: The type of proxy permissions that were used when creating the pure proxy. Must match the value
+                used in ``create_pure``.
+            index: The salt value (u16, range ``0-65535``) originally used in ``create_pure`` to generate this pure
+                proxy's address. Must match exactly the index used during creation.
+            height: The block number at which the pure proxy was created. This is returned in the ``"PureCreated"``
+                event from ``create_pure``.
+            ext_index: The extrinsic index within the block at which the pure proxy was created. This is returned in the
+                ``"PureCreated"`` event from ``create_pure``.
 
         Returns:
-            GenericCall instance.
+            GenericCall instance for the ``Proxy.killPure`` extrinsic.
+
+        Notes:
+            See Pure Proxies: <https://docs.learnbittensor.org/keys/proxies/pure-proxies>
+
+        Warning:
+            All access to this account will be lost. Any funds remaining in the pure proxy account will become
+            permanently inaccessible after this operation.
         """
         return self.create_composed_call(
             spawner=spawner,
@@ -135,16 +170,21 @@ class Proxy(_BasePallet):
         force_proxy_type: Optional[str],
         call: "GenericCall",
     ) -> Call:
-        """Returns GenericCall instance for Subtensor function Proxy.proxy.
+        """Create a call to execute an operation through a proxy relationship.
 
         Parameters:
             real: The SS58 address of the real account on whose behalf the call is being made.
-            force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise,
-                must match one of the allowed proxy types.
+            force_proxy_type: The type of proxy to use for the call. If ``None``, any proxy type can be used. Otherwise,
+                must match one of the allowed proxy types that the signing account has for the real account.
             call: The inner call to be executed on behalf of the real account.
 
         Returns:
-            GenericCall instance.
+            GenericCall instance for the ``Proxy.proxy`` extrinsic.
+
+        Notes:
+            - The call must be permitted by the proxy type. For example, a ``"NonTransfer"`` proxy cannot execute transfer
+              calls.
+            - See Working with Proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
         """
         return self.create_composed_call(
             real=real,
@@ -157,14 +197,19 @@ class Proxy(_BasePallet):
         real: str,
         call_hash: str,
     ) -> Call:
-        """Returns GenericCall instance for Subtensor function Proxy.announce.
+        """Create a call to announce a future proxied operation.
 
         Parameters:
             real: The SS58 address of the real account on whose behalf the call will be made.
-            call_hash: The hash of the call that will be executed in the future.
+            call_hash: The hash of the call that will be executed in the future (hex string with ``0x`` prefix).
 
         Returns:
-            GenericCall instance.
+            GenericCall instance for the ``Proxy.announce`` extrinsic.
+
+        Notes:
+            - A deposit is required when making an announcement. The deposit is returned when the announcement is executed,
+              rejected, or removed. The announcement can be executed after the delay period has passed.
+            - See Working with Proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
         """
         return self.create_composed_call(
             real=real,
@@ -178,17 +223,23 @@ class Proxy(_BasePallet):
         force_proxy_type: Optional[str],
         call: "GenericCall",
     ) -> Call:
-        """Returns GenericCall instance for Subtensor function Proxy.proxy_announced.
+        """Create a call to execute a previously announced proxied operation.
 
         Parameters:
             delegate: The SS58 address of the delegate proxy account that made the announcement.
             real: The SS58 address of the real account on whose behalf the call will be made.
-            force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise,
+            force_proxy_type: The type of proxy to use for the call. If ``None``, any proxy type can be used. Otherwise,
                 must match one of the allowed proxy types.
-            call: The inner call to be executed on behalf of the real account (must match the announced call_hash).
+            call: The inner call to be executed on behalf of the real account. The hash of this call must match the
+                ``call_hash`` that was announced.
 
         Returns:
-            GenericCall instance.
+            GenericCall instance for the ``Proxy.proxyAnnounced`` extrinsic.
+
+        Notes:
+            - The ``call_hash`` of the provided call must match the ``call_hash`` that was announced. The announcement must
+              not have been rejected by the real account, and the delay period must have passed.
+            - See Working with Proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
         """
         return self.create_composed_call(
             delegate=delegate,
@@ -202,14 +253,19 @@ class Proxy(_BasePallet):
         delegate: str,
         call_hash: str,
     ) -> Call:
-        """Returns GenericCall instance for Subtensor function Proxy.reject_announcement.
+        """Reject a proxy announcement.
 
         Parameters:
             delegate: The SS58 address of the delegate proxy account whose announcement is being rejected.
-            call_hash: The hash of the call that was announced and is now being rejected.
+            call_hash: The hash of the call that was announced and is now being rejected (hex string with ``0x``
+                prefix).
 
         Returns:
-            GenericCall instance.
+            GenericCall instance for the ``Proxy.rejectAnnouncement`` extrinsic.
+
+        Notes:
+            - Once rejected, the announcement cannot be executed. The delegate's announcement deposit is returned.
+            - See Working with Proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
         """
         return self.create_composed_call(
             delegate=delegate,
@@ -221,14 +277,19 @@ class Proxy(_BasePallet):
         real: str,
         call_hash: str,
     ) -> Call:
-        """Returns GenericCall instance for Subtensor function Proxy.remove_announcement.
+        """Remove an announcement made by the signing proxy account.
 
         Parameters:
             real: The SS58 address of the real account on whose behalf the call was announced.
-            call_hash: The hash of the call that was announced and is now being removed.
+            call_hash: The hash of the call that was announced and is now being removed (hex string with ``0x``
+                prefix).
 
         Returns:
-            GenericCall instance.
+            GenericCall instance for the ``Proxy.removeAnnouncement`` extrinsic.
+
+        Notes:
+            - Removing an announcement frees up the announcement deposit.
+            - See Working with Proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
         """
         return self.create_composed_call(
             real=real,
@@ -236,9 +297,15 @@ class Proxy(_BasePallet):
         )
 
     def poke_deposit(self) -> Call:
-        """Returns GenericCall instance for Proxy.poke_deposit.
+        """Adjust proxy and announcement deposits based on current runtime values.
 
         Returns:
-            GenericCall instance.
+            GenericCall instance for the ``Proxy.pokeDeposit`` extrinsic.
+
+        Notes:
+            - This can be used by accounts to possibly lower their locked amount. The function automatically recalculates
+              deposits for both proxy relationships and announcements for the signing account. The transaction fee is waived
+              if the deposit amount has changed.
+            - See Working with Proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
         """
         return self.create_composed_call()

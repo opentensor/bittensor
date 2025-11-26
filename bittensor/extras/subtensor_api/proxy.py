@@ -4,7 +4,22 @@ from bittensor.core.async_subtensor import AsyncSubtensor as _AsyncSubtensor
 
 
 class Proxy:
-    """Class for managing proxy operations."""
+    """Class for managing proxy operations on the Bittensor network.
+
+    This class provides access to all proxy-related operations, including creating and managing both standard and pure
+    proxy relationships, handling proxy announcements, and querying proxy data. It works with both synchronous
+    ``Subtensor`` and asynchronous ``AsyncSubtensor`` instances.
+
+    Proxies enable secure delegation of account permissions by allowing a delegate account to perform certain operations
+    on behalf of a real account, with restrictions defined by the proxy type and optional time-lock delays.
+
+    Notes:
+        - For comprehensive documentation on proxies, see: <https://docs.learnbittensor.org/keys/proxies>
+        - For creating and managing proxies, see: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
+        - For pure proxy documentation, see: <https://docs.learnbittensor.org/keys/proxies/pure-proxies>
+        - For available proxy types and their permissions, see: <https://docs.learnbittensor.org/keys/proxies#types-of-proxies>
+
+    """
 
     def __init__(self, subtensor: Union["_Subtensor", "_AsyncSubtensor"]):
         self.add_proxy = subtensor.add_proxy
