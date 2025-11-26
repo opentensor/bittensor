@@ -3169,7 +3169,7 @@ class Subtensor(SubtensorMixin):
             block: The block number at which to query the stake information.
 
         Returns:
-            A {netuid: StakeInfo} pairing of all stakes across all subnets.
+            A netuid to StakeInfo mapping of all stakes across all subnets.
         """
         if netuids is None:
             all_netuids = self.get_all_subnets_netuid(block=block)
@@ -5241,8 +5241,13 @@ class Subtensor(SubtensorMixin):
         Parameters:
             wallet: Bittensor wallet object.
             proxy_type: The type of proxy permissions for the pure proxy. Can be a string or ProxyType enum value.
-            delay: The number of blocks before the pure proxy can be used.
-            index: The index to use for generating the pure proxy account address.
+            delay: The number of blocks that must elapse between announcing and executing a proxied transaction. A delay
+                of ``0`` means the pure proxy can be used immediately without any announcement period. A non-zero delay
+                creates a time-lock, requiring announcements before execution to give the spawner time to review/reject.
+            index: A disambiguation index (u16) that allows creating multiple pure proxies with the same parameters. For
+                example, using ``index=0`` and ``index=1`` with the same ``proxy_type`` and ``delay`` will generate two
+                different pure proxy addresses. This allows the spawner to create multiple independent pure proxies. The
+                valid range is ``0`` to ``65535``.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -5255,9 +5260,10 @@ class Subtensor(SubtensorMixin):
 
         Notes:
             - The pure proxy account address can be extracted from the "PureCreated" event in the response. Store the
-            spawner address, proxy_type, index, height, and ext_index as they are required to kill the pure proxy later
+              spawner address, proxy_type, index, height, and ext_index as they are required to kill the pure proxy later
               via :meth:`kill_pure_proxy`.
-            - See: <https://docs.learnbittensor.org/keys/proxies/pure-proxies>
+            - Bittensor proxies: <https://docs.learnbittensor.org/keys/proxies/pure-proxies>
+            - Polkadot proxy documentation: <https://wiki.polkadot.network/docs/learn-proxies>            
         """
         return create_pure_proxy_extrinsic(
             subtensor=self,

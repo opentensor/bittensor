@@ -32,18 +32,26 @@ async def add_proxy_extrinsic(
         subtensor: Subtensor instance with the connection to the chain.
         wallet: Bittensor wallet object.
         delegate_ss58: The SS58 address of the delegate proxy account.
-        proxy_type: The type of proxy permissions (e.g., "Any", "NonTransfer", "Governance", "Staking"). Can be a
-            string or ProxyType enum value.
-        delay: The number of blocks before the proxy can be used.
+        proxy_type: The type of proxy permissions (e.g., ``"Any"``, ``"NonTransfer"``, ``"Governance"``, ``"Staking"``).
+            Can be a string or ``ProxyType`` enum value.
+        delay: The number of blocks that must elapse between announcing and executing a proxied transaction (time-lock
+            period). A delay of ``0`` means the proxy can be used immediately without announcements. A non-zero delay
+            creates a time-lock, requiring the proxy to announce calls first, wait for the delay period, then execute
+            them, giving the real account time to review and reject unwanted operations.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You
             can think of it as an expiration date for the transaction.
-        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
+
+    Notes:
+        - A deposit is required when adding a proxy. The deposit amount is determined by runtime constants and is
+          returned when the proxy is removed.
+        - See Working with Proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
 
     Warning:
         If ``wait_for_inclusion=False`` or when ``block_hash`` is not available, the extrinsic receipt may not contain
@@ -110,17 +118,23 @@ async def remove_proxy_extrinsic(
         subtensor: Subtensor instance with the connection to the chain.
         wallet: Bittensor wallet object.
         delegate_ss58: The SS58 address of the delegate proxy account to remove.
-        proxy_type: The type of proxy permissions to remove. Can be a string or ProxyType enum value.
-        delay: The number of blocks before the proxy removal takes effect.
+        proxy_type: The type of proxy permissions to remove. Can be a string or ``ProxyType`` enum value.
+        delay: The announcement delay value (in blocks) for the proxy being removed. Must exactly match the delay value
+            that was set when the proxy was originally added. This is a required identifier for the specific proxy
+            relationship, not a delay before removal takes effect (removal is immediate).
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You
             can think of it as an expiration date for the transaction.
-        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
+
+    Notes:
+        - The delegate_ss58, proxy_type, and delay parameters must exactly match those used when the proxy was added.
+        - See Working with Proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
     """
     try:
         if not (
@@ -180,12 +194,16 @@ async def remove_proxies_extrinsic(
         subtensor: Subtensor instance with the connection to the chain.
         wallet: Bittensor wallet object (the account whose proxies will be removed).
         period: The number of blocks during which the transaction will remain valid after it's submitted.
-        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
+
+    Notes:
+        - This removes all proxy relationships for the account, regardless of proxy type or delegate.
+        - See Working with Proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
     """
     try:
         if not (
@@ -237,18 +255,29 @@ async def create_pure_proxy_extrinsic(
     Parameters:
         subtensor: Subtensor instance with the connection to the chain.
         wallet: Bittensor wallet object.
-        proxy_type: The type of proxy permissions for the pure proxy. Can be a string or ProxyType enum value.
-        delay: The number of blocks before the pure proxy can be used.
-        index: The index to use for generating the pure proxy account address.
+        proxy_type: The type of proxy permissions for the pure proxy. Can be a string or ``ProxyType`` enum value.
+        delay: The number of blocks that must elapse between announcing and executing a proxied transaction (time-lock
+            period). A delay of ``0`` means the pure proxy can be used immediately without any announcement period. A
+            non-zero delay creates a time-lock, requiring announcements before execution to give the spawner time to
+            review/reject.
+        index: A disambiguation index (u16) that allows creating multiple pure proxies with the same parameters. For
+            example, using ``index=0`` and ``index=1`` with the same ``proxy_type`` and ``delay`` will generate two
+            different pure proxy addresses. This allows the spawner to create multiple independent pure proxies. The
+            valid range is ``0`` to ``65535``.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You
             can think of it as an expiration date for the transaction.
-        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
+
+    Notes:
+        - The pure proxy account address can be extracted from the "PureCreated" event in the response. Store the
+          spawner address, proxy_type, index, height, and ext_index as they are required to kill the pure proxy later.
+        - See Pure Proxies: <https://docs.learnbittensor.org/keys/proxies/pure-proxies>
     """
     try:
         if not (
@@ -339,47 +368,54 @@ async def kill_pure_proxy_extrinsic(
 
     Parameters:
         subtensor: Subtensor instance with the connection to the chain.
-        wallet: Bittensor wallet object. The wallet.coldkey.ss58_address must be the spawner of the pure proxy (the
-            account that created it via `create_pure_proxy()`). The spawner must have an "Any" proxy relationship with
-            the pure proxy.
+        wallet: Bittensor wallet object. The ``wallet.coldkey.ss58_address`` must be the spawner of the pure proxy (the
+            account that created it via :meth:`create_pure_proxy_extrinsic`). The spawner must have an ``"Any"`` proxy
+            relationship with the pure proxy.
         pure_proxy_ss58: The SS58 address of the pure proxy account to be killed. This is the address that was returned
-            in the `create_pure_proxy()` response.
+            in the :meth:`create_pure_proxy_extrinsic` response.
         spawner: The SS58 address of the spawner account (the account that originally created the pure proxy via
-            `create_pure_proxy()`). This should match wallet.coldkey.ss58_address.
+            :meth:`create_pure_proxy_extrinsic`). This should match ``wallet.coldkey.ss58_address``.
         proxy_type: The type of proxy permissions that were used when creating the pure proxy. This must match exactly
-            the proxy_type that was passed to `create_pure_proxy()`.
-        index: The disambiguation index originally passed to `create_pure()`.
-        height: The block height at which the pure proxy was created.
-        ext_index: The extrinsic index at which the pure proxy was created.
-        force_proxy_type: The proxy type relationship to use when executing `kill_pure` through the proxy mechanism.
+            the ``proxy_type`` that was passed to :meth:`create_pure_proxy_extrinsic`.
+        index: The disambiguation index (u16, range ``0-65535``) originally passed to :meth:`create_pure_proxy_extrinsic`.
+            This value, combined with ``proxy_type``, ``delay``, and ``spawner``, uniquely identifies the pure proxy to
+            be killed. Must match exactly the index used during creation.
+        height: The block number at which the pure proxy was created. This is returned in the ``"PureCreated"`` event from
+            :meth:`create_pure_proxy_extrinsic` and is required to identify the exact creation transaction.
+        ext_index: The extrinsic index within the block at which the pure proxy was created. This is returned in the
+            ``"PureCreated"`` event from :meth:`create_pure_proxy_extrinsic` and specifies the position of the creation
+            extrinsic within the block. Together with ``height``, this uniquely identifies the creation transaction.
+        force_proxy_type: The proxy type relationship to use when executing ``kill_pure`` through the proxy mechanism.
             Since pure proxies are keyless and cannot sign transactions, the spawner must act as a proxy for the pure
-            proxy to execute `kill_pure`. This parameter specifies which proxy type relationship between the spawner and
-            the pure proxy account should be used. The spawner must have a proxy relationship of this type (or `Any`)
-            with the pure proxy account. Defaults to `ProxyType.Any` for maximum compatibility. If `None`, Substrate
+            proxy to execute ``kill_pure``. This parameter specifies which proxy type relationship between the spawner and
+            the pure proxy account should be used. The spawner must have a proxy relationship of this type (or ``"Any"``)
+            with the pure proxy account. Defaults to ``ProxyType.Any`` for maximum compatibility. If ``None``, Substrate
             will automatically select an available proxy type from the spawner's proxy relationships.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
-        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
 
-    Note:
-        The `kill_pure` call must be executed through the pure proxy account itself, with the spawner acting as a proxy.
-        This method automatically handles this by executing the call via `proxy()`. By default, `force_proxy_type` is
-        set to `ProxyType.Any`, meaning the spawner must have an "Any" proxy relationship with the pure proxy. If you
-        pass a different `force_proxy_type`, the spawner must have that specific proxy type relationship with the pure
-        proxy.
+    Notes:
+        - The ``kill_pure`` call must be executed through the pure proxy account itself, with the spawner acting as a proxy.
+          This method automatically handles this by executing the call via :meth:`proxy_extrinsic`. By default,
+          ``force_proxy_type`` is set to ``ProxyType.Any``, meaning the spawner must have an ``"Any"`` proxy relationship
+          with the pure proxy. If you pass a different ``force_proxy_type``, the spawner must have that specific proxy
+          type relationship with the pure proxy.
+        - See Pure Proxies: <https://docs.learnbittensor.org/keys/proxies/pure-proxies>
 
     Warning:
         All access to this account will be lost. Any funds remaining in the pure proxy account will become permanently
         inaccessible after this operation.
 
-    Example:
+    Example::
         # After creating a pure proxy
+
         create_response = subtensor.proxies.create_pure_proxy(
             wallet=spawner_wallet,
             proxy_type=ProxyType.Any,  # Type of proxy permissions for the pure proxy
@@ -474,18 +510,22 @@ async def proxy_extrinsic(
         subtensor: Subtensor instance with the connection to the chain.
         wallet: Bittensor wallet object (should be the proxy account wallet).
         real_account_ss58: The SS58 address of the real account on whose behalf the call is being made.
-        force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise, must
-            match one of the allowed proxy types. Can be a string or ProxyType enum value.
+        force_proxy_type: The type of proxy to use for the call. If ``None``, any proxy type can be used. Otherwise, must
+            match one of the allowed proxy types. Can be a string or ``ProxyType`` enum value.
         call: The inner call to be executed on behalf of the real account.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You
             can think of it as an expiration date for the transaction.
-        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
+
+    Notes:
+        - The call must be permitted by the proxy type. For example, a ``"NonTransfer"`` proxy cannot execute transfer calls.
+        - See Working with Proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
     """
     try:
         if not (
@@ -546,26 +586,31 @@ async def proxy_announced_extrinsic(
     """
     Executes an announced call on behalf of the real account through a proxy.
 
-    This extrinsic executes a call that was previously announced via `announce_extrinsic`. The call must match the
-    call_hash that was announced, and the delay period must have passed.
+    This extrinsic executes a call that was previously announced via :meth:`announce_extrinsic`. The call must match the
+    ``call_hash`` that was announced, and the delay period must have passed.
 
     Parameters:
         subtensor: Subtensor instance with the connection to the chain.
         wallet: Bittensor wallet object (should be the proxy account wallet that made the announcement).
         delegate_ss58: The SS58 address of the delegate proxy account that made the announcement.
         real_account_ss58: The SS58 address of the real account on whose behalf the call will be made.
-        force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise, must
-            match one of the allowed proxy types. Can be a string or ProxyType enum value.
-        call: The inner call to be executed on behalf of the real account (must match the announced call_hash).
+        force_proxy_type: The type of proxy to use for the call. If ``None``, any proxy type can be used. Otherwise, must
+            match one of the allowed proxy types. Can be a string or ``ProxyType`` enum value.
+        call: The inner call to be executed on behalf of the real account (must match the announced ``call_hash``).
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You
             can think of it as an expiration date for the transaction.
-        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
+
+    Notes:
+        - The ``call_hash`` of the provided call must match the ``call_hash`` that was announced. The announcement must not
+          have been rejected by the real account, and the delay period must have passed.
+        - See Working with Proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
     """
     try:
         if not (
@@ -625,20 +670,28 @@ async def announce_extrinsic(
     """
     Announces a future call that will be executed through a proxy.
 
+    This extrinsic allows a proxy account to declare its intention to execute a specific call on behalf of a real
+    account after a delay period. The real account can review and either approve or reject the announcement.
+
     Parameters:
         subtensor: Subtensor instance with the connection to the chain.
         wallet: Bittensor wallet object (should be the proxy account wallet).
         real_account_ss58: The SS58 address of the real account on whose behalf the call will be made.
-        call_hash: The hash of the call that will be executed in the future.
+        call_hash: The hash of the call that will be executed in the future (hex string with ``0x`` prefix).
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You
             can think of it as an expiration date for the transaction.
-        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
+
+    Notes:
+        - A deposit is required when making an announcement. The deposit is returned when the announcement is
+          executed, rejected, or removed. The announcement can be executed after the delay period has passed.
+        - See Working with Proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
     """
     try:
         if not (
@@ -693,23 +746,28 @@ async def reject_announcement_extrinsic(
     """
     Rejects an announcement made by a proxy delegate.
 
-    This extrinsic allows the real account to reject an announcement made by a proxy delegate. This prevents the
-    announced call from being executed.
+    This extrinsic allows the real account to reject an announcement made by a proxy delegate, preventing the announced
+    call from being executed. Once rejected, the announcement cannot be executed and the announcement deposit is
+    returned to the delegate.
 
     Parameters:
         subtensor: Subtensor instance with the connection to the chain.
         wallet: Bittensor wallet object (should be the real account wallet).
         delegate_ss58: The SS58 address of the delegate proxy account whose announcement is being rejected.
-        call_hash: The hash of the call that was announced and is now being rejected.
+        call_hash: The hash of the call that was announced and is now being rejected (hex string with ``0x`` prefix).
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You
             can think of it as an expiration date for the transaction.
-        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
+
+    Notes:
+        - Once rejected, the announcement cannot be executed. The delegate's announcement deposit is returned.
+        - See Working with Proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
     """
     try:
         if not (
@@ -771,16 +829,20 @@ async def remove_announcement_extrinsic(
         subtensor: Subtensor instance with the connection to the chain.
         wallet: Bittensor wallet object (should be the proxy account wallet that made the announcement).
         real_account_ss58: The SS58 address of the real account on whose behalf the call was announced.
-        call_hash: The hash of the call that was announced and is now being removed.
+        call_hash: The hash of the call that was announced and is now being removed (hex string with ``0x`` prefix).
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You
             can think of it as an expiration date for the transaction.
-        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
+
+    Notes:
+        - Removing an announcement frees up the announcement deposit.
+        - See Working with Proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
     """
     try:
         if not (
@@ -841,17 +903,19 @@ async def poke_deposit_extrinsic(
         subtensor: Subtensor instance with the connection to the chain.
         wallet: Bittensor wallet object (the account whose deposits will be adjusted).
         period: The number of blocks during which the transaction will remain valid after it's submitted.
-        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
 
-    When to use:
-        - After runtime upgrade, if deposit constants have changed.
-        - After removing proxies/announcements, to free up excess locked funds.
-        - Periodically to optimize locked deposit amounts.
+    Notes:
+        When to use:
+            - After runtime upgrade, if deposit constants have changed.
+            - After removing proxies/announcements, to free up excess locked funds.
+            - Periodically to optimize locked deposit amounts.
+        - See Working with Proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
     """
     try:
         if not (

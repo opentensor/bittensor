@@ -3905,7 +3905,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            A {netuid: StakeInfo} pairing of all stakes across all subnets.
+            A netuid to StakeInfo mapping of all stakes across all subnets.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not block_hash and reuse_block:
@@ -5964,7 +5964,10 @@ class AsyncSubtensor(SubtensorMixin):
             delegate_ss58: The SS58 address of the delegate proxy account.
             proxy_type: The type of proxy permissions (e.g., "Any", "NonTransfer", "Governance", "Staking"). Can be a
                 string or ProxyType enum value.
-            delay: The number of blocks before the proxy can be used.
+            delay: The number of blocks that must elapse between announcing and executing a proxied transaction. A delay
+                of ``0`` means the proxy can be used immediately without announcements. A non-zero delay creates a
+                time-lock, requiring the proxy to announce calls via :meth:`announce_proxy` before execution, giving the
+                real account time to review and reject unwanted operations via :meth:`reject_proxy_announcement`.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -5978,7 +5981,8 @@ class AsyncSubtensor(SubtensorMixin):
         Notes:
             - A deposit is required when adding a proxy. The deposit amount is determined by runtime constants and is
               returned when the proxy is removed. Use :meth:`get_proxy_constants` to check current deposit requirements.
-            - See: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
+            - Bittensor proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
+            - Polkadot proxy types: <https://wiki.polkadot.network/docs/learn-proxies#proxy-types>            
         """
         return await add_proxy_extrinsic(
             subtensor=self,
@@ -6026,7 +6030,7 @@ class AsyncSubtensor(SubtensorMixin):
         Notes:
             - A deposit is required when making an announcement. The deposit is returned when the announcement is
               executed, rejected, or removed. The announcement can be executed after the delay period has passed.
-            - See: <https://docs.learnbittensor.org/keys/proxies>
+            - Bittensor proxies: <https://docs.learnbittensor.org/keys/proxies>            
         """
         return await announce_extrinsic(
             subtensor=self,
@@ -6345,8 +6349,13 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             wallet: Bittensor wallet object.
             proxy_type: The type of proxy permissions for the pure proxy. Can be a string or ProxyType enum value.
-            delay: The number of blocks before the pure proxy can be used.
-            index: The index to use for generating the pure proxy account address.
+            delay: The number of blocks that must elapse between announcing and executing a proxied transaction. A delay
+                of ``0`` means the pure proxy can be used immediately without any announcement period. A non-zero delay
+                creates a time-lock, requiring announcements before execution to give the spawner time to review/reject.
+            index: A disambiguation index (u16) that allows creating multiple pure proxies with the same parameters. For
+                example, using ``index=0`` and ``index=1`` with the same ``proxy_type`` and ``delay`` will generate two
+                different pure proxy addresses. This allows the spawner to create multiple independent pure proxies. The
+                valid range is ``0`` to ``65535``.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6361,7 +6370,8 @@ class AsyncSubtensor(SubtensorMixin):
             - The pure proxy account address can be extracted from the "PureCreated" event in the response. Store the
               spawner address, proxy_type, index, height, and ext_index as they are required to kill the pure proxy later
               via :meth:`kill_pure_proxy`.
-            - See: <https://docs.learnbittensor.org/keys/proxies/pure-proxies>
+            - Bittensor proxies: <https://docs.learnbittensor.org/keys/proxies/pure-proxies>
+            - Polkadot proxy documentation: <https://wiki.polkadot.network/docs/learn-proxies>            
         """
         return await create_pure_proxy_extrinsic(
             subtensor=self,
@@ -6504,9 +6514,14 @@ class AsyncSubtensor(SubtensorMixin):
                 :meth:`create_pure_proxy`). This should match wallet.coldkey.ss58_address.
             proxy_type: The type of proxy permissions. Can be a string or ProxyType enum value. Must match the
                 proxy_type used when creating the pure proxy.
-            index: The disambiguation index originally passed to :meth:`create_pure_proxy`.
-            height: The block height at which the pure proxy was created.
-            ext_index: The extrinsic index at which the pure proxy was created.
+            index: The disambiguation index (u16, range ``0-65535``) originally passed to :meth:`create_pure_proxy`. This
+                value, combined with ``proxy_type``, ``delay``, and ``spawner``, uniquely identifies the pure proxy to be
+                killed. Must match exactly the index used during creation.
+            height: The block number at which the pure proxy was created. This is returned in the "PureCreated" event from
+                :meth:`create_pure_proxy` and is required to identify the exact creation transaction.
+            ext_index: The extrinsic index within the block at which the pure proxy was created. This is returned in the
+                "PureCreated" event from :meth:`create_pure_proxy` and specifies the position of the creation extrinsic
+                within the block. Together with ``height``, this uniquely identifies the creation transaction.
             force_proxy_type: The proxy type relationship to use when executing `kill_pure` through the proxy mechanism.
                 Since pure proxies are keyless and cannot sign transactions, the spawner must act as a proxy for the
                 pure proxy to execute `kill_pure`. This parameter specifies which proxy type relationship between the
@@ -6528,7 +6543,7 @@ class AsyncSubtensor(SubtensorMixin):
             - The ``kill_pure`` call must be executed through the pure proxy account itself, with the spawner acting as
               an ``Any`` proxy. This method automatically handles this by executing the call via :meth:`proxy`. The spawner
               must have an ``Any`` proxy relationship with the pure proxy for this to work.
-            - See: <https://docs.learnbittensor.org/keys/proxies/pure-proxies>
+            - Bittensor proxies: <https://docs.learnbittensor.org/keys/proxies/pure-proxies>            
 
         Warning:
             All access to this account will be lost. Any funds remaining in the pure proxy account will become
@@ -6756,9 +6771,9 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Note:
-            The call must be permitted by the proxy type. For example, a "NonTransfer" proxy cannot execute transfer
-            calls. The delay period must also have passed since the proxy was added.
+        Notes:
+            - The call must be permitted by the proxy type. For example, a "NonTransfer" proxy cannot execute transfer
+              calls. The delay period must also have passed since the proxy was added.            
         """
         return await proxy_extrinsic(
             subtensor=self,
@@ -6808,9 +6823,9 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Note:
-            The call_hash of the provided call must match the call_hash that was announced. The announcement must not
-            have been rejected by the real account, and the delay period must have passed.
+        Notes:
+            - The call_hash of the provided call must match the call_hash that was announced. The announcement must not
+              have been rejected by the real account, and the delay period must have passed.            
         """
         return await proxy_announced_extrinsic(
             subtensor=self,
@@ -6899,8 +6914,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Note:
-            Once rejected, the announcement cannot be executed. The delegate's announcement deposit is returned.
+        Notes:
+            - Once rejected, the announcement cannot be executed. The delegate's announcement deposit is returned.            
         """
         return await reject_announcement_extrinsic(
             subtensor=self,
@@ -7048,9 +7063,9 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Note:
-            Only the proxy account that made the announcement can remove it. The real account can reject it via
-            :meth:`reject_proxy_announcement`, but cannot remove it directly.
+        Notes:
+            - Only the proxy account that made the announcement can remove it. The real account can reject it via
+              :meth:`reject_proxy_announcement`, but cannot remove it directly.            
         """
         return await remove_announcement_extrinsic(
             subtensor=self,
@@ -7136,9 +7151,9 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Note:
-            This removes all proxy relationships for the account, regardless of proxy type or delegate. Use
-            :meth:`remove_proxy` if you need to remove specific proxy relationships selectively.
+        Notes:
+            - This removes all proxy relationships for the account, regardless of proxy type or delegate. Use
+              :meth:`remove_proxy` if you need to remove specific proxy relationships selectively.            
         """
         return await remove_proxies_extrinsic(
             subtensor=self,
@@ -7171,7 +7186,10 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: Bittensor wallet object.
             delegate_ss58: The SS58 address of the delegate proxy account to remove.
             proxy_type: The type of proxy permissions to remove. Can be a string or ProxyType enum value.
-            delay: The number of blocks before the proxy removal takes effect.
+            delay: The announcement delay value (in blocks) for the proxy being removed. Must exactly match the delay
+                value that was set when the proxy was originally added via :meth:`add_proxy`. This is a required
+                identifier for the specific proxy relationship, not a delay before removal takes effect (removal is
+                immediate).
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -7182,9 +7200,9 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Note:
-            The delegate_ss58, proxy_type, and delay parameters must exactly match those used when the proxy was added.
-            Use :meth:`get_proxies_for_real_account` to retrieve the exact parameters for existing proxies.
+        Notes:
+            - The delegate_ss58, proxy_type, and delay parameters must exactly match those used when the proxy was added.
+              Use :meth:`get_proxies_for_real_account` to retrieve the exact parameters for existing proxies.            
         """
         return await remove_proxy_extrinsic(
             subtensor=self,
