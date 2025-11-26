@@ -5963,11 +5963,13 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: Bittensor wallet object.
             delegate_ss58: The SS58 address of the delegate proxy account.
             proxy_type: The type of proxy permissions (e.g., "Any", "NonTransfer", "Governance", "Staking"). Can be a
-                string or ProxyType enum value.
-            delay: The number of blocks that must elapse between announcing and executing a proxied transaction. A delay
-                of ``0`` means the proxy can be used immediately without announcements. A non-zero delay creates a
-                time-lock, requiring the proxy to announce calls via :meth:`announce_proxy` before execution, giving the
-                real account time to review and reject unwanted operations via :meth:`reject_proxy_announcement`.
+                string or ProxyType enum value. For available proxy types and their permissions, see the documentation
+                link in the Notes section below.
+            delay: Optionally, include a delay in blocks. The number of blocks that must elapse between announcing and
+                executing a proxied transaction. A delay of ``0`` means the proxy can be used immediately without
+                announcements. A non-zero delay creates a time-lock, requiring the proxy to announce calls via
+                :meth:`announce_proxy` before execution, giving the real account time to review and reject unwanted
+                operations via :meth:`reject_proxy_announcement`.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -5981,8 +5983,12 @@ class AsyncSubtensor(SubtensorMixin):
         Notes:
             - A deposit is required when adding a proxy. The deposit amount is determined by runtime constants and is
               returned when the proxy is removed. Use :meth:`get_proxy_constants` to check current deposit requirements.
+            - For available proxy types and their specific permissions, see: <https://docs.learnbittensor.org/keys/proxies#types-of-proxies>
             - Bittensor proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
-            - Polkadot proxy types: <https://wiki.polkadot.network/docs/learn-proxies#proxy-types>            
+
+        Warning:
+            The ``"Any"`` proxy type is dangerous as it grants full permissions to the proxy, including the ability to make
+            transfers and manage the account completely. Use with extreme caution.
         """
         return await add_proxy_extrinsic(
             subtensor=self,
@@ -6348,14 +6354,18 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             wallet: Bittensor wallet object.
-            proxy_type: The type of proxy permissions for the pure proxy. Can be a string or ProxyType enum value.
-            delay: The number of blocks that must elapse between announcing and executing a proxied transaction. A delay
-                of ``0`` means the pure proxy can be used immediately without any announcement period. A non-zero delay
-                creates a time-lock, requiring announcements before execution to give the spawner time to review/reject.
-            index: A disambiguation index (u16) that allows creating multiple pure proxies with the same parameters. For
-                example, using ``index=0`` and ``index=1`` with the same ``proxy_type`` and ``delay`` will generate two
-                different pure proxy addresses. This allows the spawner to create multiple independent pure proxies. The
-                valid range is ``0`` to ``65535``.
+            proxy_type: The type of proxy permissions for the pure proxy. Can be a string or ProxyType enum value. For
+                available proxy types and their permissions, see the documentation link in the Notes section below.
+            delay: Optionally, include a delay in blocks. The number of blocks that must elapse between announcing and
+                executing a proxied transaction. A delay of ``0`` means the pure proxy can be used immediately without any
+                announcement period. A non-zero delay creates a time-lock, requiring announcements before execution to give
+                the spawner time to review/reject.
+            index: A salt value (u16, range ``0-65535``) used to generate unique pure proxy addresses. This should generally
+                be left as ``0`` unless you are creating batches of proxies. When creating multiple pure proxies with
+                identical parameters (same ``proxy_type`` and ``delay``), different index values will produce different SS58
+                addresses. This is not a sequential counter—you can use any unique values (e.g., 0, 100, 7, 42) in any
+                order. The index must be preserved as it's required for :meth:`kill_pure_proxy`. If creating multiple pure
+                proxies in a single batch transaction, each must have a unique index value.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6370,8 +6380,12 @@ class AsyncSubtensor(SubtensorMixin):
             - The pure proxy account address can be extracted from the "PureCreated" event in the response. Store the
               spawner address, proxy_type, index, height, and ext_index as they are required to kill the pure proxy later
               via :meth:`kill_pure_proxy`.
+            - For available proxy types and their specific permissions, see: <https://docs.learnbittensor.org/keys/proxies#types-of-proxies>
             - Bittensor proxies: <https://docs.learnbittensor.org/keys/proxies/pure-proxies>
-            - Polkadot proxy documentation: <https://wiki.polkadot.network/docs/learn-proxies>            
+
+        Warning:
+            The ``"Any"`` proxy type is dangerous as it grants full permissions to the proxy, including the ability to make
+            transfers and kill the proxy. Use with extreme caution.
         """
         return await create_pure_proxy_extrinsic(
             subtensor=self,
@@ -6514,9 +6528,9 @@ class AsyncSubtensor(SubtensorMixin):
                 :meth:`create_pure_proxy`). This should match wallet.coldkey.ss58_address.
             proxy_type: The type of proxy permissions. Can be a string or ProxyType enum value. Must match the
                 proxy_type used when creating the pure proxy.
-            index: The disambiguation index (u16, range ``0-65535``) originally passed to :meth:`create_pure_proxy`. This
-                value, combined with ``proxy_type``, ``delay``, and ``spawner``, uniquely identifies the pure proxy to be
-                killed. Must match exactly the index used during creation.
+            index: The salt value (u16, range ``0-65535``) originally used in :meth:`create_pure_proxy` to generate this
+                pure proxy's address. This value, combined with ``proxy_type``, ``delay``, and ``spawner``, uniquely
+                identifies the pure proxy to be killed. Must match exactly the index used during creation.
             height: The block number at which the pure proxy was created. This is returned in the "PureCreated" event from
                 :meth:`create_pure_proxy` and is required to identify the exact creation transaction.
             ext_index: The extrinsic index within the block at which the pure proxy was created. This is returned in the

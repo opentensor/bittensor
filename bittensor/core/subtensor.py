@@ -5244,10 +5244,11 @@ class Subtensor(SubtensorMixin):
             delay: The number of blocks that must elapse between announcing and executing a proxied transaction. A delay
                 of ``0`` means the pure proxy can be used immediately without any announcement period. A non-zero delay
                 creates a time-lock, requiring announcements before execution to give the spawner time to review/reject.
-            index: A disambiguation index (u16) that allows creating multiple pure proxies with the same parameters. For
-                example, using ``index=0`` and ``index=1`` with the same ``proxy_type`` and ``delay`` will generate two
-                different pure proxy addresses. This allows the spawner to create multiple independent pure proxies. The
-                valid range is ``0`` to ``65535``.
+            index: A salt value (u16, range ``0-65535``) used to generate unique pure proxy addresses. When creating multiple
+                pure proxies with identical parameters (same ``proxy_type`` and ``delay``), different index values will
+                produce different SS58 addresses. This is not a sequential counter—you can use any unique values (e.g., 0,
+                100, 7, 42) in any order. The index must be preserved as it's required for :meth:`kill_pure_proxy`.
+                If creating multiple pure proxies in a single batch transaction, each must have a unique index value.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -5405,7 +5406,9 @@ class Subtensor(SubtensorMixin):
                 :meth:`create_pure_proxy`). This should match wallet.coldkey.ss58_address.
             proxy_type: The type of proxy permissions. Can be a string or ProxyType enum value. Must match the
                 proxy_type used when creating the pure proxy.
-            index: The disambiguation index originally passed to `create_pure`.
+            index: The salt value (u16, range ``0-65535``) originally used in :meth:`create_pure_proxy` to generate this
+                pure proxy's address. This value, combined with ``proxy_type``, ``delay``, and ``spawner``, uniquely
+                identifies the pure proxy to be killed. Must match exactly the index used during creation.
             height: The block height at which the pure proxy was created.
             ext_index: The extrinsic index at which the pure proxy was created.
             force_proxy_type: The proxy type relationship to use when executing `kill_pure` through the proxy mechanism.
