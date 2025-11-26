@@ -1,6 +1,6 @@
 # Changelog
 
-## 10.0.0rc4 /2025-11-25
+## 10.0.0rc4 /2025-11-26
 
 ## What's Changed
 * [v10] Subtensor Pallet-Based GenericCall creation logic. by @basfroman in https://github.com/opentensor/bittensor/pull/3136
@@ -13,6 +13,7 @@
 * [v10] remove nest asyncio + loosen requirements by @thewhaleking in https://github.com/opentensor/bittensor/pull/3149
 * [v10] Add warning and protection to `create_pure_proxy_extrinsic` by @basfroman in https://github.com/opentensor/bittensor/pull/3150
 * [v10] Add `Async/Subtensor.get_stake_info_for_coldkeys` method by @basfroman in https://github.com/opentensor/bittensor/pull/3151
+* [v10] fix: resolve python 3.14 syntax warnings and update deps by @Arthurdw in https://github.com/opentensor/bittensor/pull/3155
 
 **Full Changelog**: https://github.com/opentensor/bittensor/compare/v10.0.0rc3...v10.0.0rc4
 
