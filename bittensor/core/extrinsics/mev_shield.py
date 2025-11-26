@@ -71,7 +71,7 @@ def submit_encrypted_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     call: "GenericCall",
-    signer_keypair: "Keypair",
+    signer_keypair: Optional["Keypair"] = None,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
@@ -114,9 +114,13 @@ def submit_encrypted_extrinsic(
         ).success:
             return unlocked
 
+        # Use wallet.coldkey as default signer if signer_keypair is not provided
+        if signer_keypair is None:
+            signer_keypair = wallet.coldkey
+
         ml_kem_768_public_key = subtensor.get_mev_shield_next_key()
         if ml_kem_768_public_key is None:
-            return ExtrinsicResponse(False, "NextKey is not available in storage.")
+            return ExtrinsicResponse.from_exception(raise_error=raise_error, error=ValueError("MEV Shield NextKey not available in storage."))
 
         genesis_hash = subtensor.get_block_hash(block=0)
         nonce = subtensor.substrate.get_account_nonce(signer_keypair.ss58_address)
@@ -139,6 +143,8 @@ def submit_encrypted_extrinsic(
         response = subtensor.sign_and_send_extrinsic(
             wallet=wallet,
             call=extrinsic_call,
+            sign_with="hotkey",
+            use_nonce=False,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,

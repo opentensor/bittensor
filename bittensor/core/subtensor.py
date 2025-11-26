@@ -5175,7 +5175,7 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         call: "GenericCall",
-        signer_keypair: "Keypair",
+        signer_keypair: Optional["Keypair"] = None,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
