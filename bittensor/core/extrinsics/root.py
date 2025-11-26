@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 def _get_limits(subtensor: "Subtensor") -> tuple[int, float]:
     """
-    Retrieves the minimum allowed weights and maximum weight limit for the given subnet.
+    Retrieves the minimum allowed weights and maximum weight limit for the given subnet
 
     These values are fetched asynchronously using `asyncio.gather` to run both requests concurrently.
 
