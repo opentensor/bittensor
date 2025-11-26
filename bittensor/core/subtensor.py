@@ -113,6 +113,7 @@ from bittensor.core.extrinsics.unstaking import (
     unstake_multiple_extrinsic,
 )
 from bittensor.core.extrinsics.utils import get_transfer_fn_params
+from bittensor.core.extrinsics.mev_shield import submit_encrypted_extrinsic
 from bittensor.core.extrinsics.weights import (
     commit_timelocked_weights_extrinsic,
     commit_weights_extrinsic,
@@ -2231,6 +2232,176 @@ class Subtensor(SubtensorMixin):
             return None
 
         return MetagraphInfo.from_dict(query.value)
+
+    def get_mev_shield_current_key(
+        self, block: Optional[int] = None
+    ) -> Optional[bytes]:
+        """
+        Retrieves the CurrentKey from the MevShield pallet storage.
+
+        The CurrentKey contains the ML-KEM-768 public key that is currently being used for encryption in this block.
+        This key is rotated from NextKey at the beginning of each block.
+
+        Parameters:
+            block: The blockchain block number at which to perform the query. If None, uses the current block.
+
+        Returns:
+            The ML-KEM-768 public key as bytes (1184 bytes for ML-KEM-768)
+
+        Note:
+            If CurrentKey is not set (None in storage), this function returns None. This can happen if no validator has
+            announced a key yet.
+        """
+        block_hash = self.determine_block_hash(block=block)
+        query = self.substrate.query(
+            module="MevShield",
+            storage_function="CurrentKey",
+            block_hash=block_hash,
+        )
+
+        if query is None:
+            return None
+
+        public_key_bytes = bytes(next(iter(query)))
+
+        # Validate public_key size for ML-KEM-768 (must be exactly 1184 bytes)
+        MLKEM768_PUBLIC_KEY_SIZE = 1184
+        if len(public_key_bytes) != MLKEM768_PUBLIC_KEY_SIZE:
+            raise ValueError(
+                f"Invalid ML-KEM-768 public key size: {len(public_key_bytes)} bytes. "
+                f"Expected exactly {MLKEM768_PUBLIC_KEY_SIZE} bytes."
+            )
+
+        return public_key_bytes
+
+    def get_mev_shield_next_key(self, block: Optional[int] = None) -> Optional[bytes]:
+        """
+        Retrieves the NextKey from the MevShield pallet storage.
+
+        The NextKey contains the ML-KEM-768 public key that will be used for encryption in the next block. This key is
+        rotated from NextKey to CurrentKey at the beginning of each block.
+
+        Parameters:
+            block: The blockchain block number at which to perform the query. If None, uses the current block.
+
+        Returns:
+            The ML-KEM-768 public key as bytes (1184 bytes for ML-KEM-768)
+
+        Note:
+            If NextKey is not set (None in storage), this function returns None. This can happen if no validator has
+            announced the next key yet.
+        """
+        block_hash = self.determine_block_hash(block=block)
+        query = self.substrate.query(
+            module="MevShield",
+            storage_function="NextKey",
+            block_hash=block_hash,
+        )
+
+        if query is None:
+            return None
+
+        public_key_bytes = bytes(next(iter(query)))
+
+        # Validate public_key size for ML-KEM-768 (must be exactly 1184 bytes)
+        MLKEM768_PUBLIC_KEY_SIZE = 1184
+        if len(public_key_bytes) != MLKEM768_PUBLIC_KEY_SIZE:
+            raise ValueError(
+                f"Invalid ML-KEM-768 public key size: {len(public_key_bytes)} bytes. "
+                f"Expected exactly {MLKEM768_PUBLIC_KEY_SIZE} bytes."
+            )
+
+        return public_key_bytes
+
+    def get_mev_shield_submission(
+        self,
+        submission_id: str,
+        block: Optional[int] = None,
+    ) -> Optional[dict[str, str | int | bytes]]:
+        """
+        Retrieves Submission from the MevShield pallet storage.
+
+        If submission_id is provided, returns a single submission. If submission_id is None, returns all submissions from
+        the storage map.
+
+        Parameters:
+            submission_id: The hash ID of the submission. Can be a hex string with "0x" prefix or bytes. If None,
+                returns all submissions.
+            block: The blockchain block number at which to perform the query. If None, uses the current block.
+
+        Returns:
+            If submission_id is provided: A dictionary containing the submission data if found, None otherwise. The
+                dictionary contains:
+                - author: The SS58 address of the account that submitted the encrypted extrinsic
+                - commitment: The blake2_256 hash of the payload_core (as hex string with "0x" prefix)
+                - ciphertext: The encrypted blob as bytes (format: [u16 kem_len][kem_ct][nonce24][aead_ct])
+                - submitted_in: The block number when the submission was created
+
+            If submission_id is None: A dictionary mapping submission IDs (as hex strings) to submission dictionaries.
+
+        Note:
+            If a specific submission does not exist in storage, this function returns None. If querying all submissions
+            and none exist, returns an empty dictionary.
+        """
+        block_hash = self.determine_block_hash(block=block)
+        submission_id = (
+            submission_id[2:] if submission_id.startswith("0x") else submission_id
+        )
+        submission_id_bytes = bytes.fromhex(submission_id)
+
+        query = self.substrate.query(
+            module="MevShield",
+            storage_function="Submissions",
+            params=[submission_id_bytes],
+            block_hash=block_hash,
+        )
+
+        if query is None or not isinstance(query, dict):
+            return None
+
+        autor = decode_account_id(query.get("author"))
+        commitment = bytes(query.get("commitment")[0])
+        ciphertext = bytes(query.get("ciphertext")[0])
+        submitted_in = query.get("submitted_in")
+
+        return {
+            "author": autor,
+            "commitment": commitment,
+            "ciphertext": ciphertext,
+            "submitted_in": submitted_in,
+        }
+
+    def get_mev_shield_submissions(
+        self,
+        block: Optional[int] = None,
+    ) -> Optional[dict[str, dict[str, str | int]]]:
+        """
+        Retrieves Submission(s) from the MevShield pallet storage.
+
+        Parameters:
+
+        Returns:
+
+        """
+        block_hash = self.determine_block_hash(block=block)
+        query = self.substrate.query_map(
+            module="MevShield",
+            storage_function="Submissions",
+            block_hash=block_hash,
+        )
+
+        result = {}
+        for q in query:
+            key, value = q
+            value = value.value
+            result["0x" + bytes(key[0]).hex()] = {
+                "author": decode_account_id(value.get("author")),
+                "commitment": bytes(value.get("commitment")[0]),
+                "ciphertext": bytes(value.get("ciphertext")[0]),
+                "submitted_in": value.get("submitted_in"),
+            }
+
+        return result if result else None
 
     def get_minimum_required_stake(self) -> Balance:
         """
@@ -4994,6 +5165,57 @@ class Subtensor(SubtensorMixin):
             height=height,
             ext_index=ext_index,
             force_proxy_type=force_proxy_type,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+    def mev_submit_encrypted(
+        self,
+        wallet: "Wallet",
+        call: "GenericCall",
+        signer_keypair: "Keypair",
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Submits an encrypted extrinsic to the MEV Shield pallet.
+
+        This function encrypts a call using ML-KEM-768 + XChaCha20Poly1305 and submits it to the MevShield pallet. The
+        extrinsic remains encrypted in the transaction pool until it is included in a block and decrypted by validators.
+
+        Parameters:
+            wallet: The wallet used to sign the extrinsic (must be unlocked, coldkey will be used for signing).
+            call: The GenericCall object to encrypt and submit.
+            signer_keypair: The keypair used to sign the inner call.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+                think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Raises:
+            ValueError: If NextKey is not available in storage or encryption fails.
+            SubstrateRequestException: If the extrinsic fails to be submitted or included.
+
+        Note:
+            The encryption uses the public key from NextKey storage, which rotates every block. The payload structure is:
+            payload_core = signer_bytes (32B) + nonce (u32 LE, 4B) + SCALE(call)
+            plaintext = payload_core + b"\\x01" + signature (64B for sr25519)
+            commitment = blake2_256(payload_core)
+        """
+        return submit_encrypted_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            call=call,
+            signer_keypair=signer_keypair,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
