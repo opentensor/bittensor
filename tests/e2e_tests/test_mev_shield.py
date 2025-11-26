@@ -1,14 +1,12 @@
 """E2E tests for MEV Shield functionality."""
 
+import pytest
 import hashlib
 
 from bittensor_drand import generate_mlkem768_keypair
 from bittensor_wallet import Wallet
 
-from bittensor.core.extrinsics.mev_shield import (
-    announce_next_key_extrinsic,
-    submit_encrypted_extrinsic,
-)
+from bittensor.core.extrinsics.mev_shield import submit_encrypted_extrinsic
 from bittensor.core.extrinsics.pallets import SubtensorModule
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.balance import Balance
@@ -21,12 +19,14 @@ from tests.e2e_tests.utils import (
 )
 
 
-def add_balance_to_wallet_hk(subtensor, wallet: "Wallet", tao_amount: int) -> ExtrinsicResponse:
+def add_balance_to_wallet_hk(
+    subtensor, wallet: "Wallet", tao_amount: int
+) -> ExtrinsicResponse:
     """Adds 100 TAO to Alice's HK balance."""
     return subtensor.extrinsics.transfer(
         wallet=wallet,
         destination_ss58=wallet.hotkeypub.ss58_address,
-        amount=Balance.from_tao(tao_amount)
+        amount=Balance.from_tao(tao_amount),
     )
 
 
@@ -104,11 +104,10 @@ def test_mev_shield_announce_next_key(subtensor, alice_wallet):
     )
     assert tempo_response.success, f"Failed to set tempo: {tempo_response.message}"
 
-    # Wait a few blocks after setting tempo to ensure state is synchronized
-    # This prevents "Transaction is outdated" errors by allowing the chain to process
-    # the tempo change and stabilize before we submit the announce transaction.
+    # Wait for tempo transaction to be included in a block
+    # This ensures the tempo change is processed before we submit the announce transaction
     current_block = subtensor.block
-    subtensor.wait_for_block(current_block + 5)
+    subtensor.wait_for_block(current_block + 1)
 
     # Generate ML-KEM-768 keypair using bittensor_drand
     public_key_bytes = generate_mlkem768_keypair()
@@ -117,6 +116,7 @@ def test_mev_shield_announce_next_key(subtensor, alice_wallet):
     )
 
     # Get current epoch and prepare next epoch
+    # We use current_epoch + 1 because we're announcing the key for the NEXT epoch
     current_epoch = subtensor.mev_shield.get_mev_shield_epoch()
     next_epoch = current_epoch + 1
 
@@ -199,17 +199,11 @@ def test_mev_shield_submit_encrypted_full_flow(subtensor, bob_wallet, alice_wall
         )
         assert tempo_response.success, f"Failed to set tempo: {tempo_response.message}"
 
-        # Wait for first block of next epoch to avoid "Transaction is outdated" error
-        # MEV Shield epoch validation requires that the announced epoch matches the current epoch
-        # when the transaction is processed. By waiting for the start of the next epoch, we ensure
-        # that our announced epoch (current_epoch + 1) will be valid when the transaction executes.
-        next_epoch_start_block = subtensor.subnets.get_next_epoch_start_block(netuid=0)
-        if next_epoch_start_block:
-            logging.info(f"Waiting for next epoch start block: {next_epoch_start_block}")
-            subtensor.wait_for_block(next_epoch_start_block)
-            # Wait one more block to ensure all state is synchronized
-            current_block = subtensor.block
-            subtensor.wait_for_block(current_block + 1)
+        # Wait a few blocks after setting tempo to ensure state is synchronized
+        # This prevents "Transaction is outdated" errors by allowing the chain to process
+        # the tempo change and stabilize before we submit the announce transaction.
+        current_block = subtensor.block
+        subtensor.wait_for_block(current_block + 5)
 
         # Generate and announce a key first using alice_wallet (which is a validator in localnet)
         public_key_bytes = generate_mlkem768_keypair()
@@ -451,17 +445,11 @@ def test_mev_shield_commitment_verification(subtensor, bob_wallet, alice_wallet)
         )
         assert tempo_response.success, f"Failed to set tempo: {tempo_response.message}"
 
-        # Wait for first block of next epoch to avoid "Transaction is outdated" error
-        # MEV Shield epoch validation requires that the announced epoch matches the current epoch
-        # when the transaction is processed. By waiting for the start of the next epoch, we ensure
-        # that our announced epoch (current_epoch + 1) will be valid when the transaction executes.
-        next_epoch_start_block = subtensor.subnets.get_next_epoch_start_block(netuid=0)
-        if next_epoch_start_block:
-            logging.info(f"Waiting for next epoch start block: {next_epoch_start_block}")
-            subtensor.wait_for_block(next_epoch_start_block)
-            # Wait one more block to ensure all state is synchronized
-            current_block = subtensor.block
-            subtensor.wait_for_block(current_block + 1)
+        # Wait a few blocks after setting tempo to ensure state is synchronized
+        # This prevents "Transaction is outdated" errors by allowing the chain to process
+        # the tempo change and stabilize before we submit the announce transaction.
+        current_block = subtensor.block
+        subtensor.wait_for_block(current_block + 5)
 
         # Generate and announce a key first using alice_wallet (which is a validator in localnet)
         public_key_bytes = generate_mlkem768_keypair()
