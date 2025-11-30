@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
@@ -13,6 +14,9 @@ class SubnetIdentity:
     discord: str
     description: str
     additional: str
+    x_handle: Optional[str] = (
+        None
+    )
 
     @classmethod
     def _from_dict(cls, decoded: dict) -> "SubnetIdentity":
@@ -26,4 +30,5 @@ class SubnetIdentity:
             discord=decoded["discord"],
             description=decoded["description"],
             additional=decoded["additional"],
+            x_handle=decoded.get("x_handle"),
         )
