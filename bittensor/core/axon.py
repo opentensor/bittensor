@@ -1207,8 +1207,8 @@ class AxonMiddleware(BaseHTTPMiddleware):
                     f"axon     | --> | {response.headers.get('content-length', -1)} B | {synapse.name} | None | None | 200 | Success "
                 )
 
-            # Return the response to the requester.
-            return response
+        # Return the response to the requester.
+        return response
 
     async def preprocess(self, request: "Request") -> "Synapse":
         """

@@ -71,6 +71,18 @@ jobs:
           echo "Found tests: $test_matrix"
           echo "test-files=$test_matrix" >> "$GITHUB_OUTPUT"
 
+  # Read Python versions
+  read-python-versions:
+    runs-on: ubuntu-latest
+    outputs:
+      python-versions: ${{ steps.read-versions.outputs.versions }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: read-versions
+        run: |
+          versions=$(cat .github/supported-python-versions.json)
+          echo "versions=$versions" >> $GITHUB_OUTPUT
+
   # Pull docker image
   pull-docker-image:
     runs-on: ubuntu-latest
@@ -82,16 +94,16 @@ jobs:
         run: |
           echo "Event: $GITHUB_EVENT_NAME"
           echo "Branch: $GITHUB_REF_NAME"
-          
+
           echo "Reading labels ..."
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
             labels=$(jq -r '.pull_request.labels[].name' "$GITHUB_EVENT_PATH")
           else
             labels=""
           fi
-    
+
           image=""
-    
+
           for label in $labels; do
             echo "Found label: $label"
             case "$label" in
@@ -147,6 +159,7 @@ jobs:
     needs:
       - find-tests
       - pull-docker-image
+      - read-python-versions
     strategy:
       fail-fast: false
       max-parallel: 16
@@ -156,4 +169,5 @@ jobs:
     with:
       nodeid: ${{ matrix.nodeid }}
       image-name: ${{ needs.pull-docker-image.outputs.image-name }}
+      python-versions: ${{ needs.read-python-versions.outputs.python-versions }}
     secrets: inherit
