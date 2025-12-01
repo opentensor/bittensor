@@ -1831,10 +1831,13 @@ class Subtensor(SubtensorMixin):
             int: The block number at which the next epoch will start.
         """
         block = block or self.block
+        if block is None:
+            return None
+        
         blocks_since_last_step = self.blocks_since_last_step(netuid=netuid, block=block)
         tempo = self.tempo(netuid=netuid, block=block)
 
-        if block and blocks_since_last_step is not None and tempo:
+        if blocks_since_last_step is not None and tempo is not None:
             return block - blocks_since_last_step + tempo + 1
         return None
 

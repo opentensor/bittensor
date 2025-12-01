@@ -2619,6 +2619,10 @@ class AsyncSubtensor(SubtensorMixin):
             See also: <https://docs.learnbittensor.org/glossary#tempo>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        block = block or await self.substrate.get_block_number(block_hash=block_hash)
+        if block is None:
+            return None
+        
         blocks_since_last_step = await self.blocks_since_last_step(
             netuid=netuid, block=block, block_hash=block_hash, reuse_block=reuse_block
         )
@@ -2626,8 +2630,7 @@ class AsyncSubtensor(SubtensorMixin):
             netuid=netuid, block=block, block_hash=block_hash, reuse_block=reuse_block
         )
 
-        block = block or await self.substrate.get_block_number(block_hash=block_hash)
-        if block and blocks_since_last_step is not None and tempo:
+        if blocks_since_last_step is not None and tempo is not None:
             return block - blocks_since_last_step + tempo + 1
         return None
 
