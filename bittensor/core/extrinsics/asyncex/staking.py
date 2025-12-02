@@ -4,6 +4,7 @@ from typing import Optional, Sequence, TYPE_CHECKING
 from async_substrate_interface.errors import SubstrateRequestException
 
 from bittensor.core.errors import BalanceTypeError
+from bittensor.core.extrinsics.asyncex.mev_shield import submit_encrypted_extrinsic
 from bittensor.core.extrinsics.pallets import SubtensorModule
 from bittensor.core.extrinsics.utils import get_old_stakes
 from bittensor.core.types import ExtrinsicResponse, UIDs
@@ -25,6 +26,7 @@ async def add_stake_extrinsic(
     safe_staking: bool = False,
     allow_partial_stake: bool = False,
     rate_tolerance: float = 0.005,
+    with_mev_protection: bool = False,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
@@ -44,6 +46,9 @@ async def add_stake_extrinsic(
         safe_staking: If True, enables price safety checks.
         allow_partial_stake: If True, allows partial unstaking if price tolerance exceeded.
         rate_tolerance: Maximum allowed price increase percentage (0.005 = 0.5%).
+        with_mev_protection: If True, encrypts and submits the staking transaction through the MEV Shield pallet to
+            protect against front-running and MEV attacks. The transaction remains encrypted in the mempool until
+            validators decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
@@ -134,16 +139,28 @@ async def add_stake_extrinsic(
             )
 
         block_hash_before = await subtensor.get_block_hash()
-        response = await subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            nonce_key="coldkeypub",
-            use_nonce=True,
-            period=period,
-            raise_error=raise_error,
-        )
+        if with_mev_protection:
+            response = await submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=True,
+            )
+        else:
+            response = await subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                nonce_key="coldkeypub",
+                use_nonce=True,
+                period=period,
+                raise_error=raise_error,
+            )
         if response.success:
             sim_swap = await subtensor.sim_swap(
                 origin_netuid=0,
