@@ -25,7 +25,7 @@ def add_stake_extrinsic(
     safe_staking: bool = False,
     allow_partial_stake: bool = False,
     rate_tolerance: float = 0.005,
-    with_mev_protection: bool = False,
+    mev_protection: bool = False,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
@@ -45,9 +45,9 @@ def add_stake_extrinsic(
         safe_staking: If True, enables price safety checks.
         allow_partial_stake: If True, allows partial unstaking if price tolerance exceeded.
         rate_tolerance: Maximum allowed price increase percentage (0.005 = 0.5%).
-        with_mev_protection: If True, encrypts and submits the staking transaction through the MEV Shield pallet to
-            protect against front-running and MEV attacks. The transaction remains encrypted in the mempool until
-            validators decrypt and execute it. If False, submits the transaction directly without encryption.
+        mev_protection: If True, encrypts and submits the staking transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
@@ -134,7 +134,7 @@ def add_stake_extrinsic(
             )
 
         block_before = subtensor.block
-        if with_mev_protection:
+        if mev_protection:
             response = submit_encrypted_extrinsic(
                 subtensor=subtensor,
                 wallet=wallet,
