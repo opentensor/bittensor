@@ -12,7 +12,7 @@ from tests.e2e_tests.utils import (
     REGISTER_SUBNET,
     SUDO_SET_TEMPO,
     NETUID,
-    AdminUtils
+    AdminUtils,
 )
 
 TEMPO_TO_SET = 3
@@ -52,7 +52,9 @@ def test_mev_shield_happy_path(
 
     if subtensor.chain.is_fast_blocks():
         # MeV Res logic works not from before third epoch with fast blocks, so we need to wait for it
-        next_epoch_start_block = subtensor.subnets.get_next_epoch_start_block(bob_sn.netuid)
+        next_epoch_start_block = subtensor.subnets.get_next_epoch_start_block(
+            bob_sn.netuid
+        )
         subtensor.wait_for_block(
             next_epoch_start_block + subtensor.subnets.tempo(bob_sn.netuid) * 2
         )
@@ -139,11 +141,12 @@ async def test_mev_shield_happy_path_async(
 
     if await async_subtensor.chain.is_fast_blocks():
         # MeV Res logic works not from before third epoch with fast blocks, so we need to wait for it
-        next_epoch_start_block = await async_subtensor.subnets.get_next_epoch_start_block(
-            bob_sn.netuid
+        next_epoch_start_block = (
+            await async_subtensor.subnets.get_next_epoch_start_block(bob_sn.netuid)
         )
         await async_subtensor.wait_for_block(
-            next_epoch_start_block + await async_subtensor.subnets.tempo(bob_sn.netuid) * 2
+            next_epoch_start_block
+            + await async_subtensor.subnets.tempo(bob_sn.netuid) * 2
         )
 
     for signer in [None, dave_wallet.coldkey]:
