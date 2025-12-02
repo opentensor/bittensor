@@ -1,6 +1,7 @@
 """Module with helper functions for extrinsics."""
 
 import hashlib
+import logging
 from typing import TYPE_CHECKING, Optional, Union
 
 from bittensor_drand import encrypt_mlkem768, mlkem_kdf_id
@@ -288,7 +289,7 @@ def get_mev_commitment_and_ciphertext(
     return commitment_hex, ciphertext, payload_core, signature
 
 
-def get_event_data(triggered_events: list, event_id: str) -> Optional[dict]:
+def get_event_attributes_by_event_name(events: list, event_name: str) -> Optional[dict]:
     """
     Extracts event data from triggered events by event ID.
 
@@ -296,13 +297,23 @@ def get_event_data(triggered_events: list, event_id: str) -> Optional[dict]:
     specified event_id.
 
     Parameters:
-        triggered_events: List of event dictionaries, typically from ExtrinsicReceipt.triggered_events. Each event
-            should have an "event_id" key and an "attributes" key.
-        event_id: The event identifier to search for (e.g., "EncryptedSubmitted", "DecryptedExecuted").
+        events: List of event dictionaries, typically from ExtrinsicReceipt.triggered_events. Each event should have an
+            "module_id". "event_id" key and an "attributes" key.
+        event_name: The events identifier to search for (e.g. "mevShield.EncryptedSubmitted", etc).
 
     Returns:
         The attributes dictionary of the matching event, or None if no matching event is found."""
-    for event in triggered_events:
-        if event["event_id"] == event_id:
-            return event["attributes"]
+    for event in events:
+        try:
+            module_id, event_id = event_name.split(".")
+        except (ValueError, AttributeError):
+            logging.debug(
+                "Invalid event_name. Should be string as `module_id.event_id` e.g. `mevShield.EncryptedSubmitted`."
+            )
+            return None
+        if (
+            event["module_id"].lower() == module_id.lower()
+            and event["event_id"].lower() == event_id.lower()
+        ):
+            return event
     return None
