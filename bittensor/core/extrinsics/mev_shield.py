@@ -5,7 +5,10 @@ from typing import TYPE_CHECKING, Optional
 from async_substrate_interface import ExtrinsicReceipt
 
 from bittensor.core.extrinsics.pallets import MevShield
-from bittensor.core.extrinsics.utils import get_event_data, get_mev_commitment_and_ciphertext
+from bittensor.core.extrinsics.utils import (
+    get_event_data,
+    get_mev_commitment_and_ciphertext,
+)
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.btlogging import logging
 
