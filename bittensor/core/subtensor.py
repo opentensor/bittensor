@@ -2377,12 +2377,28 @@ class Subtensor(SubtensorMixin):
         block: Optional[int] = None,
     ) -> Optional[dict[str, dict[str, str | int]]]:
         """
-        Retrieves Submission(s) from the MevShield pallet storage.
+        Retrieves all encrypted submissions from the MevShield pallet storage.
+
+        This function queries the MevShield.Submissions storage map and returns all pending encrypted submissions that
+        have been submitted via submit_encrypted but not yet executed via execute_revealed.
 
         Parameters:
+            block: The blockchain block number for the query. If None, uses the current block.
 
         Returns:
+            A dictionary mapping wrapper_id (as hex string with "0x" prefix) to submission data dictionaries. Each
+            submission dictionary contains:
+            - author: The SS58 address of the account that submitted the encrypted extrinsic
+            - commitment: The blake2_256 hash of the payload_core as bytes (32 bytes)
+            - ciphertext: The encrypted blob as bytes (format: [u16 kem_len][kem_ct][nonce24][aead_ct])
+            - submitted_in: The block number when the submission was created
 
+            Returns None if no submissions exist in storage at the specified block.
+
+        Note:
+            Submissions are automatically pruned after KEY_EPOCH_HISTORY blocks (100 blocks) by the pallet's
+            on_initialize hook. Only submissions that have been submitted but not yet executed will be present in
+            storage.
         """
         block_hash = self.determine_block_hash(block=block)
         query = self.substrate.query_map(
