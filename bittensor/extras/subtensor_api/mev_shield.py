@@ -10,11 +10,8 @@ class MevShield:
     def __init__(self, subtensor: Union["_Subtensor", "_AsyncSubtensor"]):
         # Storage queries
         self.get_mev_shield_current_key = subtensor.get_mev_shield_current_key
-        self.get_mev_shield_epoch = subtensor.get_mev_shield_epoch
         self.get_mev_shield_next_key = subtensor.get_mev_shield_next_key
         self.get_mev_shield_submission = subtensor.get_mev_shield_submission
 
         # Extrinsics
-        self.mev_announce_next_key = subtensor.mev_announce_next_key
-        self.mev_execute_revealed = subtensor.mev_execute_revealed
         self.mev_submit_encrypted = subtensor.mev_submit_encrypted
