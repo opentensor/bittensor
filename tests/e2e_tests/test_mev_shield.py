@@ -1,9 +1,8 @@
 """E2E tests for MEV Shield functionality."""
 
-from bittensor_wallet import Wallet
+import pytest
 
 from bittensor.core.extrinsics import pallets
-from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils import (
@@ -11,11 +10,17 @@ from tests.e2e_tests.utils import (
     ACTIVATE_SUBNET,
     REGISTER_NEURON,
     REGISTER_SUBNET,
+    SUDO_SET_TEMPO,
+    NETUID,
+    AdminUtils
 )
 
+TEMPO_TO_SET = 3
 
+
+@pytest.mark.parametrize("local_chain", [False], indirect=True)
 def test_mev_shield_happy_path(
-    subtensor, alice_wallet, bob_wallet, charlie_wallet, dave_wallet
+    subtensor, alice_wallet, bob_wallet, charlie_wallet, dave_wallet, local_chain
 ):
     """Tests MEV Shield functionality with add_stake inner call.
 
@@ -35,21 +40,22 @@ def test_mev_shield_happy_path(
             - Wait for validators to decrypt and execute the transaction (3 blocks)
             - Verify that the stake has increased after execution
     """
-
     bob_sn = TestSubnet(subtensor)
     bob_sn.execute_steps(
         [
             REGISTER_SUBNET(bob_wallet),
+            SUDO_SET_TEMPO(alice_wallet, AdminUtils, True, NETUID, TEMPO_TO_SET),
             ACTIVATE_SUBNET(bob_wallet),
             REGISTER_NEURON(charlie_wallet),
         ]
     )
 
-    # MeV Res logic works not from before third epoch with fast blocks, so we need to wait for it
-    next_epoch_start_block = subtensor.subnets.get_next_epoch_start_block(bob_sn.netuid)
-    subtensor.wait_for_block(
-        next_epoch_start_block + subtensor.subnets.tempo(bob_sn.netuid) * 2
-    )
+    if subtensor.chain.is_fast_blocks():
+        # MeV Res logic works not from before third epoch with fast blocks, so we need to wait for it
+        next_epoch_start_block = subtensor.subnets.get_next_epoch_start_block(bob_sn.netuid)
+        subtensor.wait_for_block(
+            next_epoch_start_block + subtensor.subnets.tempo(bob_sn.netuid) * 2
+        )
 
     for signer in [None, dave_wallet.coldkey]:
         stake_before = subtensor.staking.get_stake(
@@ -78,6 +84,7 @@ def test_mev_shield_happy_path(
             signer_keypair=signer,
             raise_error=True,
         )
+
         assert response.success, response.message
         assert response.data.get("revealed_extrinsic_receipt") is not None, (
             "No revealed extrinsic receipt."
@@ -96,8 +103,10 @@ def test_mev_shield_happy_path(
         assert stake_after > stake_before
 
 
+@pytest.mark.parametrize("local_chain", [False], indirect=True)
+@pytest.mark.asyncio
 async def test_mev_shield_happy_path_async(
-    async_subtensor, alice_wallet, bob_wallet, charlie_wallet, dave_wallet
+    async_subtensor, alice_wallet, bob_wallet, charlie_wallet, dave_wallet, local_chain
 ):
     """Async tests MEV Shield functionality with add_stake inner call.
 
@@ -122,18 +131,20 @@ async def test_mev_shield_happy_path_async(
     await bob_sn.async_execute_steps(
         [
             REGISTER_SUBNET(bob_wallet),
+            SUDO_SET_TEMPO(alice_wallet, AdminUtils, True, NETUID, TEMPO_TO_SET),
             ACTIVATE_SUBNET(bob_wallet),
             REGISTER_NEURON(charlie_wallet),
         ]
     )
 
-    # MeV Res logic works not from before third epoch with fast blocks, so we need to wait for it
-    next_epoch_start_block = await async_subtensor.subnets.get_next_epoch_start_block(
-        bob_sn.netuid
-    )
-    await async_subtensor.wait_for_block(
-        next_epoch_start_block + await async_subtensor.subnets.tempo(bob_sn.netuid) * 2
-    )
+    if await async_subtensor.chain.is_fast_blocks():
+        # MeV Res logic works not from before third epoch with fast blocks, so we need to wait for it
+        next_epoch_start_block = await async_subtensor.subnets.get_next_epoch_start_block(
+            bob_sn.netuid
+        )
+        await async_subtensor.wait_for_block(
+            next_epoch_start_block + await async_subtensor.subnets.tempo(bob_sn.netuid) * 2
+        )
 
     for signer in [None, dave_wallet.coldkey]:
         stake_before = await async_subtensor.staking.get_stake(
@@ -148,7 +159,7 @@ async def test_mev_shield_happy_path_async(
         subnet_price = await async_subtensor.subnets.get_subnet_price(2)
         limit_price = (subnet_price * 2).rao
 
-        call = pallets.SubtensorModule(async_subtensor).add_stake_limit(
+        call = await pallets.SubtensorModule(async_subtensor).add_stake_limit(
             netuid=bob_sn.netuid,
             hotkey=charlie_wallet.hotkey.ss58_address,
             amount_staked=Balance.from_tao(5).rao,
@@ -162,6 +173,7 @@ async def test_mev_shield_happy_path_async(
             signer_keypair=signer,
             raise_error=True,
         )
+
         assert response.success, response.message
         assert response.data.get("revealed_extrinsic_receipt") is not None, (
             "No revealed extrinsic receipt."
