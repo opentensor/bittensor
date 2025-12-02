@@ -57,10 +57,10 @@ async def find_revealed_extrinsic(
         current_block_number = start_block_number + offset
 
         try:
-            current_block_hash = subtensor.substrate.get_block_hash(
+            current_block_hash = await subtensor.substrate.get_block_hash(
                 current_block_number
             )
-            extrinsics = subtensor.substrate.get_extrinsics(current_block_hash)
+            extrinsics = await subtensor.substrate.get_extrinsics(current_block_hash)
         except Exception as e:
             logging.debug(
                 f"Error getting extrinsics for block `{current_block_number}`: {e}"
@@ -75,7 +75,7 @@ async def find_revealed_extrinsic(
                 extrinsic_idx=idx,
             )
 
-            if triggered_events := extrinsic_.triggered_events:
+            if triggered_events := await extrinsic_.triggered_events:
                 event_data = get_event_data(triggered_events, event_id)
                 if (
                     event_data
@@ -173,7 +173,7 @@ async def submit_encrypted_extrinsic(
             )
         )
 
-        extrinsic_call = MevShield(subtensor).submit_encrypted(
+        extrinsic_call = await MevShield(subtensor).submit_encrypted(
             commitment=mev_commitment,
             ciphertext=mev_ciphertext,
         )
