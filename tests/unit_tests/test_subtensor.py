@@ -2647,7 +2647,7 @@ def test_add_stake_success(mocker, fake_wallet, subtensor):
         rate_tolerance=0.005,
         period=DEFAULT_PERIOD,
         raise_error=False,
-        with_mev_protection=False,
+        mev_protection=False,
     )
     assert result == mock_add_stake_extrinsic.return_value
 
@@ -2691,7 +2691,7 @@ def test_add_stake_with_safe_staking(mocker, fake_wallet, subtensor):
         rate_tolerance=fake_rate_tolerance,
         period=DEFAULT_PERIOD,
         raise_error=False,
-        with_mev_protection=False,
+        mev_protection=False,
     )
     assert result == mock_add_stake_extrinsic.return_value
 
