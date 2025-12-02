@@ -2682,7 +2682,7 @@ def test_add_stake_with_safe_staking(mocker, fake_wallet, subtensor):
         wallet=fake_wallet,
         hotkey_ss58=fake_hotkey_ss58,
         netuid=14,
-        amount=fake_amount.rao,
+        amount=fake_amount,
         wait_for_inclusion=True,
         wait_for_finalization=False,
         safe_staking=True,
@@ -2690,6 +2690,7 @@ def test_add_stake_with_safe_staking(mocker, fake_wallet, subtensor):
         rate_tolerance=fake_rate_tolerance,
         period=DEFAULT_PERIOD,
         raise_error=False,
+        with_mev_protection=False,
     )
     assert result == mock_add_stake_extrinsic.return_value
 
