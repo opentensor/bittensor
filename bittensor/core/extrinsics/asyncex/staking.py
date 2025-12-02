@@ -90,8 +90,6 @@ async def add_stake_extrinsic(
         if amount > old_balance - existential_deposit:
             # If we are staking all, we need to leave at least the existential deposit.
             amount = old_balance - existential_deposit
-        else:
-            amount = amount
 
         # Check enough to stake.
         if amount > old_balance:
