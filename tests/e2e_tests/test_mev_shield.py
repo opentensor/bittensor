@@ -83,9 +83,93 @@ def test_mev_shield_happy_path(
             "No revealed extrinsic receipt."
         )
 
-        subtensor.wait_for_block(subtensor.block + 3)
+        # subtensor.wait_for_block(subtensor.block + 3)
 
         stake_after = subtensor.staking.get_stake(
+            coldkey_ss58=signer.ss58_address
+            if signer is not None
+            else alice_wallet.coldkey.ss58_address,
+            hotkey_ss58=charlie_wallet.hotkey.ss58_address,
+            netuid=bob_sn.netuid,
+        )
+        logging.console.info(f"Stake after: {stake_after}")
+        assert stake_after > stake_before
+
+
+async def test_mev_shield_happy_path_async(
+    async_subtensor, alice_wallet, bob_wallet, charlie_wallet, dave_wallet
+):
+    """Async tests MEV Shield functionality with add_stake inner call.
+
+    This test verifies the complete MEV Shield flow: encrypting a transaction, submitting it, and verifying that
+    validators decrypt and execute it correctly. The test covers two scenarios:
+        - using default signer (wallet.coldkey)
+        - explicit signer keypair
+
+    Steps:
+        - Register a subnet through Bob and activate it
+        - Register Charlie's neuron on the subnet
+        - Wait until the third epoch (MEV Shield logic requires at least 3 epochs with fast blocks)
+        - For each signer scenario (None/default and explicit dave_wallet.coldkey):
+            - Get the current stake before the transaction
+            - Create an add_stake_limit call for Charlie's hotkey
+            - Submit the call encrypted through MEV Shield using mev_submit_encrypted
+            - Wait for validators to decrypt and execute the transaction (3 blocks)
+            - Verify that the stake has increased after execution
+    """
+
+    bob_sn = TestSubnet(async_subtensor)
+    await bob_sn.async_execute_steps(
+        [
+            REGISTER_SUBNET(bob_wallet),
+            ACTIVATE_SUBNET(bob_wallet),
+            REGISTER_NEURON(charlie_wallet),
+        ]
+    )
+
+    # MeV Res logic works not from before third epoch with fast blocks, so we need to wait for it
+    next_epoch_start_block = await async_subtensor.subnets.get_next_epoch_start_block(
+        bob_sn.netuid
+    )
+    await async_subtensor.wait_for_block(
+        next_epoch_start_block + await async_subtensor.subnets.tempo(bob_sn.netuid) * 2
+    )
+
+    for signer in [None, dave_wallet.coldkey]:
+        stake_before = await async_subtensor.staking.get_stake(
+            coldkey_ss58=signer.ss58_address
+            if signer is not None
+            else alice_wallet.coldkey.ss58_address,
+            hotkey_ss58=charlie_wallet.hotkey.ss58_address,
+            netuid=bob_sn.netuid,
+        )
+        logging.console.info(f"Stake before: {stake_before}")
+
+        subnet_price = await async_subtensor.subnets.get_subnet_price(2)
+        limit_price = (subnet_price * 2).rao
+
+        call = pallets.SubtensorModule(async_subtensor).add_stake_limit(
+            netuid=bob_sn.netuid,
+            hotkey=charlie_wallet.hotkey.ss58_address,
+            amount_staked=Balance.from_tao(5).rao,
+            allow_partial=True,
+            limit_price=limit_price,
+        )
+
+        response = await async_subtensor.mev_shield.mev_submit_encrypted(
+            wallet=alice_wallet,
+            call=call,
+            signer_keypair=signer,
+            raise_error=True,
+        )
+        assert response.success, response.message
+        assert response.data.get("revealed_extrinsic_receipt") is not None, (
+            "No revealed extrinsic receipt."
+        )
+
+        # await async_subtensor.wait_for_block(await async_subtensor.block + 3)
+
+        stake_after = await async_subtensor.staking.get_stake(
             coldkey_ss58=signer.ss58_address
             if signer is not None
             else alice_wallet.coldkey.ss58_address,
