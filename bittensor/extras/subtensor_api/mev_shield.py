@@ -12,6 +12,7 @@ class MevShield:
         self.get_mev_shield_current_key = subtensor.get_mev_shield_current_key
         self.get_mev_shield_next_key = subtensor.get_mev_shield_next_key
         self.get_mev_shield_submission = subtensor.get_mev_shield_submission
+        self.get_mev_shield_submissions = subtensor.get_mev_shield_submissions
 
         # Extrinsics
         self.mev_submit_encrypted = subtensor.mev_submit_encrypted
