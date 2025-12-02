@@ -5810,7 +5810,8 @@ class AsyncSubtensor(SubtensorMixin):
         safe_staking: bool = False,
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
-        with_mev_protection: bool = False,
+        mev_protection: bool = False,
+        *,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -5832,7 +5833,7 @@ class AsyncSubtensor(SubtensorMixin):
                 exceed the price tolerance. If false, the entire stake fails if it would exceed the tolerance.
             rate_tolerance: The maximum allowed price change ratio when staking. For example, 0.005 = 0.5% maximum price
                 increase. Only used when safe_staking is True.
-            with_mev_protection: If True, encrypts and submits the staking transaction through the MEV Shield pallet  to
+            mev_protection: If True, encrypts and submits the staking transaction through the MEV Shield pallet  to
                 protect against front-running and MEV attacks. The transaction remains encrypted in the mempool until
                 validators decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
@@ -5859,7 +5860,7 @@ class AsyncSubtensor(SubtensorMixin):
             safe_staking=safe_staking,
             allow_partial_stake=allow_partial_stake,
             rate_tolerance=rate_tolerance,
-            with_mev_protection=with_mev_protection,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,

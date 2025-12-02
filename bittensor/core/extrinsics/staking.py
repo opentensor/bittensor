@@ -26,6 +26,7 @@ def add_stake_extrinsic(
     allow_partial_stake: bool = False,
     rate_tolerance: float = 0.005,
     mev_protection: bool = False,
+    *,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
