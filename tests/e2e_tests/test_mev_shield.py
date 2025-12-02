@@ -88,11 +88,9 @@ def test_mev_shield_happy_path(
         )
 
         assert response.success, response.message
-        assert response.data.get("revealed_extrinsic_receipt") is not None, (
+        assert response.mev_extrinsic_receipt is not None, (
             "No revealed extrinsic receipt."
         )
-
-        # subtensor.wait_for_block(subtensor.block + 3)
 
         stake_after = subtensor.staking.get_stake(
             coldkey_ss58=signer.ss58_address
@@ -178,11 +176,9 @@ async def test_mev_shield_happy_path_async(
         )
 
         assert response.success, response.message
-        assert response.data.get("revealed_extrinsic_receipt") is not None, (
+        assert response.mev_extrinsic_receipt is not None, (
             "No revealed extrinsic receipt."
         )
-
-        # await async_subtensor.wait_for_block(await async_subtensor.block + 3)
 
         stake_after = await async_subtensor.staking.get_stake(
             coldkey_ss58=signer.ss58_address
