@@ -6,7 +6,7 @@ from async_substrate_interface import ExtrinsicReceipt
 
 from bittensor.core.extrinsics.pallets import MevShield
 from bittensor.core.extrinsics.utils import (
-    get_event_data,
+    get_event_attributes_by_event_name,
     get_mev_commitment_and_ciphertext,
 )
 from bittensor.core.types import ExtrinsicResponse
@@ -21,11 +21,11 @@ if TYPE_CHECKING:
 def find_revealed_extrinsic(
     subtensor: "Subtensor",
     signer_ss58: str,
-    event_id: str,
+    event_names: list[str],
     event_hash_id: str,
     start_block_hash: str,
     blocks_ahead: int = 5,
-) -> Optional["ExtrinsicReceipt"]:
+) -> Optional[tuple[str, "ExtrinsicReceipt"]]:
     """
     Searches for an extrinsic containing a specific MEV Shield event in subsequent blocks.
 
@@ -37,7 +37,7 @@ def find_revealed_extrinsic(
         subtensor: The Subtensor instance used for blockchain queries.
         signer_ss58: The SS58 address of the signer account. Used to verify that the event belongs to the correct
             transaction (matches the "signer" attribute in the event).
-        event_id: The event identifier to search for. Typically "DecryptedExecuted" or "DecryptedRejected" for MEV
+        event_names: The event identifiers to search for. Typically "DecryptedExecuted" or "DecryptedRejected" for MEV
             Shield transactions.
         event_hash_id: The wrapper_id (hash of (author, commitment, ciphertext)) to match. This uniquely identifies a
             specific MEV Shield submission.
@@ -48,8 +48,7 @@ def find_revealed_extrinsic(
             as execute_revealed will be in subsequent blocks).
 
     Returns:
-        The ExtrinsicReceipt object for the extrinsic containing the matching event, or None if the event is not found
-            within the specified block range.
+        Tuple with event name and ExtrinsicReceipt object.
     """
     start_block_number = subtensor.substrate.get_block_number(start_block_hash)
 
@@ -60,29 +59,24 @@ def find_revealed_extrinsic(
             current_block_hash = subtensor.substrate.get_block_hash(
                 current_block_number
             )
-            extrinsics = subtensor.substrate.get_extrinsics(current_block_hash)
+            events = subtensor.substrate.get_events(current_block_hash)
         except Exception as e:
             logging.debug(
                 f"Error getting extrinsics for block `{current_block_number}`: {e}"
             )
             continue
 
-        for idx, e in enumerate(extrinsics):
-            extrinsic_ = ExtrinsicReceipt(
-                substrate=subtensor.substrate,
-                extrinsic_hash=e.extrinsic_hash,
-                block_hash=current_block_hash,
-                extrinsic_idx=idx,
-            )
-
-            if triggered_events := extrinsic_.triggered_events:
-                event_data = get_event_data(triggered_events, event_id)
+        for event_name in event_names:
+            if event := get_event_attributes_by_event_name(events, event_name):
                 if (
-                    event_data
-                    and event_hash_id == event_data["id"]
-                    and signer_ss58 == event_data["signer"]
+                    event["attributes"]["signer"] == signer_ss58
+                    and event["attributes"]["id"] == event_hash_id
                 ):
-                    return extrinsic_
+                    return event_name, ExtrinsicReceipt(
+                        substrate=subtensor.substrate,
+                        block_hash=current_block_hash,
+                        extrinsic_idx=event["extrinsic_idx"],
+                    )
 
         subtensor.wait_for_block()
 
@@ -153,14 +147,10 @@ def submit_encrypted_extrinsic(
 
         ml_kem_768_public_key = subtensor.get_mev_shield_next_key()
         if ml_kem_768_public_key is None:
-            # Fallback to CurrentKey if NextKey is not available
-            current_key_result = subtensor.get_mev_shield_current_key()
-            if current_key_result is None:
-                return ExtrinsicResponse.from_exception(
-                    raise_error=raise_error,
-                    error=ValueError("MEV Shield NextKey not available in storage."),
-                )
-            ml_kem_768_public_key = current_key_result
+            return ExtrinsicResponse.from_exception(
+                raise_error=raise_error,
+                error=ValueError("MEV Shield NextKey not available in storage."),
+            )
 
         genesis_hash = subtensor.get_block_hash(block=0)
 
@@ -200,22 +190,31 @@ def submit_encrypted_extrinsic(
                 wait_for_revealed_execution, int
             ):
                 triggered_events = response.extrinsic_receipt.triggered_events
-                event_hash_id = get_event_data(triggered_events, "EncryptedSubmitted")[
-                    "id"
-                ]
+                event_hash_id = get_event_attributes_by_event_name(
+                    events=triggered_events, event_name="mevShield.EncryptedSubmitted"
+                )["attributes"]["id"]
 
-                revealed_extrinsic_receipt = find_revealed_extrinsic(
+                revealed_extrinsic = find_revealed_extrinsic(
                     subtensor=subtensor,
                     signer_ss58=signer_keypair.ss58_address,
-                    event_id="DecryptedExecuted",
+                    event_names=[
+                        "mevShield.DecryptedExecuted",
+                        "mevShield.DecryptedRejected",
+                    ],
                     event_hash_id=event_hash_id,
                     start_block_hash=response.extrinsic_receipt.block_hash,
                     blocks_ahead=wait_for_revealed_execution,
                 )
-                if revealed_extrinsic_receipt:
-                    response.data.update(
-                        {"revealed_extrinsic_receipt": revealed_extrinsic_receipt}
-                    )
+                if revealed_extrinsic and isinstance(revealed_extrinsic, tuple):
+                    event_name, response.mev_extrinsic_receipt = revealed_extrinsic
+
+                    if event_name == "mevShield.DecryptedRejected":
+                        response.success = False
+                        response.message = "DecryptedRejected event found."
+                        return response.from_exception(
+                            raise_error=raise_error,
+                            error=RuntimeError(response.message),
+                        )
                 else:
                     response.success = False
                     response.error = RuntimeError(f"DecryptedExecuted event not found.")
