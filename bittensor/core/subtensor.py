@@ -124,6 +124,7 @@ from bittensor.core.extrinsics.weights import (
 from bittensor.core.metagraph import Metagraph
 from bittensor.core.settings import (
     version_as_int,
+    DEFAULT_MEV_PROTECTION,
     DEFAULT_PERIOD,
     TAO_APP_BLOCK_EXPLORER,
     TYPE_REGISTRY,
@@ -4533,8 +4534,8 @@ class Subtensor(SubtensorMixin):
         safe_staking: bool = False,
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
-        mev_protection: bool = False,
         *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -4598,6 +4599,8 @@ class Subtensor(SubtensorMixin):
         price_low: Balance,
         price_high: Balance,
         hotkey_ss58: Optional[str] = None,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -4613,6 +4616,9 @@ class Subtensor(SubtensorMixin):
             price_low: The lower bound of the price tick range. In TAO.
             price_high: The upper bound of the price tick range. In TAO.
             hotkey_ss58: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -4634,6 +4640,7 @@ class Subtensor(SubtensorMixin):
             price_low=price_low,
             price_high=price_high,
             hotkey_ss58=hotkey_ss58,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -4646,6 +4653,8 @@ class Subtensor(SubtensorMixin):
         netuids: UIDs,
         hotkey_ss58s: list[str],
         amounts: list[Balance],
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -4660,6 +4669,9 @@ class Subtensor(SubtensorMixin):
             netuids: List of subnet UIDs.
             hotkey_ss58s: List of ``SS58`` addresses of hotkeys to stake to.
             amounts: List of corresponding TAO amounts to bet for each netuid and hotkey.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -4679,6 +4691,7 @@ class Subtensor(SubtensorMixin):
             netuids=netuids,
             hotkey_ss58s=hotkey_ss58s,
             amounts=amounts,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -4691,6 +4704,8 @@ class Subtensor(SubtensorMixin):
         delegate_ss58: str,
         proxy_type: Union[str, "ProxyType"],
         delay: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -4709,6 +4724,9 @@ class Subtensor(SubtensorMixin):
             proxy_type: The type of proxy permissions (e.g., "Any", "NonTransfer", "Governance", "Staking"). Can be a
                 string or ProxyType enum value.
             delay: The number of blocks before the proxy can be used.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -4729,6 +4747,7 @@ class Subtensor(SubtensorMixin):
             delegate_ss58=delegate_ss58,
             proxy_type=proxy_type,
             delay=delay,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -4740,6 +4759,8 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         real_account_ss58: str,
         call_hash: str,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -4756,6 +4777,9 @@ class Subtensor(SubtensorMixin):
             wallet: Bittensor wallet object (should be the proxy account wallet).
             real_account_ss58: The SS58 address of the real account on whose behalf the call will be made.
             call_hash: The hash of the call that will be executed in the future.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -4775,6 +4799,7 @@ class Subtensor(SubtensorMixin):
             wallet=wallet,
             real_account_ss58=real_account_ss58,
             call_hash=call_hash,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -4785,6 +4810,8 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         netuid: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -4797,6 +4824,9 @@ class Subtensor(SubtensorMixin):
         Parameters:
             wallet: The wallet associated with the neuron to be registered.
             netuid: The unique identifier of the subnet.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -4812,6 +4842,7 @@ class Subtensor(SubtensorMixin):
             return root_register_extrinsic(
                 subtensor=self,
                 wallet=wallet,
+                mev_protection=mev_protection,
                 period=period,
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
@@ -4822,6 +4853,7 @@ class Subtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             netuid=netuid,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -4832,6 +4864,8 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         netuids: "UIDs",
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -4842,6 +4876,9 @@ class Subtensor(SubtensorMixin):
         Parameters:
             wallet: Bittensor Wallet instance.
             netuids: The netuids to claim root emissions for.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -4856,6 +4893,7 @@ class Subtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             netuids=netuids,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -4872,6 +4910,8 @@ class Subtensor(SubtensorMixin):
         mechid: int = 0,
         version_key: int = version_as_int,
         max_attempts: int = 5,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = 16,
         raise_error: bool = True,
         wait_for_inclusion: bool = False,
@@ -4890,6 +4930,9 @@ class Subtensor(SubtensorMixin):
             mechid: Subnet mechanism unique identifier.
             version_key: Version key for compatibility with the network.
             max_attempts: The number of maximum attempts to commit weights.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -4925,6 +4968,7 @@ class Subtensor(SubtensorMixin):
                     uids=uids,
                     weights=weights,
                     salt=salt,
+                    mev_protection=mev_protection,
                     period=period,
                     raise_error=raise_error,
                     wait_for_inclusion=wait_for_inclusion,
@@ -4948,6 +4992,8 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         crowdloan_id: int,
         amount: "Balance",
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -4960,6 +5006,9 @@ class Subtensor(SubtensorMixin):
             wallet: Bittensor Wallet instance used to sign the transaction.
             crowdloan_id: The unique identifier of the crowdloan to contribute to.
             amount: Amount to contribute.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -4975,6 +5024,7 @@ class Subtensor(SubtensorMixin):
             wallet=wallet,
             crowdloan_id=crowdloan_id,
             amount=amount,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -4990,6 +5040,8 @@ class Subtensor(SubtensorMixin):
         end: int,
         call: Optional["GenericCall"] = None,
         target_address: Optional[str] = None,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -5006,6 +5058,9 @@ class Subtensor(SubtensorMixin):
             end: Block number when the campaign ends.
             call: Runtime call data (e.g., subtensor::register_leased_network).
             target_address: SS58 address to transfer funds to on success.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -5025,6 +5080,7 @@ class Subtensor(SubtensorMixin):
             end=end,
             call=call,
             target_address=target_address,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -5037,6 +5093,8 @@ class Subtensor(SubtensorMixin):
         proxy_type: Union[str, "ProxyType"],
         delay: int,
         index: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -5054,6 +5112,9 @@ class Subtensor(SubtensorMixin):
             proxy_type: The type of proxy permissions for the pure proxy. Can be a string or ProxyType enum value.
             delay: The number of blocks before the pure proxy can be used.
             index: The index to use for generating the pure proxy account address.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -5075,6 +5136,7 @@ class Subtensor(SubtensorMixin):
             proxy_type=proxy_type,
             delay=delay,
             index=index,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -5085,6 +5147,8 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         crowdloan_id: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -5099,6 +5163,9 @@ class Subtensor(SubtensorMixin):
         Parameters:
             wallet: Bittensor Wallet instance used to sign the transaction.
             crowdloan_id: The unique identifier of the crowdloan to dissolve.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -5119,6 +5186,7 @@ class Subtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             crowdloan_id=crowdloan_id,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -5129,6 +5197,8 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         crowdloan_id: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -5142,6 +5212,9 @@ class Subtensor(SubtensorMixin):
         Parameters:
             wallet: Bittensor Wallet instance used to sign the transaction.
             crowdloan_id: The unique identifier of the crowdloan to finalize.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
@@ -5154,6 +5227,7 @@ class Subtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             crowdloan_id=crowdloan_id,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -5170,6 +5244,8 @@ class Subtensor(SubtensorMixin):
         height: int,
         ext_index: int,
         force_proxy_type: Optional[Union[str, "ProxyType"]] = ProxyType.Any,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -5202,6 +5278,9 @@ class Subtensor(SubtensorMixin):
                 type (or `Any`) with the pure proxy account. Defaults to `ProxyType.Any` for maximum compatibility. If
                 `None`, Substrate will automatically select an available proxy type from the spawner's proxy
                 relationships.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -5231,6 +5310,7 @@ class Subtensor(SubtensorMixin):
             height=height,
             ext_index=ext_index,
             force_proxy_type=force_proxy_type,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -5246,6 +5326,8 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
+        blocks_for_revealed_execution: int = 5,
     ) -> ExtrinsicResponse:
         """
         Submits an encrypted extrinsic to the MEV Shield pallet.
@@ -5263,6 +5345,12 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the DecryptedExecuted event, indicating that validators
+                have successfully decrypted and executed the inner call. If True, the function will poll subsequent
+                blocks for the event matching this submission's commitment.
+            blocks_for_revealed_execution: Maximum number of blocks to poll for the DecryptedExecuted event after
+                inclusion. The function checks blocks from start_block+1 to start_block + blocks_for_revealed_execution.
+                Returns immediately if the event is found before the block limit is reached.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5286,6 +5374,8 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
+            blocks_for_revealed_execution=blocks_for_revealed_execution,
         )
 
     def modify_liquidity(
@@ -5295,6 +5385,8 @@ class Subtensor(SubtensorMixin):
         position_id: int,
         liquidity_delta: Balance,
         hotkey_ss58: Optional[str] = None,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -5308,6 +5400,9 @@ class Subtensor(SubtensorMixin):
             position_id: The id of the position record in the pool.
             liquidity_delta: The amount of liquidity to be added or removed (add if positive or remove if negative).
             hotkey_ss58: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -5354,6 +5449,7 @@ class Subtensor(SubtensorMixin):
             position_id=position_id,
             liquidity_delta=liquidity_delta,
             hotkey_ss58=hotkey_ss58,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -5369,6 +5465,8 @@ class Subtensor(SubtensorMixin):
         destination_hotkey_ss58: str,
         amount: Optional[Balance] = None,
         move_all_stake: bool = False,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -5385,6 +5483,9 @@ class Subtensor(SubtensorMixin):
             destination_hotkey_ss58: The SS58 address of the destination hotkey.
             amount: Amount of stake to move.
             move_all_stake: If true, moves all stake from the source hotkey to the destination hotkey.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -5405,6 +5506,7 @@ class Subtensor(SubtensorMixin):
             destination_hotkey_ss58=destination_hotkey_ss58,
             amount=amount,
             move_all_stake=move_all_stake,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -5414,6 +5516,8 @@ class Subtensor(SubtensorMixin):
     def poke_deposit(
         self,
         wallet: "Wallet",
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -5428,6 +5532,9 @@ class Subtensor(SubtensorMixin):
 
         Parameters:
             wallet: Bittensor wallet object (the account whose deposits will be adjusted).
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
@@ -5448,6 +5555,7 @@ class Subtensor(SubtensorMixin):
         return poke_deposit_extrinsic(
             subtensor=self,
             wallet=wallet,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -5460,6 +5568,8 @@ class Subtensor(SubtensorMixin):
         real_account_ss58: str,
         force_proxy_type: Optional[Union[str, "ProxyType"]],
         call: "GenericCall",
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -5478,6 +5588,9 @@ class Subtensor(SubtensorMixin):
             force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise,
                 must match one of the allowed proxy types. Can be a string or ProxyType enum value.
             call: The inner call to be executed on behalf of the real account.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -5498,6 +5611,7 @@ class Subtensor(SubtensorMixin):
             real_account_ss58=real_account_ss58,
             force_proxy_type=force_proxy_type,
             call=call,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -5511,6 +5625,8 @@ class Subtensor(SubtensorMixin):
         real_account_ss58: str,
         force_proxy_type: Optional[Union[str, "ProxyType"]],
         call: "GenericCall",
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -5530,6 +5646,9 @@ class Subtensor(SubtensorMixin):
             force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise,
                 must match one of the allowed proxy types. Can be a string or ProxyType enum value.
             call: The inner call to be executed on behalf of the real account (must match the announced call_hash).
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -5551,6 +5670,7 @@ class Subtensor(SubtensorMixin):
             real_account_ss58=real_account_ss58,
             force_proxy_type=force_proxy_type,
             call=call,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -5561,6 +5681,8 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         crowdloan_id: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -5575,6 +5697,9 @@ class Subtensor(SubtensorMixin):
         Parameters:
             wallet: Bittensor Wallet instance used to sign the transaction.
             crowdloan_id: The unique identifier of the crowdloan to refund.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -5595,6 +5720,7 @@ class Subtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             crowdloan_id=crowdloan_id,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -5606,6 +5732,8 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         delegate_ss58: str,
         call_hash: str,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -5622,6 +5750,9 @@ class Subtensor(SubtensorMixin):
             wallet: Bittensor wallet object (should be the real account wallet).
             delegate_ss58: The SS58 address of the delegate proxy account whose announcement is being rejected.
             call_hash: The hash of the call that was announced and is now being rejected.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -5640,6 +5771,7 @@ class Subtensor(SubtensorMixin):
             wallet=wallet,
             delegate_ss58=delegate_ss58,
             call_hash=call_hash,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -5658,6 +5790,8 @@ class Subtensor(SubtensorMixin):
         num_processes: Optional[int] = None,
         update_interval: Optional[int] = None,
         log_verbose: bool = False,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -5681,6 +5815,9 @@ class Subtensor(SubtensorMixin):
             num_processes: The number of processes to use to register.
             update_interval: The number of nonces to solve between updates.
             log_verbose: If ``true``, the registration process will log more information.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -5706,6 +5843,7 @@ class Subtensor(SubtensorMixin):
             dev_id=dev_id,
             output_in_place=output_in_place,
             log_verbose=log_verbose,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -5715,6 +5853,8 @@ class Subtensor(SubtensorMixin):
     def register_subnet(
         self,
         wallet: "Wallet",
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -5725,6 +5865,9 @@ class Subtensor(SubtensorMixin):
 
         Parameters:
             wallet: The wallet to be used for subnet registration.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -5738,6 +5881,7 @@ class Subtensor(SubtensorMixin):
         return register_subnet_extrinsic(
             subtensor=self,
             wallet=wallet,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -5749,6 +5893,8 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         real_account_ss58: str,
         call_hash: str,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -5765,6 +5911,9 @@ class Subtensor(SubtensorMixin):
             wallet: Bittensor wallet object (should be the proxy account wallet that made the announcement).
             real_account_ss58: The SS58 address of the real account on whose behalf the call was announced.
             call_hash: The hash of the call that was announced and is now being removed.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -5784,6 +5933,7 @@ class Subtensor(SubtensorMixin):
             wallet=wallet,
             real_account_ss58=real_account_ss58,
             call_hash=call_hash,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -5796,6 +5946,8 @@ class Subtensor(SubtensorMixin):
         netuid: int,
         position_id: int,
         hotkey_ss58: Optional[str] = None,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -5808,6 +5960,9 @@ class Subtensor(SubtensorMixin):
             netuid: The UID of the target subnet for which the call is being initiated.
             position_id: The id of the position record in the pool.
             hotkey_ss58: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -5829,6 +5984,7 @@ class Subtensor(SubtensorMixin):
             netuid=netuid,
             position_id=position_id,
             hotkey_ss58=hotkey_ss58,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -5838,6 +5994,8 @@ class Subtensor(SubtensorMixin):
     def remove_proxies(
         self,
         wallet: "Wallet",
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -5853,6 +6011,9 @@ class Subtensor(SubtensorMixin):
         Parameters:
             wallet: Bittensor wallet object. The account whose proxies will be removed (the delegator). All proxy
                 relationships where wallet.coldkey.ss58_address is the real account will be removed.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -5870,6 +6031,7 @@ class Subtensor(SubtensorMixin):
         return remove_proxies_extrinsic(
             subtensor=self,
             wallet=wallet,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -5882,6 +6044,8 @@ class Subtensor(SubtensorMixin):
         delegate_ss58: str,
         proxy_type: Union[str, "ProxyType"],
         delay: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -5899,6 +6063,9 @@ class Subtensor(SubtensorMixin):
             delegate_ss58: The SS58 address of the delegate proxy account to remove.
             proxy_type: The type of proxy permissions to remove. Can be a string or ProxyType enum value.
             delay: The number of blocks before the proxy removal takes effect.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -5919,6 +6086,7 @@ class Subtensor(SubtensorMixin):
             delegate_ss58=delegate_ss58,
             proxy_type=proxy_type,
             delay=delay,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -5935,6 +6103,8 @@ class Subtensor(SubtensorMixin):
         mechid: int = 0,
         max_attempts: int = 5,
         version_key: int = version_as_int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = 16,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -5953,6 +6123,9 @@ class Subtensor(SubtensorMixin):
             mechid: The subnet mechanism unique identifier.
             max_attempts: The number of maximum attempts to reveal weights.
             version_key: Version key for compatibility with the network.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -5985,6 +6158,7 @@ class Subtensor(SubtensorMixin):
                     weights=weights,
                     salt=salt,
                     version_key=version_key,
+                    mev_protection=mev_protection,
                     period=period,
                     raise_error=raise_error,
                     wait_for_inclusion=wait_for_inclusion,
@@ -6003,6 +6177,8 @@ class Subtensor(SubtensorMixin):
     def root_register(
         self,
         wallet: "Wallet",
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -6013,6 +6189,9 @@ class Subtensor(SubtensorMixin):
 
         Parameters:
             wallet (bittensor_wallet.Wallet): Bittensor wallet instance.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6027,6 +6206,7 @@ class Subtensor(SubtensorMixin):
         return root_register_extrinsic(
             subtensor=self,
             wallet=wallet,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -6037,6 +6217,8 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         cooldown: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -6047,6 +6229,9 @@ class Subtensor(SubtensorMixin):
         Parameters:
             wallet: bittensor wallet instance.
             cooldown: the number of blocks to setting pending childkey cooldown.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
@@ -6063,6 +6248,7 @@ class Subtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             cooldown=cooldown,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -6074,6 +6260,8 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         netuid: int,
         hotkey_ss58: str,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -6086,6 +6274,9 @@ class Subtensor(SubtensorMixin):
             netuid: The subnet unique identifier.
             hotkey_ss58: The SS58 address of the validator's hotkey to which the miner automatically stakes all rewards
                 received from the specified subnet immediately upon receipt.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6104,6 +6295,7 @@ class Subtensor(SubtensorMixin):
             wallet=wallet,
             netuid=netuid,
             hotkey_ss58=hotkey_ss58,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -6116,6 +6308,8 @@ class Subtensor(SubtensorMixin):
         netuid: int,
         hotkey_ss58: str,
         children: list[tuple[float, str]],
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -6129,6 +6323,9 @@ class Subtensor(SubtensorMixin):
             hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
             netuid: The netuid value.
             children: A list of children with their proportions.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
@@ -6145,6 +6342,7 @@ class Subtensor(SubtensorMixin):
             hotkey_ss58=hotkey_ss58,
             netuid=netuid,
             children=children,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -6227,6 +6425,8 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         new_root_claim_type: "Literal['Swap', 'Keep'] | RootClaimType | dict",
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -6241,6 +6441,9 @@ class Subtensor(SubtensorMixin):
                 - RootClaimType: RootClaimType.Swap, RootClaimType.Keep
                 - Dict: {"KeepSubnets": {"subnets": [1, 2, 3]}}
                 - Callable: RootClaimType.KeepSubnets([1, 2, 3])
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6255,6 +6458,7 @@ class Subtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             new_root_claim_type=new_root_claim_type,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -6266,6 +6470,8 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         netuid: int,
         subnet_identity: SubnetIdentity,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -6279,6 +6485,9 @@ class Subtensor(SubtensorMixin):
             netuid: The unique ID of the network on which the operation takes place.
             subnet_identity: The identity data of the subnet including attributes like name, GitHub repository, contact,
                 URL, discord, description, and any additional metadata.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
@@ -6301,6 +6510,7 @@ class Subtensor(SubtensorMixin):
             discord=subnet_identity.discord,
             description=subnet_identity.description,
             additional=subnet_identity.additional,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -6318,6 +6528,8 @@ class Subtensor(SubtensorMixin):
         commit_reveal_version: int = 4,
         max_attempts: int = 5,
         version_key: int = version_as_int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = 8,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -6339,6 +6551,9 @@ class Subtensor(SubtensorMixin):
             commit_reveal_version: The version of the chain commit-reveal protocol to use.
             max_attempts: The number of maximum attempts to set weights.
             version_key: Version key for compatibility with the network.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
@@ -6397,6 +6612,7 @@ class Subtensor(SubtensorMixin):
                         block_time=block_time,
                         commit_reveal_version=commit_reveal_version,
                         version_key=version_key,
+                        mev_protection=mev_protection,
                         period=period,
                         raise_error=raise_error,
                         wait_for_inclusion=wait_for_inclusion,
@@ -6428,6 +6644,7 @@ class Subtensor(SubtensorMixin):
                         uids=uids,
                         weights=weights,
                         version_key=version_key,
+                        mev_protection=mev_protection,
                         period=period,
                         raise_error=raise_error,
                         wait_for_inclusion=wait_for_inclusion,
@@ -6450,6 +6667,8 @@ class Subtensor(SubtensorMixin):
         netuid: int,
         axon: "Axon",
         certificate: Optional[Certificate] = None,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -6465,6 +6684,9 @@ class Subtensor(SubtensorMixin):
             netuid: The unique identifier of the subnetwork.
             axon: The Axon instance to be registered for serving.
             certificate: Certificate to use for TLS. If ``None``, no TLS will be used.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
@@ -6483,6 +6705,7 @@ class Subtensor(SubtensorMixin):
             netuid=netuid,
             axon=axon,
             certificate=certificate,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -6494,6 +6717,8 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         netuid: int,
         data: str,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -6510,6 +6735,9 @@ class Subtensor(SubtensorMixin):
             wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the data.
             netuid (int): The unique identifier of the subnetwork.
             data (str): The data to be committed to the network.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6535,6 +6763,7 @@ class Subtensor(SubtensorMixin):
             netuid=netuid,
             data_type=f"Raw{len(data)}",
             data=data.encode(),
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -6601,6 +6830,8 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         netuid: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -6613,6 +6844,9 @@ class Subtensor(SubtensorMixin):
         Parameters:
             wallet: The wallet used to sign the extrinsic (must be unlocked).
             netuid: The UID of the target subnet for which the call is being initiated.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6627,6 +6861,7 @@ class Subtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             netuid=netuid,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -6643,6 +6878,8 @@ class Subtensor(SubtensorMixin):
         safe_swapping: bool = False,
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -6665,6 +6902,9 @@ class Subtensor(SubtensorMixin):
             rate_tolerance: The maximum allowed increase in the price ratio between subnets
                 (origin_price/destination_price). For example, 0.005 = 0.5% maximum increase. Only used when
                 safe_staking is True.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6693,6 +6933,7 @@ class Subtensor(SubtensorMixin):
             safe_swapping=safe_swapping,
             allow_partial_stake=allow_partial_stake,
             rate_tolerance=rate_tolerance,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -6704,6 +6945,8 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         netuid: int,
         enable: bool,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -6715,6 +6958,9 @@ class Subtensor(SubtensorMixin):
             wallet: The wallet used to sign the extrinsic (must be unlocked).
             netuid: The UID of the target subnet for which the call is being initiated.
             enable: Boolean indicating whether to enable user liquidity.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -6732,6 +6978,7 @@ class Subtensor(SubtensorMixin):
             wallet=wallet,
             netuid=netuid,
             enable=enable,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -6745,6 +6992,8 @@ class Subtensor(SubtensorMixin):
         amount: Optional[Balance],
         transfer_all: bool = False,
         keep_alive: bool = True,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -6759,6 +7008,9 @@ class Subtensor(SubtensorMixin):
             amount: Number of tokens to transfer. `None` is transferring all.
             transfer_all: Flag to transfer all tokens.
             keep_alive: Flag to keep the connection alive.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -6777,6 +7029,7 @@ class Subtensor(SubtensorMixin):
             amount=amount,
             transfer_all=transfer_all,
             keep_alive=keep_alive,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -6791,6 +7044,8 @@ class Subtensor(SubtensorMixin):
         origin_netuid: int,
         destination_netuid: int,
         amount: Balance,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -6806,6 +7061,9 @@ class Subtensor(SubtensorMixin):
             origin_netuid: The source subnet UID.
             destination_netuid: The destination subnet UID.
             amount: Amount to transfer.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -6825,6 +7083,7 @@ class Subtensor(SubtensorMixin):
             origin_netuid=origin_netuid,
             destination_netuid=destination_netuid,
             amount=amount,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -6840,6 +7099,8 @@ class Subtensor(SubtensorMixin):
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
         safe_unstaking: bool = False,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -6861,6 +7122,9 @@ class Subtensor(SubtensorMixin):
                 0.005 = 0.5% maximum price decrease. Only used when safe_staking is True.
             safe_unstaking: If true, enables price safety checks to protect against fluctuating prices. The unstake
                 will only execute if the price change doesn't exceed the rate tolerance.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -6885,6 +7149,7 @@ class Subtensor(SubtensorMixin):
             allow_partial_stake=allow_partial_stake,
             rate_tolerance=rate_tolerance,
             safe_unstaking=safe_unstaking,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -6897,6 +7162,8 @@ class Subtensor(SubtensorMixin):
         netuid: int,
         hotkey_ss58: str,
         rate_tolerance: Optional[float] = 0.005,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -6910,6 +7177,9 @@ class Subtensor(SubtensorMixin):
             hotkey_ss58: The SS58 address of the hotkey to unstake from.
             rate_tolerance: The maximum allowed price change ratio when unstaking. For example, 0.005 = 0.5% maximum
                 price decrease. If not passed (None), then unstaking goes without price limit.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -6964,6 +7234,7 @@ class Subtensor(SubtensorMixin):
             netuid=netuid,
             hotkey_ss58=hotkey_ss58,
             rate_tolerance=rate_tolerance,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -6977,6 +7248,8 @@ class Subtensor(SubtensorMixin):
         hotkey_ss58s: list[str],
         amounts: Optional[list[Balance]] = None,
         unstake_all: bool = False,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -6992,6 +7265,9 @@ class Subtensor(SubtensorMixin):
             hotkey_ss58s: A list of hotkey `SS58` addresses to unstake from.
             amounts: The amounts of TAO to unstake from each hotkey. If not provided, unstakes all.
             unstake_all: If true, unstakes all tokens. If `True` amounts are ignored.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -7012,6 +7288,7 @@ class Subtensor(SubtensorMixin):
             hotkey_ss58s=hotkey_ss58s,
             amounts=amounts,
             unstake_all=unstake_all,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -7023,6 +7300,8 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         crowdloan_id: int,
         new_cap: "Balance",
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -7038,6 +7317,9 @@ class Subtensor(SubtensorMixin):
             wallet: Bittensor Wallet instance used to sign the transaction.
             crowdloan_id: The unique identifier of the crowdloan to update.
             new_cap: The new fundraising cap (in TAO or Balance).
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -7058,6 +7340,7 @@ class Subtensor(SubtensorMixin):
             wallet=wallet,
             crowdloan_id=crowdloan_id,
             new_cap=new_cap,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -7069,6 +7352,8 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         crowdloan_id: int,
         new_end: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -7084,6 +7369,9 @@ class Subtensor(SubtensorMixin):
             wallet: Bittensor Wallet instance used to sign the transaction.
             crowdloan_id: The unique identifier of the crowdloan to update.
             new_end: The new block number at which the crowdloan will end.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -7105,6 +7393,7 @@ class Subtensor(SubtensorMixin):
             wallet=wallet,
             crowdloan_id=crowdloan_id,
             new_end=new_end,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -7116,6 +7405,8 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         crowdloan_id: int,
         new_min_contribution: "Balance",
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -7131,6 +7422,9 @@ class Subtensor(SubtensorMixin):
             wallet: Bittensor Wallet instance used to sign the transaction.
             crowdloan_id: The unique identifier of the crowdloan to update.
             new_min_contribution: The new minimum contribution amount (in TAO or Balance).
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -7151,6 +7445,7 @@ class Subtensor(SubtensorMixin):
             wallet=wallet,
             crowdloan_id=crowdloan_id,
             new_min_contribution=new_min_contribution,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -7161,6 +7456,8 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         crowdloan_id: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -7172,6 +7469,9 @@ class Subtensor(SubtensorMixin):
         Parameters:
             wallet: Wallet instance used to sign the transaction (must be unlocked).
             crowdloan_id: The unique identifier of the crowdloan to withdraw from.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -7190,6 +7490,7 @@ class Subtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             crowdloan_id=crowdloan_id,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
