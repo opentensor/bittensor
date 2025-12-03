@@ -7,6 +7,7 @@ from bittensor.core.errors import BalanceTypeError
 from bittensor.core.extrinsics.asyncex.mev_shield import submit_encrypted_extrinsic
 from bittensor.core.extrinsics.pallets import SubtensorModule
 from bittensor.core.extrinsics.utils import get_old_stakes
+from bittensor.core.settings import DEFAULT_MEV_PROTECTION
 from bittensor.core.types import ExtrinsicResponse, UIDs
 from bittensor.utils import format_error_message
 from bittensor.utils.balance import Balance
@@ -26,8 +27,8 @@ async def add_stake_extrinsic(
     safe_staking: bool = False,
     allow_partial_stake: bool = False,
     rate_tolerance: float = 0.005,
-    mev_protection: bool = False,
     *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,

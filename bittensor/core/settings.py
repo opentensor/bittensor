@@ -70,6 +70,10 @@ SS58_ADDRESS_LENGTH = 48
 # details https://paritytech.github.io/polkadot-sdk/master/src/sp_runtime/generic/era.rs.html#65-72
 DEFAULT_PERIOD = 128
 
+# Default MEV Shield protection setting for extrinsics.
+# When enabled, transactions are encrypted to protect against Miner Extractable Value (MEV) attacks.
+DEFAULT_MEV_PROTECTION = False
+
 # Block Explorers map network to explorer url
 # Must all be polkadotjs explorer urls
 NETWORK_EXPLORER_MAP = {

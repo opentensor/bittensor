@@ -1,6 +1,8 @@
 from typing import TYPE_CHECKING, Optional
 
+from bittensor.core.extrinsics.mev_shield import submit_encrypted_extrinsic
 from bittensor.core.extrinsics.pallets import Crowdloan
+from bittensor.core.settings import DEFAULT_MEV_PROTECTION
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.balance import check_balance_amount
 
@@ -16,6 +18,8 @@ def contribute_crowdloan_extrinsic(
     wallet: "Wallet",
     crowdloan_id: int,
     amount: "Balance",
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
@@ -29,6 +33,9 @@ def contribute_crowdloan_extrinsic(
         wallet: Bittensor Wallet instance used to sign the transaction.
         crowdloan_id: The unique identifier of the crowdloan to contribute to.
         amount: Amount to contribute.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
@@ -51,14 +58,26 @@ def contribute_crowdloan_extrinsic(
             crowdloan_id=crowdloan_id, amount=amount.rao
         )
 
-        return subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            period=period,
-            raise_error=raise_error,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
+        if mev_protection:
+            return submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=True,
+            )
+        else:
+            return subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
 
     except Exception as error:
         return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
@@ -73,6 +92,8 @@ def create_crowdloan_extrinsic(
     end: int,
     call: Optional["GenericCall"] = None,
     target_address: Optional[str] = None,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
@@ -90,6 +111,9 @@ def create_crowdloan_extrinsic(
         end: Block number when the campaign ends.
         call: Runtime call data (e.g., subtensor::register_leased_network).
         target_address: SS58 address to transfer funds to on success.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
@@ -119,14 +143,26 @@ def create_crowdloan_extrinsic(
             target_address=target_address,
         )
 
-        return subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            period=period,
-            raise_error=raise_error,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
+        if mev_protection:
+            return submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=True,
+            )
+        else:
+            return subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
 
     except Exception as error:
         return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
@@ -136,6 +172,8 @@ def dissolve_crowdloan_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     crowdloan_id: int,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
@@ -151,6 +189,9 @@ def dissolve_crowdloan_extrinsic(
         subtensor: Active Subtensor connection.
         wallet: Bittensor Wallet instance used to sign the transaction.
         crowdloan_id: The unique identifier of the crowdloan to dissolve.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
@@ -175,14 +216,26 @@ def dissolve_crowdloan_extrinsic(
 
         call = Crowdloan(subtensor).dissolve(crowdloan_id=crowdloan_id)
 
-        return subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            period=period,
-            raise_error=raise_error,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
+        if mev_protection:
+            return submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=True,
+            )
+        else:
+            return subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
 
     except Exception as error:
         return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
@@ -192,6 +245,8 @@ def finalize_crowdloan_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     crowdloan_id: int,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
@@ -206,6 +261,9 @@ def finalize_crowdloan_extrinsic(
         subtensor: Active Subtensor connection.
         wallet: Bittensor Wallet instance used to sign the transaction.
         crowdloan_id: The unique identifier of the crowdloan to finalize.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted.
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
@@ -222,14 +280,26 @@ def finalize_crowdloan_extrinsic(
 
         call = Crowdloan(subtensor).finalize(crowdloan_id=crowdloan_id)
 
-        return subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            period=period,
-            raise_error=raise_error,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
+        if mev_protection:
+            return submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=True,
+            )
+        else:
+            return subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
 
     except Exception as error:
         return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
@@ -239,6 +309,8 @@ def refund_crowdloan_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     crowdloan_id: int,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
@@ -254,6 +326,9 @@ def refund_crowdloan_extrinsic(
         subtensor: Active Subtensor connection.
         wallet: Bittensor Wallet instance used to sign the transaction.
         crowdloan_id: The unique identifier of the crowdloan to refund.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
@@ -278,14 +353,26 @@ def refund_crowdloan_extrinsic(
 
         call = Crowdloan(subtensor).refund(crowdloan_id=crowdloan_id)
 
-        return subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            period=period,
-            raise_error=raise_error,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
+        if mev_protection:
+            return submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=True,
+            )
+        else:
+            return subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
 
     except Exception as error:
         return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
@@ -296,6 +383,8 @@ def update_cap_crowdloan_extrinsic(
     wallet: "Wallet",
     crowdloan_id: int,
     new_cap: "Balance",
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
@@ -312,6 +401,9 @@ def update_cap_crowdloan_extrinsic(
         wallet: Bittensor Wallet instance used to sign the transaction.
         crowdloan_id: The unique identifier of the crowdloan to update.
         new_cap: The new fundraising cap (in TAO or Balance).
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
@@ -339,14 +431,26 @@ def update_cap_crowdloan_extrinsic(
             crowdloan_id=crowdloan_id, new_cap=new_cap.rao
         )
 
-        return subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            period=period,
-            raise_error=raise_error,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
+        if mev_protection:
+            return submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=True,
+            )
+        else:
+            return subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
 
     except Exception as error:
         return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
@@ -357,6 +461,8 @@ def update_end_crowdloan_extrinsic(
     wallet: "Wallet",
     crowdloan_id: int,
     new_end: int,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
@@ -373,6 +479,9 @@ def update_end_crowdloan_extrinsic(
         wallet: Bittensor Wallet instance used to sign the transaction.
         crowdloan_id: The unique identifier of the crowdloan to update.
         new_end: The new block number at which the crowdloan will end.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
@@ -399,14 +508,26 @@ def update_end_crowdloan_extrinsic(
             crowdloan_id=crowdloan_id, new_end=new_end
         )
 
-        return subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            period=period,
-            raise_error=raise_error,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
+        if mev_protection:
+            return submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=True,
+            )
+        else:
+            return subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
 
     except Exception as error:
         return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
@@ -417,6 +538,8 @@ def update_min_contribution_crowdloan_extrinsic(
     wallet: "Wallet",
     crowdloan_id: int,
     new_min_contribution: "Balance",
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
@@ -433,6 +556,9 @@ def update_min_contribution_crowdloan_extrinsic(
         wallet: Bittensor Wallet instance used to sign the transaction.
         crowdloan_id: The unique identifier of the crowdloan to update.
         new_min_contribution: The new minimum contribution amount (in TAO or Balance).
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
@@ -460,14 +586,26 @@ def update_min_contribution_crowdloan_extrinsic(
             crowdloan_id=crowdloan_id, new_min_contribution=new_min_contribution.rao
         )
 
-        return subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            period=period,
-            raise_error=raise_error,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
+        if mev_protection:
+            return submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=True,
+            )
+        else:
+            return subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
 
     except Exception as error:
         return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
@@ -477,6 +615,8 @@ def withdraw_crowdloan_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     crowdloan_id: int,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
@@ -489,6 +629,9 @@ def withdraw_crowdloan_extrinsic(
         subtensor: Active Subtensor connection.
         wallet: Wallet instance used to sign the transaction (must be unlocked).
         crowdloan_id: The unique identifier of the crowdloan to withdraw from.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If
             the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             You can think of it as an expiration date for the transaction.
@@ -511,14 +654,26 @@ def withdraw_crowdloan_extrinsic(
 
         call = Crowdloan(subtensor).withdraw(crowdloan_id=crowdloan_id)
 
-        return subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            period=period,
-            raise_error=raise_error,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
+        if mev_protection:
+            return submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=True,
+            )
+        else:
+            return subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
 
     except Exception as error:
         return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)

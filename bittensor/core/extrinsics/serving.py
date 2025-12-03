@@ -1,8 +1,9 @@
 from typing import Optional, Union, TYPE_CHECKING
 
 from bittensor.core.errors import MetadataError
+from bittensor.core.extrinsics.mev_shield import submit_encrypted_extrinsic
 from bittensor.core.extrinsics.pallets import Commitments, SubtensorModule
-from bittensor.core.settings import version_as_int
+from bittensor.core.settings import DEFAULT_MEV_PROTECTION, version_as_int
 from bittensor.core.types import AxonServeCallParams, ExtrinsicResponse
 from bittensor.utils import (
     networking as net,
@@ -26,6 +27,8 @@ def serve_extrinsic(
     placeholder1: int = 0,
     placeholder2: int = 0,
     certificate: Optional[Certificate] = None,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
@@ -44,6 +47,9 @@ def serve_extrinsic(
         placeholder1: A placeholder for future use.
         placeholder2: A placeholder for future use.
         certificate: Certificate to use for TLS. If ``None``, no TLS will be used.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
@@ -97,15 +103,27 @@ def serve_extrinsic(
         )
         call = call_function(**params.as_dict())
 
-        response = subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            sign_with="hotkey",
-            period=period,
-            raise_error=raise_error,
-        )
+        if mev_protection:
+            response = submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=True,
+            )
+        else:
+            response = subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                sign_with="hotkey",
+                period=period,
+                raise_error=raise_error,
+            )
 
         if response.success:
             logging.debug(
@@ -126,6 +144,8 @@ def serve_axon_extrinsic(
     netuid: int,
     axon: "Axon",
     certificate: Optional["Certificate"] = None,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
@@ -139,6 +159,9 @@ def serve_axon_extrinsic(
         netuid: The ``netuid`` being served on.
         axon: Axon to serve.
         certificate: Certificate to use for TLS. If ``None``, no TLS will be used.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
@@ -177,6 +200,7 @@ def serve_axon_extrinsic(
             protocol=4,
             netuid=netuid,
             certificate=certificate,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -200,6 +224,8 @@ def publish_metadata_extrinsic(
     data_type: str,
     data: Union[bytes, dict],
     reset_bonds: bool = False,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
@@ -218,6 +244,9 @@ def publish_metadata_extrinsic(
         data: The actual metadata content to be published. This should be formatted or hashed
             according to the ``type`` specified. (Note: max ``str`` length is 128 bytes for ``'Raw0-128'``.)
         reset_bonds: If `True`, the function will reset the bonds for the neuron.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
@@ -248,15 +277,27 @@ def publish_metadata_extrinsic(
 
         call = Commitments(subtensor).set_commitment(netuid=netuid, info=info)
 
-        response = subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            sign_with=signing_keypair,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            period=period,
-            raise_error=raise_error,
-        )
+        if mev_protection:
+            response = submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=True,
+            )
+        else:
+            response = subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                sign_with=signing_keypair,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                period=period,
+                raise_error=raise_error,
+            )
 
         if response.success:
             return response
