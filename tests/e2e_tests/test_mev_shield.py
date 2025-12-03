@@ -18,7 +18,7 @@ from tests.e2e_tests.utils import (
 TEMPO_TO_SET = 3
 
 
-# @pytest.mark.parametrize("local_chain", [False], indirect=True)
+@pytest.mark.parametrize("local_chain", [False], indirect=True)
 def test_mev_shield_happy_path(
     subtensor, alice_wallet, bob_wallet, charlie_wallet, dave_wallet, local_chain
 ):
