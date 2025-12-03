@@ -92,7 +92,8 @@ async def submit_encrypted_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
-    wait_for_revealed_execution: Optional[int] = 5,
+    wait_for_revealed_execution: bool = True,
+    blocks_for_revealed_execution: int = 5,
 ) -> ExtrinsicResponse:
     """
     Submits an encrypted extrinsic to the MEV Shield pallet.
@@ -111,11 +112,12 @@ async def submit_encrypted_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
-        wait_for_revealed_execution: Maximum number of blocks to wait for the DecryptedExecuted event, indicating that
-            node validators have successfully decrypted and executed the inner call via execute_revealed. If None, the
-            function will not wait for revealed execution. If an integer (default: 5), the function will poll up to that
-            many blocks after inclusion, checking for the DecryptedExecuted event matching this submission's commitment.
-            The function returns immediately if the event is found before the block limit is reached.
+        wait_for_revealed_execution: Whether to wait for the DecryptedExecuted event, indicating that validators have
+            successfully decrypted and executed the inner call. If True, the function will poll subsequent blocks for
+            the event matching this submission's commitment.
+        blocks_for_revealed_execution: Maximum number of blocks to poll for the DecryptedExecuted event after inclusion.
+            The function checks blocks from start_block + 1 to start_block + blocks_for_revealed_execution. Returns
+            immediately if the event is found before the block limit is reached.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -186,9 +188,7 @@ async def submit_encrypted_extrinsic(
                 "signature": signature,
                 "submitting_id": extrinsic_call.call_hash,
             }
-            if wait_for_revealed_execution is not None and isinstance(
-                wait_for_revealed_execution, int
-            ):
+            if wait_for_revealed_execution:
                 triggered_events = await response.extrinsic_receipt.triggered_events
                 event_hash_id = get_event_attributes_by_event_name(
                     events=triggered_events, event_name="mevShield.EncryptedSubmitted"
@@ -203,7 +203,7 @@ async def submit_encrypted_extrinsic(
                     ],
                     event_hash_id=event_hash_id,
                     start_block_hash=response.extrinsic_receipt.block_hash,
-                    blocks_ahead=wait_for_revealed_execution,
+                    blocks_ahead=blocks_for_revealed_execution,
                 )
                 if revealed_extrinsic and isinstance(revealed_extrinsic, tuple):
                     event_name, response.mev_extrinsic_receipt = revealed_extrinsic
