@@ -6,6 +6,7 @@ import contextlib
 import copy
 import inspect
 import threading
+from threading import RLock
 import time
 import traceback
 import typing
@@ -374,6 +375,7 @@ class Axon:
             max_workers=self._config.axon.max_workers
         )
         self.nonces: dict[str, int] = {}
+        self._nonce_lock = RLock()  # Thread-safe nonce validation
 
         # Request default functions.
         self.forward_class_types: dict[str, list[Signature]] = {}
@@ -938,53 +940,57 @@ class Axon:
             if synapse.dendrite.nonce is None:
                 raise Exception("Missing Nonce")
 
-            # Newer nonce structure post v7.2
-            if (
-                synapse.dendrite.version is not None
-                and synapse.dendrite.version >= V_7_2_0
-            ):
-                # If we don't have a nonce stored, ensure that the nonce falls within
-                # a reasonable delta.
-                current_time_ns = time.time_ns()
-                allowed_window_ns = allowed_nonce_window_ns(
-                    current_time_ns, synapse.timeout
-                )
-
+            # SECURITY FIX: Acquire lock before checking/updating nonces
+            # This prevents race conditions in concurrent request handling
+            with self._nonce_lock:
+                # Newer nonce structure post v7.2
                 if (
-                    self.nonces.get(endpoint_key) is None
-                    and synapse.dendrite.nonce <= allowed_window_ns
+                    synapse.dendrite.version is not None
+                    and synapse.dendrite.version >= V_7_2_0
                 ):
-                    diff_seconds, allowed_delta_seconds = calculate_diff_seconds(
-                        current_time_ns, synapse.timeout, synapse.dendrite.nonce
+                    # If we don't have a nonce stored, ensure that the nonce falls within
+                    # a reasonable delta.
+                    current_time_ns = time.time_ns()
+                    allowed_window_ns = allowed_nonce_window_ns(
+                        current_time_ns, synapse.timeout
                     )
+
+                    if (
+                        self.nonces.get(endpoint_key) is None
+                        and synapse.dendrite.nonce <= allowed_window_ns
+                    ):
+                        diff_seconds, allowed_delta_seconds = calculate_diff_seconds(
+                            current_time_ns, synapse.timeout, synapse.dendrite.nonce
+                        )
+                        raise Exception(
+                            f"Nonce is too old: acceptable delta is {allowed_delta_seconds:.2f} seconds but request was {diff_seconds:.2f} seconds old"
+                        )
+
+                    # If a nonce is stored, ensure the new nonce
+                    # is greater than the previous nonce
+                    if (
+                        self.nonces.get(endpoint_key) is not None
+                        and synapse.dendrite.nonce <= self.nonces[endpoint_key]
+                    ):
+                        raise Exception("Nonce is too old, a newer one was last processed")
+                # Older nonce structure pre v7.2
+                else:
+                    if (
+                        self.nonces.get(endpoint_key) is not None
+                        and synapse.dendrite.nonce <= self.nonces[endpoint_key]
+                    ):
+                        raise Exception("Nonce is too old, a newer one was last processed")
+
+                # Verify signature
+                if synapse.dendrite.signature and not keypair.verify(
+                    message, synapse.dendrite.signature
+                ):
                     raise Exception(
-                        f"Nonce is too old: acceptable delta is {allowed_delta_seconds:.2f} seconds but request was {diff_seconds:.2f} seconds old"
+                        f"Signature mismatch with {message} and {synapse.dendrite.signature}"
                     )
 
-                # If a nonce is stored, ensure the new nonce
-                # is greater than the previous nonce
-                if (
-                    self.nonces.get(endpoint_key) is not None
-                    and synapse.dendrite.nonce <= self.nonces[endpoint_key]
-                ):
-                    raise Exception("Nonce is too old, a newer one was last processed")
-            # Older nonce structure pre v7.2
-            else:
-                if (
-                    self.nonces.get(endpoint_key) is not None
-                    and synapse.dendrite.nonce <= self.nonces[endpoint_key]
-                ):
-                    raise Exception("Nonce is too old, a newer one was last processed")
-
-            if synapse.dendrite.signature and not keypair.verify(
-                message, synapse.dendrite.signature
-            ):
-                raise Exception(
-                    f"Signature mismatch with {message} and {synapse.dendrite.signature}"
-                )
-
-            # Success
-            self.nonces[endpoint_key] = synapse.dendrite.nonce  # type: ignore
+                # Success - update nonce atomically within lock
+                self.nonces[endpoint_key] = synapse.dendrite.nonce  # type: ignore
         else:
             raise SynapseDendriteNoneException(synapse=synapse)
 
