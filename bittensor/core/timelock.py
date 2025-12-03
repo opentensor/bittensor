@@ -19,8 +19,8 @@ Usage Example:
 
 Usage Example with custom data:
     ```python
-    import pickle
-    from dataclasses import dataclass
+    import json
+    from dataclasses import dataclass, asdict
 
     from bittensor import timelock
 
@@ -33,21 +33,25 @@ Usage Example with custom data:
     # get instance of your data
     x_person = Person("X Lynch", 123)
 
-    # get bytes of your instance
-    byte_data = pickle.dumps(x_person)
+    # SECURITY: Use JSON instead of pickle for safer serialization
+    # get bytes of your instance using JSON
+    json_data = json.dumps(asdict(x_person)).encode()
 
     # get TLE encoded bytes
-    encrypted, reveal_round = timelock.encrypt(byte_data, 1)
+    encrypted, reveal_round = timelock.encrypt(json_data, 1)
 
     # wait when reveal round appears in Drand QuickNet and get decrypted data
     decrypted = timelock.wait_reveal_and_decrypt(encrypted_data=encrypted)
 
-    # convert bytes into your instance back
-    x_person_2 = pickle.loads(decrypted)
+    # convert bytes into your instance back using JSON
+    person_dict = json.loads(decrypted)
+    x_person_2 = Person(**person_dict)
 
     # make sure initial and decoded instances are the same
     assert x_person == x_person_2
     ```
+
+WARNING: Avoid using pickle.loads() on untrusted data as it can lead to arbitrary code execution.
 
 Note:
 For handling fast-block nodes, set the `block_time` parameter to 0.25 seconds during encryption.

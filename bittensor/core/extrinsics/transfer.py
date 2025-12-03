@@ -109,11 +109,42 @@ def transfer_extrinsic(
         logging.error("If not transferring all, `amount` must be specified.")
         return False
 
+    # SECURITY FIX: Validate amount is positive and within bounds
+    if amount is not None:
+        # Check for negative or zero amounts
+        if amount.rao <= 0:
+            logging.error(
+                f":cross_mark: [red]Invalid amount[/red]: {amount}. Amount must be positive."
+            )
+            return False
+
+        # Check for overflow (max u128 in Substrate)
+        MAX_BALANCE = 2**128 - 1
+        if amount.rao > MAX_BALANCE:
+            logging.error(
+                f":cross_mark: [red]Amount too large[/red]: {amount}. "
+                f"Maximum is {Balance.from_rao(MAX_BALANCE)}"
+            )
+            return False
+
+        # Minimum transfer amount (prevent dust)
+        MIN_TRANSFER = Balance.from_rao(1)
+        if amount < MIN_TRANSFER:
+            logging.error(
+                f":cross_mark: [red]Amount too small[/red]: {amount}. Minimum is {MIN_TRANSFER}"
+            )
+            return False
+
     # Validate destination address.
     if not is_valid_bittensor_address_or_public_key(dest):
         logging.error(
             f":cross_mark: [red]Invalid destination SS58 address[/red]: {dest}"
         )
+        return False
+
+    # SECURITY FIX: Prevent self-transfers
+    if dest == wallet.coldkeypub.ss58_address:
+        logging.error(":cross_mark: [red]Cannot transfer to self[/red]")
         return False
 
     logging.info(f"Initiating transfer on network: {subtensor.network}")

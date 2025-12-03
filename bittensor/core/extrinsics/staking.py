@@ -104,6 +104,15 @@ def add_stake_extrinsic(
         logging.error(f"\t\twallet: {wallet.name}")
         return False
 
+    # SECURITY FIX: Validate staking amount doesn't overflow
+    MAX_STAKE = 2**64 - 1  # Substrate u64 limit for staking
+    if staking_balance.rao > MAX_STAKE:
+        logging.error(
+            f":cross_mark: [red]Stake amount too large[/red]: {staking_balance}. "
+            f"Maximum is {Balance.from_rao(MAX_STAKE)}"
+        )
+        return False
+
     try:
         call_params = {
             "hotkey": hotkey_ss58,
