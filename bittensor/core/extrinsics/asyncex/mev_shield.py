@@ -8,6 +8,9 @@ from bittensor.core.extrinsics.pallets import MevShield
 from bittensor.core.extrinsics.utils import (
     get_event_attributes_by_event_name,
     get_mev_commitment_and_ciphertext,
+    post_process_mev_response,
+    POST_SUBMIT_MEV_EVENTS,
+    MEV_SUBMITTED_EVENT,
 )
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.btlogging import logging
@@ -20,7 +23,6 @@ if TYPE_CHECKING:
 
 async def find_revealed_extrinsic(
     subtensor: "AsyncSubtensor",
-    signer_ss58: str,
     event_names: list[str],
     event_hash_id: str,
     start_block_hash: str,
@@ -35,8 +37,6 @@ async def find_revealed_extrinsic(
 
     Parameters:
         subtensor: The Subtensor instance used for blockchain queries.
-        signer_ss58: The SS58 address of the signer account. Used to verify that the event belongs to the correct
-            transaction (matches the "signer" attribute in the event).
         event_names: The event identifiers to search for. Typically "DecryptedExecuted" or "DecryptedRejected" for MEV
             Shield transactions.
         event_hash_id: The wrapper_id (hash of (author, commitment, ciphertext)) to match. This uniquely identifies a
@@ -68,10 +68,7 @@ async def find_revealed_extrinsic(
 
         for event_name in event_names:
             if event := get_event_attributes_by_event_name(events, event_name):
-                if (
-                    event["attributes"]["signer"] == signer_ss58
-                    and event["attributes"]["id"] == event_hash_id
-                ):
+                if event["attributes"]["id"] == event_hash_id:
                     return event_name, AsyncExtrinsicReceipt(
                         substrate=subtensor.substrate,
                         block_hash=current_block_hash,
@@ -198,37 +195,25 @@ async def submit_encrypted_extrinsic(
             }
             if wait_for_revealed_execution:
                 triggered_events = await response.extrinsic_receipt.triggered_events
+
                 event_hash_id = get_event_attributes_by_event_name(
-                    events=triggered_events, event_name="mevShield.EncryptedSubmitted"
+                    events=triggered_events, event_name=MEV_SUBMITTED_EVENT
                 )["attributes"]["id"]
 
-                revealed_extrinsic = await find_revealed_extrinsic(
+                reveled_event, reveled_extrinsic = await find_revealed_extrinsic(
                     subtensor=subtensor,
-                    signer_ss58=signer_keypair.ss58_address,
-                    event_names=[
-                        "mevShield.DecryptedExecuted",
-                        "mevShield.DecryptedRejected",
-                    ],
+                    event_names=POST_SUBMIT_MEV_EVENTS,
                     event_hash_id=event_hash_id,
                     start_block_hash=response.extrinsic_receipt.block_hash,
                     blocks_ahead=blocks_for_revealed_execution,
                 )
-                if revealed_extrinsic and isinstance(revealed_extrinsic, tuple):
-                    event_name, response.mev_extrinsic_receipt = revealed_extrinsic
 
-                    if event_name == "mevShield.DecryptedRejected":
-                        response.success = False
-                        response.message = "DecryptedRejected event found."
-                        return response.from_exception(
-                            raise_error=raise_error,
-                            error=RuntimeError(response.message),
-                        )
-                else:
-                    response.success = False
-                    response.error = RuntimeError(f"DecryptedExecuted event not found.")
-                    return response.from_exception(
-                        raise_error=raise_error, error=response.error
-                    )
+                post_process_mev_response(
+                    response=response,
+                    revealed_name=reveled_event,
+                    revealed_extrinsic=reveled_extrinsic,
+                    raise_error=raise_error,
+                )
 
             logging.debug("[green]Encrypted extrinsic submitted successfully.[/green]")
         else:
