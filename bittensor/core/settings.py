@@ -72,7 +72,12 @@ DEFAULT_PERIOD = 128
 
 # Default MEV Shield protection setting for extrinsics.
 # When enabled, transactions are encrypted to protect against Miner Extractable Value (MEV) attacks.
-DEFAULT_MEV_PROTECTION = False
+DEFAULT_MEV_PROTECTION = os.getenv("BT_MEV_PROTECTION", "").lower() in (
+    "1",
+    "true",
+    "yes",
+    "on",
+)
 
 # Block Explorers map network to explorer url
 # Must all be polkadotjs explorer urls
