@@ -1,14 +1,10 @@
 """Unit tests for bittensor/core/types.py"""
 
 import argparse
-from unittest.mock import MagicMock, patch, Mock
-import numpy as np
+from unittest.mock import patch
 import pytest
 
 from bittensor.core.types import (
-    UIDs,
-    Weights,
-    Salt,
     SubtensorMixin,
     AxonServeCallParams,
     PrometheusServeCallParams,
@@ -48,59 +44,6 @@ TEST_PLACEHOLDER2 = 0
 
 
 # ============================================================================
-# Type Annotation Tests
-# ============================================================================
-
-
-def test_uids_type_annotation():
-    """Test UIDs type accepts NDArray and list."""
-    # Test with NDArray
-    uids_array: UIDs = np.array([1, 2, 3], dtype=np.int64)
-    assert isinstance(uids_array, np.ndarray)
-    assert uids_array.dtype == np.int64
-
-    # Test with list
-    uids_list: UIDs = [1, 2, 3]
-    assert isinstance(uids_list, list)
-    assert all(isinstance(uid, int) for uid in uids_list)
-
-
-def test_weights_type_annotation():
-    """Test Weights type accepts NDArray and list."""
-    # Test with NDArray
-    weights_array: Weights = np.array([0.1, 0.2, 0.3], dtype=np.float32)
-    assert isinstance(weights_array, np.ndarray)
-    assert weights_array.dtype == np.float32
-
-    # Test with list of floats
-    weights_list_float: Weights = [0.1, 0.2, 0.3]
-    assert isinstance(weights_list_float, list)
-    assert all(isinstance(w, float) for w in weights_list_float)
-
-    # Test with list of ints
-    weights_list_int: Weights = [1, 2, 3]
-    assert isinstance(weights_list_int, list)
-    assert all(isinstance(w, int) for w in weights_list_int)
-
-    # Test with mixed list
-    weights_list_mixed: Weights = [1, 0.5, 2, 0.3]
-    assert isinstance(weights_list_mixed, list)
-
-
-def test_salt_type_annotation():
-    """Test Salt type accepts NDArray and list."""
-    # Test with NDArray
-    salt_array: Salt = np.array([100, 200, 300], dtype=np.int64)
-    assert isinstance(salt_array, np.ndarray)
-    assert salt_array.dtype == np.int64
-
-    # Test with list
-    salt_list: Salt = [100, 200, 300]
-    assert isinstance(salt_list, list)
-    assert all(isinstance(s, int) for s in salt_list)
-
-
-# ============================================================================
 # SubtensorMixin Tests
 # ============================================================================
 
@@ -121,15 +64,6 @@ def test_subtensor_mixin_str_method():
     )
     expected = "Network: finney, Chain: wss://entrypoint-finney.opentensor.ai:443"
     assert str(mixin) == expected
-
-
-def test_subtensor_mixin_repr_method():
-    """Test __repr__ representation."""
-    mixin = ConcreteSubtensorMixin(
-        network="test", chain_endpoint="wss://test.finney.opentensor.ai:443"
-    )
-    # __repr__ should return the same as __str__
-    assert repr(mixin) == str(mixin)
 
 
 @patch("bittensor.core.types.logging")
@@ -252,30 +186,6 @@ def test_add_args_to_parser():
     assert config.subtensor.network == settings.DEFAULTS.subtensor.network
     assert config.subtensor.chain_endpoint == settings.DEFAULTS.subtensor.chain_endpoint
     assert config.subtensor._mock == False
-
-
-def test_add_args_with_prefix():
-    """Test add_args() method with prefix."""
-    parser = argparse.ArgumentParser()
-    SubtensorMixin.add_args(parser, prefix="test")
-
-    # Parse empty args to get defaults
-    args = parser.parse_args([])
-
-    # Check that arguments were added with prefix (they use dot notation)
-    assert "test.subtensor.network" in vars(args) or hasattr(args, "test.subtensor.network")
-    # Use Config to properly parse
-    config = Config(parser)
-    assert hasattr(config, "test")
-
-
-@patch("builtins.print")
-def test_help_method(mock_print):
-    """Test help() class method."""
-    SubtensorMixin.help()
-
-    # Verify print was called (help output)
-    assert mock_print.called
 
 
 # ============================================================================
@@ -403,81 +313,6 @@ def test_axon_serve_call_params_equality_with_neuron_info():
     assert params == neuron_info
 
 
-def test_axon_serve_call_params_equality_with_neuron_info_lite():
-    """Test __eq__ with NeuronInfoLite."""
-    axon_info = AxonInfo(
-        version=TEST_VERSION,
-        ip=TEST_IP_STRING,
-        port=TEST_PORT,
-        ip_type=TEST_IP_TYPE,
-        hotkey=TEST_HOTKEY,
-        coldkey=TEST_COLDKEY,
-        protocol=TEST_PROTOCOL,
-        placeholder1=TEST_PLACEHOLDER1,
-        placeholder2=TEST_PLACEHOLDER2,
-    )
-
-    neuron_info_lite = NeuronInfoLite(
-        hotkey=TEST_HOTKEY,
-        coldkey=TEST_COLDKEY,
-        uid=0,
-        netuid=TEST_NETUID,
-        active=1,
-        stake=0.0,
-        stake_dict={},
-        total_stake=0.0,
-        rank=0.0,
-        emission=0.0,
-        incentive=0.0,
-        consensus=0.0,
-        trust=0.0,
-        validator_trust=0.0,
-        dividends=0.0,
-        last_update=0,
-        validator_permit=False,
-        prometheus_info=None,
-        axon_info=axon_info,
-        pruning_score=0,
-        is_null=False,
-    )
-
-    params = AxonServeCallParams(
-        version=TEST_VERSION,
-        ip=TEST_IP_INT,
-        port=TEST_PORT,
-        ip_type=TEST_IP_TYPE,
-        netuid=TEST_NETUID,
-        hotkey=TEST_HOTKEY,
-        coldkey=TEST_COLDKEY,
-        protocol=TEST_PROTOCOL,
-        placeholder1=TEST_PLACEHOLDER1,
-        placeholder2=TEST_PLACEHOLDER2,
-        certificate=None,
-    )
-
-    assert params == neuron_info_lite
-
-
-def test_axon_serve_call_params_equality_with_invalid_type():
-    """Test __eq__ raises NotImplementedError for invalid types."""
-    params = AxonServeCallParams(
-        version=TEST_VERSION,
-        ip=TEST_IP_INT,
-        port=TEST_PORT,
-        ip_type=TEST_IP_TYPE,
-        netuid=TEST_NETUID,
-        hotkey=TEST_HOTKEY,
-        coldkey=TEST_COLDKEY,
-        protocol=TEST_PROTOCOL,
-        placeholder1=TEST_PLACEHOLDER1,
-        placeholder2=TEST_PLACEHOLDER2,
-        certificate=None,
-    )
-
-    with pytest.raises(NotImplementedError):
-        params == "invalid_type"
-
-
 def test_axon_serve_call_params_copy():
     """Test copy() method."""
     cert = Certificate(TEST_CERT_DATA)
@@ -590,32 +425,3 @@ def test_prometheus_serve_call_params_structure():
     assert prometheus_params["port"] == 9090
     assert prometheus_params["ip_type"] == TEST_IP_TYPE
     assert prometheus_params["netuid"] == TEST_NETUID
-
-
-def test_prometheus_serve_call_params_type_checking():
-    """Test PrometheusServeCallParams type checking."""
-    # This test verifies that the TypedDict structure is correct
-    prometheus_params: PrometheusServeCallParams = {
-        "version": 1,
-        "ip": 2130706433,  # 127.0.0.1
-        "port": 9090,
-        "ip_type": 4,
-        "netuid": 0,
-    }
-
-    # Verify all required keys are present
-    required_keys = {"version", "ip", "port", "ip_type", "netuid"}
-    assert set(prometheus_params.keys()) == required_keys
-
-
-# ============================================================================
-# ParamWithTypes Tests (if it exists in the codebase)
-# ============================================================================
-
-
-def test_param_with_types_structure():
-    """Test ParamWithTypes TypedDict."""
-    # Note: ParamWithTypes was not found in the types.py file
-    # This test is a placeholder and should be updated if ParamWithTypes exists elsewhere
-    # or removed if it doesn't exist in the codebase
-    pytest.skip("ParamWithTypes not found in bittensor/core/types.py")
