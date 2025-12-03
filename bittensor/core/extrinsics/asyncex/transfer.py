@@ -1,9 +1,14 @@
 import asyncio
 from typing import TYPE_CHECKING, Optional
 
+from bittensor.core.extrinsics.asyncex.mev_shield import submit_encrypted_extrinsic
 from bittensor.core.extrinsics.pallets import Balances
 from bittensor.core.extrinsics.utils import get_transfer_fn_params
-from bittensor.core.settings import NETWORK_EXPLORER_MAP, DEFAULT_NETWORK
+from bittensor.core.settings import (
+    DEFAULT_MEV_PROTECTION,
+    NETWORK_EXPLORER_MAP,
+    DEFAULT_NETWORK,
+)
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils import (
     get_explorer_url_for_network,
@@ -24,6 +29,8 @@ async def transfer_extrinsic(
     amount: Optional[Balance],
     keep_alive: bool = True,
     transfer_all: bool = False,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
@@ -38,6 +45,9 @@ async def transfer_extrinsic(
         amount: Amount to stake as Bittensor balance. `None` if transferring all.
         transfer_all: Whether to transfer all funds from this wallet to the destination address.
         keep_alive: If set, keeps the account alive by keeping the balance above the existential deposit.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
@@ -106,14 +116,26 @@ async def transfer_extrinsic(
 
         call = await getattr(Balances(subtensor), call_function)(**call_params)
 
-        response = await subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            period=period,
-            raise_error=raise_error,
-        )
+        if mev_protection:
+            response = await submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=True,
+            )
+        else:
+            response = await subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                period=period,
+                raise_error=raise_error,
+            )
         response.transaction_tao_fee = fee
 
         if response.success:

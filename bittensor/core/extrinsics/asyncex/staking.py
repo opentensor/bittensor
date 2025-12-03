@@ -218,6 +218,8 @@ async def add_stake_multiple_extrinsic(
     netuids: UIDs,
     hotkey_ss58s: list[str],
     amounts: list[Balance],
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
@@ -233,6 +235,9 @@ async def add_stake_multiple_extrinsic(
         netuids: List of netuids to stake to.
         hotkey_ss58s: List of hotkeys to stake to.
         amounts: List of corresponding TAO amounts to bet for each netuid and hotkey.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
@@ -355,6 +360,7 @@ async def add_stake_multiple_extrinsic(
                     netuid=netuid,
                     hotkey_ss58=hotkey_ss58,
                     amount=amount,
+                    mev_protection=mev_protection,
                     period=period,
                     raise_error=raise_error,
                     wait_for_inclusion=wait_for_inclusion,
@@ -439,6 +445,8 @@ async def set_auto_stake_extrinsic(
     wallet: "Wallet",
     netuid: int,
     hotkey_ss58: str,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
@@ -452,6 +460,9 @@ async def set_auto_stake_extrinsic(
         netuid: The subnet unique identifier.
         hotkey_ss58: The SS58 address of the validator's hotkey to which the miner automatically stakes all rewards
             received from the specified subnet immediately upon receipt.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
@@ -472,14 +483,26 @@ async def set_auto_stake_extrinsic(
             netuid=netuid, hotkey=hotkey_ss58
         )
 
-        response = await subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            period=period,
-            raise_error=raise_error,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
+        if mev_protection:
+            response = await submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=True,
+            )
+        else:
+            response = await subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
 
         if response.success:
             logging.debug(response.message)
