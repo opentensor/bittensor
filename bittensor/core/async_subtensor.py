@@ -123,6 +123,7 @@ from bittensor.core.extrinsics.asyncex.weights import (
 from bittensor.core.extrinsics.utils import get_transfer_fn_params
 from bittensor.core.metagraph import AsyncMetagraph
 from bittensor.core.settings import (
+    DEFAULT_MEV_PROTECTION,
     version_as_int,
     DEFAULT_PERIOD,
     TYPE_REGISTRY,
@@ -5810,8 +5811,8 @@ class AsyncSubtensor(SubtensorMixin):
         safe_staking: bool = False,
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
-        mev_protection: bool = False,
         *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -6526,6 +6527,8 @@ class AsyncSubtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
+        blocks_for_revealed_execution: int = 5,
     ) -> ExtrinsicResponse:
         """
         Submits an encrypted extrinsic to the MEV Shield pallet.
@@ -6543,6 +6546,12 @@ class AsyncSubtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the DecryptedExecuted event, indicating that validators
+                have successfully decrypted and executed the inner call. If True, the function will poll subsequent
+                blocks for the event matching this submission's commitment.
+            blocks_for_revealed_execution: Maximum number of blocks to poll for the DecryptedExecuted event after
+                inclusion. The function checks blocks from start_block+1 to start_block + blocks_for_revealed_execution.
+                Returns immediately if the event is found before the block limit is reached.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6566,6 +6575,8 @@ class AsyncSubtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
+            blocks_for_revealed_execution=blocks_for_revealed_execution,
         )
 
     async def modify_liquidity(
