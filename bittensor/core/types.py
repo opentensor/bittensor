@@ -383,9 +383,10 @@ class ExtrinsicResponse:
             f"\textrinsic: {self.extrinsic}\n"
             f"\textrinsic_fee: {self.extrinsic_fee}\n"
             f"\textrinsic_receipt: {_extrinsic_receipt}"
+            f"\tmev_extrinsic_receipt: {self.mev_extrinsic_receipt}"
             f"\ttransaction_tao_fee: {self.transaction_tao_fee}\n"
             f"\ttransaction_alpha_fee: {self.transaction_alpha_fee}\n"
-            f"\terror: {self.error}"
+            f"\terror: {self.error}\n"
             f"\tdata: {self.data}\n"
         )
 
