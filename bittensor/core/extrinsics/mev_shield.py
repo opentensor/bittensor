@@ -145,7 +145,10 @@ def submit_encrypted_extrinsic(
 
         if wait_for_revealed_execution and not wait_for_inclusion:
             return ExtrinsicResponse.from_exception(
-                raise_error=raise_error, error=ValueError("`wait_for_inclusion` must be `True` if `wait_for_revealed_execution` is `True`.")
+                raise_error=raise_error,
+                error=ValueError(
+                    "`wait_for_inclusion` must be `True` if `wait_for_revealed_execution` is `True`."
+                ),
             )
 
         # Use wallet.coldkey as default signer if signer_keypair is not provided
@@ -196,8 +199,8 @@ def submit_encrypted_extrinsic(
             if wait_for_revealed_execution:
                 triggered_events = response.extrinsic_receipt.triggered_events
                 event_hash_id = get_event_attributes_by_event_name(
-                    events=triggered_events,
-                    event_name="mevShield.EncryptedSubmitted",  # type: ignore
+                    events=triggered_events,  # type: ignore
+                    event_name="mevShield.EncryptedSubmitted",
                 )["attributes"]["id"]
 
                 revealed_extrinsic = find_revealed_extrinsic(
