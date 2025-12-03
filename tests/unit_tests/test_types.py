@@ -20,6 +20,34 @@ from bittensor.utils import Certificate
 
 
 # ============================================================================
+# Test Constants
+# ============================================================================
+
+# Network and connection constants
+TEST_IP_STRING = "192.168.1.1"
+TEST_IP_INT = 3232235777  # 192.168.1.1 in integer form
+TEST_PORT = 8080
+TEST_IP_TYPE = 4
+TEST_NETUID = 1
+TEST_VERSION = 4
+TEST_PROTOCOL = 4
+
+# Key constants
+TEST_HOTKEY = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+TEST_COLDKEY = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
+
+# Certificate constants
+TEST_CERT_DATA = {
+    "algorithm": 1,
+    "public_key": [[116, 101, 115, 116]],  # "test" in ASCII
+}
+
+# Placeholder constants
+TEST_PLACEHOLDER1 = 0
+TEST_PLACEHOLDER2 = 0
+
+
+# ============================================================================
 # Type Annotation Tests
 # ============================================================================
 
@@ -257,66 +285,61 @@ def test_help_method(mock_print):
 
 def test_axon_serve_call_params_initialization():
     """Test AxonServeCallParams creation."""
-    # Certificate expects a dict or string
-    cert_data = {
-        "algorithm": 1,
-        "public_key": [[116, 101, 115, 116]],  # "test" in ASCII
-    }
-    cert = Certificate(cert_data)
+    cert = Certificate(TEST_CERT_DATA)
     params = AxonServeCallParams(
-        version=4,
-        ip=3232235777,  # 192.168.1.1 in int form
-        port=8080,
-        ip_type=4,
-        netuid=1,
-        hotkey="5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-        coldkey="5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
-        protocol=4,
-        placeholder1=0,
-        placeholder2=0,
+        version=TEST_VERSION,
+        ip=TEST_IP_INT,
+        port=TEST_PORT,
+        ip_type=TEST_IP_TYPE,
+        netuid=TEST_NETUID,
+        hotkey=TEST_HOTKEY,
+        coldkey=TEST_COLDKEY,
+        protocol=TEST_PROTOCOL,
+        placeholder1=TEST_PLACEHOLDER1,
+        placeholder2=TEST_PLACEHOLDER2,
         certificate=cert,
     )
 
-    assert params.version == 4
-    assert params.ip == 3232235777
-    assert params.port == 8080
-    assert params.ip_type == 4
-    assert params.netuid == 1
-    assert params.hotkey == "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
-    assert params.coldkey == "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
-    assert params.protocol == 4
-    assert params.placeholder1 == 0
-    assert params.placeholder2 == 0
+    assert params.version == TEST_VERSION
+    assert params.ip == TEST_IP_INT
+    assert params.port == TEST_PORT
+    assert params.ip_type == TEST_IP_TYPE
+    assert params.netuid == TEST_NETUID
+    assert params.hotkey == TEST_HOTKEY
+    assert params.coldkey == TEST_COLDKEY
+    assert params.protocol == TEST_PROTOCOL
+    assert params.placeholder1 == TEST_PLACEHOLDER1
+    assert params.placeholder2 == TEST_PLACEHOLDER2
     assert params.certificate == cert
 
 
 def test_axon_serve_call_params_equality_with_dict():
     """Test __eq__ with dict."""
     params = AxonServeCallParams(
-        version=4,
-        ip=3232235777,
-        port=8080,
-        ip_type=4,
-        netuid=1,
-        hotkey="5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-        coldkey="5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
-        protocol=4,
-        placeholder1=0,
-        placeholder2=0,
+        version=TEST_VERSION,
+        ip=TEST_IP_INT,
+        port=TEST_PORT,
+        ip_type=TEST_IP_TYPE,
+        netuid=TEST_NETUID,
+        hotkey=TEST_HOTKEY,
+        coldkey=TEST_COLDKEY,
+        protocol=TEST_PROTOCOL,
+        placeholder1=TEST_PLACEHOLDER1,
+        placeholder2=TEST_PLACEHOLDER2,
         certificate=None,
     )
 
     params_dict = {
-        "version": 4,
-        "ip": 3232235777,
-        "port": 8080,
-        "ip_type": 4,
-        "netuid": 1,
-        "hotkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-        "coldkey": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
-        "protocol": 4,
-        "placeholder1": 0,
-        "placeholder2": 0,
+        "version": TEST_VERSION,
+        "ip": TEST_IP_INT,
+        "port": TEST_PORT,
+        "ip_type": TEST_IP_TYPE,
+        "netuid": TEST_NETUID,
+        "hotkey": TEST_HOTKEY,
+        "coldkey": TEST_COLDKEY,
+        "protocol": TEST_PROTOCOL,
+        "placeholder1": TEST_PLACEHOLDER1,
+        "placeholder2": TEST_PLACEHOLDER2,
         "certificate": None,
     }
 
@@ -325,24 +348,23 @@ def test_axon_serve_call_params_equality_with_dict():
 
 def test_axon_serve_call_params_equality_with_neuron_info():
     """Test __eq__ with NeuronInfo."""
-    # Create mock NeuronInfo
     axon_info = AxonInfo(
-        version=4,
-        ip="192.168.1.1",
-        port=8080,
-        ip_type=4,
-        hotkey="5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-        coldkey="5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
-        protocol=4,
-        placeholder1=0,
-        placeholder2=0,
+        version=TEST_VERSION,
+        ip=TEST_IP_STRING,
+        port=TEST_PORT,
+        ip_type=TEST_IP_TYPE,
+        hotkey=TEST_HOTKEY,
+        coldkey=TEST_COLDKEY,
+        protocol=TEST_PROTOCOL,
+        placeholder1=TEST_PLACEHOLDER1,
+        placeholder2=TEST_PLACEHOLDER2,
     )
 
     neuron_info = NeuronInfo(
-        hotkey="5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-        coldkey="5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+        hotkey=TEST_HOTKEY,
+        coldkey=TEST_COLDKEY,
         uid=0,
-        netuid=1,
+        netuid=TEST_NETUID,
         active=1,
         stake=0.0,
         stake_dict={},
@@ -365,16 +387,16 @@ def test_axon_serve_call_params_equality_with_neuron_info():
     )
 
     params = AxonServeCallParams(
-        version=4,
-        ip=3232235777,  # 192.168.1.1
-        port=8080,
-        ip_type=4,
-        netuid=1,
-        hotkey="5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-        coldkey="5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
-        protocol=4,
-        placeholder1=0,
-        placeholder2=0,
+        version=TEST_VERSION,
+        ip=TEST_IP_INT,
+        port=TEST_PORT,
+        ip_type=TEST_IP_TYPE,
+        netuid=TEST_NETUID,
+        hotkey=TEST_HOTKEY,
+        coldkey=TEST_COLDKEY,
+        protocol=TEST_PROTOCOL,
+        placeholder1=TEST_PLACEHOLDER1,
+        placeholder2=TEST_PLACEHOLDER2,
         certificate=None,
     )
 
@@ -383,24 +405,23 @@ def test_axon_serve_call_params_equality_with_neuron_info():
 
 def test_axon_serve_call_params_equality_with_neuron_info_lite():
     """Test __eq__ with NeuronInfoLite."""
-    # Create mock NeuronInfoLite
     axon_info = AxonInfo(
-        version=4,
-        ip="192.168.1.1",
-        port=8080,
-        ip_type=4,
-        hotkey="5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-        coldkey="5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
-        protocol=4,
-        placeholder1=0,
-        placeholder2=0,
+        version=TEST_VERSION,
+        ip=TEST_IP_STRING,
+        port=TEST_PORT,
+        ip_type=TEST_IP_TYPE,
+        hotkey=TEST_HOTKEY,
+        coldkey=TEST_COLDKEY,
+        protocol=TEST_PROTOCOL,
+        placeholder1=TEST_PLACEHOLDER1,
+        placeholder2=TEST_PLACEHOLDER2,
     )
 
     neuron_info_lite = NeuronInfoLite(
-        hotkey="5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-        coldkey="5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+        hotkey=TEST_HOTKEY,
+        coldkey=TEST_COLDKEY,
         uid=0,
-        netuid=1,
+        netuid=TEST_NETUID,
         active=1,
         stake=0.0,
         stake_dict={},
@@ -421,16 +442,16 @@ def test_axon_serve_call_params_equality_with_neuron_info_lite():
     )
 
     params = AxonServeCallParams(
-        version=4,
-        ip=3232235777,  # 192.168.1.1
-        port=8080,
-        ip_type=4,
-        netuid=1,
-        hotkey="5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-        coldkey="5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
-        protocol=4,
-        placeholder1=0,
-        placeholder2=0,
+        version=TEST_VERSION,
+        ip=TEST_IP_INT,
+        port=TEST_PORT,
+        ip_type=TEST_IP_TYPE,
+        netuid=TEST_NETUID,
+        hotkey=TEST_HOTKEY,
+        coldkey=TEST_COLDKEY,
+        protocol=TEST_PROTOCOL,
+        placeholder1=TEST_PLACEHOLDER1,
+        placeholder2=TEST_PLACEHOLDER2,
         certificate=None,
     )
 
@@ -440,16 +461,16 @@ def test_axon_serve_call_params_equality_with_neuron_info_lite():
 def test_axon_serve_call_params_equality_with_invalid_type():
     """Test __eq__ raises NotImplementedError for invalid types."""
     params = AxonServeCallParams(
-        version=4,
-        ip=3232235777,
-        port=8080,
-        ip_type=4,
-        netuid=1,
-        hotkey="5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-        coldkey="5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
-        protocol=4,
-        placeholder1=0,
-        placeholder2=0,
+        version=TEST_VERSION,
+        ip=TEST_IP_INT,
+        port=TEST_PORT,
+        ip_type=TEST_IP_TYPE,
+        netuid=TEST_NETUID,
+        hotkey=TEST_HOTKEY,
+        coldkey=TEST_COLDKEY,
+        protocol=TEST_PROTOCOL,
+        placeholder1=TEST_PLACEHOLDER1,
+        placeholder2=TEST_PLACEHOLDER2,
         certificate=None,
     )
 
@@ -459,22 +480,18 @@ def test_axon_serve_call_params_equality_with_invalid_type():
 
 def test_axon_serve_call_params_copy():
     """Test copy() method."""
-    cert_data = {
-        "algorithm": 1,
-        "public_key": [[116, 101, 115, 116]],  # "test" in ASCII
-    }
-    cert = Certificate(cert_data)
+    cert = Certificate(TEST_CERT_DATA)
     params = AxonServeCallParams(
-        version=4,
-        ip=3232235777,
-        port=8080,
-        ip_type=4,
-        netuid=1,
-        hotkey="5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-        coldkey="5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
-        protocol=4,
-        placeholder1=0,
-        placeholder2=0,
+        version=TEST_VERSION,
+        ip=TEST_IP_INT,
+        port=TEST_PORT,
+        ip_type=TEST_IP_TYPE,
+        netuid=TEST_NETUID,
+        hotkey=TEST_HOTKEY,
+        coldkey=TEST_COLDKEY,
+        protocol=TEST_PROTOCOL,
+        placeholder1=TEST_PLACEHOLDER1,
+        placeholder2=TEST_PLACEHOLDER2,
         certificate=cert,
     )
 
@@ -499,35 +516,31 @@ def test_axon_serve_call_params_copy():
 
 def test_axon_serve_call_params_dict():
     """Test dict() method."""
-    cert_data = {
-        "algorithm": 1,
-        "public_key": [[116, 101, 115, 116]],  # "test" in ASCII
-    }
-    cert = Certificate(cert_data)
+    cert = Certificate(TEST_CERT_DATA)
     params = AxonServeCallParams(
-        version=4,
-        ip=3232235777,
-        port=8080,
-        ip_type=4,
-        netuid=1,
-        hotkey="5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-        coldkey="5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
-        protocol=4,
-        placeholder1=0,
-        placeholder2=0,
+        version=TEST_VERSION,
+        ip=TEST_IP_INT,
+        port=TEST_PORT,
+        ip_type=TEST_IP_TYPE,
+        netuid=TEST_NETUID,
+        hotkey=TEST_HOTKEY,
+        coldkey=TEST_COLDKEY,
+        protocol=TEST_PROTOCOL,
+        placeholder1=TEST_PLACEHOLDER1,
+        placeholder2=TEST_PLACEHOLDER2,
         certificate=cert,
     )
 
     params_dict = params.as_dict()
 
-    assert params_dict["version"] == 4
-    assert params_dict["ip"] == 3232235777
-    assert params_dict["port"] == 8080
-    assert params_dict["ip_type"] == 4
-    assert params_dict["netuid"] == 1
-    assert params_dict["protocol"] == 4
-    assert params_dict["placeholder1"] == 0
-    assert params_dict["placeholder2"] == 0
+    assert params_dict["version"] == TEST_VERSION
+    assert params_dict["ip"] == TEST_IP_INT
+    assert params_dict["port"] == TEST_PORT
+    assert params_dict["ip_type"] == TEST_IP_TYPE
+    assert params_dict["netuid"] == TEST_NETUID
+    assert params_dict["protocol"] == TEST_PROTOCOL
+    assert params_dict["placeholder1"] == TEST_PLACEHOLDER1
+    assert params_dict["placeholder2"] == TEST_PLACEHOLDER2
     assert params_dict["certificate"] == cert
     # hotkey and coldkey are not in as_dict() output
     assert "hotkey" not in params_dict
@@ -537,16 +550,16 @@ def test_axon_serve_call_params_dict():
 def test_axon_serve_call_params_dict_without_certificate():
     """Test dict() when certificate is None."""
     params = AxonServeCallParams(
-        version=4,
-        ip=3232235777,
-        port=8080,
-        ip_type=4,
-        netuid=1,
-        hotkey="5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-        coldkey="5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
-        protocol=4,
-        placeholder1=0,
-        placeholder2=0,
+        version=TEST_VERSION,
+        ip=TEST_IP_INT,
+        port=TEST_PORT,
+        ip_type=TEST_IP_TYPE,
+        netuid=TEST_NETUID,
+        hotkey=TEST_HOTKEY,
+        coldkey=TEST_COLDKEY,
+        protocol=TEST_PROTOCOL,
+        placeholder1=TEST_PLACEHOLDER1,
+        placeholder2=TEST_PLACEHOLDER2,
         certificate=None,
     )
 
@@ -565,18 +578,18 @@ def test_prometheus_serve_call_params_structure():
     """Test PrometheusServeCallParams TypedDict."""
     # PrometheusServeCallParams is a TypedDict, so we can create a dict with the required keys
     prometheus_params: PrometheusServeCallParams = {
-        "version": 4,
-        "ip": 3232235777,
+        "version": TEST_VERSION,
+        "ip": TEST_IP_INT,
         "port": 9090,
-        "ip_type": 4,
-        "netuid": 1,
+        "ip_type": TEST_IP_TYPE,
+        "netuid": TEST_NETUID,
     }
 
-    assert prometheus_params["version"] == 4
-    assert prometheus_params["ip"] == 3232235777
+    assert prometheus_params["version"] == TEST_VERSION
+    assert prometheus_params["ip"] == TEST_IP_INT
     assert prometheus_params["port"] == 9090
-    assert prometheus_params["ip_type"] == 4
-    assert prometheus_params["netuid"] == 1
+    assert prometheus_params["ip_type"] == TEST_IP_TYPE
+    assert prometheus_params["netuid"] == TEST_NETUID
 
 
 def test_prometheus_serve_call_params_type_checking():
