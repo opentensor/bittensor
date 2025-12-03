@@ -374,7 +374,9 @@ def post_process_mev_response(
     # when main extrinsic is successful but revealed extrinsic is not successful.
     if revealed_name in MEV_UNSUCCESSFUL_EVENTS:
         response.success = False
-        response.message = f"{revealed_name}: Check `mev_extrinsic_receipt` for details."
+        response.message = (
+            f"{revealed_name}: Check `mev_extrinsic_receipt` for details."
+        )
         response.error = RuntimeError(response.message)
 
     if response.error and raise_error:
