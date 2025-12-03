@@ -1,12 +1,12 @@
 import argparse
 import datetime
 import unittest.mock as mock
-from unittest.mock import MagicMock, ANY
+from unittest.mock import ANY, MagicMock
 
 import pytest
 import websockets
 from async_substrate_interface import sync_substrate
-from async_substrate_interface.types import ScaleObj, Runtime
+from async_substrate_interface.types import Runtime, ScaleObj
 from bittensor_wallet import Wallet
 from scalecodec import GenericCall
 
@@ -15,21 +15,19 @@ from bittensor.core import settings
 from bittensor.core import subtensor as subtensor_module
 from bittensor.core.async_subtensor import AsyncSubtensor, logging
 from bittensor.core.axon import Axon
-from bittensor.core.chain_data import SubnetHyperparameters, SelectiveMetagraphIndex
+from bittensor.core.chain_data import SelectiveMetagraphIndex, SubnetHyperparameters
 from bittensor.core.settings import (
-    DEFAULT_MEV_PROTECTION,
     DEFAULT_MEV_PROTECTION,
     DEFAULT_PERIOD,
     version_as_int,
 )
 from bittensor.core.subtensor import Subtensor
-from bittensor.core.types import AxonServeCallParams
-from bittensor.core.types import ExtrinsicResponse
+from bittensor.core.types import AxonServeCallParams, ExtrinsicResponse
 from bittensor.utils import (
     Certificate,
+    determine_chain_endpoint_and_network,
     u16_normalized_float,
     u64_normalized_float,
-    determine_chain_endpoint_and_network,
 )
 from bittensor.utils.balance import Balance
 
@@ -5940,3 +5938,456 @@ def test_get_stake_info_for_coldkeys_success(subtensor, mocker):
     mocked_stake_info_list_from_dicts.assert_has_calls(
         [mocker.call([stake_info_dict_1]), mocker.call([stake_info_dict_2])]
     )
+
+
+def test_get_mev_shield_current_key_success(subtensor, mocker):
+    """Test get_mev_shield_current_key returns correct key when found."""
+    # Prep
+    fake_block = 123
+    fake_block_hash = "0x123abc"
+    fake_public_key_bytes = b"\x00" * 1184  # ML-KEM-768 public key size
+
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value=fake_block_hash
+    )
+    mocked_query = mocker.patch.object(subtensor.substrate, "query")
+    mocked_query.return_value = iter([fake_public_key_bytes])
+
+    # Call
+    result = subtensor.get_mev_shield_current_key(block=fake_block)
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(block=fake_block)
+    mocked_query.assert_called_once_with(
+        module="MevShield",
+        storage_function="CurrentKey",
+        block_hash=fake_block_hash,
+    )
+    assert result == fake_public_key_bytes
+
+
+def test_get_mev_shield_current_key_none(subtensor, mocker):
+    """Test get_mev_shield_current_key returns None when key not found."""
+    # Prep
+    fake_block = 123
+    fake_block_hash = "0x123abc"
+
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value=fake_block_hash
+    )
+    mocked_query = mocker.patch.object(subtensor.substrate, "query", return_value=None)
+
+    # Call
+    result = subtensor.get_mev_shield_current_key(block=fake_block)
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(block=fake_block)
+    mocked_query.assert_called_once_with(
+        module="MevShield",
+        storage_function="CurrentKey",
+        block_hash=fake_block_hash,
+    )
+    assert result is None
+
+
+def test_get_mev_shield_current_key_invalid_size(subtensor, mocker):
+    """Test get_mev_shield_current_key raises ValueError for invalid key size."""
+    # Prep
+    fake_block = 123
+    fake_block_hash = "0x123abc"
+    fake_public_key_bytes = b"\x00" * 1000  # Invalid size
+
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value=fake_block_hash
+    )
+    mocked_query = mocker.patch.object(subtensor.substrate, "query")
+    mocked_query.return_value = iter([fake_public_key_bytes])
+
+    # Call & Assert
+    with pytest.raises(ValueError, match="Invalid ML-KEM-768 public key size"):
+        subtensor.get_mev_shield_current_key(block=fake_block)
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(block=fake_block)
+    mocked_query.assert_called_once_with(
+        module="MevShield",
+        storage_function="CurrentKey",
+        block_hash=fake_block_hash,
+    )
+
+
+def test_get_mev_shield_next_key_success(subtensor, mocker):
+    """Test get_mev_shield_next_key returns correct key when found."""
+    # Prep
+    fake_block = 123
+    fake_block_hash = "0x123abc"
+    fake_public_key_bytes = b"\x00" * 1184  # ML-KEM-768 public key size
+
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value=fake_block_hash
+    )
+    mocked_query = mocker.patch.object(subtensor.substrate, "query")
+    mocked_query.return_value = iter([fake_public_key_bytes])
+
+    # Call
+    result = subtensor.get_mev_shield_next_key(block=fake_block)
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(block=fake_block)
+    mocked_query.assert_called_once_with(
+        module="MevShield",
+        storage_function="NextKey",
+        block_hash=fake_block_hash,
+    )
+    assert result == fake_public_key_bytes
+
+
+def test_get_mev_shield_next_key_none(subtensor, mocker):
+    """Test get_mev_shield_next_key returns None when key not found."""
+    # Prep
+    fake_block = 123
+    fake_block_hash = "0x123abc"
+
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value=fake_block_hash
+    )
+    mocked_query = mocker.patch.object(subtensor.substrate, "query", return_value=None)
+
+    # Call
+    result = subtensor.get_mev_shield_next_key(block=fake_block)
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(block=fake_block)
+    mocked_query.assert_called_once_with(
+        module="MevShield",
+        storage_function="NextKey",
+        block_hash=fake_block_hash,
+    )
+    assert result is None
+
+
+def test_get_mev_shield_next_key_invalid_size(subtensor, mocker):
+    """Test get_mev_shield_next_key raises ValueError for invalid key size."""
+    # Prep
+    fake_block = 123
+    fake_block_hash = "0x123abc"
+    fake_public_key_bytes = b"\x00" * 1000  # Invalid size
+
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value=fake_block_hash
+    )
+    mocked_query = mocker.patch.object(subtensor.substrate, "query")
+    mocked_query.return_value = iter([fake_public_key_bytes])
+
+    # Call & Assert
+    with pytest.raises(ValueError, match="Invalid ML-KEM-768 public key size"):
+        subtensor.get_mev_shield_next_key(block=fake_block)
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(block=fake_block)
+    mocked_query.assert_called_once_with(
+        module="MevShield",
+        storage_function="NextKey",
+        block_hash=fake_block_hash,
+    )
+
+
+def test_get_mev_shield_submission_success(subtensor, mocker):
+    """Test get_mev_shield_submission returns correct submission when found."""
+    # Prep
+    fake_submission_id = "0x1234567890abcdef"
+    fake_block = 123
+    fake_block_hash = "0x123abc"
+    fake_author = b"\x01" * 32
+    fake_commitment = b"\x02" * 32
+    fake_ciphertext = b"\x03" * 100
+    fake_submitted_in = 100
+
+    fake_query_result = {
+        "author": [fake_author],
+        "commitment": [fake_commitment],
+        "ciphertext": [fake_ciphertext],
+        "submitted_in": fake_submitted_in,
+    }
+
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value=fake_block_hash
+    )
+    mocked_query = mocker.patch.object(
+        subtensor.substrate, "query", return_value=fake_query_result
+    )
+    mocked_decode_account_id = mocker.patch.object(
+        subtensor_module,
+        "decode_account_id",
+        return_value="5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+    )
+
+    # Call
+    result = subtensor.get_mev_shield_submission(
+        submission_id=fake_submission_id, block=fake_block
+    )
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(block=fake_block)
+    mocked_query.assert_called_once_with(
+        module="MevShield",
+        storage_function="Submissions",
+        params=[bytes.fromhex("1234567890abcdef")],
+        block_hash=fake_block_hash,
+    )
+    mocked_decode_account_id.assert_called_once_with([fake_author])
+    assert result == {
+        "author": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "commitment": fake_commitment,
+        "ciphertext": fake_ciphertext,
+        "submitted_in": fake_submitted_in,
+    }
+
+
+def test_get_mev_shield_submission_without_0x_prefix(subtensor, mocker):
+    """Test get_mev_shield_submission handles submission_id without 0x prefix."""
+    # Prep
+    fake_submission_id = "1234567890abcdef"
+    fake_block = 123
+    fake_block_hash = "0x123abc"
+    fake_query_result = {
+        "author": [b"\x01" * 32],
+        "commitment": [b"\x02" * 32],
+        "ciphertext": [b"\x03" * 100],
+        "submitted_in": 100,
+    }
+
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value=fake_block_hash
+    )
+    mocked_query = mocker.patch.object(
+        subtensor.substrate, "query", return_value=fake_query_result
+    )
+    mocked_decode_account_id = mocker.patch.object(
+        subtensor_module,
+        "decode_account_id",
+        return_value="5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+    )
+
+    # Call
+    result = subtensor.get_mev_shield_submission(
+        submission_id=fake_submission_id, block=fake_block
+    )
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(block=fake_block)
+    mocked_query.assert_called_once_with(
+        module="MevShield",
+        storage_function="Submissions",
+        params=[bytes.fromhex("1234567890abcdef")],
+        block_hash=fake_block_hash,
+    )
+    mocked_decode_account_id.assert_called_once_with([b"\x01" * 32])
+    assert result is not None
+
+
+def test_get_mev_shield_submission_none(subtensor, mocker):
+    """Test get_mev_shield_submission returns None when submission not found."""
+    # Prep
+    fake_submission_id = "0x1234567890abcdef"
+    fake_block = 123
+    fake_block_hash = "0x123abc"
+
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value=fake_block_hash
+    )
+    mocked_query = mocker.patch.object(subtensor.substrate, "query", return_value=None)
+
+    # Call
+    result = subtensor.get_mev_shield_submission(
+        submission_id=fake_submission_id, block=fake_block
+    )
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(block=fake_block)
+    mocked_query.assert_called_once_with(
+        module="MevShield",
+        storage_function="Submissions",
+        params=[bytes.fromhex("1234567890abcdef")],
+        block_hash=fake_block_hash,
+    )
+    assert result is None
+
+
+def test_get_mev_shield_submissions_success(subtensor, mocker):
+    """Test get_mev_shield_submissions returns all submissions when found."""
+    # Prep
+    fake_block = 123
+    fake_block_hash = "0x123abc"
+    fake_submission_id_1 = b"\x01" * 32
+    fake_submission_id_2 = b"\x02" * 32
+    fake_author_1 = b"\x03" * 32
+    fake_author_2 = b"\x04" * 32
+    fake_commitment_1 = b"\x05" * 32
+    fake_commitment_2 = b"\x06" * 32
+    fake_ciphertext_1 = b"\x07" * 100
+    fake_ciphertext_2 = b"\x08" * 100
+
+    fake_query_result = mocker.MagicMock()
+    fake_query_result.__iter__.return_value = iter(
+        [
+            (
+                [fake_submission_id_1],
+                mocker.MagicMock(
+                    value={
+                        "author": [fake_author_1],
+                        "commitment": [fake_commitment_1],
+                        "ciphertext": [fake_ciphertext_1],
+                        "submitted_in": 100,
+                    }
+                ),
+            ),
+            (
+                [fake_submission_id_2],
+                mocker.MagicMock(
+                    value={
+                        "author": [fake_author_2],
+                        "commitment": [fake_commitment_2],
+                        "ciphertext": [fake_ciphertext_2],
+                        "submitted_in": 101,
+                    }
+                ),
+            ),
+        ]
+    )
+
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value=fake_block_hash
+    )
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate, "query_map", return_value=fake_query_result
+    )
+    mocked_decode_account_id = mocker.patch.object(
+        subtensor_module,
+        "decode_account_id",
+        side_effect=[
+            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+            "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+        ],
+    )
+
+    # Call
+    result = subtensor.get_mev_shield_submissions(block=fake_block)
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(block=fake_block)
+    mocked_query_map.assert_called_once_with(
+        module="MevShield",
+        storage_function="Submissions",
+        block_hash=fake_block_hash,
+    )
+    assert result is not None
+    assert len(result) == 2
+    assert "0x" + fake_submission_id_1.hex() in result
+    assert "0x" + fake_submission_id_2.hex() in result
+    assert result["0x" + fake_submission_id_1.hex()]["submitted_in"] == 100
+    assert result["0x" + fake_submission_id_2.hex()]["submitted_in"] == 101
+    # Verify decode_account_id was called for both submissions
+    assert mocked_decode_account_id.call_count == 2
+
+
+def test_get_mev_shield_submissions_none(subtensor, mocker):
+    """Test get_mev_shield_submissions returns None when no submissions found."""
+    # Prep
+    fake_block = 123
+    fake_block_hash = "0x123abc"
+
+    fake_query_result = mocker.MagicMock()
+    fake_query_result.__iter__.return_value = iter([])
+
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value=fake_block_hash
+    )
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate, "query_map", return_value=fake_query_result
+    )
+
+    # Call
+    result = subtensor.get_mev_shield_submissions(block=fake_block)
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(block=fake_block)
+    mocked_query_map.assert_called_once_with(
+        module="MevShield",
+        storage_function="Submissions",
+        block_hash=fake_block_hash,
+    )
+    assert result is None
+
+
+def test_mev_submit_encrypted_success(subtensor, fake_wallet, mocker):
+    """Test mev_submit_encrypted calls submit_encrypted_extrinsic correctly."""
+    # Prep
+    fake_call = mocker.Mock(spec=GenericCall)
+    fake_signer_keypair = mocker.Mock()
+    fake_period = 128
+    fake_raise_error = False
+    fake_wait_for_inclusion = True
+    fake_wait_for_finalization = True
+    fake_wait_for_revealed_execution = True
+    fake_blocks_for_revealed_execution = 5
+
+    mocked_submit_encrypted_extrinsic = mocker.patch.object(
+        subtensor_module, "submit_encrypted_extrinsic"
+    )
+
+    # Call
+    result = subtensor.mev_submit_encrypted(
+        wallet=fake_wallet,
+        call=fake_call,
+        signer_keypair=fake_signer_keypair,
+        period=fake_period,
+        raise_error=fake_raise_error,
+        wait_for_inclusion=fake_wait_for_inclusion,
+        wait_for_finalization=fake_wait_for_finalization,
+        wait_for_revealed_execution=fake_wait_for_revealed_execution,
+        blocks_for_revealed_execution=fake_blocks_for_revealed_execution,
+    )
+
+    # Asserts
+    mocked_submit_encrypted_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        call=fake_call,
+        signer_keypair=fake_signer_keypair,
+        period=fake_period,
+        raise_error=fake_raise_error,
+        wait_for_inclusion=fake_wait_for_inclusion,
+        wait_for_finalization=fake_wait_for_finalization,
+        wait_for_revealed_execution=fake_wait_for_revealed_execution,
+        blocks_for_revealed_execution=fake_blocks_for_revealed_execution,
+    )
+    assert result == mocked_submit_encrypted_extrinsic.return_value
+
+
+def test_mev_submit_encrypted_default_params(subtensor, fake_wallet, mocker):
+    """Test mev_submit_encrypted with default parameters."""
+    # Prep
+    fake_call = mocker.Mock(spec=GenericCall)
+
+    mocked_submit_encrypted_extrinsic = mocker.patch.object(
+        subtensor_module, "submit_encrypted_extrinsic"
+    )
+
+    # Call
+    result = subtensor.mev_submit_encrypted(wallet=fake_wallet, call=fake_call)
+
+    # Asserts
+    mocked_submit_encrypted_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        call=fake_call,
+        signer_keypair=None,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+        blocks_for_revealed_execution=5,
+    )
+    assert result == mocked_submit_encrypted_extrinsic.return_value
