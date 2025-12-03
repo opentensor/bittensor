@@ -1,6 +1,7 @@
 import pytest
 
 from bittensor.core.extrinsics.asyncex import unstaking
+from bittensor.core.settings import DEFAULT_MEV_PROTECTION
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.balance import Balance
 
@@ -157,9 +158,11 @@ async def test_unstake_multiple_extrinsic_some_unstake_is_happy(fake_wallet, moc
     mocked_unstake_extrinsic.assert_awaited_once_with(
         subtensor=fake_subtensor,
         wallet=fake_wallet,
-        amount=Balance.from_tao(1.1, sn_5),
-        hotkey_ss58=hotkey_ss58s[0],
         netuid=fake_netuids[0],
+        hotkey_ss58=hotkey_ss58s[0],
+        amount=Balance.from_tao(1.1, sn_5),
+        rate_tolerance=0.05,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=None,
         raise_error=False,
         wait_for_inclusion=wait_for_inclusion,

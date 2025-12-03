@@ -18,6 +18,7 @@ from bittensor.core.axon import Axon
 from bittensor.core.chain_data import SubnetHyperparameters, SelectiveMetagraphIndex
 from bittensor.core.settings import (
     DEFAULT_MEV_PROTECTION,
+    DEFAULT_MEV_PROTECTION,
     DEFAULT_PERIOD,
     version_as_int,
 )
@@ -2772,10 +2773,11 @@ def test_unstake_success(mocker, subtensor, fake_wallet):
         safe_unstaking=False,
         allow_partial_stake=False,
         rate_tolerance=0.005,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
+        raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=False,
-        raise_error=False,
     )
     assert result == mock_unstake_extrinsic.return_value
 
@@ -2812,6 +2814,7 @@ def test_unstake_with_safe_unstaking(mocker, subtensor, fake_wallet):
         safe_unstaking=True,
         allow_partial_stake=True,
         rate_tolerance=fake_rate_tolerance,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,

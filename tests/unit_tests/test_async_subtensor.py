@@ -18,7 +18,7 @@ from bittensor.core.chain_data import (
 )
 from bittensor.core.errors import BalanceTypeError
 from bittensor.core.types import ExtrinsicResponse
-from bittensor.core.settings import DEFAULT_PERIOD
+from bittensor.core.settings import DEFAULT_MEV_PROTECTION, DEFAULT_PERIOD
 from bittensor.utils import U64_MAX, get_function_name
 from bittensor.utils.balance import Balance
 
@@ -2592,11 +2592,12 @@ async def test_transfer_success(subtensor, fake_wallet, mocker):
         destination_ss58=fake_destination,
         amount=fake_amount,
         transfer_all=fake_transfer_all,
-        wait_for_inclusion=True,
-        wait_for_finalization=False,
         keep_alive=True,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
     )
     assert result == mocked_transfer_extrinsic.return_value
 
@@ -2628,6 +2629,7 @@ async def test_register_success(subtensor, fake_wallet, mocker):
         subtensor=subtensor,
         tpb=256,
         update_interval=None,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_finalization=True,
@@ -2666,10 +2668,11 @@ async def test_set_children(subtensor, fake_wallet, mocker):
         hotkey_ss58=fake_wallet.hotkey.ss58_address,
         netuid=1,
         children=fake_children,
-        wait_for_finalization=True,
-        wait_for_inclusion=True,
-        raise_error=False,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
     )
     assert result == mocked_set_children_extrinsic.return_value
 
@@ -2795,10 +2798,11 @@ async def test_set_subnet_identity(mocker, subtensor, fake_wallet):
         discord=fake_subnet_identity.discord,
         description=fake_subnet_identity.description,
         additional=fake_subnet_identity.additional,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
-        wait_for_finalization=True,
         wait_for_inclusion=True,
+        wait_for_finalization=True,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -2902,10 +2906,11 @@ async def test_start_call(subtensor, mocker):
         subtensor=subtensor,
         wallet=wallet_name,
         netuid=netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=False,
+        mev_protection=False,
         period=DEFAULT_PERIOD,
         raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3397,10 +3402,11 @@ async def test_unstake_all(subtensor, fake_wallet, mocker):
         hotkey_ss58=fake_wallet.hotkey.ss58_address,
         netuid=1,
         rate_tolerance=0.005,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
     )
     assert result == fake_unstake_all_extrinsic.return_value
 
@@ -3623,10 +3629,11 @@ async def test_add_liquidity(subtensor, fake_wallet, mocker):
         price_low=Balance.from_tao(180).rao,
         price_high=Balance.from_tao(130).rao,
         hotkey_ss58=None,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3657,10 +3664,11 @@ async def test_modify_liquidity(subtensor, fake_wallet, mocker):
         position_id=position_id,
         liquidity_delta=Balance.from_tao(150),
         hotkey_ss58=None,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3689,10 +3697,11 @@ async def test_remove_liquidity(subtensor, fake_wallet, mocker):
         netuid=netuid,
         position_id=position_id,
         hotkey_ss58=None,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3720,10 +3729,11 @@ async def test_toggle_user_liquidity(subtensor, fake_wallet, mocker):
         wallet=fake_wallet,
         netuid=netuid,
         enable=enable,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -4213,6 +4223,7 @@ async def test_set_auto_stake(subtensor, mocker):
         wallet=wallet,
         netuid=netuid,
         hotkey_ss58=hotkey,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
@@ -4329,6 +4340,7 @@ async def test_contribute_crowdloan(mocker, subtensor):
         wallet=wallet,
         crowdloan_id=crowdloan_id,
         amount=amount,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
@@ -4374,6 +4386,7 @@ async def test_create_crowdloan(mocker, subtensor):
         end=end,
         call=call,
         target_address=target_address,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
@@ -4413,6 +4426,7 @@ async def test_crowdloan_methods_with_crowdloan_id_parameter(
         subtensor=subtensor,
         wallet=wallet,
         crowdloan_id=crowdloan_id,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
@@ -4446,6 +4460,7 @@ async def test_update_cap_crowdloan(mocker, subtensor):
         wallet=wallet,
         crowdloan_id=crowdloan_id,
         new_cap=new_cap,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
@@ -4479,6 +4494,7 @@ async def test_update_end_crowdloan(mocker, subtensor):
         wallet=wallet,
         crowdloan_id=crowdloan_id,
         new_end=new_end,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
@@ -4512,6 +4528,7 @@ async def test_update_min_contribution_crowdloan(mocker, subtensor):
         wallet=wallet,
         crowdloan_id=crowdloan_id,
         new_min_contribution=new_min_contribution,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
@@ -4956,6 +4973,7 @@ async def test_claim_root(mocker, subtensor):
         subtensor=subtensor,
         wallet=wallet,
         netuids=netuids,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
@@ -4984,6 +5002,7 @@ async def test_set_root_claim_type(mocker, subtensor):
         subtensor=subtensor,
         wallet=faked_wallet,
         new_root_claim_type=fake_new_root_claim_type,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
@@ -5314,6 +5333,7 @@ async def test_add_proxy(mocker, subtensor):
         delegate_ss58=delegate_ss58,
         proxy_type=proxy_type,
         delay=delay,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
@@ -5346,6 +5366,7 @@ async def test_announce_proxy(mocker, subtensor):
         wallet=wallet,
         real_account_ss58=real_account_ss58,
         call_hash=call_hash,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
@@ -5381,6 +5402,7 @@ async def test_create_pure_proxy(mocker, subtensor):
         proxy_type=proxy_type,
         delay=delay,
         index=index,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
@@ -5426,6 +5448,7 @@ async def test_kill_pure_proxy(mocker, subtensor):
         height=height,
         ext_index=ext_index,
         force_proxy_type=async_subtensor.ProxyType.Any,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
@@ -5450,6 +5473,7 @@ async def test_poke_deposit(mocker, subtensor):
     mocked_poke_deposit_extrinsic.assert_awaited_once_with(
         subtensor=subtensor,
         wallet=wallet,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
@@ -5483,6 +5507,7 @@ async def test_proxy(mocker, subtensor):
         real_account_ss58=real_account_ss58,
         force_proxy_type=force_proxy_type,
         call=call,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
@@ -5521,6 +5546,7 @@ async def test_proxy_announced(mocker, subtensor):
         real_account_ss58=real_account_ss58,
         force_proxy_type=force_proxy_type,
         call=call,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
@@ -5553,6 +5579,7 @@ async def test_reject_proxy_announcement(mocker, subtensor):
         wallet=wallet,
         delegate_ss58=delegate_ss58,
         call_hash=call_hash,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
@@ -5585,6 +5612,7 @@ async def test_remove_proxy_announcement(mocker, subtensor):
         wallet=wallet,
         real_account_ss58=real_account_ss58,
         call_hash=call_hash,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
@@ -5609,6 +5637,7 @@ async def test_remove_proxies(mocker, subtensor):
     mocked_remove_proxies_extrinsic.assert_awaited_once_with(
         subtensor=subtensor,
         wallet=wallet,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
@@ -5644,6 +5673,7 @@ async def test_remove_proxy(mocker, subtensor):
         delegate_ss58=delegate_ss58,
         proxy_type=proxy_type,
         delay=delay,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
