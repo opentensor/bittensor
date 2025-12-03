@@ -17,6 +17,17 @@ if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
     from scalecodec.types import GenericCall
     from bittensor_wallet.keypair import Keypair
+    from async_substrate_interface import AsyncExtrinsicReceipt, ExtrinsicReceipt
+
+
+MEV_SUBMITTED_EVENT = "mevShield.EncryptedSubmitted"
+MEV_EXECUTED_EVENT = "mevShield.DecryptedExecuted"
+MEV_UNSUCCESSFUL_EVENTS = [
+    "mevShield.DecryptedRejected",
+    "mevShield.DecryptionFailed",
+]
+
+POST_SUBMIT_MEV_EVENTS = [MEV_EXECUTED_EVENT] + MEV_UNSUCCESSFUL_EVENTS
 
 
 def get_old_stakes(
@@ -317,3 +328,54 @@ def get_event_attributes_by_event_name(events: list, event_name: str) -> Optiona
         ):
             return event
     return None
+
+
+def post_process_mev_response(
+    response: "ExtrinsicResponse",
+    revealed_name: str,
+    revealed_extrinsic: Optional["ExtrinsicReceipt | AsyncExtrinsicReceipt"],
+    raise_error: bool = False,
+) -> None:
+    """
+    Post-processes the result of a MEV Shield extrinsic submission by updating the response object based on the revealed
+    extrinsic execution status.
+
+    This function analyzes the revealed extrinsic (execute_revealed) that was found after the initial encrypted
+    submission and updates the response object accordingly. It handles cases where the revealed extrinsic was not found,
+    where it failed (DecryptedRejected or DecryptionFailed events), and propagates errors if requested.
+
+    Parameters:
+        response: The ExtrinsicResponse object from the initial submit_encrypted call. This object will be modified
+            in-place with the revealed extrinsic receipt and updated success/error status.
+        revealed_name: The name of the event found in the revealed extrinsic (e.g., "mevShield.DecryptedExecuted",
+            "mevShield.DecryptedRejected", "mevShield.DecryptionFailed").
+        revealed_extrinsic: The ExtrinsicReceipt or AsyncExtrinsicReceipt object for the execute_revealed transaction,
+            if found. None if the revealed extrinsic was not found in the expected blocks. This receipt contains the
+            triggered events and execution details.
+        raise_error: If True, raises the error immediately if the response contains an error. If False, the error is
+            stored in response.error but not raised. Defaults to False.
+
+    Returns:
+        None. The function modifies the response object in-place by setting:
+            - response.mev_extrinsic_receipt: The revealed extrinsic receipt
+            - response.success: False if revealed extrinsic not found or failed, otherwise True.
+            - response.message: Error message describing the failure if failure.
+            - response.error: RuntimeError with the response.message.
+    """
+    # add revealed extrinsic receipt to response
+    response.mev_extrinsic_receipt = revealed_extrinsic
+
+    # when main extrinsic is successful but revealed extrinsic is not found in the chain.
+    if revealed_extrinsic is None:
+        response.success = False
+        response.message = "Result event not found in chain."
+        response.error = RuntimeError(response.message)
+
+    # when main extrinsic is successful but revealed extrinsic is not successful.
+    if revealed_name in MEV_UNSUCCESSFUL_EVENTS:
+        response.success = False
+        response.message = f"{revealed_name}: Check `mev_extrinsic_receipt` for details."
+        response.error = RuntimeError(response.message)
+
+    if response.error and raise_error:
+        raise response.error
