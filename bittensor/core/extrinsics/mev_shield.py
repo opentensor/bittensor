@@ -143,6 +143,11 @@ def submit_encrypted_extrinsic(
         ).success:
             return unlocked
 
+        if wait_for_revealed_execution and not wait_for_inclusion:
+            return ExtrinsicResponse.from_exception(
+                raise_error=raise_error, error=ValueError("`wait_for_inclusion` must be `True` if `wait_for_revealed_execution` is `True`.")
+            )
+
         # Use wallet.coldkey as default signer if signer_keypair is not provided
         if signer_keypair is None:
             signer_keypair = wallet.coldkey
