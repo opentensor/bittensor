@@ -3217,7 +3217,7 @@ class AsyncSubtensor(SubtensorMixin):
             The minimum stake threshold as a Balance object. Nominator stakes below this amount
             are automatically cleared after unstake operations.
 
-        Notes:            
+        Notes:
             - <https://docs.learnbittensor.org/staking-and-delegation/delegation>
         """
         result = await self.substrate.query(
@@ -6072,7 +6072,7 @@ class AsyncSubtensor(SubtensorMixin):
                 exceed the price tolerance. If false, the entire stake fails if it would exceed the tolerance.
             rate_tolerance: The maximum allowed price change ratio when staking. For example, 0.005 = 0.5% maximum price
                 increase. Only used when safe_staking is True.
-            mev_protection: If ``True``, encrypts and submits the staking transaction through the MEV Shield pallet  to
+            mev_protection: If ``True``, encrypts and submits the staking transaction through the MEV Shield pallet to
                 protect against front-running and MEV attacks. The transaction remains encrypted in the mempool until
                 validators decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
@@ -6195,7 +6195,7 @@ class AsyncSubtensor(SubtensorMixin):
             netuids: List of subnet UIDs.
             hotkey_ss58s: List of ``SS58`` addresses of hotkeys to stake to.
             amounts: List of corresponding TAO amounts to bet for each netuid and hotkey.
-            mev_protecti``on``: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
@@ -6259,13 +6259,9 @@ class AsyncSubtensor(SubtensorMixin):
                 announcements. A non-zero delay creates a time-lock, requiring the proxy to announce calls via
                 :meth:`announce_proxy` before execution, giving the real account time to review and reject unwanted
                 operations via :meth:`reject_proxy_announcement`.
-=======
-
-
             mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
->>>>>>> feat/roman/MevShield
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6325,7 +6321,7 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: Bittensor wallet object (should be the proxy account wallet).
             real_account_ss58: The SS58 address of the real account on whose behalf the call will be made.
             call_hash: The hash of the call that will be executed in the future.
-            mev_protectio``n``: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
@@ -6342,7 +6338,7 @@ class AsyncSubtensor(SubtensorMixin):
         Notes:
             - A deposit is required when making an announcement. The deposit is returned when the announcement is
               executed, rejected, or removed. The announcement can be executed after the delay period has passed.
-            - Bittensor proxies: <https://docs.learnbittensor.org/keys/proxies>            
+            - Bittensor proxies: <https://docs.learnbittensor.org/keys/proxies>
         """
         return await announce_extrinsic(
             subtensor=self,
@@ -6588,7 +6584,7 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: Bittensor wallet instance used to sign the transaction (coldkey pays, coldkey receives emissions).
             crowdloan_id: The unique identifier of the crowdloan to contribute to.
             amount: Amount to contribute (TAO). Must meet or exceed the campaign's ``min_contribution``.
-            mev_protectio``n``: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
 
@@ -6790,7 +6786,7 @@ class AsyncSubtensor(SubtensorMixin):
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after submission.
-            raise_error: If ``True``, raises an exception rather than returning failure in the response.            
+            raise_error: If ``True``, raises an exception rather than returning failure in the response.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -6947,7 +6943,7 @@ class AsyncSubtensor(SubtensorMixin):
             - The ``kill_pure`` call must be executed through the pure proxy account itself, with the spawner acting as
               an ``Any`` proxy. This method automatically handles this by executing the call via :meth:`proxy`. The spawner
               must have an ``Any`` proxy relationship with the pure proxy for this to work.
-            - Bittensor proxies: <https://docs.learnbittensor.org/keys/proxies/pure-proxies>            
+            - Bittensor proxies: <https://docs.learnbittensor.org/keys/proxies/pure-proxies>
 
         Warning:
             All access to this account will be lost. Any funds remaining in the pure proxy account will become
@@ -7259,7 +7255,7 @@ class AsyncSubtensor(SubtensorMixin):
             force_proxy_type: The type of proxy to use for the call. If ``None``, any proxy type can be used. Otherwise,
                 must match one of the allowed proxy types. Can be a string or ProxyType enum value.
             call: The inner call to be executed on behalf of the real account.
-            mev_prot``ection``: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
@@ -7275,7 +7271,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Notes:
             - The call must be permitted by the proxy type. For example, a "NonTransfer" proxy cannot execute transfer
-              calls. The delay period must also have passed since the proxy was added.            
+              calls. The delay period must also have passed since the proxy was added.
         """
         return await proxy_extrinsic(
             subtensor=self,
@@ -7320,7 +7316,7 @@ class AsyncSubtensor(SubtensorMixin):
             force_proxy_type: The type of proxy to use for the call. If ``None``, any proxy type can be used. Otherwise,
                 must match one of the allowed proxy types. Can be a string or ProxyType enum value.
             call: The inner call to be executed on behalf of the real account (must match the announced call_hash).
-            mev_prot``ection``: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
@@ -7336,7 +7332,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Notes:
             - The call_hash of the provided call must match the call_hash that was announced. The announcement must not
-              have been rejected by the real account, and the delay period must have passed.            
+              have been rejected by the real account, and the delay period must have passed.
         """
         return await proxy_announced_extrinsic(
             subtensor=self,
@@ -7429,7 +7425,7 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: Bittensor wallet object (should be the real account wallet).
             delegate_ss58: The SS58 address of the delegate proxy account whose announcement is being rejected.
             call_hash: The hash of the call that was announced and is now being rejected.
-            mev_protectio``n``: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
@@ -7444,7 +7440,7 @@ class AsyncSubtensor(SubtensorMixin):
             ExtrinsicResponse: The result object of the extrinsic execution.
 
         Notes:
-            - Once rejected, the announcement cannot be executed. The delegate's announcement deposit is returned.            
+            - Once rejected, the announcement cannot be executed. The delegate's announcement deposit is returned.
         """
         return await reject_announcement_extrinsic(
             subtensor=self,
@@ -7497,7 +7493,7 @@ class AsyncSubtensor(SubtensorMixin):
             num_processes: The number of processes to use to register.
             update_interval: The number of nonces to solve between updates.
             log_verbose: If ``true``, the registration process will log more information.
-            mev_protection``:`` If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
@@ -7605,7 +7601,7 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: Bittensor wallet object (should be the proxy account wallet that made the announcement).
             real_account_ss58: The SS58 address of the real account on whose behalf the call was announced.
             call_hash: The hash of the call that was announced and is now being removed.
-            mev_protectio``n``: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
@@ -7621,7 +7617,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Notes:
             - Only the proxy account that made the announcement can remove it. The real account can reject it via
-              :meth:`reject_proxy_announcement`, but cannot remove it directly.            
+              :meth:`reject_proxy_announcement`, but cannot remove it directly.
         """
         return await remove_announcement_extrinsic(
             subtensor=self,
@@ -7727,7 +7723,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Notes:
             - This removes all proxy relationships for the account, regardless of proxy type or delegate. Use
-              :meth:`remove_proxy` if you need to remove specific proxy relationships selectively.            
+              :meth:`remove_proxy` if you need to remove specific proxy relationships selectively.
         """
         return await remove_proxies_extrinsic(
             subtensor=self,
@@ -7785,7 +7781,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Notes:
             - The delegate_ss58, proxy_type, and delay parameters must exactly match those used when the proxy was added.
-              Use :meth:`get_proxies_for_real_account` to retrieve the exact parameters for existing proxies.            
+              Use :meth:`get_proxies_for_real_account` to retrieve the exact parameters for existing proxies.
         """
         return await remove_proxy_extrinsic(
             subtensor=self,
@@ -7950,7 +7946,7 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             wallet: bittensor wallet instance.
             cooldown: the number of blocks to setting pending childkey cooldown.
-            mev_protecti``on``: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's
@@ -8207,7 +8203,7 @@ class AsyncSubtensor(SubtensorMixin):
                 - RootClaimType: RootClaimType.Swap, RootClaimType.Keep
                 - Dict: {"KeepSubnets": {"subnets": [1, 2, 3]}}
                 - Callable: RootClaimType.KeepSubnets([1, 2, 3])
-            mev_protection``:`` If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: Number of blocks for which the transaction remains valid after submission. If the extrinsic is
@@ -8616,7 +8612,7 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
 
-            mev_protection``:`` If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
@@ -8825,10 +8821,9 @@ class AsyncSubtensor(SubtensorMixin):
             enable: Boolean indicating whether to enable (``True``) or disable (``False``) user liquidity.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            mev_protection``:`` If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If ``False``, submits the transaction directly without encryption.            
-
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
@@ -8952,7 +8947,7 @@ class AsyncSubtensor(SubtensorMixin):
             origin_netuid: The source subnet UID.
             destination_netuid: The destination subnet UID.
             amount: Amount to transfer.
-            mev_protectio``n``: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
@@ -9185,7 +9180,7 @@ class AsyncSubtensor(SubtensorMixin):
             hotkey_ss58s: A list of hotkey `SS58` addresses to unstake from.
             amounts: The amounts of TAO to unstake from each hotkey. If not provided, unstakes all.
             unstake_all: If true, unstakes all tokens. If `True` amounts are ignored.
-            mev_protection``:`` If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If

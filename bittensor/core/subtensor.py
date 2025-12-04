@@ -2663,7 +2663,7 @@ class Subtensor(SubtensorMixin):
             The minimum stake threshold as a Balance object. Nominator stakes below this amount
             are automatically cleared after unstake operations.
 
-        Notes:            
+        Notes:
             - <https://docs.learnbittensor.org/staking-and-delegation/delegation>
         """
         result = self.substrate.query(
@@ -4949,7 +4949,7 @@ class Subtensor(SubtensorMixin):
                 exceed the price tolerance. If false, the entire stake fails if it would exceed the tolerance.
             rate_tolerance: The maximum allowed price change ratio when staking. For example, 0.005 = 0.5% maximum price
                 increase. Only used when safe_staking is True.
-            mev_protection: If ``True``, encrypts and submits the staking transaction through the MEV Shield pallet  to
+            mev_protection: If ``True``, encrypts and submits the staking transaction through the MEV Shield pallet to
                 protect against front-running and MEV attacks. The transaction remains encrypted in the mempool until
                 validators decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
@@ -5016,9 +5016,9 @@ class Subtensor(SubtensorMixin):
             price_low: The lower bound of the price tick range. In TAO.
             price_high: The upper bound of the price tick range. In TAO.
             hotkey_ss58: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -5072,9 +5072,9 @@ class Subtensor(SubtensorMixin):
             netuids: List of subnet UIDs.
             hotkey_ss58s: List of ``SS58`` addresses of hotkeys to stake to.
             amounts: List of corresponding TAO amounts to bet for each netuid and hotkey.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -5131,9 +5131,9 @@ class Subtensor(SubtensorMixin):
             proxy_type: The type of proxy permissions (e.g., "Any", "NonTransfer", "Governance", "Staking"). Can be a
                 string or ProxyType enum value.
             delay: The number of blocks before the proxy can be used.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -5188,9 +5188,9 @@ class Subtensor(SubtensorMixin):
             wallet: Bittensor wallet object (should be the proxy account wallet).
             real_account_ss58: The SS58 address of the real account on whose behalf the call will be made.
             call_hash: The hash of the call that will be executed in the future.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -5239,9 +5239,9 @@ class Subtensor(SubtensorMixin):
         Parameters:
             wallet: The wallet associated with the neuron to be registered.
             netuid: The unique identifier of the subnet.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -5363,9 +5363,9 @@ class Subtensor(SubtensorMixin):
             mechid: Subnet mechanism unique identifier.
             version_key: Version key for compatibility with the network.
             max_attempts: The number of maximum attempts to commit weights.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -5438,19 +5438,21 @@ class Subtensor(SubtensorMixin):
         wait_for_finalization: bool = True,
         wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Contributes funds to an active crowdloan campaign.
+        """Contributes TAO to an active crowdloan campaign.
+
+        Contributions must occur before the crowdloan's end block and are subject to minimum contribution
+        requirements. If a contribution would push the total raised above the cap, it is automatically clipped
+        to fit the remaining amount. Once the cap is reached, further contributions are rejected.
 
         Parameters:
-            wallet: Bittensor Wallet instance used to sign the transaction.
+            wallet: Bittensor wallet instance used to sign the transaction (coldkey pays, coldkey receives emissions).
             crowdloan_id: The unique identifier of the crowdloan to contribute to.
-            amount: Amount to contribute.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            amount: Amount to contribute (TAO). Must meet or exceed the campaign's ``min_contribution``.
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
+            period: The number of blocks during which the transaction will remain valid after it's submitted.
+            raise_error: If ``True``, raises an exception rather than returning failure in the response.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -5507,9 +5509,9 @@ class Subtensor(SubtensorMixin):
             end: Block number when the campaign ends.
             call: Runtime call data (e.g., subtensor::register_leased_network).
             target_address: SS58 address to transfer funds to on success.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
             raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
@@ -5601,7 +5603,7 @@ class Subtensor(SubtensorMixin):
               spawner address, proxy_type, index, height, and ext_index as they are required to kill the pure proxy later
               via :meth:`kill_pure_proxy`.
             - Bittensor proxies: <https://docs.learnbittensor.org/keys/proxies/pure-proxies>
-            - Polkadot proxy documentation: <https://wiki.polkadot.network/docs/learn-proxies>            
+            - Polkadot proxy documentation: <https://wiki.polkadot.network/docs/learn-proxies>
         """
         return create_pure_proxy_extrinsic(
             subtensor=self,
@@ -5643,7 +5645,7 @@ class Subtensor(SubtensorMixin):
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after submission.
-            raise_error: If ``True``, raises an exception rather than returning failure in the response.            
+            raise_error: If ``True``, raises an exception rather than returning failure in the response.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -5778,9 +5780,9 @@ class Subtensor(SubtensorMixin):
                 type (or `Any`) with the pure proxy account. Defaults to `ProxyType.Any` for maximum compatibility. If
                 `None`, Substrate will automatically select an available proxy type from the spawner's proxy
                 relationships.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -5905,9 +5907,9 @@ class Subtensor(SubtensorMixin):
             position_id: The id of the position record in the pool.
             liquidity_delta: The amount of liquidity to be added or removed (add if positive or remove if negative).
             hotkey_ss58: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -5991,9 +5993,9 @@ class Subtensor(SubtensorMixin):
             destination_hotkey_ss58: The SS58 address of the destination hotkey.
             amount: Amount of stake to move.
             move_all_stake: If true, moves all stake from the source hotkey to the destination hotkey.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6047,9 +6049,9 @@ class Subtensor(SubtensorMixin):
 
         Parameters:
             wallet: Bittensor wallet object (the account whose deposits will be adjusted).
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
@@ -6106,9 +6108,9 @@ class Subtensor(SubtensorMixin):
             force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise,
                 must match one of the allowed proxy types. Can be a string or ProxyType enum value.
             call: The inner call to be executed on behalf of the real account.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6167,9 +6169,9 @@ class Subtensor(SubtensorMixin):
             force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise,
                 must match one of the allowed proxy types. Can be a string or ProxyType enum value.
             call: The inner call to be executed on behalf of the real account (must match the announced call_hash).
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6276,9 +6278,9 @@ class Subtensor(SubtensorMixin):
             wallet: Bittensor wallet object (should be the real account wallet).
             delegate_ss58: The SS58 address of the delegate proxy account whose announcement is being rejected.
             call_hash: The hash of the call that was announced and is now being rejected.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6344,9 +6346,9 @@ class Subtensor(SubtensorMixin):
             num_processes: The number of processes to use to register.
             update_interval: The number of nonces to solve between updates.
             log_verbose: If ``true``, the registration process will log more information.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6400,9 +6402,9 @@ class Subtensor(SubtensorMixin):
 
         Parameters:
             wallet: The wallet to be used for subnet registration.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -6452,9 +6454,9 @@ class Subtensor(SubtensorMixin):
             wallet: Bittensor wallet object (should be the proxy account wallet that made the announcement).
             real_account_ss58: The SS58 address of the real account on whose behalf the call was announced.
             call_hash: The hash of the call that was announced and is now being removed.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6504,9 +6506,9 @@ class Subtensor(SubtensorMixin):
             netuid: The UID of the target subnet for which the call is being initiated.
             position_id: The id of the position record in the pool.
             hotkey_ss58: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -6558,9 +6560,9 @@ class Subtensor(SubtensorMixin):
         Parameters:
             wallet: Bittensor wallet object. The account whose proxies will be removed (the delegator). All proxy
                 relationships where wallet.coldkey.ss58_address is the real account will be removed.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6613,9 +6615,9 @@ class Subtensor(SubtensorMixin):
             delegate_ss58: The SS58 address of the delegate proxy account to remove.
             proxy_type: The type of proxy permissions to remove. Can be a string or ProxyType enum value.
             delay: The number of blocks before the proxy removal takes effect.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6676,9 +6678,9 @@ class Subtensor(SubtensorMixin):
             mechid: The subnet mechanism unique identifier.
             max_attempts: The number of maximum attempts to reveal weights.
             version_key: Version key for compatibility with the network.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6747,9 +6749,9 @@ class Subtensor(SubtensorMixin):
 
         Parameters:
             wallet (bittensor_wallet.Wallet): Bittensor wallet instance.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6793,9 +6795,9 @@ class Subtensor(SubtensorMixin):
         Parameters:
             wallet: bittensor wallet instance.
             cooldown: the number of blocks to setting pending childkey cooldown.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period (Optional[int]): The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
@@ -6841,9 +6843,9 @@ class Subtensor(SubtensorMixin):
             netuid: The subnet unique identifier.
             hotkey_ss58: The SS58 address of the validator's hotkey to which the miner automatically stakes all rewards
                 received from the specified subnet immediately upon receipt.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6893,9 +6895,9 @@ class Subtensor(SubtensorMixin):
             hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
             netuid: The netuid value.
             children: A list of children with their proportions.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
@@ -7084,9 +7086,9 @@ class Subtensor(SubtensorMixin):
             netuid: The unique ID of the network on which the operation takes place.
             subnet_identity: The identity data of the subnet including attributes like name, GitHub repository, contact,
                 URL, discord, description, and any additional metadata.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
@@ -7153,9 +7155,9 @@ class Subtensor(SubtensorMixin):
             commit_reveal_version: The version of the chain commit-reveal protocol to use.
             max_attempts: The number of maximum attempts to set weights.
             version_key: Version key for compatibility with the network.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
@@ -7291,9 +7293,9 @@ class Subtensor(SubtensorMixin):
             netuid: The unique identifier of the subnetwork.
             axon: The Axon instance to be registered for serving.
             certificate: Certificate to use for TLS. If ``None``, no TLS will be used.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
@@ -7348,9 +7350,9 @@ class Subtensor(SubtensorMixin):
             wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the data.
             netuid (int): The unique identifier of the subnetwork.
             data (str): The data to be committed to the network.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -7412,9 +7414,9 @@ class Subtensor(SubtensorMixin):
             blocks_until_reveal: The number of blocks from now after which the data will be revealed. Then number of
                 blocks in one epoch.
             block_time: The number of seconds between each block.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -7471,9 +7473,9 @@ class Subtensor(SubtensorMixin):
         Parameters:
             wallet: The wallet used to sign the extrinsic (must be unlocked).
             netuid: The UID of the target subnet for which the call is being initiated.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -7532,9 +7534,9 @@ class Subtensor(SubtensorMixin):
             rate_tolerance: The maximum allowed increase in the price ratio between subnets
                 (origin_price/destination_price). For example, 0.005 = 0.5% maximum increase. Only used when
                 safe_staking is True.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -7594,9 +7596,9 @@ class Subtensor(SubtensorMixin):
             wallet: The wallet used to sign the extrinsic (must be unlocked).
             netuid: The UID of the target subnet for which the call is being initiated.
             enable: Boolean indicating whether to enable user liquidity.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -7647,9 +7649,9 @@ class Subtensor(SubtensorMixin):
             amount: Number of tokens to transfer. `None` is transferring all.
             transfer_all: Flag to transfer all tokens.
             keep_alive: Flag to keep the connection alive.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -7703,9 +7705,9 @@ class Subtensor(SubtensorMixin):
             origin_netuid: The source subnet UID.
             destination_netuid: The destination subnet UID.
             amount: Amount to transfer.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -7771,9 +7773,9 @@ class Subtensor(SubtensorMixin):
                 0.005 = 0.5% maximum price decrease. Only used when safe_staking is True.
             safe_unstaking: If true, enables price safety checks to protect against fluctuating prices. The unstake
                 will only execute if the price change doesn't exceed the rate tolerance.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -7833,9 +7835,9 @@ class Subtensor(SubtensorMixin):
             hotkey_ss58: The SS58 address of the hotkey to unstake from.
             rate_tolerance: The maximum allowed price change ratio when unstaking. For example, 0.005 = 0.5% maximum
                 price decrease. If not passed (None), then unstaking goes without price limit.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -7928,9 +7930,9 @@ class Subtensor(SubtensorMixin):
             hotkey_ss58s: A list of hotkey `SS58` addresses to unstake from.
             amounts: The amounts of TAO to unstake from each hotkey. If not provided, unstakes all.
             unstake_all: If true, unstakes all tokens. If `True` amounts are ignored.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
