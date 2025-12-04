@@ -877,7 +877,7 @@ async def test_filter_netuids_by_registered_hotkeys(
     )
 
     # Asserts
-    mocked_get_netuids_for_hotkey.call_count = len(fake_all_netuids)
+    assert mocked_get_netuids_for_hotkey.call_count == len(fake_all_hotkeys)
     assert mocked_get_netuids_for_hotkey.mock_calls == [
         mocker.call(
             w.hotkey.ss58_address,
