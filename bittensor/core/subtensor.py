@@ -3989,16 +3989,28 @@ class Subtensor(SubtensorMixin):
         block: Optional[int],
     ) -> list[int]:
         """
-                Filters a given list of all netuids for certain specified netuids and hotkeys
-        # TODO @roman I find this confusing, what is the difference between all_netuids and filter_for_netuids? what is the intent for this method's
-                Parameters:
-                    all_netuids: A list of netuids to filter.
-                    filter_for_netuids: A subset of all_netuids to filter from the main list.
-                    all_hotkeys: Hotkeys to filter from the main list.
-                    block: The blockchain block number for the query.
+        Filters netuids by combining netuids from all_netuids and netuids with registered hotkeys.
 
-                Returns:
-                    The filtered list of netuids.
+        If filter_for_netuids is empty/None:
+            Returns all netuids where hotkeys from all_hotkeys are registered.
+
+        If filter_for_netuids is provided:
+            Returns the union of:
+            - Netuids from all_netuids that are in filter_for_netuids, AND
+            - Netuids with registered hotkeys that are in filter_for_netuids
+
+        This allows you to get netuids that are either in your specified list (all_netuids) or have registered hotkeys,
+        as long as they match filter_for_netuids.
+
+        Arguments:
+            all_netuids (Iterable[int]): A list of netuids to consider for filtering.
+            filter_for_netuids (Iterable[int]): A subset of netuids to restrict the result to. If None/empty, returns
+                all netuids with registered hotkeys.
+            all_hotkeys (Iterable[Wallet]): Hotkeys to check for registration.
+            block (Optional[int]): The blockchain block number for the query.
+
+        Returns:
+            The filtered list of netuids (union of filtered all_netuids and registered hotkeys).
         """
         self._get_block_hash(block)  # just used to cache the block hash
         netuids_with_registered_hotkeys = [

@@ -2,7 +2,7 @@ import asyncio
 import copy
 import ssl
 from datetime import datetime, timezone
-from typing import cast, Optional, Any, Union, Iterable, TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Iterable, Literal, Optional, Union, cast
 
 import asyncstdlib as a
 import scalecodec
@@ -14,17 +14,17 @@ from bittensor_wallet.utils import SS58_FORMAT
 from scalecodec import GenericCall
 
 from bittensor.core.chain_data import (
-    CrowdloanInfo,
     CrowdloanConstants,
+    CrowdloanInfo,
     DelegateInfo,
     DynamicInfo,
     MetagraphInfo,
-    NeuronInfoLite,
     NeuronInfo,
+    NeuronInfoLite,
     ProposalVoteData,
     ProxyAnnouncementInfo,
-    ProxyInfo,
     ProxyConstants,
+    ProxyInfo,
     ProxyType,
     RootClaimType,
     SelectiveMetagraphIndex,
@@ -69,9 +69,9 @@ from bittensor.core.extrinsics.asyncex.liquidity import (
 )
 from bittensor.core.extrinsics.asyncex.mev_shield import submit_encrypted_extrinsic
 from bittensor.core.extrinsics.asyncex.move_stake import (
-    transfer_stake_extrinsic,
-    swap_stake_extrinsic,
     move_stake_extrinsic,
+    swap_stake_extrinsic,
+    transfer_stake_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.proxy import (
     add_proxy_extrinsic,
@@ -83,8 +83,8 @@ from bittensor.core.extrinsics.asyncex.proxy import (
     proxy_extrinsic,
     reject_announcement_extrinsic,
     remove_announcement_extrinsic,
-    remove_proxy_extrinsic,
     remove_proxies_extrinsic,
+    remove_proxy_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.registration import (
     burned_register_extrinsic,
@@ -4866,18 +4866,30 @@ class AsyncSubtensor(SubtensorMixin):
         reuse_block: bool = False,
     ) -> list[int]:
         """
-                Filters a given list of all netuids for certain specified netuids and hotkeys
-        # TODO @roman I find this confusing, what is the difference between all_netuids and filter_for_netuids? what is the intent for this method's
-                Parameters:
-                    all_netuids: A list of netuids to filter.
-                    filter_for_netuids: A subset of all_netuids to filter from the main list.
-                    all_hotkeys: Hotkeys to filter from the main list.
-                    block: The blockchain block number for the query.
-                    block_hash: hash of the blockchain block number at which to perform the query.
-                    reuse_block: whether to reuse the last-used blockchain hash when retrieving info.
+        Filters netuids by combining netuids from all_netuids and netuids with registered hotkeys.
 
-                Returns:
-                    The filtered list of netuids.
+        If filter_for_netuids is empty/None:
+            Returns all netuids where hotkeys from all_hotkeys are registered.
+
+        If filter_for_netuids is provided:
+            Returns the union of:
+            - Netuids from all_netuids that are in filter_for_netuids, AND
+            - Netuids with registered hotkeys that are in filter_for_netuids
+
+        This allows you to get netuids that are either in your specified list (all_netuids) or have registered hotkeys,
+        as long as they match filter_for_netuids.
+
+        Arguments:
+            all_netuids (Iterable[int]): A list of netuids to consider for filtering.
+            filter_for_netuids (Iterable[int]): A subset of netuids to restrict the result to. If None/empty, returns
+                all netuids with registered hotkeys.
+            all_hotkeys (Iterable[Wallet]): Hotkeys to check for registration.
+            block (Optional[int]): The blockchain block number for the query.
+            block_hash (Optional[str]): hash of the blockchain block number at which to perform the query.
+            reuse_block (bool): whether to reuse the last-used blockchain hash when retrieving info.
+
+        Returns:
+            The filtered list of netuids (union of filtered all_netuids and registered hotkeys).
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         netuids_with_registered_hotkeys = [
