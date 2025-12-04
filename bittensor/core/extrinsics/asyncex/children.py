@@ -23,6 +23,7 @@ async def set_children_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Allows a coldkey to set children-keys.
@@ -83,7 +84,7 @@ async def set_children_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             response = await subtensor.sign_and_send_extrinsic(
@@ -110,6 +111,7 @@ async def root_set_pending_childkey_cooldown_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Allows a root coldkey to set children-keys.
@@ -152,7 +154,7 @@ async def root_set_pending_childkey_cooldown_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             response = await subtensor.sign_and_send_extrinsic(

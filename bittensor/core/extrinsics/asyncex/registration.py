@@ -28,6 +28,7 @@ async def burned_register_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """Registers the wallet to chain by recycling TAO.
 
@@ -44,6 +45,7 @@ async def burned_register_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -100,7 +102,7 @@ async def burned_register_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             response = await subtensor.sign_and_send_extrinsic(
@@ -165,6 +167,7 @@ async def register_subnet_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Registers a new subnetwork on the Bittensor blockchain asynchronously.
@@ -181,6 +184,7 @@ async def register_subnet_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -215,7 +219,7 @@ async def register_subnet_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             response = await subtensor.sign_and_send_extrinsic(
@@ -259,6 +263,7 @@ async def register_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """Registers a neuron on the Bittensor subnet with provided netuid using the provided wallet.
 
@@ -286,6 +291,7 @@ async def register_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -393,7 +399,7 @@ async def register_extrinsic(
                             raise_error=raise_error,
                             wait_for_inclusion=wait_for_inclusion,
                             wait_for_finalization=wait_for_finalization,
-                            wait_for_revealed_execution=True,
+                            wait_for_revealed_execution=wait_for_revealed_execution,
                         )
                     else:
                         response = await subtensor.sign_and_send_extrinsic(
@@ -463,6 +469,7 @@ async def set_subnet_identity_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Set the identity information for a given subnet.
@@ -488,6 +495,7 @@ async def set_subnet_identity_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -521,7 +529,7 @@ async def set_subnet_identity_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             response = await subtensor.sign_and_send_extrinsic(

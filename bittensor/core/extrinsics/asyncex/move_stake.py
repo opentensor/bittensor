@@ -56,6 +56,7 @@ async def move_stake_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Moves stake from one hotkey to another within subnets in the Bittensor network.
@@ -78,6 +79,7 @@ async def move_stake_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -137,7 +139,7 @@ async def move_stake_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             response = await subtensor.sign_and_send_extrinsic(
@@ -210,6 +212,7 @@ async def transfer_stake_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Transfers stake from one coldkey to another in the Bittensor network.
@@ -231,6 +234,7 @@ async def transfer_stake_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -284,7 +288,7 @@ async def transfer_stake_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             response = await subtensor.sign_and_send_extrinsic(
@@ -351,6 +355,7 @@ async def swap_stake_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Swaps stake from one subnet to another for a given hotkey in the Bittensor network.
@@ -452,7 +457,7 @@ async def swap_stake_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             response = await subtensor.sign_and_send_extrinsic(

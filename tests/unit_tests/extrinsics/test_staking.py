@@ -41,6 +41,7 @@ def test_add_stake_extrinsic(mocker):
         mev_protection=DEFAULT_MEV_PROTECTION,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        wait_for_revealed_execution=True,
     )
 
     # Asserts

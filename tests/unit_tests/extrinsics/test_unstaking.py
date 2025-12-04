@@ -37,6 +37,7 @@ def test_unstake_extrinsic(fake_wallet, mocker):
         mev_protection=DEFAULT_MEV_PROTECTION,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        wait_for_revealed_execution=True,
     )
 
     # Asserts
@@ -145,6 +146,7 @@ def test_unstake_multiple_extrinsic(subtensor, fake_wallet, mocker):
         mev_protection=DEFAULT_MEV_PROTECTION,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        wait_for_revealed_execution=True,
     )
 
     # Asserts
@@ -167,4 +169,5 @@ def test_unstake_multiple_extrinsic(subtensor, fake_wallet, mocker):
         raise_error=False,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        wait_for_revealed_execution=True,
     )

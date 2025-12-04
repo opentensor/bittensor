@@ -20,6 +20,7 @@ async def start_call_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Submits a start_call extrinsic to the blockchain, to trigger the start call process for a subnet (used to start a
@@ -38,6 +39,7 @@ async def start_call_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
         wait_for_finalization: Whether to wait for finalization of the extrinsic.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -59,7 +61,7 @@ async def start_call_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             return await subtensor.sign_and_send_extrinsic(

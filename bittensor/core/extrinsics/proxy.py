@@ -26,6 +26,7 @@ def add_proxy_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Adds a proxy relationship.
@@ -46,6 +47,7 @@ def add_proxy_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -79,7 +81,7 @@ def add_proxy_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             response = subtensor.sign_and_send_extrinsic(
@@ -114,6 +116,7 @@ def remove_proxy_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Removes a proxy relationship.
@@ -133,6 +136,7 @@ def remove_proxy_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -166,7 +170,7 @@ def remove_proxy_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             response = subtensor.sign_and_send_extrinsic(
@@ -198,6 +202,7 @@ def remove_proxies_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Removes all proxy relationships for the account.
@@ -215,6 +220,7 @@ def remove_proxies_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -241,7 +247,7 @@ def remove_proxies_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             response = subtensor.sign_and_send_extrinsic(
@@ -276,6 +282,7 @@ def create_pure_proxy_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Creates a pure proxy account.
@@ -295,6 +302,7 @@ def create_pure_proxy_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -335,7 +343,7 @@ def create_pure_proxy_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             response = subtensor.sign_and_send_extrinsic(
@@ -397,6 +405,7 @@ def kill_pure_proxy_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Kills (removes) a pure proxy account.
@@ -434,6 +443,7 @@ def kill_pure_proxy_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -540,6 +550,7 @@ def proxy_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Executes a call on behalf of the real account through a proxy.
@@ -560,6 +571,7 @@ def proxy_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -597,7 +609,7 @@ def proxy_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             response = subtensor.sign_and_send_extrinsic(
@@ -633,6 +645,7 @@ def proxy_announced_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Executes an announced call on behalf of the real account through a proxy.
@@ -657,6 +670,7 @@ def proxy_announced_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -695,7 +709,7 @@ def proxy_announced_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             response = subtensor.sign_and_send_extrinsic(
@@ -729,6 +743,7 @@ def announce_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Announces a future call that will be executed through a proxy.
@@ -747,6 +762,7 @@ def announce_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -780,7 +796,7 @@ def announce_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             response = subtensor.sign_and_send_extrinsic(
@@ -814,6 +830,7 @@ def reject_announcement_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Rejects an announcement made by a proxy delegate.
@@ -835,6 +852,7 @@ def reject_announcement_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -868,7 +886,7 @@ def reject_announcement_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             response = subtensor.sign_and_send_extrinsic(
@@ -902,6 +920,7 @@ def remove_announcement_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Removes an announcement made by a proxy account.
@@ -923,6 +942,7 @@ def remove_announcement_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -956,7 +976,7 @@ def remove_announcement_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             response = subtensor.sign_and_send_extrinsic(
@@ -988,6 +1008,7 @@ def poke_deposit_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Adjusts deposits made for proxies and announcements based on current values.
@@ -1006,6 +1027,7 @@ def poke_deposit_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -1037,7 +1059,7 @@ def poke_deposit_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             response = subtensor.sign_and_send_extrinsic(

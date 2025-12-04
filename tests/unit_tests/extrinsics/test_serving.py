@@ -111,6 +111,7 @@ def test_serve_extrinsic_happy_path(
         placeholder2=placeholder2,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        wait_for_revealed_execution=True,
     )
 
     # Assert
@@ -170,6 +171,7 @@ def test_serve_extrinsic_edge_cases(
         placeholder2=placeholder2,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        wait_for_revealed_execution=True,
     )
 
     # Assert
@@ -228,6 +230,7 @@ def test_serve_extrinsic_error_cases(
         placeholder2=placeholder2,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        wait_for_revealed_execution=True,
     )
 
     # Assert
@@ -308,6 +311,7 @@ def test_serve_axon_extrinsic(
                 axon=mock_axon,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=True,
             )
 
             # Assert
@@ -365,6 +369,7 @@ def test_publish_metadata(
             data=data,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=True,
         )
         # Assert
         assert result.success is True, f"Test ID: {test_id}"

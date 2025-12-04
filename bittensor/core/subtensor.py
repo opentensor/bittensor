@@ -1,7 +1,7 @@
 import copy
 from datetime import datetime, timezone
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, Iterable, Optional, Union, cast, Literal
+from typing import TYPE_CHECKING, Any, Iterable, Literal, Optional, Union, cast
 
 import scalecodec
 from async_substrate_interface.errors import SubstrateRequestException
@@ -14,8 +14,8 @@ from bittensor_wallet.utils import SS58_FORMAT
 
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import (
-    CrowdloanInfo,
     CrowdloanConstants,
+    CrowdloanInfo,
     DelegatedInfo,
     DelegateInfo,
     DynamicInfo,
@@ -24,16 +24,16 @@ from bittensor.core.chain_data import (
     NeuronInfoLite,
     ProposalVoteData,
     ProxyAnnouncementInfo,
-    ProxyInfo,
     ProxyConstants,
+    ProxyInfo,
     ProxyType,
     RootClaimType,
     SelectiveMetagraphIndex,
     SimSwapResult,
     StakeInfo,
-    SubnetInfo,
-    SubnetIdentity,
     SubnetHyperparameters,
+    SubnetIdentity,
+    SubnetInfo,
     WeightCommitInfo,
     decode_account_id,
 )
@@ -47,8 +47,8 @@ from bittensor.core.chain_data.utils import (
 from bittensor.core.config import Config
 from bittensor.core.errors import ChainError
 from bittensor.core.extrinsics.children import (
-    set_children_extrinsic,
     root_set_pending_childkey_cooldown_extrinsic,
+    set_children_extrinsic,
 )
 from bittensor.core.extrinsics.crowdloan import (
     contribute_crowdloan_extrinsic,
@@ -67,10 +67,11 @@ from bittensor.core.extrinsics.liquidity import (
     remove_liquidity_extrinsic,
     toggle_user_liquidity_extrinsic,
 )
+from bittensor.core.extrinsics.mev_shield import submit_encrypted_extrinsic
 from bittensor.core.extrinsics.move_stake import (
-    transfer_stake_extrinsic,
-    swap_stake_extrinsic,
     move_stake_extrinsic,
+    swap_stake_extrinsic,
+    transfer_stake_extrinsic,
 )
 from bittensor.core.extrinsics.proxy import (
     add_proxy_extrinsic,
@@ -82,8 +83,8 @@ from bittensor.core.extrinsics.proxy import (
     proxy_extrinsic,
     reject_announcement_extrinsic,
     remove_announcement_extrinsic,
-    remove_proxy_extrinsic,
     remove_proxies_extrinsic,
+    remove_proxy_extrinsic,
 )
 from bittensor.core.extrinsics.registration import (
     burned_register_extrinsic,
@@ -114,7 +115,6 @@ from bittensor.core.extrinsics.unstaking import (
     unstake_multiple_extrinsic,
 )
 from bittensor.core.extrinsics.utils import get_transfer_fn_params
-from bittensor.core.extrinsics.mev_shield import submit_encrypted_extrinsic
 from bittensor.core.extrinsics.weights import (
     commit_timelocked_weights_extrinsic,
     commit_weights_extrinsic,
@@ -123,11 +123,11 @@ from bittensor.core.extrinsics.weights import (
 )
 from bittensor.core.metagraph import Metagraph
 from bittensor.core.settings import (
-    version_as_int,
     DEFAULT_MEV_PROTECTION,
     DEFAULT_PERIOD,
     TAO_APP_BLOCK_EXPLORER,
     TYPE_REGISTRY,
+    version_as_int,
 )
 from bittensor.core.types import (
     BlockInfo,
@@ -150,22 +150,22 @@ from bittensor.utils import (
 )
 from bittensor.utils.balance import (
     Balance,
-    fixed_to_float,
     FixedPoint,
     check_balance_amount,
+    fixed_to_float,
 )
 from bittensor.utils.btlogging import logging
 from bittensor.utils.liquidity import (
+    LiquidityPosition,
     calculate_fees,
     get_fees,
-    tick_to_price,
     price_to_tick,
-    LiquidityPosition,
+    tick_to_price,
 )
 
 if TYPE_CHECKING:
-    from bittensor_wallet import Keypair, Wallet
     from async_substrate_interface.sync_substrate import QueryMapResult
+    from bittensor_wallet import Keypair, Wallet
     from scalecodec.types import GenericCall
 
 
@@ -4540,6 +4540,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Adds a stake from the specified wallet to the neuron identified by the SS58 address of its hotkey in specified
@@ -4566,6 +4567,8 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection
+                used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -4589,6 +4592,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def add_liquidity(
@@ -4605,6 +4609,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Adds liquidity to the specified price range.
@@ -4625,6 +4630,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -4645,6 +4651,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def add_stake_multiple(
@@ -4659,6 +4666,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Adds stakes to multiple neurons identified by their hotkey SS58 addresses.
@@ -4678,6 +4686,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -4696,6 +4705,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def add_proxy(
@@ -4710,6 +4720,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Adds a proxy relationship.
@@ -4733,6 +4744,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -4752,6 +4764,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def announce_proxy(
@@ -4765,6 +4778,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Announces a future call that will be executed through a proxy.
@@ -4786,6 +4800,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -4804,6 +4819,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def burned_register(
@@ -4816,6 +4832,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Registers a neuron on the Bittensor network by recycling TAO. This method of registration involves recycling
@@ -4833,6 +4850,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -4847,6 +4865,7 @@ class Subtensor(SubtensorMixin):
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
 
         return burned_register_extrinsic(
@@ -4858,6 +4877,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def claim_root(
@@ -4870,6 +4890,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ):
         """Claims the root emissions for a coldkey.
 
@@ -4885,6 +4906,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -4898,6 +4920,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def commit_weights(
@@ -4916,6 +4939,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = True,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Commits a hash of the neuron's weights to the Bittensor blockchain using the provided wallet.
@@ -4939,6 +4963,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -4973,6 +4998,7 @@ class Subtensor(SubtensorMixin):
                     raise_error=raise_error,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
+                    wait_for_revealed_execution=wait_for_revealed_execution,
                 )
             except Exception as error:
                 return ExtrinsicResponse.from_exception(
@@ -4998,6 +5024,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Contributes funds to an active crowdloan campaign.
@@ -5015,6 +5042,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5029,6 +5057,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def create_crowdloan(
@@ -5046,6 +5075,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Creates a new crowdloan campaign on-chain.
@@ -5067,6 +5097,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5085,6 +5116,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def create_pure_proxy(
@@ -5099,6 +5131,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Creates a pure proxy account.
@@ -5121,6 +5154,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5141,6 +5175,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def dissolve_crowdloan(
@@ -5153,6 +5188,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Dissolves a completed or failed crowdloan campaign after all refunds are processed.
@@ -5172,6 +5208,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5191,6 +5228,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def finalize_crowdloan(
@@ -5203,6 +5241,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Finalizes a successful crowdloan campaign once the cap has been reached and the end block has passed.
@@ -5219,6 +5258,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5232,6 +5272,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def kill_pure_proxy(
@@ -5250,6 +5291,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Kills (removes) a pure proxy account.
@@ -5287,6 +5329,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5315,6 +5358,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def mev_submit_encrypted(
@@ -5322,6 +5366,7 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         call: "GenericCall",
         signer_keypair: Optional["Keypair"] = None,
+        *,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -5391,6 +5436,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """Modifies liquidity in liquidity position by adding or removing liquidity from it.
 
@@ -5409,6 +5455,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5454,6 +5501,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def move_stake(
@@ -5471,6 +5519,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Moves stake to a different hotkey and/or subnet.
@@ -5492,6 +5541,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5511,6 +5561,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def poke_deposit(
@@ -5522,6 +5573,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Adjusts deposits made for proxies and announcements based on current values.
@@ -5539,6 +5591,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5560,6 +5613,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def proxy(
@@ -5574,6 +5628,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Executes a call on behalf of the real account through a proxy.
@@ -5597,6 +5652,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5616,6 +5672,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def proxy_announced(
@@ -5631,6 +5688,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Executes an announced call on behalf of the real account through a proxy.
@@ -5655,6 +5713,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5675,6 +5734,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def refund_crowdloan(
@@ -5687,6 +5747,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Refunds contributors from a failed or expired crowdloan campaign.
@@ -5706,6 +5767,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5725,6 +5787,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def reject_proxy_announcement(
@@ -5738,6 +5801,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Rejects an announcement made by a proxy delegate.
@@ -5759,6 +5823,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5776,6 +5841,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def register(
@@ -5796,6 +5862,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Registers a neuron on the Bittensor subnet with provided netuid using the provided wallet.
@@ -5824,6 +5891,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5848,6 +5916,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def register_subnet(
@@ -5859,6 +5928,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Registers a new subnetwork on the Bittensor network.
@@ -5874,6 +5944,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5886,6 +5957,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def remove_proxy_announcement(
@@ -5899,6 +5971,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Removes an announcement made by a proxy account.
@@ -5920,6 +5993,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5938,6 +6012,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def remove_liquidity(
@@ -5952,6 +6027,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """Remove liquidity and credit balances back to wallet's hotkey stake.
 
@@ -5969,6 +6045,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5989,6 +6066,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def remove_proxies(
@@ -6000,6 +6078,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Removes all proxy relationships for the account in a single transaction.
@@ -6020,6 +6099,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6036,6 +6116,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def remove_proxy(
@@ -6050,6 +6131,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Removes a specific proxy relationship.
@@ -6072,6 +6154,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6091,6 +6174,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def reveal_weights(
@@ -6109,6 +6193,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
@@ -6132,6 +6217,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6163,6 +6249,7 @@ class Subtensor(SubtensorMixin):
                     raise_error=raise_error,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
+                    wait_for_revealed_execution=wait_for_revealed_execution,
                 )
             except Exception as error:
                 return ExtrinsicResponse.from_exception(
@@ -6183,6 +6270,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Register neuron by recycling some TAO.
@@ -6198,6 +6286,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6211,6 +6300,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def root_set_pending_childkey_cooldown(
@@ -6223,6 +6313,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """Sets the pending childkey cooldown.
 
@@ -6238,6 +6329,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6253,6 +6345,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def set_auto_stake(
@@ -6266,6 +6359,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """Sets the coldkey to automatically stake to the hotkey within specific subnet mechanism.
 
@@ -6283,6 +6377,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6300,6 +6395,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def set_children(
@@ -6314,6 +6410,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Allows a coldkey to set children-keys.
@@ -6332,6 +6429,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6347,6 +6445,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def set_delegate_take(
@@ -6358,6 +6457,7 @@ class Subtensor(SubtensorMixin):
         wait_for_finalization: bool = True,
         raise_error: bool = False,
         period: Optional[int] = DEFAULT_PERIOD,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Sets the delegate 'take' percentage for a neuron identified by its hotkey.
@@ -6373,6 +6473,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6413,6 +6514,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_finalization=wait_for_finalization,
             wait_for_inclusion=wait_for_inclusion,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
         if response.success:
@@ -6431,6 +6533,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ):
         """Sets the root claim type for the coldkey in provided wallet.
 
@@ -6450,6 +6553,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6463,6 +6567,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def set_subnet_identity(
@@ -6476,6 +6581,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Sets the identity of a subnet for a specific wallet and network.
@@ -6494,6 +6600,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6515,6 +6622,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def set_weights(
@@ -6534,6 +6642,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Sets the interneuronal weights for the specified neuron. This process involves specifying the influence or trust
@@ -6560,6 +6669,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6617,6 +6727,7 @@ class Subtensor(SubtensorMixin):
                         raise_error=raise_error,
                         wait_for_inclusion=wait_for_inclusion,
                         wait_for_finalization=wait_for_finalization,
+                        wait_for_revealed_execution=wait_for_revealed_execution,
                     )
                 except Exception as error:
                     return ExtrinsicResponse.from_exception(
@@ -6649,6 +6760,7 @@ class Subtensor(SubtensorMixin):
                         raise_error=raise_error,
                         wait_for_inclusion=wait_for_inclusion,
                         wait_for_finalization=wait_for_finalization,
+                        wait_for_revealed_execution=wait_for_revealed_execution,
                     )
                 except Exception as error:
                     return ExtrinsicResponse.from_exception(
@@ -6673,6 +6785,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Registers an ``Axon`` serving endpoint on the Bittensor network for a specific neuron.
@@ -6693,6 +6806,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6710,6 +6824,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def set_commitment(
@@ -6723,6 +6838,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Commits arbitrary data to the Bittensor network by publishing metadata.
@@ -6744,6 +6860,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6768,6 +6885,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def set_reveal_commitment(
@@ -6777,10 +6895,13 @@ class Subtensor(SubtensorMixin):
         data: str,
         blocks_until_reveal: int = 360,
         block_time: Union[int, float] = 12,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Commits arbitrary data to the Bittensor network by publishing metadata.
@@ -6792,12 +6913,16 @@ class Subtensor(SubtensorMixin):
             blocks_until_reveal: The number of blocks from now after which the data will be revealed. Then number of
                 blocks in one epoch.
             block_time: The number of seconds between each block.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6818,10 +6943,12 @@ class Subtensor(SubtensorMixin):
             netuid=netuid,
             data_type="TimelockEncrypted",
             data=data_,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
         response.data = data_
         return response
@@ -6836,6 +6963,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Submits a start_call extrinsic to the blockchain, to trigger the start call process for a subnet (used to start
@@ -6853,6 +6981,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6866,6 +6995,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def swap_stake(
@@ -6884,6 +7014,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Moves stake between subnets while keeping the same coldkey-hotkey pair ownership.
@@ -6911,6 +7042,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6938,6 +7070,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def toggle_user_liquidity(
@@ -6951,6 +7084,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """Allow to toggle user liquidity for specified subnet.
 
@@ -6967,6 +7101,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6983,6 +7118,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def transfer(
@@ -6998,6 +7134,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Transfer token of amount to destination.
@@ -7017,6 +7154,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7034,6 +7172,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def transfer_stake(
@@ -7050,6 +7189,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Transfers stake from one subnet to another while changing the coldkey owner.
@@ -7070,6 +7210,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7088,6 +7229,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def unstake(
@@ -7105,6 +7247,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Removes a specified amount of stake from a single hotkey account. This function is critical for adjusting
@@ -7131,6 +7274,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7154,6 +7298,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def unstake_all(
@@ -7168,6 +7313,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """Unstakes all TAO/Alpha associated with a hotkey from the specified subnets on the Bittensor network.
 
@@ -7186,6 +7332,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7239,6 +7386,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def unstake_multiple(
@@ -7254,6 +7402,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Performs batch unstaking from multiple hotkey accounts, allowing a neuron to reduce its staked amounts
@@ -7274,6 +7423,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7293,6 +7443,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def update_cap_crowdloan(
@@ -7306,6 +7457,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Updates the fundraising cap (maximum total contribution) of a non-finalized crowdloan.
@@ -7326,6 +7478,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7345,6 +7498,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def update_end_crowdloan(
@@ -7358,6 +7512,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Updates the end block of a non-finalized crowdloan campaign.
@@ -7378,6 +7533,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7398,6 +7554,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def update_min_contribution_crowdloan(
@@ -7411,6 +7568,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Updates the minimum contribution amount of a non-finalized crowdloan.
@@ -7431,6 +7589,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7450,6 +7609,7 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     def withdraw_crowdloan(
@@ -7462,6 +7622,7 @@ class Subtensor(SubtensorMixin):
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Withdraws a contribution from an active (not yet finalized or dissolved) crowdloan.
@@ -7478,6 +7639,7 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7495,4 +7657,5 @@ class Subtensor(SubtensorMixin):
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )

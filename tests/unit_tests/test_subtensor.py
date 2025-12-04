@@ -1188,6 +1188,7 @@ def test_serve_axon(subtensor, mocker):
         raise_error=False,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
+        wait_for_revealed_execution=True,
     )
     assert result == mocked_serve_axon_extrinsic.return_value
 
@@ -1229,6 +1230,7 @@ def test_commit(subtensor, fake_wallet, mocker):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert result is mocked_publish_metadata.return_value
 
@@ -1289,6 +1291,7 @@ def test_transfer(subtensor, fake_wallet, mocker):
         keep_alive=True,
         period=DEFAULT_PERIOD,
         raise_error=False,
+        wait_for_revealed_execution=True,
     )
     assert result == mocked_transfer_extrinsic.return_value
 
@@ -1825,6 +1828,7 @@ def test_reveal_weights(subtensor, fake_wallet, mocker):
         wait_for_inclusion=False,
         wait_for_finalization=False,
         mechid=0,
+        wait_for_revealed_execution=True,
     )
 
 
@@ -2655,6 +2659,7 @@ def test_add_stake_success(mocker, fake_wallet, subtensor):
         period=DEFAULT_PERIOD,
         raise_error=False,
         mev_protection=DEFAULT_MEV_PROTECTION,
+        wait_for_revealed_execution=True,
     )
     assert result == mock_add_stake_extrinsic.return_value
 
@@ -2699,6 +2704,7 @@ def test_add_stake_with_safe_staking(mocker, fake_wallet, subtensor):
         period=DEFAULT_PERIOD,
         raise_error=False,
         mev_protection=DEFAULT_MEV_PROTECTION,
+        wait_for_revealed_execution=True,
     )
     assert result == mock_add_stake_extrinsic.return_value
 
@@ -2735,6 +2741,7 @@ def test_add_stake_multiple_success(mocker, fake_wallet, subtensor):
         wait_for_finalization=False,
         period=DEFAULT_PERIOD,
         raise_error=False,
+        wait_for_revealed_execution=True,
     )
     assert result == mock_add_stake_multiple_extrinsic.return_value
 
@@ -2776,6 +2783,7 @@ def test_unstake_success(mocker, subtensor, fake_wallet):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=False,
+        wait_for_revealed_execution=True,
     )
     assert result == mock_unstake_extrinsic.return_value
 
@@ -2817,6 +2825,7 @@ def test_unstake_with_safe_unstaking(mocker, subtensor, fake_wallet):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=False,
+        wait_for_revealed_execution=True,
     )
     assert result == mock_unstake_extrinsic.return_value
 
@@ -2863,6 +2872,7 @@ def test_swap_stake_success(mocker, subtensor, fake_wallet):
         mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
+        wait_for_revealed_execution=True,
     )
     assert result == mock_swap_stake_extrinsic.return_value
 
@@ -2910,6 +2920,7 @@ def test_swap_stake_with_safe_staking(mocker, subtensor, fake_wallet):
         mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
+        wait_for_revealed_execution=True,
     )
     assert result == mock_swap_stake_extrinsic.return_value
 
@@ -2947,6 +2958,7 @@ def test_unstake_multiple_success(mocker, subtensor, fake_wallet):
         period=DEFAULT_PERIOD,
         unstake_all=False,
         raise_error=False,
+        wait_for_revealed_execution=True,
     )
     assert result == mock_unstake_multiple_extrinsic.return_value
 
@@ -3002,6 +3014,7 @@ def test_set_weights_with_commit_reveal_enabled(subtensor, fake_wallet, mocker):
         period=8,
         raise_error=False,
         mechid=0,
+        wait_for_revealed_execution=True,
     )
     assert result == mocked_commit_timelocked_mechanism_weights_extrinsic.return_value
 
@@ -3063,6 +3076,7 @@ def test_set_subnet_identity(mocker, subtensor, fake_wallet):
         raise_error=False,
         wait_for_finalization=True,
         wait_for_inclusion=True,
+        wait_for_revealed_execution=True,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3159,10 +3173,11 @@ def test_start_call(subtensor, mocker):
         wallet=wallet_name,
         netuid=netuid,
         mev_protection=DEFAULT_MEV_PROTECTION,
-        wait_for_inclusion=True,
-        wait_for_finalization=False,
         period=DEFAULT_PERIOD,
         raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        wait_for_revealed_execution=True,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3720,10 +3735,11 @@ def test_set_children(subtensor, fake_wallet, mocker):
         netuid=fake_netuid,
         children=fake_children,
         mev_protection=DEFAULT_MEV_PROTECTION,
-        wait_for_finalization=True,
-        wait_for_inclusion=True,
-        raise_error=False,
         period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert result == mocked_set_children_extrinsic.return_value
 
@@ -3749,10 +3765,11 @@ def test_unstake_all(subtensor, fake_wallet, mocker):
         netuid=1,
         rate_tolerance=0.005,
         mev_protection=DEFAULT_MEV_PROTECTION,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
         period=DEFAULT_PERIOD,
         raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert result == fake_unstake_all_extrinsic.return_value
 
@@ -3900,10 +3917,11 @@ def test_add_liquidity(subtensor, fake_wallet, mocker):
         price_high=Balance.from_tao(130).rao,
         hotkey_ss58=None,
         mev_protection=DEFAULT_MEV_PROTECTION,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
         period=DEFAULT_PERIOD,
         raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3934,10 +3952,11 @@ def test_modify_liquidity(subtensor, fake_wallet, mocker):
         liquidity_delta=Balance.from_tao(150),
         hotkey_ss58=None,
         mev_protection=DEFAULT_MEV_PROTECTION,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
         period=DEFAULT_PERIOD,
         raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3966,10 +3985,11 @@ def test_remove_liquidity(subtensor, fake_wallet, mocker):
         position_id=position_id,
         hotkey_ss58=None,
         mev_protection=DEFAULT_MEV_PROTECTION,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
         period=DEFAULT_PERIOD,
         raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3997,10 +4017,11 @@ def test_toggle_user_liquidity(subtensor, fake_wallet, mocker):
         netuid=netuid,
         enable=enable,
         mev_protection=DEFAULT_MEV_PROTECTION,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
         period=DEFAULT_PERIOD,
         raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -4457,6 +4478,7 @@ def test_set_auto_stake(subtensor, mocker):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
 
     assert result == mocked_extrinsic.return_value
@@ -4539,6 +4561,7 @@ def test_contribute_crowdloan(mocker, subtensor):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_extrinsic.return_value
 
@@ -4584,6 +4607,7 @@ def test_create_crowdloan(mocker, subtensor):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_extrinsic.return_value
 
@@ -4623,6 +4647,7 @@ def test_crowdloan_methods_with_crowdloan_id_parameter(
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_extrinsic.return_value
 
@@ -4656,6 +4681,7 @@ def test_update_cap_crowdloan(mocker, subtensor):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_extrinsic.return_value
 
@@ -4689,6 +4715,7 @@ def test_update_end_crowdloan(mocker, subtensor):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_extrinsic.return_value
 
@@ -4722,6 +4749,7 @@ def test_update_min_contribution_crowdloan(mocker, subtensor):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_extrinsic.return_value
 
@@ -5130,6 +5158,7 @@ def test_claim_root(mocker, subtensor):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_claim_root_extrinsic.return_value
 
@@ -5158,6 +5187,7 @@ def test_set_root_claim_type(mocker, subtensor):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_set_root_claim_type_extrinsic.return_value
 
@@ -5482,6 +5512,7 @@ def test_add_proxy(mocker, subtensor):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_add_proxy_extrinsic.return_value
 
@@ -5514,6 +5545,7 @@ def test_announce_proxy(mocker, subtensor):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_announce_extrinsic.return_value
 
@@ -5549,6 +5581,7 @@ def test_create_pure_proxy(mocker, subtensor):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_create_pure_proxy_extrinsic.return_value
 
@@ -5594,6 +5627,7 @@ def test_kill_pure_proxy(mocker, subtensor):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_kill_pure_proxy_extrinsic.return_value
 
@@ -5618,6 +5652,7 @@ def test_poke_deposit(mocker, subtensor):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_poke_deposit_extrinsic.return_value
 
@@ -5651,6 +5686,7 @@ def test_proxy(mocker, subtensor):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_proxy_extrinsic.return_value
 
@@ -5689,6 +5725,7 @@ def test_proxy_announced(mocker, subtensor):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_proxy_announced_extrinsic.return_value
 
@@ -5721,6 +5758,7 @@ def test_reject_proxy_announcement(mocker, subtensor):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_reject_announcement_extrinsic.return_value
 
@@ -5753,6 +5791,7 @@ def test_remove_proxy_announcement(mocker, subtensor):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_remove_announcement_extrinsic.return_value
 
@@ -5777,6 +5816,7 @@ def test_remove_proxies(mocker, subtensor):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_remove_proxies_extrinsic.return_value
 
@@ -5812,6 +5852,7 @@ def test_remove_proxy(mocker, subtensor):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_remove_proxy_extrinsic.return_value
 

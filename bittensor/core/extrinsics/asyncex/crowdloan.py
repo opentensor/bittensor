@@ -24,6 +24,7 @@ async def contribute_crowdloan_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> "ExtrinsicResponse":
     """
     Contributes funds to an active crowdloan campaign.
@@ -42,6 +43,7 @@ async def contribute_crowdloan_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
         wait_for_finalization: Whether to wait for finalization of the extrinsic.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -68,7 +70,7 @@ async def contribute_crowdloan_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             return await subtensor.sign_and_send_extrinsic(
@@ -99,6 +101,7 @@ async def create_crowdloan_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> "ExtrinsicResponse":
     """
     Creates a new crowdloan campaign on-chain.
@@ -121,6 +124,7 @@ async def create_crowdloan_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
         wait_for_finalization: Whether to wait for finalization of the extrinsic.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -153,7 +157,7 @@ async def create_crowdloan_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             return await subtensor.sign_and_send_extrinsic(
@@ -179,6 +183,7 @@ async def dissolve_crowdloan_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> "ExtrinsicResponse":
     """
     Dissolves a completed or failed crowdloan campaign after all refunds are processed.
@@ -199,6 +204,7 @@ async def dissolve_crowdloan_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
         wait_for_finalization: Whether to wait for finalization of the extrinsic.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -226,7 +232,7 @@ async def dissolve_crowdloan_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             return await subtensor.sign_and_send_extrinsic(
@@ -252,6 +258,7 @@ async def finalize_crowdloan_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> "ExtrinsicResponse":
     """
     Finalizes a successful crowdloan campaign once the cap has been reached and the end block has passed.
@@ -269,6 +276,7 @@ async def finalize_crowdloan_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
         wait_for_finalization: Whether to wait for finalization of the extrinsic.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -290,7 +298,7 @@ async def finalize_crowdloan_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             return await subtensor.sign_and_send_extrinsic(
@@ -316,6 +324,7 @@ async def refund_crowdloan_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> "ExtrinsicResponse":
     """
     Refunds contributors from a failed or expired crowdloan campaign.
@@ -336,6 +345,7 @@ async def refund_crowdloan_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
         wait_for_finalization: Whether to wait for finalization of the extrinsic.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -363,7 +373,7 @@ async def refund_crowdloan_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             return await subtensor.sign_and_send_extrinsic(
@@ -390,6 +400,7 @@ async def update_cap_crowdloan_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> "ExtrinsicResponse":
     """
     Updates the fundraising cap (maximum total contribution) of a non-finalized crowdloan.
@@ -411,6 +422,7 @@ async def update_cap_crowdloan_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
         wait_for_finalization: Whether to wait for finalization of the extrinsic.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -441,7 +453,7 @@ async def update_cap_crowdloan_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             return await subtensor.sign_and_send_extrinsic(
@@ -468,6 +480,7 @@ async def update_end_crowdloan_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> "ExtrinsicResponse":
     """
     Updates the end block of a non-finalized crowdloan campaign.
@@ -489,6 +502,7 @@ async def update_end_crowdloan_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
         wait_for_finalization: Whether to wait for finalization of the extrinsic.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -518,7 +532,7 @@ async def update_end_crowdloan_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             return await subtensor.sign_and_send_extrinsic(
@@ -545,6 +559,7 @@ async def update_min_contribution_crowdloan_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> "ExtrinsicResponse":
     """
     Updates the minimum contribution amount of a non-finalized crowdloan.
@@ -566,6 +581,7 @@ async def update_min_contribution_crowdloan_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
         wait_for_finalization: Whether to wait for finalization of the extrinsic.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -596,7 +612,7 @@ async def update_min_contribution_crowdloan_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             return await subtensor.sign_and_send_extrinsic(
@@ -622,6 +638,7 @@ async def withdraw_crowdloan_extrinsic(
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> "ExtrinsicResponse":
     """
     Withdraws a contribution from an active (not yet finalized or dissolved) crowdloan.
@@ -639,6 +656,7 @@ async def withdraw_crowdloan_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
         wait_for_finalization: Whether to wait for finalization of the extrinsic.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -664,7 +682,7 @@ async def withdraw_crowdloan_extrinsic(
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=True,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
         else:
             return await subtensor.sign_and_send_extrinsic(
