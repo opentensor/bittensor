@@ -4,6 +4,10 @@ concurrency:
   group: e2e-subtensor-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  pull-requests: read
+  contents: read
+
 on:
   pull_request:
     branches:
@@ -12,17 +16,23 @@ on:
 
   workflow_dispatch:
     inputs:
-      verbose:
-        description: "Output more information when triggered manually"
+      docker_image_tag:
+        description: "Docker image tag"
         required: false
-        default: ""
+        type: choice
+        default: "devnet-ready"
+        options:
+          - main
+          - testnet
+          - devnet
+          - devnet-ready
 
 # job to run tests in parallel
 jobs:
   # Looking for e2e tests
   find-tests:
     runs-on: ubuntu-latest
-    if: ${{ github.event.pull_request.draft == false }}
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     outputs:
       test-files: ${{ steps.get-tests.outputs.test-files }}
     steps:
@@ -89,15 +99,37 @@ jobs:
     outputs:
       image-name: ${{ steps.set-image.outputs.image }}
     steps:
+      - name: Install GitHub CLI
+        if: github.event_name == 'pull_request'
+        run: |
+          sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt-get install -y --no-install-recommends -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" gh jq
+
       - name: Set Docker image tag based on label or branch
         id: set-image
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Event: $GITHUB_EVENT_NAME"
           echo "Branch: $GITHUB_REF_NAME"
 
+          # Check if docker_image_tag input is provided (for workflow_dispatch)
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            docker_tag_input="${{ github.event.inputs.docker_image_tag }}"
+            if [[ -n "$docker_tag_input" ]]; then
+              image="ghcr.io/opentensor/subtensor-localnet:${docker_tag_input}"
+              echo "Using Docker image tag from workflow_dispatch input: ${docker_tag_input}"
+              echo "✅ Final selected image: $image"
+              echo "image=$image" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+
           echo "Reading labels ..."
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            labels=$(jq -r '.pull_request.labels[].name' "$GITHUB_EVENT_PATH")
+            # Use GitHub CLI to read labels (works for forks too)
+            labels=$(gh pr view ${{ github.event.pull_request.number }} -R ${{ github.repository }} --json labels --jq '.labels[].name' || echo "")
+            echo "Found labels: $labels"
           else
             labels=""
           fi
@@ -121,16 +153,27 @@ jobs:
                 ;;
             esac
           done
-    
+
           if [[ -z "$image" ]]; then
             # fallback to default based on branch
-            if [[ "${GITHUB_REF_NAME}" == "master" ]]; then
-              image="ghcr.io/opentensor/subtensor-localnet:main"
+            if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+              # For PR, use base branch (target branch)
+              base_branch="${{ github.event.pull_request.base.ref }}"
+              if [[ "$base_branch" == "master" ]]; then
+                image="ghcr.io/opentensor/subtensor-localnet:main"
+              else
+                image="ghcr.io/opentensor/subtensor-localnet:devnet-ready"
+              fi
             else
-              image="ghcr.io/opentensor/subtensor-localnet:devnet-ready"
+              # For workflow_dispatch, use current branch
+              if [[ "${GITHUB_REF_NAME}" == "master" ]]; then
+                image="ghcr.io/opentensor/subtensor-localnet:main"
+              else
+                image="ghcr.io/opentensor/subtensor-localnet:devnet-ready"
+              fi
             fi
           fi
-    
+
           echo "✅ Final selected image: $image"
           echo "image=$image" >> "$GITHUB_OUTPUT"
 
