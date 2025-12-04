@@ -4866,18 +4866,18 @@ class AsyncSubtensor(SubtensorMixin):
         reuse_block: bool = False,
     ) -> list[int]:
         """
-        Filters a given list of all netuids for certain specified netuids and hotkeys
-# TODO @roman I find this confusing, what is the difference between all_netuids and filter_for_netuids? what is the intent for this method's
-        Parameters:
-            all_netuids: A list of netuids to filter.
-            filter_for_netuids: A subset of all_netuids to filter from the main list.
-            all_hotkeys: Hotkeys to filter from the main list.
-            block: The blockchain block number for the query.
-            block_hash: hash of the blockchain block number at which to perform the query.
-            reuse_block: whether to reuse the last-used blockchain hash when retrieving info.
+                Filters a given list of all netuids for certain specified netuids and hotkeys
+        # TODO @roman I find this confusing, what is the difference between all_netuids and filter_for_netuids? what is the intent for this method's
+                Parameters:
+                    all_netuids: A list of netuids to filter.
+                    filter_for_netuids: A subset of all_netuids to filter from the main list.
+                    all_hotkeys: Hotkeys to filter from the main list.
+                    block: The blockchain block number for the query.
+                    block_hash: hash of the blockchain block number at which to perform the query.
+                    reuse_block: whether to reuse the last-used blockchain hash when retrieving info.
 
-        Returns:
-            The filtered list of netuids.
+                Returns:
+                    The filtered list of netuids.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         netuids_with_registered_hotkeys = [
@@ -8496,14 +8496,14 @@ class AsyncSubtensor(SubtensorMixin):
             certificate: Optional TLS certificate for secure communication. Should contain a public key (up to 64
                 bytes) and algorithm identifier. If ``None``, standard unencrypted serving is used.
             mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
-                against front-running and MEV attacks. The transaction remains encrypted in the mempool until 
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until
                 validators decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after submission. If not
                 included in a block within this period, the transaction expires.
             raise_error: If True, raises an exception on failure instead of returning an error response.
             wait_for_inclusion: If True, waits for the transaction to be included in a block before returning.
             wait_for_finalization: If True, waits for the transaction to be finalized on the blockchain.
-            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection 
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection
                 used.
 
         Returns:
@@ -8599,12 +8599,12 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """Commits arbitrary data to the Bittensor network using timelock encryption for reveal scheduling.
-        
+
         This method commits data that will be automatically revealed after a specified number of blocks using drand
         timelock encryption. The data is encrypted using `get_encrypted_commitment`, which uses drand rounds to ensure
         the data cannot be revealed before the specified reveal time.
 
-        # TODO: check with @roman, is this about 'arbitrary data' or 'commit-reveal'? we need a real example here if this is important, and documentating a real commit reveal flow.        
+        # TODO: check with @roman, is this about 'arbitrary data' or 'commit-reveal'? we need a real example here if this is important, and documentating a real commit reveal flow.
 
         Parameters:
             block_time: The number of seconds between each block (default 12.0 for standard blocks, 10.0 for fast blocks).
@@ -9243,7 +9243,7 @@ class AsyncSubtensor(SubtensorMixin):
             new_cap: The new fundraising cap (TAO). Must be ``>= raised``.
             mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If ``False``, submits the transaction directly without encryption.       
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after submission.
             raise_error: If ``True``, raises an exception rather than returning failure in the response.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.

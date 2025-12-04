@@ -3989,16 +3989,16 @@ class Subtensor(SubtensorMixin):
         block: Optional[int],
     ) -> list[int]:
         """
-        Filters a given list of all netuids for certain specified netuids and hotkeys
-# TODO @roman I find this confusing, what is the difference between all_netuids and filter_for_netuids? what is the intent for this method's
-        Parameters:
-            all_netuids: A list of netuids to filter.
-            filter_for_netuids: A subset of all_netuids to filter from the main list.
-            all_hotkeys: Hotkeys to filter from the main list.
-            block: The blockchain block number for the query.
+                Filters a given list of all netuids for certain specified netuids and hotkeys
+        # TODO @roman I find this confusing, what is the difference between all_netuids and filter_for_netuids? what is the intent for this method's
+                Parameters:
+                    all_netuids: A list of netuids to filter.
+                    filter_for_netuids: A subset of all_netuids to filter from the main list.
+                    all_hotkeys: Hotkeys to filter from the main list.
+                    block: The blockchain block number for the query.
 
-        Returns:
-            The filtered list of netuids.
+                Returns:
+                    The filtered list of netuids.
         """
         self._get_block_hash(block)  # just used to cache the block hash
         netuids_with_registered_hotkeys = [
@@ -7991,7 +7991,7 @@ class Subtensor(SubtensorMixin):
             new_cap: The new fundraising cap (TAO). Must be ``>= raised``.
             mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If ``False``, submits the transaction directly without encryption.       
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after submission.
             raise_error: If ``True``, raises an exception rather than returning failure in the response.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
