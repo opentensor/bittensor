@@ -332,7 +332,7 @@ def get_event_attributes_by_event_name(events: list, event_name: str) -> Optiona
 
 def post_process_mev_response(
     response: "ExtrinsicResponse",
-    revealed_name: str,
+    revealed_name: Optional[str],
     revealed_extrinsic: Optional["ExtrinsicReceipt | AsyncExtrinsicReceipt"],
     raise_error: bool = False,
 ) -> None:
@@ -368,7 +368,7 @@ def post_process_mev_response(
     # when main extrinsic is successful but revealed extrinsic is not found in the chain.
     if revealed_extrinsic is None:
         response.success = False
-        response.message = "Result event not found in chain."
+        response.message = "MeV protected extrinsic does not contain related event."
         response.error = RuntimeError(response.message)
 
     # when main extrinsic is successful but revealed extrinsic is not successful.
