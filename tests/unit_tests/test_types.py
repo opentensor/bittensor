@@ -58,12 +58,17 @@ class ConcreteSubtensorMixin(SubtensorMixin):
 
 
 def test_subtensor_mixin_str_method():
-    """Test __str__ representation."""
+    """Test __str__ returns correctly formatted string with network and endpoint."""
     mixin = ConcreteSubtensorMixin(
-        network="finney", chain_endpoint="wss://entrypoint-finney.opentensor.ai:443"
+        network="finney", 
+        chain_endpoint=settings.FINNEY_ENTRYPOINT
     )
-    expected = "Network: finney, Chain: wss://entrypoint-finney.opentensor.ai:443"
-    assert str(mixin) == expected
+    result = str(mixin)
+    
+    # Verify format and content
+    assert result == f"Network: finney, Chain: {settings.FINNEY_ENTRYPOINT}"
+    assert "Network: finney" in result
+    assert settings.FINNEY_ENTRYPOINT in result
 
 
 @patch("bittensor.core.types.logging")
@@ -116,13 +121,16 @@ def test_check_and_log_network_settings(mock_logging):
 
 
 def test_config_creation():
-    """Test SubtensorMixin.config() static method."""
+    """Test SubtensorMixin.config() static method creates config with default values."""
     config = SubtensorMixin.config()
+    
+    # Verify config object is created
     assert isinstance(config, Config)
-    # Check that subtensor arguments are present
-    assert hasattr(config, "subtensor")
-    assert hasattr(config.subtensor, "network")
-    assert hasattr(config.subtensor, "chain_endpoint")
+    
+    # Verify subtensor config has expected default values
+    assert config.subtensor.network == settings.DEFAULTS.subtensor.network
+    assert config.subtensor.chain_endpoint == settings.DEFAULTS.subtensor.chain_endpoint
+    assert config.subtensor._mock == False
 
 
 def test_setup_config_with_network_string():
@@ -135,21 +143,21 @@ def test_setup_config_with_network_string():
     endpoint, network = SubtensorMixin.setup_config("finney", config)
 
     assert network == "finney"
-    assert "wss://" in endpoint or "ws://" in endpoint
+    assert settings.FINNEY_ENTRYPOINT in endpoint
 
 
 def test_setup_config_with_chain_endpoint():
-    """Test setup_config with endpoint."""
+    """Test setup_config with custom endpoint."""
     parser = argparse.ArgumentParser()
     SubtensorMixin.add_args(parser)
     config = Config(parser)
 
-    # Set chain_endpoint in config - this will be used if network is None
-    # But the setup_config method has complex precedence logic
+    # When passing a custom endpoint as the network parameter
     endpoint, network = SubtensorMixin.setup_config("wss://custom.endpoint.ai:443", config)
 
-    # When passing a custom endpoint as network parameter, it should be used
-    assert "wss://custom.endpoint.ai:443" in endpoint or network is not None
+    # Should use the custom endpoint and return 'unknown' as network
+    assert "wss://custom.endpoint.ai:443" in endpoint
+    assert network == "unknown"
 
 
 def test_setup_config_precedence_order():
@@ -158,34 +166,39 @@ def test_setup_config_precedence_order():
     SubtensorMixin.add_args(parser)
     config = Config(parser)
 
-    # Test 1: Explicit network parameter takes precedence
+    # Test 1: Explicit network parameter takes precedence over config
     config.subtensor.network = "test"
     config.subtensor.chain_endpoint = "wss://test.endpoint.ai:443"
 
     endpoint, network = SubtensorMixin.setup_config("finney", config)
     assert network == "finney"  # Explicit parameter wins
+    assert settings.FINNEY_ENTRYPOINT in endpoint  # Should use finney endpoint
 
-    # Test 2: Config chain_endpoint is used when network is None
+    # Test 2: Config network is used when network parameter is None
     endpoint, network = SubtensorMixin.setup_config(None, config)
-    # Should use config values
-    assert network in ["test", "finney", "local", "archive"]
+    # Should use config.subtensor.network value which is "test"
+    assert network == "test"
+    assert settings.FINNEY_TEST_ENTRYPOINT in endpoint
 
 
 def test_add_args_to_parser():
-    """Test add_args() method."""
+    """Test add_args() adds subtensor arguments with correct defaults to parser."""
     parser = argparse.ArgumentParser()
     SubtensorMixin.add_args(parser)
 
-    # Parse empty args to get defaults
-    args = parser.parse_args([])
-
-    # Check that arguments were added (they use dot notation in argparse)
-    assert hasattr(args, "subtensor.network") or "subtensor.network" in vars(args)
-    # Use Config to properly parse the args
+    # Parse with default values
     config = Config(parser)
+    
+    # Verify all subtensor arguments have correct default values
     assert config.subtensor.network == settings.DEFAULTS.subtensor.network
     assert config.subtensor.chain_endpoint == settings.DEFAULTS.subtensor.chain_endpoint
     assert config.subtensor._mock == False
+    
+    # Verify we can override values via command line args
+    args = ["--subtensor.network", "test", "--subtensor.chain_endpoint", "wss://custom.ai:443"]
+    config_override = Config(parser, args=args)
+    assert config_override.subtensor.network == "test"
+    assert config_override.subtensor.chain_endpoint == "wss://custom.ai:443"
 
 
 # ============================================================================
@@ -224,7 +237,7 @@ def test_axon_serve_call_params_initialization():
 
 
 def test_axon_serve_call_params_equality_with_dict():
-    """Test __eq__ with dict."""
+    """Test __eq__ compares all attributes correctly with dict."""
     params = AxonServeCallParams(
         version=TEST_VERSION,
         ip=TEST_IP_INT,
@@ -239,7 +252,8 @@ def test_axon_serve_call_params_equality_with_dict():
         certificate=None,
     )
 
-    params_dict = {
+    # Test equality with matching dict
+    matching_dict = {
         "version": TEST_VERSION,
         "ip": TEST_IP_INT,
         "port": TEST_PORT,
@@ -252,12 +266,16 @@ def test_axon_serve_call_params_equality_with_dict():
         "placeholder2": TEST_PLACEHOLDER2,
         "certificate": None,
     }
-
-    assert params == params_dict
+    assert params == matching_dict
+    
+    # Test inequality with different dict
+    different_dict = matching_dict.copy()
+    different_dict["port"] = 9999
+    assert params != different_dict
 
 
 def test_axon_serve_call_params_equality_with_neuron_info():
-    """Test __eq__ with NeuronInfo."""
+    """Test __eq__ correctly compares AxonServeCallParams with NeuronInfo by extracting axon_info."""
     axon_info = AxonInfo(
         version=TEST_VERSION,
         ip=TEST_IP_STRING,
@@ -296,9 +314,10 @@ def test_axon_serve_call_params_equality_with_neuron_info():
         is_null=False,
     )
 
+    # Create params that match the neuron_info's axon_info
     params = AxonServeCallParams(
         version=TEST_VERSION,
-        ip=TEST_IP_INT,
+        ip=TEST_IP_INT,  # Note: IP is converted to int for comparison
         port=TEST_PORT,
         ip_type=TEST_IP_TYPE,
         netuid=TEST_NETUID,
@@ -310,11 +329,51 @@ def test_axon_serve_call_params_equality_with_neuron_info():
         certificate=None,
     )
 
+    # Test equality - should compare params with neuron_info.axon_info
     assert params == neuron_info
+    
+    # Test inequality with different neuron_info
+    different_axon = AxonInfo(
+        version=TEST_VERSION,
+        ip=TEST_IP_STRING,
+        port=9999,  # Different port
+        ip_type=TEST_IP_TYPE,
+        hotkey=TEST_HOTKEY,
+        coldkey=TEST_COLDKEY,
+        protocol=TEST_PROTOCOL,
+        placeholder1=TEST_PLACEHOLDER1,
+        placeholder2=TEST_PLACEHOLDER2,
+    )
+    different_neuron = NeuronInfo(
+        hotkey=TEST_HOTKEY,
+        coldkey=TEST_COLDKEY,
+        uid=0,
+        netuid=TEST_NETUID,
+        active=1,
+        stake=0.0,
+        stake_dict={},
+        total_stake=0.0,
+        rank=0.0,
+        emission=0.0,
+        incentive=0.0,
+        consensus=0.0,
+        trust=0.0,
+        validator_trust=0.0,
+        dividends=0.0,
+        last_update=0,
+        validator_permit=False,
+        weights=[],
+        bonds=[],
+        pruning_score=0,
+        prometheus_info=None,
+        axon_info=different_axon,
+        is_null=False,
+    )
+    assert params != different_neuron
 
 
 def test_axon_serve_call_params_copy():
-    """Test copy() method."""
+    """Test copy() creates independent copy with same values."""
     cert = Certificate(TEST_CERT_DATA)
     params = AxonServeCallParams(
         version=TEST_VERSION,
@@ -332,21 +391,27 @@ def test_axon_serve_call_params_copy():
 
     params_copy = params.copy()
 
-    # Verify it's a different object
+    # Verify it's a different object (not same reference)
     assert params_copy is not params
+    assert id(params_copy) != id(params)
 
-    # Verify all attributes are equal
-    assert params_copy.version == params.version
-    assert params_copy.ip == params.ip
-    assert params_copy.port == params.port
-    assert params_copy.ip_type == params.ip_type
-    assert params_copy.netuid == params.netuid
-    assert params_copy.hotkey == params.hotkey
-    assert params_copy.coldkey == params.coldkey
-    assert params_copy.protocol == params.protocol
-    assert params_copy.placeholder1 == params.placeholder1
-    assert params_copy.placeholder2 == params.placeholder2
-    assert params_copy.certificate == params.certificate
+    # Verify all attributes have exact same values
+    assert params_copy.version == TEST_VERSION
+    assert params_copy.ip == TEST_IP_INT
+    assert params_copy.port == TEST_PORT
+    assert params_copy.ip_type == TEST_IP_TYPE
+    assert params_copy.netuid == TEST_NETUID
+    assert params_copy.hotkey == TEST_HOTKEY
+    assert params_copy.coldkey == TEST_COLDKEY
+    assert params_copy.protocol == TEST_PROTOCOL
+    assert params_copy.placeholder1 == TEST_PLACEHOLDER1
+    assert params_copy.placeholder2 == TEST_PLACEHOLDER2
+    assert params_copy.certificate == cert
+    
+    # Verify modifying copy doesn't affect original
+    params_copy.port = 9999
+    assert params.port == TEST_PORT
+    assert params_copy.port == 9999
 
 
 def test_axon_serve_call_params_dict():
@@ -383,7 +448,7 @@ def test_axon_serve_call_params_dict():
 
 
 def test_axon_serve_call_params_dict_without_certificate():
-    """Test dict() when certificate is None."""
+    """Test as_dict() excludes certificate when None and includes all other fields."""
     params = AxonServeCallParams(
         version=TEST_VERSION,
         ip=TEST_IP_INT,
@@ -400,8 +465,22 @@ def test_axon_serve_call_params_dict_without_certificate():
 
     params_dict = params.as_dict()
 
-    # Certificate should not be in dict when it's None
+    # Verify certificate is excluded when None
     assert "certificate" not in params_dict
+    
+    # Verify all other expected fields are present with correct values
+    assert params_dict["version"] == TEST_VERSION
+    assert params_dict["ip"] == TEST_IP_INT
+    assert params_dict["port"] == TEST_PORT
+    assert params_dict["ip_type"] == TEST_IP_TYPE
+    assert params_dict["netuid"] == TEST_NETUID
+    assert params_dict["protocol"] == TEST_PROTOCOL
+    assert params_dict["placeholder1"] == TEST_PLACEHOLDER1
+    assert params_dict["placeholder2"] == TEST_PLACEHOLDER2
+    
+    # Verify hotkey and coldkey are NOT in as_dict() output (by design)
+    assert "hotkey" not in params_dict
+    assert "coldkey" not in params_dict
 
 
 # ============================================================================
@@ -410,8 +489,8 @@ def test_axon_serve_call_params_dict_without_certificate():
 
 
 def test_prometheus_serve_call_params_structure():
-    """Test PrometheusServeCallParams TypedDict."""
-    # PrometheusServeCallParams is a TypedDict, so we can create a dict with the required keys
+    """Test PrometheusServeCallParams TypedDict has all required fields and correct types."""
+    # Create PrometheusServeCallParams with all required fields
     prometheus_params: PrometheusServeCallParams = {
         "version": TEST_VERSION,
         "ip": TEST_IP_INT,
@@ -420,8 +499,20 @@ def test_prometheus_serve_call_params_structure():
         "netuid": TEST_NETUID,
     }
 
+    # Verify all required fields are present with correct values
     assert prometheus_params["version"] == TEST_VERSION
     assert prometheus_params["ip"] == TEST_IP_INT
     assert prometheus_params["port"] == 9090
     assert prometheus_params["ip_type"] == TEST_IP_TYPE
     assert prometheus_params["netuid"] == TEST_NETUID
+    
+    # Verify exactly 5 keys (no more, no less)
+    assert len(prometheus_params) == 5
+    assert set(prometheus_params.keys()) == {"version", "ip", "port", "ip_type", "netuid"}
+    
+    # Verify types are correct
+    assert isinstance(prometheus_params["version"], int)
+    assert isinstance(prometheus_params["ip"], int)
+    assert isinstance(prometheus_params["port"], int)
+    assert isinstance(prometheus_params["ip_type"], int)
+    assert isinstance(prometheus_params["netuid"], int)
