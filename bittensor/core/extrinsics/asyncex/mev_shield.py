@@ -135,9 +135,7 @@ async def submit_encrypted_extrinsic(
     """
     try:
         if not (
-            unlocked := ExtrinsicResponse.unlock_wallet(
-                wallet, raise_error, unlock_type="both"
-            )
+            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
         ).success:
             return unlocked
 
