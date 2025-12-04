@@ -4002,7 +4002,7 @@ class Subtensor(SubtensorMixin):
         This allows you to get netuids that are either in your specified list (all_netuids) or have registered hotkeys,
         as long as they match filter_for_netuids.
 
-        Arguments:
+        Parameters:
             all_netuids (Iterable[int]): A list of netuids to consider for filtering.
             filter_for_netuids (Iterable[int]): A subset of netuids to restrict the result to. If None/empty, returns
                 all netuids with registered hotkeys.
