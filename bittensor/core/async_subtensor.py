@@ -7841,8 +7841,8 @@ class AsyncSubtensor(SubtensorMixin):
             new_root_claim_type: The new root claim type to set. Can be:
                 - String: "Swap" or "Keep"
                 - RootClaimType: RootClaimType.Swap, RootClaimType.Keep
-            - Dict: {"KeepSubnets": {"subnets": [1, 2, 3]}}
-            - Callable: RootClaimType.KeepSubnets([1, 2, 3])
+                - Dict: {"KeepSubnets": {"subnets": [1, 2, 3]}}
+                - Callable: RootClaimType.KeepSubnets([1, 2, 3])
             mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
                 decrypt and execute it. If False, submits the transaction directly without encryption.
