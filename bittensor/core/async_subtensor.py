@@ -99,7 +99,7 @@ from bittensor.core.extrinsics.asyncex.root import (
 )
 from bittensor.core.extrinsics.asyncex.serving import (
     publish_metadata_extrinsic,
-    serve_axon_extrinsic
+    serve_axon_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.staking import (
     add_stake_extrinsic,
