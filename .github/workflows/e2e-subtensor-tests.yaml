@@ -86,6 +86,8 @@ jobs:
 
       - name: Set Docker image tag based on label or branch
         id: set-image
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Event: $GITHUB_EVENT_NAME"
           echo "Branch: $GITHUB_REF_NAME"
