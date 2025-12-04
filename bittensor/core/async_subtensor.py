@@ -5235,8 +5235,8 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             netuid: The network UID of the subnet to query.
             mechid: Subnet mechanism identifier.
-            lite: If true, returns a metagraph using a lightweight sync (no weights, no bonds).
-            block: Block number for synchronization, or `None` for the latest block.
+            lite: If ``True``, returns a metagraph using a lightweight sync (no weights, no bonds).
+            block: Block number for synchronization, or ``None`` for the latest block.
 
         Returns:
             The metagraph representing the subnet's structure and neuron relationships.
@@ -5917,7 +5917,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
-            raise_error: raises the relevant exception rather than returning `False` if unsuccessful.
+            raise_error: raises the relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: whether to wait until the extrinsic call is included on the chain
             wait_for_finalization: whether to wait until the extrinsic call is finalized on the chain
             calling_function: the name of the calling function.
@@ -6067,9 +6067,9 @@ class AsyncSubtensor(SubtensorMixin):
             netuid: The unique identifier of the subnet to which the neuron belongs.
             hotkey_ss58: The `ss58` address of the hotkey account to stake to default to the wallet's hotkey.
             amount: The amount of TAO to stake.
-            safe_staking: If true, enables price safety checks to protect against fluctuating prices. The stake will
+            safe_staking: If ``True``, enables price safety checks to protect against fluctuating prices. The stake will
                 only execute if the price change doesn't exceed the rate tolerance.
-            allow_partial_stake: If true and safe_staking is enabled, allows partial staking when the full amount would
+            allow_partial_stake: If ``True`` and safe_staking is enabled, allows partial staking when the full amount would
                 exceed the price tolerance. If false, the entire stake fails if it would exceed the tolerance.
             rate_tolerance: The maximum allowed price change ratio when staking. For example, 0.005 = 0.5% maximum price
                 increase. Only used when safe_staking is True.
@@ -6079,7 +6079,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -6145,7 +6145,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -6202,7 +6202,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -6266,7 +6266,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -6328,7 +6328,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -6379,7 +6379,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -6503,7 +6503,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -6653,7 +6653,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -6728,7 +6728,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -6919,20 +6919,20 @@ class AsyncSubtensor(SubtensorMixin):
             ext_index: The extrinsic index within the block at which the pure proxy was created. This is returned in the
                 "PureCreated" event from :meth:`create_pure_proxy` and specifies the position of the creation extrinsic
                 within the block. Together with ``height``, this uniquely identifies the creation transaction.
-            force_proxy_type: The proxy type relationship to use when executing `kill_pure` through the proxy mechanism.
+            force_proxy_type: The proxy type relationship to use when executing ``kill_pure`` through the proxy mechanism.
                 Since pure proxies are keyless and cannot sign transactions, the spawner must act as a proxy for the
-                pure proxy to execute `kill_pure`. This parameter specifies which proxy type relationship between the
+                pure proxy to execute ``kill_pure``. This parameter specifies which proxy type relationship between the
                 spawner and the pure proxy account should be used. The spawner must have a proxy relationship of this
-                type (or `Any`) with the pure proxy account. Defaults to `ProxyType.Any` for maximum compatibility. If
-                `None`, Substrate will automatically select an available proxy type from the spawner's proxy
+                type (or ``Any``) with the pure proxy account. Defaults to ``ProxyType.Any`` for maximum compatibility. If
+                ``None``, Substrate will automatically select an available proxy type from the spawner's proxy
                 relationships.
-            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect``
-``                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
-            period: The n``umber`` of blocks during which the transaction will remain valid after it's submitted. If the
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -6994,7 +6994,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
                 think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
             wait_for_revealed_execution: Whether to wait for the DecryptedExecuted event, indicating that validators
@@ -7059,7 +7059,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -7140,14 +7140,14 @@ class AsyncSubtensor(SubtensorMixin):
             destination_netuid: The netuid of the destination subnet.
             destination_hotkey_ss58: The SS58 address of the destination hotkey.
             amount: Amount of stake to move.
-            move_all_stake: If true, moves all stake from the source hotkey to the destination hotkey.
+            move_all_stake: If ``True``, moves all stake from the source hotkey to the destination hotkey.
             mev_protection: I``f`` True, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -7201,7 +7201,7 @@ class AsyncSubtensor(SubtensorMixin):
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -7262,7 +7262,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -7323,7 +7323,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -7432,7 +7432,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -7486,7 +7486,7 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: The wallet associated with the neuron to be registered.
             netuid: The unique identifier of the subnet.
             max_allowed_attempts: Maximum number of attempts to register the wallet.
-            output_in_place: If true, prints the progress of the proof of work to the console in-place. Meaning the
+            output_in_place: If ``True``, prints the progress of the proof of work to the console in-place. Meaning the
                 progress is printed on the same lines.
             cuda: If ``true``, the wallet should be registered using CUDA device(s).
             dev_id: The CUDA device id to use, or a list of device ids.
@@ -7500,7 +7500,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -7556,7 +7556,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -7608,7 +7608,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -7660,7 +7660,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -7714,7 +7714,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -7772,7 +7772,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -7835,7 +7835,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -7907,7 +7907,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -7953,7 +7953,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -8002,7 +8002,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -8054,7 +8054,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -8119,7 +8119,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -8265,7 +8265,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -8340,7 +8340,7 @@ class AsyncSubtensor(SubtensorMixin):
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -8554,7 +8554,7 @@ class AsyncSubtensor(SubtensorMixin):
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -8610,7 +8610,7 @@ class AsyncSubtensor(SubtensorMixin):
             block_time: The number of seconds between each block (default 12.0 for standard blocks, 10.0 for fast blocks).
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
 
@@ -8620,7 +8620,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -8685,7 +8685,7 @@ class AsyncSubtensor(SubtensorMixin):
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -8760,7 +8760,7 @@ class AsyncSubtensor(SubtensorMixin):
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -8826,7 +8826,7 @@ class AsyncSubtensor(SubtensorMixin):
             mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -8892,7 +8892,7 @@ class AsyncSubtensor(SubtensorMixin):
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -8955,7 +8955,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -9010,12 +9010,12 @@ class AsyncSubtensor(SubtensorMixin):
             netuid: The unique identifier of the subnet.
             hotkey_ss58: The ``SS58`` address of the hotkey account to unstake from.
             amount: The amount of alpha to unstake. If not specified, unstakes all. Alpha amount.
-            allow_partial_stake: If true and safe_staking is enabled, allows partial unstaking when
+            allow_partial_stake: If ``True`` and safe_staking is enabled, allows partial unstaking when
                 the full amount would exceed the price tolerance. If false, the entire unstake fails if it would
                 exceed the tolerance.
             rate_tolerance: The maximum allowed price change ratio when unstaking. For example,
                 0.005 = 0.5% maximum price decrease. Only used when safe_staking is True.
-            safe_unstaking: If true, enables price safety checks to protect against fluctuating prices. The unstake
+            safe_unstaking: If ``True``, enables price safety checks to protect against fluctuating prices. The unstake
                 will only execute if the price change doesn't exceed the rate tolerance.
             mev_protection: If T``rue``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
@@ -9023,7 +9023,7 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -9088,7 +9088,7 @@ class AsyncSubtensor(SubtensorMixin):
             mev_protection: If`` True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -9181,14 +9181,14 @@ class AsyncSubtensor(SubtensorMixin):
             netuids: Subnets unique IDs.
             hotkey_ss58s: A list of hotkey `SS58` addresses to unstake from.
             amounts: The amounts of TAO to unstake from each hotkey. If not provided, unstakes all.
-            unstake_all: If true, unstakes all tokens. If `True` amounts are ignored.
+            unstake_all: If ``True``, unstakes all tokens. Amounts are ignored.
             mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
                 decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
