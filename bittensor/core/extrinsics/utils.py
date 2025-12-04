@@ -379,5 +379,8 @@ def post_process_mev_response(
         )
         response.error = RuntimeError(response.message)
 
-    if response.error and raise_error:
-        raise response.error
+    if response.error:
+        if raise_error:
+            raise response.error
+        else:
+            response.with_log()

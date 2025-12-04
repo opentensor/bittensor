@@ -99,8 +99,8 @@ from bittensor.core.extrinsics.asyncex.root import (
 )
 from bittensor.core.extrinsics.asyncex.serving import (
     publish_metadata_extrinsic,
+    serve_axon_extrinsic,
 )
-from bittensor.core.extrinsics.asyncex.serving import serve_axon_extrinsic
 from bittensor.core.extrinsics.asyncex.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
@@ -124,10 +124,10 @@ from bittensor.core.extrinsics.utils import get_transfer_fn_params
 from bittensor.core.metagraph import AsyncMetagraph
 from bittensor.core.settings import (
     DEFAULT_MEV_PROTECTION,
-    version_as_int,
     DEFAULT_PERIOD,
-    TYPE_REGISTRY,
     TAO_APP_BLOCK_EXPLORER,
+    TYPE_REGISTRY,
+    version_as_int,
 )
 from bittensor.core.types import (
     BlockInfo,
@@ -150,23 +150,24 @@ from bittensor.utils import (
 )
 from bittensor.utils.balance import (
     Balance,
-    fixed_to_float,
     check_balance_amount,
+    fixed_to_float,
 )
 from bittensor.utils.btlogging import logging
 from bittensor.utils.liquidity import (
+    LiquidityPosition,
     calculate_fees,
     get_fees,
-    tick_to_price,
     price_to_tick,
-    LiquidityPosition,
+    tick_to_price,
 )
 
 if TYPE_CHECKING:
+    from async_substrate_interface import AsyncQueryMapResult
     from async_substrate_interface.types import ScaleObj
     from bittensor_wallet import Keypair, Wallet
+
     from bittensor.core.axon import Axon
-    from async_substrate_interface import AsyncQueryMapResult
 
 
 class AsyncSubtensor(SubtensorMixin):

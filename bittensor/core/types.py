@@ -538,7 +538,17 @@ class ExtrinsicResponse:
             ExtrinsicResponse instance.
         """
         if self.message:
-            getattr(logging, level)(self.message)
+            if level in ["trace", "error"]:
+                message = f"[red]{self.message}[/red]"
+            elif level == "info":
+                message = f"[blue]{self.message}[/blue]"
+            elif level == "warning":
+                message = f"[yellow]{self.message}[/yellow]"
+            elif level == "success":
+                message = f"[green]{self.message}[/green]"
+            else:
+                message = self.message
+            getattr(logging, level)(message)
         return self
 
 
