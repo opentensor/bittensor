@@ -135,10 +135,21 @@ jobs:
 
           if [[ -z "$image" ]]; then
             # fallback to default based on branch
-            if [[ "${GITHUB_REF_NAME}" == "master" ]]; then
-              image="ghcr.io/opentensor/subtensor-localnet:main"
+            if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+              # For PR, use base branch (target branch)
+              base_branch="${{ github.event.pull_request.base.ref }}"
+              if [[ "$base_branch" == "master" ]]; then
+                image="ghcr.io/opentensor/subtensor-localnet:main"
+              else
+                image="ghcr.io/opentensor/subtensor-localnet:devnet-ready"
+              fi
             else
-              image="ghcr.io/opentensor/subtensor-localnet:devnet-ready"
+              # For workflow_dispatch, use current branch
+              if [[ "${GITHUB_REF_NAME}" == "master" ]]; then
+                image="ghcr.io/opentensor/subtensor-localnet:main"
+              else
+                image="ghcr.io/opentensor/subtensor-localnet:devnet-ready"
+              fi
             fi
           fi
 
