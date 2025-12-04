@@ -4,8 +4,10 @@ from typing import Optional, TYPE_CHECKING
 from async_substrate_interface.errors import SubstrateRequestException
 
 from bittensor.core.errors import BalanceTypeError
+from bittensor.core.extrinsics.asyncex.mev_shield import submit_encrypted_extrinsic
 from bittensor.core.extrinsics.pallets import SubtensorModule
 from bittensor.core.extrinsics.utils import get_old_stakes
+from bittensor.core.settings import DEFAULT_MEV_PROTECTION
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.core.types import UIDs
 from bittensor.utils import format_error_message
@@ -26,10 +28,13 @@ async def unstake_extrinsic(
     allow_partial_stake: bool = False,
     rate_tolerance: float = 0.005,
     safe_unstaking: bool = False,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Removes stake into the wallet coldkey from the specified hotkey ``uid``.
@@ -43,12 +48,16 @@ async def unstake_extrinsic(
         allow_partial_stake: If true, allows partial unstaking if price tolerance exceeded.
         safe_unstaking: If true, enables price safety checks.
         rate_tolerance: Maximum allowed price decrease percentage (0.005 = 0.5%).
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -121,16 +130,28 @@ async def unstake_extrinsic(
 
         logging.debug(logging_message)
         block_hash_before = await subtensor.get_block_hash()
-        response = await subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            nonce_key="coldkeypub",
-            use_nonce=True,
-            period=period,
-            raise_error=raise_error,
-        )
+        if mev_protection:
+            response = await submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=wait_for_revealed_execution,
+            )
+        else:
+            response = await subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                nonce_key="coldkeypub",
+                use_nonce=True,
+                period=period,
+                raise_error=raise_error,
+            )
 
         if response.success:
             sim_swap = await subtensor.sim_swap(
@@ -189,10 +210,13 @@ async def unstake_all_extrinsic(
     netuid: int,
     hotkey_ss58: str,
     rate_tolerance: Optional[float] = 0.005,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """Unstakes all TAO/Alpha associated with a hotkey from the specified subnets on the Bittensor network.
 
@@ -203,12 +227,16 @@ async def unstake_all_extrinsic(
         hotkey_ss58: The SS58 address of the hotkey to unstake from.
         rate_tolerance: The maximum allowed price change ratio when unstaking. For example, 0.005 = 0.5% maximum
             price decrease. If not passed (None), then unstaking goes without price limit.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -228,16 +256,28 @@ async def unstake_all_extrinsic(
             limit_price=limit_price,
         )
 
-        return await subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            nonce_key="coldkeypub",
-            use_nonce=True,
-            period=period,
-            raise_error=raise_error,
-        )
+        if mev_protection:
+            return await submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=wait_for_revealed_execution,
+            )
+        else:
+            return await subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                nonce_key="coldkeypub",
+                use_nonce=True,
+                period=period,
+                raise_error=raise_error,
+            )
 
     except Exception as error:
         return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
@@ -251,10 +291,13 @@ async def unstake_multiple_extrinsic(
     amounts: Optional[list[Balance]] = None,
     rate_tolerance: Optional[float] = 0.05,
     unstake_all: bool = False,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Removes stake from each ``hotkey_ss58`` in the list, using each amount, to a common coldkey.
@@ -267,12 +310,16 @@ async def unstake_multiple_extrinsic(
         amounts: List of amounts to unstake. If ``None``, unstake all.
         rate_tolerance: Maximum allowed price decrease percentage (0.005 = 0.5%).
         unstake_all: If true, unstakes all tokens.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -399,6 +446,7 @@ async def unstake_multiple_extrinsic(
                         hotkey_ss58=hotkey_ss58,
                         netuid=netuid,
                         rate_tolerance=rate_tolerance,
+                        mev_protection=mev_protection,
                         period=period,
                         raise_error=raise_error,
                         wait_for_inclusion=wait_for_inclusion,
@@ -411,6 +459,8 @@ async def unstake_multiple_extrinsic(
                         netuid=netuid,
                         hotkey_ss58=hotkey_ss58,
                         amount=unstaking_balance,
+                        rate_tolerance=rate_tolerance,
+                        mev_protection=mev_protection,
                         period=period,
                         raise_error=raise_error,
                         wait_for_inclusion=wait_for_inclusion,

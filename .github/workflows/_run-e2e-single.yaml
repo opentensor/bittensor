@@ -9,6 +9,10 @@ on:
       image-name:
         required: true
         type: string
+      python-versions:
+        required: true
+        type: string
+        description: JSON array of Python versions
 
 jobs:
   run-e2e:
@@ -19,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ${{ fromJson(vars.SDK_SUPPORTED_PYTHON_VERSIONS) }}
+        python-version: ${{ fromJson(inputs.python-versions) }}
 
     steps:
       - name: Check-out repository

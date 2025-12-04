@@ -1,5 +1,22 @@
 # Changelog
 
+## 10.0.0rc4 /2025-11-26
+
+## What's Changed
+* [v10] Subtensor Pallet-Based GenericCall creation logic. by @basfroman in https://github.com/opentensor/bittensor/pull/3136
+* [v10] fix: simplify `AxonInfo.__eq__` method and add type check by @basfroman in https://github.com/opentensor/bittensor/pull/3142
+* [v10] Add Proxy Pallet Support by @basfroman in https://github.com/opentensor/bittensor/pull/3140
+* [v10] New logic + small refactoring by @basfroman in https://github.com/opentensor/bittensor/pull/3145
+* [v10] Improve btlogging by @basfroman in https://github.com/opentensor/bittensor/pull/3143
+* [v10] Improve proxy by @basfroman in https://github.com/opentensor/bittensor/pull/3147
+* [v10] Adds block backwards compatibility for fetching metagraph. by @thewhaleking in https://github.com/opentensor/bittensor/pull/3139
+* [v10] remove nest asyncio + loosen requirements by @thewhaleking in https://github.com/opentensor/bittensor/pull/3149
+* [v10] Add warning and protection to `create_pure_proxy_extrinsic` by @basfroman in https://github.com/opentensor/bittensor/pull/3150
+* [v10] Add `Async/Subtensor.get_stake_info_for_coldkeys` method by @basfroman in https://github.com/opentensor/bittensor/pull/3151
+* [v10] fix: resolve python 3.14 syntax warnings and update deps by @Arthurdw in https://github.com/opentensor/bittensor/pull/3155
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v10.0.0rc3...v10.0.0rc4
+
 ## 10.0.0rc3 /2025-11-05
 
 ## What's Changed

@@ -8,6 +8,7 @@ from .crowdloans import Crowdloans as _Crowdloans
 from .delegates import Delegates as _Delegates
 from .extrinsics import Extrinsics as _Extrinsics
 from .metagraphs import Metagraphs as _Metagraphs
+from .mev_shield import MevShield as _MevShield
 from .neurons import Neurons as _Neurons
 from .proxy import Proxy as _Proxy
 from .queries import Queries as _Queries
@@ -229,6 +230,11 @@ class SubtensorApi:
     def metagraphs(self):
         """Property to access metagraphs methods."""
         return _Metagraphs(self.inner_subtensor)
+
+    @property
+    def mev_shield(self):
+        """Property to access MEV Shield methods."""
+        return _MevShield(self.inner_subtensor)
 
     @property
     def neurons(self):

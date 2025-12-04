@@ -2,6 +2,7 @@ from bittensor_wallet import Wallet
 from scalecodec.types import GenericCall
 
 from bittensor.core.extrinsics import proxy
+from bittensor.core.settings import DEFAULT_MEV_PROTECTION
 from bittensor.core.types import ExtrinsicResponse
 
 
@@ -26,6 +27,7 @@ def test_add_proxy_extrinsic(subtensor, mocker):
         delegate_ss58=delegate_ss58,
         proxy_type=proxy_type,
         delay=delay,
+        mev_protection=DEFAULT_MEV_PROTECTION,
     )
 
     # Asserts
@@ -67,6 +69,7 @@ def test_remove_proxy_extrinsic(subtensor, mocker):
         delegate_ss58=delegate_ss58,
         proxy_type=proxy_type,
         delay=delay,
+        mev_protection=DEFAULT_MEV_PROTECTION,
     )
 
     # Asserts
@@ -101,6 +104,7 @@ def test_remove_proxies_extrinsic(subtensor, mocker):
     response = proxy.remove_proxies_extrinsic(
         subtensor=subtensor,
         wallet=wallet,
+        mev_protection=DEFAULT_MEV_PROTECTION,
     )
 
     # Asserts
@@ -160,6 +164,7 @@ def test_create_pure_proxy_extrinsic(subtensor, mocker):
         proxy_type=proxy_type,
         delay=delay,
         index=index,
+        mev_protection=DEFAULT_MEV_PROTECTION,
     )
 
     # Asserts
@@ -216,6 +221,7 @@ def test_kill_pure_proxy_extrinsic(subtensor, mocker):
         index=index,
         height=height,
         ext_index=ext_index,
+        mev_protection=DEFAULT_MEV_PROTECTION,
     )
 
     # Asserts
@@ -233,6 +239,7 @@ def test_kill_pure_proxy_extrinsic(subtensor, mocker):
         real_account_ss58=pure_proxy_ss58,
         force_proxy_type=proxy.ProxyType.Any,
         call=mocked_pallet_call.return_value,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=None,
         raise_error=False,
         wait_for_inclusion=True,
@@ -262,6 +269,7 @@ def test_proxy_extrinsic(subtensor, mocker):
         real_account_ss58=real_account_ss58,
         force_proxy_type=force_proxy_type,
         call=call,
+        mev_protection=DEFAULT_MEV_PROTECTION,
     )
 
     # Asserts
@@ -302,6 +310,7 @@ def test_proxy_extrinsic_with_none_force_proxy_type(subtensor, mocker):
         real_account_ss58=real_account_ss58,
         force_proxy_type=force_proxy_type,
         call=call,
+        mev_protection=DEFAULT_MEV_PROTECTION,
     )
 
     # Asserts
@@ -344,6 +353,7 @@ def test_proxy_announced_extrinsic(subtensor, mocker):
         real_account_ss58=real_account_ss58,
         force_proxy_type=force_proxy_type,
         call=call,
+        mev_protection=DEFAULT_MEV_PROTECTION,
     )
 
     # Asserts
@@ -387,6 +397,7 @@ def test_proxy_announced_extrinsic_with_none_force_proxy_type(subtensor, mocker)
         real_account_ss58=real_account_ss58,
         force_proxy_type=force_proxy_type,
         call=call,
+        mev_protection=DEFAULT_MEV_PROTECTION,
     )
 
     # Asserts
@@ -425,6 +436,7 @@ def test_announce_extrinsic(subtensor, mocker):
         wallet=wallet,
         real_account_ss58=real_account_ss58,
         call_hash=call_hash,
+        mev_protection=DEFAULT_MEV_PROTECTION,
     )
 
     # Asserts
@@ -461,6 +473,7 @@ def test_reject_announcement_extrinsic(subtensor, mocker):
         wallet=wallet,
         delegate_ss58=delegate_ss58,
         call_hash=call_hash,
+        mev_protection=DEFAULT_MEV_PROTECTION,
     )
 
     # Asserts
@@ -497,6 +510,7 @@ def test_remove_announcement_extrinsic(subtensor, mocker):
         wallet=wallet,
         real_account_ss58=real_account_ss58,
         call_hash=call_hash,
+        mev_protection=DEFAULT_MEV_PROTECTION,
     )
 
     # Asserts
@@ -529,6 +543,7 @@ def test_poke_deposit_extrinsic(subtensor, mocker):
     response = proxy.poke_deposit_extrinsic(
         subtensor=subtensor,
         wallet=wallet,
+        mev_protection=DEFAULT_MEV_PROTECTION,
     )
 
     # Asserts

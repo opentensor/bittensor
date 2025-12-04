@@ -2,7 +2,7 @@ import datetime
 import unittest.mock as mock
 
 import pytest
-from async_substrate_interface.types import ScaleObj, Runtime
+from async_substrate_interface.types import Runtime, ScaleObj
 from bittensor_wallet import Wallet
 from scalecodec import GenericCall
 
@@ -10,15 +10,15 @@ from bittensor import u64_normalized_float
 from bittensor.core import async_subtensor, settings
 from bittensor.core.async_subtensor import AsyncSubtensor
 from bittensor.core.chain_data import (
-    proposal_vote_data,
     ChainIdentity,
     NeuronInfo,
-    StakeInfo,
     SelectiveMetagraphIndex,
+    StakeInfo,
+    proposal_vote_data,
 )
 from bittensor.core.errors import BalanceTypeError
+from bittensor.core.settings import DEFAULT_MEV_PROTECTION, DEFAULT_PERIOD
 from bittensor.core.types import ExtrinsicResponse
-from bittensor.core.settings import DEFAULT_PERIOD
 from bittensor.utils import U64_MAX, get_function_name
 from bittensor.utils.balance import Balance
 
@@ -1737,7 +1737,7 @@ async def test_sign_and_send_extrinsic_error_finalization(
     assert result == (False, mocked_format_error_message.return_value)
     assert result.extrinsic_function == get_function_name()
     assert result.extrinsic == fake_extrinsic
-    assert result.extrinsic_fee == None
+    assert result.extrinsic_fee is None
     assert result.error is fake_error
     assert result.data is None
 
@@ -1828,7 +1828,7 @@ async def test_sign_and_send_extrinsic_substrate_request_exception(
     assert result == (False, str(fake_exception))
     assert result.extrinsic_function == get_function_name()
     assert result.extrinsic == fake_extrinsic
-    assert result.extrinsic_fee == None
+    assert result.extrinsic_fee is None
     assert result.error == fake_exception
     assert result.data is None
 
@@ -2592,11 +2592,13 @@ async def test_transfer_success(subtensor, fake_wallet, mocker):
         destination_ss58=fake_destination,
         amount=fake_amount,
         transfer_all=fake_transfer_all,
-        wait_for_inclusion=True,
-        wait_for_finalization=False,
         keep_alive=True,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        wait_for_revealed_execution=True,
     )
     assert result == mocked_transfer_extrinsic.return_value
 
@@ -2628,10 +2630,12 @@ async def test_register_success(subtensor, fake_wallet, mocker):
         subtensor=subtensor,
         tpb=256,
         update_interval=None,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_finalization=True,
         wait_for_inclusion=True,
+        wait_for_revealed_execution=True,
     )
     assert result == mocked_register_extrinsic.return_value
 
@@ -2666,10 +2670,12 @@ async def test_set_children(subtensor, fake_wallet, mocker):
         hotkey_ss58=fake_wallet.hotkey.ss58_address,
         netuid=1,
         children=fake_children,
-        wait_for_finalization=True,
-        wait_for_inclusion=True,
-        raise_error=False,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert result == mocked_set_children_extrinsic.return_value
 
@@ -2795,10 +2801,12 @@ async def test_set_subnet_identity(mocker, subtensor, fake_wallet):
         discord=fake_subnet_identity.discord,
         description=fake_subnet_identity.description,
         additional=fake_subnet_identity.additional,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
-        wait_for_finalization=True,
         wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -2902,10 +2910,12 @@ async def test_start_call(subtensor, mocker):
         subtensor=subtensor,
         wallet=wallet_name,
         netuid=netuid,
-        wait_for_inclusion=True,
-        wait_for_finalization=False,
+        mev_protection=False,
         period=DEFAULT_PERIOD,
         raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        wait_for_revealed_execution=True,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3397,10 +3407,12 @@ async def test_unstake_all(subtensor, fake_wallet, mocker):
         hotkey_ss58=fake_wallet.hotkey.ss58_address,
         netuid=1,
         rate_tolerance=0.005,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert result == fake_unstake_all_extrinsic.return_value
 
@@ -3623,10 +3635,12 @@ async def test_add_liquidity(subtensor, fake_wallet, mocker):
         price_low=Balance.from_tao(180).rao,
         price_high=Balance.from_tao(130).rao,
         hotkey_ss58=None,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3657,10 +3671,12 @@ async def test_modify_liquidity(subtensor, fake_wallet, mocker):
         position_id=position_id,
         liquidity_delta=Balance.from_tao(150),
         hotkey_ss58=None,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3689,10 +3705,12 @@ async def test_remove_liquidity(subtensor, fake_wallet, mocker):
         netuid=netuid,
         position_id=position_id,
         hotkey_ss58=None,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -3720,10 +3738,12 @@ async def test_toggle_user_liquidity(subtensor, fake_wallet, mocker):
         wallet=fake_wallet,
         netuid=netuid,
         enable=enable,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert result == mocked_extrinsic.return_value
 
@@ -4213,10 +4233,12 @@ async def test_set_auto_stake(subtensor, mocker):
         wallet=wallet,
         netuid=netuid,
         hotkey_ss58=hotkey,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
 
     assert result == mocked_extrinsic.return_value
@@ -4329,10 +4351,12 @@ async def test_contribute_crowdloan(mocker, subtensor):
         wallet=wallet,
         crowdloan_id=crowdloan_id,
         amount=amount,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_extrinsic.return_value
 
@@ -4374,10 +4398,12 @@ async def test_create_crowdloan(mocker, subtensor):
         end=end,
         call=call,
         target_address=target_address,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_extrinsic.return_value
 
@@ -4413,10 +4439,12 @@ async def test_crowdloan_methods_with_crowdloan_id_parameter(
         subtensor=subtensor,
         wallet=wallet,
         crowdloan_id=crowdloan_id,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_extrinsic.return_value
 
@@ -4446,10 +4474,12 @@ async def test_update_cap_crowdloan(mocker, subtensor):
         wallet=wallet,
         crowdloan_id=crowdloan_id,
         new_cap=new_cap,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_extrinsic.return_value
 
@@ -4479,10 +4509,12 @@ async def test_update_end_crowdloan(mocker, subtensor):
         wallet=wallet,
         crowdloan_id=crowdloan_id,
         new_end=new_end,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_extrinsic.return_value
 
@@ -4512,10 +4544,12 @@ async def test_update_min_contribution_crowdloan(mocker, subtensor):
         wallet=wallet,
         crowdloan_id=crowdloan_id,
         new_min_contribution=new_min_contribution,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_extrinsic.return_value
 
@@ -4738,14 +4772,44 @@ async def test_commit_weights_with_zero_max_attempts(
     assert expected_message in caplog.text
 
 
+@pytest.mark.parametrize(
+    "fake_result, expected_result",
+    [
+        ({"Swap": ()}, "Swap"),
+        ({"Keep": ()}, "Keep"),
+        (
+            {
+                "KeepSubnets": {
+                    "subnets": (
+                        (
+                            2,
+                            3,
+                        ),
+                    )
+                }
+            },
+            {"KeepSubnets": {"subnets": [2, 3]}},
+        ),
+        (
+            {"KeepSubnets": {"subnets": ((2,),)}},
+            {
+                "KeepSubnets": {
+                    "subnets": [
+                        2,
+                    ]
+                }
+            },
+        ),
+    ],
+)
 @pytest.mark.asyncio
-async def test_get_root_claim_type(mocker, subtensor):
+async def test_get_root_claim_type(mocker, subtensor, fake_result, expected_result):
     """Tests that `get_root_claim_type` calls proper methods and returns the correct value."""
     # Preps
+    # fake_result = {"KeepSubnets": {"subnets": ((2, 3, ),)}}
+    # expected_result = {"KeepSubnets": {"subnets": [2, 3]}}
     fake_coldkey_ss58 = mocker.Mock(spec=str)
     mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
-    fake_type = mocker.Mock(spec=str)
-    fake_result = {fake_type: ()}
     mocked_map = mocker.patch.object(
         subtensor.substrate, "query", return_value=fake_result
     )
@@ -4762,7 +4826,7 @@ async def test_get_root_claim_type(mocker, subtensor):
         block_hash=mocked_determine_block_hash.return_value,
         reuse_block_hash=False,
     )
-    assert result == fake_type
+    assert result == expected_result
 
 
 @pytest.mark.asyncio
@@ -4926,10 +4990,12 @@ async def test_claim_root(mocker, subtensor):
         subtensor=subtensor,
         wallet=wallet,
         netuids=netuids,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_claim_root_extrinsic.return_value
 
@@ -4954,10 +5020,12 @@ async def test_set_root_claim_type(mocker, subtensor):
         subtensor=subtensor,
         wallet=faked_wallet,
         new_root_claim_type=fake_new_root_claim_type,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_set_root_claim_type_extrinsic.return_value
 
@@ -5284,10 +5352,12 @@ async def test_add_proxy(mocker, subtensor):
         delegate_ss58=delegate_ss58,
         proxy_type=proxy_type,
         delay=delay,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_add_proxy_extrinsic.return_value
 
@@ -5316,10 +5386,12 @@ async def test_announce_proxy(mocker, subtensor):
         wallet=wallet,
         real_account_ss58=real_account_ss58,
         call_hash=call_hash,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_announce_extrinsic.return_value
 
@@ -5351,10 +5423,12 @@ async def test_create_pure_proxy(mocker, subtensor):
         proxy_type=proxy_type,
         delay=delay,
         index=index,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_create_pure_proxy_extrinsic.return_value
 
@@ -5396,10 +5470,12 @@ async def test_kill_pure_proxy(mocker, subtensor):
         height=height,
         ext_index=ext_index,
         force_proxy_type=async_subtensor.ProxyType.Any,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_kill_pure_proxy_extrinsic.return_value
 
@@ -5420,10 +5496,12 @@ async def test_poke_deposit(mocker, subtensor):
     mocked_poke_deposit_extrinsic.assert_awaited_once_with(
         subtensor=subtensor,
         wallet=wallet,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_poke_deposit_extrinsic.return_value
 
@@ -5453,10 +5531,12 @@ async def test_proxy(mocker, subtensor):
         real_account_ss58=real_account_ss58,
         force_proxy_type=force_proxy_type,
         call=call,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_proxy_extrinsic.return_value
 
@@ -5491,10 +5571,12 @@ async def test_proxy_announced(mocker, subtensor):
         real_account_ss58=real_account_ss58,
         force_proxy_type=force_proxy_type,
         call=call,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_proxy_announced_extrinsic.return_value
 
@@ -5523,10 +5605,12 @@ async def test_reject_proxy_announcement(mocker, subtensor):
         wallet=wallet,
         delegate_ss58=delegate_ss58,
         call_hash=call_hash,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_reject_announcement_extrinsic.return_value
 
@@ -5555,10 +5639,12 @@ async def test_remove_proxy_announcement(mocker, subtensor):
         wallet=wallet,
         real_account_ss58=real_account_ss58,
         call_hash=call_hash,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_remove_announcement_extrinsic.return_value
 
@@ -5579,10 +5665,12 @@ async def test_remove_proxies(mocker, subtensor):
     mocked_remove_proxies_extrinsic.assert_awaited_once_with(
         subtensor=subtensor,
         wallet=wallet,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_remove_proxies_extrinsic.return_value
 
@@ -5614,10 +5702,12 @@ async def test_remove_proxy(mocker, subtensor):
         delegate_ss58=delegate_ss58,
         proxy_type=proxy_type,
         delay=delay,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_remove_proxy_extrinsic.return_value
 
@@ -5767,3 +5857,463 @@ async def test_get_stake_info_for_coldkeys_success(subtensor, mocker):
     mocked_stake_info_list_from_dicts.assert_has_calls(
         [mocker.call([stake_info_dict_1]), mocker.call([stake_info_dict_2])]
     )
+
+
+@pytest.mark.asyncio
+async def test_get_mev_shield_current_key_success(subtensor, mocker):
+    """Test get_mev_shield_current_key returns correct key when found."""
+    # Prep
+    fake_block = 123
+    fake_block_hash = "0x123abc"
+    fake_public_key_bytes = b"\x00" * 1184  # ML-KEM-768 public key size
+
+    mocked_determine_block_hash = mocker.AsyncMock(return_value=fake_block_hash)
+    mocker.patch.object(subtensor, "determine_block_hash", mocked_determine_block_hash)
+    mocked_query = mocker.AsyncMock()
+    mocked_query.return_value = iter([fake_public_key_bytes])
+    subtensor.substrate.query = mocked_query
+
+    # Call
+    result = await subtensor.get_mev_shield_current_key(block=fake_block)
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(fake_block, None, False)
+    mocked_query.assert_awaited_once_with(
+        module="MevShield",
+        storage_function="CurrentKey",
+        block_hash=fake_block_hash,
+    )
+    assert result == fake_public_key_bytes
+
+
+@pytest.mark.asyncio
+async def test_get_mev_shield_current_key_none(subtensor, mocker):
+    """Test get_mev_shield_current_key returns None when key not found."""
+    # Prep
+    fake_block = 123
+    fake_block_hash = "0x123abc"
+
+    mocked_determine_block_hash = mocker.AsyncMock(return_value=fake_block_hash)
+    mocker.patch.object(subtensor, "determine_block_hash", mocked_determine_block_hash)
+    mocked_query = mocker.AsyncMock(return_value=None)
+    subtensor.substrate.query = mocked_query
+
+    # Call
+    result = await subtensor.get_mev_shield_current_key(block=fake_block)
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(fake_block, None, False)
+    mocked_query.assert_awaited_once_with(
+        module="MevShield",
+        storage_function="CurrentKey",
+        block_hash=fake_block_hash,
+    )
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_mev_shield_current_key_invalid_size(subtensor, mocker):
+    """Test get_mev_shield_current_key raises ValueError for invalid key size."""
+    # Prep
+    fake_block = 123
+    fake_block_hash = "0x123abc"
+    fake_public_key_bytes = b"\x00" * 1000  # Invalid size
+
+    mocked_determine_block_hash = mocker.AsyncMock(return_value=fake_block_hash)
+    mocker.patch.object(subtensor, "determine_block_hash", mocked_determine_block_hash)
+    mocked_query = mocker.AsyncMock()
+    mocked_query.return_value = iter([fake_public_key_bytes])
+    subtensor.substrate.query = mocked_query
+
+    # Call & Assert
+    with pytest.raises(ValueError, match="Invalid ML-KEM-768 public key size"):
+        await subtensor.get_mev_shield_current_key(block=fake_block)
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(fake_block, None, False)
+    mocked_query.assert_awaited_once_with(
+        module="MevShield",
+        storage_function="CurrentKey",
+        block_hash=fake_block_hash,
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_mev_shield_next_key_success(subtensor, mocker):
+    """Test get_mev_shield_next_key returns correct key when found."""
+    # Prep
+    fake_block = 123
+    fake_block_hash = "0x123abc"
+    fake_public_key_bytes = b"\x00" * 1184  # ML-KEM-768 public key size
+
+    mocked_determine_block_hash = mocker.AsyncMock(return_value=fake_block_hash)
+    mocker.patch.object(subtensor, "determine_block_hash", mocked_determine_block_hash)
+    mocked_query = mocker.AsyncMock()
+    mocked_query.return_value = iter([fake_public_key_bytes])
+    subtensor.substrate.query = mocked_query
+
+    # Call
+    result = await subtensor.get_mev_shield_next_key(block=fake_block)
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(fake_block, None, False)
+    mocked_query.assert_awaited_once_with(
+        module="MevShield",
+        storage_function="NextKey",
+        block_hash=fake_block_hash,
+    )
+    assert result == fake_public_key_bytes
+
+
+@pytest.mark.asyncio
+async def test_get_mev_shield_next_key_none(subtensor, mocker):
+    """Test get_mev_shield_next_key returns None when key not found."""
+    # Prep
+    fake_block = 123
+    fake_block_hash = "0x123abc"
+
+    mocked_determine_block_hash = mocker.AsyncMock(return_value=fake_block_hash)
+    mocker.patch.object(subtensor, "determine_block_hash", mocked_determine_block_hash)
+    mocked_query = mocker.AsyncMock(return_value=None)
+    subtensor.substrate.query = mocked_query
+
+    # Call
+    result = await subtensor.get_mev_shield_next_key(block=fake_block)
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(fake_block, None, False)
+    mocked_query.assert_awaited_once_with(
+        module="MevShield",
+        storage_function="NextKey",
+        block_hash=fake_block_hash,
+    )
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_mev_shield_next_key_invalid_size(subtensor, mocker):
+    """Test get_mev_shield_next_key raises ValueError for invalid key size."""
+    # Prep
+    fake_block = 123
+    fake_block_hash = "0x123abc"
+    fake_public_key_bytes = b"\x00" * 1000  # Invalid size
+
+    mocked_determine_block_hash = mocker.AsyncMock(return_value=fake_block_hash)
+    mocker.patch.object(subtensor, "determine_block_hash", mocked_determine_block_hash)
+    mocked_query = mocker.AsyncMock()
+    mocked_query.return_value = iter([fake_public_key_bytes])
+    subtensor.substrate.query = mocked_query
+
+    # Call & Assert
+    with pytest.raises(ValueError, match="Invalid ML-KEM-768 public key size"):
+        await subtensor.get_mev_shield_next_key(block=fake_block)
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(fake_block, None, False)
+    mocked_query.assert_awaited_once_with(
+        module="MevShield",
+        storage_function="NextKey",
+        block_hash=fake_block_hash,
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_mev_shield_submission_success(subtensor, mocker):
+    """Test get_mev_shield_submission returns correct submission when found."""
+    # Prep
+    fake_submission_id = "0x1234567890abcdef"
+    fake_block = 123
+    fake_block_hash = "0x123abc"
+    fake_author = b"\x01" * 32
+    fake_commitment = b"\x02" * 32
+    fake_ciphertext = b"\x03" * 100
+    fake_submitted_in = 100
+
+    fake_query_result = {
+        "author": [fake_author],
+        "commitment": [fake_commitment],
+        "ciphertext": [fake_ciphertext],
+        "submitted_in": fake_submitted_in,
+    }
+
+    mocked_determine_block_hash = mocker.AsyncMock(return_value=fake_block_hash)
+    mocker.patch.object(subtensor, "determine_block_hash", mocked_determine_block_hash)
+    mocked_query = mocker.AsyncMock(return_value=fake_query_result)
+    subtensor.substrate.query = mocked_query
+    mocked_decode_account_id = mocker.patch.object(
+        async_subtensor,
+        "decode_account_id",
+        return_value="5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+    )
+
+    # Call
+    result = await subtensor.get_mev_shield_submission(
+        submission_id=fake_submission_id, block=fake_block
+    )
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(fake_block, None, False)
+    mocked_query.assert_awaited_once_with(
+        module="MevShield",
+        storage_function="Submissions",
+        params=[bytes.fromhex("1234567890abcdef")],
+        block_hash=fake_block_hash,
+    )
+    mocked_decode_account_id.assert_called_once_with([fake_author])
+    assert result == {
+        "author": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "commitment": fake_commitment,
+        "ciphertext": fake_ciphertext,
+        "submitted_in": fake_submitted_in,
+    }
+
+
+@pytest.mark.asyncio
+async def test_get_mev_shield_submission_without_0x_prefix(subtensor, mocker):
+    """Test get_mev_shield_submission handles submission_id without 0x prefix."""
+    # Prep
+    fake_submission_id = "1234567890abcdef"
+    fake_block = 123
+    fake_block_hash = "0x123abc"
+    fake_query_result = {
+        "author": [b"\x01" * 32],
+        "commitment": [b"\x02" * 32],
+        "ciphertext": [b"\x03" * 100],
+        "submitted_in": 100,
+    }
+
+    mocked_determine_block_hash = mocker.AsyncMock(return_value=fake_block_hash)
+    mocker.patch.object(subtensor, "determine_block_hash", mocked_determine_block_hash)
+    mocked_query = mocker.AsyncMock(return_value=fake_query_result)
+    subtensor.substrate.query = mocked_query
+    mocked_decode_account_id = mocker.patch.object(
+        async_subtensor,
+        "decode_account_id",
+        return_value="5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+    )
+
+    # Call
+    result = await subtensor.get_mev_shield_submission(
+        submission_id=fake_submission_id, block=fake_block
+    )
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(fake_block, None, False)
+    mocked_query.assert_awaited_once_with(
+        module="MevShield",
+        storage_function="Submissions",
+        params=[bytes.fromhex("1234567890abcdef")],
+        block_hash=fake_block_hash,
+    )
+    mocked_decode_account_id.assert_called_once_with([b"\x01" * 32])
+    assert result is not None
+
+
+@pytest.mark.asyncio
+async def test_get_mev_shield_submission_none(subtensor, mocker):
+    """Test get_mev_shield_submission returns None when submission not found."""
+    # Prep
+    fake_submission_id = "0x1234567890abcdef"
+    fake_block = 123
+    fake_block_hash = "0x123abc"
+
+    mocked_determine_block_hash = mocker.AsyncMock(return_value=fake_block_hash)
+    mocker.patch.object(subtensor, "determine_block_hash", mocked_determine_block_hash)
+    mocked_query = mocker.AsyncMock(return_value=None)
+    subtensor.substrate.query = mocked_query
+
+    # Call
+    result = await subtensor.get_mev_shield_submission(
+        submission_id=fake_submission_id, block=fake_block
+    )
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(fake_block, None, False)
+    mocked_query.assert_awaited_once_with(
+        module="MevShield",
+        storage_function="Submissions",
+        params=[bytes.fromhex("1234567890abcdef")],
+        block_hash=fake_block_hash,
+    )
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_mev_shield_submissions_success(subtensor, mocker):
+    """Test get_mev_shield_submissions returns all submissions when found."""
+    # Prep
+    fake_block = 123
+    fake_block_hash = "0x123abc"
+    fake_submission_id_1 = b"\x01" * 32
+    fake_submission_id_2 = b"\x02" * 32
+    fake_author_1 = b"\x03" * 32
+    fake_author_2 = b"\x04" * 32
+    fake_commitment_1 = b"\x05" * 32
+    fake_commitment_2 = b"\x06" * 32
+    fake_ciphertext_1 = b"\x07" * 100
+    fake_ciphertext_2 = b"\x08" * 100
+
+    fake_query_result = mocker.AsyncMock()
+    fake_query_result.__aiter__.return_value = iter(
+        [
+            (
+                [fake_submission_id_1],
+                mocker.MagicMock(
+                    value={
+                        "author": [fake_author_1],
+                        "commitment": [fake_commitment_1],
+                        "ciphertext": [fake_ciphertext_1],
+                        "submitted_in": 100,
+                    }
+                ),
+            ),
+            (
+                [fake_submission_id_2],
+                mocker.MagicMock(
+                    value={
+                        "author": [fake_author_2],
+                        "commitment": [fake_commitment_2],
+                        "ciphertext": [fake_ciphertext_2],
+                        "submitted_in": 101,
+                    }
+                ),
+            ),
+        ]
+    )
+
+    mocked_determine_block_hash = mocker.AsyncMock(return_value=fake_block_hash)
+    mocker.patch.object(subtensor, "determine_block_hash", mocked_determine_block_hash)
+    mocked_query_map = mocker.AsyncMock(return_value=fake_query_result)
+    subtensor.substrate.query_map = mocked_query_map
+    mocked_decode_account_id = mocker.patch.object(
+        async_subtensor,
+        "decode_account_id",
+        side_effect=[
+            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+            "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+        ],
+    )
+
+    # Call
+    result = await subtensor.get_mev_shield_submissions(block=fake_block)
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(fake_block, None, False)
+    mocked_query_map.assert_awaited_once_with(
+        module="MevShield",
+        storage_function="Submissions",
+        block_hash=fake_block_hash,
+    )
+    assert result is not None
+    assert len(result) == 2
+    assert "0x" + fake_submission_id_1.hex() in result
+    assert "0x" + fake_submission_id_2.hex() in result
+    assert result["0x" + fake_submission_id_1.hex()]["submitted_in"] == 100
+    assert result["0x" + fake_submission_id_2.hex()]["submitted_in"] == 101
+    # Verify decode_account_id was called for both submissions
+    assert mocked_decode_account_id.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_get_mev_shield_submissions_none(subtensor, mocker):
+    """Test get_mev_shield_submissions returns None when no submissions found."""
+    # Prep
+    fake_block = 123
+    fake_block_hash = "0x123abc"
+
+    fake_query_result = mocker.AsyncMock()
+    fake_query_result.__aiter__.return_value = iter([])
+
+    mocked_determine_block_hash = mocker.AsyncMock(return_value=fake_block_hash)
+    mocker.patch.object(subtensor, "determine_block_hash", mocked_determine_block_hash)
+    mocked_query_map = mocker.AsyncMock(return_value=fake_query_result)
+    subtensor.substrate.query_map = mocked_query_map
+
+    # Call
+    result = await subtensor.get_mev_shield_submissions(block=fake_block)
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(fake_block, None, False)
+    mocked_query_map.assert_awaited_once_with(
+        module="MevShield",
+        storage_function="Submissions",
+        block_hash=fake_block_hash,
+    )
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_mev_submit_encrypted_success(subtensor, fake_wallet, mocker):
+    """Test mev_submit_encrypted calls submit_encrypted_extrinsic correctly."""
+    # Prep
+    fake_call = mocker.Mock(spec=GenericCall)
+    fake_signer_keypair = mocker.Mock()
+    fake_period = 128
+    fake_raise_error = False
+    fake_wait_for_inclusion = True
+    fake_wait_for_finalization = True
+    fake_wait_for_revealed_execution = True
+    fake_blocks_for_revealed_execution = 5
+
+    mocked_submit_encrypted_extrinsic = mocker.AsyncMock()
+    mocker.patch.object(
+        async_subtensor, "submit_encrypted_extrinsic", mocked_submit_encrypted_extrinsic
+    )
+
+    # Call
+    result = await subtensor.mev_submit_encrypted(
+        wallet=fake_wallet,
+        call=fake_call,
+        signer_keypair=fake_signer_keypair,
+        period=fake_period,
+        raise_error=fake_raise_error,
+        wait_for_inclusion=fake_wait_for_inclusion,
+        wait_for_finalization=fake_wait_for_finalization,
+        wait_for_revealed_execution=fake_wait_for_revealed_execution,
+        blocks_for_revealed_execution=fake_blocks_for_revealed_execution,
+    )
+
+    # Asserts
+    mocked_submit_encrypted_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        call=fake_call,
+        signer_keypair=fake_signer_keypair,
+        period=fake_period,
+        raise_error=fake_raise_error,
+        wait_for_inclusion=fake_wait_for_inclusion,
+        wait_for_finalization=fake_wait_for_finalization,
+        wait_for_revealed_execution=fake_wait_for_revealed_execution,
+        blocks_for_revealed_execution=fake_blocks_for_revealed_execution,
+    )
+    assert result == mocked_submit_encrypted_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_mev_submit_encrypted_default_params(subtensor, fake_wallet, mocker):
+    """Test mev_submit_encrypted with default parameters."""
+    # Prep
+    fake_call = mocker.Mock(spec=GenericCall)
+
+    mocked_submit_encrypted_extrinsic = mocker.AsyncMock()
+    mocker.patch.object(
+        async_subtensor, "submit_encrypted_extrinsic", mocked_submit_encrypted_extrinsic
+    )
+
+    # Call
+    result = await subtensor.mev_submit_encrypted(wallet=fake_wallet, call=fake_call)
+
+    # Asserts
+    mocked_submit_encrypted_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        call=fake_call,
+        signer_keypair=None,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+        blocks_for_revealed_execution=5,
+    )
+    assert result == mocked_submit_encrypted_extrinsic.return_value

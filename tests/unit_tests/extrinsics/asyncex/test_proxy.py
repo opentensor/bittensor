@@ -1,6 +1,7 @@
 import pytest
 
 from bittensor.core.extrinsics.asyncex import proxy
+from bittensor.core.settings import DEFAULT_MEV_PROTECTION
 from bittensor.core.types import ExtrinsicResponse
 from scalecodec.types import GenericCall
 from bittensor_wallet import Wallet
@@ -253,6 +254,7 @@ async def test_kill_pure_proxy_extrinsic(subtensor, mocker):
         real_account_ss58=pure_proxy_ss58,
         force_proxy_type=proxy.ProxyType.Any,
         call=mocked_pallet_call.return_value,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=None,
         raise_error=False,
         wait_for_inclusion=True,

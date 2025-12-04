@@ -1,5 +1,6 @@
 import pytest
 from bittensor.core.extrinsics import transfer
+from bittensor.core.settings import DEFAULT_MEV_PROTECTION
 from bittensor.utils.balance import Balance
 from bittensor.core.types import ExtrinsicResponse
 
@@ -47,6 +48,7 @@ def test_transfer_extrinsic_success(subtensor, fake_wallet, mocker):
         destination_ss58=fake_destination,
         amount=fake_amount,
         transfer_all=False,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         wait_for_inclusion=True,
         wait_for_finalization=True,
         keep_alive=True,
@@ -118,6 +120,7 @@ def test_transfer_extrinsic_call_successful_with_failed_response(
         destination_ss58=fake_destination,
         amount=fake_amount,
         transfer_all=False,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         wait_for_inclusion=True,
         wait_for_finalization=True,
         keep_alive=True,
@@ -183,6 +186,7 @@ def test_transfer_extrinsic_insufficient_balance(subtensor, fake_wallet, mocker)
         destination_ss58=fake_destination,
         amount=fake_amount,
         transfer_all=False,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         wait_for_inclusion=True,
         wait_for_finalization=True,
         keep_alive=True,
@@ -224,6 +228,7 @@ def test_transfer_extrinsic_invalid_destination(subtensor, fake_wallet, mocker):
         destination_ss58=fake_destination,
         amount=fake_amount,
         transfer_all=False,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         wait_for_inclusion=True,
         wait_for_finalization=True,
         keep_alive=True,
@@ -255,6 +260,7 @@ def test_transfer_extrinsic_unlock_key_false(subtensor, fake_wallet, mocker):
         destination_ss58=fake_destination,
         amount=fake_amount,
         transfer_all=False,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         wait_for_inclusion=True,
         wait_for_finalization=True,
         keep_alive=True,

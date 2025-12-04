@@ -1,7 +1,9 @@
 import asyncio
 from typing import Optional, TYPE_CHECKING
 
+from bittensor.core.extrinsics.asyncex.mev_shield import submit_encrypted_extrinsic
 from bittensor.core.extrinsics.pallets import SubtensorModule
+from bittensor.core.settings import DEFAULT_MEV_PROTECTION
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -48,10 +50,13 @@ async def move_stake_extrinsic(
     destination_hotkey_ss58: str,
     amount: Optional[Balance] = None,
     move_all_stake: bool = False,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Moves stake from one hotkey to another within subnets in the Bittensor network.
@@ -65,12 +70,16 @@ async def move_stake_extrinsic(
         destination_hotkey_ss58: The SS58 address of the destination hotkey.
         amount: Amount to move.
         move_all_stake: If true, moves all stake from the source hotkey to the destination hotkey.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -121,14 +130,26 @@ async def move_stake_extrinsic(
             alpha_amount=amount.rao,
         )
         block_hash_before = await subtensor.get_block_hash()
-        response = await subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            period=period,
-            raise_error=raise_error,
-        )
+        if mev_protection:
+            response = await submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=wait_for_revealed_execution,
+            )
+        else:
+            response = await subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                period=period,
+                raise_error=raise_error,
+            )
 
         if response.success:
             sim_swap = await subtensor.sim_swap(
@@ -185,10 +206,13 @@ async def transfer_stake_extrinsic(
     origin_netuid: int,
     destination_netuid: int,
     amount: Balance,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Transfers stake from one coldkey to another in the Bittensor network.
@@ -201,12 +225,16 @@ async def transfer_stake_extrinsic(
         origin_netuid: Network UID of the origin subnet.
         destination_netuid: Network UID of the destination subnet.
         amount: The amount of stake to transfer as a `Balance` object.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -251,14 +279,26 @@ async def transfer_stake_extrinsic(
             alpha_amount=amount.rao,
         )
         block_hash_before = await subtensor.get_block_hash()
-        response = await subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            period=period,
-            raise_error=raise_error,
-        )
+        if mev_protection:
+            response = await submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=wait_for_revealed_execution,
+            )
+        else:
+            response = await subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                period=period,
+                raise_error=raise_error,
+            )
 
         if response.success:
             sim_swap = await subtensor.sim_swap(
@@ -309,10 +349,13 @@ async def swap_stake_extrinsic(
     safe_swapping: bool = False,
     allow_partial_stake: bool = False,
     rate_tolerance: float = 0.005,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Swaps stake from one subnet to another for a given hotkey in the Bittensor network.
@@ -327,6 +370,9 @@ async def swap_stake_extrinsic(
         safe_swapping: If true, enables price safety checks to protect against price impact.
         allow_partial_stake: If true, allows partial stake swaps when the full amount would exceed the price tolerance.
         rate_tolerance: Maximum allowed increase in a price ratio (0.005 = 0.5%).
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
@@ -402,14 +448,26 @@ async def swap_stake_extrinsic(
             )
 
         block_hash_before = await subtensor.get_block_hash()
-        response = await subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            period=period,
-            raise_error=raise_error,
-        )
+        if mev_protection:
+            response = await submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=wait_for_revealed_execution,
+            )
+        else:
+            response = await subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                period=period,
+                raise_error=raise_error,
+            )
 
         if response.success:
             sim_swap = await subtensor.sim_swap(

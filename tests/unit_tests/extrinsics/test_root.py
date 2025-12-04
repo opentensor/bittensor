@@ -1,4 +1,5 @@
 import pytest
+from bittensor.core.chain_data import RootClaimType
 from bittensor.core.extrinsics import root
 from bittensor.core.subtensor import Subtensor
 from bittensor.core.types import ExtrinsicResponse
@@ -96,6 +97,7 @@ def test_root_register_extrinsic(
         wallet=mock_wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        wait_for_revealed_execution=True,
     )
     # Assert
     assert result.success == expected_result
@@ -141,10 +143,36 @@ def test_root_register_extrinsic_insufficient_balance(
     mock_subtensor.substrate.submit_extrinsic.assert_not_called()
 
 
-def test_set_root_claim_type_extrinsic(subtensor, fake_wallet, mocker):
-    """Tests `set_root_claim_type_extrinsic` extrinsic function."""
+@pytest.mark.parametrize(
+    "new_root_claim_type, expected_normalized",
+    [
+        ("Swap", "Swap"),
+        ("Keep", "Keep"),
+        (RootClaimType.Swap, "Swap"),
+        (RootClaimType.Keep, "Keep"),
+        (
+            {"KeepSubnets": {"subnets": [1, 2, 3]}},
+            {"KeepSubnets": {"subnets": [1, 2, 3]}},
+        ),
+        (RootClaimType.KeepSubnets([1, 2, 3]), {"KeepSubnets": {"subnets": [1, 2, 3]}}),
+    ],
+    ids=[
+        "string-swap",
+        "string-keep",
+        "enum-swap",
+        "enum-keep",
+        "dict-keep-subnets",
+        "callable-keep-subnets",
+    ],
+)
+def test_set_root_claim_type_extrinsic(
+    subtensor, fake_wallet, mocker, new_root_claim_type, expected_normalized
+):
+    """Tests `set_root_claim_type_extrinsic` extrinsic function with various input formats."""
     # Preps
-    new_root_claim_type = mocker.Mock(spec=int)
+    mocked_normalize = mocker.patch.object(
+        RootClaimType, "normalize", return_value=expected_normalized
+    )
     mocked_pallet_compose_call = mocker.patch.object(
         root.SubtensorModule, "set_root_claim_type"
     )
@@ -160,8 +188,9 @@ def test_set_root_claim_type_extrinsic(subtensor, fake_wallet, mocker):
     )
 
     # asserts
+    mocked_normalize.assert_called_once_with(new_root_claim_type)
     mocked_pallet_compose_call.assert_called_once_with(
-        new_root_claim_type=new_root_claim_type
+        new_root_claim_type=expected_normalized
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
         call=mocked_pallet_compose_call.return_value,
@@ -172,6 +201,98 @@ def test_set_root_claim_type_extrinsic(subtensor, fake_wallet, mocker):
         wait_for_finalization=True,
     )
     assert response == mocked_sign_and_send_extrinsic.return_value
+
+
+@pytest.mark.parametrize(
+    "invalid_input, expected_error",
+    [
+        ("InvalidType", ValueError),
+        ({"InvalidKey": {}}, ValueError),
+        ({"KeepSubnets": {}}, ValueError),  # Empty subnets
+        ({"KeepSubnets": {"subnets": []}}, ValueError),  # Empty subnets list
+        (
+            {"KeepSubnets": {"subnets": ["not", "integers"]}},
+            ValueError,
+        ),  # Non-integer subnets
+        (123, TypeError),  # Wrong type
+    ],
+    ids=[
+        "invalid-string",
+        "invalid-dict-key",
+        "empty-subnets-dict",
+        "empty-subnets-list",
+        "non-integer-subnets",
+        "wrong-type",
+    ],
+)
+def test_set_root_claim_type_extrinsic_validation_with_raise_error(
+    subtensor, fake_wallet, mocker, invalid_input, expected_error
+):
+    """Tests `set_root_claim_type_extrinsic` validation for invalid inputs with raise_error=True."""
+    # Preps
+    test_error = expected_error("Test error")
+    mocked_normalize = mocker.patch.object(
+        RootClaimType, "normalize", side_effect=test_error
+    )
+    mocked_pallet_compose_call = mocker.patch.object(
+        root.SubtensorModule, "set_root_claim_type"
+    )
+
+    # call and assert
+    with pytest.raises(expected_error):
+        root.set_root_claim_type_extrinsic(
+            subtensor=subtensor,
+            wallet=fake_wallet,
+            new_root_claim_type=invalid_input,
+            raise_error=True,
+        )
+
+    mocked_normalize.assert_called_once_with(invalid_input)
+    mocked_pallet_compose_call.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "invalid_input, expected_error",
+    [
+        ("InvalidType", ValueError),
+        ({"InvalidKey": {}}, ValueError),
+        ({"KeepSubnets": {"subnets": []}}, ValueError),  # Empty subnets list
+        (123, TypeError),  # Wrong type
+    ],
+    ids=[
+        "invalid-string-no-raise",
+        "invalid-dict-key-no-raise",
+        "empty-subnets-list-no-raise",
+        "wrong-type-no-raise",
+    ],
+)
+def test_set_root_claim_type_extrinsic_validation_without_raise_error(
+    subtensor, fake_wallet, mocker, invalid_input, expected_error
+):
+    """Tests `set_root_claim_type_extrinsic` validation for invalid inputs with raise_error=False."""
+    # Preps
+    test_error = expected_error("Test error")
+    mocked_normalize = mocker.patch.object(
+        RootClaimType, "normalize", side_effect=test_error
+    )
+    mocked_pallet_compose_call = mocker.patch.object(
+        root.SubtensorModule, "set_root_claim_type"
+    )
+    mocked_from_exception = mocker.patch.object(ExtrinsicResponse, "from_exception")
+
+    # call
+    response = root.set_root_claim_type_extrinsic(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        new_root_claim_type=invalid_input,
+        raise_error=False,
+    )
+
+    # assert
+    mocked_normalize.assert_called_once_with(invalid_input)
+    mocked_pallet_compose_call.assert_not_called()
+    mocked_from_exception.assert_called_once_with(raise_error=False, error=test_error)
+    assert response == mocked_from_exception.return_value
 
 
 def test_claim_root_extrinsic(subtensor, fake_wallet, mocker):

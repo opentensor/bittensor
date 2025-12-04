@@ -301,6 +301,11 @@ class ExtrinsicResponse:
             contains the most detailed execution data available, including the block number and hash, triggered events,
             extrinsic index, execution phase, and other low-level details. This allows deep debugging or post-analysis
             of on-chain execution.
+        mev_extrinsic_receipt: The receipt object of the revealed (decrypted and executed) MEV Shield extrinsic. This is
+            populated when using MEV Shield protection (``with_mev_protection=True``) and contains the execution details
+            of the second extrinsic that decrypts and executes the originally encrypted call. Contains triggered events
+            such as ``DecryptedExecuted`` or ``DecryptedRejected``, block information, and other execution metadata. Set
+            to ``None`` for non-MEV Shield transactions or when the revealed extrinsic receipt is not available.
         transaction_tao_fee: TAO fee charged by the transaction in TAO (e.g., fee for add_stake), if available.
         transaction_alpha_fee: Alpha fee charged by the transaction (e.g., fee for transfer_stake), if available.
         error: Captures the underlying exception if the extrinsic failed, otherwise `None`.
@@ -329,10 +334,11 @@ class ExtrinsicResponse:
             message: Successfully registered subnet
             extrinsic_function: register_subnet_extrinsic
             extrinsic: {'account_id': '0xd43593c715fdd31c...
+            transaction_fee: τ1.0
+            extrinsic_receipt: Extrinsic Receipt data of of the submitted extrinsic
+            mev_extrinsic_receipt: None
             transaction_tao_fee: τ1.0
             transaction_alpha_fee: 1.0β
-            extrinsic_receipt: Extrinsic Receipt data of of the submitted extrinsic
-            transaction_fee: τ1.0
             error: None
             data: None
 
@@ -353,6 +359,7 @@ class ExtrinsicResponse:
     extrinsic: Optional["GenericExtrinsic"] = None
     extrinsic_fee: Optional["Balance"] = None
     extrinsic_receipt: Optional["AsyncExtrinsicReceipt | ExtrinsicReceipt"] = None
+    mev_extrinsic_receipt: Optional["AsyncExtrinsicReceipt | ExtrinsicReceipt"] = None
     transaction_tao_fee: Optional["Balance"] = None
     transaction_alpha_fee: Optional["Balance"] = None
     error: Optional[Exception] = None
@@ -375,11 +382,12 @@ class ExtrinsicResponse:
             f"\textrinsic_function: {self.extrinsic_function}\n"
             f"\textrinsic: {self.extrinsic}\n"
             f"\textrinsic_fee: {self.extrinsic_fee}\n"
-            f"\textrinsic_receipt: {_extrinsic_receipt}"
+            f"\textrinsic_receipt: {_extrinsic_receipt}\n"
+            f"\tmev_extrinsic_receipt: {self.mev_extrinsic_receipt}\n"
             f"\ttransaction_tao_fee: {self.transaction_tao_fee}\n"
             f"\ttransaction_alpha_fee: {self.transaction_alpha_fee}\n"
+            f"\terror: {self.error}\n"
             f"\tdata: {self.data}\n"
-            f"\terror: {self.error}"
         )
 
     def __repr__(self):
