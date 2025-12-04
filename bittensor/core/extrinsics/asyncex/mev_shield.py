@@ -75,6 +75,7 @@ async def find_revealed_extrinsic(
                         extrinsic_idx=event["extrinsic_idx"],
                     )
 
+        logging.debug(f"No {event_names} event found in block {current_block_number}.")
         await subtensor.wait_for_block()
 
     return None, None
