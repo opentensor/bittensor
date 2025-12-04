@@ -27,7 +27,7 @@ async def find_revealed_extrinsic(
     event_hash_id: str,
     start_block_hash: str,
     blocks_ahead: int = 5,
-) -> tuple[str, "ExtrinsicReceipt"] | tuple[None, None]:
+) -> tuple[str, "AsyncExtrinsicReceipt"] | tuple[None, None]:
     """
     Searches for an extrinsic containing a specific MEV Shield event in subsequent blocks.
 
