@@ -41,6 +41,9 @@ def test_properties_methods_comparable(other_class: "Subtensor" = None):
     stakes_methods = [m for m in dir(subtensor_api.staking) if not m.startswith("_")]
     subnets_methods = [m for m in dir(subtensor_api.subnets) if not m.startswith("_")]
     wallets_methods = [m for m in dir(subtensor_api.wallets) if not m.startswith("_")]
+    mev_shield_methods = [
+        m for m in dir(subtensor_api.mev_shield) if not m.startswith("_")
+    ]
 
     all_subtensor_api_methods = (
         subtensor_api_methods
@@ -56,6 +59,7 @@ def test_properties_methods_comparable(other_class: "Subtensor" = None):
         + stakes_methods
         + subnets_methods
         + wallets_methods
+        + mev_shield_methods
     )
 
     # Assertions

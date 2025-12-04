@@ -100,6 +100,7 @@ from bittensor.core.errors import (
     UnknownSynapseError,
     UnstakeError,
 )
+from bittensor.core.extrinsics import pallets
 from bittensor.core.metagraph import Metagraph
 from bittensor.core.settings import BLOCKTIME
 from bittensor.core.stream import StreamingSynapse
@@ -229,6 +230,7 @@ __all__ = [
     "tao",
     "rao",
     "logging",
+    "pallets",
     "MockSubtensor",
     "SubnetsAPI",
     "trace",

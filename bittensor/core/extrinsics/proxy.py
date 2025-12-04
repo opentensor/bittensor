@@ -1,8 +1,10 @@
 from typing import TYPE_CHECKING, Optional, Union
 
 from bittensor.core.chain_data.proxy import ProxyType
+from bittensor.core.extrinsics.mev_shield import submit_encrypted_extrinsic
 from bittensor.core.extrinsics.pallets import Proxy
 from bittensor.core.extrinsics.utils import apply_pure_proxy_data
+from bittensor.core.settings import DEFAULT_MEV_PROTECTION
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.btlogging import logging
 
@@ -18,10 +20,13 @@ def add_proxy_extrinsic(
     delegate_ss58: str,
     proxy_type: Union[str, ProxyType],
     delay: int,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Adds a proxy relationship.
@@ -33,12 +38,16 @@ def add_proxy_extrinsic(
         proxy_type: The type of proxy permissions (e.g., "Any", "NonTransfer", "Governance", "Staking"). Can be a
             string or ProxyType enum value.
         delay: The number of blocks before the proxy can be used.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You
             can think of it as an expiration date for the transaction.
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -63,14 +72,26 @@ def add_proxy_extrinsic(
             delay=delay,
         )
 
-        response = subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            period=period,
-            raise_error=raise_error,
-        )
+        if mev_protection:
+            response = submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=wait_for_revealed_execution,
+            )
+        else:
+            response = subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                period=period,
+                raise_error=raise_error,
+            )
 
         if response.success:
             logging.debug("[green]Proxy added successfully.[/green]")
@@ -89,10 +110,13 @@ def remove_proxy_extrinsic(
     delegate_ss58: str,
     proxy_type: Union[str, ProxyType],
     delay: int,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Removes a proxy relationship.
@@ -103,12 +127,16 @@ def remove_proxy_extrinsic(
         delegate_ss58: The SS58 address of the delegate proxy account to remove.
         proxy_type: The type of proxy permissions to remove. Can be a string or ProxyType enum value.
         delay: The number of blocks before the proxy removal takes effect.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You
             can think of it as an expiration date for the transaction.
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -133,14 +161,26 @@ def remove_proxy_extrinsic(
             delay=delay,
         )
 
-        response = subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            period=period,
-            raise_error=raise_error,
-        )
+        if mev_protection:
+            response = submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=wait_for_revealed_execution,
+            )
+        else:
+            response = subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                period=period,
+                raise_error=raise_error,
+            )
 
         if response.success:
             logging.debug("[green]Proxy removed successfully.[/green]")
@@ -156,10 +196,13 @@ def remove_proxy_extrinsic(
 def remove_proxies_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Removes all proxy relationships for the account.
@@ -170,10 +213,14 @@ def remove_proxies_extrinsic(
     Parameters:
         subtensor: Subtensor instance with the connection to the chain.
         wallet: Bittensor wallet object (the account whose proxies will be removed).
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted.
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -191,14 +238,26 @@ def remove_proxies_extrinsic(
 
         call = Proxy(subtensor).remove_proxies()
 
-        response = subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            period=period,
-            raise_error=raise_error,
-        )
+        if mev_protection:
+            response = submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=wait_for_revealed_execution,
+            )
+        else:
+            response = subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                period=period,
+                raise_error=raise_error,
+            )
 
         if response.success:
             logging.debug("[green]All proxies removed successfully.[/green]")
@@ -217,10 +276,13 @@ def create_pure_proxy_extrinsic(
     proxy_type: Union[str, ProxyType],
     delay: int,
     index: int,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Creates a pure proxy account.
@@ -231,12 +293,16 @@ def create_pure_proxy_extrinsic(
         proxy_type: The type of proxy permissions for the pure proxy. Can be a string or ProxyType enum value.
         delay: The number of blocks before the pure proxy can be used.
         index: The index to use for generating the pure proxy account address.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You
             can think of it as an expiration date for the transaction.
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -268,14 +334,26 @@ def create_pure_proxy_extrinsic(
             index=index,
         )
 
-        response = subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            period=period,
-            raise_error=raise_error,
-        )
+        if mev_protection:
+            response = submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=wait_for_revealed_execution,
+            )
+        else:
+            response = subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                period=period,
+                raise_error=raise_error,
+            )
 
         if response.success:
             logging.debug("[green]Pure proxy created successfully.[/green]")
@@ -321,10 +399,13 @@ def kill_pure_proxy_extrinsic(
     height: int,
     ext_index: int,
     force_proxy_type: Optional[Union[str, ProxyType]] = ProxyType.Any,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Kills (removes) a pure proxy account.
@@ -353,12 +434,16 @@ def kill_pure_proxy_extrinsic(
             the pure proxy account should be used. The spawner must have a proxy relationship of this type (or `Any`)
             with the pure proxy account. Defaults to `ProxyType.Any` for maximum compatibility. If `None`, Substrate
             will automatically select an available proxy type from the spawner's proxy relationships.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -435,6 +520,7 @@ def kill_pure_proxy_extrinsic(
             real_account_ss58=pure_proxy_ss58,
             force_proxy_type=force_proxy_type,
             call=kill_pure_call,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
@@ -458,10 +544,13 @@ def proxy_extrinsic(
     real_account_ss58: str,
     force_proxy_type: Optional[Union[str, ProxyType]],
     call: "GenericCall",
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Executes a call on behalf of the real account through a proxy.
@@ -473,12 +562,16 @@ def proxy_extrinsic(
         force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise, must
             match one of the allowed proxy types. Can be a string or ProxyType enum value.
         call: The inner call to be executed on behalf of the real account.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You
             can think of it as an expiration date for the transaction.
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -507,14 +600,26 @@ def proxy_extrinsic(
             call=call,
         )
 
-        response = subtensor.sign_and_send_extrinsic(
-            call=proxy_call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            period=period,
-            raise_error=raise_error,
-        )
+        if mev_protection:
+            response = submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=proxy_call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=wait_for_revealed_execution,
+            )
+        else:
+            response = subtensor.sign_and_send_extrinsic(
+                call=proxy_call,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                period=period,
+                raise_error=raise_error,
+            )
 
         if response.success:
             logging.debug("[green]Proxy call executed successfully.[/green]")
@@ -534,10 +639,13 @@ def proxy_announced_extrinsic(
     real_account_ss58: str,
     force_proxy_type: Optional[Union[str, ProxyType]],
     call: "GenericCall",
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Executes an announced call on behalf of the real account through a proxy.
@@ -553,12 +661,16 @@ def proxy_announced_extrinsic(
         force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise, must
             match one of the allowed proxy types. Can be a string or ProxyType enum value.
         call: The inner call to be executed on behalf of the real account (must match the announced call_hash).
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You
             can think of it as an expiration date for the transaction.
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -588,14 +700,26 @@ def proxy_announced_extrinsic(
             call=call,
         )
 
-        response = subtensor.sign_and_send_extrinsic(
-            call=proxy_call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            period=period,
-            raise_error=raise_error,
-        )
+        if mev_protection:
+            response = submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=proxy_call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=wait_for_revealed_execution,
+            )
+        else:
+            response = subtensor.sign_and_send_extrinsic(
+                call=proxy_call,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                period=period,
+                raise_error=raise_error,
+            )
 
         if response.success:
             logging.debug("[green]Announced proxy call executed successfully.[/green]")
@@ -613,10 +737,13 @@ def announce_extrinsic(
     wallet: "Wallet",
     real_account_ss58: str,
     call_hash: str,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Announces a future call that will be executed through a proxy.
@@ -626,12 +753,16 @@ def announce_extrinsic(
         wallet: Bittensor wallet object (should be the proxy account wallet).
         real_account_ss58: The SS58 address of the real account on whose behalf the call will be made.
         call_hash: The hash of the call that will be executed in the future.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You
             can think of it as an expiration date for the transaction.
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -656,14 +787,26 @@ def announce_extrinsic(
             call_hash=call_hash,
         )
 
-        response = subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            period=period,
-            raise_error=raise_error,
-        )
+        if mev_protection:
+            response = submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=wait_for_revealed_execution,
+            )
+        else:
+            response = subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                period=period,
+                raise_error=raise_error,
+            )
 
         if response.success:
             logging.debug("[green]Proxy call announced successfully.[/green]")
@@ -681,10 +824,13 @@ def reject_announcement_extrinsic(
     wallet: "Wallet",
     delegate_ss58: str,
     call_hash: str,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Rejects an announcement made by a proxy delegate.
@@ -697,12 +843,16 @@ def reject_announcement_extrinsic(
         wallet: Bittensor wallet object (should be the real account wallet).
         delegate_ss58: The SS58 address of the delegate proxy account whose announcement is being rejected.
         call_hash: The hash of the call that was announced and is now being rejected.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You
             can think of it as an expiration date for the transaction.
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -727,14 +877,26 @@ def reject_announcement_extrinsic(
             call_hash=call_hash,
         )
 
-        response = subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            period=period,
-            raise_error=raise_error,
-        )
+        if mev_protection:
+            response = submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=wait_for_revealed_execution,
+            )
+        else:
+            response = subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                period=period,
+                raise_error=raise_error,
+            )
 
         if response.success:
             logging.debug("[green]Announcement rejected successfully.[/green]")
@@ -752,10 +914,13 @@ def remove_announcement_extrinsic(
     wallet: "Wallet",
     real_account_ss58: str,
     call_hash: str,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Removes an announcement made by a proxy account.
@@ -768,12 +933,16 @@ def remove_announcement_extrinsic(
         wallet: Bittensor wallet object (should be the proxy account wallet that made the announcement).
         real_account_ss58: The SS58 address of the real account on whose behalf the call was announced.
         call_hash: The hash of the call that was announced and is now being removed.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You
             can think of it as an expiration date for the transaction.
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -798,14 +967,26 @@ def remove_announcement_extrinsic(
             call_hash=call_hash,
         )
 
-        response = subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            period=period,
-            raise_error=raise_error,
-        )
+        if mev_protection:
+            response = submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=wait_for_revealed_execution,
+            )
+        else:
+            response = subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                period=period,
+                raise_error=raise_error,
+            )
 
         if response.success:
             logging.debug("[green]Announcement removed successfully.[/green]")
@@ -821,10 +1002,13 @@ def remove_announcement_extrinsic(
 def poke_deposit_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Adjusts deposits made for proxies and announcements based on current values.
@@ -836,10 +1020,14 @@ def poke_deposit_extrinsic(
     Parameters:
         subtensor: Subtensor instance with the connection to the chain.
         wallet: Bittensor wallet object (the account whose deposits will be adjusted).
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted.
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -862,14 +1050,26 @@ def poke_deposit_extrinsic(
 
         call = Proxy(subtensor).poke_deposit()
 
-        response = subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            period=period,
-            raise_error=raise_error,
-        )
+        if mev_protection:
+            response = submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=wait_for_revealed_execution,
+            )
+        else:
+            response = subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                period=period,
+                raise_error=raise_error,
+            )
 
         if response.success:
             logging.debug("[green]Deposit poked successfully.[/green]")

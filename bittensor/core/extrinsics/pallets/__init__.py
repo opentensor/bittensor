@@ -2,6 +2,7 @@ from .base import Call
 from .balances import Balances
 from .commitments import Commitments
 from .crowdloan import Crowdloan
+from .mev_shield import MevShield
 from .proxy import Proxy
 from .subtensor_module import SubtensorModule
 from .sudo import Sudo
@@ -13,6 +14,7 @@ __all__ = [
     "Balances",
     "Commitments",
     "Crowdloan",
+    "MevShield",
     "Proxy",
     "SubtensorModule",
     "Sudo",

@@ -1,6 +1,7 @@
 import pytest
 
 from bittensor.core.extrinsics import staking
+from bittensor.core.settings import DEFAULT_MEV_PROTECTION
 from bittensor.utils.balance import Balance
 from bittensor.core.types import ExtrinsicResponse
 
@@ -37,8 +38,10 @@ def test_add_stake_extrinsic(mocker):
         hotkey_ss58=hotkey_ss58,
         netuid=fake_netuid,
         amount=amount,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        wait_for_revealed_execution=True,
     )
 
     # Asserts
@@ -95,6 +98,7 @@ def test_add_stake_multiple_extrinsic(subtensor, mocker, fake_wallet):
         netuids=netuids,
         hotkey_ss58s=hotkey_ss58s,
         amounts=amounts,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
         raise_error=True,
@@ -137,6 +141,7 @@ def test_set_auto_stake_extrinsic(
         wallet=fake_wallet,
         hotkey_ss58=hotkey_ss58,
         netuid=netuid,
+        mev_protection=DEFAULT_MEV_PROTECTION,
     )
 
     # Asserts

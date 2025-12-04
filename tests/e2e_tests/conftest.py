@@ -67,7 +67,7 @@ def local_chain(request):
 
     # passed env variable to control node mod (non-/fast-blocks)
     fast_blocks = "False" if (os.getenv("FAST_BLOCKS") == "0") is True else "True"
-    params = f"{fast_blocks}" if args is None else f"{fast_blocks} {args} "
+    params = f"{fast_blocks}" if args is None else f"{args}"
 
     if shutil.which("docker") and not os.getenv("USE_DOCKER") == "0":
         yield from docker_runner(params)
