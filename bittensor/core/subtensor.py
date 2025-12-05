@@ -207,7 +207,7 @@ class Subtensor(SubtensorMixin):
 
         Parameters:
             network: The network name to connect to (e.g., `finney` for Bittensor mainnet, `test`, for
-                Bittensor test network, `local` for a locally deployed blockchain).If `None`, uses the
+                Bittensor test network, `local` for a locally deployed blockchain). If `None`, uses the
                 default network from config.
             config: Configuration object for the Subtensor instance. If `None`, uses the default configuration.
             log_verbose: Enables or disables verbose logging.
