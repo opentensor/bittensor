@@ -2440,7 +2440,7 @@ class Subtensor(SubtensorMixin):
                 default_value=ValueError(
                     "You have specified `selected_indices` to retrieve metagraph info selectively, but the "
                     "selective runtime calls are not available at this block (probably too old). Do not specify "
-                    `selected_indices` to retrieve metagraph info selectively."
+                    "`selected_indices` to retrieve metagraph info selectively."
                 ),
             )
         else:
