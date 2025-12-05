@@ -1,3 +1,4 @@
+from .admin_utils import AdminUtils
 from .base import Call
 from .balances import Balances
 from .commitments import Commitments
@@ -10,6 +11,7 @@ from .swap import Swap
 
 
 __all__ = [
+    "AdminUtils",
     "Call",
     "Balances",
     "Commitments",
