@@ -138,7 +138,10 @@ DEFAULTS = munchify(
 
 
 # Parsing version without any literals.
-__version__ = re.match(r"^\d+\.\d+\.\d+", __version__).group(0)
+_version_match = re.match(r"^\d+\.\d+\.\d+", __version__)
+if _version_match is None:
+    raise ValueError(f"Invalid version format: {__version__}. Expected format: X.Y.Z")
+__version__ = _version_match.group(0)
 
 version_split = __version__.split(".")
 _version_info = tuple(int(part) for part in version_split)

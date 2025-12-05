@@ -10,11 +10,8 @@ from async_substrate_interface.errors import (
 if TYPE_CHECKING:
     from bittensor.core.synapse import Synapse
 
-# redundant aliases
-SubstrateRequestException = SubstrateRequestException
-StorageFunctionNotFound = StorageFunctionNotFound
-BlockNotFound = BlockNotFound
-ExtrinsicNotFound = ExtrinsicNotFound
+# Re-export exceptions from async_substrate_interface for convenience
+# These are already imported above, no need for redundant aliases
 
 
 class _ChainErrorMeta(type):
