@@ -9,7 +9,6 @@ of these functions outside of development/testing contexts could have severe con
 
 from dataclasses import dataclass
 from typing import Optional
-from bittensor.core.types import Weights as MaybeSplit
 
 from .base import CallBuilder as _BasePallet, Call
 
