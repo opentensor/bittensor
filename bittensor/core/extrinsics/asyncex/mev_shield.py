@@ -148,10 +148,6 @@ async def submit_encrypted_extrinsic(
                 ),
             )
 
-        # Use wallet.coldkey as default signer if signer_keypair is not provided
-        if signer_keypair is None:
-            signer_keypair = wallet.coldkey
-
         ml_kem_768_public_key = await subtensor.get_mev_shield_next_key()
         if ml_kem_768_public_key is None:
             return ExtrinsicResponse.from_exception(
@@ -162,7 +158,6 @@ async def submit_encrypted_extrinsic(
         mev_commitment, mev_ciphertext, payload_core = (
             get_mev_commitment_and_ciphertext(
                 signed_ext=signed_ext,
-                signer_keypair=signer_keypair,
                 ml_kem_768_public_key=ml_kem_768_public_key,
             )
         )
