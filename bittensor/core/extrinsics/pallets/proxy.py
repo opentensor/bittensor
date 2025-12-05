@@ -16,7 +16,7 @@ class Proxy(_BasePallet):
     Works with both sync (Subtensor) and async (AsyncSubtensor) instances. For async operations, pass an AsyncSubtensor
     instance and await the result.
 
-    Example::
+    Example:
         # Sync usage
         call = Proxy(subtensor).add_proxy(delegate="5DE..", proxy_type="Any", delay=0)
         response = subtensor.sign_and_send_extrinsic(call=call, ...)
@@ -36,13 +36,13 @@ class Proxy(_BasePallet):
 
         Parameters:
             delegate: The SS58 address of the delegate proxy account.
-            proxy_type: The type of proxy permissions (e.g., ``"Any"``, ``"NonTransfer"``, ``"Staking"``). For available
+            proxy_type: The type of proxy permissions (e.g., "Any", "NonTransfer", "Staking"). For available
                 proxy types and their permissions, see the documentation link in the Notes section below.
-            delay: Optionally, include a delay in blocks. The time-lock period for proxy announcements. A delay of ``0``
+            delay: Optionally, include a delay in blocks. The time-lock period for proxy announcements. A delay of 0
                 means immediate execution without announcements.
 
         Returns:
-            GenericCall instance for the ``Proxy.addProxy`` extrinsic.
+            GenericCall instance for the Proxy.addProxy extrinsic.
 
         Notes:
             - For available proxy types and their specific permissions, see: <https://docs.learnbittensor.org/keys/proxies#types-of-proxies>
@@ -70,7 +70,7 @@ class Proxy(_BasePallet):
                 proxy relationship.
 
         Returns:
-            GenericCall instance for the ``Proxy.removeProxy`` extrinsic.
+            GenericCall instance for the Proxy.removeProxy extrinsic.
 
         Notes:
             See Working with Proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
@@ -85,7 +85,7 @@ class Proxy(_BasePallet):
         """Remove all proxy relationships for the signing account.
 
         Returns:
-            GenericCall instance for the ``Proxy.removeProxies`` extrinsic.
+            GenericCall instance for the Proxy.removeProxies extrinsic.
 
         Notes:
             - This removes all proxy relationships in a single call, which is more efficient than removing them one by one.
@@ -102,17 +102,17 @@ class Proxy(_BasePallet):
         """Create a pure proxy account.
 
         Parameters:
-            proxy_type: The type of proxy permissions for the pure proxy (e.g., ``"Any"``, ``"NonTransfer"``,
-                ``"Staking"``). For available proxy types and their permissions, see the documentation link in the Notes
+            proxy_type: The type of proxy permissions for the pure proxy (e.g., "Any", "NonTransfer",
+                "Staking"). For available proxy types and their permissions, see the documentation link in the Notes
                 section below.
-            delay: Optionally, include a delay in blocks. The time-lock period for proxy announcements. A delay of ``0``
+            delay: Optionally, include a delay in blocks. The time-lock period for proxy announcements. A delay of 0
                 means immediate execution without announcements.
-            index: A salt value (u16, range ``0-65535``) used to generate unique pure proxy addresses. This should
-                generally be left as ``0`` unless you are creating batches of proxies. Must be preserved for
-                ``kill_pure``.
+            index: A salt value (u16, range 0-65535) used to generate unique pure proxy addresses. This should
+                generally be left as 0 unless you are creating batches of proxies. Must be preserved for
+                kill_pure.
 
         Returns:
-            GenericCall instance for the ``Proxy.createPure`` extrinsic.
+            GenericCall instance for the Proxy.createPure extrinsic.
 
         Notes:
             - For available proxy types and their specific permissions, see: <https://docs.learnbittensor.org/keys/proxies#types-of-proxies>
@@ -136,18 +136,18 @@ class Proxy(_BasePallet):
 
         Parameters:
             spawner: The SS58 address of the account that spawned the pure proxy (the account that called
-                ``create_pure``).
+                create_pure).
             proxy_type: The type of proxy permissions that were used when creating the pure proxy. Must match the value
-                used in ``create_pure``.
-            index: The salt value (u16, range ``0-65535``) originally used in ``create_pure`` to generate this pure
+                used in create_pure.
+            index: The salt value (u16, range 0-65535) originally used in create_pure to generate this pure
                 proxy's address. Must match exactly the index used during creation.
-            height: The block number at which the pure proxy was created. This is returned in the ``"PureCreated"``
-                event from ``create_pure``.
+            height: The block number at which the pure proxy was created. This is returned in the "PureCreated"
+                event from create_pure.
             ext_index: The extrinsic index within the block at which the pure proxy was created. This is returned in the
-                ``"PureCreated"`` event from ``create_pure``.
+                "PureCreated" event from create_pure.
 
         Returns:
-            GenericCall instance for the ``Proxy.killPure`` extrinsic.
+            GenericCall instance for the Proxy.killPure extrinsic.
 
         Notes:
             See Pure Proxies: <https://docs.learnbittensor.org/keys/proxies/pure-proxies>
@@ -174,15 +174,15 @@ class Proxy(_BasePallet):
 
         Parameters:
             real: The SS58 address of the real account on whose behalf the call is being made.
-            force_proxy_type: The type of proxy to use for the call. If ``None``, any proxy type can be used. Otherwise,
+            force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise,
                 must match one of the allowed proxy types that the signing account has for the real account.
             call: The inner call to be executed on behalf of the real account.
 
         Returns:
-            GenericCall instance for the ``Proxy.proxy`` extrinsic.
+            GenericCall instance for the Proxy.proxy extrinsic.
 
         Notes:
-            - The call must be permitted by the proxy type. For example, a ``"NonTransfer"`` proxy cannot execute transfer
+            - The call must be permitted by the proxy type. For example, a "NonTransfer" proxy cannot execute transfer
               calls.
             - See Working with Proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
         """
@@ -201,10 +201,10 @@ class Proxy(_BasePallet):
 
         Parameters:
             real: The SS58 address of the real account on whose behalf the call will be made.
-            call_hash: The hash of the call that will be executed in the future (hex string with ``0x`` prefix).
+            call_hash: The hash of the call that will be executed in the future (hex string with 0x prefix).
 
         Returns:
-            GenericCall instance for the ``Proxy.announce`` extrinsic.
+            GenericCall instance for the Proxy.announce extrinsic.
 
         Notes:
             - A deposit is required when making an announcement. The deposit is returned when the announcement is executed,
@@ -228,16 +228,16 @@ class Proxy(_BasePallet):
         Parameters:
             delegate: The SS58 address of the delegate proxy account that made the announcement.
             real: The SS58 address of the real account on whose behalf the call will be made.
-            force_proxy_type: The type of proxy to use for the call. If ``None``, any proxy type can be used. Otherwise,
+            force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise,
                 must match one of the allowed proxy types.
             call: The inner call to be executed on behalf of the real account. The hash of this call must match the
-                ``call_hash`` that was announced.
+                call_hash that was announced.
 
         Returns:
-            GenericCall instance for the ``Proxy.proxyAnnounced`` extrinsic.
+            GenericCall instance for the Proxy.proxyAnnounced extrinsic.
 
         Notes:
-            - The ``call_hash`` of the provided call must match the ``call_hash`` that was announced. The announcement must
+            - The call_hash of the provided call must match the call_hash that was announced. The announcement must
               not have been rejected by the real account, and the delay period must have passed.
             - See Working with Proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
         """
@@ -257,11 +257,11 @@ class Proxy(_BasePallet):
 
         Parameters:
             delegate: The SS58 address of the delegate proxy account whose announcement is being rejected.
-            call_hash: The hash of the call that was announced and is now being rejected (hex string with ``0x``
+            call_hash: The hash of the call that was announced and is now being rejected (hex string with 0x
                 prefix).
 
         Returns:
-            GenericCall instance for the ``Proxy.rejectAnnouncement`` extrinsic.
+            GenericCall instance for the Proxy.rejectAnnouncement extrinsic.
 
         Notes:
             - Once rejected, the announcement cannot be executed. The delegate's announcement deposit is returned.
@@ -281,11 +281,11 @@ class Proxy(_BasePallet):
 
         Parameters:
             real: The SS58 address of the real account on whose behalf the call was announced.
-            call_hash: The hash of the call that was announced and is now being removed (hex string with ``0x``
+            call_hash: The hash of the call that was announced and is now being removed (hex string with 0x
                 prefix).
 
         Returns:
-            GenericCall instance for the ``Proxy.removeAnnouncement`` extrinsic.
+            GenericCall instance for the Proxy.removeAnnouncement extrinsic.
 
         Notes:
             - Removing an announcement frees up the announcement deposit.
@@ -300,7 +300,7 @@ class Proxy(_BasePallet):
         """Adjust proxy and announcement deposits based on current runtime values.
 
         Returns:
-            GenericCall instance for the ``Proxy.pokeDeposit`` extrinsic.
+            GenericCall instance for the Proxy.pokeDeposit extrinsic.
 
         Notes:
             - This can be used by accounts to possibly lower their locked amount. The function automatically recalculates
