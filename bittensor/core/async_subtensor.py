@@ -1588,7 +1588,7 @@ class AsyncSubtensor(SubtensorMixin):
             Each validator can have multiple revealed commitments (up to 10 most recent).
 
         Example:
-
+            # sample return value
             {
                 "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY": ( (12, "Alice message 1"), (152, "Alice message 2") ),
                 "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty": ( (12, "Bob message 1"), (147, "Bob message 2") ),
