@@ -18,7 +18,7 @@ from bittensor.utils.btlogging import logging
 if TYPE_CHECKING:
     from bittensor.core.async_subtensor import AsyncSubtensor
     from bittensor_wallet import Wallet, Keypair
-    from scalecodec.types import GenericCall
+    from scalecodec.types import GenericCall, GenericExtrinsic
 
 
 async def find_revealed_extrinsic(
@@ -84,9 +84,10 @@ async def find_revealed_extrinsic(
 async def submit_encrypted_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
-    call: "GenericCall",
+    signed_ext: "GenericExtrinsic",
     signer_keypair: Optional["Keypair"] = None,
     period: Optional[int] = None,
+    nonce: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
@@ -102,7 +103,7 @@ async def submit_encrypted_extrinsic(
     Parameters:
         subtensor: The Subtensor client instance used for blockchain interaction.
         wallet: The wallet used to sign the extrinsic (must be unlocked, coldkey will be used for signing).
-        call: The GenericCall object to encrypt and submit.
+        signed_ext: The signed GenericExtrinsic object to encrypt and submit.
         signer_keypair: The Keypair object used for signing the inner call.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
@@ -158,13 +159,10 @@ async def submit_encrypted_extrinsic(
                 error=ValueError("MEV Shield NextKey not available in storage."),
             )
 
-        genesis_hash = await subtensor.get_block_hash(block=0)
-
-        mev_commitment, mev_ciphertext, payload_core, signature = (
+        mev_commitment, mev_ciphertext, payload_core = (
             get_mev_commitment_and_ciphertext(
-                call=call,
+                signed_ext=signed_ext,
                 signer_keypair=signer_keypair,
-                genesis_hash=genesis_hash,
                 ml_kem_768_public_key=ml_kem_768_public_key,
             )
         )
@@ -178,6 +176,7 @@ async def submit_encrypted_extrinsic(
             wallet=wallet,
             call=extrinsic_call,
             period=period,
+            nonce=nonce,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
@@ -189,7 +188,6 @@ async def submit_encrypted_extrinsic(
                 "ciphertext": mev_ciphertext,
                 "ml_kem_768_public_key": ml_kem_768_public_key,
                 "payload_core": payload_core,
-                "signature": signature,
                 "submitting_id": extrinsic_call.call_hash,
             }
             if wait_for_revealed_execution:

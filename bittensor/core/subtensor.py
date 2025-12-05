@@ -166,7 +166,7 @@ from bittensor.utils.liquidity import (
 if TYPE_CHECKING:
     from async_substrate_interface.sync_substrate import QueryMapResult
     from bittensor_wallet import Keypair, Wallet
-    from scalecodec.types import GenericCall
+    from scalecodec.types import GenericCall, GenericExtrinsic
 
 
 class Subtensor(SubtensorMixin):
@@ -4501,6 +4501,60 @@ class Subtensor(SubtensorMixin):
             extrinsic_response.message = format_error_message(error)
             extrinsic_response.error = error
             return extrinsic_response
+
+    def create_signed_extrinsic(
+        self,
+        call: "GenericCall",
+        wallet: "Wallet",
+        sign_with: str = "coldkey",
+        use_nonce: bool = False,
+        nonce_key: str = "hotkey",
+        nonce: Optional[int] = None,
+        period: Optional[int] = DEFAULT_PERIOD,
+    ) -> "GenericExtrinsic":
+        """
+        Helper method to sign and submit an extrinsic call to chain.
+
+        Parameters:
+            call: a prepared Call object
+            wallet: the wallet whose coldkey will be used to sign the extrinsic
+            sign_with: the wallet's keypair to use for the signing. Options are "coldkey", "hotkey", "coldkeypub"
+            use_nonce: unique identifier for the transaction related with hot/coldkey.
+            nonce_key: the type on nonce to use. Options are "hotkey" or "coldkey".
+            nonce: the nonce to use for the transaction, will be used if provided.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+
+        Returns:
+            GenericExtrinsic: The signed extrinsic.
+        """
+        possible_keys = ("coldkey", "hotkey", "coldkeypub")
+        if sign_with not in possible_keys:
+            raise AttributeError(
+                f"'sign_with' must be either 'coldkey', 'hotkey' or 'coldkeypub', not '{sign_with}'"
+            )
+        signing_keypair = getattr(wallet, sign_with)
+        extrinsic_data = {"call": call, "keypair": signing_keypair}
+        if nonce is not None:
+            # if nonce is provided, use it
+            extrinsic_data["nonce"] = nonce
+        elif use_nonce:
+            if nonce_key not in possible_keys:
+                raise AttributeError(
+                    f"'nonce_key' must be either 'coldkey', 'hotkey' or 'coldkeypub', not '{nonce_key}'"
+                )
+            next_nonce = self.substrate.get_account_next_index(
+                getattr(wallet, nonce_key).ss58_address
+            )
+            extrinsic_data["nonce"] = next_nonce
+
+        if period is not None:
+            extrinsic_data["era"] = {"period": period}
+
+        signed_ext = self.substrate.create_signed_extrinsic(**extrinsic_data)
+
+        return signed_ext
 
     def get_extrinsic_fee(
         self,
