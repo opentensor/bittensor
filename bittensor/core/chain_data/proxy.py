@@ -84,7 +84,7 @@ class ProxyType(str, Enum):
         - The permissions described above may change over time as the Subtensor runtime evolves. For the most up-to-date
           and authoritative information about proxy type permissions, refer to the Subtensor source code at:
           <https://github.com/opentensor/subtensor/blob/main/runtime/src/lib.rs>
-          Specifically, look for the ``impl InstanceFilter<RuntimeCall> for ProxyType`` implementation which defines the
+          Specifically, look for the `impl InstanceFilter<RuntimeCall> for ProxyType` implementation which defines the
           exact filtering logic for each proxy type.
         - The values match exactly with the ProxyType enum defined in the Subtensor runtime. Any changes to the
           runtime enum must be reflected here.
@@ -120,7 +120,7 @@ class ProxyType(str, Enum):
         """Returns a list of all proxy type values.
 
         Returns:
-            List of all valid proxy type string values (e.g., ``["Any", "Owner", "Staking", ...]``).
+            List of all valid proxy type string values (e.g., `["Any", "Owner", "Staking", ...]`).
         """
         return [member.value for member in cls]
 
@@ -132,7 +132,7 @@ class ProxyType(str, Enum):
             value: String value to validate.
 
         Returns:
-            ``True`` if the value is a valid proxy type, ``False`` otherwise.
+            `True` if the value is a valid proxy type, `False` otherwise.
         """
         return value in cls.all_types()
 
@@ -177,13 +177,13 @@ class ProxyInfo:
 
     Attributes:
         delegate: The SS58 address of the delegate proxy account that can act on behalf of the real account.
-        proxy_type: The type of proxy permissions granted to the delegate (e.g., ``"Any"``, ``"NonTransfer"``,
-            ``"ChildKeys"``, ``"Staking"``). This determines what operations the delegate can perform.
+        proxy_type: The type of proxy permissions granted to the delegate (e.g., `"Any"`, `"NonTransfer"`,
+            `"ChildKeys"`, `"Staking"`). This determines what operations the delegate can perform.
         delay: The number of blocks that must elapse between announcing a call and executing it (time-lock period). A
-            delay of ``0`` allows immediate execution without announcements. Non-zero delays require the delegate to
-            announce the call first via ``announce_proxy``, wait for the delay period to pass, then execute it via
-            ``proxy_announced``, giving the real account time to review and potentially reject the call via
-            ``reject_proxy_announcement`` before execution.
+            delay of `0` allows immediate execution without announcements. Non-zero delays require the delegate to
+            announce the call first via `announce_proxy`, wait for the delay period to pass, then execute it via
+            `proxy_announced`, giving the real account time to review and potentially reject the call via
+            `reject_proxy_announcement` before execution.
 
     Notes:
         - Bittensor proxies: <https://docs.learnbittensor.org/keys/proxies>
@@ -202,7 +202,7 @@ class ProxyInfo:
         structured ProxyInfo objects.
 
         Parameters:
-            data: Tuple of chain proxy data from the ``Proxy.Proxies`` storage function.
+            data: Tuple of chain proxy data from the `Proxy.Proxies` storage function.
 
         Returns:
             List of ProxyInfo objects representing all proxy relationships for a real account.
@@ -227,7 +227,7 @@ class ProxyInfo:
         relationships and the deposit amount reserved for maintaining these proxies.
 
         Parameters:
-            query: Query result from Substrate ``query()`` call to ``Proxy.Proxies`` storage function.
+            query: Query result from Substrate `query()` call to `Proxy.Proxies` storage function.
 
         Returns:
             Tuple containing:
@@ -277,13 +277,13 @@ class ProxyAnnouncementInfo:
     This class contains information about a pending proxy announcement. Announcements are used when a proxy account
     with a non-zero delay period (time-lock) wants to declare its intention to execute a call on behalf of the real
     account. The announcement must be made before the actual call can be executed, allowing the real account time to
-    review and potentially reject the operation via ``reject_proxy_announcement`` before it takes effect. After the
-    delay period passes, the proxy can execute the announced call via ``proxy_announced``.
+    review and potentially reject the operation via `reject_proxy_announcement` before it takes effect. After the
+    delay period passes, the proxy can execute the announced call via `proxy_announced`.
 
     Attributes:
         real: The SS58 address of the real account on whose behalf the call will be made.
-        call_hash: The hash of the call that will be executed in the future (hex string with ``0x`` prefix). This hash
-            must match the actual call when it is executed via ``proxy_announced``.
+        call_hash: The hash of the call that will be executed in the future (hex string with `0x` prefix). This hash
+            must match the actual call when it is executed via `proxy_announced`.
         height: The block height at which the announcement was made. The delay period is calculated from this block.
 
     Notes:
@@ -303,7 +303,7 @@ class ProxyAnnouncementInfo:
         This method decodes the raw announcement data returned from the Proxy.Announcements storage function.
 
         Parameters:
-            data: Tuple of announcements data from the ``Proxy.Announcements`` storage function.
+            data: Tuple of announcements data from the `Proxy.Announcements` storage function.
 
         Returns:
             List of ProxyAnnouncementInfo objects representing all pending announcements.
@@ -350,15 +350,15 @@ class ProxyConstants:
     Displays current values for on-chain configuration constants for the Proxy pallet. They define
     deposit requirements, account limits, and announcement constraints that govern the behavior of proxies.
 
-    Each attribute is fetched directly from the runtime via ``Subtensor.query_constant("Proxy", <name>)`` and reflects
+    Each attribute is fetched directly from the runtime via `Subtensor.query_constant("Proxy", <name>)` and reflects
     the current chain configuration at the time of retrieval.
 
     Attributes:
         AnnouncementDepositBase: Base deposit amount (in RAO) required to announce a future proxy call. This deposit
             is held until the announced call is executed or cancelled.
         AnnouncementDepositFactor: Additional deposit factor (in RAO) per byte of the call hash being announced. The
-            total announcement deposit is calculated as: ``AnnouncementDepositBase + (call_hash_size *
-            AnnouncementDepositFactor)``.
+            total announcement deposit is calculated as: `AnnouncementDepositBase + (call_hash_size *
+            AnnouncementDepositFactor)`.
         MaxProxies: Maximum number of proxy relationships that a single account can have. This limits the total
             number of delegates that can act on behalf of an account.
         MaxPending: Maximum number of pending proxy announcements that can exist for a single account at any given
@@ -366,7 +366,7 @@ class ProxyConstants:
         ProxyDepositBase: Base deposit amount (in RAO) required when adding a proxy relationship. This deposit is
             held as long as the proxy relationship exists and is returned when the proxy is removed.
         ProxyDepositFactor: Additional deposit factor (in RAO) per proxy type added. The total proxy deposit is
-            calculated as: ``ProxyDepositBase + (number_of_proxy_types * ProxyDepositFactor)``.
+            calculated as: `ProxyDepositBase + (number_of_proxy_types * ProxyDepositFactor)`.
 
     Notes:
         - All Balance amounts are in RAO.
@@ -396,10 +396,10 @@ class ProxyConstants:
         """Creates a ProxyConstants instance from a dictionary of decoded chain constants.
 
         Parameters:
-            data: Dictionary mapping constant names to their decoded values (returned by ``Subtensor.query_constant()``).
+            data: Dictionary mapping constant names to their decoded values (returned by `Subtensor.query_constant()`).
 
         Returns:
-            ProxyConstants object with constants filled in. Fields not found in data will be set to ``None``.
+            ProxyConstants object with constants filled in. Fields not found in data will be set to `None`.
         """
         return cls(**{name: data.get(name) for name in cls.constants_names()})
 

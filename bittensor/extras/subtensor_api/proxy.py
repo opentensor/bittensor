@@ -8,7 +8,7 @@ class Proxy:
 
     This class provides access to all proxy-related operations, including creating and managing both standard and pure
     proxy relationships, handling proxy announcements, and querying proxy data. It works with both synchronous
-    ``Subtensor`` and asynchronous ``AsyncSubtensor`` instances.
+    `Subtensor` and asynchronous `AsyncSubtensor` instances.
 
     Proxies enable secure delegation of account permissions by allowing a delegate account to perform certain operations
     on behalf of a real account, with restrictions defined by the proxy type and optional time-lock delays.
