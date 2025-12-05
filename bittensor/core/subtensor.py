@@ -6679,7 +6679,6 @@ class Subtensor(SubtensorMixin):
         """
         attempt = 0
         response = ExtrinsicResponse(False)
-
         if attempt_check := validate_max_attempts(max_attempts, response):
             return attempt_check
 
