@@ -6365,7 +6365,6 @@ def test_mev_submit_encrypted_success(subtensor, fake_wallet, mocker):
     """Test mev_submit_encrypted calls submit_encrypted_extrinsic correctly."""
     # Prep
     fake_call = mocker.Mock(spec=GenericCall)
-    fake_signer_keypair = mocker.Mock()
     fake_period = 128
     fake_raise_error = False
     fake_wait_for_inclusion = True
@@ -6394,6 +6393,7 @@ def test_mev_submit_encrypted_success(subtensor, fake_wallet, mocker):
         subtensor=subtensor,
         wallet=fake_wallet,
         call=fake_call,
+        sign_with="coldkey",
         period=fake_period,
         raise_error=fake_raise_error,
         wait_for_inclusion=fake_wait_for_inclusion,
@@ -6421,6 +6421,7 @@ def test_mev_submit_encrypted_default_params(subtensor, fake_wallet, mocker):
         subtensor=subtensor,
         wallet=fake_wallet,
         call=fake_call,
+        sign_with="coldkey",
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
