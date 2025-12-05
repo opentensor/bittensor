@@ -142,11 +142,22 @@ async def add_stake_extrinsic(
 
         block_hash_before = await subtensor.get_block_hash()
         if mev_protection:
+            # get current nonce for the coldkey, accounting for the current mempool.
+            current_nonce = await subtensor.substrate.get_account_next_index(
+                wallet.coldkeypub.ss58_address
+            )
+            # sign the extrinsic with the nonce, *one higher than the current nonce* as it will execute after.
+            signed_ext = await subtensor.create_signed_extrinsic(
+                call=call, wallet=wallet, period=period, nonce=current_nonce
+            )
+
+            # submit the encrypted extrinsic, with the *current* nonce.
             response = await submit_encrypted_extrinsic(
                 subtensor=subtensor,
                 wallet=wallet,
-                call=call,
+                signed_ext=signed_ext,
                 period=period,
+                nonce=current_nonce,
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
