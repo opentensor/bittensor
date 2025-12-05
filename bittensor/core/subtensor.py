@@ -7158,7 +7158,7 @@ class Subtensor(SubtensorMixin):
         version_key: int = version_as_int,
         *,
         mev_protection: bool = DEFAULT_MEV_PROTECTION,
-        period: Optional[int] = 8,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
