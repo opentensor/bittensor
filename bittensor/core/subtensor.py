@@ -4375,6 +4375,10 @@ class Subtensor(SubtensorMixin):
 
         Returns:
             GenericCall: Composed call object ready for extrinsic submission.
+
+        Notes:
+            For detailed documentation and examples of composing calls, including the CallBuilder utility, see:
+            <https://docs.learnbittensor.org/sdk/call>
         """
         call_params = self.validate_extrinsic_params(
             call_module, call_function, call_params, block
@@ -5409,6 +5413,13 @@ class Subtensor(SubtensorMixin):
             payload_core = signer_bytes (32B) + nonce (u32 LE, 4B) + SCALE(call)
             plaintext = payload_core + b"\\x01" + signature (64B for sr25519)
             commitment = blake2_256(payload_core)
+
+        Notes:
+            For detailed documentation and examples of MEV Shield protection, see:
+            <https://docs.learnbittensor.org/sdk/mev-protection>
+
+            For creating GenericCall objects to use with this method, see:
+            <https://docs.learnbittensor.org/sdk/call>
         """
         return submit_encrypted_extrinsic(
             subtensor=self,
