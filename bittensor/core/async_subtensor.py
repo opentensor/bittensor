@@ -5647,6 +5647,10 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             GenericCall: Composed call object ready for extrinsic submission.
+
+        Notes:
+            For detailed documentation and examples of composing calls, including the CallBuilder utility, see:
+            <https://docs.learnbittensor.org/sdk/call>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
 
@@ -6687,6 +6691,13 @@ class AsyncSubtensor(SubtensorMixin):
             payload_core = signer_bytes (32B) + nonce (u32 LE, 4B) + SCALE(call)
             plaintext = payload_core + b"\\x01" + signature (64B for sr25519)
             commitment = blake2_256(payload_core)
+
+        Notes:
+            For detailed documentation and examples of MEV Shield protection, see:
+            <https://docs.learnbittensor.org/sdk/mev-protection>
+
+            For creating GenericCall objects to use with this method, see:
+            <https://docs.learnbittensor.org/sdk/call>
         """
         return await submit_encrypted_extrinsic(
             subtensor=self,
