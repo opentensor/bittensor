@@ -16,12 +16,15 @@ class Proxy(_BasePallet):
     Works with both sync (Subtensor) and async (AsyncSubtensor) instances. For async operations, pass an AsyncSubtensor
     instance and await the result.
 
-    Example::
+    Example:
+
         # Sync usage
+
         call = Proxy(subtensor).add_proxy(delegate="5DE..", proxy_type="Any", delay=0)
         response = subtensor.sign_and_send_extrinsic(call=call, ...)
 
         # Async usage
+
         call = await Proxy(async_subtensor).add_proxy(delegate="5DE..", proxy_type="Any", delay=0)
         response = await async_subtensor.sign_and_send_extrinsic(call=call, ...)
     """

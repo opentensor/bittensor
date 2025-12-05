@@ -515,7 +515,8 @@ async def kill_pure_proxy_extrinsic(
         All access to this account will be lost. Any funds remaining in the pure proxy account will become permanently
         inaccessible after this operation.
 
-    Example::
+    Example:
+
         # After creating a pure proxy
 
         create_response = subtensor.proxies.create_pure_proxy(
@@ -531,7 +532,9 @@ async def kill_pure_proxy_extrinsic(
         ext_index = create_response.data["ext_index"]
 
         # Kill the pure proxy
+
         # Note: force_proxy_type defaults to ProxyType.Any (spawner must have Any proxy relationship)
+
         kill_response = subtensor.proxies.kill_pure_proxy(
             wallet=spawner_wallet,
             pure_proxy_ss58=pure_proxy_ss58,

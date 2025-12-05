@@ -258,7 +258,9 @@ class Subtensor(SubtensorMixin):
         Example:
 
             sub = bt.Subtensor(network="finney")
+
             # calls to subtensor
+
             sub.close()
 
         """
@@ -584,6 +586,7 @@ class Subtensor(SubtensorMixin):
         Example:
 
             # Simulate staking 100 TAO stake to subnet 1
+
             result = subtensor.sim_swap(
                 origin_netuid=0,
                 destination_netuid=1,
@@ -959,10 +962,12 @@ class Subtensor(SubtensorMixin):
         Example:
 
             # Get bonds for subnet 1
+
             bonds = subtensor.bonds(netuid=1)
             print(bonds[0])
 
             # example output: (5, [(0, 32767), (1, 16383), (3, 8191)])
+
             # This means validator UID 5 has bonds: 50% to miner 0, 25% to miner 1, 12.5% to miner 3
 
         Notes:
@@ -1504,6 +1509,7 @@ class Subtensor(SubtensorMixin):
         Example:
 
             # Get children for a hotkey in subnet 1
+
             success, children, error = subtensor.get_children(hotkey="5F...", netuid=1)
 
             if success:
@@ -2394,18 +2400,22 @@ class Subtensor(SubtensorMixin):
         Example:
 
             # Retrieve all fields from the metagraph from subnet 2 mechanism 0
+
             meta_info = subtensor.get_metagraph_info(netuid=2)
 
             # Retrieve all fields from the metagraph from subnet 2 mechanism 1
+
             meta_info = subtensor.get_metagraph_info(netuid=2, mechid=1)
 
             # Retrieve selective data from the metagraph from subnet 2 mechanism 0
+
             partial_meta_info = subtensor.get_metagraph_info(
                 netuid=2,
                 selected_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
             )
 
             # Retrieve selective data from the metagraph from subnet 2 mechanism 1
+
             partial_meta_info = subtensor.get_metagraph_info(
                 netuid=2,
                 mechid=1,
@@ -4909,6 +4919,7 @@ class Subtensor(SubtensorMixin):
         Example:
 
             # Estimate fee before sending a transfer
+
             call = subtensor.compose_call(
                 call_module="Balances",
                 call_function="transfer",
@@ -5940,6 +5951,7 @@ class Subtensor(SubtensorMixin):
             my_wallet = bt.Wallet()
 
             # if `liquidity_delta` is negative
+
             my_liquidity_delta = Balance.from_tao(100) * -1
 
             subtensor.modify_liquidity(
@@ -5950,6 +5962,7 @@ class Subtensor(SubtensorMixin):
             )
 
             # if `liquidity_delta` is positive
+
             my_liquidity_delta = Balance.from_tao(120)
 
             subtensor.modify_liquidity(
@@ -7862,7 +7875,9 @@ class Subtensor(SubtensorMixin):
             ExtrinsicResponse: The result object of the extrinsic execution.
 
         Example:
+
             # If you would like to unstake all stakes in all subnets safely:
+
             import bittensor as bt
 
             subtensor = bt.Subtensor()
@@ -7881,7 +7896,8 @@ class Subtensor(SubtensorMixin):
                 print(result)
 
             # If you would like to unstake all stakes in all subnets unsafely, use `rate_tolerance=None`:
-                        import bittensor as bt
+
+            import bittensor as bt
 
             subtensor = bt.AsyncSubtensor()
             wallet = bt.Wallet("my_wallet")

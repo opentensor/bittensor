@@ -513,7 +513,9 @@ def kill_pure_proxy_extrinsic(
         inaccessible after this operation.
 
     Example:
+
         # After creating a pure proxy
+
         create_response = subtensor.proxies.create_pure_proxy(
             wallet=spawner_wallet,
             proxy_type=ProxyType.Any,  # Type of proxy permissions for the pure proxy
@@ -527,7 +529,9 @@ def kill_pure_proxy_extrinsic(
         ext_index = create_response.data["ext_index"]
 
         # Kill the pure proxy
+
         # Note: force_proxy_type defaults to ProxyType.Any (spawner must have Any proxy relationship)
+
         kill_response = subtensor.proxies.kill_pure_proxy(
             wallet=spawner_wallet,
             pure_proxy_ss58=pure_proxy_ss58,
