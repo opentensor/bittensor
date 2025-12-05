@@ -2,7 +2,7 @@ import asyncio
 import copy
 import ssl
 from datetime import datetime, timezone
-from typing import cast, Optional, Any, Union, Iterable, TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Iterable, Literal, Optional, Union, cast
 
 import asyncstdlib as a
 import scalecodec
@@ -14,17 +14,17 @@ from bittensor_wallet.utils import SS58_FORMAT
 from scalecodec import GenericCall
 
 from bittensor.core.chain_data import (
-    CrowdloanInfo,
     CrowdloanConstants,
+    CrowdloanInfo,
     DelegateInfo,
     DynamicInfo,
     MetagraphInfo,
-    NeuronInfoLite,
     NeuronInfo,
+    NeuronInfoLite,
     ProposalVoteData,
     ProxyAnnouncementInfo,
-    ProxyInfo,
     ProxyConstants,
+    ProxyInfo,
     ProxyType,
     RootClaimType,
     SelectiveMetagraphIndex,
@@ -69,9 +69,9 @@ from bittensor.core.extrinsics.asyncex.liquidity import (
 )
 from bittensor.core.extrinsics.asyncex.mev_shield import submit_encrypted_extrinsic
 from bittensor.core.extrinsics.asyncex.move_stake import (
-    transfer_stake_extrinsic,
-    swap_stake_extrinsic,
     move_stake_extrinsic,
+    swap_stake_extrinsic,
+    transfer_stake_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.proxy import (
     add_proxy_extrinsic,
@@ -83,8 +83,8 @@ from bittensor.core.extrinsics.asyncex.proxy import (
     proxy_extrinsic,
     reject_announcement_extrinsic,
     remove_announcement_extrinsic,
-    remove_proxy_extrinsic,
     remove_proxies_extrinsic,
+    remove_proxy_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.registration import (
     burned_register_extrinsic,
@@ -3330,7 +3330,7 @@ class AsyncSubtensor(SubtensorMixin):
             netuid=netuid, tempo=tempo, block_hash=block_hash
         )
 
-        if not blocks_until:
+        if blocks_until is None:
             return None
 
         return current_block + blocks_until + 1
