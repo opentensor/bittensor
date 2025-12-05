@@ -83,6 +83,7 @@ def wait_for_extrinsic_by_hash(
             return ExtrinsicReceipt(
                 substrate=subtensor.substrate,
                 block_hash=block_hash,
+                block_number=current_block,
                 extrinsic_idx=result_idx,
             )
 
