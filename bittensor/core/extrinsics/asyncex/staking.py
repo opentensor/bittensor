@@ -148,7 +148,7 @@ async def add_stake_extrinsic(
             )
             # sign the extrinsic with the nonce, *one higher than the current nonce* as it will execute after.
             signed_ext = await subtensor.create_signed_extrinsic(
-                call=call, wallet=wallet, period=period, nonce=current_nonce
+                call=call, wallet=wallet, period=period, nonce=current_nonce + 1
             )
 
             # submit the encrypted extrinsic, with the *current* nonce.
