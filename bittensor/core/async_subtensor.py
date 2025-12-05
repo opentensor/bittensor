@@ -1188,7 +1188,7 @@ class AsyncSubtensor(SubtensorMixin):
             print(bonds[0])
 
             # example output: (5, [(0, 32767), (1, 16383), (3, 8191)])
-            
+
             # This means validator UID 5 has bonds: 50% to miner 0, 25% to miner 1, 12.5% to miner 3
 
         Notes:
