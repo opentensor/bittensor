@@ -2807,7 +2807,7 @@ class Subtensor(SubtensorMixin):
             netuid=netuid, tempo=tempo, block=current_block
         )
 
-        if not blocks_until:
+        if blocks_until is None:
             return None
 
         return current_block + blocks_until + 1

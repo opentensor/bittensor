@@ -3404,7 +3404,7 @@ class AsyncSubtensor(SubtensorMixin):
             netuid=netuid, tempo=tempo, block_hash=block_hash
         )
 
-        if not blocks_until:
+        if blocks_until is None:
             return None
 
         return current_block + blocks_until + 1
