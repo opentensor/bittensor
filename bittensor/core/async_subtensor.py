@@ -6645,7 +6645,6 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         call: "GenericCall",
-        signer_keypair: Optional["Keypair"] = None,
         *,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
@@ -6663,7 +6662,6 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             wallet: The wallet used to sign the extrinsic (must be unlocked, coldkey will be used for signing).
             call: The GenericCall object to encrypt and submit.
-            signer_keypair: The keypair used to sign the inner call.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
                 think of it as an expiration date for the transaction.
@@ -6694,7 +6692,6 @@ class AsyncSubtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             call=call,
-            signer_keypair=signer_keypair,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
