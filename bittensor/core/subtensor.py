@@ -5388,12 +5388,12 @@ class Subtensor(SubtensorMixin):
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
-            wait_for_revealed_execution: Whether to wait for the DecryptedExecuted event, indicating that validators
+            wait_for_revealed_execution: Whether to wait for the executed event, indicating that validators
                 have successfully decrypted and executed the inner call. If True, the function will poll subsequent
                 blocks for the event matching this submission's commitment.
-            blocks_for_revealed_execution: Maximum number of blocks to poll for the DecryptedExecuted event after
-                inclusion. The function checks blocks from start_block+1 to start_block + blocks_for_revealed_execution.
-                Returns immediately if the event is found before the block limit is reached.
+            blocks_for_revealed_execution: Maximum number of blocks to poll for the executed event after inclusion. The
+                function checks blocks from start_block+1 to start_block + blocks_for_revealed_execution. Returns
+                immediately if the event is found before the block limit is reached.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.

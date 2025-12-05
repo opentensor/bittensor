@@ -6264,7 +6264,6 @@ async def test_mev_submit_encrypted_success(subtensor, fake_wallet, mocker):
     result = await subtensor.mev_submit_encrypted(
         wallet=fake_wallet,
         call=fake_call,
-        signer_keypair=fake_signer_keypair,
         period=fake_period,
         raise_error=fake_raise_error,
         wait_for_inclusion=fake_wait_for_inclusion,
@@ -6278,7 +6277,6 @@ async def test_mev_submit_encrypted_success(subtensor, fake_wallet, mocker):
         subtensor=subtensor,
         wallet=fake_wallet,
         call=fake_call,
-        signer_keypair=fake_signer_keypair,
         period=fake_period,
         raise_error=fake_raise_error,
         wait_for_inclusion=fake_wait_for_inclusion,
@@ -6308,7 +6306,6 @@ async def test_mev_submit_encrypted_default_params(subtensor, fake_wallet, mocke
         subtensor=subtensor,
         wallet=fake_wallet,
         call=fake_call,
-        signer_keypair=None,
         period=DEFAULT_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,

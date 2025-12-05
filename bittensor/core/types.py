@@ -303,9 +303,9 @@ class ExtrinsicResponse:
             of on-chain execution.
         mev_extrinsic: The extrinsic object of the revealed (decrypted and executed) MEV Shield extrinsic. This is
             populated when using MEV Shield protection (``with_mev_protection=True``) and contains the execution details
-            of the second extrinsic that decrypts and executes the originally encrypted call. Contains triggered events
-            such as ``DecryptedExecuted`` or ``DecryptedRejected``, block information, and other execution metadata. Set
-            to ``None`` for non-MEV Shield transactions or when the revealed extrinsic receipt is not available.
+            of the second extrinsic that decrypts and executes the originally encrypted call. Contains triggered events,
+            block information, and other execution metadata. Set to ``None`` for non-MEV Shield transactions or when the
+            revealed extrinsic receipt is not available.
         transaction_tao_fee: TAO fee charged by the transaction in TAO (e.g., fee for add_stake), if available.
         transaction_alpha_fee: Alpha fee charged by the transaction (e.g., fee for transfer_stake), if available.
         error: Captures the underlying exception if the extrinsic failed, otherwise `None`.
