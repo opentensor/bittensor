@@ -782,8 +782,8 @@ class AsyncSubtensor(SubtensorMixin):
         be accessed through other, standard getter methods.
 
         Parameters:
-            module_name: The name of the module containing the constant (e.g., `"Balances"`, `"SubtensorModule"`).
-            constant_name: The name of the constant to retrieve (e.g., `"ExistentialDeposit"`).
+            module_name: The name of the module containing the constant (e.g., `Balances`, `SubtensorModule`).
+            constant_name: The name of the constant to retrieve (e.g., `ExistentialDeposit`).
             block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
             block_hash: The block hash at which to check the parameter. Do not set if using `block` or
                 `reuse_block`.
@@ -3784,8 +3784,8 @@ class AsyncSubtensor(SubtensorMixin):
         The root claim type controls how dividends from staking to the Root Subnet (subnet 0) are processed when they
         are claimed:
 
-        - `"Swap"` (default): Alpha dividends are swapped to TAO at claim time and restaked on the root subnet.
-        - `"Keep"`: Alpha dividends remain as Alpha on the originating subnets.
+        - `Swap` (default): Alpha dividends are swapped to TAO at claim time and restaked on the root subnet.
+        - `Keep`: Alpha dividends remain as Alpha on the originating subnets.
 
         Parameters:
             coldkey_ss58: The SS58 address of the coldkey whose root claim preference to query.
@@ -3796,7 +3796,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
 
-            The root claim type as a string, either `"Swap"` or `"Keep"`,
+            The root claim type as a string, either `Swap` or `Keep`,
             or dict for "KeepSubnets" in format {"KeepSubnets": {"subnets": [1, 2, 3]}}.
 
         Notes:
@@ -6310,7 +6310,7 @@ class AsyncSubtensor(SubtensorMixin):
             - Bittensor proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
 
         Warning:
-            The `"Any"` proxy type is dangerous as it grants full permissions to the proxy, including the ability to make
+            The `Any` proxy type is dangerous as it grants full permissions to the proxy, including the ability to make
             transfers and manage the account completely. Use with extreme caution.
         """
         return await add_proxy_extrinsic(
@@ -6477,7 +6477,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Notes:
             - Only Alpha dividends are claimed; the underlying TAO stake on the Root Subnet remains unchanged.
-            - The current root claim type (`"Swap"` or `"Keep"`) determines whether claimed Alpha is converted to
+            - The current root claim type (`Swap` or `Keep`) determines whether claimed Alpha is converted to
               TAO and restaked on root or left as Alpha on the originating subnets.
             - See: <https://docs.learnbittensor.org/staking-and-delegation/root-claims>
             - See also: <https://docs.learnbittensor.org/staking-and-delegation/root-claims/managing-root-claims>
@@ -6773,7 +6773,7 @@ class AsyncSubtensor(SubtensorMixin):
             - Bittensor proxies: <https://docs.learnbittensor.org/keys/proxies/pure-proxies>
 
         Warning:
-            The `"Any"` proxy type is dangerous as it grants full permissions to the proxy, including the ability to make
+            The `Any` proxy type is dangerous as it grants full permissions to the proxy, including the ability to make
             transfers and kill the proxy. Use with extreme caution.
         """
         return await create_pure_proxy_extrinsic(
@@ -8224,8 +8224,8 @@ class AsyncSubtensor(SubtensorMixin):
         The root claim type determines how future Alpha dividends from subnets are handled when they are claimed for
         the wallet's coldkey:
 
-        - `"Swap"`: Alpha dividends are swapped to TAO at claim time and restaked on the Root Subnet (default).
-        - `"Keep"`: Alpha dividends remain as Alpha on the originating subnets.
+        - `Swap`: Alpha dividends are swapped to TAO at claim time and restaked on the Root Subnet (default).
+        - `Keep`: Alpha dividends remain as Alpha on the originating subnets.
 
         Parameters:
 
@@ -9488,8 +9488,8 @@ async def get_async_subtensor(
     This is useful when you don't want to manually call `await subtensor.initialize()` after instantiation.
 
     Parameters:
-        network: The network name to connect to (e.g., `"finney"` for Bittensor mainnet, `"test"` for test network,
-            `"local"` for a locally deployed blockchain). If `None`, uses the default network from config.
+        network: The network name to connect to (e.g., `finney` for Bittensor mainnet, `test` for test network,
+            `local` for a locally deployed blockchain). If `None`, uses the default network from config.
         config: Configuration object for the AsyncSubtensor instance. If `None`, uses the default configuration.
         mock: Whether this is a mock instance. FOR TESTING ONLY.
         log_verbose: Enables or disables verbose logging.
