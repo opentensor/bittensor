@@ -200,6 +200,7 @@ def submit_encrypted_extrinsic(
 
         response = subtensor.sign_and_send_extrinsic(
             wallet=wallet,
+            sign_with=sign_with,
             call=extrinsic_call,
             period=period,
             raise_error=raise_error,
@@ -248,8 +249,8 @@ def submit_encrypted_extrinsic(
 
                 if not response.mev_extrinsic.is_success:
                     response.message = format_error_message(
-                        response.mev_extrinsic.error_message
-                    )  # type: ignore
+                        response.mev_extrinsic.error_message  # type: ignore
+                    )
                     response.error = RuntimeError(response.message)
                     response.success = False
                     if raise_error:

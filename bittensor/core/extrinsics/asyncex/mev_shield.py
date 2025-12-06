@@ -201,6 +201,7 @@ async def submit_encrypted_extrinsic(
 
         response = await subtensor.sign_and_send_extrinsic(
             wallet=wallet,
+            sign_with=sign_with,
             call=extrinsic_call,
             period=period,
             raise_error=raise_error,
