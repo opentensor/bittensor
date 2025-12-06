@@ -210,6 +210,7 @@ def serve_axon_extrinsic(
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
         response.data = {
             "external_ip": external_ip,

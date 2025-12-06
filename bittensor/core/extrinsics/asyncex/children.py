@@ -43,6 +43,7 @@ async def set_children_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Waits for the transaction to be included in a block.
         wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -129,6 +130,7 @@ async def root_set_pending_childkey_cooldown_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Waits for the transaction to be included in a block.
         wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
