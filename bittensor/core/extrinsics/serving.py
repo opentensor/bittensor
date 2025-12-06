@@ -65,7 +65,7 @@ def serve_extrinsic(
     try:
         if not (
             unlocked := ExtrinsicResponse.unlock_wallet(
-                wallet, raise_error, unlock_type="both"
+                wallet, raise_error, unlock_type="hotkey"
             )
         ).success:
             return unlocked
