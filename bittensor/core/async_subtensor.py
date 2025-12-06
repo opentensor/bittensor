@@ -6656,7 +6656,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
         wait_for_revealed_execution: bool = True,
-        blocks_for_revealed_execution: int = 5,
+        blocks_for_revealed_execution: int = 3,
     ) -> ExtrinsicResponse:
         """
         Submits an encrypted extrinsic to the MEV Shield pallet.
