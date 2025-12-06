@@ -6427,6 +6427,6 @@ def test_mev_submit_encrypted_default_params(subtensor, fake_wallet, mocker):
         wait_for_inclusion=True,
         wait_for_finalization=True,
         wait_for_revealed_execution=True,
-        blocks_for_revealed_execution=5,
+        blocks_for_revealed_execution=3,
     )
     assert result == mocked_submit_encrypted_extrinsic.return_value
