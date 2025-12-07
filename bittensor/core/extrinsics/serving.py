@@ -65,7 +65,7 @@ def serve_extrinsic(
     try:
         if not (
             unlocked := ExtrinsicResponse.unlock_wallet(
-                wallet, raise_error, unlock_type="both"
+                wallet, raise_error, unlock_type="hotkey"
             )
         ).success:
             return unlocked
@@ -110,6 +110,7 @@ def serve_extrinsic(
                 subtensor=subtensor,
                 wallet=wallet,
                 call=call,
+                sign_with="hotkey",
                 period=period,
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
@@ -209,6 +210,7 @@ def serve_axon_extrinsic(
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
         response.data = {
             "external_ip": external_ip,
@@ -288,6 +290,7 @@ def publish_metadata_extrinsic(
                 subtensor=subtensor,
                 wallet=wallet,
                 call=call,
+                sign_with=signing_keypair,
                 period=period,
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,

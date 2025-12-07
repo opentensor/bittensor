@@ -379,6 +379,7 @@ async def swap_stake_extrinsic(
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
 
     Returns:
