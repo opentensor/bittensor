@@ -5681,6 +5681,7 @@ class AsyncSubtensor(SubtensorMixin):
         sign_with: str = "coldkey",
         use_nonce: bool = False,
         nonce_key: str = "hotkey",
+        nonce: Optional[int] = None,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -5722,7 +5723,9 @@ class AsyncSubtensor(SubtensorMixin):
             )
         signing_keypair = getattr(wallet, sign_with)
         extrinsic_data = {"call": call, "keypair": signing_keypair}
-        if use_nonce:
+        if nonce is not None:
+            extrinsic_data["nonce"] = nonce
+        elif use_nonce:
             if nonce_key not in possible_keys:
                 raise AttributeError(
                     f"'nonce_key' must be either 'coldkey', 'hotkey' or 'coldkeypub', not '{nonce_key}'"

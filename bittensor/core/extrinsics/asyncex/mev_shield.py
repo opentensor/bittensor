@@ -182,9 +182,12 @@ async def submit_encrypted_extrinsic(
         current_nonce = await subtensor.substrate.get_account_next_index(
             account_address=inner_signing_keypair.ss58_address
         )
+        next_nonce = await subtensor.substrate.get_account_next_index(
+            account_address=inner_signing_keypair.ss58_address
+        )
 
         signed_extrinsic = await subtensor.substrate.create_signed_extrinsic(
-            call=call, keypair=inner_signing_keypair, nonce=current_nonce + 1, era=era
+            call=call, keypair=inner_signing_keypair, nonce=next_nonce, era=era
         )
 
         mev_commitment, mev_ciphertext, payload_core = (
@@ -204,6 +207,7 @@ async def submit_encrypted_extrinsic(
             sign_with=sign_with,
             call=extrinsic_call,
             period=period,
+            nonce=current_nonce,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
