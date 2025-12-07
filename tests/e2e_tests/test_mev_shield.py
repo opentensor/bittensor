@@ -20,7 +20,7 @@ TEMPO_TO_SET = 3
 
 @pytest.mark.parametrize("local_chain", [False], indirect=True)
 def test_mev_shield_happy_path(
-    subtensor, alice_wallet, bob_wallet, charlie_wallet, dave_wallet, local_chain
+    subtensor, alice_wallet, bob_wallet, charlie_wallet, local_chain
 ):
     """Tests MEV Shield functionality with add_stake inner call.
 
@@ -59,54 +59,44 @@ def test_mev_shield_happy_path(
             next_epoch_start_block + subtensor.subnets.tempo(bob_sn.netuid) * 2
         )
 
-    for signer in [None, dave_wallet.coldkey]:
-        stake_before = subtensor.staking.get_stake(
-            coldkey_ss58=signer.ss58_address
-            if signer is not None
-            else alice_wallet.coldkey.ss58_address,
-            hotkey_ss58=charlie_wallet.hotkey.ss58_address,
-            netuid=bob_sn.netuid,
-        )
-        logging.console.info(f"Stake before: {stake_before}")
+    stake_before = subtensor.staking.get_stake(
+        coldkey_ss58=alice_wallet.coldkey.ss58_address,
+        hotkey_ss58=charlie_wallet.hotkey.ss58_address,
+        netuid=bob_sn.netuid,
+    )
+    logging.console.info(f"Stake before: {stake_before}")
 
-        subnet_price = subtensor.subnets.get_subnet_price(2)
-        limit_price = (subnet_price * 2).rao
+    subnet_price = subtensor.subnets.get_subnet_price(2)
+    limit_price = (subnet_price * 2).rao
 
-        call = pallets.SubtensorModule(subtensor).add_stake_limit(
-            netuid=bob_sn.netuid,
-            hotkey=charlie_wallet.hotkey.ss58_address,
-            amount_staked=Balance.from_tao(5).rao,
-            allow_partial=True,
-            limit_price=limit_price,
-        )
+    call = pallets.SubtensorModule(subtensor).add_stake_limit(
+        netuid=bob_sn.netuid,
+        hotkey=charlie_wallet.hotkey.ss58_address,
+        amount_staked=Balance.from_tao(5).rao,
+        allow_partial=True,
+        limit_price=limit_price,
+    )
 
-        response = subtensor.mev_shield.mev_submit_encrypted(
-            wallet=alice_wallet,
-            call=call,
-            signer_keypair=signer,
-            raise_error=True,
-        )
+    response = subtensor.mev_shield.mev_submit_encrypted(
+        wallet=alice_wallet,
+        call=call,
+        raise_error=True,
+    )
+    assert response.success, response.message
 
-        assert response.success, response.message
-        assert response.mev_extrinsic_receipt is not None, (
-            "No revealed extrinsic receipt."
-        )
-
-        stake_after = subtensor.staking.get_stake(
-            coldkey_ss58=signer.ss58_address
-            if signer is not None
-            else alice_wallet.coldkey.ss58_address,
-            hotkey_ss58=charlie_wallet.hotkey.ss58_address,
-            netuid=bob_sn.netuid,
-        )
-        logging.console.info(f"Stake after: {stake_after}")
-        assert stake_after > stake_before
+    stake_after = subtensor.staking.get_stake(
+        coldkey_ss58=alice_wallet.coldkey.ss58_address,
+        hotkey_ss58=charlie_wallet.hotkey.ss58_address,
+        netuid=bob_sn.netuid,
+    )
+    logging.console.info(f"Stake after: {stake_after}")
+    assert stake_after > stake_before
 
 
 @pytest.mark.parametrize("local_chain", [False], indirect=True)
 @pytest.mark.asyncio
 async def test_mev_shield_happy_path_async(
-    async_subtensor, alice_wallet, bob_wallet, charlie_wallet, dave_wallet, local_chain
+    async_subtensor, alice_wallet, bob_wallet, charlie_wallet, local_chain
 ):
     """Async tests MEV Shield functionality with add_stake inner call.
 
@@ -147,45 +137,35 @@ async def test_mev_shield_happy_path_async(
             + await async_subtensor.subnets.tempo(bob_sn.netuid) * 2
         )
 
-    for signer in [None, dave_wallet.coldkey]:
-        stake_before = await async_subtensor.staking.get_stake(
-            coldkey_ss58=signer.ss58_address
-            if signer is not None
-            else alice_wallet.coldkey.ss58_address,
-            hotkey_ss58=charlie_wallet.hotkey.ss58_address,
-            netuid=bob_sn.netuid,
-        )
-        logging.console.info(f"Stake before: {stake_before}")
+    stake_before = await async_subtensor.staking.get_stake(
+        coldkey_ss58=alice_wallet.coldkey.ss58_address,
+        hotkey_ss58=charlie_wallet.hotkey.ss58_address,
+        netuid=bob_sn.netuid,
+    )
+    logging.console.info(f"Stake before: {stake_before}")
 
-        subnet_price = await async_subtensor.subnets.get_subnet_price(2)
-        limit_price = (subnet_price * 2).rao
+    subnet_price = await async_subtensor.subnets.get_subnet_price(2)
+    limit_price = (subnet_price * 2).rao
 
-        call = await pallets.SubtensorModule(async_subtensor).add_stake_limit(
-            netuid=bob_sn.netuid,
-            hotkey=charlie_wallet.hotkey.ss58_address,
-            amount_staked=Balance.from_tao(5).rao,
-            allow_partial=True,
-            limit_price=limit_price,
-        )
+    call = await pallets.SubtensorModule(async_subtensor).add_stake_limit(
+        netuid=bob_sn.netuid,
+        hotkey=charlie_wallet.hotkey.ss58_address,
+        amount_staked=Balance.from_tao(5).rao,
+        allow_partial=True,
+        limit_price=limit_price,
+    )
 
-        response = await async_subtensor.mev_shield.mev_submit_encrypted(
-            wallet=alice_wallet,
-            call=call,
-            signer_keypair=signer,
-            raise_error=True,
-        )
+    response = await async_subtensor.mev_shield.mev_submit_encrypted(
+        wallet=alice_wallet,
+        call=call,
+        raise_error=True,
+    )
+    assert response.success, response.message
 
-        assert response.success, response.message
-        assert response.mev_extrinsic_receipt is not None, (
-            "No revealed extrinsic receipt."
-        )
-
-        stake_after = await async_subtensor.staking.get_stake(
-            coldkey_ss58=signer.ss58_address
-            if signer is not None
-            else alice_wallet.coldkey.ss58_address,
-            hotkey_ss58=charlie_wallet.hotkey.ss58_address,
-            netuid=bob_sn.netuid,
-        )
-        logging.console.info(f"Stake after: {stake_after}")
-        assert stake_after > stake_before
+    stake_after = await async_subtensor.staking.get_stake(
+        coldkey_ss58=alice_wallet.coldkey.ss58_address,
+        hotkey_ss58=charlie_wallet.hotkey.ss58_address,
+        netuid=bob_sn.netuid,
+    )
+    logging.console.info(f"Stake after: {stake_after}")
+    assert stake_after > stake_before

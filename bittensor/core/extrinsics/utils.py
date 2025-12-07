@@ -4,8 +4,7 @@ import hashlib
 import logging
 from typing import TYPE_CHECKING, Optional, Union
 
-from bittensor_drand import encrypt_mlkem768, mlkem_kdf_id
-from scalecodec import ss58_decode
+from bittensor_drand import encrypt_mlkem768
 
 from bittensor.core.extrinsics.pallets import Sudo
 from bittensor.core.types import ExtrinsicResponse
@@ -15,19 +14,7 @@ if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.chain_data import StakeInfo
     from bittensor.core.subtensor import Subtensor
-    from scalecodec.types import GenericCall
-    from bittensor_wallet.keypair import Keypair
-    from async_substrate_interface import AsyncExtrinsicReceipt, ExtrinsicReceipt
-
-
-MEV_SUBMITTED_EVENT = "mevShield.EncryptedSubmitted"
-MEV_EXECUTED_EVENT = "mevShield.DecryptedExecuted"
-MEV_UNSUCCESSFUL_EVENTS = [
-    "mevShield.DecryptedRejected",
-    "mevShield.DecryptionFailed",
-]
-
-POST_SUBMIT_MEV_EVENTS = [MEV_EXECUTED_EVENT] + MEV_UNSUCCESSFUL_EVENTS
+    from scalecodec.types import GenericExtrinsic
 
 
 def get_old_stakes(
@@ -228,11 +215,9 @@ def apply_pure_proxy_data(
 
 
 def get_mev_commitment_and_ciphertext(
-    call: "GenericCall",
-    signer_keypair: "Keypair",
-    genesis_hash: str,
+    signed_ext: "GenericExtrinsic",
     ml_kem_768_public_key: bytes,
-) -> tuple[str, bytes, bytes, bytes]:
+) -> tuple[str, bytes, bytes]:
     """
     Builds MEV Shield payload and encrypts it using ML-KEM-768 + XChaCha20Poly1305.
 
@@ -241,11 +226,7 @@ def get_mev_commitment_and_ciphertext(
     replay protection.
 
     Parameters:
-        call: The GenericCall object representing the inner call to be encrypted and executed.
-        signer_keypair: The Keypair used for signing the inner call payload. The signer's AccountId32 (32 bytes) is
-            embedded in the payload_core.
-        genesis_hash: The genesis block hash as a hex string (with or without "0x" prefix). Used for chain-bound
-            signature domain separation.
+        signed_ext: The signed GenericExtrinsic object representing the inner call to be encrypted and executed.
         ml_kem_768_public_key: The ML-KEM-768 public key bytes (1184 bytes) from NextKey storage. This key is used for
             encryption and its hash binds the transaction to the key epoch.
 
@@ -254,41 +235,10 @@ def get_mev_commitment_and_ciphertext(
             - commitment_hex (str): Hex string of the Blake2-256 hash of payload_core (32 bytes).
             - ciphertext (bytes): Encrypted blob containing plaintext.
             - payload_core (bytes): Raw payload bytes before encryption.
-            - signature (bytes): MultiSignature (64 bytes for sr25519).
     """
-    # Create payload_core: signer (32B) + key_hash (32B Blake2-256 hash) + SCALE(call)
-    decoded_ss58 = ss58_decode(signer_keypair.ss58_address)
-    decoded_ss58_cut = (
-        decoded_ss58[2:] if decoded_ss58.startswith("0x") else decoded_ss58
-    )
-    signer_bytes = bytes.fromhex(decoded_ss58_cut)  # 32 bytes
+    payload_core = signed_ext.data.data
 
-    # Compute key_hash = Blake2-256(NextKey_bytes)
-    # This binds the transaction to the key epoch at submission time
-    key_hash_bytes = hashlib.blake2b(
-        ml_kem_768_public_key, digest_size=32
-    ).digest()  # 32 bytes
-
-    scale_call_bytes = bytes(call.data.data)  # SCALE encoded call
-    mev_shield_version = mlkem_kdf_id()
-
-    # Fix genesis_hash processing
-    genesis_hash_clean = (
-        genesis_hash[2:] if genesis_hash.startswith("0x") else genesis_hash
-    )
-    genesis_hash_bytes = bytes.fromhex(genesis_hash_clean)
-
-    payload_core = signer_bytes + key_hash_bytes + scale_call_bytes
-
-    # Sign payload: coldkey.sign(b"mev-shield:v1" + genesis_hash + payload_core)
-    message_to_sign = (
-        b"mev-shield:" + mev_shield_version + genesis_hash_bytes + payload_core
-    )
-
-    signature = signer_keypair.sign(message_to_sign)
-
-    # Create plaintext: payload_core + b"\x01" + signature
-    plaintext = payload_core + b"\x01" + signature
+    plaintext = bytes(payload_core)
 
     # Getting ciphertext (encrypting plaintext using ML-KEM-768)
     ciphertext = encrypt_mlkem768(ml_kem_768_public_key, plaintext)
@@ -297,10 +247,10 @@ def get_mev_commitment_and_ciphertext(
     commitment_hash = hashlib.blake2b(payload_core, digest_size=32).digest()
     commitment_hex = "0x" + commitment_hash.hex()
 
-    return commitment_hex, ciphertext, payload_core, signature
+    return commitment_hex, ciphertext, payload_core
 
 
-def get_event_attributes_by_event_name(events: list, event_name: str) -> Optional[dict]:
+def get_event_data_by_event_name(events: list, event_name: str) -> Optional[dict]:
     """
     Extracts event data from triggered events by event ID.
 
@@ -328,59 +278,3 @@ def get_event_attributes_by_event_name(events: list, event_name: str) -> Optiona
         ):
             return event
     return None
-
-
-def post_process_mev_response(
-    response: "ExtrinsicResponse",
-    revealed_name: Optional[str],
-    revealed_extrinsic: Optional["ExtrinsicReceipt | AsyncExtrinsicReceipt"],
-    raise_error: bool = False,
-) -> None:
-    """
-    Post-processes the result of a MEV Shield extrinsic submission by updating the response object based on the revealed
-    extrinsic execution status.
-
-    This function analyzes the revealed extrinsic (execute_revealed) that was found after the initial encrypted
-    submission and updates the response object accordingly. It handles cases where the revealed extrinsic was not found,
-    where it failed (DecryptedRejected or DecryptionFailed events), and propagates errors if requested.
-
-    Parameters:
-        response: The ExtrinsicResponse object from the initial submit_encrypted call. This object will be modified
-            in-place with the revealed extrinsic receipt and updated success/error status.
-        revealed_name: The name of the event found in the revealed extrinsic (e.g., "mevShield.DecryptedExecuted",
-            "mevShield.DecryptedRejected", "mevShield.DecryptionFailed").
-        revealed_extrinsic: The ExtrinsicReceipt or AsyncExtrinsicReceipt object for the execute_revealed transaction,
-            if found. None if the revealed extrinsic was not found in the expected blocks. This receipt contains the
-            triggered events and execution details.
-        raise_error: If True, raises the error immediately if the response contains an error. If False, the error is
-            stored in response.error but not raised. Defaults to False.
-
-    Returns:
-        None. The function modifies the response object in-place by setting:
-            - response.mev_extrinsic_receipt: The revealed extrinsic receipt
-            - response.success: False if revealed extrinsic not found or failed, otherwise True.
-            - response.message: Error message describing the failure if failure.
-            - response.error: RuntimeError with the response.message.
-    """
-    # add revealed extrinsic receipt to response
-    response.mev_extrinsic_receipt = revealed_extrinsic
-
-    # when main extrinsic is successful but revealed extrinsic is not found in the chain.
-    if revealed_extrinsic is None:
-        response.success = False
-        response.message = "MeV protected extrinsic does not contain related event."
-        response.error = RuntimeError(response.message)
-
-    # when main extrinsic is successful but revealed extrinsic is not successful.
-    if revealed_name in MEV_UNSUCCESSFUL_EVENTS:
-        response.success = False
-        response.message = (
-            f"{revealed_name}: Check `mev_extrinsic_receipt` for details."
-        )
-        response.error = RuntimeError(response.message)
-
-    if response.error:
-        if raise_error:
-            raise response.error
-        else:
-            response.with_log()

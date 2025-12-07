@@ -5647,6 +5647,10 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             GenericCall: Composed call object ready for extrinsic submission.
+
+        Notes:
+            For detailed documentation and examples of composing calls, including the CallBuilder utility, see:
+            <https://docs.learnbittensor.org/sdk/call>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
 
@@ -6645,14 +6649,14 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         call: "GenericCall",
-        signer_keypair: Optional["Keypair"] = None,
+        sign_with: str = "coldkey",
         *,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
         wait_for_revealed_execution: bool = True,
-        blocks_for_revealed_execution: int = 5,
+        blocks_for_revealed_execution: int = 3,
     ) -> ExtrinsicResponse:
         """
         Submits an encrypted extrinsic to the MEV Shield pallet.
@@ -6663,17 +6667,17 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             wallet: The wallet used to sign the extrinsic (must be unlocked, coldkey will be used for signing).
             call: The GenericCall object to encrypt and submit.
-            signer_keypair: The keypair used to sign the inner call.
+            sign_with: The keypair to use for signing the inner call/extrinsic. Can be either "coldkey" or "hotkey".
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
                 think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
-            wait_for_revealed_execution: Whether to wait for the DecryptedExecuted event, indicating that validators
+            wait_for_revealed_execution: Whether to wait for the executed event, indicating that validators
                 have successfully decrypted and executed the inner call. If True, the function will poll subsequent
                 blocks for the event matching this submission's commitment.
-            blocks_for_revealed_execution: Maximum number of blocks to poll for the DecryptedExecuted event after
+            blocks_for_revealed_execution: Maximum number of blocks to poll for the executed event after
                 inclusion. The function checks blocks from start_block+1 to start_block + blocks_for_revealed_execution.
                 Returns immediately if the event is found before the block limit is reached.
 
@@ -6689,12 +6693,19 @@ class AsyncSubtensor(SubtensorMixin):
             payload_core = signer_bytes (32B) + nonce (u32 LE, 4B) + SCALE(call)
             plaintext = payload_core + b"\\x01" + signature (64B for sr25519)
             commitment = blake2_256(payload_core)
+
+        Notes:
+            For detailed documentation and examples of MEV Shield protection, see:
+            <https://docs.learnbittensor.org/sdk/mev-protection>
+
+            For creating GenericCall objects to use with this method, see:
+            <https://docs.learnbittensor.org/sdk/call>
         """
         return await submit_encrypted_extrinsic(
             subtensor=self,
             wallet=wallet,
             call=call,
-            signer_keypair=signer_keypair,
+            sign_with=sign_with,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,

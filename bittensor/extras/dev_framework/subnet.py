@@ -1,7 +1,5 @@
 from typing import Optional, Union
 from collections import namedtuple
-from async_substrate_interface.async_substrate import AsyncExtrinsicReceipt
-from async_substrate_interface.sync_substrate import ExtrinsicReceipt
 from bittensor_wallet import Wallet
 
 from bittensor.core.extrinsics.asyncex.utils import (
@@ -217,12 +215,7 @@ class TestSubnet:
             wait_for_finalization=wait_for_finalization or self.wait_for_finalization,
         )
         self._check_response(response)
-        if netuid := _set_netuid_from_register_response(
-            response.extrinsic_receipt.triggered_events
-        ):
-            self._netuid = netuid
-        else:
-            self._netuid = self.s.subnets.get_total_subnets() - 1
+        self._netuid = self.s.subnets.get_total_subnets() - 1
         if response.success:
             self._owner = owner_wallet
             logging.console.info(f"Subnet [blue]{self._netuid}[/blue] was registered.")
@@ -247,12 +240,7 @@ class TestSubnet:
             wait_for_finalization=wait_for_finalization or self.wait_for_finalization,
         )
         self._check_response(response)
-        if netuid := _set_netuid_from_register_response(
-            await response.extrinsic_receipt.triggered_events
-        ):
-            self._netuid = netuid
-        else:
-            self._netuid = self.s.subnets.get_total_subnets() - 1
+        self._netuid = await self.s.subnets.get_total_subnets() - 1
         if response.success:
             self._owner = owner_wallet
             logging.console.info(f"Subnet [blue]{self._netuid}[/blue] was registered.")
@@ -310,7 +298,7 @@ class TestSubnet:
             )
         ).value
         # added 10 blocks bc 2.5 seconds is not always enough for the chain to update.
-        await self.s.wait_for_block(current_block + activation_block + 10)
+        await self.s.wait_for_block(current_block + activation_block + 1)
 
         response = await self.s.subnets.start_call(
             wallet=owner_wallet,
@@ -503,13 +491,3 @@ class TestSubnet:
                 "This instance already has associated netuid. Cannot register again. "
                 "To register a new subnet, create a new instance of TestSubnet class."
             )
-
-
-def _set_netuid_from_register_response(
-    events: Union["AsyncExtrinsicReceipt", "ExtrinsicReceipt"],
-):
-    """Get netuid from the register subnet response."""
-    for event in events:
-        if event.get("event_id") == "NetworkAdded":
-            return event.get("attributes")[0]
-    return None
