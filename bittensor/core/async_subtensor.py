@@ -7739,7 +7739,7 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             wallet: Bittensor wallet object. The account whose proxies will be removed (the delegator). All proxy
                 relationships where wallet.coldkey.ss58_address is the real account will be removed.
-            mev_protection: If `True`, encr`ypts` and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If `True`, encrypts` and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
                 decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
@@ -8639,6 +8639,11 @@ class AsyncSubtensor(SubtensorMixin):
         # TODO: check with @roman, is this about 'arbitrary data' or 'commit-reveal'? we need a real example here if this is important, and documentating a real commit reveal flow.
 
         Parameters:
+            wallet: The wallet associated with the neuron committing the data.
+            netuid: The unique identifier of the subnetwork.
+            data: The data to be committed to the network.
+            blocks_until_reveal: The number of blocks from now after which the data will be revealed. Then number of
+                blocks in one epoch.
             block_time: The number of seconds between each block (default 12.0 for standard blocks, 10.0 for fast blocks).
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected.
