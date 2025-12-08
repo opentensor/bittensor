@@ -125,6 +125,7 @@ from bittensor.core.metagraph import AsyncMetagraph
 from bittensor.core.settings import (
     DEFAULT_MEV_PROTECTION,
     DEFAULT_PERIOD,
+    MLKEM768_PUBLIC_KEY_SIZE,
     TAO_APP_BLOCK_EXPLORER,
     TYPE_REGISTRY,
     version_as_int,
@@ -3088,7 +3089,6 @@ class AsyncSubtensor(SubtensorMixin):
         public_key_bytes = bytes(next(iter(query)))
 
         # Validate public_key size for ML-KEM-768 (must be exactly 1184 bytes)
-        MLKEM768_PUBLIC_KEY_SIZE = 1184
         if len(public_key_bytes) != MLKEM768_PUBLIC_KEY_SIZE:
             raise ValueError(
                 f"Invalid ML-KEM-768 public key size: {len(public_key_bytes)} bytes. "
@@ -3134,7 +3134,6 @@ class AsyncSubtensor(SubtensorMixin):
         public_key_bytes = bytes(next(iter(query)))
 
         # Validate public_key size for ML-KEM-768 (must be exactly 1184 bytes)
-        MLKEM768_PUBLIC_KEY_SIZE = 1184
         if len(public_key_bytes) != MLKEM768_PUBLIC_KEY_SIZE:
             raise ValueError(
                 f"Invalid ML-KEM-768 public key size: {len(public_key_bytes)} bytes. "
@@ -5969,6 +5968,8 @@ class AsyncSubtensor(SubtensorMixin):
         sign_with: str = "coldkey",
         use_nonce: bool = False,
         nonce_key: str = "hotkey",
+        nonce: Optional[int] = None,
+        *,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
@@ -5980,18 +5981,19 @@ class AsyncSubtensor(SubtensorMixin):
         Helper method to sign and submit an extrinsic call to chain.
 
         Parameters:
-            call: a prepared Call object
-            wallet: the wallet whose coldkey will be used to sign the extrinsic
-            sign_with: the wallet's keypair to use for the signing. Options are "coldkey", "hotkey", "coldkeypub"
-            use_nonce: unique identifier for the transaction related with hot/coldkey.
-            nonce_key: the type on nonce to use. Options are "hotkey" or "coldkey".
+            call: A prepared Call object
+            wallet: The wallet whose coldkey will be used to sign the extrinsic
+            sign_with: The wallet's keypair to use for the signing. Options are "coldkey", "hotkey", "coldkeypub"
+            use_nonce: Unique identifier for the transaction related with hot/coldkey.
+            nonce_key: The type on nonce to use. Options are "hotkey" or "coldkey".
+            nonce: The nonce to use for the transaction. If not provided, it will be fetched from the chain.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
-            raise_error: raises the relevant exception rather than returning `False` if unsuccessful.
-            wait_for_inclusion: whether to wait until the extrinsic call is included on the chain
-            wait_for_finalization: whether to wait until the extrinsic call is finalized on the chain
-            calling_function: the name of the calling function.
+            raise_error: Raises the relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait until the extrinsic call is included on the chain
+            wait_for_finalization: Whether to wait until the extrinsic call is finalized on the chain
+            calling_function: The name of the calling function.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6011,7 +6013,10 @@ class AsyncSubtensor(SubtensorMixin):
             )
         signing_keypair = getattr(wallet, sign_with)
         extrinsic_data = {"call": call, "keypair": signing_keypair}
-        if use_nonce:
+
+        if nonce is not None:
+            extrinsic_data["nonce"] = nonce
+        elif use_nonce:
             if nonce_key not in possible_keys:
                 raise AttributeError(
                     f"'nonce_key' must be either 'coldkey', 'hotkey' or 'coldkeypub', not '{nonce_key}'"
