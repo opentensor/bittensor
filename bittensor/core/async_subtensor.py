@@ -174,9 +174,24 @@ if TYPE_CHECKING:
 class AsyncSubtensor(SubtensorMixin):
     """Asynchronous interface for interacting with the Bittensor blockchain.
 
-    This class provides a thin layer over the Substrate Interface, offering a collection of frequently-used calls for
-    querying blockchain data, managing stakes, registering neurons, and interacting with the Bittensor network.
+    This class provides a thin layer over the Substrate Interface offering async functionality for Bittensor. This
+    includes frequently-used calls for querying blockchain data, managing stakes and liquidity positions, registering
+    neurons, submitting weights, and many other functions for participating in Bittensor.
 
+    Notes:
+        Key Bittensor concepts used throughout this class:
+
+        - **Coldkey**: The key pair corresponding to a user's overall wallet. Used to transfer, stake, manage subnets.
+        - **Hotkey**: A key pair (each wallet may have zero, one, or more) used for neuron operations (mining and
+          validation).
+        - **Netuid**: Unique identifier for a subnet (0 is the Root Subnet)
+        - **UID**: Unique identifier for a neuron registered to a hotkey on a specific subnet.
+        - **Metagraph**: Data structure containing the complete state of a subnet at a block.
+        - **TAO**: The base network token; subnet 0 stake is in TAO
+        - **Alpha**: Subnet-specific token representing some quantity of TAO staked into a subnet.
+        - **Rao**: Smallest unit of TAO (1 TAO = 1e9 Rao)
+        - Bittensor Glossary <https://docs.learnbittensor.org/glossary>
+        - Wallets, Coldkeys and Hotkeys in Bittensor <https://docs.learnbittensor.org/keys/wallets>
 
     """
 
@@ -194,37 +209,23 @@ class AsyncSubtensor(SubtensorMixin):
         """Initializes an AsyncSubtensor instance for blockchain interaction.
 
         Parameters:
-            network: The network name or type to connect to (e.g., "finney", "test"). If ``None``, uses the default
-                network from config.
-            config: Configuration object for the AsyncSubtensor instance. If ``None``, uses the default configuration.
+            network: The network name to connect to (e.g., `finney` for Bittensor mainnet, `test`, for
+                Bittensor test network, `local` for a locally deployed blockchain). If `None`, uses the
+                default network from config.
+            config: Configuration object for the AsyncSubtensor instance. If `None`, uses the default configuration.
             log_verbose: Enables or disables verbose logging.
-            fallback_endpoints: List of fallback endpoints to use if default or provided network is not available.
-            retry_forever: Whether to retry forever on connection errors.
-            mock: Whether this is a mock instance. Mainly for testing purposes.
-            archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in
-                cases where you are requesting a block that is too old for your current (presumably lite) node.
-            websocket_shutdown_timer: Amount of time, in seconds, to wait after the last response from the chain to
-                close the connection. Passing `None` will disable to automatic shutdown process
-                entirely.
+            fallback_endpoints: List of fallback WebSocket endpoints to use if the primary network endpoint is
+                unavailable. These are tried in order when the default endpoint fails.
+            retry_forever: Whether to retry connection attempts indefinitely on connection errors.
+            mock: Whether this is a mock instance. FOR TESTING ONLY.
+            archive_endpoints: List of archive node endpoints for queries requiring historical block data beyond the
+                retention period of lite nodes. These are only used when requesting blocks that the current node is
+                unable to serve.
+            websocket_shutdown_timer: Amount of time (in seconds) to wait after the last response from the chain before
+                automatically closing the WebSocket connection. Pass `None` to disable automatic shutdown entirely.
 
         Returns:
             None
-
-        Raises:
-            ConnectionError: If unable to connect to the specified network.
-            ValueError: If invalid network or configuration parameters are provided.
-            Exception: Any other exceptions raised during setup or configuration.
-
-        Typical usage example:
-
-            import bittensor as bt
-            import asyncio
-
-            async def main():
-                async with bt.AsyncSubtensor(network="finney") as subtensor:
-                    block_hash = await subtensor.get_block_hash()
-
-            asyncio.run(main())
         """
         if config is None:
             config = AsyncSubtensor.config()
@@ -263,41 +264,46 @@ class AsyncSubtensor(SubtensorMixin):
             None
 
         Example:
-            subtensor = AsyncSubtensor(network="finney")
+
+            sub = bt.AsyncSubtensor(network="finney")
+
+            # Initialize the connection
+
             await subtensor.initialize()
 
-            # Use the subtensor...
-            balance = await subtensor.get_balance(address="5F...")
+            # calls to subtensor
 
-            # Close when done
             await subtensor.close()
+
         """
         if self.substrate:
             await self.substrate.close()
 
     async def initialize(self):
-        """Initializes the connection to the blockchain.
+        """Establishes connection to the blockchain.
 
         This method establishes the connection to the Bittensor blockchain and should be called after creating an
         AsyncSubtensor instance before making any queries.
 
+        When using the `async with` context manager, this method is called automatically and does not need to be
+        invoked explicitly.
+
         Returns:
             AsyncSubtensor: The initialized instance (self) for method chaining.
 
-        Raises:
-            ConnectionError: If unable to connect to the blockchain due to timeout or connection refusal.
 
         Example:
+
             subtensor = AsyncSubtensor(network="finney")
 
             # Initialize the connection
+
             await subtensor.initialize()
 
-            # Now you can make queries
-            balance = await subtensor.get_balance(address="5F...")
+            # calls to subtensor
 
-            # Or chain the initialization
-            subtensor = await AsyncSubtensor(network="finney").initialize()
+            await subtensor.close()
+
         """
         logging.info(
             f"[magenta]Connecting to Substrate:[/magenta] [blue]{self}[/blue][magenta]...[/magenta]"
@@ -367,20 +373,25 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> Union[AsyncSubstrateInterface, RetryAsyncSubstrate]:
         """Creates the Substrate instance based on provided arguments.
 
-        This internal method creates either a standard AsyncSubstrateInterface or a RetryAsyncSubstrate depending on the
-        configuration parameters.
+        This internal method creates either a standard AsyncSubstrateInterface or a RetryAsyncSubstrate depending on
+        whether fallback/archive endpoints or infinite retry is requested.
+
+        When `fallback_endpoints`, `archive_endpoints`, or `retry_forever` are provided, a RetryAsyncSubstrate
+        is created with automatic failover and exponential backoff retry logic. Otherwise, a standard
+        AsyncSubstrateInterface is used.
 
         Parameters:
-            fallback_endpoints: List of fallback endpoints to use if default or provided network is not available.
-            retry_forever: Whether to retry forever on connection errors.
-            _mock: Whether this is a mock instance. Mainly for testing purposes.
-            archive_endpoints: Similar to fallback_endpoints, but specifically only archive nodes. Will be used in
-                cases where you are requesting a block that is too old for your current (presumably lite) node.
-            ws_shutdown_timer: Amount of time, in seconds, to wait after the last response from the chain to close the
-                connection.
+            fallback_endpoints: List of fallback WebSocket endpoints to use if the primary endpoint is unavailable.
+            retry_forever: Whether to retry connection attempts indefinitely on connection errors.
+            _mock: Whether this is a mock instance. Used primarily for testing purposes.
+            archive_endpoints: List of archive node endpoints for historical block queries. Archive nodes maintain full
+                block history, while lite nodes only keep recent blocks. Use these when querying blocks older than the
+                lite node's retention period (typically a few thousand blocks).
+            ws_shutdown_timer: Amount of time (in seconds) to wait after the last response from the chain before
+                automatically closing the WebSocket connection.
 
         Returns:
-            Either AsyncSubstrateInterface or RetryAsyncSubstrate.
+            Either AsyncSubstrateInterface (simple connection) or RetryAsyncSubstrate (with failover and retry logic).
         """
         if fallback_endpoints or retry_forever or archive_endpoints:
             return RetryAsyncSubstrate(
@@ -407,7 +418,11 @@ class AsyncSubtensor(SubtensorMixin):
 
     @property
     async def block(self):
-        """Provides an asynchronous property to retrieve the current block."""
+        """Provides an asynchronous getter to retrieve the current block number.
+
+        Returns:
+            The current blockchain block number.
+        """
         return await self.get_current_block()
 
     async def determine_block_hash(
@@ -416,34 +431,31 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[str]:
-        """Determine the appropriate block hash based on the provided parameters.
+        """Determine the block hash for the block specified with the provided parameters.
 
         Ensures that only one of the block specification parameters is used and returns the appropriate block hash
         for blockchain queries.
 
+        Parameter precedence (in order):
+            1. If `reuse_block=True` and `block` or `block_hash` is set → raises ValueError
+            2. If both `block` and `block_hash` are set → validates they match, raises ValueError if not
+            3. If only `block_hash` is set → returns it directly
+            4. If only `block` is set → fetches and returns its hash
+            5. If none are set → returns `None`
+
         Parameters:
-            block: The block number to get the hash for. If specifying along with `block_hash`, the hash of `block` will
-                be checked and compared with the supplied block hash, raising a ValueError if the two do not match.
-            block_hash: The hash of the blockchain block. If specifying along with `block`, the hash of `block` will be
-                checked and compared with the supplied block hash, raising a ValueError if the two do not match.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block or block_hash.
+            block: The block number to get the hash for. If specifying along with `block_hash`, the hash of `block`
+                will be checked and compared with the supplied block hash, raising a ValueError if the two do not match.
+            block_hash: The hash of the blockchain block (hex string prefixed with `0x`). If specifying along with
+                `block`, the hash of `block` will be checked and compared with the supplied block hash, raising a
+                ValueError if the two do not match.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block` or `block_hash`.
 
         Returns:
-            Optional[str]: The block hash if one can be determined, None otherwise.
+            The block hash (hex string with `0x` prefix) if one can be determined, `None` otherwise.
 
-        Raises:
-            ValueError: If reuse_block is set, while also supplying a block/block_hash, or if supplying a block and
-                block_hash, but the hash of the block does not match the supplied block hash.
-
-        Example:
-            # Get hash for specific block
-            block_hash = await subtensor.determine_block_hash(block=1000000)
-
-            # Use provided block hash
-            block_hash = await subtensor.determine_block_hash(block_hash="0x1234...")
-
-            # Reuse last block hash
-            block_hash = await subtensor.determine_block_hash(reuse_block=True)
+        Notes:
+            - <https://docs.learnbittensor.org/glossary#block>
         """
         if reuse_block and any([block, block_hash]):
             raise ValueError("Cannot specify both reuse_block and block_hash/block")
@@ -524,16 +536,27 @@ class AsyncSubtensor(SubtensorMixin):
                 ValueError will be raised.
 
         Example:
+
             value = await self._query_with_fallback(
-                # the first attempt will be made to SubtensorModule.MechanismEmissionSplit with params `[1]`
+
+                # the first attempt will be made to SubtensorModule.MechanismEmissionSplit with params [1]
+
                 ("SubtensorModule", "MechanismEmissionSplit", [1]),
+
                 # if it does not exist at the given block, the next attempt will be made to
-                # SubtensorModule.MechanismEmission with params `None`
+
+                # SubtensorModule.MechanismEmission with params None
+
                 ("SubtensorModule", "MechanismEmission", None),
+
                 block_hash="0x1234",
-                # if none of the methods exist at the given block, the default value of `None` will be returned
+
+                # if none of the methods exist at the given block, the default value of None will be returned
+
                 default_value=None,
+
             )
+
         """
         if block_hash is None:
             block_hash = await self.substrate.get_chain_head()
@@ -574,19 +597,33 @@ class AsyncSubtensor(SubtensorMixin):
                 ValueError will be raised.
 
         Example:
+
             query = await self._runtime_call_with_fallback(
+
                 # the first attempt will be made to SubnetInfoRuntimeApi.get_selective_mechagraph with the
+
                 # given params
+
                 (
+
                     "SubnetInfoRuntimeApi",
+
                     "get_selective_mechagraph",
+
                     [netuid, mechid, [f for f in range(len(SelectiveMetagraphIndex))]],
+
                 ),
+
                 # if it does not exist at the given block, the next attempt will be made as such:
+
                 ("SubnetInfoRuntimeApi", "get_metagraph", [[netuid]]),
+
                 block_hash=block_hash,
+
                 # if none of the methods exist at the given block, the default value will be returned
+
                 default_value=None,
+
             )
 
         """
@@ -618,27 +655,22 @@ class AsyncSubtensor(SubtensorMixin):
         """Retrieves a specified hyperparameter for a specific subnet.
 
         This method queries the blockchain for subnet-specific hyperparameters such as difficulty, tempo, immunity
-        period, and other network configuration values.
+        period, and other network configuration values. Return types and units vary by parameter.
 
         Parameters:
-            param_name: The name of the hyperparameter to retrieve (e.g., "Difficulty", "Tempo", "ImmunityPeriod").
+            param_name: The name of the hyperparameter storage function to retrieve.
             netuid: The unique identifier of the subnet.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            The value of the specified hyperparameter if the subnet exists, None otherwise.
+            The value of the specified hyperparameter if the subnet exists, `None` otherwise. Return type varies
+            by parameter (int, float, bool, or Balance).
 
-        Example:
-            # Get difficulty for subnet 1
-            difficulty = await subtensor.get_hyperparameter(param_name="Difficulty", netuid=1)
-
-            # Get tempo at a specific block
-            tempo = await subtensor.get_hyperparameter(param_name="Tempo", netuid=1, block=1000000)
-
-            # Get immunity period using block hash
-            immunity = await subtensor.get_hyperparameter(param_name="ImmunityPeriod", netuid=1, block_hash="0x1234...")
+        Notes:
+            - <https://docs.learnbittensor.org/subnets/subnet-hyperparameters>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not await self.subnet_exists(
@@ -664,19 +696,50 @@ class AsyncSubtensor(SubtensorMixin):
         amount: "Balance",
         block_hash: Optional[str] = None,
     ) -> SimSwapResult:
-        """
-        Hits the SimSwap Runtime API to calculate the fee and result for a given transaction. The SimSwapResult contains
-        the staking fees and expected returned amounts of a given transaction. This does not include the transaction
-        (extrinsic) fee.
+        """Simulates a swap/stake operation and calculates the fees and resulting amounts.
+
+        This method queries the SimSwap Runtime API to calculate the swap fees (in Alpha or TAO) and the quantities
+        of Alpha or TAO tokens expected as output from the transaction. This simulation does NOT include the
+        blockchain extrinsic transaction fee (the fee to submit the transaction itself).
+
+        When moving stake between subnets, the operation may involve swapping Alpha (subnet-specific stake token) to
+        TAO (the base network token), then TAO to Alpha on the destination subnet. For subnet 0 (root network), all
+        stake is in TAO.
 
         Parameters:
             origin_netuid: Netuid of the source subnet (0 if add stake).
             destination_netuid: Netuid of the destination subnet.
-            amount: Amount to stake operation.
-            block_hash: The hash of the blockchain block number for the query.
+            amount: Amount to swap/stake as a Balance object. Use `Balance.from_tao(...)` or
+             `Balance.from_rao(...)` to create the amount.
+            block_hash: The hash of the blockchain block for the query. If `None`, uses the current chain head.
 
         Returns:
-            SimSwapResult object representing the result.
+            SimSwapResult: Object containing `alpha_fee`, `tao_fee`, `alpha_amount`, and `tao_amount` fields
+            representing the swap fees and output amounts.
+
+        Example:
+
+            # Simulate staking 100 TAO stake to subnet 1
+
+            result = await subtensor.sim_swap(
+
+                origin_netuid=0,
+
+                destination_netuid=1,
+
+                amount=Balance.from_tao(100)
+
+            )
+
+            print(f"Fee: {result.tao_fee.tao} TAO, Output: {result.alpha_amount} Alpha")
+
+        Notes:
+            - **Alpha**: Subnet-specific stake token (dynamic TAO)
+            - **TAO**: Base network token; subnet 0 uses TAO directly
+            - The returned fees do NOT include the extrinsic transaction fee
+
+            - Transaction Fees: <https://docs.learnbittensor.org/learn/fees>
+            - Glossary: <https://docs.learnbittensor.org/glossary>
         """
         check_balance_amount(amount)
         block_hash = block_hash or await self.substrate.get_chain_head()
@@ -744,34 +807,21 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> Optional["ScaleObj"]:
         """Retrieves a constant from the specified module on the Bittensor blockchain.
 
-        This function is used to access fixed values defined within the blockchain's modules, which are essential for
-        understanding the network's configuration and rules. These include include critical network parameters such as
-        inflation rates, consensus rules, or validation thresholds, providing a deeper understanding of the Bittensor
-        network's operational parameters.
+        Use this function for nonstandard queries to constants defined within the Bittensor blockchain, if these cannot
+        be accessed through other, standard getter methods.
 
         Parameters:
-            module_name: The name of the module containing the constant (e.g., "Balances", "SubtensorModule").
-            constant_name: The name of the constant to retrieve (e.g., "ExistentialDeposit").
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            module_name: The name of the module containing the constant (e.g., `Balances`, `SubtensorModule`).
+            constant_name: The name of the constant to retrieve (e.g., `ExistentialDeposit`).
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            The value of the constant if found, ``None`` otherwise.
+            A SCALE-decoded object if found, `None` otherwise. Access the actual value using `.value` attribute.
+            Common types include int (for counts/blocks), Balance objects (for amounts in Rao), and booleans.
 
-        Example:
-            # Get existential deposit constant
-            existential_deposit = await subtensor.query_constant(
-                module_name="Balances",
-                constant_name="ExistentialDeposit"
-            )
-
-            # Get constant at specific block
-            constant = await subtensor.query_constant(
-                module_name="SubtensorModule",
-                constant_name="SomeConstant",
-                block=1000000
-            )
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         return await self.substrate.get_constant(
@@ -792,26 +842,20 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> "AsyncQueryMapResult":
         """Queries map storage from any module on the Bittensor blockchain.
 
-        This function retrieves data structures that represent key-value mappings, essential for accessing complex and
-          structured data within the blockchain modules.
+        Use this function for nonstandard queries to map storage defined within the Bittensor blockchain, if these cannot
+        be accessed through other, standard getter methods.
 
         Parameters:
             module: The name of the module from which to query the map storage (e.g., "SubtensorModule", "System").
             name: The specific storage function within the module to query (e.g., "Bonds", "Weights").
             params: Parameters to be passed to the query.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
             AsyncQueryMapResult: A data structure representing the map storage if found, None otherwise.
-
-        Example:
-            # Query bonds for subnet 1
-            bonds = await subtensor.query_map(module="SubtensorModule", name="Bonds", params=[1])
-
-            # Query weights at specific block
-            weights = await subtensor.query_map(module="SubtensorModule", name="Weights", params=[1], block=1000000)
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query_map(
@@ -831,22 +875,21 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> "AsyncQueryMapResult":
-        """Queries map storage from the Subtensor module on the Bittensor blockchain. This function is designed to
-        retrieve a map-like data structure, which can include various neuron-specific details or network-wide
-        attributes.
+        """Queries map storage from the Subtensor module on the Bittensor blockchain.
+
+        Use this function for nonstandard queries to map storage defined within the Bittensor blockchain, if these cannot
+        be accessed through other, standard getter methods.
 
         Parameters:
             name: The name of the map storage function to query.
             params: A list of parameters to pass to the query function.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            An object containing the map-like data structure, or ``None`` if not found.
-
-        This function is particularly useful for analyzing and understanding complex network structures and
-        relationships within the Bittensor ecosystem, such as interneuronal connections and stake distributions.
+            An object containing the map-like data structure, or `None` if not found.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         return await self.substrate.query_map(
@@ -868,21 +911,21 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> Optional[Union["ScaleObj", Any]]:
         """Queries any module storage on the Bittensor blockchain with the specified parameters and block number.
         This function is a generic query interface that allows for flexible and diverse data retrieval from various
-        blockchain modules.
+        blockchain modules. Use this function for nonstandard queries to storage defined within the Bittensor
+        blockchain, if these cannot be accessed through other, standard getter methods.
 
         Parameters:
             module: The name of the module from which to query data.
             name: The name of the storage function within the module.
             params: A list of parameters to pass to the query function.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            An object containing the requested data if found, ``None`` otherwise.
+            An object containing the requested data if found, `None` otherwise.
 
-        This versatile query function is key to accessing a wide range of data and insights from different parts of the
-        Bittensor blockchain, enhancing the understanding and analysis of the network's state and dynamics.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         return await self.substrate.query(
@@ -903,22 +946,21 @@ class AsyncSubtensor(SubtensorMixin):
         reuse_block: bool = False,
     ) -> Optional[Any]:
         """Queries the runtime API of the Bittensor blockchain, providing a way to interact with the underlying runtime
-        and retrieve data encoded in Scale Bytes format. This function is essential for advanced users who need to
-        interact with specific runtime methods and decode complex data types.
+        and retrieve data encoded in Scale Bytes format. Use this function for nonstandard queries to the runtime
+         environment, if these cannot be accessed through other, standard getter methods.
 
         Parameters:
             runtime_api: The name of the runtime API to query.
             method: The specific method within the runtime API to call.
             params: The parameters to pass to the method call.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            The decoded result from the runtime API call, or ``None`` if the call fails.
+            The decoded result from the runtime API call, or `None` if the call fails.
 
-        This function enables access to the deeper layers of the Bittensor blockchain, allowing for detailed and
-        specific interactions with the network's runtime environment.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not block_hash and reuse_block:
@@ -936,22 +978,21 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[Union["ScaleObj", Any]]:
-        """Queries named storage from the Subtensor module on the Bittensor blockchain. This function is used to
-        retrieve specific data or parameters from the blockchain, such as stake, rank, or other neuron-specific
-        attributes.
+        """Queries named storage from the Subtensor module on the Bittensor blockchain.
+
+        Use this function for nonstandard queries to storage defined within the Bittensor blockchain, if these cannot
+        be accessed through other, standard getter methods.
 
         Parameters:
             name: The name of the storage function to query.
             params: A list of parameters to pass to the query function.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
             query_response: An object containing the requested data.
-
-        This query function is essential for accessing detailed information about the network and its neurons, providing
-        valuable insights into the state and dynamics of the Bittensor ecosystem.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         return await self.substrate.query(
@@ -971,20 +1012,23 @@ class AsyncSubtensor(SubtensorMixin):
         reuse_block: bool = False,
     ) -> dict[Any, Any]:
         """Makes a state call to the Bittensor blockchain, allowing for direct queries of the blockchain's state.
-        This function is typically used for advanced queries that require specific method calls and data inputs.
+        This function is typically used for advanced, nonstandard queries not provided by other getter methods.
+
+        Use this method when you need to query runtime APIs or storage functions that don't have dedicated
+        wrapper methods in the SDK. For standard queries, prefer the specific getter methods (e.g., `get_balance`,
+        `get_stake`) which provide better type safety and error handling.
 
         Parameters:
-            method: The method name for the state call.
-            data: The data to be passed to the method.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            method: The runtime API method name (e.g., "SubnetInfoRuntimeApi", "get_metagraph").
+            data: Hex-encoded string of the SCALE-encoded parameters to pass to the method.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
             The result of the rpc call.
 
-        The state call function provides a more direct and flexible way of querying blockchain data, useful for specific
-        use cases where standard queries are insufficient.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         return await self.substrate.rpc_request(
@@ -1006,17 +1050,14 @@ class AsyncSubtensor(SubtensorMixin):
         and operational status.
 
         Parameters:
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            Optional[list[DynamicInfo]]: A list of DynamicInfo objects, each containing detailed information about a
-            subnet, or None if the query fails.
-
-        Example:
-            # Get all subnets at current block
-            subnets = await subtensor.all_subnets()
+            Optional[list[DynamicInfo]]: A list of `DynamicInfo` objects, each containing detailed information about
+            a subnet, or None if the query fails.
         """
         block_hash = await self.determine_block_hash(
             block=block, block_hash=block_hash, reuse_block=reuse_block
@@ -1056,19 +1097,16 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
             The number of blocks since the last step in the subnet, or None if the query fails.
 
-        Example:
-            # Get blocks since last step for subnet 1
-            blocks = await subtensor.blocks_since_last_step(netuid=1)
-
-            # Get blocks since last step at specific block
-            blocks = await subtensor.blocks_since_last_step(netuid=1, block=1000000)
+        Notes:
+            - <https://docs.learnbittensor.org/glossary#epoch>
         """
         query = await self.query_subtensor(
             name="BlocksSinceLastStep",
@@ -1087,24 +1125,17 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[int]:
-        """Returns the number of blocks since the last update, or ``None`` if the subnetwork or UID does not exist.
+        """Returns the number of blocks since the last update, or `None` if the subnetwork or UID does not exist.
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
             uid: The unique identifier of the neuron.
             block: The block number for this query. Do not specify if using block_hash or reuse_block.
             block_hash: The hash of the block for the query. Do not specify if using reuse_block or block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
             The number of blocks since the last update, or None if the subnetwork or UID does not exist.
-
-        Example:
-            # Get blocks since last update for UID 5 in subnet 1
-            blocks = await subtensor.blocks_since_last_update(netuid=1, uid=5)
-
-            # Check if neuron needs updating
-            blocks_since_update = await subtensor.blocks_since_last_update(netuid=1, uid=10)
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         block = block or await self.substrate.get_block_number(block_hash)
@@ -1161,27 +1192,38 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> list[tuple[int, list[tuple[int, int]]]]:
         """Retrieves the bond distribution set by subnet validators within a specific subnet.
 
-        Bonds represent the "investment" a subnet validator has made in evaluating a specific subnet miner. This
-        bonding mechanism is integral to the Yuma Consensus' design intent of incentivizing high-quality performance
-        by subnet miners, and honest evaluation by subnet validators.
+        Bonds represent a validator's accumulated assessment of each miner's performance over time, which serves as the
+        starting point of Yuma Consensus.
 
         Parameters:
             netuid: Subnet identifier.
-            mechid: Subnet mechanism identifier.
+            mechid: Subnet mechanism identifier (default 0 for primary mechanism).
             block: The block number for this query. Do not specify if using block_hash or reuse_block.
             block_hash: The hash of the block for the query. Do not specify if using reuse_block or block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            List of tuples mapping each neuron's UID to its bonds with other neurons.
+            List of tuples, where each tuple contains:
+                - validator_uid: The UID of the validator
+                - bonds: List of (miner_uid, bond_value) pairs
+
+            Bond values are u16-normalized (0-65535, where 65535 = 1.0 or 100%).
 
         Example:
-            # Get bonds for subnet 1 at block 1000000
-            bonds = await subtensor.bonds(netuid=1, block=1000000)
+
+            # Get bonds for subnet 1
+
+            bonds = await subtensor.bonds(netuid=1)
+
+            print(bonds[0])
+
+            # example output: (5, [(0, 32767), (1, 16383), (3, 8191)])
+
+            # This means validator UID 5 has bonds: 50% to miner 0, 25% to miner 1, 12.5% to miner 3
 
         Notes:
-            - See <https://docs.learnbittensor.org/glossary#validator-miner-bonds>
-            - See <https://docs.learnbittensor.org/glossary#yuma-consensus>
+            - See: <https://docs.learnbittensor.org/glossary#validator-miner-bonds>
+            - See: <https://docs.learnbittensor.org/glossary#yuma-consensus>
         """
         storage_index = get_mechid_storage_index(netuid, mechid)
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
@@ -1208,27 +1250,19 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> bool:
         """Check if commit-reveal mechanism is enabled for a given subnet at a specific block.
 
-        The commit reveal feature is designed to solve the weight-copying problem by giving would-be weight-copiers
-        access only to stale weights. Copying stale weights should result in subnet validators departing from consensus.
-
         Parameters:
             netuid: The unique identifier of the subnet for which to check the commit-reveal mechanism.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
             True if commit-reveal mechanism is enabled, False otherwise.
 
-        Example:
-            # Check if commit-reveal is enabled for subnet 1
-            enabled = await subtensor.commit_reveal_enabled(netuid=1)
-
-            # Check at specific block
-            enabled = await subtensor.commit_reveal_enabled(netuid=1, block=1000000)
-
         Notes:
-            See also: <https://docs.learnbittensor.org/glossary#commit-reveal>
+            - <https://docs.learnbittensor.org/glossary#commit-reveal>
+            - <https://docs.learnbittensor.org/subnets/subnet-hyperparameters>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
@@ -1249,28 +1283,25 @@ class AsyncSubtensor(SubtensorMixin):
         """Retrieves the 'Difficulty' hyperparameter for a specified subnet in the Bittensor network.
 
         This parameter determines the computational challenge required for neurons to participate in consensus and
-         validation processes. The difficulty directly impacts the network's security and integrity by setting the
-         computational effort required for validating transactions and participating in the network's consensus
-         mechanism.
+         validation processes, using proof of work (POW) registration.
+
 
         Parameters:
             netuid: The unique identifier of the subnet.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            The value of the 'Difficulty' hyperparameter if the subnet exists, None otherwise.
-
-        Example:
-            # Get difficulty for subnet 1
-            difficulty = await subtensor.difficulty(netuid=1)
-
-            # Get difficulty at specific block
-            difficulty = await subtensor.difficulty(netuid=1, block=1000000)
+            The value of the 'Difficulty' hyperparameter if the subnet exists, `None` otherwise.
 
         Notes:
-            See also: <https://docs.learnbittensor.org/glossary#difficulty>
+            Burn registration is much more common on Bittensor subnets currently, compared to POW registration.
+
+            - <https://docs.learnbittensor.org/subnets/subnet-hyperparameters>
+            - <https://docs.learnbittensor.org/validators#validator-registration>
+            - <https://docs.learnbittensor.org/miners#miner-registration>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
@@ -1290,25 +1321,26 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> bool:
-        """Returns true if the hotkey is known by the chain and there are accounts.
+        """Returns true if the hotkey has been associated with a coldkey through account creation.
 
-        This method queries the SubtensorModule's Owner storage function to determine if the hotkey is registered.
+        This method queries the Subtensor's Owner storage map to check if the hotkey has been paired with a
+        coldkey, as it must be before it (the hotkey) can be used for neuron registration.
+
+        The Owner storage map defaults to the zero address (`5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM`)
+        for unused hotkeys. This method returns `True` if the Owner value is anything other than this default.
 
         Parameters:
             hotkey_ss58: The SS58 address of the hotkey.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            True if the hotkey is known by the chain and there are accounts, False otherwise.
+            True if the hotkey has been associated with a coldkey, False otherwise.
 
-        Example:
-            # Check if hotkey exists
-            exists = await subtensor.does_hotkey_exist(hotkey_ss58="5F...")
-
-            # Check at specific block
-            exists = await subtensor.does_hotkey_exist(hotkey_ss58="5F...", block=1000000)
+        Notes:
+            - <https://docs.learnbittensor.org/glossary#hotkey>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query(
@@ -1332,16 +1364,23 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> int:
-        """
-        Returns the number of blocks when dependent transactions will be frozen for execution.
+        """Returns the duration, in blocks, of the administrative freeze window at the end of each epoch.
+
+        The admin freeze window is a period at the end of each epoch during which subnet owner
+        operations are prohibited. This prevents subnet owners from modifying hyperparameters or performing certain
+        administrative actions right before validators submit weights at the epoch boundary.
 
         Parameters:
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            AdminFreezeWindow as integer. The number of blocks are frozen.
+            The number of blocks in the administrative freeze window (default: 10 blocks, ~2 minutes).
+
+        Notes:
+            - <https://docs.learnbittensor.org/learn/chain-rate-limits#administrative-freeze-window>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         return (
@@ -1360,34 +1399,15 @@ class AsyncSubtensor(SubtensorMixin):
     ) -> list["SubnetInfo"]:
         """Retrieves detailed information about all subnets within the Bittensor network.
 
-        This function provides comprehensive data on each subnet, including its characteristics and operational
-        parameters.
-
         Parameters:
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
             A list of SubnetInfo objects, each containing detailed information about a subnet.
 
-        Example:
-            # Get all subnet information
-            subnets = await subtensor.get_all_subnets_info()
-
-            # Get at specific block
-            subnets = await subtensor.get_all_subnets_info(block=1000000)
-
-            # Iterate over subnet information
-            for subnet in subnets:
-                print(f"Subnet {subnet.netuid}: {subnet.name}")
-
-        Note:
-            Gaining insights into the subnets' details assists in understanding the network's composition, the roles
-            of different subnets, and their unique features.
-
-        Notes:
-            See also: <https://docs.learnbittensor.org/glossary#subnet>
         """
         result, prices = await asyncio.gather(
             self.query_runtime_api(
@@ -1430,20 +1450,17 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
             A mapping of the ss58:commitment with the commitment as a string.
 
         Example:
-            # Get all commitments for subnet 1
-            commitments = await subtensor.get_all_commitments(netuid=1)
 
-            # Iterate over all commitments
-            for hotkey, commitment in commitments.items():
-                print(f"Hotkey {hotkey}: {commitment}")
+            # TODO add example of how to handle realistic commitment data
         """
         query = await self.query_map(
             module="Commitments",
@@ -1469,19 +1486,30 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> dict[int, tuple[int, Balance]]:
-        """
-        Query EMA TAO flow for all subnets using query_map.
+        """Retrieves the EMA (exponential moving average) of net TAO flows for all subnets.
 
-        The EMA TAO flow represents the exponential moving average of TAO flowing into or out of a subnet. Negative
-        values indicate net outflow.
+        The EMA tracks net TAO flows (staking minus unstaking) with a 30-day half-life (~86.8 day window), smoothing
+        out short-term fluctuations while capturing sustained staking trends. This metric determines the subnet's share
+        of TAO emissions under the current, flow-based model. Positive values indicate net inflow (more staking than unstaking),
+        negative values indicate net outflow. Subnets with negative EMA flows receive zero emissions.
 
         Parameters:
-            block: The blockchain block number for the query.
-            block_hash: The hash of the blockchain block number at which to perform the query.
-            reuse_block: Whether to reuse the last-used block hash when retrieving info.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            Dict mapping netuid -> (block_number, Balance).
+            Dict mapping netuid to (last_updated_block, ema_flow). The Balance represents the EMA of net TAO flow in
+            TAO units. Positive values indicate sustained net inflow, negative values indicate sustained net outflow.
+
+        The EMA uses a smoothing factor α ≈ 0.000003209, creating a 30-day half-life and ~86.8 day window. Only
+        direct stake/unstake operations count toward flows; neuron registrations and root claims are excluded.
+        Subnet 0 (root network) does not have an EMA TAO flow value.
+
+        Notes:
+            - Flow-based emissions: <https://docs.learnbittensor.org/learn/emissions#tao-reserve-injection>
+            - EMA smoothing: <https://docs.learnbittensor.org/learn/ema>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self.substrate.query_map(
@@ -1515,7 +1543,7 @@ class AsyncSubtensor(SubtensorMixin):
             List of MetagraphInfo objects for all existing subnets.
 
         Notes:
-            See also: See <https://docs.learnbittensor.org/glossary#metagraph>
+            - <https://docs.learnbittensor.org/glossary#metagraph>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not block_hash and reuse_block:
@@ -1544,14 +1572,17 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             netuid: The unique identifier of the subnet.
             block: The blockchain block number for the query.
-            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
-                reuse_block.
-            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to use the last-used block. Do not set if using `block_hash` or `block`.
 
         Returns:
-            {ss58: Certificate} for the key/Certificate pairs on the subnet
+            Dictionary mapping neuron hotkey SS58 addresses to their Certificate objects. Only includes neurons
+            that have registered certificates.
 
-        This function is used for certificate discovery for setting up mutual tls communication between neurons.
+        Notes:
+            This method is used for certificate discovery to establish mutual TLS communication between neurons.
+            - <https://docs.learnbittensor.org/subnets/neuron-tls-certificates>
         """
         query_certificates = await self.query_map(
             module="SubtensorModule",
@@ -1577,18 +1608,30 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            result: A dictionary of all revealed commitments in view {ss58_address: (reveal block, commitment message)}.
+            A dictionary mapping hotkey addresses to tuples of (reveal_block, commitment_message) pairs.
+            Each validator can have multiple revealed commitments (up to 10 most recent).
 
-        Example of result:
-        {
-            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY": ( (12, "Alice message 1"), (152, "Alice message 2") ),
-            "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty": ( (12, "Bob message 1"), (147, "Bob message 2") ),
-        }
+        Example:
+
+            # sample return value
+
+            {
+
+                "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY": ( (12, "Alice message 1"), (152, "Alice message 2") ),
+
+                "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty": ( (12, "Bob message 1"), (147, "Bob message 2") ),
+
+            }
+
+        Notes:
+            - <https://docs.learnbittensor.org/glossary#commit-reveal>
+
         """
         query = await self.query_map(
             module="Commitments",
@@ -1657,9 +1700,13 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            dict[int, str]:
+            Dictionary mapping netuid to hotkey, where:
+
                 - netuid: The unique identifier of the subnet.
                 - hotkey: The hotkey of the wallet.
+
+        Notes:
+            - <https://docs.learnbittensor.org/miners/autostaking>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self.substrate.query_map(
@@ -1691,20 +1738,13 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             address: The coldkey address in SS58 format.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
             Balance: The balance object containing the account's TAO balance.
-
-        Example:
-            # Get balance for an address
-            balance = await subtensor.get_balance(address="5F...")
-            print(f"Balance: {balance.tao} TAO")
-
-            # Get balance at specific block
-            balance = await subtensor.get_balance(address="5F...", block=1000000)
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         balance = await self.substrate.query(
@@ -1731,16 +1771,13 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             *addresses: Variable number of coldkey addresses in SS58 format.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
             A dictionary mapping each address to its Balance object.
-
-        Example:
-            # Get balances for multiple addresses
-            balances = await subtensor.get_balances("5F...", "5G...", "5H...")
         """
         if reuse_block:
             block_hash = self.substrate.last_block_hash
@@ -1767,24 +1804,13 @@ class AsyncSubtensor(SubtensorMixin):
     async def get_current_block(self) -> int:
         """Returns the current block number on the Bittensor blockchain.
 
-        This function provides the latest block number, indicating the most recent state of the blockchain. Knowing
-        the current block number is essential for querying real-time data and performing time-sensitive operations on
-        the blockchain. It serves as a reference point for network activities and data synchronization.
+        This function provides the latest block number, indicating the most recent state of the blockchain.
 
         Returns:
             int: The current chain block number.
 
-        Example:
-            # Get current block number
-            current_block = await subtensor.get_current_block()
-            print(f"Current block: {current_block}")
-
-            block = await subtensor.get_current_block()
-            if block > 1000000:
-                print("Network has progressed past block 1M")
-
         Notes:
-            See also: <https://docs.learnbittensor.org/glossary#block>
+            - <https://docs.learnbittensor.org/glossary#block>
         """
         return await self.substrate.get_block_number(None)
 
@@ -1797,22 +1823,13 @@ class AsyncSubtensor(SubtensorMixin):
         trustworthiness of the blockchain.
 
         Parameters:
-            block: The block number for which the hash is to be retrieved. If ``None``, returns the latest block hash.
+            block: The block number for which the hash is to be retrieved. If `None`, returns the latest block hash.
 
         Returns:
             str: The cryptographic hash of the specified block.
 
-        Example:
-            # Get hash for specific block
-            block_hash = await subtensor.get_block_hash(block=1000000)
-            print(f"Block 1000000 hash: {block_hash}")
-
-            # Get latest block hash
-            latest_hash = await subtensor.get_block_hash()
-            print(f"Latest block hash: {latest_hash}")
-
         Notes:
-            See also: <https://docs.learnbittensor.org/glossary#block>
+            - <https://docs.learnbittensor.org/glossary#block>
         """
         if block is not None:
             return await self._get_block_hash(block)
@@ -1824,8 +1841,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
     ) -> Optional[BlockInfo]:
-        """
-        Retrieve complete information about a specific block from the Subtensor chain.
+        """Retrieve complete information about a specific block from the Subtensor chain.
 
         This method aggregates multiple low-level RPC calls into a single structured response, returning both the raw
         on-chain data and high-level decoded metadata for the given block.
@@ -1835,8 +1851,8 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash: The hash of the block to retrieve the block from.
 
         Returns:
-            BlockInfo instance:
-                A dataclass containing all available information about the specified block, including:
+            BlockInfo instance: A dataclass containing all available information about the specified block, including:
+
                 - number: The block number.
                 - hash: The corresponding block hash.
                 - timestamp: The timestamp of the block (based on the `Timestamp.Now` extrinsic).
@@ -1883,21 +1899,29 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             hotkey_ss58: The hotkey value.
             netuid: The netuid value.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
             A tuple containing a boolean indicating success or failure, a list of formatted children with their
                 proportions, and an error message (if applicable).
 
         Example:
+
             # Get children for a hotkey in subnet 1
+
             success, children, error = await subtensor.get_children(hotkey="5F...", netuid=1)
 
             if success:
+
                 for proportion, child_hotkey in children:
+
                     print(f"Child {child_hotkey}: {proportion}")
+
+        Notes:
+            - <https://docs.learnbittensor.org/validators/child-hotkeys>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         try:
@@ -1945,8 +1969,13 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            list[tuple[float, str]]: A list of children with their proportions.
-            int: The cool-down block number.
+            tuple: A tuple containing:
+
+                - list[tuple[float, str]]: A list of children with their proportions.
+                - int: The cool-down block number.
+
+        Notes:
+            - <https://docs.learnbittensor.org/validators/child-hotkeys>
         """
 
         response = await self.substrate.query(
@@ -1989,24 +2018,19 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             netuid: The unique identifier of the subnetwork.
             uid: The unique identifier of the neuron.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
             The commitment data as a string.
 
-        Example:
-            # Get commitment for UID 5 in subnet 1
-            commitment = await subtensor.get_commitment(netuid=1, uid=5)
-            print(f"Commitment: {commitment}")
 
-            # Get commitment at specific block
-            commitment = await subtensor.get_commitment(
-                netuid=1,
-                uid=5,
-                block=1000000
-            )
+            # TODO: add a real example of how to handle realistic commitment data, or chop example
+
+        Notes:
+            - <https://docs.learnbittensor.org/glossary#commit-reveal>
         """
         metagraph = await self.metagraph(netuid)
         try:
@@ -2037,6 +2061,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Union[str, dict]:
+        # TODO: how to handle return data? need good example @roman
         """Fetches raw commitment metadata from specific subnet for given hotkey.
 
         Parameters:
@@ -2047,7 +2072,11 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used blockchain hash.
 
         Returns:
-            The raw commitment metadata from specific subnet for given hotkey.
+            The raw commitment metadata. Returns a dict when commitment data exists,
+            or an empty string when no commitment is found for the given hotkey on the subnet.
+
+        Notes:
+            - <https://docs.learnbittensor.org/glossary#commit-reveal>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         commit_data = await self.substrate.query(
@@ -2066,42 +2095,33 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> "CrowdloanConstants":
-        """
-        Fetches runtime configuration constants from the `Crowdloan` pallet.
+        """Retrieves runtime configuration constants governing crowdloan behavior and limits on the Bittensor blockchain.
 
         If a list of constant names is provided, only those constants will be queried.
         Otherwise, all known constants defined in `CrowdloanConstants.field_names()` are fetched.
 
+        These constants define requirements and operational limits for crowdloan campaigns:
+
+        - `AbsoluteMinimumContribution`: Minimum amount per contribution (TAO).
+        - `MaxContributors`: Maximum number of unique contributors per crowdloan.
+        - `MaximumBlockDuration`: Maximum duration (in blocks) for a crowdloan campaign (60 days = 432,000 blocks on production).
+        - `MinimumDeposit`: Minimum deposit required from the creator (TAO).
+        - `MinimumBlockDuration`: Minimum duration (in blocks) for a crowdloan campaign (7 days = 50,400 blocks on production).
+        - `RefundContributorsLimit`: Maximum number of contributors refunded per `refund_crowdloan` call (typically 50).
+
         Parameters:
-            constants: A list of specific constant names to fetch from the pallet. If omitted, all constants from
-                `CrowdloanConstants` are queried.
+            constants: Specific constant names to query. If `None`, retrieves all constants from `CrowdloanConstants`.
             block: The blockchain block number for the query.
-            block_hash: The hash of the block at which to check the hotkey ownership.
-            reuse_block: Whether to reuse the last-used blockchain hash.
+            block_hash: The block hash at which to query. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            CrowdloanConstants:
-                A structured dataclass containing the retrieved values. Missing constants are returned as `None`.
+            A `CrowdloanConstants` data object containing the queried constants. Missing constants return `None`.
+        Notes:
+            These constants enforce contribution floors, duration bounds, and refund batching limits.
 
-        Example:
-            print(subtensor.get_crowdloan_constants())
-            CrowdloanConstants(
-                AbsoluteMinimumContribution=τ1.000000000,
-                MaxContributors=1000,
-                MaximumBlockDuration=86400,
-                MinimumDeposit=τ10.000000000,
-                MinimumBlockDuration=600,
-                RefundContributorsLimit=50
-            )
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
 
-            crowdloan_consts = subtensor.get_crowdloan_constants(
-                constants=["MaxContributors", "RefundContributorsLimit"]
-            )
-            print(crowdloan_consts)
-            CrowdloanConstants(MaxContributors=1000, RefundContributorsLimit=50)
-
-            print(crowdloan_consts.MaxContributors)
-            1000
         """
         result = {}
         const_names = constants or CrowdloanConstants.constants_names()
@@ -2128,17 +2148,25 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> dict[str, "Balance"]:
-        """
-        Returns a mapping of contributor SS58 addresses to their contribution amounts for a specific crowdloan.
+        """Retrieves all contributions made to a specific crowdloan campaign.
+
+        Returns a mapping of contributor coldkey addresses to their contribution amounts in Rao.
 
         Parameters:
             crowdloan_id: The unique identifier of the crowdloan.
             block: The blockchain block number for the query.
-            block_hash: The hash of the block at which to check the hotkey ownership.
-            reuse_block: Whether to reuse the last-used blockchain hash.
+            block_hash: The block hash at which to query. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            Dict[address -> Balance].
+            Dictionary mapping contributor SS58 addresses to their `Balance` contribution amounts (in Rao).
+            Returns empty dictionary if the crowdloan has no contributions or does not exist.
+
+        Notes:
+            Contributions are clipped to the remaining cap. Once the cap is reached, no further contributions are accepted.
+
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Crowdloan Tutorial: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#step-4-contribute-to-the-crowdloan>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self.substrate.query_map(
@@ -2166,17 +2194,23 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional["CrowdloanInfo"]:
-        """
-        Returns detailed information about a specific crowdloan by ID.
+        """Retrieves detailed information about a specific crowdloan campaign.
 
         Parameters:
-            crowdloan_id: Unique identifier of the crowdloan.
+            crowdloan_id: Unique identifier of the crowdloan (auto-incremented starting from 0).
             block: The blockchain block number for the query.
-            block_hash: The hash of the block at which to check the hotkey ownership.
-            reuse_block: Whether to reuse the last-used blockchain hash.
+            block_hash: The block hash at which to query. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            CrowdloanInfo if found, else None.
+            `CrowdloanInfo` object containing: campaign ID, creator address, creator's deposit,
+            minimum contribution amount, end block, funding cap, funds account address, amount raised,
+            optional target address, optional embedded call, finalization status, and contributor count.
+            Returns `None` if the crowdloan does not exist.
+
+        Notes:
+
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self.substrate.query(
@@ -2197,16 +2231,22 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> int:
-        """
-        Returns the next available crowdloan ID (auto-increment value).
+        """Retrieves the next available crowdloan identifier.
+
+        Crowdloan IDs are allocated sequentially starting from 0. This method returns the ID that will be
+        assigned to the next crowdloan created via :meth:`create_crowdloan`.
 
         Parameters:
             block: The blockchain block number for the query.
-            block_hash: The hash of the block at which to check the hotkey ownership.
-            reuse_block: Whether to reuse the last-used blockchain hash.
+            block_hash: The block hash at which to query. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            The next crowdloan ID to be used when creating a new campaign.
+            The next crowdloan ID (integer) to be assigned.
+
+        Notes:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Crowdloan Tutorial: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#get-the-crowdloan-id>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query(
@@ -2222,16 +2262,25 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> list["CrowdloanInfo"]:
-        """
-        Returns a list of all existing crowdloans with their metadata.
+        """Retrieves all existing crowdloan campaigns with their metadata.
+
+        Returns comprehensive information for all crowdloans registered on the blockchain, including
+        both active and finalized campaigns.
 
         Parameters:
             block: The blockchain block number for the query.
-            block_hash: The hash of the block at which to check the hotkey ownership.
-            reuse_block: Whether to reuse the last-used blockchain hash.
+            block_hash: The block hash at which to query. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            List of CrowdloanInfo which contains (id, creator, cap, raised, end, finalized, etc.)
+            List of `CrowdloanInfo` objects, each containing: campaign ID, creator address, creator's deposit,
+            minimum contribution amount, end block, funding cap, funds account address, amount raised,
+            optional target address, optional embedded call, finalization status, and contributor count.
+            Returns empty list if no crowdloans exist.
+
+        Notes:
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Crowdloan Lifecycle: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self.substrate.query_map(
@@ -2262,21 +2311,24 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[DelegateInfo]:
-        """
-        Retrieves detailed information about a delegate neuron based on its hotkey. This function provides a
-        comprehensive view of the delegate's status, including its stakes, nominators, and reward distribution.
+        """Retrieves detailed information about a delegate neuron (validator) based on its hotkey. This function
+        provides a comprehensive view of the delegate's status, including its stakes, nominators, and reward
+        distribution.
 
         Parameters:
-            hotkey_ss58: The ``SS58`` address of the delegate's hotkey.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            hotkey_ss58: The `SS58` address of the delegate's hotkey.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            Detailed information about the delegate neuron, ``None`` if not found.
+            Detailed information about the delegate neuron, `None` if not found.
 
-        This function is essential for understanding the roles and influence of delegate neurons within the Bittensor
-        network's consensus and governance structures.
+        Notes:
+
+            - <https://docs.learnbittensor.org/glossary#delegate>
+            - <https://docs.learnbittensor.org/glossary#nominator>
         """
 
         result = await self.query_runtime_api(
@@ -2299,16 +2351,23 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> dict[str, ChainIdentity]:
-        """
-        Fetches delegates identities from the chain.
+        """Fetches delegate identities.
+
+        Delegates are validators that accept stake from other TAO holders (nominators/delegators). This method
+        retrieves the on-chain identity information for all delegates, including display name, legal name, web URLs,
+        and other metadata they have set.
 
         Parameters:
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            Dict {ss58: ChainIdentity, ...}
+            Dictionary mapping delegate SS58 addresses to their ChainIdentity objects.
+
+        Notes:
+            - <https://docs.learnbittensor.org/staking-and-delegation/delegation>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         identities = await self.substrate.query_map(
@@ -2337,16 +2396,17 @@ class AsyncSubtensor(SubtensorMixin):
         percentage of rewards that the delegate claims from its nominators' stakes.
 
         Parameters:
-            hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            hotkey_ss58: The `SS58` address of the neuron's hotkey.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
             float: The delegate take percentage.
 
-        The delegate take is a critical parameter in the network's incentive structure, influencing the distribution of
-        rewards among neurons and their nominators.
+        Notes:
+            - <https://docs.learnbittensor.org/staking-and-delegation/delegation>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.query_subtensor(
@@ -2365,21 +2425,25 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> list[DelegatedInfo]:
-        """
-        Retrieves a list of delegates and their associated stakes for a given coldkey. This function identifies the
-        delegates that a specific account has staked tokens on.
+        """Retrieves delegates and their associated stakes for a given nominator coldkey.
+
+        This method identifies all delegates (validators) that a specific coldkey has staked tokens to, along with
+        stake amounts and other delegation information. This is useful for account holders to understand their stake
+        allocations and involvement in the network's delegation and consensus mechanisms.
 
         Parameters:
-            coldkey_ss58: The ``SS58`` address of the account's coldkey.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            coldkey_ss58: The SS58 address of the account's coldkey.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            A list containing the delegated information for the specified coldkey.
+            List of DelegatedInfo objects containing stake amounts and delegate information. Returns empty list if no
+            delegations exist for the coldkey.
 
-        This function is important for account holders to understand their stake allocations and their involvement in
-        the network's delegation and consensus mechanisms.
+        Notes:
+            - <https://docs.learnbittensor.org/staking-and-delegation/delegation>
         """
 
         result = await self.query_runtime_api(
@@ -2402,16 +2466,24 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> list[DelegateInfo]:
-        """
-        Fetches all delegates on the chain
+        """Fetches all delegates registered on the chain.
+
+        Delegates are validators that accept stake from other TAO holders (nominators/delegators). This method
+        retrieves comprehensive information about all delegates including their hotkeys, total stake, nominator count,
+        take percentage, and other metadata.
 
         Parameters:
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            List of DelegateInfo objects, or an empty list if there are no delegates.
+            List of DelegateInfo objects containing comprehensive delegate information. Returns empty list if no
+            delegates are registered.
+
+        Notes:
+            - <https://docs.learnbittensor.org/staking-and-delegation/delegation>
         """
         result = await self.query_runtime_api(
             runtime_api="DelegateInfoRuntimeApi",
@@ -2432,21 +2504,22 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Balance:
-        """
-        Retrieves the existential deposit amount for the Bittensor blockchain.
+        """Retrieves the existential deposit amount for the Bittensor blockchain.
+
         The existential deposit is the minimum amount of TAO required for an account to exist on the blockchain.
-        Accounts with balances below this threshold can be reaped to conserve network resources.
+        Accounts with balances below this threshold can be reaped (removed) to conserve network resources and prevent
+        blockchain bloat from dust accounts.
 
         Parameters:
             block: The blockchain block number for the query.
-            block_hash: Block hash at which to query the deposit amount. If ``None``, the current block is used.
+            block_hash: Block hash at which to query the deposit amount. If `None`, the current block is used.
             reuse_block: Whether to reuse the last-used blockchain block hash.
 
         Returns:
-            The existential deposit amount.
+            The existential deposit amount in RAO.
 
-        The existential deposit is a fundamental economic parameter in the Bittensor network, ensuring efficient use of
-        storage and preventing the proliferation of dust accounts.
+        Notes:
+            - <https://docs.learnbittensor.org/glossary#existential-deposit>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.get_constant(
@@ -2466,18 +2539,28 @@ class AsyncSubtensor(SubtensorMixin):
         netuid: int,
         block: Optional[int] = None,
     ) -> Optional[tuple[int, Balance]]:
-        """
-        Query EMA TAO flow for all subnets using query_map.
+        """Retrieves the EMA (exponential moving average) of net TAO flow for a specific subnet.
 
-        The EMA TAO flow represents the exponential moving average of TAO flowing into or out of a subnet. Negative
-        values indicate net outflow.
+        The EMA tracks net TAO flows (staking minus unstaking) with a 30-day half-life (~86.8 day window), smoothing
+        out short-term fluctuations while capturing sustained staking trends. This metric determines the subnet's share
+        of TAO emissions under the current, flow-based model. Positive values indicate net inflow (more staking than unstaking),
+        negative values indicate net outflow. Subnets with negative EMA flows receive zero emissions.
 
         Parameters:
-            netuid: The unique identifier of the subnetwork.
-            block: The block number to retrieve the commitment from.
+            netuid: The unique identifier of the subnet to query.
+            block: The block number to query. If `None`, uses latest finalized block.
 
         Returns:
-            The tuple with block_number, Balance
+            Tuple of (last_updated_block, ema_flow) where ema_flow is the EMA of net TAO flow in TAO units.
+            Returns None if the subnet does not exist or if querying subnet 0 (root network).
+
+        The EMA uses a smoothing factor α ≈ 0.000003209, creating a 30-day half-life and ~86.8 day window. Only direct
+        stake/unstake operations count toward flows; neuron registrations and root claims are excluded. Subnet 0 (root
+        network) does not have an EMA TAO flow value and will return None.
+
+        Notes:
+            - Flow-based emissions: <https://docs.learnbittensor.org/learn/emissions#tao-reserve-injection>
+            - EMA smoothing: <https://docs.learnbittensor.org/learn/ema>
         """
         block_hash = await self.determine_block_hash(block)
         query = await self.substrate.query(
@@ -2505,7 +2588,7 @@ class AsyncSubtensor(SubtensorMixin):
         """
         Retrieves the owner of the given hotkey at a specific block hash.
         This function queries the blockchain for the owner of the provided hotkey. If the hotkey does not exist at the
-        specified block hash, it returns None.
+        specified block hash, it returns `None`.
 
         Parameters:
             hotkey_ss58: The SS58 address of the hotkey.
@@ -2517,7 +2600,6 @@ class AsyncSubtensor(SubtensorMixin):
             Optional[str]: The SS58 address of the owner if the hotkey exists, or None if it doesn't.
 
         Notes:
-            See also:
             - <https://docs.learnbittensor.org/glossary#hotkey>
             - <https://docs.learnbittensor.org/glossary#subnet>
             - <https://docs.learnbittensor.org/glossary#neuron>
@@ -2543,19 +2625,22 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> bytes:
-        """
-        Retrieves the last bonds reset triggered at commitment from given subnet for a specific hotkey.
+    ):
+        """Retrieves the block number when bonds were last reset for a specific hotkey on a subnet.
 
         Parameters:
             netuid: The network uid to fetch from.
             hotkey_ss58: The hotkey of the neuron for which to fetch the last bonds reset.
             block: The block number to query.
-            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or reuse_block.
-            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using `block` or `reuse_block`.
+            reuse_block: Whether to use the last-used block. Do not set if using `block_hash` or `block`.
 
         Returns:
-            bytes: The last bonds reset data for the specified hotkey and netuid.
+            The block number when bonds were last reset, or `None` if no bonds reset has occurred.
+
+        Notes:
+            - <https://docs.learnbittensor.org/resources/glossary#validator-miner-bonds>
+            - <https://docs.learnbittensor.org/resources/glossary#commit-reveal>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         block = await self.substrate.query(
@@ -2582,8 +2667,8 @@ class AsyncSubtensor(SubtensorMixin):
             netuid: The unique identifier of the subnetwork.
             uid: The unique identifier of the neuron.
             block: The block number to query.
-            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or reuse_block.
-            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using `block` or `reuse_block`.
+            reuse_block: Whether to use the last-used block. Do not set if using `block_hash` or `block`.
 
         Returns:
             The block number when the bonds were last reset, or None if not found.
@@ -2613,8 +2698,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[list[LiquidityPosition]]:
-        """
-        Retrieves all liquidity positions for the given wallet on a specified subnet (netuid).
+        """Retrieves all liquidity positions for the given wallet on a specified subnet (netuid).
         Calculates associated fee rewards based on current global and tick-level fee data.
 
         Parameters:
@@ -2626,6 +2710,10 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             List of liquidity positions, or None if subnet does not exist.
+
+        Notes:
+            - <https://docs.learnbittensor.org/liquidity-positions/
+            - <https://docs.learnbittensor.org/liquidity-positions/managing-liquidity-positions>
         """
         if not await self.subnet_exists(netuid=netuid):
             logging.debug(f"Subnet {netuid} does not exist.")
@@ -2806,12 +2894,15 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             netuid: The unique identifier of the subnet.
             block: The blockchain block number for the query.
-            block_hash: The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block.
-            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+            block_hash: The hash of the block to retrieve the stake from. Do not specify if using `block` or `reuse_block`.
+            reuse_block: Whether to use the last-used block. Do not set if using `block_hash` or `block`.
 
         Returns:
             A list of integers representing the percentage of emission allocated to each subnet mechanism (rounded to
             whole numbers). Returns None if emission is evenly split or if the data is unavailable.
+
+        Notes:
+            - <https://docs.learnbittensor.org/subnets/understanding-multiple-mech-subnets>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self._query_with_fallback(
@@ -2836,11 +2927,14 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             netuid: Subnet identifier.
             block: The blockchain block number for the query.
-            block_hash: The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block.
-            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+            block_hash: The hash of the block to retrieve the stake from. Do not specify if using `block` or `reuse_block`.
+            reuse_block: Whether to use the last-used block. Do not set if using `block_hash` or `block`.
 
         Returns:
             The number of mechanisms for the given subnet.
+
+        Notes:
+            - <https://docs.learnbittensor.org/subnets/understanding-multiple-mech-subnets>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self._query_with_fallback(
@@ -2861,8 +2955,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[MetagraphInfo]:
-        """
-        Retrieves full or partial metagraph information for the specified subnet (netuid).
+        """Retrieves full or partial metagraph information for the specified subnet (netuid).
 
         A metagraph is a data structure that contains comprehensive information about the current state of a subnet,
         including detailed information on all the nodes (neurons) such as subnet validator stakes and subnet weights
@@ -2881,19 +2974,26 @@ class AsyncSubtensor(SubtensorMixin):
             MetagraphInfo object with the requested subnet mechanism data, None if the subnet mechanism does not exist.
 
         Example:
+
             # Retrieve all fields from the metagraph from subnet 2 mechanism 0
+
             meta_info = subtensor.get_metagraph_info(netuid=2)
 
             # Retrieve all fields from the metagraph from subnet 2 mechanism 1
+
             meta_info = subtensor.get_metagraph_info(netuid=2, mechid=1)
 
             # Retrieve selective data from the metagraph from subnet 2 mechanism 0
+
             partial_meta_info = subtensor.get_metagraph_info(
+
                 netuid=2,
+
                 selected_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
             )
 
             # Retrieve selective data from the metagraph from subnet 2 mechanism 1
+
             partial_meta_info = subtensor.get_metagraph_info(
                 netuid=2,
                 mechid=1,
@@ -2901,9 +3001,8 @@ class AsyncSubtensor(SubtensorMixin):
             )
 
         Notes:
-            See also:
-            - <https://docs.learnbittensor.org/glossary#metagraph>
-            - <https://docs.learnbittensor.org/glossary#emission>
+            - <https://docs.learnbittensor.org/subnets/metagraph>
+
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not block_hash and reuse_block:
@@ -3158,11 +3257,21 @@ class AsyncSubtensor(SubtensorMixin):
         return result if result else None
 
     async def get_minimum_required_stake(self):
-        """
-        Returns the minimum required stake for nominators in the Subtensor network.
+        """Returns the minimum required stake threshold for nominator cleanup operations.
+
+        This threshold is used ONLY for cleanup after unstaking operations. If a nominator's remaining stake
+        falls below this minimum after an unstake, the remaining stake is forcefully cleared and returned
+        to the coldkey to prevent dust accounts.
+
+        This is NOT the minimum checked during staking operations. The actual minimum for staking is determined
+        by DefaultMinStake (typically 0.001 TAO plus fees).
 
         Returns:
-            Balance: The minimum required stake as a Balance object.
+            The minimum stake threshold as a Balance object. Nominator stakes below this amount
+            are automatically cleared after unstake operations.
+
+        Notes:
+            - <https://docs.learnbittensor.org/staking-and-delegation/delegation>
         """
         result = await self.substrate.query(
             module="SubtensorModule", storage_function="NominatorMinRequiredStake"
@@ -3177,18 +3286,20 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> list[int]:
-        """
-        Retrieves a list of subnet UIDs (netuids) for which a given hotkey is a member. This function identifies the
+        """Retrieves a list of subnet UIDs (netuids) where a given hotkey is a member. This function identifies the
         specific subnets within the Bittensor network where the neuron associated with the hotkey is active.
 
         Parameters:
-            hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
+            hotkey_ss58: The `SS58` address of the neuron's hotkey.
             block: The blockchain block number for the query.
             block_hash: The hash of the blockchain block number at which to perform the query.
             reuse_block: Whether to reuse the last-used block hash when retrieving info.
 
         Returns:
             A list of netuids where the neuron is a member.
+
+        Notes:
+            - <https://docs.learnbittensor.org/glossary#hotkey>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query_map(
@@ -3218,15 +3329,16 @@ class AsyncSubtensor(SubtensorMixin):
         subnet (netuid) of the Bittensor network.
 
         Parameters:
-            hotkey_ss58: The hotkey to query.
+            hotkey_ss58: The SS58 address of the neuron's hotkey.
             netuid: The unique identifier of the subnet.
             block: The blockchain block number for the query.
             block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
                 reuse_block.
-            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+            reuse_block: Whether to use the last-used block. Do not set if using `block_hash` or `block`.
 
         Returns:
-            the certificate of the neuron if found, ``None`` otherwise.
+            Certificate object containing the neuron's TLS public key and algorithm, or `None` if the neuron has
+            not registered a certificate.
 
         This function is used for certificate discovery for setting up mutual tls communication between neurons.
         """
@@ -3263,14 +3375,14 @@ class AsyncSubtensor(SubtensorMixin):
         network.
 
         Parameters:
-            hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
+            hotkey_ss58: The `SS58` address of the neuron's hotkey.
             netuid: The unique identifier of the subnet.
             block: The blockchain block number for the query.
             block_hash: The blockchain block number at which to perform the query.
             reuse_block: Whether to reuse the last-used blockchain block hash.
 
         Returns:
-            Detailed information about the neuron if found, ``None`` otherwise.
+            Detailed information about the neuron if found, `None` otherwise.
 
         This function is crucial for accessing specific neuron data and understanding its status, stake, and other
         attributes within a particular subnet of the Bittensor ecosystem.
@@ -3303,12 +3415,12 @@ class AsyncSubtensor(SubtensorMixin):
         """
         Calculates the first block number of the next epoch for the given subnet.
 
-        If ``block`` is not provided, the current chain block will be used. Epochs are determined based on the subnet's
+        If `block` is not provided, the current chain block will be used. Epochs are determined based on the subnet's
         tempo (i.e., blocks per epoch). The result is the block number at which the next epoch will begin.
 
         Parameters:
             netuid: The unique identifier of the subnet.
-            block: The reference block to calculate from. If None, uses the current chain block height.
+            block: The reference block to calculate from. If `None`, uses the current chain block height.
             block_hash: The blockchain block number at which to perform the query.
             reuse_block: Whether to reuse the last-used blockchain block hash.
 
@@ -3316,7 +3428,7 @@ class AsyncSubtensor(SubtensorMixin):
             int: The block number at which the next epoch will start.
 
         Notes:
-            See also: <https://docs.learnbittensor.org/glossary#tempo>
+            - <https://docs.learnbittensor.org/glossary#tempo>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         tempo = await self.tempo(netuid=netuid, block_hash=block_hash)
@@ -3378,12 +3490,17 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             hotkey_ss58: The child hotkey SS58.
             netuid: The netuid value.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
             A list of formatted parents [(proportion, parent)]
+
+        Notes:
+            - <https://docs.learnbittensor.org/validators/child-hotkeys>
+            - :meth:`get_children` for retrieving child keys
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         parents = await self.substrate.query(
@@ -3417,17 +3534,18 @@ class AsyncSubtensor(SubtensorMixin):
         account (delegator) to its list of proxy relationships.
 
         Parameters:
-            block: The blockchain block number for the query. If None, queries the latest block.
-            block_hash: The hash of the block at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The blockchain block number for the query. If `None`, queries the latest block.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
             Dictionary mapping real account SS58 addresses to lists of ProxyInfo objects. Each ProxyInfo contains the
                 delegate address, proxy type, and delay for that proxy relationship.
 
-        Note:
-            This method queries all proxy relationships on the chain, which may be resource-intensive for large
-            networks. Consider using `get_proxies_for_real_account()` for querying specific accounts.
+        Notes:
+            - This method queries all proxy relationships on the chain, which may be resource-intensive for large
+              networks. Consider using :meth:`get_proxies_for_real_account` for querying specific accounts.
+            - See: <https://docs.learnbittensor.org/keys/proxies>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query_map = await self.substrate.query_map(
@@ -3459,8 +3577,8 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             real_account_ss58: SS58 address of the real account (delegator) whose proxies to retrieve.
             block: The blockchain block number for the query.
-            block_hash: The hash of the block at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
             Tuple containing:
@@ -3469,8 +3587,9 @@ class AsyncSubtensor(SubtensorMixin):
                 - Balance object representing the reserved deposit amount for these proxies. This deposit is held as
                     long as the proxy relationships exist and is returned when proxies are removed.
 
-        Note:
-            If the account has no proxies, returns an empty list and a zero balance.
+        Notes:
+            - If the account has no proxies, returns an empty list and a zero balance.
+            - See: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self.substrate.query(
@@ -3498,16 +3617,17 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             delegate_account_ss58: SS58 address of the delegate proxy account whose announcements to retrieve.
-            block: The blockchain block number for the query. If None, queries the latest block.
-            block_hash: The hash of the block at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The blockchain block number for the query. If `None`, queries the latest block.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
             List of ProxyAnnouncementInfo objects. Each object contains the real account address, call hash, and block
                 height at which the announcement was made.
 
-        Note:
-            If the delegate has no announcements, returns an empty list.
+        Notes:
+            - If the delegate has no announcements, returns an empty list.
+            - See: <https://docs.learnbittensor.org/keys/proxies>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self.substrate.query(
@@ -3532,17 +3652,18 @@ class AsyncSubtensor(SubtensorMixin):
         mapping each delegate to its list of pending announcements.
 
         Parameters:
-            block: The blockchain block number for the query. If None, queries the latest block.
-            block_hash: The hash of the block at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The blockchain block number for the query. If `None`, queries the latest block.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
             Dictionary mapping delegate account SS58 addresses to lists of ProxyAnnouncementInfo objects.
             Each ProxyAnnouncementInfo contains the real account address, call hash, and block height.
 
-        Note:
-            This method queries all announcements on the chain, which may be resource-intensive for large networks.
-            Consider using `get_proxy_announcement()` for querying specific delegates.
+        Notes:
+            - This method queries all announcements on the chain, which may be resource-intensive for large networks.
+              Consider using :meth:`get_proxy_announcement` for querying specific delegates.
+            - See: <https://docs.learnbittensor.org/keys/proxies>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query_map = await self.substrate.query_map(
@@ -3577,18 +3698,19 @@ class AsyncSubtensor(SubtensorMixin):
                 `ProxyConstants.constants_names()` are queried. Valid constant names include: "AnnouncementDepositBase",
                 "AnnouncementDepositFactor", "MaxProxies", "MaxPending", "ProxyDepositBase", "ProxyDepositFactor".
             as_dict: If True, returns the constants as a dictionary instead of a `ProxyConstants` object.
-            block: The blockchain block number for the query. If None, queries the latest block.
-            block_hash: The hash of the block at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The blockchain block number for the query. If `None`, queries the latest block.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
             If `as_dict` is False: ProxyConstants object containing all requested constants.
             If `as_dict` is True: Dictionary mapping constant names to their values (Balance objects for deposit
                 constants, integers for limit constants).
 
-        Note:
-            All Balance amounts are returned in RAO. Constants reflect the current chain configuration at the specified
-            block.
+        Notes:
+            - All Balance amounts are returned in RAO. Constants reflect the current chain configuration at the specified
+              block.
+            - See: <https://docs.learnbittensor.org/keys/proxies>
         """
         result = {}
         const_names = constants or ProxyConstants.constants_names()
@@ -3626,9 +3748,16 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             A tuple of reveal block and commitment message.
 
-        Example of result:
+        Example:
+
+            # sample return value
+
             ( (12, "Alice message 1"), (152, "Alice message 2") )
+
             ( (12, "Bob message 1"), (147, "Bob message 2") )
+
+        Notes:
+            - <https://docs.learnbittensor.org/glossary#commit-reveal>
         """
         try:
             meta_info = await self.get_metagraph_info(netuid, block=block)
@@ -3656,12 +3785,17 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             netuid: The unique identifier of the subnetwork.
             hotkey_ss58: The ss58 address of the committee member.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
             A tuple of reveal block and commitment message.
+
+        # TODO: add example to clarify return ordering and units; @roman can you help w this?
+        Notes:
+            - <https://docs.learnbittensor.org/glossary#commit-reveal>
         """
         if not is_valid_ss58_address(address=hotkey_ss58):
             raise ValueError(f"Invalid ss58 address {hotkey_ss58} provided.")
@@ -3685,17 +3819,31 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Union[str, dict]:
-        """Retrieves the root claim type for a given coldkey address.
+        """Return the configured root claim type for a given coldkey.
+
+        The root claim type controls how dividends from staking to the Root Subnet (subnet 0) are processed when they
+        are claimed:
+
+        - `Swap` (default): Alpha dividends are swapped to TAO at claim time and restaked on the root subnet.
+        - `Keep`: Alpha dividends remain as Alpha on the originating subnets.
 
         Parameters:
-            coldkey_ss58: The ss58 address of the coldkey.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            coldkey_ss58: The SS58 address of the coldkey whose root claim preference to query.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to query the claim type. Do not specify if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not specify if using `block` or `block_hash`.
 
         Returns:
-            Union[str, dict]: RootClaimType value. Returns string for "Swap" or "Keep",
+
+            The root claim type as a string, either `Swap` or `Keep`,
             or dict for "KeepSubnets" in format {"KeepSubnets": {"subnets": [1, 2, 3]}}.
+
+        Notes:
+            - The claim type applies to both automatic and manual root claims; it does not affect the original TAO stake
+              on subnet 0, only how Alpha dividends are treated.
+            - See: <https://docs.learnbittensor.org/staking-and-delegation/root-claims>
+            - See also: <https://docs.learnbittensor.org/staking-and-delegation/root-claims/managing-root-claims>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self.substrate.query(
@@ -3763,17 +3911,26 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> float:
-        """Retrieves the root claimable rate from a given hotkey address for provided netuid.
+        """Return the fraction of root stake currently claimable on a subnet.
+
+        This method returns a normalized rate representing how much Alpha dividends are currently claimable on the given
+        subnet relative to the validator's root stake. It is primarily a low-level helper; most users should call
+        :meth:`get_root_claimable_stake` instead to obtain a Balance.
 
         Parameters:
-            hotkey_ss58: The ss58 address of the root validator.
-            netuid: The unique identifier of the subnet to get the rate.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            hotkey_ss58: The SS58 address of the root validator hotkey.
+            netuid: The unique identifier of the subnet whose claimable rate to compute.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to query. Do not specify if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not specify if using `block` or `block_hash`.
 
         Returns:
-            The rate of claimable stake from validator's hotkey ss58 address for provided subnet.
+            A float representing the claimable rate for this subnet (approximately in the range `[0.0, 1.0]`). A value
+            of 0.0 means there are currently no claimable Alpha dividends on the subnet.
+
+        Notes:
+            - Use :meth:`get_root_claimable_stake` to retrieve the actual claimable amount as a `Balance` object.
+            - See: <https://docs.learnbittensor.org/staking-and-delegation/root-claims/managing-root-claims>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         all_rates = await self.get_root_claimable_all_rates(
@@ -3792,13 +3949,17 @@ class AsyncSubtensor(SubtensorMixin):
         """Retrieves all root claimable rates from a given hotkey address for all subnets with this validator.
 
         Parameters:
-            hotkey_ss58: The ss58 address of the root validator.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            hotkey_ss58: The SS58 address of the root validator hotkey.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to query. Do not specify if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not specify if using `block` or `block_hash`.
 
         Returns:
-            The rate of claimable stake from validator's hotkey ss58 address for provided subnet.
+            Dictionary mapping `netuid` to a float claimable rate (approximately in the range `[0.0, 1.0]`) for that
+            subnet. Missing entries imply no claimable Alpha dividends for that subnet.
+
+        Notes:
+            - See: <https://docs.learnbittensor.org/staking-and-delegation/root-claims/managing-root-claims>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self.substrate.query(
@@ -3820,22 +3981,27 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Balance:
-        """
-        Retrieves the root claimable stake for a given coldkey address.
+        """Return the currently claimable Alpha staking dividends for a coldkey from a root validator on a subnet.
 
         Parameters:
-            coldkey_ss58: Delegate's ColdKey ss58 address.
-            hotkey_ss58: The root validator hotkey ss58 address.
-            netuid: Delegate's netuid where stake will be claimed.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            coldkey_ss58: The SS58 address of the delegator's coldkey.
+            hotkey_ss58: The SS58 address of the root validator hotkey.
+            netuid: The subnet ID where Alpha dividends will be claimed.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to query. Do not specify if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not specify if using `block` or `block_hash`.
 
         Returns:
-            Available for claiming root stake.
+            `Balance` representing the Alpha stake currently available to claim on the specified subnet (unit is the
+            subnet's Alpha token).
 
-        Note:
-            After manual claim, claimable (available) stake will be added to subtends stake.
+        Notes:
+            - After a successful manual or automatic claim, this value typically drops to zero for that subnet until new
+              dividends accumulate.
+            - The underlying TAO stake on the Root Subnet remains unaffected; only Alpha dividends are moved or swapped
+              according to the configured root claim type.
+            - See: <https://docs.learnbittensor.org/staking-and-delegation/root-claims>
+            - See also: <https://docs.learnbittensor.org/staking-and-delegation/root-claims/managing-root-claims>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         root_stake = await self.get_stake(
@@ -3877,18 +4043,22 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Balance:
-        """Retrieves the root claimed Alpha shares for coldkey from hotkey in provided subnet.
+        """Return the total Alpha dividends already claimed for a coldkey from a root validator on a subnet.
 
         Parameters:
-            coldkey_ss58: The ss58 address of the staker.
-            hotkey_ss58: The ss58 address of the root validator.
+            coldkey_ss58: The SS58 address of the delegator's coldkey.
+            hotkey_ss58: The SS58 address of the root validator hotkey.
             netuid: The unique identifier of the subnet.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to query. Do not specify if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not specify if using `block` or `block_hash`.
 
         Returns:
-            The number of Alpha stake claimed from the root validator in Rao.
+            `Balance` representing the cumulative Alpha stake that has already been claimed from the root validator on
+            the specified subnet.
+
+        Notes:
+            - See: <https://docs.learnbittensor.org/staking-and-delegation/root-claims/managing-root-claims>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         query = await self.substrate.query(
@@ -3919,7 +4089,7 @@ class AsyncSubtensor(SubtensorMixin):
             block: The block number at which to query the stake information.
             block_hash: The hash of the block to retrieve the stake from. Do not specify if using block
                 or reuse_block
-            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+            reuse_block: Whether to use the last-used block. Do not set if using `block_hash` or `block`.
 
         Returns:
             Balance: The stake under the coldkey - hotkey pairing.
@@ -3979,6 +4149,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             The calculated stake fee as a Balance object in TAO.
+
+        Notes:
+            - <https://docs.learnbittensor.org/learn/fees>
         """
         check_balance_amount(amount)
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
@@ -4012,6 +4185,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             The calculated stake fee as a Balance object
+
+        Notes:
+            - <https://docs.learnbittensor.org/learn/fees>
         """
         check_balance_amount(amount)
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
@@ -4038,13 +4214,13 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             coldkey_ss58: The SS58 address of the coldkey.
             hotkey_ss58: The SS58 address of the hotkey.
-            netuids: The subnet IDs to query for. Set to ``None`` for all subnets.
+            netuids: The subnet IDs to query for. Set to `None` for all subnets.
             block: The block number for which the children are to be retrieved.
             block_hash: The hash of the block to retrieve the subnet unique identifiers from.
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            A {netuid: StakeInfo} pairing of all stakes across all subnets.
+            A netuid to StakeInfo mapping of all stakes across all subnets.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not block_hash and reuse_block:
@@ -4149,15 +4325,17 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Balance:
-        """
-        Retrieves the stake information for a given hotkey.
+        """Retrieves the total stake for a given hotkey on a specific subnet.
 
         Parameters:
             hotkey_ss58: The SS58 address of the hotkey.
             netuid: The subnet ID to query for.
-            block: The block number for which the children are to be retrieved.
-            block_hash: The hash of the block to retrieve the subnet unique identifiers from.
+            block: The blockchain block number for the query.
+            block_hash: The hash of the block to retrieve the stake from.
             reuse_block: Whether to reuse the last-used block hash.
+
+        Returns:
+            Balance: The total stake for the hotkey on the specified subnet.
         """
         hotkey_alpha_query = await self.query_subtensor(
             name="TotalHotkeyAlpha",
@@ -4254,7 +4432,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used blockchain hash.
 
         Returns:
-            The subnet's hyperparameters, or ``None`` if not available.
+            The subnet's hyperparameters, or `None` if not available.
 
         Understanding the hyperparameters is crucial for comprehending how subnets are configured and managed, and how
         they interact with the network's consensus and incentive mechanisms.
@@ -4319,7 +4497,7 @@ class AsyncSubtensor(SubtensorMixin):
         Retrieves the hotkey of the subnet owner for a given network UID.
 
         This function queries the subtensor network to fetch the hotkey of the owner of a subnet specified by its
-        netuid. If no data is found or the query fails, the function returns None.
+        netuid. If no data is found or the query fails, the function returns `None`.
 
         Parameters:
             netuid: The network UID of the subnet to fetch the owner's hotkey for.
@@ -4345,16 +4523,19 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Balance:
-        """Gets the current Alpha price in TAO for all subnets.
+        """Gets the current Alpha price in TAO for the specified subnet.
 
         Parameters:
             netuid: The unique identifier of the subnet.
             block: The blockchain block number for the query.
-            block_hash: The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block.
-            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+            block_hash: The hash of the block to retrieve the stake from. Do not specify if using `block` or `reuse_block`.
+            reuse_block: Whether to use the last-used block. Do not set if using `block_hash` or `block`.
 
         Returns:
             The current Alpha price in TAO units for the specified subnet.
+
+        Notes:
+            Subnet 0 (root network) always returns 1 TAO since it uses TAO directly rather than Alpha.
         """
         # SN0 price is always 1 TAO
         if netuid == 0:
@@ -4376,7 +4557,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> dict[int, Balance]:
-        """Gets the current Alpha price in TAO for a specified subnet.
+        """Gets the current Alpha price in TAO for all subnets.
 
         Parameters:
             block: The block number for which the children are to be retrieved.
@@ -4384,9 +4565,10 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            dict:
-                - subnet unique ID
-                - The current Alpha price in TAO units for the specified subnet.
+            A dictionary mapping subnet unique ID (netuid) to the current Alpha price in TAO units.
+
+        Notes:
+            Subnet 0 (root network) always has a price of 1 TAO since it uses TAO directly rather than Alpha.
         """
         block_hash = await self.determine_block_hash(
             block=block, block_hash=block_hash, reuse_block=reuse_block
@@ -4413,7 +4595,23 @@ class AsyncSubtensor(SubtensorMixin):
     async def get_subnet_reveal_period_epochs(
         self, netuid: int, block: Optional[int] = None, block_hash: Optional[str] = None
     ) -> int:
-        """Retrieve the SubnetRevealPeriodEpochs hyperparameter."""
+        """Retrieves the SubnetRevealPeriodEpochs hyperparameter for a specified subnet.
+
+        This hyperparameter determines the number of epochs that must pass before a committed weight can be revealed
+        in the commit-reveal mechanism.
+
+        Parameters:
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query. Do not specify if using `block_hash`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block`.
+
+        Returns:
+            The number of epochs in the reveal period for the subnet.
+
+        Notes:
+            - <https://docs.learnbittensor.org/glossary#commit-reveal>
+
+        """
         block_hash = await self.determine_block_hash(block, block_hash)
         return await self.get_hyperparameter(
             param_name="RevealPeriodEpochs", block_hash=block_hash, netuid=netuid
@@ -4455,24 +4653,32 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> list[tuple[str, int, str, int]]:
-        """
-        Retrieves CRv4 weight commit information for a specific subnet.
+        """Retrieves CRv4 (Commit-Reveal version 4) weight commit information for a specific subnet.
+
+        This method retrieves timelocked weight commitments made by validators using the commit-reveal mechanism.
+        The raw byte/vector encoding from the chain is automatically parsed and converted into a structured format
+        via `WeightCommitInfo`.
 
         Parameters:
-            netuid: Subnet identifier.
-            mechid: Subnet mechanism identifier.
-            block: The blockchain block number for the query.
-            block_hash: The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block.
-            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+            netuid: The unique identifier of the subnet.
+            mechid: Subnet mechanism identifier (default 0 for primary mechanism).
+            block: The blockchain block number for the query. Do not specify if using `block_hash` or
+                `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            A list of commit details, where each item contains:
-                - ss58_address: The address of the committer.
-                - commit_block: The block number when the commitment was made.
-                - commit_message: The commit message.
-                - reveal_round: The round when the commitment was revealed.
+            A list of commit details, where each item is a tuple containing:
 
+                - ss58_address: The SS58 address of the committer.
+                - commit_block: The block number when the commitment was made.
+                - commit_message: The commit message (encoded commitment data).
+                - reveal_round: The drand round when the commitment can be revealed.
+
+        Notes:
             The list may be empty if there are no commits found.
+            - <https://docs.learnbittensor.org/resources/glossary#commit-reveal>
         """
         storage_index = get_mechid_storage_index(netuid, mechid)
         block_hash = await self.determine_block_hash(
@@ -4494,16 +4700,24 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> datetime:
-        """
-        Retrieves the datetime timestamp for a given block.
+        """Retrieves the datetime timestamp for a given block.
+
+        This method queries the Timestamp pallet to get the block's timestamp. The on-chain timestamp is stored in
+        milliseconds (Unix timestamp in milliseconds), which is automatically converted to a Python datetime object
+        (Unix timestamp in seconds).
 
         Parameters:
-            block: The blockchain block number for the query.
-            block_hash: The blockchain block_hash representation of the block id.
-            reuse_block: Whether to reuse the last-used blockchain block hash.
+            block: The blockchain block number for the query. Do not specify if using `block_hash` or
+                `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            datetime object for the timestamp of the block.
+            A datetime object representing the timestamp of the specified block.
+
+        Notes:
+            - <https://docs.learnbittensor.org/resources/glossary#block>
         """
         res = await self.query_module(
             "Timestamp",
@@ -4521,8 +4735,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[int]:
-        """
-        Retrieves the total number of subnets within the Bittensor network as of a specific blockchain block.
+        """Retrieves the total number of subnets within the Bittensor network as of a specific blockchain block.
 
         Parameters:
             block: The blockchain block number for the query.
@@ -4532,8 +4745,6 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             The total number of subnets in the network.
 
-        Understanding the total number of subnets is essential for assessing the network's growth and the extent of its
-        decentralized infrastructure.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query(
@@ -4559,7 +4770,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             wallet: The wallet from which the transfer is initiated.
-            destination_ss58: The ``SS58`` address of the destination account.
+            destination_ss58: The `SS58` address of the destination account.
             amount: The amount of tokens to be transferred, specified as a Balance object, or in Tao (float) or Rao
                 (int) units.
             keep_alive: Whether the transfer fee should be calculated based on keeping the wallet alive (existential
@@ -4569,9 +4780,9 @@ class AsyncSubtensor(SubtensorMixin):
             bittensor.utils.balance.Balance: The estimated transaction fee for the transfer, represented as a Balance
                 object.
 
-        Estimating the transfer fee is essential for planning and executing token transactions, ensuring that the
-        wallet has sufficient funds to cover both the transfer amount and the associated costs. This function provides
-        a crucial tool for managing financial operations within the Bittensor network.
+        Notes:
+
+            - <https://docs.learnbittensor.org/learn/fees>
         """
         check_balance_amount(amount)
         call_params: dict[str, Union[int, str, bool]]
@@ -4603,8 +4814,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Balance:
-        """
-        Calculates the fee for unstaking from a hotkey.
+        """Calculates the fee for unstaking from a hotkey.
 
         Parameters:
             netuid: The unique identifier of the subnet.
@@ -4615,6 +4825,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             The calculated stake fee as a Balance object in Alpha.
+
+        Notes:
+            - <https://docs.learnbittensor.org/learn/fees>
         """
         check_balance_amount(amount)
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
@@ -4633,6 +4846,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional["ProposalVoteData"]:
+        # TODO: is this all deprecated? Didn't subtensor senate stuff get removed?
         """
         Retrieves the voting data for a specific proposal on the Bittensor blockchain. This data includes information
         about how senate members have voted on the proposal.
@@ -4644,7 +4858,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used blockchain block hash.
 
         Returns:
-            An object containing the proposal's voting data, or ``None`` if not found.
+            An object containing the proposal's voting data, or `None` if not found.
 
         This function is important for tracking and understanding the decision-making processes within the Bittensor
         network, particularly how proposals are received and acted upon by the governing body.
@@ -4675,14 +4889,14 @@ class AsyncSubtensor(SubtensorMixin):
         Retrieves the unique identifier (UID) for a neuron's hotkey on a specific subnet.
 
         Parameters:
-            hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
+            hotkey_ss58: The `SS58` address of the neuron's hotkey.
             netuid: The unique identifier of the subnet.
             block: The blockchain block number for the query.
             block_hash: The blockchain block_hash representation of the block id.
             reuse_block: Whether to reuse the last-used blockchain block hash.
 
         Returns:
-            The UID of the neuron if it is registered on the subnet, ``None`` otherwise.
+            The UID of the neuron if it is registered on the subnet, `None` otherwise.
 
         The UID is a critical identifier within the network, linking the neuron's hotkey to its operational and
         governance activities on a particular subnet.
@@ -4707,18 +4921,30 @@ class AsyncSubtensor(SubtensorMixin):
         reuse_block: bool = False,
     ) -> list[int]:
         """
-        Filters a given list of all netuids for certain specified netuids and hotkeys
+        Filters netuids by combining netuids from all_netuids and netuids with registered hotkeys.
+
+        If filter_for_netuids is empty/None:
+            Returns all netuids where hotkeys from all_hotkeys are registered.
+
+        If filter_for_netuids is provided:
+            Returns the union of:
+            - Netuids from all_netuids that are in filter_for_netuids, AND
+            - Netuids with registered hotkeys that are in filter_for_netuids
+
+        This allows you to get netuids that are either in your specified list (all_netuids) or have registered hotkeys,
+        as long as they match filter_for_netuids.
 
         Parameters:
-            all_netuids: A list of netuids to filter.
-            filter_for_netuids: A subset of all_netuids to filter from the main list.
-            all_hotkeys: Hotkeys to filter from the main list.
-            block: The blockchain block number for the query.
-            block_hash: hash of the blockchain block number at which to perform the query.
-            reuse_block: whether to reuse the last-used blockchain hash when retrieving info.
+            all_netuids (Iterable[int]): A list of netuids to consider for filtering.
+            filter_for_netuids (Iterable[int]): A subset of netuids to restrict the result to. If None/empty, returns
+                all netuids with registered hotkeys.
+            all_hotkeys (Iterable[Wallet]): Hotkeys to check for registration.
+            block (Optional[int]): The blockchain block number for the query.
+            block_hash (Optional[str]): hash of the blockchain block number at which to perform the query.
+            reuse_block (bool): whether to reuse the last-used blockchain hash when retrieving info.
 
         Returns:
-            The filtered list of netuids.
+            The filtered list of netuids (union of filtered all_netuids and registered hotkeys).
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         netuids_with_registered_hotkeys = [
@@ -4773,7 +4999,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used blockchain block hash.
 
         Returns:
-            The value of the 'ImmunityPeriod' hyperparameter if the subnet exists, ``None`` otherwise.
+            The value of the 'ImmunityPeriod' hyperparameter if the subnet exists, `None` otherwise.
 
         The 'ImmunityPeriod' is a critical aspect of the network's governance system, ensuring that new participants
         have a grace period to establish themselves and contribute to the network without facing immediate punitive
@@ -4830,11 +5056,22 @@ class AsyncSubtensor(SubtensorMixin):
             return remaining < window
         return False
 
-    async def is_fast_blocks(self):
-        """Returns True if the node is running with fast blocks. False if not."""
+    async def is_fast_blocks(self) -> bool:
+        """Checks if the node is running with fast blocks enabled.
+
+        Fast blocks have a block time of 10 seconds, compared to the standard 12-second block time. This affects
+        transaction timing and network synchronization.
+
+        Returns:
+            `True` if fast blocks are enabled (10-second block time), `False` otherwise (12-second block time).
+
+        Notes:
+            - <https://docs.learnbittensor.org/resources/glossary#fast-blocks>
+
+        """
         return (
             await self.query_constant("SubtensorModule", "DurationOfStartCall")
-        ).value == 10
+        ) == 10
 
     async def is_hotkey_delegate(
         self,
@@ -4854,7 +5091,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            ``True`` if the hotkey is a delegate, ``False`` otherwise.
+            `True` if the hotkey is a delegate, `False` otherwise.
 
         Being a delegate is a significant status within the Bittensor network, indicating a neuron's involvement in
         consensus and governance processes.
@@ -4886,8 +5123,8 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            bool: ``True`` if the hotkey is registered in the specified context (either any subnet or a specific subnet),
-                ``False`` otherwise.
+            bool: `True` if the hotkey is registered in the specified context (either any subnet or a specific subnet),
+                `False` otherwise.
 
         This function is important for verifying the active status of neurons in the Bittensor network. It aids in
         understanding whether a neuron is eligible to participate in network processes such as consensus, validation,
@@ -4913,15 +5150,13 @@ class AsyncSubtensor(SubtensorMixin):
         Checks if a neuron's hotkey is registered on any subnet within the Bittensor network.
 
         Parameters:
-            hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
+            hotkey_ss58: The `SS58` address of the neuron's hotkey.
             block: The blockchain block number for the query.
             block_hash: The blockchain block_hash representation of block id.
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            bool: ``True`` if the hotkey is registered on any subnet, False otherwise.
-
-        This function is essential for determining the network-wide presence and participation of a neuron.
+            bool: `True` if the hotkey is registered on any subnet, False otherwise.
         """
         hotkeys = await self.get_netuids_for_hotkey(
             hotkey_ss58, block, block_hash, reuse_block
@@ -4936,7 +5171,24 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> bool:
-        """Checks if the hotkey is registered on a given netuid."""
+        """Checks if the hotkey is registered on a given subnet.
+
+        Parameters:
+            hotkey_ss58: The SS58 address of the hotkey to check.
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query. Do not specify if using `block_hash` or
+                `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
+
+        Returns:
+            `True` if the hotkey is registered on the specified subnet, `False` otherwise.
+
+        Notes:
+            - <https://docs.learnbittensor.org/glossary#hotkey>
+
+        """
         return (
             await self.get_uid_for_hotkey_on_subnet(
                 hotkey_ss58,
@@ -4955,18 +5207,25 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> bool:
-        """Verify if subnet with provided netuid is active.
+        """Verifies if a subnet with the provided netuid is active.
+
+        A subnet is considered active if the `start_call` extrinsic has been executed. A newly registered subnet
+        may exist but not be active until the subnet owner calls `start_call` to begin emissions.
 
         Parameters:
             netuid: The unique identifier of the subnet.
-            block: The blockchain block number for the query.
-            block_hash: The blockchain block_hash representation of block id.
-            reuse_block: Whether to reuse the last-used block hash.
+            block: The blockchain block number for the query. Do not specify if using `block_hash` or
+                `reuse_block`.
+            block_hash: The block hash at which to check the parameter. Do not set if using `block` or
+                `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            ``True`` if subnet is active, ``False`` otherwise.
+            `True` if the subnet is active (emissions have started), `False` otherwise.
 
-        Note: This means whether the ``start_call`` was initiated or not.
+        Notes:
+            - <https://docs.learnbittensor.org/subnets/working-with-subnets>
+
         """
         query = await self.query_subtensor(
             name="FirstEmissionBlockNumber",
@@ -4978,11 +5237,18 @@ class AsyncSubtensor(SubtensorMixin):
         return True if query and query.value > 0 else False
 
     async def last_drand_round(self) -> Optional[int]:
-        """
-        Retrieves the last drand round emitted in bittensor. This corresponds when committed weights will be revealed.
+        """Retrieves the last drand round emitted in Bittensor.
+
+        Drand (distributed randomness) rounds are used to determine when committed weights can be revealed in the
+        commit-reveal mechanism. This method returns the most recent drand round number, which corresponds to the
+        timing for weight reveals.
 
         Returns:
-            int: The latest Drand round emitted in bittensor.
+            The latest drand round number emitted in Bittensor, or `None` if no round has been stored.
+
+        Notes:
+            - <https://docs.learnbittensor.org/resources/glossary#drandtime-lock-encryption>
+
         """
         result = await self.substrate.query(
             module="Drand", storage_function="LastStoredRound"
@@ -4996,18 +5262,22 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[float]:
-        """
-        Returns network MaxWeightsLimit hyperparameter.
+        """Returns the MaxWeightsLimit hyperparameter for a subnet.
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
             block: The blockchain block number for the query.
-            block_hash: The blockchain block_hash representation of block id.
-            reuse_block: Whether to reuse the last-used block hash.
+            block_hash: The hash of the block at which to query. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            The value of the MaxWeightsLimit hyperparameter, or ``None`` if the subnetwork does not exist or the
-                parameter is not found.
+            The stored maximum weight limit as a normalized float in [0, 1], or `None` if the subnetwork
+                does not exist. Note: this value is not actually enforced - the weight validation code uses
+                a hardcoded u16::MAX instead.
+
+        Notes:
+            - This hyperparameter is now a constant rather than a settable variable.
+            - <https://docs.learnbittensor.org/subnets/subnet-hyperparameters>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
@@ -5032,7 +5302,7 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             netuid: The network UID of the subnet to query.
             mechid: Subnet mechanism identifier.
-            lite: If true, returns a metagraph using a lightweight sync (no weights, no bonds).
+            lite: If `True`, returns a metagraph using a lightweight sync (no weights, no bonds).
             block: Block number for synchronization, or `None` for the latest block.
 
         Returns:
@@ -5060,18 +5330,25 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[int]:
-        """
-        Returns network MinAllowedWeights hyperparameter.
+        """Returns the MinAllowedWeights hyperparameter for a subnet.
+
+        This hyperparameter sets the minimum length of the weights vector that a validator must submit.
+        It checks `weights.len() >= MinAllowedWeights`. For example, a validator could submit `[1000, 0, 0, 0]`
+        to satisfy `MinAllowedWeights=4`, but this would fail if `MinAllowedWeights` were set to 5.
+        This ensures validators distribute attention across the subnet.
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
             block: The blockchain block number for the query.
-            block_hash: The blockchain block_hash representation of block id.
-            reuse_block: Whether to reuse the last-used block hash.
+            block_hash: The hash of the block at which to query. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            The value of the MinAllowedWeights hyperparameter, or ``None`` if the subnetwork does not exist or the
-                parameter is not found.
+            The minimum number of required weight connections, or `None` if the subnetwork does not
+                exist or the parameter is not found.
+
+        Notes:
+            - <https://docs.learnbittensor.org/subnets/subnet-hyperparameters>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
@@ -5220,14 +5497,14 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used blockchain block hash.
 
         Returns:
-            An object containing the identity information of the neuron if found, ``None`` otherwise.
+            An object containing the identity information of the neuron if found, `None` otherwise.
 
         The identity information can include various attributes such as the neuron's stake, rank, and other
         network-specific details, providing insights into the neuron's role and status within the Bittensor network.
 
         Note:
-            See the ``Bittensor CLI documentation <https://docs.bittensor.com/reference/btcli>``_ for supported identity
-                parameters.
+            See the `Bittensor CLI documentation <https://docs.bittensor.com/reference/btcli>`_ for supported identity
+            parameters.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         identity_info = cast(
@@ -5258,21 +5535,23 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[Balance]:
-        """
-        Retrieves the 'Burn' hyperparameter for a specified subnet. The 'Burn' parameter represents the amount of Tao
-        that is effectively recycled within the Bittensor network.
+        """Retrieves the 'Burn' hyperparameter for a specified subnet.
+
+        The 'Burn' parameter represents the amount of TAO that is recycled when registering a neuron
+        on this subnet. Recycled tokens are removed from circulation but can be re-emitted, unlike
+        burned tokens which are permanently removed.
 
         Parameters:
             netuid: The unique identifier of the subnet.
             block: The blockchain block number for the query.
-            block_hash: The hash of the blockchain block number for the query.
-            reuse_block: Whether to reuse the last-used blockchain block hash.
+            block_hash: The hash of the block at which to query. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            The value of the 'Burn' hyperparameter if the subnet exists, ``None`` otherwise.
+            The amount of TAO recycled per neuron registration, or `None` if the subnet does not exist.
 
-        Understanding the 'Burn' rate is essential for analyzing the network registration usage, particularly how it is
-        correlated with user activity and the overall cost of participation in a given subnet.
+        Notes:
+            - <https://docs.learnbittensor.org/resources/glossary#recycling-and-burning>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
@@ -5345,7 +5624,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            ``True`` if the subnet exists, ``False`` otherwise.
+            `True` if the subnet exists, `False` otherwise.
 
         This function is critical for verifying the presence of specific subnets in the network, enabling a deeper
         understanding of the network's structure and composition.
@@ -5367,18 +5646,17 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[int]:
-        """
-        Returns network SubnetworkN hyperparameter.
+        """Returns the current number of registered neurons (UIDs) in a subnet.
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
             block: The blockchain block number for the query.
-            block_hash: The hash of the blockchain block number at which to check the subnet existence.
-            reuse_block: Whether to reuse the last-used block hash.
+            block_hash: The hash of the block at which to query. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            The value of the SubnetworkN hyperparameter, or ``None`` if the subnetwork does not exist or the parameter
-                is not found.
+            The current number of registered neurons in the subnet, or `None` if the subnetwork does not exist.
+
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
@@ -5396,18 +5674,24 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[int]:
-        """
-        Returns network Tempo hyperparameter.
+        """Returns the Tempo hyperparameter for a subnet.
+
+        Tempo determines the length of an epoch in blocks. It defines how frequently the subnet's consensus mechanism
+        runs, calculating emissions and updating rankings. A tempo of 360 blocks equals approximately 72 minutes
+        (360 blocks × 12 seconds per block).
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
             block: The blockchain block number for the query.
-            block_hash: The hash of the blockchain block number at which to check the subnet existence.
-            reuse_block: Whether to reuse the last-used block hash.
+            block_hash: The hash of the block at which to query. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            The value of the Tempo hyperparameter, or ``None`` if the subnetwork does not exist or the parameter is not
-                found.
+            The tempo value in blocks, or `None` if the subnetwork does not exist.
+
+        Notes:
+            - <https://docs.learnbittensor.org/resources/glossary#tempo>
+            - <https://docs.learnbittensor.org/resources/glossary#epoch>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
@@ -5434,7 +5718,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            The transaction rate limit of the network, ``None`` if not available.
+            The transaction rate limit of the network, `None` if not available.
 
         The transaction rate limit is an essential parameter for ensuring the stability and scalability of the Bittensor
         network. It helps in managing network load and preventing congestion, thereby maintaining efficient and timely
@@ -5451,17 +5735,16 @@ class AsyncSubtensor(SubtensorMixin):
         Waits until a specific block is reached on the chain. If no block is specified, waits for the next block.
 
         Parameters:
-            block: The block number to wait for. If ``None``, waits for the next block.
+            block: The block number to wait for. If `None`, waits for the next block.
 
         Returns:
-            ``True`` if the target block was reached, ``False`` if timeout occurred.
+            `True` if the target block was reached, `False` if timeout occurred.
 
         Example:
-            import bittensor as bt
-            subtensor = bt.Subtensor()
 
-            await subtensor.wait_for_block() # Waits for next block
-            await subtensor.wait_for_block(block=1234) # Waits for a specific block
+            # Waits for a specific block
+
+            await subtensor.wait_for_block(block=1234)
         """
 
         async def handler(block_data: dict):
@@ -5533,17 +5816,20 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[int]:
-        """
-        Returns network WeightsSetRateLimit hyperparameter.
+        """Returns the WeightsSetRateLimit hyperparameter for a subnet.
+
+        This hyperparameter limits how many times a validator can set weights per epoch. It prevents validators
+        from spamming weight updates and ensures stable consensus calculations. Once the limit is reached, validators
+        must wait until the next epoch to set weights again.
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
             block: The blockchain block number for the query.
-            block_hash: The blockchain block_hash representation of the block id.
-            reuse_block: Whether to reuse the last-used blockchain block hash.
+            block_hash: The hash of the block at which to query. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            Optional[int]: The value of the WeightsSetRateLimit hyperparameter, or ``None`` if the subnetwork does not
+            The maximum number of weight set operations allowed per epoch, or `None` if the subnetwork does not
                 exist or the parameter is not found.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
@@ -5565,6 +5851,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ):
+        # TODO: Examples: validate against metadata;
         """
         Validate and filter extrinsic parameters against on-chain metadata.
 
@@ -5590,6 +5877,8 @@ class AsyncSubtensor(SubtensorMixin):
         Notes:
             This method does not compose or submit the extrinsic. It only ensures that `call_params` conforms to the
             expected schema derived from on-chain metadata.
+            See also `compose_call` and `sign_and_send_extrinsic`.
+
         """
         block_hash = await self.determine_block_hash(
             block=block, block_hash=block_hash, reuse_block=reuse_block
@@ -5633,8 +5922,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> "GenericCall":
-        """
-        Dynamically compose a GenericCall using on-chain Substrate metadata after validating the provided parameters.
+        """Dynamically compose a GenericCall using on-chain Substrate metadata after validating the provided parameters.
 
         Parameters:
             call_module: Pallet name (e.g. "SubtensorModule", "AdminUtils").
@@ -5688,6 +5976,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = False,
         calling_function: Optional[str] = None,
     ) -> ExtrinsicResponse:
+        # TODO: Full clear example of sending extrinsic flow
         """
         Helper method to sign and submit an extrinsic call to chain.
 
@@ -5793,19 +6082,41 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         call: "GenericCall",
         keypair: "Keypair",
-    ):
-        """
-        Get extrinsic fee for a given extrinsic call and keypair for a given SN's netuid.
+    ) -> Balance:
+        """Gets the extrinsic fee for a given extrinsic call and keypair.
+
+        This method estimates the transaction fee that will be charged for submitting the extrinsic to the
+        blockchain. The fee is returned in Rao (the smallest unit of TAO, where 1 TAO = 1e9 Rao).
 
         Parameters:
-            call: The extrinsic GenericCall.
-            keypair: The keypair associated with the extrinsic.
+            call: The extrinsic GenericCall object representing the transaction to estimate.
+            keypair: The keypair associated with the extrinsic (used to determine the account paying the fee).
 
         Returns:
-            Balance object representing the extrinsic fee in RAO.
+            Balance object representing the extrinsic fee in Rao.
 
-        Note:
-            To create the GenericCall object use `compose_call` method with proper parameters.
+        Example:
+
+            # Estimate fee before sending a transfer
+
+            call = await subtensor.compose_call(
+
+                call_module="Balances",
+
+                call_function="transfer",
+
+                call_params={"dest": destination_ss58, "value": amount.rao}
+
+            )
+
+            fee = await subtensor.get_extrinsic_fee(call=call, keypair=wallet.coldkey)
+
+            print(f"Estimated fee: {fee.tao} TAO")
+
+        Notes:
+            To create the GenericCall object, use the `compose_call` method with proper parameters.
+            - <https://docs.learnbittensor.org/learn/fees>
+
         """
         payment_info = await self.substrate.get_payment_info(call=call, keypair=keypair)
         return Balance.from_rao(amount=payment_info["partial_fee"])
@@ -5839,15 +6150,15 @@ class AsyncSubtensor(SubtensorMixin):
             netuid: The unique identifier of the subnet to which the neuron belongs.
             hotkey_ss58: The `ss58` address of the hotkey account to stake to default to the wallet's hotkey.
             amount: The amount of TAO to stake.
-            safe_staking: If true, enables price safety checks to protect against fluctuating prices. The stake will
+            safe_staking: If `True`, enables price safety checks to protect against fluctuating prices. The stake will
                 only execute if the price change doesn't exceed the rate tolerance.
-            allow_partial_stake: If true and safe_staking is enabled, allows partial staking when the full amount would
+            allow_partial_stake: If `True` and safe_staking is enabled, allows partial staking when the full amount would
                 exceed the price tolerance. If false, the entire stake fails if it would exceed the tolerance.
             rate_tolerance: The maximum allowed price change ratio when staking. For example, 0.005 = 0.5% maximum price
                 increase. Only used when safe_staking is True.
-            mev_protection: If True, encrypts and submits the staking transaction through the MEV Shield pallet  to
+            mev_protection: If `True`, encrypts and submits the staking transaction through the MEV Shield pallet to
                 protect against front-running and MEV attacks. The transaction remains encrypted in the mempool until
-                validators decrypt and execute it. If False, submits the transaction directly without encryption.
+                validators decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -5862,6 +6173,10 @@ class AsyncSubtensor(SubtensorMixin):
         This function enables neurons to increase their stake in the network, enhancing their influence and potential.
         When safe_staking is enabled, it provides protection against price fluctuations during the time stake is
         executed and the time it is actually processed by the chain.
+
+        Notes:
+            - Price Protection: <https://docs.learnbittensor.org/learn/price-protection>
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#staking-operations-rate-limits>
         """
         check_balance_amount(amount)
         return await add_stake_extrinsic(
@@ -5907,9 +6222,9 @@ class AsyncSubtensor(SubtensorMixin):
             price_low: The lower bound of the price tick range. In TAO.
             price_high: The upper bound of the price tick range. In TAO.
             hotkey_ss58: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection:` If` True, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -5921,8 +6236,9 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Note: Adding is allowed even when user liquidity is enabled in specified subnet. Call ``toggle_user_liquidity``
-        method to enable/disable user liquidity.
+        Note:
+            Adding is allowed even when user liquidity is enabled in specified subnet. Call `toggle_user_liquidity`
+            method to enable/disable user liquidity.
         """
         return await add_liquidity_extrinsic(
             subtensor=self,
@@ -5961,11 +6277,11 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             wallet: The wallet used for staking.
             netuids: List of subnet UIDs.
-            hotkey_ss58s: List of ``SS58`` addresses of hotkeys to stake to.
+            hotkey_ss58s: List of `SS58` addresses of hotkeys to stake to.
             amounts: List of corresponding TAO amounts to bet for each netuid and hotkey.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -5977,8 +6293,9 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        This function is essential for managing stakes across multiple neurons, reflecting the dynamic and collaborative
-        nature of the Bittensor network.
+        Notes:
+            - Price Protection: <https://docs.learnbittensor.org/learn/price-protection>
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#staking-operations-rate-limits>
         """
         return await add_stake_multiple_extrinsic(
             subtensor=self,
@@ -6019,11 +6336,16 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: Bittensor wallet object.
             delegate_ss58: The SS58 address of the delegate proxy account.
             proxy_type: The type of proxy permissions (e.g., "Any", "NonTransfer", "Governance", "Staking"). Can be a
-                string or ProxyType enum value.
-            delay: The number of blocks before the proxy can be used.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                string or ProxyType enum value. For available proxy types and their permissions, see the documentation
+                link in the Notes section below.
+            delay: Optionally, include a delay in blocks. The number of blocks that must elapse between announcing and
+                executing a proxied transaction. A delay of `0` means the proxy can be used immediately without
+                announcements. A non-zero delay creates a time-lock, requiring the proxy to announce calls via
+                :meth:`announce_proxy` before execution, giving the real account time to review and reject unwanted
+                operations via :meth:`reject_proxy_announcement`.
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6035,9 +6357,15 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Note:
-            A deposit is required when adding a proxy. The deposit amount is determined by runtime constants and is
-            returned when the proxy is removed. Use `get_proxy_constants()` to check current deposit requirements.
+        Notes:
+            - A deposit is required when adding a proxy. The deposit amount is determined by runtime constants and is
+              returned when the proxy is removed. Use :meth:`get_proxy_constants` to check current deposit requirements.
+            - For available proxy types and their specific permissions, see: <https://docs.learnbittensor.org/keys/proxies#types-of-proxies>
+            - Bittensor proxies: <https://docs.learnbittensor.org/keys/proxies/create-proxy>
+
+        Warning:
+            The `Any` proxy type is dangerous as it grants full permissions to the proxy, including the ability to make
+            transfers and manage the account completely. Use with extreme caution.
         """
         return await add_proxy_extrinsic(
             subtensor=self,
@@ -6070,16 +6398,16 @@ class AsyncSubtensor(SubtensorMixin):
         Announces a future call that will be executed through a proxy.
 
         This method allows a proxy account to declare its intention to execute a specific call on behalf of a real
-        account after a delay period. The real account can review and either approve (via `proxy_announced()`) or reject
-        (via `reject_proxy_announcement()`) the announcement.
+        account after a delay period. The real account can review and either approve (via :meth:`proxy_announced`) or reject
+        (via :meth:`reject_proxy_announcement`) the announcement.
 
         Parameters:
             wallet: Bittensor wallet object (should be the proxy account wallet).
             real_account_ss58: The SS58 address of the real account on whose behalf the call will be made.
             call_hash: The hash of the call that will be executed in the future.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6091,9 +6419,10 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Note:
-            A deposit is required when making an announcement. The deposit is returned when the announcement is
-            executed, rejected, or removed. The announcement can be executed after the delay period has passed.
+        Notes:
+            - A deposit is required when making an announcement. The deposit is returned when the announcement is
+              executed, rejected, or removed. The announcement can be executed after the delay period has passed.
+            - Bittensor proxies: <https://docs.learnbittensor.org/keys/proxies>
         """
         return await announce_extrinsic(
             subtensor=self,
@@ -6129,7 +6458,7 @@ class AsyncSubtensor(SubtensorMixin):
             netuid: The unique identifier of the subnet.
             mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6140,6 +6469,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Notes:
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#registration-rate-limits>
         """
         async with self:
             if netuid == 0:
@@ -6178,24 +6510,32 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = True,
         wait_for_revealed_execution: bool = True,
     ):
-        """Claims the root emissions for a coldkey.
+        """Submit an extrinsic to manually claim accumulated root dividends from one or more subnets.
 
         Parameters:
-            wallet: Bittensor Wallet instance.
-            netuids: The netuids to claim root emissions for.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            wallet: Bittensor `Wallet` instance.
+            netuids: Iterable of subnet IDs to claim from in this call (the chain enforces a maximum number per
+                transaction).
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
-                can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
-            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
-            wait_for_finalization: Whether to wait for the finalization of the transaction.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
+            period: Number of blocks during which the transaction remains valid after submission. If the extrinsic is
+                not included in a block within this window, it will expire and be rejected.
+            raise_error: Whether to raise a Python exception instead of returning a failed `ExtrinsicResponse`.
+            wait_for_inclusion: Whether to wait until the extrinsic is included in a block before returning.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic in a block before returning.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            `ExtrinsicResponse` describing the result of the extrinsic execution.
+
+        Notes:
+            - Only Alpha dividends are claimed; the underlying TAO stake on the Root Subnet remains unchanged.
+            - The current root claim type (`Swap` or `Keep`) determines whether claimed Alpha is converted to
+              TAO and restaked on root or left as Alpha on the originating subnets.
+            - See: <https://docs.learnbittensor.org/staking-and-delegation/root-claims>
+            - See also: <https://docs.learnbittensor.org/staking-and-delegation/root-claims/managing-root-claims>
+            - Transaction fees: <https://docs.learnbittensor.org/learn/fees>
         """
         return await claim_root_extrinsic(
             subtensor=self,
@@ -6240,9 +6580,9 @@ class AsyncSubtensor(SubtensorMixin):
             mechid: The subnet mechanism unique identifier.
             version_key: Version key for compatibility with the network.
             max_attempts: The number of maximum attempts to commit weights.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: `If` True, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -6258,7 +6598,9 @@ class AsyncSubtensor(SubtensorMixin):
         point in time, creating a foundation of transparency and accountability for the Bittensor network.
 
         Notes:
-            See also: <https://docs.learnbittensor.org/glossary#commit-reveal>,
+            - <https://docs.learnbittensor.org/glossary#commit-reveal>
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#weights-setting-rate-limit>
+
         """
         attempt = 0
         response = ExtrinsicResponse(False)
@@ -6315,26 +6657,37 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = True,
         wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Contributes funds to an active crowdloan campaign.
+        """Contributes TAO to an active crowdloan campaign.
+
+        Contributions must occur before the crowdloan's end block and are subject to minimum contribution
+        requirements. If a contribution would push the total raised above the cap, it is automatically clipped
+        to fit the remaining amount. Once the cap is reached, further contributions are rejected.
+
 
         Parameters:
-            wallet: Bittensor Wallet instance used to sign the transaction.
+            wallet: Bittensor wallet instance used to sign the transaction (coldkey pays, coldkey receives emissions).
             crowdloan_id: The unique identifier of the crowdloan to contribute to.
-            amount: Amount to contribute.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            amount: Amount to contribute (TAO). Must meet or exceed the campaign's `min_contribution`.
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
+
+            period: The number of blocks during which the transaction will remain valid after it's submitted.
+            raise_error: If `True`, raises an exception rather than returning failure in the response.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            `ExtrinsicResponse` indicating success or failure, with error details if applicable.
+
+        Notes:
+            - Contributions can be withdrawn before finalization via `withdraw_crowdloan`.
+            - If the campaign does not reach its cap by the end block, contributors can be refunded via `refund_crowdloan`.
+            - Contributions are counted toward `MaxContributors` limit per crowdloan.
+
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Crowdloan Tutorial: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#step-4-contribute-to-the-crowdloan>
         """
         return await contribute_crowdloan_extrinsic(
             subtensor=self,
@@ -6377,9 +6730,9 @@ class AsyncSubtensor(SubtensorMixin):
             end: Block number when the campaign ends.
             call: Runtime call data (e.g., subtensor::register_leased_network).
             target_address: SS58 address to transfer funds to on success.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -6389,7 +6742,16 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            `ExtrinsicResponse` indicating success or failure. On success, the crowdloan ID can be extracted from the
+            `Crowdloan.Created` event in the response.
+
+        Notes:
+            - Creator cannot update `call` or `target_address` after creation.
+            - Creator can update `cap`, `end`, and `min_contribution` before finalization via `update_*` methods.
+            - Use `get_crowdloan_next_id` to determine the ID that will be assigned to the new crowdloan.
+
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Crowdloan Tutorial: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#step-3-create-a-crowdloan>
         """
         return await create_crowdloan_extrinsic(
             subtensor=self,
@@ -6431,12 +6793,21 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             wallet: Bittensor wallet object.
-            proxy_type: The type of proxy permissions for the pure proxy. Can be a string or ProxyType enum value.
-            delay: The number of blocks before the pure proxy can be used.
-            index: The index to use for generating the pure proxy account address.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            proxy_type: The type of proxy permissions for the pure proxy. Can be a string or ProxyType enum value. For
+                available proxy types and their permissions, see the documentation link in the Notes section below.
+            delay: Optionally, include a delay in blocks. The number of blocks that must elapse between announcing and
+                executing a proxied transaction. A delay of `0` means the pure proxy can be used immediately without any
+                announcement period. A non-zero delay creates a time-lock, requiring announcements before execution to give
+                the spawner time to review/reject.
+            index: A salt value (u16, range `0-65535`) used to generate unique pure proxy addresses. This should generally
+                be left as `0` unless you are creating batches of proxies. When creating multiple pure proxies with
+                identical parameters (same `proxy_type` and `delay`), different index values will produce different SS58
+                addresses. This is not a sequential counter—you can use any unique values (e.g., 0, 100, 7, 42) in any
+                order. The index must be preserved as it's required for :meth:`kill_pure_proxy`. If creating multiple pure
+                proxies in a single batch transaction, each must have a unique index value.
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6448,10 +6819,16 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Note:
-            The pure proxy account address can be extracted from the "PureCreated" event in the response. Store the
-            spawner address, proxy_type, index, height, and ext_index as they are required to kill the pure proxy later
-            via `kill_pure_proxy()`.
+        Notes:
+            - The pure proxy account address can be extracted from the "PureCreated" event in the response. Store the
+              spawner address, proxy_type, index, height, and ext_index as they are required to kill the pure proxy later
+              via :meth:`kill_pure_proxy`.
+            - For available proxy types and their specific permissions, see: <https://docs.learnbittensor.org/keys/proxies#types-of-proxies>
+            - Bittensor proxies: <https://docs.learnbittensor.org/keys/proxies/pure-proxies>
+
+        Warning:
+            The `Any` proxy type is dangerous as it grants full permissions to the proxy, including the ability to make
+            transfers and kill the proxy. Use with extreme caution.
         """
         return await create_pure_proxy_extrinsic(
             subtensor=self,
@@ -6479,34 +6856,36 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = True,
         wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Dissolves a completed or failed crowdloan campaign after all refunds are processed.
+        """Dissolves a failed or refunded crowdloan, cleaning up storage and returning the creator's deposit.
 
-        This permanently removes the campaign from on-chain storage and refunds the creator's remaining deposit, if
-        applicable. Can only be called by the campaign creator.
+        This permanently removes the crowdloan from on-chain storage and returns the creator's deposit. Can only
+        be called by the creator after all non-creator contributors have been refunded via `refund_crowdloan`.
+        This is the final step in the lifecycle of a failed crowdloan (one that did not reach its cap by the end
+        block).
 
         Parameters:
-            wallet: Bittensor Wallet instance used to sign the transaction.
+            wallet: Bittensor wallet instance used to sign the transaction (must be the creator's coldkey).
             crowdloan_id: The unique identifier of the crowdloan to dissolve.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
+            period: The number of blocks during which the transaction will remain valid after submission.
+            raise_error: If `True`, raises an exception rather than returning failure in the response.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            `ExtrinsicResponse` indicating success or failure, with error details if applicable.
 
         Notes:
             - Only the creator can dissolve their own crowdloan.
-            - All contributors (except the creator) must have been refunded first.
-            - The creator’s remaining contribution (deposit) is returned during dissolution.
-            - After this call, the crowdloan is removed from chain storage.
+            - All non-creator contributors must be refunded first via `refund_crowdloan`.
+            - The creator's deposit (and any remaining contribution above deposit) is returned.
+            - After dissolution, the crowdloan is permanently removed from chain storage.
+
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Refund and Dissolve: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#alternative-path-refund-and-dissolve>
         """
         return await dissolve_crowdloan_extrinsic(
             subtensor=self,
@@ -6532,25 +6911,41 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = True,
         wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Finalizes a successful crowdloan campaign once the cap has been reached and the end block has passed.
+        """Finalizes a successful crowdloan after the cap is fully raised and the end block has passed.
 
-        This executes the stored call or transfers the raised funds to the target address, completing the campaign.
+        Finalization executes the stored call (e.g., `register_leased_network`) or transfers raised funds to
+        the target address. For subnet lease crowdloans, this registers the subnet, creates a
+        `SubnetLeaseBeneficiary` proxy for the creator, and records contributor shares for pro-rata emissions
+        distribution. Leftover funds (after registration and proxy costs) are refunded to contributors.
+
+        Only the creator can finalize, and finalization can only occur after both the end block is reached and
+        the total raised equals the cap.
 
         Parameters:
-            wallet: Bittensor Wallet instance used to sign the transaction.
+            wallet: Bittensor wallet instance used to sign the transaction (must be the creator's coldkey).
             crowdloan_id: The unique identifier of the crowdloan to finalize.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
-            period: The number of blocks during which the transaction will remain valid after it's submitted.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
+            period: The number of blocks during which the transaction will remain valid after submission.
+            raise_error: If `True`, raises an exception rather than returning failure in the response.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            `ExtrinsicResponse` indicating success or failure. On success, a subnet lease is created (if applicable)
+            and contributor shares are recorded for emissions.
+
+        Notes:
+            - Only the creator can finalize.
+            - Finalization requires `raised == cap` and `current_block >= end`.
+            - For subnet leases, emissions are swapped to TAO and distributed to contributors' coldkeys during the lease.
+            - Leftover cap (after subnet lock + proxy deposit) is refunded to contributors pro-rata.
+
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Crowdloan Tutorial: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#step-5-finalize-the-crowdloan>
+            - Emissions Distribution: <https://docs.learnbittensor.org/subnets/crowdloans#emissions-distribution-during-a-lease>
         """
         return await finalize_crowdloan_extrinsic(
             subtensor=self,
@@ -6585,23 +6980,28 @@ class AsyncSubtensor(SubtensorMixin):
         """
         Kills (removes) a pure proxy account.
 
-        This method removes a pure proxy account that was previously created via `create_pure_proxy()`. The `kill_pure`
+        This method removes a pure proxy account that was previously created via :meth:`create_pure_proxy`. The `kill_pure`
         call must be executed through the pure proxy account itself, with the spawner acting as an "Any" proxy. This
-        method automatically handles this by executing the call via `proxy()`.
+        method automatically handles this by executing the call via :meth:`proxy`.
 
         Parameters:
             wallet: Bittensor wallet object. The wallet.coldkey.ss58_address must be the spawner of the pure proxy (the
-                account that created it via `create_pure_proxy()`). The spawner must have an "Any" proxy relationship
+                account that created it via :meth:`create_pure_proxy`). The spawner must have an "Any" proxy relationship
                 with the pure proxy.
             pure_proxy_ss58: The SS58 address of the pure proxy account to be killed. This is the address that was
-                returned in the `create_pure_proxy()` response.
+                returned in the :meth:`create_pure_proxy` response.
             spawner: The SS58 address of the spawner account (the account that originally created the pure proxy via
-                `create_pure_proxy()`). This should match wallet.coldkey.ss58_address.
+                :meth:`create_pure_proxy`). This should match wallet.coldkey.ss58_address.
             proxy_type: The type of proxy permissions. Can be a string or ProxyType enum value. Must match the
                 proxy_type used when creating the pure proxy.
-            index: The disambiguation index originally passed to `create_pure()`.
-            height: The block height at which the pure proxy was created.
-            ext_index: The extrinsic index at which the pure proxy was created.
+            index: The salt value (u16, range `0-65535`) originally used in :meth:`create_pure_proxy` to generate this
+                pure proxy's address. This value, combined with `proxy_type`, `delay`, and `spawner`, uniquely
+                identifies the pure proxy to be killed. Must match exactly the index used during creation.
+            height: The block number at which the pure proxy was created. This is returned in the "PureCreated" event from
+                :meth:`create_pure_proxy` and is required to identify the exact creation transaction.
+            ext_index: The extrinsic index within the block at which the pure proxy was created. This is returned in the
+                "PureCreated" event from :meth:`create_pure_proxy` and specifies the position of the creation extrinsic
+                within the block. Together with `height`, this uniquely identifies the creation transaction.
             force_proxy_type: The proxy type relationship to use when executing `kill_pure` through the proxy mechanism.
                 Since pure proxies are keyless and cannot sign transactions, the spawner must act as a proxy for the
                 pure proxy to execute `kill_pure`. This parameter specifies which proxy type relationship between the
@@ -6609,9 +7009,9 @@ class AsyncSubtensor(SubtensorMixin):
                 type (or `Any`) with the pure proxy account. Defaults to `ProxyType.Any` for maximum compatibility. If
                 `None`, Substrate will automatically select an available proxy type from the spawner's proxy
                 relationships.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6623,10 +7023,11 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Note:
-            The `kill_pure` call must be executed through the pure proxy account itself, with the spawner acting as an
-            "Any" proxy. This method automatically handles this by executing the call via `proxy()`. The spawner must
-            have an "Any" proxy relationship with the pure proxy for this to work.
+        Notes:
+            - The `kill_pure` call must be executed through the pure proxy account itself, with the spawner acting as
+              an `Any` proxy. This method automatically handles this by executing the call via :meth:`proxy`. The spawner
+              must have an `Any` proxy relationship with the pure proxy for this to work.
+            - Bittensor proxies: <https://docs.learnbittensor.org/keys/proxies/pure-proxies>
 
         Warning:
             All access to this account will be lost. Any funds remaining in the pure proxy account will become
@@ -6742,9 +7143,9 @@ class AsyncSubtensor(SubtensorMixin):
             position_id: The id of the position record in the pool.
             liquidity_delta: The amount of liquidity to be added or removed (add if positive or remove if negative).
             hotkey_ss58: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection:` If` True, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -6757,33 +7158,50 @@ class AsyncSubtensor(SubtensorMixin):
             ExtrinsicResponse: The result object of the extrinsic execution.
 
         Example:
+
             import bittensor as bt
 
             subtensor = bt.AsyncSubtensor(network="local")
+
             await subtensor.initialize()
 
             my_wallet = bt.Wallet()
 
-            # if `liquidity_delta` is negative
+            # if liquidity_delta is negative
+
             my_liquidity_delta = Balance.from_tao(100) * -1
+
             await subtensor.modify_liquidity(
+
                 wallet=my_wallet,
+
                 netuid=123,
+
                 position_id=2,
+
                 liquidity_delta=my_liquidity_delta
+
             )
 
-            # if `liquidity_delta` is positive
+            # if liquidity_delta is positive
+
             my_liquidity_delta = Balance.from_tao(120)
+
             await subtensor.modify_liquidity(
+
                 wallet=my_wallet,
+
                 netuid=123,
+
                 position_id=2,
+
                 liquidity_delta=my_liquidity_delta
+
             )
 
-        Note: Modifying is allowed even when user liquidity is enabled in specified subnet. Call `toggle_user_liquidity`
-        to enable/disable user liquidity.
+        Note:
+            Modifying is allowed even when user liquidity is enabled in specified subnet. Call `toggle_user_liquidity`
+            to enable/disable user liquidity.
         """
         return await modify_liquidity_extrinsic(
             subtensor=self,
@@ -6827,10 +7245,10 @@ class AsyncSubtensor(SubtensorMixin):
             destination_netuid: The netuid of the destination subnet.
             destination_hotkey_ss58: The SS58 address of the destination hotkey.
             amount: Amount of stake to move.
-            move_all_stake: If true, moves all stake from the source hotkey to the destination hotkey.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            move_all_stake: If `True`, moves all stake from the source hotkey to the destination hotkey.
+            mev_protection: I`f` True, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6841,6 +7259,10 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Notes:
+            - Price Protection: <https://docs.learnbittensor.org/learn/price-protection>
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#staking-operations-rate-limits>
         """
         check_balance_amount(amount)
         return await move_stake_extrinsic(
@@ -6880,9 +7302,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             wallet: Bittensor wallet object (the account whose deposits will be adjusted).
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: `If` True, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
@@ -6936,12 +7358,12 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             wallet: Bittensor wallet object (should be the proxy account wallet).
             real_account_ss58: The SS58 address of the real account on whose behalf the call is being made.
-            force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise,
+            force_proxy_type: The type of proxy to use for the call. If `None`, any proxy type can be used. Otherwise,
                 must match one of the allowed proxy types. Can be a string or ProxyType enum value.
             call: The inner call to be executed on behalf of the real account.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -6953,9 +7375,9 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Note:
-            The call must be permitted by the proxy type. For example, a "NonTransfer" proxy cannot execute transfer
-            calls. The delay period must also have passed since the proxy was added.
+        Notes:
+            - The call must be permitted by the proxy type. For example, a "NonTransfer" proxy cannot execute transfer
+              calls. The delay period must also have passed since the proxy was added.
         """
         return await proxy_extrinsic(
             subtensor=self,
@@ -6989,7 +7411,7 @@ class AsyncSubtensor(SubtensorMixin):
         """
         Executes an announced call on behalf of the real account through a proxy.
 
-        This method executes a call that was previously announced via `announce_proxy()`. The call must match the
+        This method executes a call that was previously announced via :meth:`announce_proxy`. The call must match the
         call_hash that was announced, and the delay period must have passed since the announcement was made. The real
         account has the opportunity to review and reject the announcement before execution.
 
@@ -6997,12 +7419,12 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: Bittensor wallet object (should be the proxy account wallet that made the announcement).
             delegate_ss58: The SS58 address of the delegate proxy account that made the announcement.
             real_account_ss58: The SS58 address of the real account on whose behalf the call will be made.
-            force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise,
+            force_proxy_type: The type of proxy to use for the call. If `None`, any proxy type can be used. Otherwise,
                 must match one of the allowed proxy types. Can be a string or ProxyType enum value.
             call: The inner call to be executed on behalf of the real account (must match the announced call_hash).
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -7014,9 +7436,9 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Note:
-            The call_hash of the provided call must match the call_hash that was announced. The announcement must not
-            have been rejected by the real account, and the delay period must have passed.
+        Notes:
+            - The call_hash of the provided call must match the call_hash that was announced. The announcement must not
+              have been rejected by the real account, and the delay period must have passed.
         """
         return await proxy_announced_extrinsic(
             subtensor=self,
@@ -7045,34 +7467,33 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = True,
         wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Refunds contributors from a failed or expired crowdloan campaign.
+        """Refunds contributors from a failed crowdloan campaign that did not reach its cap.
 
-        This call attempts to refund up to the limit defined by `RefundContributorsLimit` in a single dispatch. If there are
-        more contributors than the limit, the call may need to be executed multiple times until all refunds are processed.
+        Refunds are batched, processing up to `RefundContributorsLimit` (default 50) contributors per call.
+        For campaigns with more contributors, multiple calls are required. Only non-creator contributors are
+        refunded; the creator's deposit remains until dissolution via `dissolve_crowdloan`.
+
+        Only the crowdloan creator can call this method for a non-finalized crowdloan.
 
         Parameters:
-            wallet: Bittensor Wallet instance used to sign the transaction.
+            wallet: Bittensor wallet instance used to sign the transaction (must be the crowdloan creator).
             crowdloan_id: The unique identifier of the crowdloan to refund.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
+            period: The number of blocks during which the transaction will remain valid after submission.
+            raise_error: If `True`, raises an exception rather than returning failure in the response.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            `ExtrinsicResponse` indicating success or failure, with error details if applicable.
 
         Notes:
-            - Can be called by only creator signed account.
-            - Refunds contributors (excluding the creator) whose funds were locked in a failed campaign.
-            - Each call processes a limited number of refunds (`RefundContributorsLimit`).
-            - If the campaign has too many contributors, multiple refund calls are required.
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Crowdloan Lifecycle: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
+            - Refund and Dissolve: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#alternative-path-refund-and-dissolve>
         """
         return await refund_crowdloan_extrinsic(
             subtensor=self,
@@ -7110,9 +7531,9 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: Bittensor wallet object (should be the real account wallet).
             delegate_ss58: The SS58 address of the delegate proxy account whose announcement is being rejected.
             call_hash: The hash of the call that was announced and is now being rejected.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -7124,8 +7545,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Note:
-            Once rejected, the announcement cannot be executed. The delegate's announcement deposit is returned.
+        Notes:
+            - Once rejected, the announcement cannot be executed. The delegate's announcement deposit is returned.
         """
         return await reject_announcement_extrinsic(
             subtensor=self,
@@ -7170,17 +7591,17 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: The wallet associated with the neuron to be registered.
             netuid: The unique identifier of the subnet.
             max_allowed_attempts: Maximum number of attempts to register the wallet.
-            output_in_place: If true, prints the progress of the proof of work to the console in-place. Meaning the
+            output_in_place: If `True`, prints the progress of the proof of work to the console in-place. Meaning the
                 progress is printed on the same lines.
-            cuda: If ``true``, the wallet should be registered using CUDA device(s).
+            cuda: If `true`, the wallet should be registered using CUDA device(s).
             dev_id: The CUDA device id to use, or a list of device ids.
             tpb: The number of threads per block (CUDA).
             num_processes: The number of processes to use to register.
             update_interval: The number of nonces to solve between updates.
-            log_verbose: If ``true``, the registration process will log more information.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            log_verbose: If `true`, the registration process will log more information.
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -7194,6 +7615,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         This function facilitates the entry of new neurons into the network, supporting the decentralized growth and
         scalability of the Bittensor ecosystem.
+
+        Notes:
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#registration-rate-limits>
         """
         return await register_extrinsic(
             subtensor=self,
@@ -7233,7 +7657,7 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: The wallet to be used for subnet registration.
             mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -7244,6 +7668,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Notes:
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#network-registration-rate-limit>
         """
         return await register_subnet_extrinsic(
             subtensor=self,
@@ -7280,9 +7707,9 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: Bittensor wallet object (should be the proxy account wallet that made the announcement).
             real_account_ss58: The SS58 address of the real account on whose behalf the call was announced.
             call_hash: The hash of the call that was announced and is now being removed.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -7294,9 +7721,9 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Note:
-            Only the proxy account that made the announcement can remove it. The real account can reject it via
-            `reject_proxy_announcement()`, but cannot remove it directly.
+        Notes:
+            - Only the proxy account that made the announcement can remove it. The real account can reject it via
+              :meth:`reject_proxy_announcement`, but cannot remove it directly.
         """
         return await remove_announcement_extrinsic(
             subtensor=self,
@@ -7332,9 +7759,9 @@ class AsyncSubtensor(SubtensorMixin):
             netuid: The UID of the target subnet for which the call is being initiated.
             position_id: The id of the position record in the pool.
             hotkey_ss58: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection:` If` True, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -7348,7 +7775,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Note:
             - Adding is allowed even when user liquidity is enabled in specified subnet. Call `toggle_user_liquidity`
-        extrinsic to enable/disable user liquidity.
+              extrinsic to enable/disable user liquidity.
             - To get the `position_id` use `get_liquidity_list` method.
         """
         return await remove_liquidity_extrinsic(
@@ -7380,15 +7807,15 @@ class AsyncSubtensor(SubtensorMixin):
         Removes all proxy relationships for the account in a single transaction.
 
         This method removes all proxy relationships for the signing account in a single call, which is more efficient
-        than removing them one by one using `remove_proxy()`. The deposit for all proxies will be returned to the
+        than removing them one by one using :meth:`remove_proxy`. The deposit for all proxies will be returned to the
         account.
 
         Parameters:
             wallet: Bittensor wallet object. The account whose proxies will be removed (the delegator). All proxy
                 relationships where wallet.coldkey.ss58_address is the real account will be removed.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If `True`, encrypts` and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -7400,9 +7827,9 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Note:
-            This removes all proxy relationships for the account, regardless of proxy type or delegate. Use
-            `remove_proxy()` if you need to remove specific proxy relationships selectively.
+        Notes:
+            - This removes all proxy relationships for the account, regardless of proxy type or delegate. Use
+              :meth:`remove_proxy` if you need to remove specific proxy relationships selectively.
         """
         return await remove_proxies_extrinsic(
             subtensor=self,
@@ -7433,17 +7860,20 @@ class AsyncSubtensor(SubtensorMixin):
         Removes a specific proxy relationship.
 
         This method removes a single proxy relationship between the real account and a delegate. The parameters must
-        exactly match those used when the proxy was added via `add_proxy()`. The deposit for this proxy will be returned
+        exactly match those used when the proxy was added via :meth:`add_proxy`. The deposit for this proxy will be returned
         to the account.
 
         Parameters:
             wallet: Bittensor wallet object.
             delegate_ss58: The SS58 address of the delegate proxy account to remove.
             proxy_type: The type of proxy permissions to remove. Can be a string or ProxyType enum value.
-            delay: The number of blocks before the proxy removal takes effect.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            delay: The announcement delay value (in blocks) for the proxy being removed. Must exactly match the delay
+                value that was set when the proxy was originally added via :meth:`add_proxy`. This is a required
+                identifier for the specific proxy relationship, not a delay before removal takes effect (removal is
+                immediate).
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -7455,9 +7885,9 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Note:
-            The delegate_ss58, proxy_type, and delay parameters must exactly match those used when the proxy was added.
-            Use `get_proxies_for_real_account()` to retrieve the exact parameters for existing proxies.
+        Notes:
+            - The delegate_ss58, proxy_type, and delay parameters must exactly match those used when the proxy was added.
+              Use :meth:`get_proxies_for_real_account` to retrieve the exact parameters for existing proxies.
         """
         return await remove_proxy_extrinsic(
             subtensor=self,
@@ -7504,9 +7934,9 @@ class AsyncSubtensor(SubtensorMixin):
             mechid: The subnet mechanism unique identifier.
             max_attempts: The number of maximum attempts to reveal weights.
             version_key: Version key for compatibility with the network.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -7521,7 +7951,10 @@ class AsyncSubtensor(SubtensorMixin):
         This function allows neurons to reveal their previously committed weight distribution, ensuring transparency and
         accountability within the Bittensor network.
 
-        See also: <https://docs.learnbittensor.org/glossary#commit-reveal>,
+        Notes:
+            - <https://docs.learnbittensor.org/glossary#commit-reveal>
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#weights-setting-rate-limit>
+
         """
         attempt = 0
         response = ExtrinsicResponse(False)
@@ -7575,7 +8008,7 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: The wallet associated with the neuron to be registered.
             mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -7586,6 +8019,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Notes:
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#registration-rate-limits>
         """
 
         return await root_register_extrinsic(
@@ -7616,9 +8052,9 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             wallet: bittensor wallet instance.
             cooldown: the number of blocks to setting pending childkey cooldown.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
@@ -7630,7 +8066,8 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Note: This operation can only be successfully performed if your wallet has root privileges.
+        Note:
+            This operation can only be successfully performed if your wallet has root privileges.
         """
         return await root_set_pending_childkey_cooldown_extrinsic(
             subtensor=self,
@@ -7664,9 +8101,9 @@ class AsyncSubtensor(SubtensorMixin):
             netuid: The subnet unique identifier.
             hotkey_ss58: The SS58 address of the validator's hotkey to which the miner automatically stakes all rewards
                 received from the specified subnet immediately upon receipt.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If T`rue`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -7718,7 +8155,7 @@ class AsyncSubtensor(SubtensorMixin):
             children: A list of children with their proportions.
             mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
@@ -7742,6 +8179,9 @@ class AsyncSubtensor(SubtensorMixin):
             TxRateLimitExceeded: Hotkey hit the rate limit.
             bittensor_wallet.errors.KeyFileError: Failed to decode keyfile data.
             bittensor_wallet.errors.PasswordError: Decryption failed or wrong password for decryption provided.
+
+        Notes:
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#child-hotkey-operations-rate-limit>
         """
         return await set_children_extrinsic(
             subtensor=self,
@@ -7776,11 +8216,11 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             wallet: bittensor wallet instance.
-            hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
+            hotkey_ss58: The `SS58` address of the neuron's hotkey.
             take: Percentage reward for the delegate.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection:` If` True, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
@@ -7804,6 +8244,9 @@ class AsyncSubtensor(SubtensorMixin):
 
         The delegate take is a critical parameter in the network's incentive structure, influencing the distribution of
         rewards among neurons and their nominators.
+
+        Notes:
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#delegate-take-rate-limit>
         """
         # u16 representation of the take
         take_u16 = int(take * 0xFFFF)
@@ -7850,28 +8293,43 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = True,
         wait_for_revealed_execution: bool = True,
     ):
-        """Sets the root claim type for the coldkey in provided wallet.
+        """Submit an extrinsic to set the root claim type for the wallet's coldkey.
+
+        The root claim type determines how future Alpha dividends from subnets are handled when they are claimed for
+        the wallet's coldkey:
+
+        - `Swap`: Alpha dividends are swapped to TAO at claim time and restaked on the Root Subnet (default).
+        - `Keep`: Alpha dividends remain as Alpha on the originating subnets.
 
         Parameters:
-            wallet: Bittensor Wallet instance.
+
+            wallet: Bittensor `Wallet` instance.
             new_root_claim_type: The new root claim type to set. Can be:
                 - String: "Swap" or "Keep"
                 - RootClaimType: RootClaimType.Swap, RootClaimType.Keep
                 - Dict: {"KeepSubnets": {"subnets": [1, 2, 3]}}
                 - Callable: RootClaimType.KeepSubnets([1, 2, 3])
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
-                can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
-            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
-            wait_for_finalization: Whether to wait for the finalization of the transaction.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
+            period: Number of blocks for which the transaction remains valid after submission. If the extrinsic is
+                not included in a block within this window, it will expire and be rejected.
+            raise_error: Whether to raise a Python exception instead of returning a failed `ExtrinsicResponse`.
+            wait_for_inclusion: Whether to wait until the extrinsic is included in a block before returning.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic in a block before returning.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            `ExtrinsicResponse` describing the result of the extrinsic execution.
+
+        Notes:
+            - This setting applies to both automatic and manual root claims going forward; it does not retroactively
+              change how already-claimed dividends were processed.
+            - Only the treatment of Alpha dividends is affected; the underlying TAO stake on the Root Subnet is
+              unchanged.
+            - See: <https://docs.learnbittensor.org/staking-and-delegation/root-claims>
+            - See also: <https://docs.learnbittensor.org/staking-and-delegation/root-claims/managing-root-claims>
         """
         return await set_root_claim_type_extrinsic(
             subtensor=self,
@@ -7906,9 +8364,9 @@ class AsyncSubtensor(SubtensorMixin):
             netuid: The unique ID of the network on which the operation takes place.
             subnet_identity: The identity data of the subnet including attributes like name, GitHub repository, contact,
                 URL, discord, description, and any additional metadata.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection:` If` True, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
@@ -7959,13 +8417,16 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = True,
         wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Sets the weight vector for a neuron acting as a validator, specifying the weights assigned to subnet miners
+        """Sets the weight vector for a neuron acting as a validator, specifying the weights assigned to subnet miners
         based on their performance evaluation.
 
         This method allows subnet validators to submit their weight vectors, which rank the value of each subnet miner's
         work. These weight vectors are used by the Yuma Consensus algorithm to compute emissions for both validators and
         miners.
+
+        The method automatically handles both commit-reveal-enabled subnets (CRv4) and direct weight setting. For
+        commit-reveal subnets, weights are committed first and then revealed after the reveal period. The method respects
+        rate limiting constraints enforced by `_blocks_weight_limit`.
 
         Parameters:
             wallet: The wallet associated with the subnet validator setting the weights.
@@ -7973,17 +8434,17 @@ class AsyncSubtensor(SubtensorMixin):
             uids: The list of subnet miner neuron UIDs that the weights are being set for.
             weights: The corresponding weights to be set for each UID, representing the validator's evaluation of each
                 miner's performance.
-            mechid: The subnet mechanism unique identifier.
-            block_time: The number of seconds for block duration.
-            commit_reveal_version: The version of the chain commit-reveal protocol to use.
-            max_attempts: The number of maximum attempts to set weights.
+            mechid: The subnet mechanism unique identifier (default 0 for primary mechanism).
+            block_time: The block duration in seconds (default 12.0). Used for timing calculations in commit-reveal
+                operations.
+            commit_reveal_version: The version of the commit-reveal protocol to use (default 4 for CRv4).
+            max_attempts: The maximum number of attempts to set weights if rate limiting is encountered (default 5).
             version_key: Version key for compatibility with the network.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
-            period: The number of blocks during which the transaction will remain valid after it's
-                submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
@@ -7992,11 +8453,32 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        This function is crucial in the Yuma Consensus mechanism, where each validator's weight vector contributes to
-        the overall weight matrix used to calculate emissions and maintain network consensus.
+        Example:
+
+            # Set weights directly (for non-commit-reveal subnets)
+
+            response = await subtensor.set_weights(
+
+                wallet=wallet,
+
+                netuid=1,
+
+                uids=[0, 1, 2],
+
+                weights=[0.5, 0.3, 0.2]
+
+            )
+
+            # For commit-reveal subnets, the method automatically handles commit and reveal phases
 
         Notes:
-            See <https://docs.learnbittensor.org/glossary#yuma-consensus>
+            This function is crucial in the Yuma Consensus mechanism, where each validator's weight vector contributes
+            to the overall weight matrix used to calculate emissions and maintain network consensus.
+
+            - <https://docs.learnbittensor.org/resources/glossary#yuma-consensus>
+            - <https://docs.learnbittensor.org/concepts/commit-reveal>
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#weights-setting-rate-limit>
+
         """
         attempt = 0
         response = ExtrinsicResponse(False)
@@ -8109,32 +8591,38 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = True,
         wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Registers an ``Axon`` serving endpoint on the Bittensor network for a specific neuron.
+        """Registers an Axon endpoint on the network for receiving queries from other neurons.
 
-        This function is used to set up the Axon, a key component of a neuron that handles incoming queries and data
-        processing tasks.
+        This method publishes your neuron's IP address, port, and protocol information to the blockchain, making it
+        discoverable by other neurons in the subnet. Optionally, you can include a TLS certificate to enable secure,
+        encrypted communication via mutual TLS (mTLS).
+
+        When a certificate is provided, the blockchain stores both your endpoint information and your TLS public key,
+        allowing other neurons to discover your certificate and establish encrypted connections. When re-serving with
+        updated metadata (including a new certificate), the previous values are overwritten.
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
-            axon: The Axon instance to be registered for serving.
-            certificate: Certificate to use for TLS. If ``None``, no TLS will be used.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
-                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
-            period: The number of blocks during which the transaction will remain valid after it's
-                submitted. If the transaction is not included in a block within that number of blocks, it will expire
-                and be rejected. You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
-            wait_for_inclusion: Waits for the transaction to be included in a block.
-            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
-            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
+            axon: The Axon instance containing your endpoint configuration (IP, port, protocol).
+            certificate: Optional TLS certificate for secure communication. Should contain a public key (up to 64
+                bytes) and algorithm identifier. If `None`, standard unencrypted serving is used.
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until
+                validators decrypt and execute it. If `False`, submits the transaction directly without encryption.
+            period: The number of blocks during which the transaction will remain valid after submission. If not
+                included in a block within this period, the transaction expires.
+            raise_error: If True, raises an exception on failure instead of returning an error response.
+            wait_for_inclusion: If True, waits for the transaction to be included in a block before returning.
+            wait_for_finalization: If True, waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection
+                used.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            ExtrinsicResponse containing the success status and transaction details. On success, the response includes
+            the external IP and port that were registered.
 
-        By registering an Axon, the neuron becomes an active part of the network's distributed computing infrastructure,
-        contributing to the collective intelligence of Bittensor.
+        Notes:
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#serving-rate-limits>
         """
         return await serve_axon_extrinsic(
             subtensor=self,
@@ -8162,22 +8650,21 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = True,
         wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Commits arbitrary data to the Bittensor network by publishing metadata.
-
-        This method allows neurons to publish arbitrary data to the blockchain, which can be used for various purposes
-        such as sharing model updates, configuration data, or other network-relevant information.
+        """Commits arbitrary data to the Bittensor network by publishing metadata.
+        # TODO: check with @roman, is this about 'arbitrary data' or 'commit-reveal'? we need a real example here if this is important.
+                This method allows neurons to publish arbitrary data to the blockchain, which can be used for various purposes
+                such as sharing model updates, configuration data, or other network-relevant information. The data is encoded
+                and stored on-chain as metadata.
 
         Parameters:
-            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the data.
-            netuid (int): The unique identifier of the subnetwork.
-            data (str): The data to be committed to the network.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            wallet: The wallet associated with the neuron committing the data.
+            netuid: The unique identifier of the subnetwork.
+            data: The data string to be committed to the network. The data will be encoded as bytes before submission.
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
-                can think of it as an expiration date for the transaction.
+                transaction is not included in a block within that number of blocks, it will expire and be rejected.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
@@ -8186,14 +8673,12 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Example:
-            # Commit some data to subnet 1
-            success = await subtensor.commit(wallet=my_wallet, netuid=1, data="Hello Bittensor!")
+        Notes:
+            The data is automatically encoded as bytes before submission. There may be size limits on metadata
+            payloads enforced by the chain.
 
-            # Commit with custom period
-            success = await subtensor.commit(wallet=my_wallet, netuid=1, data="Model update v2.0", period=100)
-
-        Note: See <https://docs.learnbittensor.org/glossary#commit-reveal>
+            - <https://docs.learnbittensor.org/resources/glossary#commit-reveal>
+            - <https://docs.learnbittensor.org/concepts/commit-reveal>
         """
         return await publish_metadata_extrinsic(
             subtensor=self,
@@ -8224,8 +8709,13 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = True,
         wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Commits arbitrary data to the Bittensor network by publishing metadata.
+        """Commits arbitrary data to the Bittensor network using timelock encryption for reveal scheduling.
+
+        This method commits data that will be automatically revealed after a specified number of blocks using drand
+        timelock encryption. The data is encrypted using `get_encrypted_commitment`, which uses drand rounds to ensure
+        the data cannot be revealed before the specified reveal time.
+
+        # TODO: check with @roman, is this about 'arbitrary data' or 'commit-reveal'? we need a real example here if this is important, and documentating a real commit reveal flow.
 
         Parameters:
             wallet: The wallet associated with the neuron committing the data.
@@ -8233,10 +8723,16 @@ class AsyncSubtensor(SubtensorMixin):
             data: The data to be committed to the network.
             blocks_until_reveal: The number of blocks from now after which the data will be revealed. Then number of
                 blocks in one epoch.
-            block_time: The number of seconds between each block.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            block_time: The number of seconds between each block (default 12.0 for standard blocks, 10.0 for fast blocks).
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
@@ -8246,11 +8742,16 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            ExtrinsicResponse: The result object of the extrinsic execution. The response's "data" field contains
+            `{"encrypted": encrypted, "reveal_round": reveal_round}` on success.
 
-        Note:
-            A commitment can be set once per subnet epoch and is reset at the next epoch in the chain automatically.
-            Successful extrinsic's the "data" field contains {"encrypted": encrypted, "reveal_round": reveal_round}.
+        Notes:
+            A commitment can be set once per subnet epoch and is reset at the next epoch automatically. The timelock
+            encryption ensures the data cannot be revealed before the specified drand round.
+
+            - <https://docs.learnbittensor.org/resources/glossary#commit-reveal>
+            - <https://docs.learnbittensor.org/resources/glossary#drandtime-lock-encryption>
+            - <https://docs.learnbittensor.org/concepts/commit-reveal>
         """
 
         encrypted, reveal_round = get_encrypted_commitment(
@@ -8286,19 +8787,20 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = False,
         wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Submits a start_call extrinsic to the blockchain, to trigger the start call process for a subnet (used to start
-        a new subnet's emission mechanism).
+        """Submits a start_call extrinsic to the blockchain to trigger emission start for a subnet.
+
+        This method initiates the emission mechanism for a newly registered subnet. Once called, the subnet becomes
+        "active" and begins receiving TAO emissions. Only the subnet owner (the wallet that registered the subnet) is
+        authorized to call this method.
 
         Parameters:
-            wallet: The wallet used to sign the extrinsic (must be unlocked).
-            netuid: The UID of the target subnet for which the call is being initiated.
+            wallet: The wallet used to sign the extrinsic (must be unlocked and must be the subnet owner).
+            netuid: The unique identifier of the target subnet for which emissions are being started.
             mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
-                can think of it as an expiration date for the transaction.
+                transaction is not included in a block within that number of blocks, it will expire and be rejected.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
@@ -8306,6 +8808,12 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Notes:
+            Only the subnet owner can call this method. After successful execution, the subnet becomes active and
+            eligible for TAO emissions.
+
+            - <https://docs.learnbittensor.org/subnets/create-a-subnet>
         """
         return await start_call_extrinsic(
             subtensor=self,
@@ -8337,29 +8845,37 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = True,
         wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Moves stake between subnets while keeping the same coldkey-hotkey pair ownership.
-        Like subnet hopping - same owner, same hotkey, just changing which subnet the stake is in.
+        """Moves stake between subnets while keeping the same coldkey-hotkey pair ownership.
+
+        This method swaps stake from one subnet to another, effectively moving the same stake amount (minus fees) from
+        the origin subnet to the destination subnet. Like subnet hopping - same owner, same hotkey, just changing which
+        subnet the stake is in.
+
+        The `amount` parameter is specified as a Balance object (in TAO or Alpha units depending on the subnet). The
+        actual amount received may be less due to swap fees and potential slippage. When `safe_swapping` is enabled, the
+        method uses price ratio checks to protect against unfavorable price movements during the swap.
 
         Parameters:
             wallet: The wallet to swap stake from.
             hotkey_ss58: The SS58 address of the hotkey whose stake is being swapped.
             origin_netuid: The netuid from which stake is removed.
             destination_netuid: The netuid to which stake is added.
-            amount: The amount to swap.
-            safe_swapping: If true, enables price safety checks to protect against fluctuating prices. The swap
+            amount: The amount to swap as a Balance object (in TAO or Alpha units). The actual amount received may be
+                less due to swap fees and slippage.
+            safe_swapping: If `True`, enables price safety checks to protect against fluctuating prices. The swap
                 will only execute if the price ratio between subnets doesn't exceed the rate tolerance.
-            allow_partial_stake: If true and safe_staking is enabled, allows partial stake swaps when the full amount
-                would exceed the price tolerance. If false, the entire swap fails if it would exceed the tolerance.
+            allow_partial_stake: If `True` and `safe_swapping` is enabled, allows partial stake swaps when the full
+                amount would exceed the price tolerance. If `False`, the entire swap fails if it would exceed the
+                tolerance.
             rate_tolerance: The maximum allowed increase in the price ratio between subnets
                 (origin_price/destination_price). For example, 0.005 = 0.5% maximum increase. Only used when
+                `safe_swapping` is `True`.
                 safe_staking is True.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
-                can think of it as an expiration date for the transaction.
+                transaction is not included in a block within that number of blocks, it will expire and be rejected.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
@@ -8368,12 +8884,17 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        The price ratio for swap_stake in safe mode is calculated as: origin_subnet_price / destination_subnet_price
-        When safe_staking is enabled, the swap will only execute if:
-            - With allow_partial_stake=False: The entire swap amount can be executed without the price ratio increasing
-            more than rate_tolerance.
-            - With allow_partial_stake=True: A partial amount will be swapped up to the point where the price ratio
-            would increase by rate_tolerance.
+        Notes:
+            The price ratio for swap_stake in safe mode is calculated as: origin_subnet_price / destination_subnet_price.
+            When `safe_swapping` is enabled, the swap will only execute if:
+            - With `allow_partial_stake=False`: The entire swap amount can be executed without the price ratio
+              increasing more than `rate_tolerance`.
+            - With `allow_partial_stake=True`: A partial amount will be swapped up to the point where the price ratio
+              would increase by `rate_tolerance`.
+            - Price Protection: <https://docs.learnbittensor.org/learn/price-protection>
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#staking-operations-rate-limits>
+
+            - <https://docs.learnbittensor.org/navigating-subtensor/swap-stake>
         """
         check_balance_amount(amount)
         return await swap_stake_extrinsic(
@@ -8407,18 +8928,20 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = True,
         wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
-        """Allow to toggle user liquidity for specified subnet.
+        """Toggles the user liquidity feature for a specified subnet.
+
+        This method enables or disables user liquidity positions for a subnet. Only the subnet owner (the wallet that
+        registered the subnet) is authorized to call this method.
 
         Parameters:
-            wallet: The wallet used to sign the extrinsic (must be unlocked).
-            netuid: The UID of the target subnet for which the call is being initiated.
-            enable: Boolean indicating whether to enable user liquidity.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            wallet: The wallet used to sign the extrinsic (must be unlocked and must be the subnet owner).
+            netuid: The unique identifier of the target subnet for which user liquidity is being toggled.
+            enable: Boolean indicating whether to enable (`True`) or disable (`False`) user liquidity.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
@@ -8427,7 +8950,10 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        Note: The call can be executed successfully by the subnet owner only.
+        Notes:
+            Only the subnet owner can execute this call successfully.
+
+            - <https://docs.learnbittensor.org/liquidity-positions/liquidity-positions>
         """
         return await toggle_user_liquidity_extrinsic(
             subtensor=self,
@@ -8457,21 +8983,31 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = False,
         wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Transfer token of amount to destination.
+        """Transfers TAO tokens from the source wallet to a destination address.
+
+        This method transfers TAO tokens from the wallet's coldkey to the specified destination address. The amount is
+        specified as a Balance object (in TAO or Rao units). Use `get_transfer_fee` to pre-estimate the transaction fee
+        before sending.
+
+        When `keep_alive=True`, the transfer ensures the source account maintains at least the existential deposit
+        amount. If `keep_alive=False`, the transfer may reduce the source account balance below the existential deposit,
+        which could result in the account being reaped (removed) from the chain.
 
         Parameters:
-            wallet: Source wallet for the transfer.
-            destination_ss58: Destination address for the transfer.
-            amount: Number of tokens to transfer. `None` is transferring all.
-            transfer_all: Flag to transfer all tokens.
-            keep_alive: Flag to keep the connection alive.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            wallet: Source wallet for the transfer (must be unlocked).
+            destination_ss58: Destination SS58 address for the transfer.
+            amount: Amount of TAO to transfer as a Balance object. If `None` and `transfer_all=True`, transfers all
+                available balance minus fees and existential deposit (if `keep_alive=True`).
+            transfer_all: If `True`, transfers all available tokens (minus fees and existential deposit if
+                `keep_alive=True`). Ignored if `amount` is specified.
+            keep_alive: If `True`, ensures the source account maintains at least the existential deposit amount. If
+                `False`, the transfer may reduce the balance below the existential deposit, potentially causing the
+                account to be reaped.
+            mev_protection:` If` True, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
@@ -8479,6 +9015,13 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Notes:
+            The existential deposit is the minimum balance required to keep an account alive on the chain. Use
+            :meth:`get_existential_deposit` to query the current value.
+
+            - <https://docs.learnbittensor.org/resources/glossary#existential-deposit>
+            - <https://docs.learnbittensor.org/resources/glossary#transfer>
         """
         check_balance_amount(amount)
         return await transfer_extrinsic(
@@ -8522,9 +9065,9 @@ class AsyncSubtensor(SubtensorMixin):
             origin_netuid: The source subnet UID.
             destination_netuid: The destination subnet UID.
             amount: Amount to transfer.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -8535,6 +9078,10 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Notes:
+            - Price Protection: <https://docs.learnbittensor.org/learn/price-protection>
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#staking-operations-rate-limits>
         """
         check_balance_amount(amount)
         return await transfer_stake_extrinsic(
@@ -8577,18 +9124,18 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             wallet: The wallet associated with the neuron from which the stake is being removed.
             netuid: The unique identifier of the subnet.
-            hotkey_ss58: The ``SS58`` address of the hotkey account to unstake from.
+            hotkey_ss58: The `SS58` address of the hotkey account to unstake from.
             amount: The amount of alpha to unstake. If not specified, unstakes all. Alpha amount.
-            allow_partial_stake: If true and safe_staking is enabled, allows partial unstaking when
+            allow_partial_stake: If `True` and safe_staking is enabled, allows partial unstaking when
                 the full amount would exceed the price tolerance. If false, the entire unstake fails if it would
                 exceed the tolerance.
             rate_tolerance: The maximum allowed price change ratio when unstaking. For example,
                 0.005 = 0.5% maximum price decrease. Only used when safe_staking is True.
-            safe_unstaking: If true, enables price safety checks to protect against fluctuating prices. The unstake
+            safe_unstaking: If `True`, enables price safety checks to protect against fluctuating prices. The unstake
                 will only execute if the price change doesn't exceed the rate tolerance.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If T`rue`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -8602,6 +9149,10 @@ class AsyncSubtensor(SubtensorMixin):
 
         This function supports flexible stake management, allowing neurons to adjust their network participation and
         potential reward accruals.
+
+        Notes:
+            - Price Protection: <https://docs.learnbittensor.org/learn/price-protection>
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#staking-operations-rate-limits>
         """
         check_balance_amount(amount)
         return await unstake_extrinsic(
@@ -8635,20 +9186,24 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = True,
         wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
-        """Unstakes all TAO/Alpha associated with a hotkey from the specified subnets on the Bittensor network.
+        """Unstakes all TAO/Alpha associated with a hotkey from the specified subnet on the Bittensor network.
+
+        This method unstakes all stake from a hotkey on a specific subnet. When `rate_tolerance` is specified, the method
+        uses safe unstaking behavior to protect against unfavorable price movements due to liquidity/price impact. The
+        `rate_tolerance` parameter limits the maximum price change ratio during the unstaking operation.
 
         Parameters:
-            wallet: The wallet of the stake owner.
+            wallet: The wallet of the stake owner (must be unlocked).
             netuid: The unique identifier of the subnet.
             hotkey_ss58: The SS58 address of the hotkey to unstake from.
-            rate_tolerance: The maximum allowed price change ratio when unstaking. For example, 0.005 = 0.5% maximum
-                price decrease. If not passed (None), then unstaking goes without price limit.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            rate_tolerance: The maximum allowed price change ratio when unstaking (default 0.005 = 0.5% maximum price
+                decrease). If `None`, unstaking proceeds without price limit protection. Only used for subnets with
+                liquidity pools where price impact may occur.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected.
+            mev_protection: If` True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
@@ -8658,43 +9213,73 @@ class AsyncSubtensor(SubtensorMixin):
             ExtrinsicResponse: The result object of the extrinsic execution.
 
         Example:
-            # If you would like to unstake all stakes in all subnets safely, use default `rate_tolerance` or pass your
-                value:
+
+            # If you would like to unstake all stakes in all subnets safely, use default rate_tolerance or pass your
+
+            # value:
+
             import bittensor as bt
 
             subtensor = bt.AsyncSubtensor()
+
             wallet = bt.Wallet("my_wallet")
+
             netuid = 14
+
             hotkey = "5%SOME_HOTKEY_WHERE_IS_YOUR_STAKE_NOW%"
 
             wallet_stakes = await subtensor.get_stake_info_for_coldkey(coldkey_ss58=wallet.coldkey.ss58_address)
 
             for stake in wallet_stakes:
+
                 result = await subtensor.unstake_all(
+
                     wallet=wallet,
+
                     hotkey_ss58=stake.hotkey_ss58,
+
                     netuid=stake.netuid,
+
                 )
+
                 print(result)
 
-            # If you would like to unstake all stakes in all subnets unsafely, use `rate_tolerance=None`:
-                        import bittensor as bt
+            # If you would like to unstake all stakes in all subnets unsafely, use rate_tolerance=None:
+
+            import bittensor as bt
 
             subtensor = bt.AsyncSubtensor()
+
             wallet = bt.Wallet("my_wallet")
+
             netuid = 14
+
             hotkey = "5%SOME_HOTKEY_WHERE_IS_YOUR_STAKE_NOW%"
 
             wallet_stakes = await subtensor.get_stake_info_for_coldkey(coldkey_ss58=wallet.coldkey.ss58_address)
 
             for stake in wallet_stakes:
+
                 result = await subtensor.unstake_all(
+
                     wallet=wallet,
+
                     hotkey_ss58=stake.hotkey_ss58,
+
                     netuid=stake.netuid,
+
                     rate_tolerance=None,
+
                 )
+
                 print(result)
+
+        Notes:
+            - Slippage: <https://docs.learnbittensor.org/learn/slippage>
+            - Price Protection: <https://docs.learnbittensor.org/learn/price-protection>
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#staking-operations-rate-limits>
+            - Managing Stake with SDK: <https://docs.learnbittensor.org/staking-and-delegation/managing-stake-sdk>
+
         """
         return await unstake_all_extrinsic(
             subtensor=self,
@@ -8734,10 +9319,10 @@ class AsyncSubtensor(SubtensorMixin):
             netuids: Subnets unique IDs.
             hotkey_ss58s: A list of hotkey `SS58` addresses to unstake from.
             amounts: The amounts of TAO to unstake from each hotkey. If not provided, unstakes all.
-            unstake_all: If true, unstakes all tokens. If `True` amounts are ignored.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            unstake_all: If `True`, unstakes all tokens. Amounts are ignored.
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
@@ -8749,8 +9334,12 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        This function allows for strategic reallocation or withdrawal of stakes, aligning with the dynamic stake
-        management aspect of the Bittensor network.
+        Notes:
+            - Slippage: <https://docs.learnbittensor.org/learn/slippage>
+            - Price Protection: <https://docs.learnbittensor.org/learn/price-protection>
+            - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#staking-operations-rate-limits>
+            - Managing Stake with SDK: <https://docs.learnbittensor.org/staking-and-delegation/managing-stake-sdk>
+
         """
         return await unstake_multiple_extrinsic(
             subtensor=self,
@@ -8780,34 +9369,35 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = True,
         wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Updates the fundraising cap (maximum total contribution) of a non-finalized crowdloan.
+        """Updates the fundraising cap of an active (non-finalized) crowdloan.
 
-        Only the creator of the crowdloan can perform this action, and the new cap must be greater than or equal to the
-        current amount already raised.
+        Allows the creator to adjust the maximum total contribution amount before finalization. The new cap
+        must be at least equal to the amount already raised. This is useful for adjusting campaign goals based
+        on contributor feedback or changing subnet costs.
 
         Parameters:
-            wallet: Bittensor Wallet instance used to sign the transaction.
+            wallet: Bittensor wallet instance used to sign the transaction (must be the creator's coldkey).
             crowdloan_id: The unique identifier of the crowdloan to update.
-            new_cap: The new fundraising cap (in TAO or Balance).
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            new_cap: The new fundraising cap (TAO). Must be `>= raised`.
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
+            period: The number of blocks during which the transaction will remain valid after submission.
+            raise_error: If `True`, raises an exception rather than returning failure in the response.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            `ExtrinsicResponse` indicating success or failure, with error details if applicable.
 
         Notes:
             - Only the creator can update the cap.
             - The crowdloan must not be finalized.
-            - The new cap must be greater than or equal to the total funds already raised.
+            - The new cap must be `>=` the total funds already raised.
+
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Update Parameters: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
         """
         return await update_cap_crowdloan_extrinsic(
             subtensor=self,
@@ -8835,35 +9425,37 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = True,
         wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Updates the end block of a non-finalized crowdloan campaign.
+        """Updates the end block of an active (non-finalized) crowdloan.
 
-        Only the creator of the crowdloan can perform this action. The new end block must be valid — meaning it cannot be in
-        the past and must respect the minimum and maximum duration limits enforced by the chain.
+        Allows the creator to extend (or shorten) the contribution period before finalization. The new end block
+        must be in the future and respect the minimum and maximum duration bounds defined in the runtime constants.
+        This is useful for extending campaigns that need more time to reach their cap or shortening campaigns with
+        sufficient contributions.
 
         Parameters:
-            wallet: Bittensor Wallet instance used to sign the transaction.
+            wallet: Bittensor wallet instance used to sign the transaction (must be the creator's coldkey).
             crowdloan_id: The unique identifier of the crowdloan to update.
-            new_end: The new block number at which the crowdloan will end.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            new_end: The new block number at which the crowdloan will end. Must be between `MinimumBlockDuration`
+                (7 days = 50,400 blocks) and `MaximumBlockDuration` (60 days = 432,000 blocks) from the current block.
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
+            period: The number of blocks during which the transaction will remain valid after submission.
+            raise_error: If `True`, raises an exception rather than returning failure in the response.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            `ExtrinsicResponse` indicating success or failure, with error details if applicable.
 
         Notes:
-            - Only the creator can call this extrinsic.
+            - Only the creator can update the end block.
             - The crowdloan must not be finalized.
-            - The new end block must be later than the current block and within valid duration bounds (between
-                `MinimumBlockDuration` and `MaximumBlockDuration`).
+            - The new end block must respect duration bounds (`MinimumBlockDuration` to `MaximumBlockDuration`).
+
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Update Parameters: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
         """
         return await update_end_crowdloan_extrinsic(
             subtensor=self,
@@ -8891,34 +9483,35 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = True,
         wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Updates the minimum contribution amount of a non-finalized crowdloan.
+        """Updates the minimum contribution amount of an active (non-finalized) crowdloan.
 
-        Only the creator of the crowdloan can perform this action, and the new value must be greater than or equal to the
-        absolute minimum contribution defined in the chain configuration.
+        Allows the creator to adjust the minimum per-contribution amount before finalization. The new value must
+        meet or exceed the `AbsoluteMinimumContribution` constant. This is useful for adjusting contribution
+        requirements based on the number of expected contributors or campaign strategy.
 
         Parameters:
-            wallet: Bittensor Wallet instance used to sign the transaction.
+            wallet: Bittensor wallet instance used to sign the transaction (must be the creator's coldkey).
             crowdloan_id: The unique identifier of the crowdloan to update.
-            new_min_contribution: The new minimum contribution amount (in TAO or Balance).
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            new_min_contribution: The new minimum contribution amount (TAO). Must be `>= AbsoluteMinimumContribution`.
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
+            period: The number of blocks during which the transaction will remain valid after submission.
+            raise_error: If `True`, raises an exception rather than returning failure in the response.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            `ExtrinsicResponse` indicating success or failure, with error details if applicable.
 
         Notes:
-            - Can only be called by the creator of the crowdloan.
+            - Only the creator can update the minimum contribution.
             - The crowdloan must not be finalized.
-            - The new minimum contribution must not fall below the absolute minimum defined in the runtime.
+            - The new minimum must be `>= AbsoluteMinimumContribution` (check via `get_crowdloan_constants`).
+
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Update Parameters: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
         """
         return await update_min_contribution_crowdloan_extrinsic(
             subtensor=self,
@@ -8945,29 +9538,34 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = True,
         wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Withdraws a contribution from an active (not yet finalized or dissolved) crowdloan.
+        """Withdraws a contribution from an active (not yet finalized or dissolved) crowdloan.
+
+        Contributors can withdraw their contributions at any time before finalization. For regular contributors,
+        the full contribution amount is returned. For the creator, only amounts exceeding the initial deposit can
+        be withdrawn; the deposit itself remains locked until dissolution.
 
         Parameters:
-            wallet: Wallet instance used to sign the transaction (must be unlocked).
+            wallet: Bittensor wallet instance used to sign the transaction (coldkey must match a contributor).
             crowdloan_id: The unique identifier of the crowdloan to withdraw from.
-            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If False, submits the transaction directly without encryption.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
+            period: The number of blocks during which the transaction will remain valid after submission, after which
+                it will be rejected.
+            raise_error: If `True`, raises an exception rather than returning False in the response, in case the
+               transaction fails.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
+            `ExtrinsicResponse` indicating success or failure, with error details if applicable.
 
-        Note:
-            - Regular contributors can fully withdraw their contribution before finalization.
-            - The creator cannot withdraw the initial deposit, but may withdraw any amount exceeding his deposit.
+        Notes:
+
+            - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
+            - Crowdloan Lifecycle: <https://docs.learnbittensor.org/subnets/crowdloans#crowdloan-lifecycle>
+            - Withdraw: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#optional-withdraw>
         """
         return await withdraw_crowdloan_extrinsic(
             subtensor=self,
@@ -8988,8 +9586,31 @@ async def get_async_subtensor(
     mock: bool = False,
     log_verbose: bool = False,
 ) -> "AsyncSubtensor":
-    """Factory method to create an initialized AsyncSubtensor.
-    Mainly useful for when you don't want to run `await subtensor.initialize()` after instantiation.
+    """Factory method to create an initialized AsyncSubtensor instance.
+
+    This function creates an AsyncSubtensor instance and automatically initializes the connection to the blockchain.
+    This is useful when you don't want to manually call `await subtensor.initialize()` after instantiation.
+
+    Parameters:
+        network: The network name to connect to (e.g., `finney` for Bittensor mainnet, `test` for test network,
+            `local` for a locally deployed blockchain). If `None`, uses the default network from config.
+        config: Configuration object for the AsyncSubtensor instance. If `None`, uses the default configuration.
+        mock: Whether this is a mock instance. FOR TESTING ONLY.
+        log_verbose: Enables or disables verbose logging.
+
+    Returns:
+        An initialized AsyncSubtensor instance ready for use.
+
+    Example:
+
+        # Create and initialize in one step
+
+        subtensor = await get_async_subtensor(network="finney")
+
+        # Ready to use immediately
+
+        block = await subtensor.get_current_block()
+
     """
     sub = AsyncSubtensor(
         network=network, config=config, mock=mock, log_verbose=log_verbose

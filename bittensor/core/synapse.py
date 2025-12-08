@@ -384,7 +384,7 @@ class Synapse(BaseModel):
         Subclasses of Synapse can override this method to add specific deserialization behaviors, such as converting
         serialized data back into complex object types or performing additional data integrity checks.
 
-        Example::
+        Example:
 
             class CustomSynapse(Synapse):
                 additional_data: str
@@ -683,7 +683,7 @@ class Synapse(BaseModel):
         2. Concatenates the string representation of these fields.
         3. Applies SHA3-256 hashing to the concatenated string to produce a unique fingerprint of the data.
 
-        Example::
+        Example:
 
             synapse = Synapse(name="ExampleRoute", timeout=10)
             hash_value = synapse.body_hash
@@ -746,7 +746,7 @@ class Synapse(BaseModel):
             2. Decodes and deserializes ``input_obj`` headers into their original objects.
             3. Assigns simple fields directly from the headers to the input dictionary.
 
-        Example::
+        Example:
             received_headers = {
                 'bt_header_axon_address': '127.0.0.1',
                 'bt_header_dendrite_port': '8080',
@@ -834,7 +834,7 @@ class Synapse(BaseModel):
             A new instance of Synapse, reconstructed from the parsed header information, replicating the original
                 instance's state.
 
-        Example::
+        Example:
 
             received_headers = {
                 'bt_header_axon_address': '127.0.0.1',

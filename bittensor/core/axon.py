@@ -788,7 +788,7 @@ class Axon:
         Returns:
             bittensor.core.axon.Axon: The Axon instance in the 'started' state.
 
-        Example::
+        Example:
 
             my_axon = bittensor.Axon(...)
             ... # setup axon, attach functions, etc.
@@ -815,7 +815,7 @@ class Axon:
         Returns:
             bittensor.core.axon.Axon: The Axon instance in the 'stopped' state.
 
-        Example::
+        Example:
 
             my_axon = bittensor.Axon(...)
             my_axon.start()
@@ -852,7 +852,7 @@ class Axon:
         Returns:
             The Axon instance that is now actively serving on the specified subtensor.
 
-        Example::
+        Example:
 
             my_axon = bittensor.Axon(...)
             subtensor = bt.subtensor(network="local") # Local by default

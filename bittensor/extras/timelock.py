@@ -9,7 +9,7 @@ Main Functions:
     - decrypt: Decrypts the provided encrypted data when the reveal round is reached.
     - wait_reveal_and_decrypt: Waits for the reveal round and decrypts the encrypted data.
 
-Usage Example:
+Example:
     ```python
     from bittensor import timelock
     data = "From Cortex to Bittensor"
@@ -17,7 +17,7 @@ Usage Example:
     decrypted_data = timelock.wait_reveal_and_decrypt(encrypted_data)
     ```
 
-Usage Example with custom data:
+Example with custom data:
     ```python
     import pickle
     from dataclasses import dataclass

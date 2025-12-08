@@ -316,7 +316,7 @@ class DendriteMixin:
         To turn on debug messages, set the environment variable BITTENSOR_DEBUG to ``1``, or call the bittensor debug
         method like so::
 
-        Example::
+        Example:
 
             import bittensor
             bittensor.debug()
@@ -412,7 +412,7 @@ class DendriteMixin:
         response data. If multiple Axons are queried, a list of Synapse objects is returned, each containing the
         response from the corresponding Axon.
 
-        For example::
+        Example:
 
             ...
             import bittensor
@@ -428,7 +428,7 @@ class DendriteMixin:
         returns an AsyncGenerator that yields each chunk as it is received. The generator can be
         iterated over to process each chunk individually.
 
-        For example::
+        Example:
 
             ...
             dendrite = bittensor.Dendrite(wallet = wallet)

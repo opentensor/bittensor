@@ -19,7 +19,7 @@ def _check_currencies(self, other):
         balance3 = Balance.from_tao(200).set_unit(5)
         balance1 + balance3  # Raises BalanceUnitMismatchError.
 
-    In this example:
+    Example:
         - `from_rao` creates a Balance instance from the amount in rao.
         - `set_unit(14)` sets the unit to correspond to subnet 14 (i.e., Alpha from netuid 14).
     """
