@@ -203,7 +203,7 @@ def submit_encrypted_extrinsic(
             wallet=wallet,
             sign_with=sign_with,
             call=extrinsic_call,
-            nonce_key=current_nonce,
+            nonce=current_nonce,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
