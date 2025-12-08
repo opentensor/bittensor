@@ -125,6 +125,7 @@ from bittensor.core.metagraph import Metagraph
 from bittensor.core.settings import (
     DEFAULT_MEV_PROTECTION,
     DEFAULT_PERIOD,
+    MLKEM768_PUBLIC_KEY_SIZE,
     TAO_APP_BLOCK_EXPLORER,
     TYPE_REGISTRY,
     version_as_int,
@@ -2266,8 +2267,7 @@ class Subtensor(SubtensorMixin):
 
         public_key_bytes = bytes(next(iter(query)))
 
-        # Validate public_key size for ML-KEM-768 (must be exactly 1184 bytes)
-        MLKEM768_PUBLIC_KEY_SIZE = 1184
+        # Validate public_key size for ML-KEM-768
         if len(public_key_bytes) != MLKEM768_PUBLIC_KEY_SIZE:
             raise ValueError(
                 f"Invalid ML-KEM-768 public key size: {len(public_key_bytes)} bytes. "
@@ -2306,7 +2306,6 @@ class Subtensor(SubtensorMixin):
         public_key_bytes = bytes(next(iter(query)))
 
         # Validate public_key size for ML-KEM-768 (must be exactly 1184 bytes)
-        MLKEM768_PUBLIC_KEY_SIZE = 1184
         if len(public_key_bytes) != MLKEM768_PUBLIC_KEY_SIZE:
             raise ValueError(
                 f"Invalid ML-KEM-768 public key size: {len(public_key_bytes)} bytes. "

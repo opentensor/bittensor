@@ -79,6 +79,9 @@ DEFAULT_MEV_PROTECTION = os.getenv("BT_MEV_PROTECTION", "").lower() in (
     "on",
 )
 
+# Public_key size for ML-KEM-768 (must be exactly 1184 bytes)
+MLKEM768_PUBLIC_KEY_SIZE = 1184
+
 # Block Explorers map network to explorer url
 # Must all be polkadotjs explorer urls
 NETWORK_EXPLORER_MAP = {
