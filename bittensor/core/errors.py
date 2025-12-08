@@ -59,6 +59,7 @@ __all__ = [
     "UnstakeError",
 ]
 
+
 class _ChainErrorMeta(type):
     _exceptions: dict[str, Exception] = {}
 
@@ -80,6 +81,14 @@ class MaxSuccessException(Exception):
 
 class MaxAttemptsException(Exception):
     """Raised when the POW Solver has reached the max number of attempts."""
+
+
+class BalanceTypeError(Exception):
+    """Raised when a Balance object receives an invalid type."""
+
+
+class BalanceUnitMismatchError(Exception):
+    """Raised when Balance objects with different units are used in operations."""
 
 
 class ChainError(SubstrateRequestException, metaclass=_ChainErrorMeta):
@@ -301,4 +310,5 @@ class SynapseDendriteNoneException(SynapseException):
         synapse: Optional["Synapse"] = None,
     ):
         self.message = message
-        super().__init__(self.message, synapse)
+        self.synapse = synapse
+        super().__init__(self.message, self.synapse)
