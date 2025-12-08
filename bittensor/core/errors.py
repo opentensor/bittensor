@@ -10,12 +10,6 @@ from async_substrate_interface.errors import (
 if TYPE_CHECKING:
     from bittensor.core.synapse import Synapse
 
-# redundant aliases
-SubstrateRequestException = SubstrateRequestException
-StorageFunctionNotFound = StorageFunctionNotFound
-BlockNotFound = BlockNotFound
-ExtrinsicNotFound = ExtrinsicNotFound
-
 
 class _ChainErrorMeta(type):
     _exceptions: dict[str, Exception] = {}
@@ -211,7 +205,8 @@ class SynapseDendriteNoneException(SynapseException):
         synapse: Optional["Synapse"] = None,
     ):
         self.message = message
-        super().__init__(self.message, synapse)
+        self.synapse = synapse
+        super().__init__(self.message, self.synapse)
 
 
 class BalanceUnitMismatchError(Exception):
