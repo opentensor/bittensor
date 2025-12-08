@@ -31,9 +31,9 @@ class TestWorkItem:
         test_fn = Mock(return_value=result_value)
         future = Future()
         work_item = _WorkItem(future, test_fn, time.time(), (1, 2), {"key": "value"})
-        
+
         work_item.run()
-        
+
         test_fn.assert_called_once_with(1, 2, key="value")
         assert future.result() == result_value
 
@@ -42,9 +42,9 @@ class TestWorkItem:
         test_fn = Mock(side_effect=ValueError("Test error"))
         future = Future()
         work_item = _WorkItem(future, test_fn, time.time(), (), {})
-        
+
         work_item.run()
-        
+
         with pytest.raises(ValueError, match="Test error"):
             future.result()
 
@@ -54,9 +54,9 @@ class TestWorkItem:
         future = Future()
         future.cancel()
         work_item = _WorkItem(future, test_fn, time.time(), (), {})
-        
+
         work_item.run()
-        
+
         test_fn.assert_not_called()
 
     def test_stale_task_detection(self):
@@ -65,9 +65,9 @@ class TestWorkItem:
         future = Future()
         start_time = time.time() - BLOCKTIME - 1
         work_item = _WorkItem(future, test_fn, start_time, (), {})
-        
+
         work_item.run()
-        
+
         test_fn.assert_not_called()
 
 
@@ -77,7 +77,7 @@ class TestExecutorInitialization:
     def test_default_initialization(self):
         """Test executor creation with default parameters."""
         executor = PriorityThreadPoolExecutor()
-        
+
         try:
             assert executor._max_workers == (os.cpu_count() or 1) * 5
             assert isinstance(executor._work_queue, queue.PriorityQueue)
@@ -89,11 +89,9 @@ class TestExecutorInitialization:
     def test_custom_initialization(self):
         """Test executor creation with custom parameters."""
         executor = PriorityThreadPoolExecutor(
-            max_workers=3,
-            maxsize=5,
-            thread_name_prefix="TestPool"
+            max_workers=3, maxsize=5, thread_name_prefix="TestPool"
         )
-        
+
         try:
             assert executor._max_workers == 3
             assert executor._thread_name_prefix == "TestPool"
@@ -117,7 +115,7 @@ class TestTaskSubmission:
     def test_submit_basic(self):
         """Test basic task submission."""
         executor = PriorityThreadPoolExecutor(max_workers=2)
-        
+
         try:
             future = executor.submit(lambda: 42)
             assert future.result(timeout=2) == 42
@@ -129,12 +127,12 @@ class TestTaskSubmission:
         executor = PriorityThreadPoolExecutor(max_workers=1)
         execution_order = []
         lock = threading.Lock()
-        
+
         def task(name):
             with lock:
                 execution_order.append(name)
             time.sleep(0.01)
-        
+
         try:
             # Submit low priority task first (will start immediately)
             executor.submit(lambda: task("low"), priority=100)
@@ -142,9 +140,9 @@ class TestTaskSubmission:
             # Then submit higher priority tasks
             executor.submit(lambda: task("high"), priority=1000)
             executor.submit(lambda: task("medium"), priority=500)
-            
+
             time.sleep(0.5)
-            
+
             # Verify execution order
             assert execution_order[0] == "low"
             assert execution_order[1] == "high"
@@ -155,10 +153,10 @@ class TestTaskSubmission:
     def test_task_with_args_and_kwargs(self):
         """Test task execution with args and kwargs."""
         executor = PriorityThreadPoolExecutor(max_workers=1)
-        
+
         def task(a, b, c=0, d=0):
             return a + b + c + d
-        
+
         try:
             future = executor.submit(task, 1, 2, c=3, d=4)
             assert future.result(timeout=2) == 10
@@ -168,7 +166,7 @@ class TestTaskSubmission:
     def test_concurrent_submissions(self):
         """Test thread safety of concurrent submit operations."""
         executor = PriorityThreadPoolExecutor(max_workers=4)
-        
+
         try:
             futures = [executor.submit(lambda x=i: x * 2) for i in range(50)]
             results = [f.result(timeout=5) for f in futures]
@@ -184,27 +182,27 @@ class TestExecutorShutdown:
         """Test graceful shutdown waits for tasks to complete."""
         executor = PriorityThreadPoolExecutor(max_workers=2)
         completed = []
-        
+
         def task(value):
             time.sleep(0.1)
             completed.append(value)
-        
+
         futures = [executor.submit(task, i) for i in range(3)]
         executor.shutdown(wait=True)
-        
+
         assert len(completed) == 3
         assert executor._shutdown is True
 
     def test_immediate_shutdown(self):
         """Test immediate shutdown doesn't wait for tasks."""
         executor = PriorityThreadPoolExecutor(max_workers=1)
-        
+
         executor.submit(lambda: time.sleep(2))
-        
+
         start_time = time.time()
         executor.shutdown(wait=False)
         shutdown_time = time.time() - start_time
-        
+
         assert shutdown_time < 0.5
         assert executor._shutdown is True
 
@@ -212,8 +210,10 @@ class TestExecutorShutdown:
         """Test that submitting after shutdown raises RuntimeError."""
         executor = PriorityThreadPoolExecutor(max_workers=1)
         executor.shutdown(wait=True)
-        
-        with pytest.raises(RuntimeError, match="cannot schedule new futures after shutdown"):
+
+        with pytest.raises(
+            RuntimeError, match="cannot schedule new futures after shutdown"
+        ):
             executor.submit(lambda: 42)
 
     def test_context_manager(self):
@@ -221,7 +221,7 @@ class TestExecutorShutdown:
         with PriorityThreadPoolExecutor(max_workers=2) as executor:
             future = executor.submit(lambda: 42)
             assert future.result(timeout=2) == 42
-        
+
         assert executor._shutdown is True
 
 
@@ -231,7 +231,7 @@ class TestBrokenThreadPool:
     def test_broken_pool_exception(self):
         """Test BrokenThreadPool exception."""
         assert issubclass(BrokenThreadPool, Exception)
-        
+
         with pytest.raises(BrokenThreadPool):
             raise BrokenThreadPool("Test error")
 
@@ -239,28 +239,28 @@ class TestBrokenThreadPool:
         """Test submitting to broken pool raises BrokenThreadPool."""
         executor = PriorityThreadPoolExecutor(max_workers=1)
         executor._broken = "Pool is broken"
-        
+
         with pytest.raises(BrokenThreadPool):
             executor.submit(lambda: 42)
-        
+
         executor.shutdown(wait=False)
 
     def test_initializer_failure(self):
         """Test handling of failed initializers."""
+
         def failing_initializer():
             raise RuntimeError("Initializer failed")
-        
+
         executor = PriorityThreadPoolExecutor(
-            max_workers=1,
-            initializer=failing_initializer
+            max_workers=1, initializer=failing_initializer
         )
-        
+
         try:
             executor.submit(lambda: 42)
             time.sleep(0.5)
-            
+
             assert executor._broken is not False
-            
+
             with pytest.raises(BrokenThreadPool):
                 executor.submit(lambda: 99)
         finally:
@@ -272,22 +272,21 @@ class TestConfiguration:
 
     def test_config_from_environment(self):
         """Test configuration from environment variables."""
-        with patch.dict(os.environ, {
-            'BT_PRIORITY_MAX_WORKERS': '7',
-            'BT_PRIORITY_MAXSIZE': '15'
-        }):
+        with patch.dict(
+            os.environ, {"BT_PRIORITY_MAX_WORKERS": "7", "BT_PRIORITY_MAXSIZE": "15"}
+        ):
             parser = argparse.ArgumentParser()
             PriorityThreadPoolExecutor.add_args(parser)
             args = parser.parse_args([])
-            
-            assert getattr(args, 'priority.max_workers') == 7
-            assert getattr(args, 'priority.maxsize') == 15
+
+            assert getattr(args, "priority.max_workers") == 7
+            assert getattr(args, "priority.maxsize") == 15
 
     def test_config_method(self):
         """Test config() class method."""
         config = PriorityThreadPoolExecutor.config()
-        
+
         assert isinstance(config, Config)
-        assert hasattr(config, 'priority')
-        assert hasattr(config.priority, 'max_workers')
-        assert hasattr(config.priority, 'maxsize')
+        assert hasattr(config, "priority")
+        assert hasattr(config.priority, "max_workers")
+        assert hasattr(config.priority, "maxsize")

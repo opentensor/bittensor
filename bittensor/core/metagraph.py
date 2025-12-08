@@ -1399,7 +1399,7 @@ class AsyncMetagraph(NumpyOrTorch):
                 subtensor. Light nodes are configured only to store the previous 300 blocks if connecting to finney or
                 test networks.
 
-            For example::
+            Example:
 
                 from bittensor.core.subtensor import Subtensor
 
@@ -1730,7 +1730,7 @@ class Metagraph(NumpyOrTorch):
                 subtensor. Light nodes are configured only to store the previous 300 blocks if connecting to finney or
                 test networks.
 
-            For example::
+            Example:
 
                 from bittensor.core.subtensor import Subtensor
 
