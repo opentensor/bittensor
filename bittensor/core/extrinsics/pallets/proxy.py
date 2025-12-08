@@ -21,12 +21,15 @@ class Proxy(_BasePallet):
         # Sync usage
 
         call = Proxy(subtensor).add_proxy(delegate="5DE..", proxy_type="Any", delay=0)
+
         response = subtensor.sign_and_send_extrinsic(call=call, ...)
 
         # Async usage
 
         call = await Proxy(async_subtensor).add_proxy(delegate="5DE..", proxy_type="Any", delay=0)
+
         response = await async_subtensor.sign_and_send_extrinsic(call=call, ...)
+
     """
 
     def add_proxy(

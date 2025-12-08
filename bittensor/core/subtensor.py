@@ -429,16 +429,27 @@ class Subtensor(SubtensorMixin):
                 ValueError will be raised.
 
         Example:
+
             value = self._query_with_fallback(
-                # the first attempt will be made to SubtensorModule.MechanismEmissionSplit with params `[1]`
+
+                # the first attempt will be made to SubtensorModule.MechanismEmissionSplit with params [1]
+
                 ("SubtensorModule", "MechanismEmissionSplit", [1]),
+
                 # if it does not exist at the given block, the next attempt will be made to
-                # SubtensorModule.MechanismEmission with params `None`
+
+                # SubtensorModule.MechanismEmission with params None
+
                 ("SubtensorModule", "MechanismEmission", None),
+
                 block_hash="0x1234",
-                # if none of the methods exist at the given block, the default value of `None` will be returned
+
+                # if none of the methods exist at the given block, the default value of None will be returned
+
                 default_value=None,
+
             )
+
         """
         if block_hash is None:
             block_hash = self.substrate.get_chain_head()
@@ -479,19 +490,33 @@ class Subtensor(SubtensorMixin):
                 ValueError will be raised.
 
         Example:
+
             query = self._runtime_call_with_fallback(
+
                 # the first attempt will be made to SubnetInfoRuntimeApi.get_selective_mechagraph with the
+
                 # given params
+
                 (
+
                     "SubnetInfoRuntimeApi",
+
                     "get_selective_mechagraph",
+
                     [netuid, mechid, [f for f in range(len(SelectiveMetagraphIndex))]],
+
                 ),
+
                 # if it does not exist at the given block, the next attempt will be made as such:
+
                 ("SubnetInfoRuntimeApi", "get_metagraph", [[netuid]]),
+
                 block_hash=block_hash,
+
                 # if none of the methods exist at the given block, the default value will be returned
+
                 default_value=None,
+
             )
 
         """
@@ -588,10 +613,15 @@ class Subtensor(SubtensorMixin):
             # Simulate staking 100 TAO stake to subnet 1
 
             result = subtensor.sim_swap(
+
                 origin_netuid=0,
+
                 destination_netuid=1,
+
                 amount=Balance.from_tao(100)
+
             )
+
             print(f"Fee: {result.tao_fee.tao} TAO, Output: {result.alpha_amount} Alpha")
 
         Notes:
@@ -964,6 +994,7 @@ class Subtensor(SubtensorMixin):
             # Get bonds for subnet 1
 
             bonds = subtensor.bonds(netuid=1)
+
             print(bonds[0])
 
             # example output: (5, [(0, 32767), (1, 16383), (3, 8191)])
@@ -1266,9 +1297,14 @@ class Subtensor(SubtensorMixin):
 
         Example:
 
+            # sample return value
+
             {
+
                 "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY": ( (12, "Alice message 1"), (152, "Alice message 2") ),
+
                 "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty": ( (12, "Bob message 1"), (147, "Bob message 2") ),
+
             }
 
         Notes:
@@ -1513,7 +1549,9 @@ class Subtensor(SubtensorMixin):
             success, children, error = subtensor.get_children(hotkey="5F...", netuid=1)
 
             if success:
+
                 for proportion, child_hotkey in children:
+
                     print(f"Child {child_hotkey}: {proportion}")
 
         Notes:
@@ -2410,7 +2448,9 @@ class Subtensor(SubtensorMixin):
             # Retrieve selective data from the metagraph from subnet 2 mechanism 0
 
             partial_meta_info = subtensor.get_metagraph_info(
+
                 netuid=2,
+
                 selected_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
             )
 
@@ -3071,7 +3111,10 @@ class Subtensor(SubtensorMixin):
 
         Example:
 
+            # sample return value
+
             ( (12, "Alice message 1"), (152, "Alice message 2") )
+
             ( (12, "Bob message 1"), (147, "Bob message 2") )
 
         Notes:
@@ -4925,11 +4968,17 @@ class Subtensor(SubtensorMixin):
             # Estimate fee before sending a transfer
 
             call = subtensor.compose_call(
+
                 call_module="Balances",
+
                 call_function="transfer",
+
                 call_params={"dest": destination_ss58, "value": amount.rao}
+
             )
+
             fee = subtensor.get_extrinsic_fee(call=call, keypair=wallet.coldkey)
+
             print(f"Estimated fee: {fee.tao} TAO")
 
         Notes:
@@ -5956,30 +6005,41 @@ class Subtensor(SubtensorMixin):
             ExtrinsicResponse: The result object of the extrinsic execution.
 
         Example:
+
             import bittensor as bt
 
             subtensor = bt.subtensor(network="local")
+
             my_wallet = bt.Wallet()
 
-            # if `liquidity_delta` is negative
+            # if liquidity_delta is negative
 
             my_liquidity_delta = Balance.from_tao(100) * -1
 
             subtensor.modify_liquidity(
+
                 wallet=my_wallet,
+
                 netuid=123,
+
                 position_id=2,
+
                 liquidity_delta=my_liquidity_delta
+
             )
 
-            # if `liquidity_delta` is positive
+            # if liquidity_delta is positive
 
             my_liquidity_delta = Balance.from_tao(120)
 
             subtensor.modify_liquidity(
+
                 wallet=my_wallet,
+
                 netuid=123,
+
                 position_id=2,
+
                 liquidity_delta=my_liquidity_delta
             )
 
@@ -7400,6 +7460,7 @@ class Subtensor(SubtensorMixin):
             ExtrinsicResponse: The result object of the extrinsic execution.
 
         Example:
+
             # Commit some data to subnet 1
 
             response = await subtensor.commit(wallet=my_wallet, netuid=1, data="Hello Bittensor!")
@@ -7891,38 +7952,57 @@ class Subtensor(SubtensorMixin):
             import bittensor as bt
 
             subtensor = bt.Subtensor()
+
             wallet = bt.Wallet("my_wallet")
+
             netuid = 14
+
             hotkey = "5%SOME_HOTKEY%"
 
             wallet_stakes = subtensor.get_stake_info_for_coldkey(coldkey_ss58=wallet.coldkey.ss58_address)
 
             for stake in wallet_stakes:
+
                 result = subtensor.unstake_all(
+
                     wallet=wallet,
+
                     hotkey_ss58=stake.hotkey_ss58,
+
                     netuid=stake.netuid,
+
                 )
+
                 print(result)
 
-            # If you would like to unstake all stakes in all subnets unsafely, use `rate_tolerance=None`:
+            # If you would like to unstake all stakes in all subnets unsafely, use rate_tolerance=None:
 
             import bittensor as bt
 
-            subtensor = bt.AsyncSubtensor()
+            subtensor = bt.Subtensor()
+
             wallet = bt.Wallet("my_wallet")
+
             netuid = 14
+
             hotkey = "5%SOME_HOTKEY_WHERE_IS_YOUR_STAKE_NOW%"
 
-            wallet_stakes = await subtensor.get_stake_info_for_coldkey(coldkey_ss58=wallet.coldkey.ss58_address)
+            wallet_stakes = subtensor.get_stake_info_for_coldkey(coldkey_ss58=wallet.coldkey.ss58_address)
 
             for stake in wallet_stakes:
-                result = await subtensor.unstake_all(
+
+                result = subtensor.unstake_all(
+
                     wallet=wallet,
+
                     hotkey_ss58=stake.hotkey_ss58,
+
                     netuid=stake.netuid,
+
                     rate_tolerance=None,
+
                 )
+
                 print(result)
 
         Notes:
