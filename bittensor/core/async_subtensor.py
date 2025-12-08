@@ -2881,18 +2881,22 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example:
             # Retrieve all fields from the metagraph from subnet 2 mechanism 0
+
             meta_info = subtensor.get_metagraph_info(netuid=2)
 
             # Retrieve all fields from the metagraph from subnet 2 mechanism 1
+
             meta_info = subtensor.get_metagraph_info(netuid=2, mechid=1)
 
             # Retrieve selective data from the metagraph from subnet 2 mechanism 0
+
             partial_meta_info = subtensor.get_metagraph_info(
                 netuid=2,
                 selected_indices=[SelectiveMetagraphIndex.Name, SelectiveMetagraphIndex.OwnerHotkeys]
             )
 
             # Retrieve selective data from the metagraph from subnet 2 mechanism 1
+
             partial_meta_info = subtensor.get_metagraph_info(
                 netuid=2,
                 mechid=1,
