@@ -1,6 +1,8 @@
 from typing import TYPE_CHECKING, Optional
 
+from bittensor.core.extrinsics.asyncex.mev_shield import submit_encrypted_extrinsic
 from bittensor.core.extrinsics.pallets import SubtensorModule, Sudo
+from bittensor.core.settings import DEFAULT_MEV_PROTECTION
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils import float_to_u64
 
@@ -15,10 +17,13 @@ async def set_children_extrinsic(
     hotkey_ss58: str,
     netuid: int,
     children: list[tuple[float, str]],
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Allows a coldkey to set children-keys.
@@ -29,12 +34,16 @@ async def set_children_extrinsic(
         hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
         netuid: The netuid value.
         children: A list of children with their proportions.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Waits for the transaction to be included in a block.
         wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -67,14 +76,26 @@ async def set_children_extrinsic(
             ],
         )
 
-        response = await subtensor.sign_and_send_extrinsic(
-            call=call,
-            wallet=wallet,
-            period=period,
-            raise_error=raise_error,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
+        if mev_protection:
+            response = await submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=wait_for_revealed_execution,
+            )
+        else:
+            response = await subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
         return response
 
     except Exception as error:
@@ -85,10 +106,13 @@ async def root_set_pending_childkey_cooldown_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
     cooldown: int,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
     Allows a root coldkey to set children-keys.
@@ -97,12 +121,16 @@ async def root_set_pending_childkey_cooldown_extrinsic(
         subtensor: The Subtensor client instance used for blockchain interaction.
         wallet: The wallet used to sign the extrinsic (must be unlocked).
         cooldown: The cooldown period in blocks.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
         raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Waits for the transaction to be included in a block.
         wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
@@ -119,14 +147,26 @@ async def root_set_pending_childkey_cooldown_extrinsic(
 
         sudo_call = await Sudo(subtensor).sudo(call=call)
 
-        response = await subtensor.sign_and_send_extrinsic(
-            call=sudo_call,
-            wallet=wallet,
-            period=period,
-            raise_error=raise_error,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
+        if mev_protection:
+            response = await submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=sudo_call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=wait_for_revealed_execution,
+            )
+        else:
+            response = await subtensor.sign_and_send_extrinsic(
+                call=sudo_call,
+                wallet=wallet,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
         return response
 
     except Exception as error:

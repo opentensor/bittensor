@@ -2,6 +2,7 @@ from bittensor_wallet import Wallet
 from scalecodec.types import GenericCall
 import pytest
 from bittensor.core.extrinsics import crowdloan
+from bittensor.core.settings import DEFAULT_MEV_PROTECTION
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.balance import Balance
 
@@ -26,6 +27,7 @@ def test_contribute_crowdloan_extrinsic(subtensor, mocker):
         wallet=faked_wallet,
         crowdloan_id=fake_crowdloan_id,
         amount=fake_amount,
+        mev_protection=DEFAULT_MEV_PROTECTION,
     )
 
     # Assertions
@@ -75,6 +77,7 @@ def test_create_crowdloan_extrinsic(subtensor, mocker):
         end=fake_end,
         call=fake_call,
         target_address=fake_target_address,
+        mev_protection=DEFAULT_MEV_PROTECTION,
     )
 
     # Assertions
@@ -128,6 +131,7 @@ def test_same_params_extrinsics(subtensor, mocker, extrinsic, subtensor_function
         subtensor=subtensor,
         wallet=faked_wallet,
         crowdloan_id=fake_crowdloan_id,
+        mev_protection=DEFAULT_MEV_PROTECTION,
     )
 
     # Assertions
@@ -165,6 +169,7 @@ def test_update_cap_crowdloan_extrinsic(subtensor, mocker):
         wallet=faked_wallet,
         crowdloan_id=fake_crowdloan_id,
         new_cap=fake_new_cap,
+        mev_protection=DEFAULT_MEV_PROTECTION,
     )
 
     # Assertions
@@ -204,6 +209,7 @@ def test_update_end_crowdloan_extrinsic(subtensor, mocker):
         wallet=faked_wallet,
         crowdloan_id=fake_crowdloan_id,
         new_end=fake_new_end,
+        mev_protection=DEFAULT_MEV_PROTECTION,
     )
 
     # Assertions
@@ -247,6 +253,7 @@ def test_update_min_contribution_crowdloan_extrinsic(subtensor, mocker):
         wallet=faked_wallet,
         crowdloan_id=fake_crowdloan_id,
         new_min_contribution=fake_new_min_contribution,
+        mev_protection=DEFAULT_MEV_PROTECTION,
     )
 
     # Assertions

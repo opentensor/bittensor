@@ -1,4 +1,5 @@
 from bittensor.core.extrinsics import unstaking
+from bittensor.core.settings import DEFAULT_MEV_PROTECTION
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.balance import Balance
 
@@ -33,8 +34,10 @@ def test_unstake_extrinsic(fake_wallet, mocker):
         hotkey_ss58=hotkey_ss58,
         netuid=fake_netuid,
         amount=amount,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        wait_for_revealed_execution=True,
     )
 
     # Asserts
@@ -79,6 +82,7 @@ def test_unstake_all_extrinsic(fake_wallet, mocker):
         wallet=fake_wallet,
         hotkey_ss58=hotkey,
         netuid=fake_netuid,
+        mev_protection=DEFAULT_MEV_PROTECTION,
     )
 
     # Asserts
@@ -139,8 +143,10 @@ def test_unstake_multiple_extrinsic(subtensor, fake_wallet, mocker):
         hotkey_ss58s=hotkey_ss58s,
         netuids=fake_netuids,
         amounts=amounts,
+        mev_protection=DEFAULT_MEV_PROTECTION,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        wait_for_revealed_execution=True,
     )
 
     # Asserts
@@ -158,8 +164,10 @@ def test_unstake_multiple_extrinsic(subtensor, fake_wallet, mocker):
         netuid=sn_5,
         hotkey_ss58="hotkey1",
         amount=Balance.from_tao(1.1, sn_5),
+        mev_protection=DEFAULT_MEV_PROTECTION,
         period=None,
         raise_error=False,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        wait_for_revealed_execution=True,
     )

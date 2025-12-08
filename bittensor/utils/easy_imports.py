@@ -46,6 +46,10 @@ from bittensor.core.chain_data import (
     MetagraphInfoPool,
     NeuronInfo,
     NeuronInfoLite,
+    ProxyAnnouncementInfo,
+    ProxyConstants,
+    ProxyInfo,
+    ProxyType,
     PrometheusInfo,
     ProposalCallData,
     ProposalVoteData,
@@ -100,6 +104,7 @@ from bittensor.core.errors import (
     UnknownSynapseError,
     UnstakeError,
 )
+from bittensor.core.extrinsics import pallets
 from bittensor.core.metagraph import Metagraph
 from bittensor.core.settings import BLOCKTIME
 from bittensor.core.stream import StreamingSynapse
@@ -197,6 +202,10 @@ __all__ = [
     "PostProcessException",
     "PriorityException",
     "ProportionOverflow",
+    "ProxyAnnouncementInfo",
+    "ProxyConstants",
+    "ProxyInfo",
+    "ProxyType",
     "RegistrationError",
     "RegistrationNotPermittedOnRootSubnet",
     "RunException",
@@ -229,6 +238,7 @@ __all__ = [
     "tao",
     "rao",
     "logging",
+    "pallets",
     "MockSubtensor",
     "SubnetsAPI",
     "trace",

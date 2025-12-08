@@ -1,6 +1,10 @@
 """Module with helper functions for extrinsics."""
 
+import hashlib
+import logging
 from typing import TYPE_CHECKING, Optional, Union
+
+from bittensor_drand import encrypt_mlkem768
 
 from bittensor.core.extrinsics.pallets import Sudo
 from bittensor.core.types import ExtrinsicResponse
@@ -10,6 +14,7 @@ if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.chain_data import StakeInfo
     from bittensor.core.subtensor import Subtensor
+    from scalecodec.types import GenericExtrinsic
 
 
 def get_old_stakes(
@@ -207,3 +212,69 @@ def apply_pure_proxy_data(
         raise RuntimeError(message)
 
     return response.with_log("warning")
+
+
+def get_mev_commitment_and_ciphertext(
+    signed_ext: "GenericExtrinsic",
+    ml_kem_768_public_key: bytes,
+) -> tuple[str, bytes, bytes]:
+    """
+    Builds MEV Shield payload and encrypts it using ML-KEM-768 + XChaCha20Poly1305.
+
+    This function constructs the payload structure required for MEV Shield encryption and performs the encryption
+    process. The payload binds the transaction to a specific key epoch using the key_hash, which replaces nonce-based
+    replay protection.
+
+    Parameters:
+        signed_ext: The signed GenericExtrinsic object representing the inner call to be encrypted and executed.
+        ml_kem_768_public_key: The ML-KEM-768 public key bytes (1184 bytes) from NextKey storage. This key is used for
+            encryption and its hash binds the transaction to the key epoch.
+
+    Returns:
+        A tuple containing:
+            - commitment_hex (str): Hex string of the Blake2-256 hash of payload_core (32 bytes).
+            - ciphertext (bytes): Encrypted blob containing plaintext.
+            - payload_core (bytes): Raw payload bytes before encryption.
+    """
+    payload_core = signed_ext.data.data
+
+    plaintext = bytes(payload_core)
+
+    # Getting ciphertext (encrypting plaintext using ML-KEM-768)
+    ciphertext = encrypt_mlkem768(ml_kem_768_public_key, plaintext)
+
+    # Compute commitment: blake2_256(payload_core)
+    commitment_hash = hashlib.blake2b(payload_core, digest_size=32).digest()
+    commitment_hex = "0x" + commitment_hash.hex()
+
+    return commitment_hex, ciphertext, payload_core
+
+
+def get_event_data_by_event_name(events: list, event_name: str) -> Optional[dict]:
+    """
+    Extracts event data from triggered events by event ID.
+
+    Searches through a list of triggered events and returns the attributes dictionary for the first event matching the
+    specified event_id.
+
+    Parameters:
+        events: List of event dictionaries, typically from ExtrinsicReceipt.triggered_events. Each event should have an
+            "module_id". "event_id" key and an "attributes" key.
+        event_name: The events identifier to search for (e.g. "mevShield.EncryptedSubmitted", etc).
+
+    Returns:
+        The attributes dictionary of the matching event, or None if no matching event is found."""
+    for event in events:
+        try:
+            module_id, event_id = event_name.split(".")
+        except (ValueError, AttributeError):
+            logging.debug(
+                "Invalid event_name. Should be string as `module_id.event_id` e.g. `mevShield.EncryptedSubmitted`."
+            )
+            return None
+        if (
+            event["module_id"].lower() == module_id.lower()
+            and event["event_id"].lower() == event_id.lower()
+        ):
+            return event
+    return None

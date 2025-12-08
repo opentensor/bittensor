@@ -68,6 +68,7 @@ class TestBTStreamingResponseModel:
 
     def test_bt_streaming_response_model_creation(self):
         """Test BTStreamingResponseModel initialization."""
+
         async def mock_token_streamer(send: Send):
             await send({"type": "http.response.body", "body": b"test"})
 
@@ -76,6 +77,7 @@ class TestBTStreamingResponseModel:
 
     def test_bt_streaming_response_model_validation(self):
         """Test that BTStreamingResponseModel validates token_streamer type."""
+
         # Should accept callable
         async def valid_streamer(send: Send):
             pass
@@ -94,6 +96,7 @@ class TestBTStreamingResponse:
 
     def test_bt_streaming_response_creation(self):
         """Test BTStreamingResponse initialization."""
+
         async def mock_token_streamer(send: Send):
             await send({"type": "http.response.body", "body": b"test"})
 
@@ -106,6 +109,7 @@ class TestBTStreamingResponse:
 
     def test_bt_streaming_response_without_synapse(self):
         """Test BTStreamingResponse initialization without synapse."""
+
         async def mock_token_streamer(send: Send):
             pass
 
@@ -132,12 +136,14 @@ class TestBTStreamingResponse:
 
         # Verify send was called with correct structure
         assert send_mock.call_count == 3
-        
+
         # First call: start response with headers
         first_call = send_mock.call_args_list[0][0][0]
         assert first_call["type"] == "http.response.start"
         assert first_call["status"] == 200
-        assert any(h == (b"content-type", b"text/event-stream") for h in first_call["headers"])
+        assert any(
+            h == (b"content-type", b"text/event-stream") for h in first_call["headers"]
+        )
 
         # Second call: token streamer
         assert call_order == ["token_streamer"]
@@ -169,6 +175,7 @@ class TestBTStreamingResponse:
     @pytest.mark.asyncio
     async def test_streaming_response_headers(self):
         """Verify content-type headers for event-streaming."""
+
         async def mock_streamer(send: Send):
             pass
 
@@ -181,12 +188,13 @@ class TestBTStreamingResponse:
         # Check that headers include text/event-stream
         headers_call = send_mock.call_args_list[0][0][0]
         headers = headers_call["headers"]
-        
+
         assert (b"content-type", b"text/event-stream") in headers
 
     @pytest.mark.asyncio
     async def test_asgi_interface_compatibility(self):
         """Test ASGI scope/receive/send interface."""
+
         async def mock_streamer(send: Send):
             await send({"type": "http.response.body", "body": b"test"})
 
@@ -506,7 +514,7 @@ class TestStreamingIntegration:
         # Check headers in first call
         headers_call = send_mock.call_args_list[0][0][0]
         headers = dict(headers_call["headers"])
-        
+
         # Verify event-stream header is present
         assert headers.get(b"content-type") == b"text/event-stream"
 
@@ -521,7 +529,7 @@ class TestStreamingIntegration:
             await send({"type": "http.response.body", "body": b"stream2"})
 
         synapse = ConcreteStreamingSynapse()
-        
+
         response1 = synapse.create_streaming_response(streamer1)
         response2 = synapse.create_streaming_response(streamer2)
 

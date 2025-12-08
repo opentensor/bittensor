@@ -2,7 +2,7 @@ import asyncio
 import copy
 import ssl
 from datetime import datetime, timezone
-from typing import cast, Optional, Any, Union, Iterable, TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Iterable, Literal, Optional, Union, cast
 
 import asyncstdlib as a
 import scalecodec
@@ -14,17 +14,17 @@ from bittensor_wallet.utils import SS58_FORMAT
 from scalecodec import GenericCall
 
 from bittensor.core.chain_data import (
-    CrowdloanInfo,
     CrowdloanConstants,
+    CrowdloanInfo,
     DelegateInfo,
     DynamicInfo,
     MetagraphInfo,
-    NeuronInfoLite,
     NeuronInfo,
+    NeuronInfoLite,
     ProposalVoteData,
     ProxyAnnouncementInfo,
-    ProxyInfo,
     ProxyConstants,
+    ProxyInfo,
     ProxyType,
     RootClaimType,
     SelectiveMetagraphIndex,
@@ -67,10 +67,11 @@ from bittensor.core.extrinsics.asyncex.liquidity import (
     remove_liquidity_extrinsic,
     toggle_user_liquidity_extrinsic,
 )
+from bittensor.core.extrinsics.asyncex.mev_shield import submit_encrypted_extrinsic
 from bittensor.core.extrinsics.asyncex.move_stake import (
-    transfer_stake_extrinsic,
-    swap_stake_extrinsic,
     move_stake_extrinsic,
+    swap_stake_extrinsic,
+    transfer_stake_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.proxy import (
     add_proxy_extrinsic,
@@ -82,8 +83,8 @@ from bittensor.core.extrinsics.asyncex.proxy import (
     proxy_extrinsic,
     reject_announcement_extrinsic,
     remove_announcement_extrinsic,
-    remove_proxy_extrinsic,
     remove_proxies_extrinsic,
+    remove_proxy_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.registration import (
     burned_register_extrinsic,
@@ -98,8 +99,8 @@ from bittensor.core.extrinsics.asyncex.root import (
 )
 from bittensor.core.extrinsics.asyncex.serving import (
     publish_metadata_extrinsic,
+    serve_axon_extrinsic,
 )
-from bittensor.core.extrinsics.asyncex.serving import serve_axon_extrinsic
 from bittensor.core.extrinsics.asyncex.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
@@ -122,10 +123,11 @@ from bittensor.core.extrinsics.asyncex.weights import (
 from bittensor.core.extrinsics.utils import get_transfer_fn_params
 from bittensor.core.metagraph import AsyncMetagraph
 from bittensor.core.settings import (
-    version_as_int,
+    DEFAULT_MEV_PROTECTION,
     DEFAULT_PERIOD,
-    TYPE_REGISTRY,
     TAO_APP_BLOCK_EXPLORER,
+    TYPE_REGISTRY,
+    version_as_int,
 )
 from bittensor.core.types import (
     BlockInfo,
@@ -148,23 +150,24 @@ from bittensor.utils import (
 )
 from bittensor.utils.balance import (
     Balance,
-    fixed_to_float,
     check_balance_amount,
+    fixed_to_float,
 )
 from bittensor.utils.btlogging import logging
 from bittensor.utils.liquidity import (
+    LiquidityPosition,
     calculate_fees,
     get_fees,
-    tick_to_price,
     price_to_tick,
-    LiquidityPosition,
+    tick_to_price,
 )
 
 if TYPE_CHECKING:
+    from async_substrate_interface import AsyncQueryMapResult
     from async_substrate_interface.types import ScaleObj
     from bittensor_wallet import Keypair, Wallet
+
     from bittensor.core.axon import Axon
-    from async_substrate_interface import AsyncQueryMapResult
 
 
 class AsyncSubtensor(SubtensorMixin):
@@ -2949,6 +2952,212 @@ class AsyncSubtensor(SubtensorMixin):
 
         return MetagraphInfo.from_dict(query.value)
 
+    async def get_mev_shield_current_key(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional[bytes]:
+        """
+        Retrieves the CurrentKey from the MevShield pallet storage.
+
+        The CurrentKey contains the ML-KEM-768 public key that is currently being used for encryption in this block.
+        This key is rotated from NextKey at the beginning of each block.
+
+        Parameters:
+            block: The blockchain block number for the query.
+            block_hash: The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block.
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            The ML-KEM-768 public key as bytes (1184 bytes for ML-KEM-768)
+
+        Note:
+            If CurrentKey is not set (None in storage), this function returns None. This can happen if no validator has
+            announced a key yet.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query = await self.substrate.query(
+            module="MevShield",
+            storage_function="CurrentKey",
+            block_hash=block_hash,
+        )
+
+        if query is None:
+            return None
+
+        public_key_bytes = bytes(next(iter(query)))
+
+        # Validate public_key size for ML-KEM-768 (must be exactly 1184 bytes)
+        MLKEM768_PUBLIC_KEY_SIZE = 1184
+        if len(public_key_bytes) != MLKEM768_PUBLIC_KEY_SIZE:
+            raise ValueError(
+                f"Invalid ML-KEM-768 public key size: {len(public_key_bytes)} bytes. "
+                f"Expected exactly {MLKEM768_PUBLIC_KEY_SIZE} bytes."
+            )
+
+        return public_key_bytes
+
+    async def get_mev_shield_next_key(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional[bytes]:
+        """
+        Retrieves the NextKey from the MevShield pallet storage.
+
+        The NextKey contains the ML-KEM-768 public key that will be used for encryption in the next block. This key is
+        rotated from NextKey to CurrentKey at the beginning of each block.
+
+        Parameters:
+            block: The blockchain block number for the query.
+            block_hash: The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block.
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            The ML-KEM-768 public key as bytes (1184 bytes for ML-KEM-768)
+
+        Note:
+            If NextKey is not set (None in storage), this function returns None. This can happen if no validator has
+            announced the next key yet.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query = await self.substrate.query(
+            module="MevShield",
+            storage_function="NextKey",
+            block_hash=block_hash,
+        )
+
+        if query is None:
+            return None
+
+        public_key_bytes = bytes(next(iter(query)))
+
+        # Validate public_key size for ML-KEM-768 (must be exactly 1184 bytes)
+        MLKEM768_PUBLIC_KEY_SIZE = 1184
+        if len(public_key_bytes) != MLKEM768_PUBLIC_KEY_SIZE:
+            raise ValueError(
+                f"Invalid ML-KEM-768 public key size: {len(public_key_bytes)} bytes. "
+                f"Expected exactly {MLKEM768_PUBLIC_KEY_SIZE} bytes."
+            )
+
+        return public_key_bytes
+
+    async def get_mev_shield_submission(
+        self,
+        submission_id: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional[dict[str, str | int | bytes]]:
+        """
+        Retrieves Submission from the MevShield pallet storage.
+
+        If submission_id is provided, returns a single submission. If submission_id is None, returns all submissions from
+        the storage map.
+
+        Parameters:
+            submission_id: The hash ID of the submission. Can be a hex string with "0x" prefix or bytes. If None,
+                returns all submissions.
+            block: The blockchain block number for the query.
+            block_hash: The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block.
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            If submission_id is provided: A dictionary containing the submission data if found, None otherwise. The
+                dictionary contains:
+                - author: The SS58 address of the account that submitted the encrypted extrinsic
+                - commitment: The blake2_256 hash of the payload_core (as hex string with "0x" prefix)
+                - ciphertext: The encrypted blob as bytes (format: [u16 kem_len][kem_ct][nonce24][aead_ct])
+                - submitted_in: The block number when the submission was created
+
+            If submission_id is None: A dictionary mapping submission IDs (as hex strings) to submission dictionaries.
+
+        Note:
+            If a specific submission does not exist in storage, this function returns None. If querying all submissions
+            and none exist, returns an empty dictionary.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        submission_id = (
+            submission_id[2:] if submission_id.startswith("0x") else submission_id
+        )
+        submission_id_bytes = bytes.fromhex(submission_id)
+
+        query = await self.substrate.query(
+            module="MevShield",
+            storage_function="Submissions",
+            params=[submission_id_bytes],
+            block_hash=block_hash,
+        )
+
+        if query is None or not isinstance(query, dict):
+            return None
+
+        autor = decode_account_id(query.get("author"))
+        commitment = bytes(query.get("commitment")[0])
+        ciphertext = bytes(query.get("ciphertext")[0])
+        submitted_in = query.get("submitted_in")
+
+        return {
+            "author": autor,
+            "commitment": commitment,
+            "ciphertext": ciphertext,
+            "submitted_in": submitted_in,
+        }
+
+    async def get_mev_shield_submissions(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional[dict[str, dict[str, str | int]]]:
+        """
+        Retrieves all encrypted submissions from the MevShield pallet storage.
+
+        This function queries the MevShield.Submissions storage map and returns all pending encrypted submissions that
+        have been submitted via submit_encrypted but not yet executed via execute_revealed.
+
+        Parameters:
+            block: The blockchain block number for the query. If None, uses the current block.
+            block_hash: The hash of the block to retrieve the submissions from. Do not specify if using block or reuse_block.
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            A dictionary mapping wrapper_id (as hex string with "0x" prefix) to submission data dictionaries. Each
+            submission dictionary contains:
+            - author: The SS58 address of the account that submitted the encrypted extrinsic
+            - commitment: The blake2_256 hash of the payload_core as bytes (32 bytes)
+            - ciphertext: The encrypted blob as bytes (format: [u16 kem_len][kem_ct][nonce24][aead_ct])
+            - submitted_in: The block number when the submission was created
+
+            Returns None if no submissions exist in storage at the specified block.
+
+        Note:
+            Submissions are automatically pruned after KEY_EPOCH_HISTORY blocks (100 blocks) by the pallet's
+            on_initialize hook. Only submissions that have been submitted but not yet executed will be present in
+            storage.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query = await self.substrate.query_map(
+            module="MevShield",
+            storage_function="Submissions",
+            block_hash=block_hash,
+        )
+
+        result = {}
+        async for q in query:
+            key, value = q
+            value = value.value
+            result["0x" + bytes(key[0]).hex()] = {
+                "author": decode_account_id(value.get("author")),
+                "commitment": bytes(value.get("commitment")[0]),
+                "ciphertext": bytes(value.get("ciphertext")[0]),
+                "submitted_in": value.get("submitted_in"),
+            }
+
+        return result if result else None
+
     async def get_minimum_required_stake(self):
         """
         Returns the minimum required stake for nominators in the Subtensor network.
@@ -3121,7 +3330,7 @@ class AsyncSubtensor(SubtensorMixin):
             netuid=netuid, tempo=tempo, block_hash=block_hash
         )
 
-        if not blocks_until:
+        if blocks_until is None:
             return None
 
         return current_block + blocks_until + 1
@@ -5438,6 +5647,10 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             GenericCall: Composed call object ready for extrinsic submission.
+
+        Notes:
+            For detailed documentation and examples of composing calls, including the CallBuilder utility, see:
+            <https://docs.learnbittensor.org/sdk/call>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
 
@@ -5603,10 +5816,13 @@ class AsyncSubtensor(SubtensorMixin):
         safe_staking: bool = False,
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Adds a stake from the specified wallet to the neuron identified by the SS58 address of its hotkey in specified
@@ -5624,12 +5840,16 @@ class AsyncSubtensor(SubtensorMixin):
                 exceed the price tolerance. If false, the entire stake fails if it would exceed the tolerance.
             rate_tolerance: The maximum allowed price change ratio when staking. For example, 0.005 = 0.5% maximum price
                 increase. Only used when safe_staking is True.
+            mev_protection: If True, encrypts and submits the staking transaction through the MEV Shield pallet  to
+                protect against front-running and MEV attacks. The transaction remains encrypted in the mempool until
+                validators decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5648,10 +5868,12 @@ class AsyncSubtensor(SubtensorMixin):
             safe_staking=safe_staking,
             allow_partial_stake=allow_partial_stake,
             rate_tolerance=rate_tolerance,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def add_liquidity(
@@ -5662,10 +5884,13 @@ class AsyncSubtensor(SubtensorMixin):
         price_low: Balance,
         price_high: Balance,
         hotkey_ss58: Optional[str] = None,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Adds liquidity to the specified price range.
@@ -5677,12 +5902,16 @@ class AsyncSubtensor(SubtensorMixin):
             price_low: The lower bound of the price tick range. In TAO.
             price_high: The upper bound of the price tick range. In TAO.
             hotkey_ss58: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5698,10 +5927,12 @@ class AsyncSubtensor(SubtensorMixin):
             price_low=price_low,
             price_high=price_high,
             hotkey_ss58=hotkey_ss58,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def add_stake_multiple(
@@ -5710,10 +5941,13 @@ class AsyncSubtensor(SubtensorMixin):
         netuids: UIDs,
         hotkey_ss58s: list[str],
         amounts: list[Balance],
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Adds stakes to multiple neurons identified by their hotkey SS58 addresses.
@@ -5724,12 +5958,16 @@ class AsyncSubtensor(SubtensorMixin):
             netuids: List of subnet UIDs.
             hotkey_ss58s: List of ``SS58`` addresses of hotkeys to stake to.
             amounts: List of corresponding TAO amounts to bet for each netuid and hotkey.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5743,10 +5981,12 @@ class AsyncSubtensor(SubtensorMixin):
             netuids=netuids,
             hotkey_ss58s=hotkey_ss58s,
             amounts=amounts,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def add_proxy(
@@ -5755,10 +5995,13 @@ class AsyncSubtensor(SubtensorMixin):
         delegate_ss58: str,
         proxy_type: Union[str, "ProxyType"],
         delay: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Adds a proxy relationship.
@@ -5773,12 +6016,16 @@ class AsyncSubtensor(SubtensorMixin):
             proxy_type: The type of proxy permissions (e.g., "Any", "NonTransfer", "Governance", "Staking"). Can be a
                 string or ProxyType enum value.
             delay: The number of blocks before the proxy can be used.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5793,10 +6040,12 @@ class AsyncSubtensor(SubtensorMixin):
             delegate_ss58=delegate_ss58,
             proxy_type=proxy_type,
             delay=delay,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def announce_proxy(
@@ -5804,10 +6053,13 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         real_account_ss58: str,
         call_hash: str,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Announces a future call that will be executed through a proxy.
@@ -5820,12 +6072,16 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: Bittensor wallet object (should be the proxy account wallet).
             real_account_ss58: The SS58 address of the real account on whose behalf the call will be made.
             call_hash: The hash of the call that will be executed in the future.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5839,20 +6095,25 @@ class AsyncSubtensor(SubtensorMixin):
             wallet=wallet,
             real_account_ss58=real_account_ss58,
             call_hash=call_hash,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def burned_register(
         self,
         wallet: "Wallet",
         netuid: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Registers a neuron on the Bittensor network by recycling TAO. This method of registration involves recycling
@@ -5861,12 +6122,16 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             wallet: The wallet associated with the neuron to be registered.
             netuid: The unique identifier of the subnet.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5876,42 +6141,53 @@ class AsyncSubtensor(SubtensorMixin):
                 return await root_register_extrinsic(
                     subtensor=self,
                     wallet=wallet,
+                    mev_protection=mev_protection,
                     period=period,
                     raise_error=raise_error,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
+                    wait_for_revealed_execution=wait_for_revealed_execution,
                 )
 
             return await burned_register_extrinsic(
                 subtensor=self,
                 wallet=wallet,
                 netuid=netuid,
+                mev_protection=mev_protection,
                 period=period,
                 raise_error=raise_error,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=wait_for_revealed_execution,
             )
 
     async def claim_root(
         self,
         wallet: "Wallet",
         netuids: "UIDs",
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ):
         """Claims the root emissions for a coldkey.
 
         Parameters:
             wallet: Bittensor Wallet instance.
             netuids: The netuids to claim root emissions for.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5920,10 +6196,12 @@ class AsyncSubtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             netuids=netuids,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def commit_weights(
@@ -5936,10 +6214,13 @@ class AsyncSubtensor(SubtensorMixin):
         mechid: int = 0,
         version_key: int = version_as_int,
         max_attempts: int = 5,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = 16,
         raise_error: bool = True,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Commits a hash of the subnet validator's weight vector to the Bittensor blockchain using the provided wallet.
@@ -5954,12 +6235,16 @@ class AsyncSubtensor(SubtensorMixin):
             mechid: The subnet mechanism unique identifier.
             version_key: Version key for compatibility with the network.
             max_attempts: The number of maximum attempts to commit weights.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -5992,10 +6277,12 @@ class AsyncSubtensor(SubtensorMixin):
                     uids=uids,
                     weights=weights,
                     salt=salt,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
+                    mev_protection=mev_protection,
                     period=period,
                     raise_error=raise_error,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                    wait_for_revealed_execution=wait_for_revealed_execution,
                 )
             except Exception as error:
                 return ExtrinsicResponse.from_exception(
@@ -6015,10 +6302,13 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         crowdloan_id: int,
         amount: "Balance",
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Contributes funds to an active crowdloan campaign.
@@ -6027,12 +6317,16 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: Bittensor Wallet instance used to sign the transaction.
             crowdloan_id: The unique identifier of the crowdloan to contribute to.
             amount: Amount to contribute.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6042,10 +6336,12 @@ class AsyncSubtensor(SubtensorMixin):
             wallet=wallet,
             crowdloan_id=crowdloan_id,
             amount=amount,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def create_crowdloan(
@@ -6057,10 +6353,13 @@ class AsyncSubtensor(SubtensorMixin):
         end: int,
         call: Optional["GenericCall"] = None,
         target_address: Optional[str] = None,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Creates a new crowdloan campaign on-chain.
@@ -6073,12 +6372,16 @@ class AsyncSubtensor(SubtensorMixin):
             end: Block number when the campaign ends.
             call: Runtime call data (e.g., subtensor::register_leased_network).
             target_address: SS58 address to transfer funds to on success.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6092,10 +6395,12 @@ class AsyncSubtensor(SubtensorMixin):
             end=end,
             call=call,
             target_address=target_address,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def create_pure_proxy(
@@ -6104,10 +6409,13 @@ class AsyncSubtensor(SubtensorMixin):
         proxy_type: Union[str, "ProxyType"],
         delay: int,
         index: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Creates a pure proxy account.
@@ -6121,12 +6429,16 @@ class AsyncSubtensor(SubtensorMixin):
             proxy_type: The type of proxy permissions for the pure proxy. Can be a string or ProxyType enum value.
             delay: The number of blocks before the pure proxy can be used.
             index: The index to use for generating the pure proxy account address.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6142,20 +6454,25 @@ class AsyncSubtensor(SubtensorMixin):
             proxy_type=proxy_type,
             delay=delay,
             index=index,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def dissolve_crowdloan(
         self,
         wallet: "Wallet",
         crowdloan_id: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Dissolves a completed or failed crowdloan campaign after all refunds are processed.
@@ -6166,12 +6483,16 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             wallet: Bittensor Wallet instance used to sign the transaction.
             crowdloan_id: The unique identifier of the crowdloan to dissolve.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6186,20 +6507,25 @@ class AsyncSubtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             crowdloan_id=crowdloan_id,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def finalize_crowdloan(
         self,
         wallet: "Wallet",
         crowdloan_id: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Finalizes a successful crowdloan campaign once the cap has been reached and the end block has passed.
@@ -6209,10 +6535,14 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             wallet: Bittensor Wallet instance used to sign the transaction.
             crowdloan_id: The unique identifier of the crowdloan to finalize.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6221,10 +6551,12 @@ class AsyncSubtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             crowdloan_id=crowdloan_id,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def kill_pure_proxy(
@@ -6237,10 +6569,13 @@ class AsyncSubtensor(SubtensorMixin):
         height: int,
         ext_index: int,
         force_proxy_type: Optional[Union[str, "ProxyType"]] = ProxyType.Any,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Kills (removes) a pure proxy account.
@@ -6269,12 +6604,16 @@ class AsyncSubtensor(SubtensorMixin):
                 type (or `Any`) with the pure proxy account. Defaults to `ProxyType.Any` for maximum compatibility. If
                 `None`, Substrate will automatically select an available proxy type from the spawner's proxy
                 relationships.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6298,10 +6637,81 @@ class AsyncSubtensor(SubtensorMixin):
             height=height,
             ext_index=ext_index,
             force_proxy_type=force_proxy_type,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
+        )
+
+    async def mev_submit_encrypted(
+        self,
+        wallet: "Wallet",
+        call: "GenericCall",
+        sign_with: str = "coldkey",
+        *,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
+        blocks_for_revealed_execution: int = 3,
+    ) -> ExtrinsicResponse:
+        """
+        Submits an encrypted extrinsic to the MEV Shield pallet.
+
+        This function encrypts a call using ML-KEM-768 + XChaCha20Poly1305 and submits it to the MevShield pallet. The
+        extrinsic remains encrypted in the transaction pool until it is included in a block and decrypted by validators.
+
+        Parameters:
+            wallet: The wallet used to sign the extrinsic (must be unlocked, coldkey will be used for signing).
+            call: The GenericCall object to encrypt and submit.
+            sign_with: The keypair to use for signing the inner call/extrinsic. Can be either "coldkey" or "hotkey".
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+                think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the executed event, indicating that validators
+                have successfully decrypted and executed the inner call. If True, the function will poll subsequent
+                blocks for the event matching this submission's commitment.
+            blocks_for_revealed_execution: Maximum number of blocks to poll for the executed event after
+                inclusion. The function checks blocks from start_block+1 to start_block + blocks_for_revealed_execution.
+                Returns immediately if the event is found before the block limit is reached.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Raises:
+            ValueError: If NextKey is not available in storage or encryption fails.
+            SubstrateRequestException: If the extrinsic fails to be submitted or included.
+
+        Note:
+            The encryption uses the public key from NextKey storage, which rotates every block. The payload structure is:
+            payload_core = signer_bytes (32B) + nonce (u32 LE, 4B) + SCALE(call)
+            plaintext = payload_core + b"\\x01" + signature (64B for sr25519)
+            commitment = blake2_256(payload_core)
+
+        Notes:
+            For detailed documentation and examples of MEV Shield protection, see:
+            <https://docs.learnbittensor.org/sdk/mev-protection>
+
+            For creating GenericCall objects to use with this method, see:
+            <https://docs.learnbittensor.org/sdk/call>
+        """
+        return await submit_encrypted_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            call=call,
+            sign_with=sign_with,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
+            blocks_for_revealed_execution=blocks_for_revealed_execution,
         )
 
     async def modify_liquidity(
@@ -6311,10 +6721,13 @@ class AsyncSubtensor(SubtensorMixin):
         position_id: int,
         liquidity_delta: Balance,
         hotkey_ss58: Optional[str] = None,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """Modifies liquidity in liquidity position by adding or removing liquidity from it.
 
@@ -6324,12 +6737,16 @@ class AsyncSubtensor(SubtensorMixin):
             position_id: The id of the position record in the pool.
             liquidity_delta: The amount of liquidity to be added or removed (add if positive or remove if negative).
             hotkey_ss58: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6370,10 +6787,12 @@ class AsyncSubtensor(SubtensorMixin):
             position_id=position_id,
             liquidity_delta=liquidity_delta,
             hotkey_ss58=hotkey_ss58,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def move_stake(
@@ -6385,10 +6804,13 @@ class AsyncSubtensor(SubtensorMixin):
         destination_hotkey_ss58: str,
         amount: Optional[Balance] = None,
         move_all_stake: bool = False,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Moves stake to a different hotkey and/or subnet.
@@ -6401,12 +6823,16 @@ class AsyncSubtensor(SubtensorMixin):
             destination_hotkey_ss58: The SS58 address of the destination hotkey.
             amount: Amount of stake to move.
             move_all_stake: If true, moves all stake from the source hotkey to the destination hotkey.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6421,19 +6847,24 @@ class AsyncSubtensor(SubtensorMixin):
             destination_hotkey_ss58=destination_hotkey_ss58,
             amount=amount,
             move_all_stake=move_all_stake,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def poke_deposit(
         self,
         wallet: "Wallet",
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Adjusts deposits made for proxies and announcements based on current values.
@@ -6444,10 +6875,14 @@ class AsyncSubtensor(SubtensorMixin):
 
         Parameters:
             wallet: Bittensor wallet object (the account whose deposits will be adjusted).
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6464,10 +6899,12 @@ class AsyncSubtensor(SubtensorMixin):
         return await poke_deposit_extrinsic(
             subtensor=self,
             wallet=wallet,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def proxy(
@@ -6476,10 +6913,13 @@ class AsyncSubtensor(SubtensorMixin):
         real_account_ss58: str,
         force_proxy_type: Optional[Union[str, "ProxyType"]],
         call: "GenericCall",
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Executes a call on behalf of the real account through a proxy.
@@ -6494,12 +6934,16 @@ class AsyncSubtensor(SubtensorMixin):
             force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise,
                 must match one of the allowed proxy types. Can be a string or ProxyType enum value.
             call: The inner call to be executed on behalf of the real account.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6514,10 +6958,12 @@ class AsyncSubtensor(SubtensorMixin):
             real_account_ss58=real_account_ss58,
             force_proxy_type=force_proxy_type,
             call=call,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def proxy_announced(
@@ -6527,10 +6973,13 @@ class AsyncSubtensor(SubtensorMixin):
         real_account_ss58: str,
         force_proxy_type: Optional[Union[str, "ProxyType"]],
         call: "GenericCall",
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Executes an announced call on behalf of the real account through a proxy.
@@ -6546,12 +6995,16 @@ class AsyncSubtensor(SubtensorMixin):
             force_proxy_type: The type of proxy to use for the call. If None, any proxy type can be used. Otherwise,
                 must match one of the allowed proxy types. Can be a string or ProxyType enum value.
             call: The inner call to be executed on behalf of the real account (must match the announced call_hash).
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6567,20 +7020,25 @@ class AsyncSubtensor(SubtensorMixin):
             real_account_ss58=real_account_ss58,
             force_proxy_type=force_proxy_type,
             call=call,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def refund_crowdloan(
         self,
         wallet: "Wallet",
         crowdloan_id: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Refunds contributors from a failed or expired crowdloan campaign.
@@ -6591,12 +7049,16 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             wallet: Bittensor Wallet instance used to sign the transaction.
             crowdloan_id: The unique identifier of the crowdloan to refund.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6611,10 +7073,12 @@ class AsyncSubtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             crowdloan_id=crowdloan_id,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def reject_proxy_announcement(
@@ -6622,10 +7086,13 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         delegate_ss58: str,
         call_hash: str,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Rejects an announcement made by a proxy delegate.
@@ -6638,12 +7105,16 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: Bittensor wallet object (should be the real account wallet).
             delegate_ss58: The SS58 address of the delegate proxy account whose announcement is being rejected.
             call_hash: The hash of the call that was announced and is now being rejected.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6656,10 +7127,12 @@ class AsyncSubtensor(SubtensorMixin):
             wallet=wallet,
             delegate_ss58=delegate_ss58,
             call_hash=call_hash,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def register(
@@ -6674,10 +7147,13 @@ class AsyncSubtensor(SubtensorMixin):
         num_processes: Optional[int] = None,
         update_interval: Optional[int] = None,
         log_verbose: bool = False,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Registers a neuron on the Bittensor subnet with provided netuid using the provided wallet.
@@ -6697,12 +7173,16 @@ class AsyncSubtensor(SubtensorMixin):
             num_processes: The number of processes to use to register.
             update_interval: The number of nonces to solve between updates.
             log_verbose: If ``true``, the registration process will log more information.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6722,31 +7202,40 @@ class AsyncSubtensor(SubtensorMixin):
             dev_id=dev_id,
             output_in_place=output_in_place,
             log_verbose=log_verbose,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def register_subnet(
         self: "AsyncSubtensor",
         wallet: "Wallet",
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Registers a new subnetwork on the Bittensor network.
 
         Parameters:
             wallet: The wallet to be used for subnet registration.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6754,10 +7243,12 @@ class AsyncSubtensor(SubtensorMixin):
         return await register_subnet_extrinsic(
             subtensor=self,
             wallet=wallet,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def remove_proxy_announcement(
@@ -6765,10 +7256,13 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         real_account_ss58: str,
         call_hash: str,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Removes an announcement made by a proxy account.
@@ -6781,12 +7275,16 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: Bittensor wallet object (should be the proxy account wallet that made the announcement).
             real_account_ss58: The SS58 address of the real account on whose behalf the call was announced.
             call_hash: The hash of the call that was announced and is now being removed.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6800,10 +7298,12 @@ class AsyncSubtensor(SubtensorMixin):
             wallet=wallet,
             real_account_ss58=real_account_ss58,
             call_hash=call_hash,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def remove_liquidity(
@@ -6812,10 +7312,13 @@ class AsyncSubtensor(SubtensorMixin):
         netuid: int,
         position_id: int,
         hotkey_ss58: Optional[str] = None,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """Remove liquidity and credit balances back to wallet's hotkey stake.
 
@@ -6824,12 +7327,16 @@ class AsyncSubtensor(SubtensorMixin):
             netuid: The UID of the target subnet for which the call is being initiated.
             position_id: The id of the position record in the pool.
             hotkey_ss58: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6845,19 +7352,24 @@ class AsyncSubtensor(SubtensorMixin):
             netuid=netuid,
             position_id=position_id,
             hotkey_ss58=hotkey_ss58,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def remove_proxies(
         self,
         wallet: "Wallet",
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Removes all proxy relationships for the account in a single transaction.
@@ -6869,12 +7381,16 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             wallet: Bittensor wallet object. The account whose proxies will be removed (the delegator). All proxy
                 relationships where wallet.coldkey.ss58_address is the real account will be removed.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6886,10 +7402,12 @@ class AsyncSubtensor(SubtensorMixin):
         return await remove_proxies_extrinsic(
             subtensor=self,
             wallet=wallet,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def remove_proxy(
@@ -6898,10 +7416,13 @@ class AsyncSubtensor(SubtensorMixin):
         delegate_ss58: str,
         proxy_type: Union[str, "ProxyType"],
         delay: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Removes a specific proxy relationship.
@@ -6915,12 +7436,16 @@ class AsyncSubtensor(SubtensorMixin):
             delegate_ss58: The SS58 address of the delegate proxy account to remove.
             proxy_type: The type of proxy permissions to remove. Can be a string or ProxyType enum value.
             delay: The number of blocks before the proxy removal takes effect.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -6935,10 +7460,12 @@ class AsyncSubtensor(SubtensorMixin):
             delegate_ss58=delegate_ss58,
             proxy_type=proxy_type,
             delay=delay,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def reveal_weights(
@@ -6951,10 +7478,13 @@ class AsyncSubtensor(SubtensorMixin):
         mechid: int = 0,
         max_attempts: int = 5,
         version_key: int = version_as_int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = 16,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
@@ -6969,12 +7499,16 @@ class AsyncSubtensor(SubtensorMixin):
             mechid: The subnet mechanism unique identifier.
             max_attempts: The number of maximum attempts to reveal weights.
             version_key: Version key for compatibility with the network.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7001,10 +7535,12 @@ class AsyncSubtensor(SubtensorMixin):
                     weights=weights,
                     salt=salt,
                     version_key=version_key,
+                    mev_protection=mev_protection,
                     period=period,
                     raise_error=raise_error,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
+                    wait_for_revealed_execution=wait_for_revealed_execution,
                 )
             except Exception as error:
                 return ExtrinsicResponse.from_exception(
@@ -7019,22 +7555,29 @@ class AsyncSubtensor(SubtensorMixin):
     async def root_register(
         self,
         wallet: "Wallet",
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Register neuron by recycling some TAO.
 
         Parameters:
             wallet: The wallet associated with the neuron to be registered.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7043,32 +7586,41 @@ class AsyncSubtensor(SubtensorMixin):
         return await root_register_extrinsic(
             subtensor=self,
             wallet=wallet,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def root_set_pending_childkey_cooldown(
         self,
         wallet: "Wallet",
         cooldown: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """Sets the pending childkey cooldown.
 
         Parameters:
             wallet: bittensor wallet instance.
             cooldown: the number of blocks to setting pending childkey cooldown.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7079,10 +7631,12 @@ class AsyncSubtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             cooldown=cooldown,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def set_auto_stake(
@@ -7090,10 +7644,13 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         netuid: int,
         hotkey_ss58: str,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """Sets the coldkey to automatically stake to the hotkey within specific subnet mechanism.
 
@@ -7102,12 +7659,16 @@ class AsyncSubtensor(SubtensorMixin):
             netuid: The subnet unique identifier.
             hotkey_ss58: The SS58 address of the validator's hotkey to which the miner automatically stakes all rewards
                 received from the specified subnet immediately upon receipt.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7120,10 +7681,12 @@ class AsyncSubtensor(SubtensorMixin):
             wallet=wallet,
             netuid=netuid,
             hotkey_ss58=hotkey_ss58,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def set_children(
@@ -7132,10 +7695,13 @@ class AsyncSubtensor(SubtensorMixin):
         hotkey_ss58: str,
         netuid: int,
         children: list[tuple[float, str]],
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Allows a coldkey to set children-keys.
@@ -7145,12 +7711,16 @@ class AsyncSubtensor(SubtensorMixin):
             hotkey_ss58: The `SS58` address of the neuron's hotkey.
             netuid: The netuid value.
             children: A list of children with their proportions.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7174,10 +7744,12 @@ class AsyncSubtensor(SubtensorMixin):
             hotkey_ss58=hotkey_ss58,
             netuid=netuid,
             children=children,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def set_delegate_take(
@@ -7185,10 +7757,13 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         hotkey_ss58: str,
         take: float,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Sets the delegate 'take' percentage for a neuron identified by its hotkey.
@@ -7198,12 +7773,16 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: bittensor wallet instance.
             hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
             take: Percentage reward for the delegate.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7240,10 +7819,12 @@ class AsyncSubtensor(SubtensorMixin):
             hotkey_ss58=hotkey_ss58,
             take=take_u16,
             action="increase_take" if current_take_u16 < take_u16 else "decrease_take",
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_finalization=wait_for_finalization,
             wait_for_inclusion=wait_for_inclusion,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
         if response.success:
@@ -7256,10 +7837,13 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         new_root_claim_type: "Literal['Swap', 'Keep'] | RootClaimType | dict",
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ):
         """Sets the root claim type for the coldkey in provided wallet.
 
@@ -7270,12 +7854,16 @@ class AsyncSubtensor(SubtensorMixin):
                 - RootClaimType: RootClaimType.Swap, RootClaimType.Keep
                 - Dict: {"KeepSubnets": {"subnets": [1, 2, 3]}}
                 - Callable: RootClaimType.KeepSubnets([1, 2, 3])
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7284,10 +7872,12 @@ class AsyncSubtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             new_root_claim_type=new_root_claim_type,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def set_subnet_identity(
@@ -7295,10 +7885,13 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         netuid: int,
         subnet_identity: SubnetIdentity,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Sets the identity of a subnet for a specific wallet and network.
@@ -7308,12 +7901,16 @@ class AsyncSubtensor(SubtensorMixin):
             netuid: The unique ID of the network on which the operation takes place.
             subnet_identity: The identity data of the subnet including attributes like name, GitHub repository, contact,
                 URL, discord, description, and any additional metadata.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7330,10 +7927,12 @@ class AsyncSubtensor(SubtensorMixin):
             discord=subnet_identity.discord,
             description=subnet_identity.description,
             additional=subnet_identity.additional,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def set_weights(
@@ -7347,10 +7946,13 @@ class AsyncSubtensor(SubtensorMixin):
         commit_reveal_version: int = 4,
         max_attempts: int = 5,
         version_key: int = version_as_int,
-        period: Optional[int] = 8,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
+        period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Sets the weight vector for a neuron acting as a validator, specifying the weights assigned to subnet miners
@@ -7371,12 +7973,16 @@ class AsyncSubtensor(SubtensorMixin):
             commit_reveal_version: The version of the chain commit-reveal protocol to use.
             max_attempts: The number of maximum attempts to set weights.
             version_key: Version key for compatibility with the network.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7433,10 +8039,12 @@ class AsyncSubtensor(SubtensorMixin):
                         block_time=block_time,
                         commit_reveal_version=commit_reveal_version,
                         version_key=version_key,
+                        mev_protection=mev_protection,
                         period=period,
                         raise_error=raise_error,
                         wait_for_inclusion=wait_for_inclusion,
                         wait_for_finalization=wait_for_finalization,
+                        wait_for_revealed_execution=wait_for_revealed_execution,
                     )
                 except Exception as error:
                     return ExtrinsicResponse.from_exception(
@@ -7464,10 +8072,12 @@ class AsyncSubtensor(SubtensorMixin):
                         uids=uids,
                         weights=weights,
                         version_key=version_key,
+                        mev_protection=mev_protection,
                         period=period,
                         raise_error=raise_error,
                         wait_for_inclusion=wait_for_inclusion,
                         wait_for_finalization=wait_for_finalization,
+                        wait_for_revealed_execution=wait_for_revealed_execution,
                     )
                 except Exception as error:
                     return ExtrinsicResponse.from_exception(
@@ -7486,10 +8096,13 @@ class AsyncSubtensor(SubtensorMixin):
         netuid: int,
         axon: "Axon",
         certificate: Optional[Certificate] = None,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Registers an ``Axon`` serving endpoint on the Bittensor network for a specific neuron.
@@ -7501,12 +8114,16 @@ class AsyncSubtensor(SubtensorMixin):
             netuid: The unique identifier of the subnetwork.
             axon: The Axon instance to be registered for serving.
             certificate: Certificate to use for TLS. If ``None``, no TLS will be used.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's
                 submitted. If the transaction is not included in a block within that number of blocks, it will expire
                 and be rejected. You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Waits for the transaction to be included in a block.
             wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7519,10 +8136,12 @@ class AsyncSubtensor(SubtensorMixin):
             netuid=netuid,
             axon=axon,
             certificate=certificate,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def set_commitment(
@@ -7530,10 +8149,13 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         netuid: int,
         data: str,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Commits arbitrary data to the Bittensor network by publishing metadata.
@@ -7545,12 +8167,16 @@ class AsyncSubtensor(SubtensorMixin):
             wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the data.
             netuid (int): The unique identifier of the subnetwork.
             data (str): The data to be committed to the network.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7570,10 +8196,12 @@ class AsyncSubtensor(SubtensorMixin):
             netuid=netuid,
             data_type=f"Raw{len(data)}",
             data=data.encode(),
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def set_reveal_commitment(
@@ -7583,10 +8211,13 @@ class AsyncSubtensor(SubtensorMixin):
         data: str,
         blocks_until_reveal: int = 360,
         block_time: Union[int, float] = 12,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Commits arbitrary data to the Bittensor network by publishing metadata.
@@ -7598,12 +8229,16 @@ class AsyncSubtensor(SubtensorMixin):
             blocks_until_reveal: The number of blocks from now after which the data will be revealed. Then number of
                 blocks in one epoch.
             block_time: The number of seconds between each block.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7624,10 +8259,12 @@ class AsyncSubtensor(SubtensorMixin):
             netuid=netuid,
             data_type="TimelockEncrypted",
             data=data_,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
         response.data = data_
         return response
@@ -7636,10 +8273,13 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         netuid: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Submits a start_call extrinsic to the blockchain, to trigger the start call process for a subnet (used to start
@@ -7648,12 +8288,16 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             wallet: The wallet used to sign the extrinsic (must be unlocked).
             netuid: The UID of the target subnet for which the call is being initiated.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7662,10 +8306,12 @@ class AsyncSubtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             netuid=netuid,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def swap_stake(
@@ -7678,10 +8324,13 @@ class AsyncSubtensor(SubtensorMixin):
         safe_swapping: bool = False,
         allow_partial_stake: bool = False,
         rate_tolerance: float = 0.005,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Moves stake between subnets while keeping the same coldkey-hotkey pair ownership.
@@ -7700,12 +8349,16 @@ class AsyncSubtensor(SubtensorMixin):
             rate_tolerance: The maximum allowed increase in the price ratio between subnets
                 (origin_price/destination_price). For example, 0.005 = 0.5% maximum increase. Only used when
                 safe_staking is True.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the inclusion of the transaction.
             wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7728,10 +8381,12 @@ class AsyncSubtensor(SubtensorMixin):
             safe_swapping=safe_swapping,
             allow_partial_stake=allow_partial_stake,
             rate_tolerance=rate_tolerance,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def toggle_user_liquidity(
@@ -7739,10 +8394,13 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         netuid: int,
         enable: bool,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """Allow to toggle user liquidity for specified subnet.
 
@@ -7750,12 +8408,16 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: The wallet used to sign the extrinsic (must be unlocked).
             netuid: The UID of the target subnet for which the call is being initiated.
             enable: Boolean indicating whether to enable user liquidity.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7767,10 +8429,12 @@ class AsyncSubtensor(SubtensorMixin):
             wallet=wallet,
             netuid=netuid,
             enable=enable,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def transfer(
@@ -7780,10 +8444,13 @@ class AsyncSubtensor(SubtensorMixin):
         amount: Optional[Balance],
         transfer_all: bool = False,
         keep_alive: bool = True,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Transfer token of amount to destination.
@@ -7794,12 +8461,16 @@ class AsyncSubtensor(SubtensorMixin):
             amount: Number of tokens to transfer. `None` is transferring all.
             transfer_all: Flag to transfer all tokens.
             keep_alive: Flag to keep the connection alive.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7812,10 +8483,12 @@ class AsyncSubtensor(SubtensorMixin):
             amount=amount,
             transfer_all=transfer_all,
             keep_alive=keep_alive,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def transfer_stake(
@@ -7826,10 +8499,13 @@ class AsyncSubtensor(SubtensorMixin):
         origin_netuid: int,
         destination_netuid: int,
         amount: Balance,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Transfers stake from one subnet to another while changing the coldkey owner.
@@ -7841,12 +8517,16 @@ class AsyncSubtensor(SubtensorMixin):
             origin_netuid: The source subnet UID.
             destination_netuid: The destination subnet UID.
             amount: Amount to transfer.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7860,10 +8540,12 @@ class AsyncSubtensor(SubtensorMixin):
             origin_netuid=origin_netuid,
             destination_netuid=destination_netuid,
             amount=amount,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def unstake(
@@ -7875,10 +8557,13 @@ class AsyncSubtensor(SubtensorMixin):
         allow_partial_stake: bool = False,
         safe_unstaking: bool = False,
         rate_tolerance: float = 0.005,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Removes a specified amount of stake from a single hotkey account. This function is critical for adjusting
@@ -7896,12 +8581,16 @@ class AsyncSubtensor(SubtensorMixin):
                 0.005 = 0.5% maximum price decrease. Only used when safe_staking is True.
             safe_unstaking: If true, enables price safety checks to protect against fluctuating prices. The unstake
                 will only execute if the price change doesn't exceed the rate tolerance.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7919,10 +8608,12 @@ class AsyncSubtensor(SubtensorMixin):
             allow_partial_stake=allow_partial_stake,
             rate_tolerance=rate_tolerance,
             safe_unstaking=safe_unstaking,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def unstake_all(
@@ -7931,10 +8622,13 @@ class AsyncSubtensor(SubtensorMixin):
         netuid: int,
         hotkey_ss58: str,
         rate_tolerance: Optional[float] = 0.005,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """Unstakes all TAO/Alpha associated with a hotkey from the specified subnets on the Bittensor network.
 
@@ -7944,12 +8638,16 @@ class AsyncSubtensor(SubtensorMixin):
             hotkey_ss58: The SS58 address of the hotkey to unstake from.
             rate_tolerance: The maximum allowed price change ratio when unstaking. For example, 0.005 = 0.5% maximum
                 price decrease. If not passed (None), then unstaking goes without price limit.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -7999,10 +8697,12 @@ class AsyncSubtensor(SubtensorMixin):
             netuid=netuid,
             hotkey_ss58=hotkey_ss58,
             rate_tolerance=rate_tolerance,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def unstake_multiple(
@@ -8012,10 +8712,13 @@ class AsyncSubtensor(SubtensorMixin):
         hotkey_ss58s: list[str],
         amounts: Optional[list[Balance]] = None,
         unstake_all: bool = False,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Performs batch unstaking from multiple hotkey accounts, allowing a neuron to reduce its staked amounts
@@ -8027,12 +8730,16 @@ class AsyncSubtensor(SubtensorMixin):
             hotkey_ss58s: A list of hotkey `SS58` addresses to unstake from.
             amounts: The amounts of TAO to unstake from each hotkey. If not provided, unstakes all.
             unstake_all: If true, unstakes all tokens. If `True` amounts are ignored.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -8047,10 +8754,12 @@ class AsyncSubtensor(SubtensorMixin):
             hotkey_ss58s=hotkey_ss58s,
             amounts=amounts,
             unstake_all=unstake_all,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def update_cap_crowdloan(
@@ -8058,10 +8767,13 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         crowdloan_id: int,
         new_cap: "Balance",
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Updates the fundraising cap (maximum total contribution) of a non-finalized crowdloan.
@@ -8073,12 +8785,16 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: Bittensor Wallet instance used to sign the transaction.
             crowdloan_id: The unique identifier of the crowdloan to update.
             new_cap: The new fundraising cap (in TAO or Balance).
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -8093,10 +8809,12 @@ class AsyncSubtensor(SubtensorMixin):
             wallet=wallet,
             crowdloan_id=crowdloan_id,
             new_cap=new_cap,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def update_end_crowdloan(
@@ -8104,10 +8822,13 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         crowdloan_id: int,
         new_end: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Updates the end block of a non-finalized crowdloan campaign.
@@ -8119,12 +8840,16 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: Bittensor Wallet instance used to sign the transaction.
             crowdloan_id: The unique identifier of the crowdloan to update.
             new_end: The new block number at which the crowdloan will end.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -8140,10 +8865,12 @@ class AsyncSubtensor(SubtensorMixin):
             wallet=wallet,
             crowdloan_id=crowdloan_id,
             new_end=new_end,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def update_min_contribution_crowdloan(
@@ -8151,10 +8878,13 @@ class AsyncSubtensor(SubtensorMixin):
         wallet: "Wallet",
         crowdloan_id: int,
         new_min_contribution: "Balance",
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Updates the minimum contribution amount of a non-finalized crowdloan.
@@ -8166,12 +8896,16 @@ class AsyncSubtensor(SubtensorMixin):
             wallet: Bittensor Wallet instance used to sign the transaction.
             crowdloan_id: The unique identifier of the crowdloan to update.
             new_min_contribution: The new minimum contribution amount (in TAO or Balance).
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -8186,20 +8920,25 @@ class AsyncSubtensor(SubtensorMixin):
             wallet=wallet,
             crowdloan_id=crowdloan_id,
             new_min_contribution=new_min_contribution,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
     async def withdraw_crowdloan(
         self,
         wallet: "Wallet",
         crowdloan_id: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
         Withdraws a contribution from an active (not yet finalized or dissolved) crowdloan.
@@ -8207,12 +8946,16 @@ class AsyncSubtensor(SubtensorMixin):
         Parameters:
             wallet: Wallet instance used to sign the transaction (must be unlocked).
             crowdloan_id: The unique identifier of the crowdloan to withdraw from.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If
                 the transaction is not included in a block within that number of blocks, it will expire and be rejected.
                 You can think of it as an expiration date for the transaction.
             raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
             wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
@@ -8225,10 +8968,12 @@ class AsyncSubtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             crowdloan_id=crowdloan_id,
+            mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
 
