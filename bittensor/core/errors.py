@@ -10,9 +10,6 @@ from async_substrate_interface.errors import (
 if TYPE_CHECKING:
     from bittensor.core.synapse import Synapse
 
-# Re-export exceptions from async_substrate_interface for convenience
-# These are already imported above, no need for redundant aliases
-
 __all__ = [
     "BalanceTypeError",
     "BalanceUnitMismatchError",
