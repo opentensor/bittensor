@@ -10,6 +10,14 @@ from bittensor.core.extrinsics.pallets import Sudo
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.balance import Balance
 
+
+# TODO: Michael/Roman add the link to the docs once it's ready.'
+MEV_HOTKEY_USAGE_WARNING = (
+    "MeV Shield cannot be used with hotkey-signed extrinsics. The transaction will fail because the hotkey cannot pay "
+    "the required extrinsic deposit fee. If you still want to use the hot key, please top up your balance before making"
+    " the transaction."
+)
+
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.chain_data import StakeInfo

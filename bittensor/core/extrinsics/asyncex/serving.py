@@ -4,6 +4,7 @@ from typing import Optional, Union, TYPE_CHECKING
 from bittensor.core.errors import MetadataError
 from bittensor.core.extrinsics.asyncex.mev_shield import submit_encrypted_extrinsic
 from bittensor.core.extrinsics.pallets import Commitments, SubtensorModule
+from bittensor.core.extrinsics.utils import MEV_HOTKEY_USAGE_WARNING
 from bittensor.core.settings import DEFAULT_MEV_PROTECTION, version_as_int
 from bittensor.core.types import AxonServeCallParams, ExtrinsicResponse
 from bittensor.utils import (
@@ -108,6 +109,7 @@ async def serve_extrinsic(
         call = await call_function(**params.as_dict())
 
         if mev_protection:
+            logging.warning(MEV_HOTKEY_USAGE_WARNING)
             response = await submit_encrypted_extrinsic(
                 subtensor=subtensor,
                 wallet=wallet,
@@ -291,6 +293,7 @@ async def publish_metadata_extrinsic(
         call = await Commitments(subtensor).set_commitment(netuid=netuid, info=info)
 
         if mev_protection:
+            logging.warning(MEV_HOTKEY_USAGE_WARNING)
             response = await submit_encrypted_extrinsic(
                 subtensor=subtensor,
                 wallet=wallet,
