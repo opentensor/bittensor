@@ -316,8 +316,8 @@ def set_validator_claim_type_extrinsic(
 ) -> ExtrinsicResponse:
     """Sets the validator claim type for a hotkey on a specific subnet.
 
-    This allows validators to set a default claim type that will be inherited by stakers
-    who have set their root claim type to "Delegated" (the default).
+    This allows validators to set a default claim type that will be inherited by stakers who have set their root claim
+    type to "Delegated" (the default).
 
     Parameters:
         subtensor: Subtensor instance to interact with the blockchain.
