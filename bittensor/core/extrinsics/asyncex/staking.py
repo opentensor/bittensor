@@ -90,6 +90,13 @@ async def add_stake_extrinsic(
         )
 
         # Leave existential balance to keep key alive.
+        if old_balance <= existential_deposit:
+            return ExtrinsicResponse(
+                False,
+                f"Balance ({old_balance}) is not enough to cover existential deposit `{existential_deposit}`.",
+            ).with_log()
+
+        # Leave existential balance to keep key alive.
         if amount > old_balance - existential_deposit:
             # If we are staking all, we need to leave at least the existential deposit.
             amount = old_balance - existential_deposit
