@@ -169,7 +169,7 @@ async def root_register_extrinsic(
 async def set_root_claim_type_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
-    new_root_claim_type: "Literal['Swap', 'Keep'] | RootClaimType | dict",
+    new_root_claim_type: "Literal['Swap', 'Keep', 'Delegated'] | RootClaimType | dict",
     *,
     mev_protection: bool = DEFAULT_MEV_PROTECTION,
     period: Optional[int] = None,
@@ -184,8 +184,8 @@ async def set_root_claim_type_extrinsic(
         subtensor: Subtensor instance to interact with the blockchain.
         wallet: Bittensor Wallet instance.
         new_root_claim_type: The new root claim type to set. Can be:
-            - String: "Swap" or "Keep"
-            - RootClaimType: RootClaimType.Swap, RootClaimType.Keep
+            - String: "Swap", "Keep", "Delegated"
+            - RootClaimType: RootClaimType.Swap, RootClaimType.Keep, RootClaimType.Delegated
             - Dict: {"KeepSubnets": {"subnets": [1, 2, 3]}}
             - Callable: RootClaimType.KeepSubnets([1, 2, 3])
         mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
@@ -278,6 +278,98 @@ async def claim_root_extrinsic(
             return unlocked
 
         call = await SubtensorModule(subtensor).claim_root(subnets=netuids)
+
+        if mev_protection:
+            return await submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=wait_for_revealed_execution,
+            )
+        else:
+            return await subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+
+    except Exception as error:
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
+
+
+async def set_validator_claim_type_extrinsic(
+    subtensor: "AsyncSubtensor",
+    wallet: "Wallet",
+    hotkey_ss58: str,
+    netuid: int,
+    new_claim_type: "Literal['Swap', 'Keep'] | RootClaimType | dict",
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
+    period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
+) -> ExtrinsicResponse:
+    """Sets the validator claim type for a hotkey on a specific subnet.
+
+    This allows validators to set a default claim type that will be inherited by stakers
+    who have set their root claim type to "Delegated" (the default).
+
+    Parameters:
+        subtensor: AsyncSubtensor instance to interact with the blockchain.
+        wallet: Bittensor Wallet instance (must own the hotkey).
+        hotkey_ss58: The SS58 address of the hotkey to set claim type for.
+        netuid: The netuid of the subnet.
+        new_claim_type: The new validator claim type. Can be:
+            - String: "Swap" or "Keep"
+            - RootClaimType: RootClaimType.Swap, RootClaimType.Keep
+            - Dict: {"KeepSubnets": {"subnets": [1, 2, 3]}}
+            - Callable: RootClaimType.KeepSubnets([1, 2, 3])
+            Note: "Delegated" is not allowed for validators.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
+
+    Returns:
+        ExtrinsicResponse: The result object of the extrinsic execution.
+
+    Raises:
+        ValueError: If new_claim_type is "Delegated" (not allowed for validators).
+    """
+    try:
+        if not (
+            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+        ).success:
+            return unlocked
+
+        normalized_type = RootClaimType.normalize(new_claim_type)
+
+        # Validators cannot set Delegated claim type
+        if normalized_type == "Delegated":
+            raise ValueError(
+                "Delegated claim type cannot be set for validators. Validators must use Swap, Keep, or KeepSubnets."
+            )
+
+        call = await SubtensorModule(subtensor).set_validator_claim_type(
+            hotkey=hotkey_ss58,
+            netuid=netuid,
+            new_claim_type=normalized_type,
+        )
 
         if mev_protection:
             return await submit_encrypted_extrinsic(
