@@ -1061,7 +1061,7 @@ def test_submit_encrypted_extrinsic_with_hotkey(subtensor, fake_wallet, mocker):
     )
 
     # Asserts
-    mocked_unlock_wallet.assert_called_once_with(fake_wallet, False, "both")
+    mocked_unlock_wallet.assert_called_once_with(fake_wallet, False, "hotkey")
     mocked_get_next_key.assert_called_once()
     mocked_get_account_next_index.assert_called_once_with(
         account_address=fake_wallet.hotkey.ss58_address

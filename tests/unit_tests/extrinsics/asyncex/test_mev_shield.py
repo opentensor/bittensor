@@ -1153,7 +1153,7 @@ async def test_submit_encrypted_extrinsic_with_hotkey(subtensor, fake_wallet, mo
     )
 
     # Asserts
-    mocked_unlock_wallet.assert_called_once_with(fake_wallet, False, "both")
+    mocked_unlock_wallet.assert_called_once_with(fake_wallet, False, "hotkey")
     mocked_get_next_key.assert_awaited_once()
     assert mocked_get_account_next_index.await_count == 2
     mocked_get_account_next_index.assert_awaited_with(
