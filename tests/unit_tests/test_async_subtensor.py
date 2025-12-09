@@ -6315,3 +6315,100 @@ async def test_mev_submit_encrypted_default_params(subtensor, fake_wallet, mocke
         blocks_for_revealed_execution=3,
     )
     assert result == mocked_submit_encrypted_extrinsic.return_value
+
+
+@pytest.mark.parametrize(
+    "fake_result, expected_result",
+    [
+        ({"Swap": ()}, "Swap"),
+        ({"Keep": ()}, "Keep"),
+        (
+            {
+                "KeepSubnets": {
+                    "subnets": (
+                        (
+                            2,
+                            3,
+                        ),
+                    )
+                }
+            },
+            {"KeepSubnets": {"subnets": [2, 3]}},
+        ),
+        (
+            {"KeepSubnets": {"subnets": ((2,),)}},
+            {
+                "KeepSubnets": {
+                    "subnets": [
+                        2,
+                    ]
+                }
+            },
+        ),
+        (None, "Keep"),  # Default when query returns None
+        ({}, "Keep"),  # Default when query returns empty dict
+    ],
+)
+@pytest.mark.asyncio
+async def test_get_validator_claim_type(
+    mocker, subtensor, fake_result, expected_result
+):
+    """Tests that `get_validator_claim_type` calls proper methods and returns the correct value."""
+    # Preps
+    fake_hotkey_ss58 = mocker.Mock(spec=str)
+    fake_netuid = mocker.Mock(spec=int)
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query = mocker.patch.object(
+        subtensor.substrate, "query", return_value=fake_result
+    )
+
+    # call
+    result = await subtensor.get_validator_claim_type(fake_hotkey_ss58, fake_netuid)
+
+    # asserts
+    mocked_determine_block_hash.assert_awaited_once()
+    mocked_query.assert_awaited_once_with(
+        module="SubtensorModule",
+        storage_function="ValidatorClaimType",
+        params=[fake_hotkey_ss58, fake_netuid],
+        block_hash=mocked_determine_block_hash.return_value,
+        reuse_block_hash=False,
+    )
+    assert result == expected_result
+
+
+@pytest.mark.asyncio
+async def test_set_validator_claim_type(mocker, subtensor):
+    """Tests that `set_validator_claim_type` calls proper methods and returns the correct value."""
+    # Preps
+    faked_wallet = mocker.Mock(spec=Wallet)
+    fake_hotkey_ss58 = mocker.Mock(spec=str)
+    fake_netuid = mocker.Mock(spec=int)
+    fake_new_claim_type = mocker.Mock(spec=str)
+    mocked_set_validator_claim_type_extrinsic = mocker.patch.object(
+        async_subtensor, "set_validator_claim_type_extrinsic"
+    )
+
+    # call
+    response = await subtensor.set_validator_claim_type(
+        wallet=faked_wallet,
+        hotkey_ss58=fake_hotkey_ss58,
+        netuid=fake_netuid,
+        new_claim_type=fake_new_claim_type,
+    )
+
+    # asserts
+    mocked_set_validator_claim_type_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=faked_wallet,
+        hotkey_ss58=fake_hotkey_ss58,
+        netuid=fake_netuid,
+        new_claim_type=fake_new_claim_type,
+        mev_protection=DEFAULT_MEV_PROTECTION,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+    )
+    assert response == mocked_set_validator_claim_type_extrinsic.return_value
