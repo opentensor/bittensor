@@ -96,6 +96,7 @@ from bittensor.core.extrinsics.root import (
     claim_root_extrinsic,
     root_register_extrinsic,
     set_root_claim_type_extrinsic,
+    set_validator_claim_type_extrinsic,
 )
 from bittensor.core.extrinsics.serving import (
     publish_metadata_extrinsic,
@@ -3175,7 +3176,9 @@ class Subtensor(SubtensorMixin):
         The root claim type controls how dividends from staking to the Root Subnet (subnet 0) are processed when they
         are claimed:
 
-        - `Swap` (default): Alpha dividends are swapped to TAO at claim time and restaked on the root subnet.
+        - `Delegated` (default): Delegate the choice to the validator. Stakers with this setting will inherit
+          the validator's claim type (Swap or Keep) for each subnet.
+        - `Swap`: Alpha dividends are swapped to TAO at claim time and restaked on the root subnet.
         - `Keep`: Alpha dividends remain as Alpha on the originating subnets.
 
         Parameters:
@@ -3184,12 +3187,14 @@ class Subtensor(SubtensorMixin):
 
         Returns:
 
-            The root claim type as a string, either `Swap` or `Keep`,
+            The root claim type as a string, either `Swap`, `Keep`, or `Delegated`,
             or dict for "KeepSubnets" in format {"KeepSubnets": {"subnets": [1, 2, 3]}}.
+            If not set, returns `"Delegated"` (the default).
 
         Notes:
             - The claim type applies to both automatic and manual root claims; it does not affect the original TAO stake
               on subnet 0, only how Alpha dividends are treated.
+            - Stakers with `Delegated` will inherit the validator's claim type for each subnet when claiming.
             - See: <https://docs.learnbittensor.org/staking-and-delegation/root-claims>
             - See also: <https://docs.learnbittensor.org/staking-and-delegation/root-claims/managing-root-claims>
         """
@@ -3199,11 +3204,14 @@ class Subtensor(SubtensorMixin):
             params=[coldkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
-        # Query returns enum as dict: {"Swap": ()} or {"Keep": ()} or {"KeepSubnets": {"subnets": [1, 2, 3]}}
+
+        # Query returns enum as dict:
+        # - {"Swap": ()}, {"Keep": ()}, {"Delegated": ()}, or
+        # - {"KeepSubnets": {"subnets": [1, 2, 3]}}
         variant_name = next(iter(query.keys()))
         variant_value = query[variant_name]
 
-        # For simple variants (Swap, Keep), value is empty tuple, return string
+        # For simple variants (Swap, Keep, Delegated), value is empty tuple, return string.
         if not variant_value or variant_value == ():
             return variant_name
 
@@ -3977,6 +3985,55 @@ class Subtensor(SubtensorMixin):
             block=block,
         )
         return sim_swap_result.alpha_fee.set_unit(netuid=netuid)
+
+    def get_validator_claim_type(
+        self,
+        hotkey_ss58: str,
+        netuid: int,
+        block: Optional[int] = None,
+    ) -> Union[str, dict]:
+        """Retrieves the validator claim type for a given hotkey and netuid.
+
+        This returns the claim type that validators set for their hotkey on a specific subnet.
+        Stakers with "Delegated" root claim type will inherit this value when claiming root emissions.
+
+        Parameters:
+            hotkey_ss58: The ss58 address of the hotkey.
+            netuid: The netuid of the subnet.
+            block: The block number to query.
+
+        Returns:
+            Union[str, dict]: ValidatorClaimType value. Returns string for "Swap" or "Keep",
+            or dict for "KeepSubnets" in format {"KeepSubnets": {"subnets": [1, 2, 3]}}.
+            If not set, returns "Keep" (the default).
+        """
+        query = self.substrate.query(
+            module="SubtensorModule",
+            storage_function="ValidatorClaimType",
+            params=[hotkey_ss58, netuid],
+            block_hash=self.determine_block_hash(block),
+        )
+
+        # If query returns None or empty, return default "Keep"
+        if not query:
+            return "Keep"
+
+        # Query returns enum as dict: {"Swap": ()}, {"Keep": ()}, or {"KeepSubnets": {"subnets": [1, 2, 3]}}
+        variant_name = next(iter(query.keys()))
+        variant_value = query[variant_name]
+
+        # For simple variants (Swap, Keep), value is empty tuple, return string
+        if not variant_value or variant_value == ():
+            return variant_name
+
+        # For KeepSubnets, value contains the data, return full dict structure
+        if isinstance(variant_value, dict) and "subnets" in variant_value:
+            subnets_raw = variant_value["subnets"]
+            subnets = list(subnets_raw[0])
+
+            return {variant_name: {"subnets": subnets}}
+
+        return {variant_name: variant_value}
 
     def get_vote_data(
         self, proposal_hash: str, block: Optional[int] = None
@@ -7158,6 +7215,63 @@ class Subtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             new_root_claim_type=new_root_claim_type,
+            mev_protection=mev_protection,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
+        )
+
+    def set_validator_claim_type(
+        self,
+        wallet: "Wallet",
+        hotkey_ss58: str,
+        netuid: int,
+        new_claim_type: "Literal['Swap', 'Keep'] | RootClaimType | dict",
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
+    ) -> ExtrinsicResponse:
+        """Sets the validator claim type for a hotkey on a specific subnet.
+
+        This allows validators to set a default claim type that will be inherited by stakers
+        who have set their root claim type to "Delegated" (the default).
+
+        Parameters:
+            wallet: Bittensor Wallet instance (must own the hotkey).
+            hotkey_ss58: The SS58 address of the hotkey to set claim type for.
+            netuid: The netuid of the subnet.
+            new_claim_type: The new validator claim type. Can be:
+                - String: "Swap" or "Keep"
+                - RootClaimType: RootClaimType.Swap, RootClaimType.Keep
+                - Dict: {"KeepSubnets": {"subnets": [1, 2, 3]}}
+                - Callable: RootClaimType.KeepSubnets([1, 2, 3])
+                Note: "Delegated" is not allowed for validators.
+            mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If False, submits the transaction directly without encryption.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+        """
+        return set_validator_claim_type_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            hotkey_ss58=hotkey_ss58,
+            netuid=netuid,
+            new_claim_type=new_claim_type,
             mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,

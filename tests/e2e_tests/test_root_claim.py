@@ -1683,3 +1683,404 @@ async def test_root_claim_keep_subnets_validation_and_formats_async(
     assert isinstance(root_claim_type, dict)
     assert "KeepSubnets" in root_claim_type
     assert sn2.netuid in root_claim_type["KeepSubnets"]["subnets"]
+
+
+def test_validator_claim_type_set_and_get(
+    subtensor, alice_wallet, bob_wallet, charlie_wallet
+):
+    """Tests validator claim type set and get functionality, and Delegated inheritance.
+
+    Steps:
+    - Activate ROOT net to stake on Alice
+    - Register SN2 and the same validator (Alice) on that subnet to ROOT has an emissions
+    - Set validator claim type = Keep for Alice on SN2
+    - Verify that get_validator_claim_type(alice_hotkey, sn2_netuid) returns "Keep"
+    - Set validator claim type = Swap for Alice on SN2
+    - Verify that get_validator_claim_type returns "Swap"
+    - Verify default: for a new validator (Bob) on SN2 should return "Keep"
+    - Set validator claim type back to Keep for Alice
+    - Verify Delegated inheritance: Charlie with default Delegated claim type inherits Keep from validator Alice when
+        claiming root emissions (alpha stays on SN2, not swapped to TAO)
+    """
+    TEMPO_TO_SET = 20 if subtensor.chain.is_fast_blocks() else 10
+
+    # Activate ROOT net to stake on Alice
+    root_sn = TestSubnet(subtensor, 0)
+    root_sn.execute_steps(
+        [
+            SUDO_SET_ADMIN_FREEZE_WINDOW(alice_wallet, AdminUtils, True, 0),
+            SUDO_SET_TEMPO(alice_wallet, AdminUtils, True, NETUID, TEMPO_TO_SET),
+            ACTIVATE_SUBNET(alice_wallet),
+        ]
+    )
+
+    # Register SN2 and the same validator (Alice) on that subnet to ROOT has an emissions
+    sn2 = TestSubnet(subtensor)
+    sn2.execute_steps(
+        [
+            SUDO_SET_ADMIN_FREEZE_WINDOW(alice_wallet, AdminUtils, True, 0),
+            REGISTER_SUBNET(bob_wallet),
+            SUDO_SET_TEMPO(alice_wallet, AdminUtils, True, NETUID, TEMPO_TO_SET),
+            ACTIVATE_SUBNET(bob_wallet),
+            REGISTER_NEURON(alice_wallet),
+            REGISTER_NEURON(charlie_wallet),
+        ]
+    )
+
+    # Test 1: Set validator claim type = Keep for Alice on SN2
+    # Verify that get_validator_claim_type returns "Keep"
+    assert subtensor.staking.set_validator_claim_type(
+        wallet=alice_wallet,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        netuid=sn2.netuid,
+        new_claim_type=RootClaimType.Keep,
+    ).success
+
+    # Verify that get_validator_claim_type returns "Keep"
+    validator_claim_type = subtensor.staking.get_validator_claim_type(
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        netuid=sn2.netuid,
+    )
+    assert validator_claim_type == "Keep", (
+        f"Expected 'Keep', got {validator_claim_type}"
+    )
+
+    # Test 2: Set validator claim type = Swap for Alice on SN2
+    assert subtensor.staking.set_validator_claim_type(
+        wallet=alice_wallet,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        netuid=sn2.netuid,
+        new_claim_type=RootClaimType.Swap,
+    ).success
+
+    # Verify that get_validator_claim_type returns "Swap"
+    validator_claim_type = subtensor.staking.get_validator_claim_type(
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        netuid=sn2.netuid,
+    )
+    assert validator_claim_type == "Swap", (
+        f"Expected 'Swap', got {validator_claim_type}"
+    )
+
+    # Bob hasn't set validator claim type, so should return default "Keep"
+    bob_validator_claim_type = subtensor.staking.get_validator_claim_type(
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
+        netuid=sn2.netuid,
+    )
+    assert bob_validator_claim_type == "Keep", (
+        f"Expected default 'Keep' for new validator, got {bob_validator_claim_type}"
+    )
+
+    # Test 4: Set validator claim type back to Keep for Alice
+    assert subtensor.staking.set_validator_claim_type(
+        wallet=alice_wallet,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        netuid=sn2.netuid,
+        new_claim_type=RootClaimType.Keep,
+    ).success
+
+    # Verify it's back to Keep
+    validator_claim_type = subtensor.staking.get_validator_claim_type(
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        netuid=sn2.netuid,
+    )
+    assert validator_claim_type == "Keep", (
+        f"Expected 'Keep', got {validator_claim_type}"
+    )
+
+    # Test 5: Verify Delegated staker inherits validator claim type
+    # Charlie has default Delegated claim type (not explicitly set)
+    charlie_default_claim_type = subtensor.staking.get_root_claim_type(
+        coldkey_ss58=charlie_wallet.coldkey.ss58_address
+    )
+    assert charlie_default_claim_type == "Delegated", (
+        f"New staker should have default 'Delegated', got {charlie_default_claim_type}"
+    )
+
+    # Setup EMA for root emissions (must be before staking)
+    assert increase_subnet_ema(subtensor=subtensor, sudo_wallet=alice_wallet)
+
+    # Set NumRootClaim to 0 to avoid auto claims (for controlled testing)
+    # Must be set BEFORE staking
+    root_sn.execute_one(
+        SUDO_SET_NUM_ROOT_CLAIMS(alice_wallet, "SubtensorModule", True, 0)
+    )
+
+    stake_balance = Balance.from_tao(100)
+
+    # Stake from Charlie to Alice in ROOT
+    response = subtensor.staking.add_stake(
+        wallet=charlie_wallet,
+        netuid=root_sn.netuid,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        amount=stake_balance,
+    )
+    assert response.success, response.message
+
+    # Skip the epoch in which the stake was installed, since the emission doesn't occur
+    logging.console.info("Skipping stake epoch")
+    next_epoch_start_block = subtensor.subnets.get_next_epoch_start_block(
+        netuid=root_sn.netuid
+    )
+    subtensor.wait_for_block(block=next_epoch_start_block)
+
+    # Wait for multiple epochs to accumulate root alpha dividends
+    logging.console.info("Waiting for epochs to accumulate root alpha")
+    proof_counter = PROOF_COUNTER
+    while proof_counter > 0:
+        next_epoch_start_block = subtensor.subnets.get_next_epoch_start_block(
+            netuid=root_sn.netuid
+        )
+        subtensor.wait_for_block(block=next_epoch_start_block)
+        proof_counter -= 1
+
+    # Check that Charlie has claimable stake
+    claimable_stake_charlie = subtensor.staking.get_root_claimable_stake(
+        coldkey_ss58=charlie_wallet.coldkey.ss58_address,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        netuid=sn2.netuid,
+    )
+    assert claimable_stake_charlie > Balance.from_tao(0).set_unit(sn2.netuid), (
+        f"Charlie should have claimable root alpha, got {claimable_stake_charlie}"
+    )
+
+    # Get stake on SN2 before claim (should be 0)
+    stake_before_claim = subtensor.staking.get_stake(
+        coldkey_ss58=charlie_wallet.coldkey.ss58_address,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        netuid=sn2.netuid,
+    )
+    assert stake_before_claim == Balance.from_tao(0).set_unit(sn2.netuid)
+
+    # Manual claim_root - Charlie with Delegated should inherit Keep from validator
+    response = subtensor.staking.claim_root(wallet=charlie_wallet, netuids=[sn2.netuid])
+    assert response.success, response.message
+
+    # Verify that stake increased on SN2 (Keep behavior - alpha stays on subnet)
+    stake_after_claim = subtensor.staking.get_stake(
+        coldkey_ss58=charlie_wallet.coldkey.ss58_address,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        netuid=sn2.netuid,
+    )
+    assert stake_after_claim > stake_before_claim, (
+        f"Stake should increase on SN2 with Keep behavior. "
+        f"Before: {stake_before_claim}, After: {stake_after_claim}"
+    )
+
+    # Verify root claimed was updated
+    root_claimed = subtensor.staking.get_root_claimed(
+        coldkey_ss58=charlie_wallet.coldkey.ss58_address,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        netuid=sn2.netuid,
+    )
+    assert root_claimed >= claimable_stake_charlie, (
+        f"Root claimed should be at least equal to claimable stake. "
+        f"Claimed: {root_claimed}, Claimable: {claimable_stake_charlie}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_validator_claim_type_set_and_get_async(
+    async_subtensor, alice_wallet, bob_wallet, charlie_wallet
+):
+    """Tests validator claim type set and get functionality, and Delegated inheritance.
+
+    Steps:
+    - Activate ROOT net to stake on Alice
+    - Register SN2 and the same validator (Alice) on that subnet to ROOT has an emissions
+    - Set validator claim type = Keep for Alice on SN2
+    - Verify that get_validator_claim_type(alice_hotkey, sn2_netuid) returns "Keep"
+    - Set validator claim type = Swap for Alice on SN2
+    - Verify that get_validator_claim_type returns "Swap"
+    - Verify default: for a new validator (Bob) on SN2 should return "Keep"
+    - Set validator claim type back to Keep for Alice
+    - Verify Delegated inheritance: Charlie with default Delegated claim type inherits Keep from validator Alice when
+        claiming root emissions (alpha stays on SN2, not swapped to TAO)
+    """
+    TEMPO_TO_SET = 20 if await async_subtensor.chain.is_fast_blocks() else 10
+
+    # Activate ROOT net to stake on Alice
+    root_sn = TestSubnet(async_subtensor, 0)
+    await root_sn.async_execute_steps(
+        [
+            SUDO_SET_ADMIN_FREEZE_WINDOW(alice_wallet, AdminUtils, True, 0),
+            SUDO_SET_TEMPO(alice_wallet, AdminUtils, True, NETUID, TEMPO_TO_SET),
+            ACTIVATE_SUBNET(alice_wallet),
+        ]
+    )
+
+    # Register SN2 and the same validator (Alice) on that subnet to ROOT has an emissions
+    sn2 = TestSubnet(async_subtensor)
+    await sn2.async_execute_steps(
+        [
+            SUDO_SET_ADMIN_FREEZE_WINDOW(alice_wallet, AdminUtils, True, 0),
+            REGISTER_SUBNET(bob_wallet),
+            SUDO_SET_TEMPO(alice_wallet, AdminUtils, True, NETUID, TEMPO_TO_SET),
+            ACTIVATE_SUBNET(bob_wallet),
+            REGISTER_NEURON(alice_wallet),
+            REGISTER_NEURON(charlie_wallet),
+        ]
+    )
+
+    # Test 1: Set validator claim type = Keep for Alice on SN2
+    # Verify that get_validator_claim_type returns "Keep"
+    assert (
+        await async_subtensor.staking.set_validator_claim_type(
+            wallet=alice_wallet,
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
+            netuid=sn2.netuid,
+            new_claim_type=RootClaimType.Keep,
+        )
+    ).success
+
+    # Verify that get_validator_claim_type returns "Keep"
+    validator_claim_type = await async_subtensor.staking.get_validator_claim_type(
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        netuid=sn2.netuid,
+    )
+    assert validator_claim_type == "Keep", (
+        f"Expected 'Keep', got {validator_claim_type}"
+    )
+
+    # Test 2: Set validator claim type = Swap for Alice on SN2
+    assert (
+        await async_subtensor.staking.set_validator_claim_type(
+            wallet=alice_wallet,
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
+            netuid=sn2.netuid,
+            new_claim_type=RootClaimType.Swap,
+        )
+    ).success
+
+    # Verify that get_validator_claim_type returns "Swap"
+    validator_claim_type = await async_subtensor.staking.get_validator_claim_type(
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        netuid=sn2.netuid,
+    )
+    assert validator_claim_type == "Swap", (
+        f"Expected 'Swap', got {validator_claim_type}"
+    )
+
+    # Bob hasn't set validator claim type, so should return default "Keep"
+    bob_validator_claim_type = await async_subtensor.staking.get_validator_claim_type(
+        hotkey_ss58=bob_wallet.hotkey.ss58_address,
+        netuid=sn2.netuid,
+    )
+    assert bob_validator_claim_type == "Keep", (
+        f"Expected default 'Keep' for new validator, got {bob_validator_claim_type}"
+    )
+
+    # Test 4: Set validator claim type back to Keep for Alice
+    assert (
+        await async_subtensor.staking.set_validator_claim_type(
+            wallet=alice_wallet,
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
+            netuid=sn2.netuid,
+            new_claim_type=RootClaimType.Keep,
+        )
+    ).success
+
+    # Verify it's back to Keep
+    validator_claim_type = await async_subtensor.staking.get_validator_claim_type(
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        netuid=sn2.netuid,
+    )
+    assert validator_claim_type == "Keep", (
+        f"Expected 'Keep', got {validator_claim_type}"
+    )
+
+    # Test 5: Verify Delegated staker inherits validator claim type
+    # Charlie has default Delegated claim type (not explicitly set)
+    charlie_default_claim_type = await async_subtensor.staking.get_root_claim_type(
+        coldkey_ss58=charlie_wallet.coldkey.ss58_address
+    )
+    assert charlie_default_claim_type == "Delegated", (
+        f"New staker should have default 'Delegated', got {charlie_default_claim_type}"
+    )
+
+    # Setup EMA for root emissions (must be before staking)
+    assert await async_increase_subnet_ema(
+        subtensor=async_subtensor, sudo_wallet=alice_wallet
+    )
+
+    # Set NumRootClaim to 0 to avoid auto claims (for controlled testing)
+    # Must be set BEFORE staking
+    await root_sn.async_execute_one(
+        SUDO_SET_NUM_ROOT_CLAIMS(alice_wallet, "SubtensorModule", True, 0)
+    )
+
+    stake_balance = Balance.from_tao(100)
+
+    # Stake from Charlie to Alice in ROOT
+    response = await async_subtensor.staking.add_stake(
+        wallet=charlie_wallet,
+        netuid=root_sn.netuid,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        amount=stake_balance,
+    )
+    assert response.success, response.message
+
+    # Skip the epoch in which the stake was installed, since the emission doesn't occur
+    logging.console.info("Skipping stake epoch")
+    next_epoch_start_block = await async_subtensor.subnets.get_next_epoch_start_block(
+        netuid=root_sn.netuid
+    )
+    await async_subtensor.wait_for_block(block=next_epoch_start_block)
+
+    # Wait for multiple epochs to accumulate root alpha dividends
+    logging.console.info("Waiting for epochs to accumulate root alpha")
+    proof_counter = PROOF_COUNTER
+    while proof_counter > 0:
+        next_epoch_start_block = (
+            await async_subtensor.subnets.get_next_epoch_start_block(
+                netuid=root_sn.netuid
+            )
+        )
+        await async_subtensor.wait_for_block(block=next_epoch_start_block)
+        proof_counter -= 1
+
+    # Check that Charlie has claimable stake
+    claimable_stake_charlie = await async_subtensor.staking.get_root_claimable_stake(
+        coldkey_ss58=charlie_wallet.coldkey.ss58_address,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        netuid=sn2.netuid,
+    )
+    assert claimable_stake_charlie > Balance.from_tao(0).set_unit(sn2.netuid), (
+        f"Charlie should have claimable root alpha, got {claimable_stake_charlie}"
+    )
+
+    # Get stake on SN2 before claim (should be 0)
+    stake_before_claim = await async_subtensor.staking.get_stake(
+        coldkey_ss58=charlie_wallet.coldkey.ss58_address,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        netuid=sn2.netuid,
+    )
+    assert stake_before_claim == Balance.from_tao(0).set_unit(sn2.netuid)
+
+    # Manual claim_root - Charlie with Delegated should inherit Keep from validator
+    response = await async_subtensor.staking.claim_root(
+        wallet=charlie_wallet, netuids=[sn2.netuid]
+    )
+    assert response.success, response.message
+
+    # Verify that stake increased on SN2 (Keep behavior - alpha stays on subnet)
+    stake_after_claim = await async_subtensor.staking.get_stake(
+        coldkey_ss58=charlie_wallet.coldkey.ss58_address,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        netuid=sn2.netuid,
+    )
+    assert stake_after_claim > stake_before_claim, (
+        f"Stake should increase on SN2 with Keep behavior. "
+        f"Before: {stake_before_claim}, After: {stake_after_claim}"
+    )
+
+    # Verify root claimed was updated
+    root_claimed = await async_subtensor.staking.get_root_claimed(
+        coldkey_ss58=charlie_wallet.coldkey.ss58_address,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        netuid=sn2.netuid,
+    )
+    assert root_claimed >= claimable_stake_charlie, (
+        f"Root claimed should be at least equal to claimable stake. "
+        f"Claimed: {root_claimed}, Claimable: {claimable_stake_charlie}"
+    )

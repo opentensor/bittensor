@@ -322,3 +322,235 @@ def test_claim_root_extrinsic(subtensor, fake_wallet, mocker):
         wait_for_finalization=True,
     )
     assert response == mocked_sign_and_send_extrinsic.return_value
+
+
+@pytest.mark.parametrize(
+    "new_claim_type, expected_normalized, hotkey_ss58, netuid",
+    [
+        ("Swap", "Swap", "fake_hotkey_address", 1),
+        ("Keep", "Keep", "fake_hotkey_address", 2),
+        (RootClaimType.Swap, "Swap", "fake_hotkey_address", 1),
+        (RootClaimType.Keep, "Keep", "fake_hotkey_address", 2),
+        (
+            {"KeepSubnets": {"subnets": [1, 2, 3]}},
+            {"KeepSubnets": {"subnets": [1, 2, 3]}},
+            "fake_hotkey_address",
+            1,
+        ),
+        (
+            RootClaimType.KeepSubnets([1, 2, 3]),
+            {"KeepSubnets": {"subnets": [1, 2, 3]}},
+            "fake_hotkey_address",
+            2,
+        ),
+    ],
+    ids=[
+        "string-swap",
+        "string-keep",
+        "enum-swap",
+        "enum-keep",
+        "dict-keep-subnets",
+        "callable-keep-subnets",
+    ],
+)
+def test_set_validator_claim_type_extrinsic(
+    subtensor,
+    fake_wallet,
+    mocker,
+    new_claim_type,
+    expected_normalized,
+    hotkey_ss58,
+    netuid,
+):
+    """Tests `set_validator_claim_type_extrinsic` extrinsic function with various input formats."""
+    # Preps
+    mocked_normalize = mocker.patch.object(
+        RootClaimType, "normalize", return_value=expected_normalized
+    )
+    mocked_pallet_compose_call = mocker.patch.object(
+        root.SubtensorModule, "set_validator_claim_type"
+    )
+    mocked_sign_and_send_extrinsic = mocker.patch.object(
+        subtensor, "sign_and_send_extrinsic"
+    )
+
+    # call
+    response = root.set_validator_claim_type_extrinsic(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        hotkey_ss58=hotkey_ss58,
+        netuid=netuid,
+        new_claim_type=new_claim_type,
+    )
+
+    # asserts
+    mocked_normalize.assert_called_once_with(new_claim_type)
+    mocked_pallet_compose_call.assert_called_once_with(
+        hotkey=hotkey_ss58,
+        netuid=netuid,
+        new_claim_type=expected_normalized,
+    )
+    mocked_sign_and_send_extrinsic.assert_called_once_with(
+        call=mocked_pallet_compose_call.return_value,
+        wallet=fake_wallet,
+        period=None,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert response == mocked_sign_and_send_extrinsic.return_value
+
+
+def test_set_validator_claim_type_extrinsic_delegated_not_allowed(
+    subtensor, fake_wallet, mocker
+):
+    """Tests that `set_validator_claim_type_extrinsic` raises ValueError for Delegated claim type."""
+    # Preps
+    mocked_normalize = mocker.patch.object(
+        RootClaimType, "normalize", return_value="Delegated"
+    )
+    mocked_pallet_compose_call = mocker.patch.object(
+        root.SubtensorModule, "set_validator_claim_type"
+    )
+
+    # call and assert
+    with pytest.raises(
+        ValueError, match="Delegated claim type cannot be set for validators"
+    ):
+        root.set_validator_claim_type_extrinsic(
+            subtensor=subtensor,
+            wallet=fake_wallet,
+            hotkey_ss58="fake_hotkey_address",
+            netuid=1,
+            new_claim_type="Delegated",
+            raise_error=True,
+        )
+
+    mocked_normalize.assert_called_once_with("Delegated")
+    mocked_pallet_compose_call.assert_not_called()
+
+
+def test_set_validator_claim_type_extrinsic_delegated_not_allowed_no_raise(
+    subtensor, fake_wallet, mocker
+):
+    """Tests that `set_validator_claim_type_extrinsic` returns error response for Delegated claim type when raise_error=False."""
+    # Preps
+    mocked_normalize = mocker.patch.object(
+        RootClaimType, "normalize", return_value="Delegated"
+    )
+    mocked_pallet_compose_call = mocker.patch.object(
+        root.SubtensorModule, "set_validator_claim_type"
+    )
+    mocked_from_exception = mocker.patch.object(ExtrinsicResponse, "from_exception")
+
+    # call
+    response = root.set_validator_claim_type_extrinsic(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        hotkey_ss58="fake_hotkey_address",
+        netuid=1,
+        new_claim_type="Delegated",
+        raise_error=False,
+    )
+
+    # assert
+    mocked_normalize.assert_called_once_with("Delegated")
+    mocked_pallet_compose_call.assert_not_called()
+    mocked_from_exception.assert_called_once()
+    assert response == mocked_from_exception.return_value
+
+
+@pytest.mark.parametrize(
+    "invalid_input, expected_error",
+    [
+        ("InvalidType", ValueError),
+        ({"InvalidKey": {}}, ValueError),
+        ({"KeepSubnets": {}}, ValueError),  # Empty subnets
+        ({"KeepSubnets": {"subnets": []}}, ValueError),  # Empty subnets list
+        (
+            {"KeepSubnets": {"subnets": ["not", "integers"]}},
+            ValueError,
+        ),  # Non-integer subnets
+        (123, TypeError),  # Wrong type
+    ],
+    ids=[
+        "invalid-string",
+        "invalid-dict-key",
+        "empty-subnets-dict",
+        "empty-subnets-list",
+        "non-integer-subnets",
+        "wrong-type",
+    ],
+)
+def test_set_validator_claim_type_extrinsic_validation_with_raise_error(
+    subtensor, fake_wallet, mocker, invalid_input, expected_error
+):
+    """Tests `set_validator_claim_type_extrinsic` validation for invalid inputs with raise_error=True."""
+    # Preps
+    test_error = expected_error("Test error")
+    mocked_normalize = mocker.patch.object(
+        RootClaimType, "normalize", side_effect=test_error
+    )
+    mocked_pallet_compose_call = mocker.patch.object(
+        root.SubtensorModule, "set_validator_claim_type"
+    )
+
+    # call and assert
+    with pytest.raises(expected_error):
+        root.set_validator_claim_type_extrinsic(
+            subtensor=subtensor,
+            wallet=fake_wallet,
+            hotkey_ss58="fake_hotkey_address",
+            netuid=1,
+            new_claim_type=invalid_input,
+            raise_error=True,
+        )
+
+    mocked_normalize.assert_called_once_with(invalid_input)
+    mocked_pallet_compose_call.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "invalid_input, expected_error",
+    [
+        ("InvalidType", ValueError),
+        ({"InvalidKey": {}}, ValueError),
+        ({"KeepSubnets": {"subnets": []}}, ValueError),  # Empty subnets list
+        (123, TypeError),  # Wrong type
+    ],
+    ids=[
+        "invalid-string-no-raise",
+        "invalid-dict-key-no-raise",
+        "empty-subnets-list-no-raise",
+        "wrong-type-no-raise",
+    ],
+)
+def test_set_validator_claim_type_extrinsic_validation_without_raise_error(
+    subtensor, fake_wallet, mocker, invalid_input, expected_error
+):
+    """Tests `set_validator_claim_type_extrinsic` validation for invalid inputs with raise_error=False."""
+    # Preps
+    test_error = expected_error("Test error")
+    mocked_normalize = mocker.patch.object(
+        RootClaimType, "normalize", side_effect=test_error
+    )
+    mocked_pallet_compose_call = mocker.patch.object(
+        root.SubtensorModule, "set_validator_claim_type"
+    )
+    mocked_from_exception = mocker.patch.object(ExtrinsicResponse, "from_exception")
+
+    # call
+    response = root.set_validator_claim_type_extrinsic(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        hotkey_ss58="fake_hotkey_address",
+        netuid=1,
+        new_claim_type=invalid_input,
+        raise_error=False,
+    )
+
+    # assert
+    mocked_normalize.assert_called_once_with(invalid_input)
+    mocked_pallet_compose_call.assert_not_called()
+    mocked_from_exception.assert_called_once_with(raise_error=False, error=test_error)
+    assert response == mocked_from_exception.return_value
