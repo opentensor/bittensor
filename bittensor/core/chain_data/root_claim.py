@@ -40,26 +40,28 @@ class RootClaimType(str, Enum):
     Enumeration of root claim types in the Bittensor network.
 
     This enum defines how coldkeys manage their root alpha emissions:
-    - Swap: Swap any alpha emission for TAO
-    - Keep: Keep all alpha emission
-    - KeepSubnets: Keep alpha emission for specified subnets, swap everything else
+    - Delegated: Delegate the choice to the validator (inherit validator's claim type).
+    - Keep: Keep all alpha emission.
+    - KeepSubnets: Keep alpha emission for specified subnets, swap everything else.
+    - Swap: Swap any alpha emission for TAO.
 
     The values match exactly with the RootClaimTypeEnum defined in the Subtensor runtime.
     """
 
-    Swap = "Swap"
+    Delegated = "Delegated"
     Keep = "Keep"
     KeepSubnets = KeepSubnetsDescriptor
+    Swap = "Swap"
 
     @classmethod
     def normalize(
-        cls, value: "Literal['Swap', 'Keep'] | RootClaimType | dict"
+        cls, value: "Literal['Swap', 'Keep', 'Delegated'] | RootClaimType | dict"
     ) -> str | dict:
         """
         Normalizes a root claim type to a format suitable for Substrate calls.
 
         This method handles various input formats:
-        - String values ("Swap", "Keep") → returns string
+        - String values ("Swap", "Keep", "Delegated") → returns string
         - Enum values (RootClaimType.Swap) → returns string
         - Dict values ({"KeepSubnets": {"subnets": [1, 2, 3]}}) → returns dict as-is
         - Callable KeepSubnets([1, 2, 3]) → returns dict
@@ -68,7 +70,7 @@ class RootClaimType(str, Enum):
             value: The root claim type in any supported format.
 
         Returns:
-            Normalized value - string for Swap/Keep or dict for KeepSubnets.
+            Normalized value - string for Swap/Keep/Delegated or dict for KeepSubnets.
 
         Raises:
             ValueError: If the value is not a valid root claim type or KeepSubnets has no subnets.
@@ -90,7 +92,7 @@ class RootClaimType(str, Enum):
 
         # Handle string values
         if isinstance(value, str):
-            if value in ("Swap", "Keep"):
+            if value in ("Swap", "Keep", "Delegated"):
                 return value
             elif value == "KeepSubnets":
                 raise ValueError(
@@ -99,7 +101,7 @@ class RootClaimType(str, Enum):
             else:
                 raise ValueError(
                     f"Invalid root claim type: {value}. "
-                    f"Valid types are: 'Swap', 'Keep', or KeepSubnets dict/callable"
+                    f"Valid types are: 'Swap', 'Keep', 'Delegated', or KeepSubnets dict/callable"
                 )
 
         # Handle dict values (for KeepSubnets)
