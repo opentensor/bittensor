@@ -23,6 +23,7 @@ from fastapi.routing import serialize_response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
+from starlette.concurrency import run_in_threadpool
 
 from bittensor.core.chain_data import AxonInfo
 from bittensor.core.config import Config
@@ -144,8 +145,8 @@ class FastAPIThreadedServer(uvicorn.Server):
         method to initiate the server's execution in a separate thread.
         """
         with self.run_in_thread():
-            while not self.should_exit:
-                time.sleep(1e-3)
+            self._stop_event.wait()
+
 
     def start(self):
         """
@@ -157,6 +158,7 @@ class FastAPIThreadedServer(uvicorn.Server):
         """
         if not self.is_running:
             self.should_exit = False
+            self._stop_event = threading.Event()
             thread = threading.Thread(target=self._wrapper_run, daemon=True)
             thread.start()
             self.is_running = True
@@ -171,6 +173,7 @@ class FastAPIThreadedServer(uvicorn.Server):
         """
         if self.is_running:
             self.should_exit = True
+            self._stop_event.set()
 
 
 class Axon:
@@ -511,7 +514,7 @@ class Axon:
 
         async def endpoint(*args, **kwargs):
             start_time = time.time()
-            response = forward_fn(*args, **kwargs)
+            response = await run_in_threadpool(forward_fn, *args, **kwargs)
             if isinstance(response, Awaitable):
                 response = await response
             if isinstance(response, Synapse):
