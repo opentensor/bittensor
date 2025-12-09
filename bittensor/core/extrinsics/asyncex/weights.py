@@ -6,6 +6,7 @@ from bittensor_drand import get_encrypted_commit
 
 from bittensor.core.extrinsics.asyncex.mev_shield import submit_encrypted_extrinsic
 from bittensor.core.extrinsics.pallets import SubtensorModule
+from bittensor.core.extrinsics.utils import MEV_HOTKEY_USAGE_WARNING
 from bittensor.core.settings import DEFAULT_MEV_PROTECTION, version_as_int
 from bittensor.core.types import ExtrinsicResponse, Salt, UIDs, Weights
 from bittensor.utils import get_mechid_storage_index
@@ -107,6 +108,7 @@ async def commit_timelocked_weights_extrinsic(
         )
 
         if mev_protection:
+            logging.warning(MEV_HOTKEY_USAGE_WARNING)
             response = await submit_encrypted_extrinsic(
                 subtensor=subtensor,
                 wallet=wallet,
@@ -215,6 +217,7 @@ async def commit_weights_extrinsic(
         )
 
         if mev_protection:
+            logging.warning(MEV_HOTKEY_USAGE_WARNING)
             response = await submit_encrypted_extrinsic(
                 subtensor=subtensor,
                 wallet=wallet,
@@ -315,6 +318,7 @@ async def reveal_weights_extrinsic(
         )
 
         if mev_protection:
+            logging.warning(MEV_HOTKEY_USAGE_WARNING)
             response = await submit_encrypted_extrinsic(
                 subtensor=subtensor,
                 wallet=wallet,
@@ -412,6 +416,7 @@ async def set_weights_extrinsic(
         )
 
         if mev_protection:
+            logging.warning(MEV_HOTKEY_USAGE_WARNING)
             response = await submit_encrypted_extrinsic(
                 subtensor=subtensor,
                 wallet=wallet,

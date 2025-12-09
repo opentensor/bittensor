@@ -106,6 +106,7 @@ def serve_extrinsic(
         call = call_function(**params.as_dict())
 
         if mev_protection:
+            logging.warning(MEV_HOTKEY_USAGE_WARNING)
             response = submit_encrypted_extrinsic(
                 subtensor=subtensor,
                 wallet=wallet,
@@ -286,6 +287,7 @@ def publish_metadata_extrinsic(
         call = Commitments(subtensor).set_commitment(netuid=netuid, info=info)
 
         if mev_protection:
+            logging.warning(MEV_HOTKEY_USAGE_WARNING)
             response = submit_encrypted_extrinsic(
                 subtensor=subtensor,
                 wallet=wallet,
