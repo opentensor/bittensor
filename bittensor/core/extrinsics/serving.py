@@ -3,6 +3,7 @@ from typing import Optional, Union, TYPE_CHECKING
 from bittensor.core.errors import MetadataError
 from bittensor.core.extrinsics.mev_shield import submit_encrypted_extrinsic
 from bittensor.core.extrinsics.pallets import Commitments, SubtensorModule
+from bittensor.core.extrinsics.utils import MEV_HOTKEY_USAGE_WARNING
 from bittensor.core.settings import DEFAULT_MEV_PROTECTION, version_as_int
 from bittensor.core.types import AxonServeCallParams, ExtrinsicResponse
 from bittensor.utils import (
