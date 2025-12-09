@@ -10,11 +10,54 @@ from async_substrate_interface.errors import (
 if TYPE_CHECKING:
     from bittensor.core.synapse import Synapse
 
-# redundant aliases
-SubstrateRequestException = SubstrateRequestException
-StorageFunctionNotFound = StorageFunctionNotFound
-BlockNotFound = BlockNotFound
-ExtrinsicNotFound = ExtrinsicNotFound
+__all__ = [
+    "BalanceTypeError",
+    "BalanceUnitMismatchError",
+    "BlacklistedException",
+    "BlockNotFound",
+    "ChainConnectionError",
+    "ChainError",
+    "ChainQueryError",
+    "ChainTransactionError",
+    "DelegateTakeTooHigh",
+    "DelegateTakeTooLow",
+    "DelegateTxRateLimitExceeded",
+    "DuplicateChild",
+    "ExtrinsicNotFound",
+    "HotKeyAccountNotExists",
+    "IdentityError",
+    "InternalServerError",
+    "InvalidChild",
+    "InvalidRequestNameError",
+    "MaxAttemptsException",
+    "MaxSuccessException",
+    "MetadataError",
+    "NominationError",
+    "NonAssociatedColdKey",
+    "NotDelegateError",
+    "NotEnoughStakeToSetChildkeys",
+    "NotRegisteredError",
+    "NotVerifiedException",
+    "PostProcessException",
+    "PriorityException",
+    "ProportionOverflow",
+    "RegistrationError",
+    "RegistrationNotPermittedOnRootSubnet",
+    "RunException",
+    "StakeError",
+    "StorageFunctionNotFound",
+    "SubnetNotExists",
+    "SubstrateRequestException",
+    "SynapseDendriteNoneException",
+    "SynapseException",
+    "SynapseParsingError",
+    "TakeError",
+    "TooManyChildren",
+    "TransferError",
+    "TxRateLimitExceeded",
+    "UnknownSynapseError",
+    "UnstakeError",
+]
 
 
 class _ChainErrorMeta(type):
@@ -38,6 +81,14 @@ class MaxSuccessException(Exception):
 
 class MaxAttemptsException(Exception):
     """Raised when the POW Solver has reached the max number of attempts."""
+
+
+class BalanceTypeError(Exception):
+    """Raised when a Balance object receives an invalid type."""
+
+
+class BalanceUnitMismatchError(Exception):
+    """Raised when Balance objects with different units are used in operations."""
 
 
 class ChainError(SubstrateRequestException, metaclass=_ChainErrorMeta):
@@ -212,11 +263,3 @@ class SynapseDendriteNoneException(SynapseException):
     ):
         self.message = message
         super().__init__(self.message, synapse)
-
-
-class BalanceUnitMismatchError(Exception):
-    """Raised when operations is attempted between Balance objects with different units (netuid)."""
-
-
-class BalanceTypeError(TypeError):
-    """Raised when an unsupported type is used instead of Balance amount."""
