@@ -565,6 +565,31 @@ class SubtensorModule(_BasePallet):
             additional=additional,
         )
 
+    def set_validator_claim_type(
+        self,
+        hotkey: str,
+        netuid: int,
+        new_claim_type: Literal["Swap", "Keep"] | dict,
+    ) -> Call:
+        """Returns GenericCall instance for Subtensor function SubtensorModule.set_validator_claim_type.
+
+        Parameters:
+            hotkey: The hotkey SS58 address associated with the validator.
+            netuid: The netuid of the subnet.
+            new_claim_type: The new validator claim type. Can be:
+                - String: "Swap" or "Keep"
+                - Dict: {"KeepSubnets": {"subnets": [1, 2, 3]}}
+                Note: "Delegated" is not allowed for validators.
+
+        Returns:
+            GenericCall instance.
+        """
+        return self.create_composed_call(
+            hotkey=hotkey,
+            netuid=netuid,
+            new_claim_type=new_claim_type,
+        )
+
     def start_call(self, netuid: int) -> Call:
         """Returns GenericCall instance for Subtensor function SubtensorModule.start_call.
 
