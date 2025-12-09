@@ -151,8 +151,6 @@ def submit_encrypted_extrinsic(
                 f"'sign_with' must be either 'coldkey' or 'hotkey', not '{sign_with}'"
             )
 
-        unlock_type = "both" if sign_with == "hotkey" else "coldkey"
-
         if wait_for_revealed_execution and not wait_for_inclusion:
             return ExtrinsicResponse.from_exception(
                 raise_error=raise_error,
@@ -162,9 +160,7 @@ def submit_encrypted_extrinsic(
             )
 
         if not (
-            unlocked := ExtrinsicResponse.unlock_wallet(
-                wallet, raise_error, unlock_type
-            )
+            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error, sign_with)
         ).success:
             return unlocked
 
