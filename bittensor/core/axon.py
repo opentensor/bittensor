@@ -514,7 +514,11 @@ class Axon:
 
         async def endpoint(*args, **kwargs):
             start_time = time.time()
-            response = await run_in_threadpool(forward_fn, *args, **kwargs)
+            if inspect.iscoroutinefunction(forward_fn):
+                response = await forward_fn(*args, **kwargs)
+            else:
+                response = await run_in_threadpool(forward_fn, *args, **kwargs)
+
             if isinstance(response, Awaitable):
                 response = await response
             if isinstance(response, Synapse):
