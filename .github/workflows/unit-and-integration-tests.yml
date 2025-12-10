@@ -56,7 +56,7 @@ jobs:
       - name: Sync dev deps (idempotent; fast on cache hit)
         run: |
           uv sync --extra dev --dev
-          pip install .[torch]
+          uv run pip install .[torch]
 
       - name: Unit tests
         timeout-minutes: 20
