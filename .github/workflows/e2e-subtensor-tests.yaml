@@ -205,7 +205,7 @@ jobs:
       - read-python-versions
     strategy:
       fail-fast: false
-      max-parallel: 16
+      max-parallel: 64
       matrix:
         include: ${{ fromJson(needs.find-tests.outputs.test-files) }}
     uses: ./.github/workflows/_run-e2e-single.yaml
