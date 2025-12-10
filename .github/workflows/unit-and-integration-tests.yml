@@ -54,7 +54,7 @@ jobs:
             uv-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python-version }}-
 
       - name: Sync dev deps (idempotent; fast on cache hit)
-        run: uv sync --extra dev --dev
+        run: uv sync --extra dev --dev --extra torch
 
       - name: Unit tests
         timeout-minutes: 20
