@@ -376,6 +376,7 @@ async def add_stake_multiple_extrinsic(
                     raise_error=raise_error,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
+                    wait_for_revealed_execution=wait_for_revealed_execution,
                 )
 
                 data.update({(idx, hotkey_ss58, netuid): response})
