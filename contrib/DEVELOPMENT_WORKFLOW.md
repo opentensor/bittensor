@@ -24,7 +24,8 @@
 Bittensor's codebase consists of two main branches: **master** and **staging**.
 
 **master**
-- This is Bittensor's live production branch, which should only be updated by the core development team. This branch is protected, so refrain from pushing or merging into it unless authorized.
+- This is Bittensor's live production branch, which should only be updated by the core development team. 
+- This branch is protected, so refrain from pushing or merging into it unless authorized.
 
 **staging**
 - This branch is continuously updated and is where you propose and merge changes. It's essentially Bittensor's active development branch.
@@ -35,7 +36,7 @@ Bittensor's codebase consists of two main branches: **master** and **staging**.
 
 - Branch off from: `staging`
 - Merge back into: `staging`
-- Naming convention: `feature/<ticket>/<descriptive-sentence>`
+- Naming convention: `feat/<ticket>/<descriptive-sentence>`
 
 Feature branches are used to develop new features for upcoming or future releases. They exist as long as the feature is in development, but will eventually be merged into `staging` or discarded. Always delete your feature branch after merging to avoid unnecessary clutter.
 
@@ -46,6 +47,16 @@ Feature branches are used to develop new features for upcoming or future release
 - Naming convention: `release/<version>/<descriptive-message>/<creator's-name>`
 
 Release branches support the preparation of a new production release, allowing for minor bug fixes and preparation of metadata (version number, configuration, etc). All new features should be merged into `staging` and wait for the next big release.
+
+### Fix Branches
+
+- Branch off from: `staging`
+- Merge back into: `staging`
+- Naming convention: `fix/<ticket>/<descriptive-sentence>`
+
+Fix branches are used to make bug fixes which are not necessarily worthy of a hotfix, such as an edge case failure that 
+can wait to go out in the next regular release. Always delete your branch after merging to avoid unnecessary clutter.
+
 
 ### Hotfix Branches
 
@@ -62,7 +73,7 @@ Hotfix branches are meant for quick fixes in the production environment. When a 
 #### Create a feature branch
 
 1. Branch from the **staging** branch.
-    1. Command: `git checkout -b feature/my-feature staging`
+    1. Command: `git checkout -b feat/mygithubname/my-feature staging`
 
 > Rebase frequently with the updated staging branch so you do not face big conflicts before submitting your pull request. Remember, syncing your changes with other developers could also help you avoid big conflicts.
 
@@ -71,9 +82,9 @@ Hotfix branches are meant for quick fixes in the production environment. When a 
 In other words, integrate your changes into a branch that will be tested and prepared for release.
 
 1. Switch branch to staging: `git checkout staging`
-2. Merging feature branch into staging: `git merge --no-ff feature/my-feature`
+2. Merging feature branch into staging: `git merge --no-ff feat/mygithubname/my-feature`
 3. Pushing changes to staging: `git push origin staging`
-4. Delete feature branch: `git branch -d feature/my-feature` (alternatively, this can be navigated on the GitHub web UI)
+4. Delete feature branch: `git branch -d feat/mygithubname/my-feature` (alternatively, this can be navigated on the GitHub web UI)
 
 This operation is done by Github when merging a PR.
 
@@ -83,7 +94,7 @@ So, what you have to keep in mind is:
 
 #### Creating a release branch
 
-1. Create branch from staging: `git checkout -b release/3.4.0/descriptive-message/creator's_name staging`
+1. Create branch from staging: `git checkout -b release/3.4.0/descriptive-message/creators_name staging`
 2. Updating version with major or minor: `./scripts/update_version.sh major|minor`
 3. Commit file changes with new version: `git commit -a -m "Updated version to 3.4.0"`
 
@@ -108,9 +119,8 @@ This step may well lead to a merge conflict (probably even, since we have change
 
 #### Creating a hotfix branch
 1. Create branch from master: `git checkout -b hotfix/3.3.4/descriptive-message/creator's-name master`
-2. Update patch version: `./scripts/update_version.sh patch`
-3. Commit file changes with new version: `git commit -a -m "Updated version to 3.3.4"`
-4. Fix the bug and commit the fix: `git commit -m "Fixed critical production issue X"`
+2. Commit file changes with new version: `git commit -a -m "Updated version to 3.3.4"`
+3. Fix the bug and commit the fix: `git commit -m "Fixed critical production issue X"`
 
 #### Finishing a Hotfix Branch
 
@@ -133,11 +143,12 @@ Finally, we remove the temporary branch:
 - `git branch -d hotfix/3.3.4/optional-descriptive-message`
 ## Continuous Integration (CI) and Continuous Deployment (CD)
 
-Continuous Integration (CI) is a software development practice where members of a team integrate their work frequently. Each integration is verified by an automated build and test process to detect integration errors as quickly as possible. 
+Continuous Integration (CI) is a software development practice where members of a team integrate their work frequently. 
+Each integration is verified by an automated build and test process to detect integration errors as quickly as possible. 
 
-Continuous Deployment (CD) is a software engineering approach in which software functionalities are delivered frequently through automated deployments.
+Continuous Deployment (CD) is a software engineering approach in which software functionalities are delivered frequently 
+through automated deployments.
 
-- **CircleCI job**: Create jobs in CircleCI to automate the merging of staging into master and release version (needed to release code) and building and testing Bittensor (needed to merge PRs).
 
 ## Versioning and Release Notes
 
