@@ -165,6 +165,7 @@ def submit_encrypted_extrinsic(
             return unlocked
 
         ml_kem_768_public_key = subtensor.get_mev_shield_next_key()
+        ml_kem_768_public_key = subtensor.get_mev_shield_current_key()
         if ml_kem_768_public_key is None:
             return ExtrinsicResponse.from_exception(
                 raise_error=raise_error,
