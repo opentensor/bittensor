@@ -52,8 +52,6 @@ METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
     "n",
     "block",
     "stake",
-    "ranks",
-    "trust",
     "consensus",
     "validator_trust",
     "incentive",
