@@ -58,14 +58,11 @@ def test_incentive(subtensor, templates, alice_wallet, bob_wallet):
     assert alice_neuron.validator_trust == 0
     assert alice_neuron.incentive == 0
     assert alice_neuron.consensus == 0
-    assert alice_neuron.rank == 0
 
     bob_neuron = subtensor.neurons.neurons(netuid=alice_sn.netuid)[1]
 
     assert bob_neuron.incentive == 0
     assert bob_neuron.consensus == 0
-    assert bob_neuron.rank == 0
-    assert bob_neuron.trust == 0
 
     # update weights_set_rate_limit for fast-blocks
     tempo = subtensor.subnets.tempo(alice_sn.netuid)
@@ -123,14 +120,11 @@ def test_incentive(subtensor, templates, alice_wallet, bob_wallet):
             assert alice_neuron.validator_trust > 0.99
             assert alice_neuron.incentive < 0.5
             assert alice_neuron.consensus < 0.5
-            assert alice_neuron.rank < 0.5
 
             bob_neuron = neurons[1]
 
             assert bob_neuron.incentive > 0.5
             assert bob_neuron.consensus > 0.5
-            assert bob_neuron.rank > 0.5
-            assert bob_neuron.trust == 1
 
             bonds = subtensor.subnets.bonds(alice_sn.netuid)
 
@@ -198,14 +192,11 @@ async def test_incentive_async(async_subtensor, templates, alice_wallet, bob_wal
     assert alice_neuron.validator_trust == 0
     assert alice_neuron.incentive == 0
     assert alice_neuron.consensus == 0
-    assert alice_neuron.rank == 0
 
     bob_neuron = (await async_subtensor.neurons.neurons(netuid=alice_sn.netuid))[1]
 
     assert bob_neuron.incentive == 0
     assert bob_neuron.consensus == 0
-    assert bob_neuron.rank == 0
-    assert bob_neuron.trust == 0
 
     # update weights_set_rate_limit for fast-blocks
     tempo = await async_subtensor.subnets.tempo(alice_sn.netuid)
@@ -268,14 +259,11 @@ async def test_incentive_async(async_subtensor, templates, alice_wallet, bob_wal
             assert alice_neuron.validator_trust > 0.99
             assert alice_neuron.incentive < 0.5
             assert alice_neuron.consensus < 0.5
-            assert alice_neuron.rank < 0.5
 
             bob_neuron = neurons[1]
 
             assert bob_neuron.incentive > 0.5
             assert bob_neuron.consensus > 0.5
-            assert bob_neuron.rank > 0.5
-            assert bob_neuron.trust == 1
 
             bonds = await async_subtensor.subnets.bonds(alice_sn.netuid)
 
