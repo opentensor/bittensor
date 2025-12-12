@@ -191,7 +191,6 @@ class MetagraphMixin(ABC):
         n (NDArray): The total number of neurons in the network, reflecting its size and complexity.
         block (NDArray): The current block number in the blockchain, crucial for synchronizing with the network's latest state.
         stake: Represents the cryptocurrency staked by neurons, impacting their influence and earnings within the network.
-        total_stake: The cumulative stake across all neurons.
         ranks: Neuron rankings as per the Yuma Consensus algorithm, influencing their incentive distribution and network authority.
         trust: Scores indicating the reliability of neurons, mainly miners, within the network's operational context.
         consensus: Scores reflecting each neuron's alignment with the network's collective decisions.
@@ -323,20 +322,6 @@ class MetagraphMixin(ABC):
         return self.stake
 
     @property
-    def R(self) -> Tensor:
-        """
-        Contains the ranks of neurons in the Bittensor network. Ranks are determined by the network based
-        on each neuron's performance and contributions. Higher ranks typically indicate a greater level of
-        contribution or performance by a neuron. These ranks are crucial in determining the distribution of
-        incentives within the network, with higher-ranked neurons receiving more incentive.
-
-        Returns:
-            Tensor: A tensor where each element represents the rank of a neuron. Higher values indicate higher ranks
-                within the network.
-        """
-        return self.ranks
-
-    @property
     def I(self) -> Tensor:
         """
         Incentive values of neurons represent the rewards they receive for their contributions to the network.
@@ -379,23 +364,6 @@ class MetagraphMixin(ABC):
 
         """
         return self.consensus
-
-    @property
-    def T(self) -> Tensor:
-        """
-        Represents the trust values assigned to each neuron in the Bittensor network. Trust is a key metric that
-        reflects the reliability and reputation of a neuron based on its past behavior and contributions. It is
-        an essential aspect of the network's functioning, influencing decision-making processes and interactions
-        between neurons.
-
-        The trust matrix is inferred from the network's inter-peer weights, indicating the level of trust each neuron
-        has in others. A higher value in the trust matrix suggests a stronger trust relationship between neurons.
-
-        Returns:
-            Tensor: A tensor of trust values, where each element represents the trust level of a neuron. Higher values
-                denote a higher level of trust within the network.
-        """
-        return self.trust
 
     @property
     def Tv(self) -> Tensor:
@@ -633,7 +601,6 @@ class MetagraphMixin(ABC):
             "version": self.version,
             "n": self.n,
             "block": self.block,
-            "ranks": self.ranks,
             "trust": self.trust,
             "consensus": self.consensus,
             "validator_trust": self.validator_trust,
@@ -762,10 +729,6 @@ class MetagraphMixin(ABC):
         self.uids = self._create_tensor(
             [neuron.uid for neuron in self.neurons], dtype=self._dtype_registry["int64"]
         )
-        self.trust = self._create_tensor(
-            [neuron.trust for neuron in self.neurons],
-            dtype=self._dtype_registry["float32"],
-        )
         self.consensus = self._create_tensor(
             [neuron.consensus for neuron in self.neurons],
             dtype=self._dtype_registry["float32"],
@@ -776,10 +739,6 @@ class MetagraphMixin(ABC):
         )
         self.dividends = self._create_tensor(
             [neuron.dividends for neuron in self.neurons],
-            dtype=self._dtype_registry["float32"],
-        )
-        self.ranks = self._create_tensor(
-            [neuron.rank for neuron in self.neurons],
             dtype=self._dtype_registry["float32"],
         )
         self.emission = self._create_tensor(
@@ -1060,7 +1019,7 @@ class TorchMetagraph(MetagraphMixin, BaseClass):
                 metagraph = Metagraph(netuid=123, network="finney", lite=True, sync=True)
         """
         BaseClass.__init__(self)
-        MetagraphMixin.__init__(self, netuid, network, lite, sync, subtensor, mechid)
+        MetagraphMixin.__init__(self, netuid, mechid, network, lite, sync, subtensor)
         self._dtype_registry = {
             "int64": torch.int64,
             "float32": torch.float32,
@@ -1080,12 +1039,6 @@ class TorchMetagraph(MetagraphMixin, BaseClass):
             torch.tensor([], dtype=torch.float32), requires_grad=False
         )
         self.total_stake: torch.nn.Parameter = torch.nn.Parameter(
-            torch.tensor([], dtype=torch.float32), requires_grad=False
-        )
-        self.ranks: torch.nn.Parameter = torch.nn.Parameter(
-            torch.tensor([], dtype=torch.float32), requires_grad=False
-        )
-        self.trust: torch.nn.Parameter = torch.nn.Parameter(
             torch.tensor([], dtype=torch.float32), requires_grad=False
         )
         self.consensus: torch.nn.Parameter = torch.nn.Parameter(
@@ -1159,8 +1112,6 @@ class TorchMetagraph(MetagraphMixin, BaseClass):
         self.total_stake = torch.nn.Parameter(
             state_dict["total_stake"], requires_grad=False
         )
-        self.ranks = torch.nn.Parameter(state_dict["ranks"], requires_grad=False)
-        self.trust = torch.nn.Parameter(state_dict["trust"], requires_grad=False)
         self.consensus = torch.nn.Parameter(
             state_dict["consensus"], requires_grad=False
         )
@@ -1234,8 +1185,6 @@ class NonTorchMetagraph(MetagraphMixin):
         self.version = np.array([settings.version_as_int], dtype=np.int64)
         self.n = np.array([0], dtype=np.int64)
         self.block = np.array([0], dtype=np.int64)
-        self.ranks = np.array([], dtype=np.float32)
-        self.trust = np.array([], dtype=np.float32)
         self.consensus = np.array([], dtype=np.float32)
         self.validator_trust = np.array([], dtype=np.float32)
         self.incentive = np.array([], dtype=np.float32)
@@ -1296,8 +1245,6 @@ class NonTorchMetagraph(MetagraphMixin):
         self.block = state_dict["block"]
         self.uids = state_dict["uids"]
         self.stake = state_dict["stake"]
-        self.ranks = state_dict["ranks"]
-        self.trust = state_dict["trust"]
         self.consensus = state_dict["consensus"]
         self.validator_trust = state_dict["validator_trust"]
         self.incentive = state_dict["incentive"]
