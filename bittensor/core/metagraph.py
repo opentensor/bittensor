@@ -601,7 +601,6 @@ class MetagraphMixin(ABC):
             "version": self.version,
             "n": self.n,
             "block": self.block,
-            "trust": self.trust,
             "consensus": self.consensus,
             "validator_trust": self.validator_trust,
             "incentive": self.incentive,
