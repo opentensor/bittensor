@@ -515,53 +515,31 @@ def kill_pure_proxy_extrinsic(
     Example:
 
         # After creating a pure proxy
-
         create_response = subtensor.proxies.create_pure_proxy(
-
             wallet=spawner_wallet,
-
             proxy_type=ProxyType.Any,  # Type of proxy permissions for the pure proxy
-
             delay=0,
-
             index=0,
-
         )
 
         pure_proxy_ss58 = create_response.data["pure_account"]
-
         spawner = create_response.data["spawner"]
-
         proxy_type_used = create_response.data["proxy_type"]  # The proxy_type used during creation
-
         height = create_response.data["height"]
-
         ext_index = create_response.data["ext_index"]
-
         # Kill the pure proxy
-
         # Note: force_proxy_type defaults to ProxyType.Any (spawner must have Any proxy relationship)
 
         kill_response = subtensor.proxies.kill_pure_proxy(
-
             wallet=spawner_wallet,
-
             pure_proxy_ss58=pure_proxy_ss58,
-
             spawner=spawner,
-
             proxy_type=proxy_type_used,  # Must match the proxy_type used during creation
-
             index=0,
-
             height=height,
-
             ext_index=ext_index,
-
             # force_proxy_type=ProxyType.Any,  # Optional: defaults to ProxyType.Any
-
         )
-
     """
     try:
         if not (
@@ -602,6 +580,7 @@ def kill_pure_proxy_extrinsic(
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
         if response.success:

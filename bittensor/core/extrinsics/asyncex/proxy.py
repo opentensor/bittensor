@@ -466,28 +466,28 @@ async def kill_pure_proxy_extrinsic(
 
     Parameters:
         subtensor: Subtensor instance with the connection to the chain.
-        wallet: Bittensor wallet object. The ``wallet.coldkey.ss58_address`` must be the spawner of the pure proxy (the
-            account that created it via :meth:`create_pure_proxy_extrinsic`). The spawner must have an ``"Any"`` proxy
+        wallet: Bittensor wallet object. The `wallet.coldkey.ss58_address` must be the spawner of the pure proxy (the
+            account that created it via :meth:`create_pure_proxy_extrinsic`). The spawner must have an `Any` proxy
             relationship with the pure proxy.
         pure_proxy_ss58: The SS58 address of the pure proxy account to be killed. This is the address that was returned
             in the :meth:`create_pure_proxy_extrinsic` response.
         spawner: The SS58 address of the spawner account (the account that originally created the pure proxy via
-            :meth:`create_pure_proxy_extrinsic`). This should match ``wallet.coldkey.ss58_address``.
+            :meth:`create_pure_proxy_extrinsic`). This should match `wallet.coldkey.ss58_address`.
         proxy_type: The type of proxy permissions that were used when creating the pure proxy. This must match exactly
-            the ``proxy_type`` that was passed to :meth:`create_pure_proxy_extrinsic`.
-        index: The salt value (u16, range ``0-65535``) originally used in :meth:`create_pure_proxy_extrinsic` to generate
-            this pure proxy's address. This value, combined with ``proxy_type``, ``delay``, and ``spawner``, uniquely
+            the `proxy_type` that was passed to :meth:`create_pure_proxy_extrinsic`.
+        index: The salt value (u16, range `0-65535`) originally used in :meth:`create_pure_proxy_extrinsic` to generate
+            this pure proxy's address. This value, combined with `proxy_type`, `delay`, and `spawner`, uniquely
             identifies the pure proxy to be killed. Must match exactly the index used during creation.
-        height: The block number at which the pure proxy was created. This is returned in the ``"PureCreated"`` event from
+        height: The block number at which the pure proxy was created. This is returned in the `PureCreated` event from
             :meth:`create_pure_proxy_extrinsic` and is required to identify the exact creation transaction.
         ext_index: The extrinsic index within the block at which the pure proxy was created. This is returned in the
-            ``"PureCreated"`` event from :meth:`create_pure_proxy_extrinsic` and specifies the position of the creation
-            extrinsic within the block. Together with ``height``, this uniquely identifies the creation transaction.
-        force_proxy_type: The proxy type relationship to use when executing ``kill_pure`` through the proxy mechanism.
+            `PureCreated` event from :meth:`create_pure_proxy_extrinsic` and specifies the position of the creation
+            extrinsic within the block. Together with `height`, this uniquely identifies the creation transaction.
+        force_proxy_type: The proxy type relationship to use when executing `kill_pure` through the proxy mechanism.
             Since pure proxies are keyless and cannot sign transactions, the spawner must act as a proxy for the pure
-            proxy to execute ``kill_pure``. This parameter specifies which proxy type relationship between the spawner and
-            the pure proxy account should be used. The spawner must have a proxy relationship of this type (or ``"Any"``)
-            with the pure proxy account. Defaults to ``ProxyType.Any`` for maximum compatibility. If ``None``, Substrate
+            proxy to execute `kill_pure`. This parameter specifies which proxy type relationship between the spawner and
+            the pure proxy account should be used. The spawner must have a proxy relationship of this type (or `Any`)
+            with the pure proxy account. Defaults to `ProxyType.Any` for maximum compatibility. If `None`, Substrate
             will automatically select an available proxy type from the spawner's proxy relationships.
         mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
             against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
@@ -495,7 +495,7 @@ async def kill_pure_proxy_extrinsic(
         period: The number of blocks during which the transaction will remain valid after it's submitted. If the
             transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
             think of it as an expiration date for the transaction.
-        raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
         wait_for_inclusion: Whether to wait for the inclusion of the transaction.
         wait_for_finalization: Whether to wait for the finalization of the transaction.
         wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
@@ -504,10 +504,10 @@ async def kill_pure_proxy_extrinsic(
         ExtrinsicResponse: The result object of the extrinsic execution.
 
     Notes:
-        - The ``kill_pure`` call must be executed through the pure proxy account itself, with the spawner acting as a proxy.
+        - The `kill_pure` call must be executed through the pure proxy account itself, with the spawner acting as a proxy.
           This method automatically handles this by executing the call via :meth:`proxy_extrinsic`. By default,
-          ``force_proxy_type`` is set to ``ProxyType.Any``, meaning the spawner must have an ``"Any"`` proxy relationship
-          with the pure proxy. If you pass a different ``force_proxy_type``, the spawner must have that specific proxy
+          `force_proxy_type` is set to `ProxyType.Any`, meaning the spawner must have an `Any` proxy relationship
+          with the pure proxy. If you pass a different `force_proxy_type`, the spawner must have that specific proxy
           type relationship with the pure proxy.
         - See Pure Proxies: <https://docs.learnbittensor.org/keys/proxies/pure-proxies>
 
@@ -518,53 +518,31 @@ async def kill_pure_proxy_extrinsic(
     Example:
 
         # After creating a pure proxy
-
         create_response = subtensor.proxies.create_pure_proxy(
-
             wallet=spawner_wallet,
-
             proxy_type=ProxyType.Any,  # Type of proxy permissions for the pure proxy
-
             delay=0,
-
             index=0,
-
         )
 
         pure_proxy_ss58 = create_response.data["pure_account"]
-
         spawner = create_response.data["spawner"]
-
         proxy_type_used = create_response.data["proxy_type"]  # The proxy_type used during creation
-
         height = create_response.data["height"]
-
         ext_index = create_response.data["ext_index"]
-
         # Kill the pure proxy
-
         # Note: force_proxy_type defaults to ProxyType.Any (spawner must have Any proxy relationship)
 
         kill_response = subtensor.proxies.kill_pure_proxy(
-
             wallet=spawner_wallet,
-
             pure_proxy_ss58=pure_proxy_ss58,
-
             spawner=spawner,
-
             proxy_type=proxy_type_used,  # Must match the proxy_type used during creation
-
             index=0,
-
             height=height,
-
             ext_index=ext_index,
-
             # force_proxy_type=ProxyType.Any,  # Optional: defaults to ProxyType.Any
-
         )
-
     """
     try:
         if not (
@@ -605,6 +583,7 @@ async def kill_pure_proxy_extrinsic(
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
         if response.success:

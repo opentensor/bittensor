@@ -17,6 +17,7 @@ async def sudo_call_extrinsic(
     sign_with: str = "coldkey",
     use_nonce: bool = False,
     nonce_key: str = "hotkey",
+    *,
     period: Optional[int] = None,
     raise_error: bool = False,
     wait_for_inclusion: bool = True,
