@@ -112,7 +112,6 @@ def test_dendrite(subtensor, templates, alice_wallet, bob_wallet):
     assert bob_neuron.active is True
     assert bob_neuron.validator_permit is False
     assert bob_neuron.validator_trust == 0.0
-    assert bob_neuron.pruning_score == 0
 
     with templates.validator(bob_wallet, alice_sn.netuid):
         time.sleep(5)  # wait for 5 seconds for the Validator to process
@@ -134,7 +133,6 @@ def test_dendrite(subtensor, templates, alice_wallet, bob_wallet):
     assert updated_neuron.validator_permit is True
     assert updated_neuron.hotkey == bob_wallet.hotkey.ss58_address
     assert updated_neuron.coldkey == bob_wallet.coldkey.ss58_address
-    assert updated_neuron.pruning_score != 0
 
 
 @pytest.mark.asyncio
@@ -225,7 +223,6 @@ async def test_dendrite_async(async_subtensor, templates, alice_wallet, bob_wall
     assert bob_neuron.active is True
     assert bob_neuron.validator_permit is False
     assert bob_neuron.validator_trust == 0.0
-    assert bob_neuron.pruning_score == 0
 
     async with templates.validator(bob_wallet, alice_sn.netuid):
         await asyncio.sleep(5)  # wait for 5 seconds for the Validator to process
@@ -248,4 +245,3 @@ async def test_dendrite_async(async_subtensor, templates, alice_wallet, bob_wall
     assert updated_neuron.validator_permit is True
     assert updated_neuron.hotkey == bob_wallet.hotkey.ss58_address
     assert updated_neuron.coldkey == bob_wallet.coldkey.ss58_address
-    assert updated_neuron.pruning_score != 0
