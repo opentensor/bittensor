@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, Any, Iterable, Literal, Optional, Union, cast
 
 import asyncstdlib as a
 import scalecodec
+from concurrent.futures import ProcessPoolExecutor
+from functools import partial
 from async_substrate_interface import AsyncSubstrateInterface
 from async_substrate_interface.substrate_addons import RetryAsyncSubstrate
 from async_substrate_interface.utils.storage import StorageKey
@@ -163,6 +165,16 @@ from bittensor.utils.liquidity import (
     tick_to_price,
 )
 
+
+
+
+def sign_extrinsic_worker(private_key: str, payload: bytes) -> str:
+    from bittensor_wallet import Keypair
+    # We use the private key to recreate the keypair for signing
+    kp = Keypair(private_key=private_key)
+    return f"0x{kp.sign(payload).hex()}"
+
+
 if TYPE_CHECKING:
     from async_substrate_interface import AsyncQueryMapResult
     from async_substrate_interface.types import ScaleObj
@@ -253,6 +265,8 @@ class AsyncSubtensor(SubtensorMixin):
             logging.info(
                 f"Connected to {self.network} network and {self.chain_endpoint}."
             )
+        
+        self._executor = ProcessPoolExecutor(max_workers=1)
 
     async def close(self):
         """Closes the connection to the blockchain.
@@ -278,6 +292,10 @@ class AsyncSubtensor(SubtensorMixin):
         """
         if self.substrate:
             await self.substrate.close()
+
+        if self._executor:
+            self._executor.shutdown(wait=True)
+            self._executor = None
 
     async def initialize(self):
         """Establishes connection to the blockchain.
@@ -328,7 +346,12 @@ class AsyncSubtensor(SubtensorMixin):
         return await self.initialize()
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.substrate.close()
+        if self.substrate:
+            await self.substrate.close()
+        
+        if self._executor:
+            self._executor.shutdown(wait=True)
+            self._executor = None
 
     # Helpers ==========================================================================================================
 
@@ -5961,6 +5984,51 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
         )
 
+    async def create_signed_extrinsic(
+        self,
+        call: "GenericCall",
+        keypair: "Keypair",
+        nonce: Optional[int] = None,
+        era: Optional[dict] = None,
+        tip: int = 0,
+        tip_asset_id: Optional[int] = None,
+    ):
+        """
+        Creates a signed extrinsic, offloading the signing process to a separate process to avoid blocking the event loop.
+        """
+        if nonce is None:
+            nonce = await self.substrate.get_account_next_index(keypair.ss58_address)
+
+        # Generate the signature payload.
+        # This uses the underlying substrate interface to prepare the bytes to be signed.
+        signature_payload = await self.substrate.generate_signature_payload(
+            call=call,
+            era=era,
+            nonce=nonce,
+            tip=tip,
+            tip_asset_id=tip_asset_id
+        )
+
+        # Offload the signing of the payload to an executor.
+        loop = asyncio.get_running_loop()
+        # signature_payload.data should contain the bytes to sign.
+        signature = await loop.run_in_executor(
+            self._executor,
+            partial(sign_extrinsic_worker, keypair.private_key, signature_payload.data)
+        )
+
+        # Create the extrinsic with the attached signature.
+        extrinsic = await self.substrate.create_extrinsic(
+            call=call,
+            nonce=nonce,
+            era=era,
+            tip=tip,
+            tip_asset_id=tip_asset_id,
+            signature=signature,
+            keypair=keypair,  # Keypair may be needed for address/type info
+        )
+        return extrinsic
+
     async def sign_and_send_extrinsic(
         self,
         call: "GenericCall",
@@ -6029,7 +6097,7 @@ class AsyncSubtensor(SubtensorMixin):
         if period is not None:
             extrinsic_data["era"] = {"period": period}
 
-        extrinsic_response.extrinsic = await self.substrate.create_signed_extrinsic(
+        extrinsic_response.extrinsic = await self.create_signed_extrinsic(
             **extrinsic_data
         )
         try:
