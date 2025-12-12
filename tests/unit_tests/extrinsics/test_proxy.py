@@ -244,6 +244,7 @@ def test_kill_pure_proxy_extrinsic(subtensor, mocker):
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        wait_for_revealed_execution=True,
     )
     assert response == mocked_proxy_extrinsic.return_value
 
