@@ -26,18 +26,15 @@ class NeuronInfo(InfoBase):
         stake: The balance staked to this neuron.
         stake_dict: A dictionary mapping coldkey to the amount staked.
         total_stake: The total amount of stake.
-        rank: The rank score of the neuron.
         emission: The emission rate.
         incentive: The incentive value.
         consensus: The consensus score.
-        trust: The trust score.
         validator_trust: The validation trust score.
         dividends: The dividends value.
         last_update: The timestamp of the last update.
         validator_permit: Validator permit status.
         weights: List of weights associated with the neuron.
         bonds: List of bonds associated with the neuron.
-        pruning_score: The pruning score of the neuron.
         prometheus_info: Information related to Prometheus.
         axon_info: Information related to Axon.
         is_null: Indicator if this is a null neuron.
@@ -52,18 +49,15 @@ class NeuronInfo(InfoBase):
     # mapping of coldkey to amount staked to this Neuron
     stake_dict: dict[str, "Balance"]
     total_stake: "Balance"
-    rank: float
     emission: float
     incentive: float
     consensus: float
-    trust: float
     validator_trust: float
     dividends: float
     last_update: int
     validator_permit: bool
     weights: list[tuple[int, int]]
     bonds: list[list[int]]
-    pruning_score: int
     prometheus_info: Optional["PrometheusInfo"] = None
     axon_info: Optional["AxonInfo"] = None
     is_null: bool = False
@@ -104,11 +98,9 @@ class NeuronInfo(InfoBase):
             stake=Balance.from_rao(0),
             stake_dict={},
             total_stake=Balance.from_rao(0),
-            rank=0,
             emission=0,
             incentive=0,
             consensus=0,
-            trust=0,
             validator_trust=0,
             dividends=0,
             last_update=0,
@@ -120,7 +112,6 @@ class NeuronInfo(InfoBase):
             is_null=True,
             coldkey="000000000000000000000000000000000000000000000000",
             hotkey="000000000000000000000000000000000000000000000000",
-            pruning_score=0,
         )
         return neuron
 
@@ -151,12 +142,9 @@ class NeuronInfo(InfoBase):
             last_update=decoded["last_update"],
             netuid=decoded["netuid"],
             prometheus_info=PrometheusInfo.from_dict(decoded["prometheus_info"]),
-            pruning_score=decoded["pruning_score"],
-            rank=u16_normalized_float(decoded["rank"]),
             stake_dict=stake_dict,
             stake=total_stake,
             total_stake=total_stake,
-            trust=u16_normalized_float(decoded["trust"]),
             uid=decoded["uid"],
             validator_permit=decoded["validator_permit"],
             validator_trust=u16_normalized_float(decoded["validator_trust"]),
