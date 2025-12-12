@@ -4,6 +4,8 @@ import asyncio
 import time
 import uuid
 import warnings
+from concurrent.futures import ProcessPoolExecutor
+from functools import partial
 from typing import Any, AsyncGenerator, Optional, Union, Type
 
 import aiohttp
@@ -37,6 +39,19 @@ def event_loop_is_running():
         return True
     except RuntimeError:
         return False
+
+
+def sign_message_worker(private_key_hex: str, message: str) -> str:
+    from bittensor_wallet import Keypair
+    
+    # Re-instantiate the keypair from the private key
+    # ss58_address is required but can be dummy if only signing?
+    # Actually bittensor_wallet Keypair usually takes ss58_address. 
+    # If private_key is provided, it might derive it.
+    # Let's try passing None or empty string if allowed, or check Keypair usage.
+    # Safe bet: pass private key. Keypair usually derives public from private.
+    kp = Keypair(private_key=private_key_hex)
+    return f"0x{kp.sign(message).hex()}"
 
 
 class DendriteMixin:
@@ -121,6 +136,7 @@ class DendriteMixin:
         self.synapse_history: list = []
 
         self._session: Optional[aiohttp.ClientSession] = None
+        self._executor = ProcessPoolExecutor(max_workers=1)
 
     @property
     async def session(self) -> aiohttp.ClientSession:
@@ -192,6 +208,10 @@ class DendriteMixin:
             if using_new_loop:
                 loop.close()
             self._session = None
+        
+        if self._executor:
+            self._executor.shutdown(wait=True)
+            self._executor = None
 
     async def aclose_session(self):
         """
@@ -217,6 +237,10 @@ class DendriteMixin:
         if self._session:
             await self._session.close()
             self._session = None
+            
+        if self._executor:
+            self._executor.shutdown(wait=True)
+            self._executor = None
 
     def _get_endpoint_url(self, target_axon, request_name):
         """
@@ -568,7 +592,8 @@ class DendriteMixin:
         url = self._get_endpoint_url(target_axon, request_name=request_name)
 
         # Preprocess synapse for making a request
-        synapse = self.preprocess_synapse_for_request(target_axon, synapse, timeout)
+        synapse = await self.preprocess_synapse_for_request(target_axon, synapse, timeout)
+
 
         try:
             # Log outgoing request
@@ -643,7 +668,8 @@ class DendriteMixin:
         url = f"http://{endpoint}/{request_name}"
 
         # Preprocess synapse for making a request
-        synapse = self.preprocess_synapse_for_request(target_axon, synapse, timeout)  # type: ignore
+        synapse = await self.preprocess_synapse_for_request(target_axon, synapse, timeout)  # type: ignore
+
 
         try:
             # Log outgoing request
@@ -682,7 +708,7 @@ class DendriteMixin:
             else:
                 yield synapse
 
-    def preprocess_synapse_for_request(
+    async def preprocess_synapse_for_request(
         self,
         target_axon_info: "AxonInfo",
         synapse: "Synapse",
@@ -719,7 +745,12 @@ class DendriteMixin:
 
         # Sign the request using the dendrite, axon info, and the synapse body hash
         message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{synapse.axon.hotkey}.{synapse.dendrite.uuid}.{synapse.body_hash}"
-        synapse.dendrite.signature = f"0x{self.keypair.sign(message).hex()}"
+        
+        loop = asyncio.get_running_loop()
+        synapse.dendrite.signature = await loop.run_in_executor(
+            self._executor,
+            partial(sign_message_worker, self.keypair.private_key, message)
+        )
 
         return synapse
 
