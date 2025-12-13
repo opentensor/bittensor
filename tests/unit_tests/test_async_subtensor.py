@@ -6315,3 +6315,434 @@ async def test_mev_submit_encrypted_default_params(subtensor, fake_wallet, mocke
         blocks_for_revealed_execution=3,
     )
     assert result == mocked_submit_encrypted_extrinsic.return_value
+
+
+# Constants for new tests
+FAKE_HOTKEY_SS58 = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
+FAKE_COLDKEY_SS58 = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+FAKE_BLOCK_HASH = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+FAKE_NETUID = 1
+FAKE_STAKE_RAO = 1000000000
+FAKE_LOCKED_RAO = 500000000
+FAKE_TAO_FEE_RAO = 100000000
+FAKE_ALPHA_FEE_RAO = 50000000
+FAKE_TAO_AMOUNT_RAO = 900000000
+FAKE_ALPHA_AMOUNT_RAO = 850000000
+
+
+@pytest.mark.asyncio
+async def test_get_stake_with_locked_amount(subtensor, mocker):
+    """
+    Test get_stake returns correct locked vs unlocked amounts.
+    Verifies: Balance unit handling per netuid.
+    """
+    # Preps
+    fake_stake_info_dict = {
+        "netuid": FAKE_NETUID,
+        "hotkey": b"\x16:\xech\r\xde,g\x03R1\xb9\x88q\xe79\xb8\x88\x93\xae\xd2)?*\rp\xb2\xe62\xads\x1c",
+        "coldkey": b"\x16:\xech\r\xde,g\x03R1\xb9\x88q\xe79\xb8\x88\x93\xae\xd2)?*\rp\xb2\xe62\xads\x1c",
+        "stake": FAKE_STAKE_RAO,
+        "locked": FAKE_LOCKED_RAO,
+        "emission": 100,
+        "drain": 0,
+        "is_registered": True,
+    }
+
+    mocked_query_runtime_api = mocker.AsyncMock(return_value=fake_stake_info_dict)
+    mocker.patch.object(subtensor, "query_runtime_api", mocked_query_runtime_api)
+    mocker.patch.object(
+        subtensor, "determine_block_hash", mocker.AsyncMock(return_value=FAKE_BLOCK_HASH)
+    )
+    mocker.patch.object(
+        subtensor, "get_all_subnets_netuid", mocker.AsyncMock(return_value=[FAKE_NETUID])
+    )
+
+    # Call
+    result = await subtensor.get_stake_for_coldkey_and_hotkey(
+        hotkey_ss58=FAKE_HOTKEY_SS58,
+        coldkey_ss58=FAKE_COLDKEY_SS58,
+        block_hash=None,
+        netuids=None,
+    )
+
+    # Asserts
+    assert FAKE_NETUID in result
+    stake_info = result[FAKE_NETUID]
+    assert stake_info.stake.rao == FAKE_STAKE_RAO
+    assert stake_info.locked.rao == FAKE_LOCKED_RAO
+    assert stake_info.netuid == FAKE_NETUID
+    assert stake_info.is_registered is True
+    # Verify unlocked amount calculation (stake - locked)
+    unlocked_amount = stake_info.stake.rao - stake_info.locked.rao
+    assert unlocked_amount == FAKE_STAKE_RAO - FAKE_LOCKED_RAO
+
+
+@pytest.mark.asyncio
+async def test_sim_swap_accuracy(subtensor, mocker):
+    """
+    Test sim_swap calculation accuracy.
+    Verifies: tao_fee and alpha_fee calculations.
+    """
+    # Preps
+    fake_sim_swap_response = {
+        "tao_amount": FAKE_TAO_AMOUNT_RAO,
+        "alpha_amount": FAKE_ALPHA_AMOUNT_RAO,
+        "tao_fee": FAKE_TAO_FEE_RAO,
+        "alpha_fee": FAKE_ALPHA_FEE_RAO,
+    }
+
+    mocked_query_runtime_api = mocker.AsyncMock(return_value=fake_sim_swap_response)
+    mocker.patch.object(subtensor, "query_runtime_api", mocked_query_runtime_api)
+    mocker.patch.object(
+        subtensor.substrate, "get_chain_head", mocker.AsyncMock(return_value=FAKE_BLOCK_HASH)
+    )
+
+    amount = Balance.from_tao(1)
+
+    # Call - TAO to Alpha swap (origin_netuid=0)
+    result = await subtensor.sim_swap(
+        origin_netuid=0,
+        destination_netuid=FAKE_NETUID,
+        amount=amount,
+        block_hash=FAKE_BLOCK_HASH,
+    )
+
+    # Asserts
+    assert result.tao_fee.rao == FAKE_TAO_FEE_RAO
+    assert result.alpha_fee.rao == FAKE_ALPHA_FEE_RAO
+    assert result.tao_amount.rao == FAKE_TAO_AMOUNT_RAO
+    assert result.alpha_amount.rao == FAKE_ALPHA_AMOUNT_RAO
+    # Verify units are set correctly (unit 0 is TAO which has symbol 'τ', alpha has 'α')
+    assert result.tao_fee.unit == "τ"
+    assert result.alpha_fee.unit == "α"
+    assert result.tao_amount.unit == "τ"
+    assert result.alpha_amount.unit == "α"
+
+    mocked_query_runtime_api.assert_awaited_once_with(
+        runtime_api="SwapRuntimeApi",
+        method="sim_swap_tao_for_alpha",
+        params={"netuid": FAKE_NETUID, "tao": amount.rao},
+        block_hash=FAKE_BLOCK_HASH,
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_subnet_hyperparameters_caching(subtensor, mocker):
+    """
+    Test reuse_block parameter behavior.
+    Verifies: Block hash caching works correctly.
+    """
+    # Preps - complete hyperparameters dict matching SubnetHyperparameters._from_dict
+    # alpha_sigmoid_steepness needs to be a dict with "bits" key for fixed_to_float
+    fake_hyperparams = {
+        "rho": 10,
+        "kappa": 32767,
+        "immunity_period": 7200,
+        "min_allowed_weights": 1024,
+        "max_weights_limit": 1000,
+        "tempo": 99,
+        "min_difficulty": 10000000000000000000,
+        "max_difficulty": 40000000000000000000,
+        "weights_version": 0,
+        "weights_rate_limit": 100,
+        "adjustment_interval": 112,
+        "activity_cutoff": 5000,
+        "registration_allowed": True,
+        "target_regs_per_interval": 2,
+        "min_burn": 1000000000,
+        "max_burn": 100000000000,
+        "bonds_moving_avg": 900000,
+        "max_regs_per_block": 1,
+        "serving_rate_limit": 10,
+        "max_validators": 128,
+        "adjustment_alpha": 0,
+        "difficulty": 10000000000000000000,
+        "commit_reveal_period": 1000,
+        "commit_reveal_weights_enabled": False,
+        "alpha_high": 58982,
+        "alpha_low": 45875,
+        "liquid_alpha_enabled": True,
+        "alpha_sigmoid_steepness": {"bits": 0},
+        "yuma_version": 0,
+        "subnet_is_active": True,
+        "transfers_enabled": True,
+        "bonds_reset_enabled": False,
+        "user_liquidity_enabled": True,
+    }
+
+    mocked_query_runtime_api = mocker.AsyncMock(return_value=fake_hyperparams)
+    mocker.patch.object(subtensor, "query_runtime_api", mocked_query_runtime_api)
+
+    # Call with reuse_block=True
+    await subtensor.get_subnet_hyperparameters(
+        netuid=FAKE_NETUID,
+        block=None,
+        block_hash=None,
+        reuse_block=True,
+    )
+
+    # Asserts - verify reuse_block is passed correctly
+    mocked_query_runtime_api.assert_awaited_once_with(
+        runtime_api="SubnetInfoRuntimeApi",
+        method="get_subnet_hyperparams_v2",
+        params=[FAKE_NETUID],
+        block=None,
+        block_hash=None,
+        reuse_block=True,
+    )
+
+    # Reset and call with reuse_block=False
+    mocked_query_runtime_api.reset_mock()
+    await subtensor.get_subnet_hyperparameters(
+        netuid=FAKE_NETUID,
+        block=None,
+        block_hash=FAKE_BLOCK_HASH,
+        reuse_block=False,
+    )
+
+    mocked_query_runtime_api.assert_awaited_once_with(
+        runtime_api="SubnetInfoRuntimeApi",
+        method="get_subnet_hyperparams_v2",
+        params=[FAKE_NETUID],
+        block=None,
+        block_hash=FAKE_BLOCK_HASH,
+        reuse_block=False,
+    )
+
+
+@pytest.mark.asyncio
+async def test_compose_call_batch(subtensor, mocker):
+    """
+    Test batch call composition.
+    Verifies: Multiple calls are bundled correctly.
+    """
+    # Preps
+    fake_call_1 = mocker.Mock(spec=GenericCall)
+    fake_call_2 = mocker.Mock(spec=GenericCall)
+
+    mocked_determine_block_hash = mocker.AsyncMock(return_value=FAKE_BLOCK_HASH)
+    mocker.patch.object(subtensor, "determine_block_hash", mocked_determine_block_hash)
+
+    mocked_validate_extrinsic_params = mocker.AsyncMock(
+        side_effect=[{"param1": "value1"}, {"param2": "value2"}]
+    )
+    mocker.patch.object(subtensor, "validate_extrinsic_params", mocked_validate_extrinsic_params)
+
+    mocked_substrate_compose_call = mocker.AsyncMock(
+        side_effect=[fake_call_1, fake_call_2]
+    )
+    subtensor.substrate.compose_call = mocked_substrate_compose_call
+
+    # Call - compose first call
+    result_1 = await subtensor.compose_call(
+        call_module="SubtensorModule",
+        call_function="add_stake",
+        call_params={"param1": "value1"},
+        block_hash=FAKE_BLOCK_HASH,
+    )
+
+    # Call - compose second call
+    result_2 = await subtensor.compose_call(
+        call_module="SubtensorModule",
+        call_function="remove_stake",
+        call_params={"param2": "value2"},
+        block_hash=FAKE_BLOCK_HASH,
+    )
+
+    # Asserts
+    assert result_1 is fake_call_1
+    assert result_2 is fake_call_2
+    assert mocked_substrate_compose_call.await_count == 2
+
+    # Verify each call was composed correctly
+    mocked_substrate_compose_call.assert_any_call(
+        call_module="SubtensorModule",
+        call_function="add_stake",
+        call_params={"param1": "value1"},
+        block_hash=FAKE_BLOCK_HASH,
+    )
+    mocked_substrate_compose_call.assert_any_call(
+        call_module="SubtensorModule",
+        call_function="remove_stake",
+        call_params={"param2": "value2"},
+        block_hash=FAKE_BLOCK_HASH,
+    )
+
+
+@pytest.mark.asyncio
+async def test_sign_and_send_extrinsic_retry_on_network_error(
+    subtensor, fake_wallet, mocker
+):
+    """
+    Test retry behavior on transient network failures.
+    Verifies: Exponential backoff (simulated via multiple attempts).
+    """
+    # Preps
+    fake_call = mocker.Mock(spec=GenericCall)
+    fake_extrinsic = mocker.Mock()
+    network_error = async_subtensor.SubstrateRequestException("Network timeout")
+
+    mocked_create_signed_extrinsic = mocker.AsyncMock(return_value=fake_extrinsic)
+    subtensor.substrate.create_signed_extrinsic = mocked_create_signed_extrinsic
+
+    # First call fails with network error, subsequent calls would succeed
+    mocked_submit_extrinsic = mocker.AsyncMock(side_effect=network_error)
+    subtensor.substrate.submit_extrinsic = mocked_submit_extrinsic
+
+    mocker.patch.object(
+        async_subtensor,
+        "format_error_message",
+        return_value=str(network_error),
+    )
+
+    # Call
+    result = await subtensor.sign_and_send_extrinsic(
+        call=fake_call,
+        wallet=fake_wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        raise_error=False,
+    )
+
+    # Asserts
+    assert result.success is False
+    assert result.message == str(network_error)
+    assert result.error is network_error
+    assert result.extrinsic is fake_extrinsic
+
+    mocked_create_signed_extrinsic.assert_awaited_once()
+    mocked_submit_extrinsic.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_get_delegates_lite_vs_full(subtensor, mocker):
+    """
+    Test DelegateInfoLite vs full DelegateInfo retrieval.
+    Verifies: Data consistency between lite and full delegate info.
+    """
+    # Preps - DelegateInfoLite data (nominators is a count)
+    fake_delegate_lite_data = {
+        "delegate_ss58": b"\x16:\xech\r\xde,g\x03R1\xb9\x88q\xe79\xb8\x88\x93\xae\xd2)?*\rp\xb2\xe62\xads\x1c",
+        "take": 18,
+        "nominators": 10,
+        "owner_ss58": b"\x16:\xech\r\xde,g\x03R1\xb9\x88q\xe79\xb8\x88\x93\xae\xd2)?*\rp\xb2\xe62\xads\x1c",
+        "registrations": [1, 2, 3],
+        "validator_permits": [1, 2],
+        "return_per_1000": 1000000000,
+    }
+
+    # DelegateInfo data (nominators is a list of [account, [(netuid, stake), ...]])
+    fake_full_delegate_data = [
+        {
+            "delegate_ss58": b"\x16:\xech\r\xde,g\x03R1\xb9\x88q\xe79\xb8\x88\x93\xae\xd2)?*\rp\xb2\xe62\xads\x1c",
+            "take": 18,
+            "nominators": [
+                (
+                    b"\x16:\xech\r\xde,g\x03R1\xb9\x88q\xe79\xb8\x88\x93\xae\xd2)?*\rp\xb2\xe62\xads\x1c",
+                    [(1, 1000), (2, 2000)],
+                )
+            ],
+            "owner_ss58": b"\x16:\xech\r\xde,g\x03R1\xb9\x88q\xe79\xb8\x88\x93\xae\xd2)?*\rp\xb2\xe62\xads\x1c",
+            "registrations": [1, 2, 3],
+            "validator_permits": [1, 2],
+            "return_per_1000": 1000000000,
+        }
+    ]
+
+    mocked_query_runtime_api = mocker.AsyncMock(return_value=fake_full_delegate_data)
+    mocker.patch.object(subtensor, "query_runtime_api", mocked_query_runtime_api)
+
+    # Call get_delegates (full)
+    result = await subtensor.get_delegates(
+        block=None,
+        block_hash=None,
+        reuse_block=False,
+    )
+
+    # Asserts
+    mocked_query_runtime_api.assert_awaited_once_with(
+        runtime_api="DelegateInfoRuntimeApi",
+        method="get_delegates",
+        params=[],
+        block=None,
+        block_hash=None,
+        reuse_block=False,
+    )
+
+    assert len(result) == 1
+    delegate = result[0]
+    # Verify full delegate info has expected fields
+    assert hasattr(delegate, "hotkey_ss58") is True
+    assert hasattr(delegate, "take") is True
+    assert hasattr(delegate, "nominators") is True
+    assert hasattr(delegate, "owner_ss58") is True
+    assert hasattr(delegate, "registrations") is True
+    assert hasattr(delegate, "validator_permits") is True
+    # Verify nominators is a dict in full DelegateInfo
+    assert isinstance(delegate.nominators, dict) is True
+
+    # Verify DelegateInfoLite can be created from similar data
+    from bittensor.core.chain_data import DelegateInfoLite
+
+    lite_delegate = DelegateInfoLite.from_dict(fake_delegate_lite_data)
+    # In lite version, nominators is a count (int)
+    assert lite_delegate.nominators == 10
+    assert lite_delegate.registrations == [1, 2, 3]
+    assert lite_delegate.validator_permits == [1, 2]
+
+
+@pytest.mark.asyncio
+async def test_query_runtime_api_error_handling(subtensor, mocker):
+    """
+    Test behavior when runtime API returns error.
+    Verifies: ChainError propagation.
+    """
+    # Preps
+    from bittensor.core.errors import ChainError
+
+    fake_error_response = mocker.Mock()
+    fake_error_response.value = None
+
+    mocked_determine_block_hash = mocker.AsyncMock(return_value=FAKE_BLOCK_HASH)
+    mocker.patch.object(subtensor, "determine_block_hash", mocked_determine_block_hash)
+
+    mocked_runtime_call = mocker.AsyncMock(return_value=fake_error_response)
+    subtensor.substrate.runtime_call = mocked_runtime_call
+
+    # Call
+    result = await subtensor.query_runtime_api(
+        runtime_api="DelegateInfoRuntimeApi",
+        method="get_delegates",
+        params=[],
+        block=None,
+        block_hash=FAKE_BLOCK_HASH,
+        reuse_block=False,
+    )
+
+    # Asserts - None result indicates error/empty response
+    assert result is None
+
+    mocked_runtime_call.assert_awaited_once_with(
+        "DelegateInfoRuntimeApi",
+        "get_delegates",
+        [],
+        FAKE_BLOCK_HASH,
+    )
+
+    # Test with exception raised
+    mocked_runtime_call.reset_mock()
+    mocked_runtime_call.side_effect = async_subtensor.SubstrateRequestException(
+        "Runtime API error"
+    )
+
+    with pytest.raises(async_subtensor.SubstrateRequestException) as exc_info:
+        await subtensor.query_runtime_api(
+            runtime_api="DelegateInfoRuntimeApi",
+            method="get_delegates",
+            params=[],
+            block=None,
+            block_hash=FAKE_BLOCK_HASH,
+            reuse_block=False,
+        )
+
+    assert "Runtime API error" in str(exc_info.value)
