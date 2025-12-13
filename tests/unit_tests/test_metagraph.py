@@ -63,14 +63,6 @@ async def test_set_metagraph_attributes(mock_environment):
 
     assert (
         np.array_equal(
-            metagraph.trust,
-            np.array([neuron.trust for neuron in neurons], dtype=np.float32),
-        )
-        is True
-    )
-
-    assert (
-        np.array_equal(
             metagraph.consensus,
             np.array([neuron.consensus for neuron in neurons], dtype=np.float32),
         )
@@ -186,8 +178,6 @@ def test_deepcopy(mock_environment):
     assert np.array_equal(copied_metagraph.uids, metagraph.uids)
     assert np.array_equal(copied_metagraph.stake, metagraph.stake)
     assert np.array_equal(copied_metagraph.total_stake, metagraph.total_stake)
-    assert np.array_equal(copied_metagraph.ranks, metagraph.ranks)
-    assert np.array_equal(copied_metagraph.trust, metagraph.trust)
     assert np.array_equal(copied_metagraph.consensus, metagraph.consensus)
     assert np.array_equal(copied_metagraph.validator_trust, metagraph.validator_trust)
     assert np.array_equal(copied_metagraph.incentive, metagraph.incentive)
@@ -240,8 +230,6 @@ def test_copy(mock_environment):
     assert np.array_equal(copied_metagraph.uids, metagraph.uids)
     assert np.array_equal(copied_metagraph.stake, metagraph.stake)
     assert np.array_equal(copied_metagraph.total_stake, metagraph.total_stake)
-    assert np.array_equal(copied_metagraph.ranks, metagraph.ranks)
-    assert np.array_equal(copied_metagraph.trust, metagraph.trust)
     assert np.array_equal(copied_metagraph.consensus, metagraph.consensus)
     assert np.array_equal(copied_metagraph.validator_trust, metagraph.validator_trust)
     assert np.array_equal(copied_metagraph.incentive, metagraph.incentive)

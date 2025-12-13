@@ -84,8 +84,6 @@ class TestMetagraph:
         assert "n" in state
         assert "block" in state
         assert "stake" in state
-        assert "ranks" in state
-        assert "trust" in state
         assert "consensus" in state
         assert "validator_trust" in state
         assert "incentive" in state
@@ -105,11 +103,9 @@ class TestMetagraph:
         metagraph.addresses
         metagraph.validator_trust
         metagraph.S
-        metagraph.R
         metagraph.I
         metagraph.E
         metagraph.C
-        metagraph.T
         metagraph.Tv
         metagraph.D
         metagraph.B
