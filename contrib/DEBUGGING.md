@@ -40,14 +40,14 @@ at the top of your script or source file to enable more verbose output logs.
 You can also write your own in the code simply:
 ```python
 # Bittensor's wallet maintenance class.
-wallet = bittensor.wallet()
+wallet = bittensor.Wallet()
 
 bittensor.logging.debug( f"wallet keypair: {wallet.hotkey}" )
 
 ...
 
 # Bittensor's chain state object.
-metagraph = bittensor.metagraph(netuid=1)
+metagraph = bittensor.Metagraph(netuid=1)
 
 bittensor.logging.trace( f"metagraph created! netuid {metagraph.netuid}" )
 ```
@@ -55,14 +55,15 @@ bittensor.logging.trace( f"metagraph created! netuid {metagraph.netuid}" )
 
 ## Querying the Network
 
-Ensure you can query the Bittensor network using the Python API. If something is broken with your installation or the chain, this won't work out of the box. Here's an example of how to do this:
+Ensure you can query the Bittensor network using the Python API. If something is broken with your installation or the chain,
+this won't work out of the box. Here's an example of how to do this:
 
 ```python
 import bittensor
 bittensor.trace()
 
 # Attempt to query through the foundation endpoint.
-print(bittensor.prompt("Heraclitus was a "))
+print(bittensor.Subtensor().block)
 ```
 
 ## Debugging Miners
@@ -70,19 +71,19 @@ print(bittensor.prompt("Heraclitus was a "))
 
 First, try registering and running on a testnet:
 ```bash
-btcli register --netuid <testnet uid> --subtensor.chain_endpoint wss://test.finney.opentensor.ai:443
+btcli subnets register --netuid <testnet subnetwork uid> --network test
 ```
 
 If that works, then try to register a miner on mainnet:
 
 ```bash
-btcli register --netuid <subnetwork uid>
+btcli subnets register --netuid <subnetwork uid>
 ```
 
 See if you can observe your slot specified by UID:
 
 ```bash
-btcli overview --netuid <subnetwork uid>
+btcli wallet overview --netuid <subnetwork uid>
 ```
 
 Here's an example of how to run a pre-configured miner:
@@ -101,16 +102,16 @@ Try to use the Bittensor package to create a wallet, connect to the axon running
 import bittensor
 
 # Bittensor's wallet maintenance class.
-wallet = bittensor.wallet()
+wallet = bittensor.Wallet()
 
 # Bittensor's chain interface.
-subtensor = bittensor.subtensor()
+subtensor = bittensor.Subtensor()
 
 # Bittensor's chain state object.
-metagraph = bittensor.metagraph(netuid=1)
+metagraph = bittensor.Metagraph(netuid=1)
 
 # Instantiate a Bittensor endpoint.
-axon = bittensor.axon(wallet=wallet, metagraph=metagraph)
+axon = bittensor.Axon(wallet=wallet)
 
 # Start servicing messages on the wire.
 axon.start()
@@ -119,10 +120,10 @@ axon.start()
 subtensor.serve_axon(netuid=1, axon=axon)
 
 # Connect to the axon running on slot 10, use the wallet to sign messages.
-dendrite = bittensor.text_prompting(keypair=wallet.hotkey, axon=metagraph.axons[10])
+dendrite = bittensor.Dendrite(wallet=wallet)
 
 # Send a prompt to this endpoint
-dendrite.forward(roles=['user'], messages=['Who is Rick James?'])
+dendrite.forward(axon=metagraph.axons[10], roles=['user'], messages=['Who is Rick James?'])
 ```
 
 > NOTE: It may be helpful to throw in breakpoints such as with `pdb`.
