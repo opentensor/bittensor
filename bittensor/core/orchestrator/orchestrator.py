@@ -3,10 +3,13 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from bittensor.core.async_subtensor import AsyncSubtensor
 from bittensor.utils.btlogging import logging
+
+if TYPE_CHECKING:
+    import bittensor_wallet
 
 
 class TransactionStatus(Enum):
