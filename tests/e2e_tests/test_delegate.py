@@ -2,7 +2,6 @@ import pytest
 
 from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.delegate_info import DelegatedInfo, DelegateInfo
-from bittensor.core.chain_data.proposal_vote_data import ProposalVoteData
 from bittensor.core.errors import (
     DelegateTakeTooHigh,
     DelegateTxRateLimitExceeded,
@@ -11,13 +10,9 @@ from bittensor.core.errors import (
 )
 from bittensor.utils.balance import Balance
 from tests.e2e_tests.utils import (
-    async_propose,
     async_set_identity,
-    async_vote,
     get_dynamic_balance,
-    propose,
     set_identity,
-    vote,
     TestSubnet,
     AdminUtils,
     ACTIVATE_SUBNET,
@@ -26,7 +21,6 @@ from tests.e2e_tests.utils import (
     SUDO_SET_NOMINATOR_MIN_REQUIRED_STAKE,
     SUDO_SET_TX_DELEGATE_TAKE_RATE_LIMIT,
 )
-from tests.helpers.helpers import CloseInValue
 
 DEFAULT_DELEGATE_TAKE = 0.179995422293431
 

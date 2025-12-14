@@ -5,9 +5,7 @@ Tests the StreamingSynapse class, BTStreamingResponse, and related streaming fun
 """
 
 import pytest
-from abc import ABC
-from typing import Optional
-from unittest.mock import AsyncMock, Mock, MagicMock, patch
+from unittest.mock import AsyncMock, Mock
 from aiohttp import ClientResponse
 from starlette.types import Send, Receive, Scope
 

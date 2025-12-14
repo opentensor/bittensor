@@ -1,4 +1,3 @@
-import pytest
 from bittensor.core.extrinsics import transfer
 from bittensor.core.settings import DEFAULT_MEV_PROTECTION
 from bittensor.utils.balance import Balance

@@ -166,10 +166,9 @@ from bittensor.utils.liquidity import (
 )
 
 
-
-
 def sign_extrinsic_worker(private_key: str, payload: bytes) -> str:
     from bittensor_wallet import Keypair
+
     # We use the private key to recreate the keypair for signing
     kp = Keypair(private_key=private_key)
     return f"0x{kp.sign(payload).hex()}"
@@ -265,7 +264,7 @@ class AsyncSubtensor(SubtensorMixin):
             logging.info(
                 f"Connected to {self.network} network and {self.chain_endpoint}."
             )
-        
+
         self._executor = ProcessPoolExecutor(max_workers=1)
 
     async def close(self):
@@ -294,7 +293,7 @@ class AsyncSubtensor(SubtensorMixin):
             await self.substrate.close()
 
         if self._executor:
-            self._executor.shutdown(wait=True)
+            self._executor.shutdown(wait=False, cancel_futures=True)
             self._executor = None
 
     async def initialize(self):
@@ -348,9 +347,9 @@ class AsyncSubtensor(SubtensorMixin):
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if self.substrate:
             await self.substrate.close()
-        
+
         if self._executor:
-            self._executor.shutdown(wait=True)
+            self._executor.shutdown(wait=False, cancel_futures=True)
             self._executor = None
 
     # Helpers ==========================================================================================================
@@ -6002,11 +6001,7 @@ class AsyncSubtensor(SubtensorMixin):
         # Generate the signature payload.
         # This uses the underlying substrate interface to prepare the bytes to be signed.
         signature_payload = await self.substrate.generate_signature_payload(
-            call=call,
-            era=era,
-            nonce=nonce,
-            tip=tip,
-            tip_asset_id=tip_asset_id
+            call=call, era=era, nonce=nonce, tip=tip, tip_asset_id=tip_asset_id
         )
 
         # Offload the signing of the payload to an executor.
@@ -6014,7 +6009,7 @@ class AsyncSubtensor(SubtensorMixin):
         # signature_payload.data should contain the bytes to sign.
         signature = await loop.run_in_executor(
             self._executor,
-            partial(sign_extrinsic_worker, keypair.private_key, signature_payload.data)
+            partial(sign_extrinsic_worker, keypair.private_key, signature_payload.data),
         )
 
         # Create the extrinsic with the attached signature.

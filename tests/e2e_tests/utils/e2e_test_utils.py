@@ -6,7 +6,6 @@ import sys
 from typing import Optional
 from bittensor_wallet import Keypair, Wallet
 
-from bittensor.extras import SubtensorApi
 from bittensor.utils.btlogging import logging
 
 template_path = os.getcwd() + "/neurons/"

@@ -198,11 +198,11 @@ def apply_pure_proxy_data(
     # If triggered events are not available or event PureCreated does not exist in the response, return the response
     # with warning message ot raise the error if raise_error is True.
     message = (
-        f"The ExtrinsicResponse doesn't contain pure_proxy data (`pure_account`, `spawner`, `proxy_type`, etc.) "
-        f"because the extrinsic receipt doesn't have triggered events. This typically happens when "
-        f"`wait_for_inclusion=False` or when `block_hash` is not available. To get this data, either pass "
-        f"`wait_for_inclusion=True` when calling this function, or retrieve the data manually from the blockchain "
-        f"using the extrinsic hash."
+        "The ExtrinsicResponse doesn't contain pure_proxy data (`pure_account`, `spawner`, `proxy_type`, etc.) "
+        "because the extrinsic receipt doesn't have triggered events. This typically happens when "
+        "`wait_for_inclusion=False` or when `block_hash` is not available. To get this data, either pass "
+        "`wait_for_inclusion=True` when calling this function, or retrieve the data manually from the blockchain "
+        "using the extrinsic hash."
     )
     if response.extrinsic is not None and hasattr(response.extrinsic, "extrinsic_hash"):
         extrinsic_hash = response.extrinsic.extrinsic_hash

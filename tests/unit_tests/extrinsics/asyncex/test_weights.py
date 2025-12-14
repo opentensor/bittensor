@@ -1,7 +1,6 @@
 import pytest
 
 from bittensor.core.extrinsics.asyncex import weights as weights_module
-from bittensor.core.settings import version_as_int
 from bittensor.core.types import ExtrinsicResponse
 
 
