@@ -1,5 +1,4 @@
 import pytest
-from bittensor.utils.btlogging import logging
 
 
 def test_subnets(subtensor, alice_wallet):

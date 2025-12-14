@@ -1,5 +1,4 @@
 import pytest
-from bittensor_wallet import Wallet
 from scalecodec.types import GenericCall
 from async_substrate_interface import AsyncExtrinsicReceipt
 

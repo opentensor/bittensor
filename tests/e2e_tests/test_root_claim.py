@@ -89,7 +89,7 @@ def test_root_claim_swap(subtensor, alice_wallet, bob_wallet, charlie_wallet):
     )
 
     # We skip the era in which the stake was installed, since the emission doesn't occur (Subtensor implementation)
-    logging.console.info(f"Skipping stake epoch")
+    logging.console.info("Skipping stake epoch")
     next_epoch_start_block = subtensor.subnets.get_next_epoch_start_block(
         netuid=root_sn.netuid
     )
@@ -193,7 +193,7 @@ async def test_root_claim_swap_async(
     )
 
     # We skip the era in which the stake was installed, since the emission doesn't occur (Subtensor implementation)
-    logging.console.info(f"Skipping stake epoch")
+    logging.console.info("Skipping stake epoch")
     next_epoch_start_block = await async_subtensor.subnets.get_next_epoch_start_block(
         netuid=root_sn.netuid
     )
@@ -352,7 +352,7 @@ def test_root_claim_keep_with_zero_num_root_auto_claims(
     )
     assert stake_before_charlie == 0
 
-    logging.console.info(f"[blue]Charlie before:[/blue]")
+    logging.console.info("[blue]Charlie before:[/blue]")
     logging.console.info(f"RootClaimed: {claimed_before_charlie}")
     logging.console.info(f"RootClaimable stake: {claimable_stake_before_charlie}")
     logging.console.info(f"SN2 Stake: {stake_before_charlie}")
@@ -383,7 +383,7 @@ def test_root_claim_keep_with_zero_num_root_auto_claims(
     )
     assert stake_after_charlie >= claimable_stake_before_charlie
 
-    logging.console.info(f"[blue]Charlie after:[/blue]")
+    logging.console.info("[blue]Charlie after:[/blue]")
     logging.console.info(f"RootClaimed: {claimed_after_charlie}")
     logging.console.info(f"RootClaimable stake: {claimable_stake_after_charlie}")
     logging.console.info(f"SN2 Stake: {stake_after_charlie}")
@@ -523,7 +523,7 @@ async def test_root_claim_keep_with_zero_num_root_auto_claims_async(
     )
     assert stake_before_charlie == 0
 
-    logging.console.info(f"[blue]Charlie before:[/blue]")
+    logging.console.info("[blue]Charlie before:[/blue]")
     logging.console.info(f"RootClaimed: {claimed_before_charlie}")
     logging.console.info(f"RootClaimable stake: {claimable_stake_before_charlie}")
     logging.console.info(f"SN2 Stake: {stake_before_charlie}")
@@ -558,7 +558,7 @@ async def test_root_claim_keep_with_zero_num_root_auto_claims_async(
     )
     assert stake_after_charlie >= claimable_stake_before_charlie
 
-    logging.console.info(f"[blue]Charlie after:[/blue]")
+    logging.console.info("[blue]Charlie after:[/blue]")
     logging.console.info(f"RootClaimed: {claimed_after_charlie}")
     logging.console.info(f"RootClaimable stake: {claimable_stake_after_charlie}")
     logging.console.info(f"SN2 Stake: {stake_after_charlie}")

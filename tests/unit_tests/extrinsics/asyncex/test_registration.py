@@ -232,7 +232,7 @@ async def test_register_extrinsic_already_registered(subtensor, fake_wallet, moc
         block_hash=subtensor.substrate.get_chain_head.return_value,
     )
     assert success is True
-    assert message == f"Already registered."
+    assert message == "Already registered."
 
 
 @pytest.mark.asyncio

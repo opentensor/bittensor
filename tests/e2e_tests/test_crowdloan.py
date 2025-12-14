@@ -1,6 +1,5 @@
 from bittensor import Balance
 from bittensor.core.extrinsics.pallets import SubtensorModule
-from bittensor_wallet import Wallet
 import pytest
 import asyncio
 

@@ -4,10 +4,9 @@ from bittensor_wallet import Wallet
 import pytest
 
 from bittensor.utils.balance import Balance
-from bittensor import logging
 
 if typing.TYPE_CHECKING:
-    from bittensor.extras import SubtensorApi
+    pass
 
 
 def test_transfer(subtensor, alice_wallet):

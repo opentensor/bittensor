@@ -341,7 +341,7 @@ async def register_extrinsic(
                 if not torch.cuda.is_available():
                     return ExtrinsicResponse(False, "CUDA not available.").with_log()
 
-                logging.debug(f"Creating a POW with CUDA.")
+                logging.debug("Creating a POW with CUDA.")
                 pow_result = await create_pow_async(
                     subtensor=subtensor,
                     wallet=wallet,
@@ -355,7 +355,7 @@ async def register_extrinsic(
                     log_verbose=log_verbose,
                 )
             else:
-                logging.debug(f"Creating a POW.")
+                logging.debug("Creating a POW.")
                 pow_result = await create_pow_async(
                     subtensor=subtensor,
                     wallet=wallet,

@@ -117,6 +117,6 @@ def check_latest_version_in_pypi():
         except InvalidVersion:
             # stay silent if InvalidVersion
             pass
-    except (requests.RequestException, KeyError) as e:
+    except (requests.RequestException, KeyError):
         # stay silent if not internet connection or pypi.org issue
         pass

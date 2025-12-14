@@ -13,7 +13,6 @@ from bittensor.extras.dev_framework import (
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration.pow import LazyLoadedTorch
-from bittensor.utils.weight_utils import convert_and_normalize_weights_and_uids
 from tests.e2e_tests.utils import (
     AdminUtils,
     NETUID,

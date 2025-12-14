@@ -1,5 +1,4 @@
 from bittensor.core.chain_data.proxy import ProxyType
-from bittensor.core.extrinsics.pallets import SubtensorModule, Proxy, Balances
 
 
 def get_proxy_type_fields(meta):
