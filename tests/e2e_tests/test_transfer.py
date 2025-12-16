@@ -10,6 +10,32 @@ if typing.TYPE_CHECKING:
     from bittensor.extras import SubtensorApi
 
 
+def test_transfer_insufficient_balance(subtensor, alice_wallet):
+    """
+    Test that a transfer fails when the wallet has insufficient balance.
+    """
+
+    # Gets current balance
+    balance = subtensor.wallets.get_balance(
+        alice_wallet.coldkeypub.ss58_address
+    )
+
+    # Attempt to transfer more than available balance
+    transfer_value = balance + Balance.from_tao(1)
+    dest_coldkey = "5GpzQgpiAKHMWNSH3RN4GLf96GVTDct9QxYEFAY7LWcVzTbx"
+
+    response = subtensor.extrinsics.transfer(
+        wallet=alice_wallet,
+        destination_ss58=dest_coldkey,
+        amount=transfer_value,
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
+    )
+
+    assert not response.success
+    assert "insufficient" in response.message.lower()
+
+
 def test_transfer(subtensor, alice_wallet):
     """
     Test the transfer mechanism on the chain
@@ -130,6 +156,7 @@ def test_transfer_all(subtensor, alice_wallet):
     assert balance_after == Balance(0)
 
 
+
 @pytest.mark.asyncio
 async def test_transfer_all_async(async_subtensor, alice_wallet):
     # create two dummy accounts we can drain
@@ -180,3 +207,30 @@ async def test_transfer_all_async(async_subtensor, alice_wallet):
         dummy_account_2.coldkeypub.ss58_address
     )
     assert balance_after == Balance(0)
+
+
+# insufficient balance async
+
+@pytest.mark.asyncio
+async def test_transfer_insufficient_balance_async(async_subtensor, alice_wallet):
+    """
+    Test that an async transfer fails when the wallet has insufficient balance.
+    """
+
+    balance = await async_subtensor.wallets.get_balance(
+        alice_wallet.coldkeypub.ss58_address
+    )
+
+    transfer_value = balance + Balance.from_tao(1)
+    dest_coldkey = "5GpzQgpiAKHMWNSH3RN4GLf96GVTDct9QxYEFAY7LWcVzTbx"
+
+    response = await async_subtensor.extrinsics.transfer(
+        wallet=alice_wallet,
+        destination_ss58=dest_coldkey,
+        amount=transfer_value,
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
+    )
+
+    assert not response.success
+    assert "insufficient" in response.message.lower()
