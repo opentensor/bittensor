@@ -72,15 +72,8 @@ class ColdkeySwapAnnouncementInfo:
                 - ColdkeySwapAnnouncementInfo object with announcement details.
         """
         coldkey_ss58 = decode_account_id(record[0])
-        announcement_data = record[1].value
-        execution_block = announcement_data[0]
-        new_coldkey_hash = "0x" + bytes(announcement_data[1][0]).hex()
-
-        return cls(
-            coldkey=coldkey_ss58,
-            execution_block=execution_block,
-            new_coldkey_hash=new_coldkey_hash,
-        )
+        announcement_data = record[1]
+        return cls.from_query(coldkey_ss58, announcement_data)
 
 
 @dataclass
