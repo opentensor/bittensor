@@ -7,6 +7,10 @@ from scalecodec.types import GenericCall
 
 from .axon_info import AxonInfo
 from .chain_identity import ChainIdentity
+from .coldkey_swap import (
+    ColdkeySwapAnnouncementInfo,
+    ColdkeySwapConstants,
+)
 from .crowdloan_info import CrowdloanInfo, CrowdloanConstants
 from .delegate_info import DelegateInfo, DelegatedInfo
 from .delegate_info_lite import DelegateInfoLite
@@ -40,6 +44,8 @@ ProposalCallData = GenericCall
 __all__ = [
     "AxonInfo",
     "ChainIdentity",
+    "ColdkeySwapAnnouncementInfo",
+    "ColdkeySwapConstants",
     "CrowdloanInfo",
     "CrowdloanConstants",
     "DelegateInfo",
