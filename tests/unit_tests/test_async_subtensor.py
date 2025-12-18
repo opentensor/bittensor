@@ -5671,7 +5671,9 @@ async def test_get_coldkey_swap_announcement(subtensor, mocker):
     )
 
     # Call
-    result = await subtensor.get_coldkey_swap_announcement(coldkey_ss58=fake_coldkey_ss58)
+    result = await subtensor.get_coldkey_swap_announcement(
+        coldkey_ss58=fake_coldkey_ss58
+    )
 
     # Asserts
     mocked_determine_block_hash.assert_awaited_once_with(None, None, False)
@@ -5707,7 +5709,9 @@ async def test_get_coldkey_swap_announcement_not_found(subtensor, mocker):
     )
 
     # Call
-    result = await subtensor.get_coldkey_swap_announcement(coldkey_ss58=fake_coldkey_ss58)
+    result = await subtensor.get_coldkey_swap_announcement(
+        coldkey_ss58=fake_coldkey_ss58
+    )
 
     # Asserts
     mocked_determine_block_hash.assert_awaited_once_with(None, None, False)
@@ -5751,7 +5755,10 @@ async def test_get_coldkey_swap_announcements(subtensor, mocker):
     mocked_from_query_map_record = mocker.patch.object(
         ColdkeySwapAnnouncementInfo,
         "from_query_map_record",
-        return_value=("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", mocker.Mock()),
+        return_value=(
+            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+            mocker.Mock(),
+        ),
     )
 
     # Call

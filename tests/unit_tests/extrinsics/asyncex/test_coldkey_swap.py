@@ -22,7 +22,9 @@ async def test_announce_coldkey_swap_extrinsic(subtensor, mocker):
         "unlock_wallet",
         return_value=ExtrinsicResponse(success=True, message="Unlocked"),
     )
-    mocked_keypair = mocker.patch("bittensor.core.extrinsics.asyncex.coldkey_swap.Keypair")
+    mocked_keypair = mocker.patch(
+        "bittensor.core.extrinsics.asyncex.coldkey_swap.Keypair"
+    )
     mocked_keypair_instance = mocker.MagicMock()
     mocked_keypair_instance.public_key = b"\x00" * 32
     mocked_keypair.return_value = mocked_keypair_instance
@@ -83,7 +85,9 @@ async def test_announce_coldkey_swap_extrinsic_with_mev_protection(subtensor, mo
         "unlock_wallet",
         return_value=ExtrinsicResponse(success=True, message="Unlocked"),
     )
-    mocked_keypair = mocker.patch("bittensor.core.extrinsics.asyncex.coldkey_swap.Keypair")
+    mocked_keypair = mocker.patch(
+        "bittensor.core.extrinsics.asyncex.coldkey_swap.Keypair"
+    )
     mocked_keypair_instance = mocker.MagicMock()
     mocked_keypair_instance.public_key = b"\x00" * 32
     mocked_keypair.return_value = mocked_keypair_instance
@@ -148,7 +152,9 @@ async def test_swap_coldkey_announced_extrinsic_success(subtensor, mocker):
     mocked_get_current_block = mocker.patch.object(
         subtensor, "get_current_block", return_value=1001
     )
-    mocked_keypair = mocker.patch("bittensor.core.extrinsics.asyncex.coldkey_swap.Keypair")
+    mocked_keypair = mocker.patch(
+        "bittensor.core.extrinsics.asyncex.coldkey_swap.Keypair"
+    )
     mocked_keypair_instance = mocker.MagicMock()
     mocked_keypair_instance.public_key = b"\x00" * 32
     mocked_keypair.return_value = mocked_keypair_instance
@@ -256,7 +262,9 @@ async def test_swap_coldkey_announced_extrinsic_hash_mismatch(subtensor, mocker)
     mocked_get_announcement = mocker.patch.object(
         subtensor, "get_coldkey_swap_announcement", return_value=announcement
     )
-    mocked_keypair = mocker.patch("bittensor.core.extrinsics.asyncex.coldkey_swap.Keypair")
+    mocked_keypair = mocker.patch(
+        "bittensor.core.extrinsics.asyncex.coldkey_swap.Keypair"
+    )
     mocked_keypair_instance = mocker.MagicMock()
     mocked_keypair_instance.public_key = b"\x00" * 32
     mocked_keypair.return_value = mocked_keypair_instance
@@ -312,7 +320,9 @@ async def test_swap_coldkey_announced_extrinsic_too_early(subtensor, mocker):
     mocked_get_current_block = mocker.patch.object(
         subtensor, "get_current_block", return_value=999
     )
-    mocked_keypair = mocker.patch("bittensor.core.extrinsics.asyncex.coldkey_swap.Keypair")
+    mocked_keypair = mocker.patch(
+        "bittensor.core.extrinsics.asyncex.coldkey_swap.Keypair"
+    )
     mocked_keypair_instance = mocker.MagicMock()
     mocked_keypair_instance.public_key = b"\x00" * 32
     mocked_keypair.return_value = mocked_keypair_instance
@@ -390,4 +400,3 @@ async def test_remove_coldkey_swap_announcement_extrinsic(subtensor, mocker):
         raise_error=False,
     )
     assert response == mocked_sign_and_send_extrinsic.return_value
-
