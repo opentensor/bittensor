@@ -1,13 +1,13 @@
-from typing import Optional
 from dataclasses import asdict, dataclass, fields
+from typing import Optional
 
-from bittensor.core.chain_data.info_base import InfoBase
-from bittensor_wallet.utils import SS58_FORMAT
-from scalecodec.utils.ss58 import ss58_encode
+from async_substrate_interface.types import ScaleObj
+
+from bittensor.core.chain_data.utils import decode_account_id
 
 
 @dataclass
-class ColdkeySwapAnnouncementInfo(InfoBase):
+class ColdkeySwapAnnouncementInfo:
     """
     Information about a coldkey swap announcement.
 
@@ -33,36 +33,32 @@ class ColdkeySwapAnnouncementInfo(InfoBase):
     new_coldkey_hash: str
 
     @classmethod
-    def from_query(cls, query) -> Optional["ColdkeySwapAnnouncementInfo"]:
+    def from_query(
+        cls, coldkey_ss58: str, query: "ScaleObj"
+    ) -> Optional["ColdkeySwapAnnouncementInfo"]:
         """
         Creates a ColdkeySwapAnnouncementInfo object from a Substrate query result.
 
         Parameters:
+            coldkey_ss58: The SS58 address of the coldkey that made the announcement.
             query: Query result from Substrate `query()` call to `ColdkeySwapAnnouncements` storage function.
 
         Returns:
             ColdkeySwapAnnouncementInfo if announcement exists, None otherwise.
         """
-        if query.value is None:
+        if not getattr(query, "value", None):
             return None
 
-        # Decode the coldkey from the query params (if available)
-        # The query result contains (BlockNumber, Hash)
         execution_block = query.value[0]
-        new_coldkey_hash = "0x" + bytes(query.value[1]).hex()
-
-        # Note: The coldkey SS58 address should be provided separately when calling this method
-        # as it's the key in the storage map, not part of the value
+        new_coldkey_hash = "0x" + bytes(query.value[1][0]).hex()
         return cls(
-            coldkey="",  # Will be set by caller
+            coldkey=coldkey_ss58,
             execution_block=execution_block,
             new_coldkey_hash=new_coldkey_hash,
         )
 
     @classmethod
-    def from_query_map_record(
-        cls, record: tuple
-    ) -> tuple[str, "ColdkeySwapAnnouncementInfo"]:
+    def from_record(cls, record: tuple) -> "ColdkeySwapAnnouncementInfo":
         """
         Creates a ColdkeySwapAnnouncementInfo object from a query_map record.
 
@@ -75,14 +71,12 @@ class ColdkeySwapAnnouncementInfo(InfoBase):
                 - SS58 address of the coldkey that made the announcement.
                 - ColdkeySwapAnnouncementInfo object with announcement details.
         """
-        # record[0] is the coldkey AccountId (key from storage)
-        # record[1] is the value containing (BlockNumber, Hash)
-        coldkey_ss58 = ss58_encode(record[0], SS58_FORMAT)
-        value = record[1].value
-        execution_block = value[0]
-        new_coldkey_hash = "0x" + bytes(value[1]).hex()
+        coldkey_ss58 = decode_account_id(record[0])
+        announcement_data = record[1].value
+        execution_block = announcement_data[0]
+        new_coldkey_hash = "0x" + bytes(announcement_data[1][0]).hex()
 
-        return coldkey_ss58, cls(
+        return cls(
             coldkey=coldkey_ss58,
             execution_block=execution_block,
             new_coldkey_hash=new_coldkey_hash,
@@ -92,31 +86,23 @@ class ColdkeySwapAnnouncementInfo(InfoBase):
 @dataclass
 class ColdkeySwapConstants:
     """
-    Represents all runtime constants defined for coldkey swap operations in the SubtensorModule.
+    Represents runtime constants for coldkey swap operations in the SubtensorModule.
 
-    These attributes correspond directly to on-chain configuration constants exposed by the SubtensorModule pallet.
-    They define delay periods and cost requirements that govern how coldkey swap operations work within the Subtensor
-    network.
-
-    Each attribute is fetched directly from the runtime via `Subtensor.query_constant("SubtensorModule", <name>)` and
-    reflects the current chain configuration at the time of retrieval.
+    This class contains runtime constants that define cost requirements for coldkey swap operations.
+    Note: For delay values (ColdkeySwapAnnouncementDelay and ColdkeySwapReannouncementDelay), use the dedicated
+    query methods `get_coldkey_swap_announcement_delay()` and `get_coldkey_swap_reannouncement_delay()` instead,
+    as these are storage values, not runtime constants.
 
     Attributes:
-        ColdkeySwapAnnouncementDelay: The number of blocks that must elapse after making an announcement before the swap
-            can be executed. This delay provides security and allows time for verification.
-        ColdkeySwapReannouncementDelay: The number of blocks that must elapse between the original announcement and a
-            reannouncement. This prevents spam and allows time for the original announcement to be processed.
         KeySwapCost: The cost in RAO required to make a coldkey swap announcement. This cost is charged when making the
-            first announcement (not when reannouncing).
+            first announcement (not when reannouncing). This is a runtime constant (queryable via constants).
 
     Notes:
         - All amounts are in RAO.
-        - Constants reflect the current chain configuration at the time of retrieval.
+        - Values reflect the current chain configuration at the time of retrieval.
         - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
     """
 
-    ColdkeySwapAnnouncementDelay: Optional[int]
-    ColdkeySwapReannouncementDelay: Optional[int]
     KeySwapCost: Optional[int]
 
     @classmethod
