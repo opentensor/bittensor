@@ -5796,6 +5796,248 @@ def test_remove_proxy_announcement(mocker, subtensor):
     assert response == mocked_remove_announcement_extrinsic.return_value
 
 
+def test_get_coldkey_swap_announcement(subtensor, mocker):
+    """Test get_coldkey_swap_announcement returns correct data when announcement information is found."""
+    # Prep
+    fake_coldkey_ss58 = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+    fake_account_id = b"\x00" * 32
+    fake_execution_block = 1000
+    fake_hash = b"\x11" * 32
+
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_ss58_decode = mocker.patch.object(
+        subtensor.substrate, "ss58_decode", return_value=fake_account_id
+    )
+    mocked_query = mocker.patch.object(
+        subtensor.substrate,
+        "query",
+        return_value=mocker.Mock(value=(fake_execution_block, fake_hash)),
+    )
+
+    # Call
+    result = subtensor.get_coldkey_swap_announcement(coldkey_ss58=fake_coldkey_ss58)
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(None)
+    mocked_ss58_decode.assert_called_once_with(fake_coldkey_ss58)
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="ColdkeySwapAnnouncements",
+        params=[fake_account_id],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    assert result is not None
+    assert result.coldkey == fake_coldkey_ss58
+    assert result.execution_block == fake_execution_block
+    assert result.new_coldkey_hash == "0x" + fake_hash.hex()
+
+
+def test_get_coldkey_swap_announcement_not_found(subtensor, mocker):
+    """Test get_coldkey_swap_announcement returns None when announcement is not found."""
+    # Prep
+    fake_coldkey_ss58 = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+    fake_account_id = b"\x00" * 32
+
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_ss58_decode = mocker.patch.object(
+        subtensor.substrate, "ss58_decode", return_value=fake_account_id
+    )
+    mocked_query = mocker.patch.object(
+        subtensor.substrate, "query", return_value=mocker.Mock(value=None)
+    )
+
+    # Call
+    result = subtensor.get_coldkey_swap_announcement(coldkey_ss58=fake_coldkey_ss58)
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(None)
+    mocked_ss58_decode.assert_called_once_with(fake_coldkey_ss58)
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="ColdkeySwapAnnouncements",
+        params=[fake_account_id],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    assert result is None
+
+
+def test_get_coldkey_swap_announcements(subtensor, mocker):
+    """Test get_coldkey_swap_announcements returns correct data when announcement information is found."""
+    # Prep
+    fake_coldkey = b"\x00" * 32
+    fake_execution_block = 1000
+    fake_hash = b"\x11" * 32
+
+    fake_record = (
+        fake_coldkey,
+        mocker.Mock(value=(fake_execution_block, fake_hash)),
+    )
+    fake_query_map_records = [fake_record]
+
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value="mock_block_hash"
+    )
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate,
+        "query_map",
+        return_value=fake_query_map_records,
+    )
+    mocked_from_query_map_record = mocker.patch.object(
+        subtensor_module.ColdkeySwapAnnouncementInfo,
+        "from_query_map_record",
+        return_value=(
+            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+            mocker.Mock(),
+        ),
+    )
+
+    # Call
+    result = subtensor.get_coldkey_swap_announcements()
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(None)
+    mocked_query_map.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="ColdkeySwapAnnouncements",
+        block_hash="mock_block_hash",
+    )
+    assert mocked_from_query_map_record.call_count == len(fake_query_map_records)
+    assert isinstance(result, dict)
+
+
+def test_get_coldkey_swap_constants(subtensor, mocker):
+    """Test get_coldkey_swap_constants returns correct data when constants are found."""
+    # Prep
+    fake_constants = {
+        "ColdkeySwapAnnouncementDelay": 100,
+        "ColdkeySwapReannouncementDelay": 200,
+        "KeySwapCost": 1000000,
+    }
+
+    mocked_constants_names = mocker.patch.object(
+        subtensor_module.ColdkeySwapConstants,
+        "constants_names",
+        return_value=list(fake_constants.keys()),
+    )
+    mocked_query_constant = mocker.patch.object(
+        subtensor,
+        "query_constant",
+        side_effect=[mocker.Mock(value=value) for value in fake_constants.values()],
+    )
+    mocked_from_dict = mocker.patch.object(
+        subtensor_module.ColdkeySwapConstants, "from_dict"
+    )
+
+    # Call
+    result = subtensor.get_coldkey_swap_constants()
+
+    # Asserts
+    mocked_constants_names.assert_called_once()
+    assert mocked_query_constant.call_count == len(fake_constants)
+    mocked_from_dict.assert_called_once_with(fake_constants)
+    assert result == mocked_from_dict.return_value
+
+
+def test_get_coldkey_swap_constants_as_dict(subtensor, mocker):
+    """Test get_coldkey_swap_constants returns dict when as_dict=True."""
+    # Prep
+    fake_constants = {
+        "ColdkeySwapAnnouncementDelay": 100,
+        "ColdkeySwapReannouncementDelay": 200,
+        "KeySwapCost": 1000000,
+    }
+
+    mocked_constants_names = mocker.patch.object(
+        subtensor_module.ColdkeySwapConstants,
+        "constants_names",
+        return_value=list(fake_constants.keys()),
+    )
+    mocked_query_constant = mocker.patch.object(
+        subtensor,
+        "query_constant",
+        side_effect=[mocker.Mock(value=value) for value in fake_constants.values()],
+    )
+    mocked_coldkey_swap_constants = mocker.Mock()
+    mocked_from_dict = mocker.patch.object(
+        subtensor_module.ColdkeySwapConstants,
+        "from_dict",
+        return_value=mocked_coldkey_swap_constants,
+    )
+    mocked_to_dict = mocker.patch.object(
+        mocked_coldkey_swap_constants, "to_dict", return_value=fake_constants
+    )
+
+    # Call
+    result = subtensor.get_coldkey_swap_constants(as_dict=True)
+
+    # Asserts
+    mocked_constants_names.assert_called_once()
+    assert mocked_query_constant.call_count == len(fake_constants)
+    mocked_from_dict.assert_called_once_with(fake_constants)
+    mocked_to_dict.assert_called_once()
+    assert result == fake_constants
+
+
+def test_announce_coldkey_swap(mocker, subtensor):
+    """Tests `announce_coldkey_swap` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    new_coldkey_ss58 = mocker.Mock(spec=str)
+    mocked_announce_coldkey_swap_extrinsic = mocker.patch.object(
+        subtensor_module, "announce_coldkey_swap_extrinsic"
+    )
+
+    # call
+    response = subtensor.announce_coldkey_swap(
+        wallet=wallet,
+        new_coldkey_ss58=new_coldkey_ss58,
+    )
+
+    # asserts
+    mocked_announce_coldkey_swap_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        new_coldkey_ss58=new_coldkey_ss58,
+        mev_protection=DEFAULT_MEV_PROTECTION,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+    )
+    assert response == mocked_announce_coldkey_swap_extrinsic.return_value
+
+
+def test_swap_coldkey_announced(mocker, subtensor):
+    """Tests `swap_coldkey_announced` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    new_coldkey_ss58 = mocker.Mock(spec=str)
+    mocked_swap_coldkey_announced_extrinsic = mocker.patch.object(
+        subtensor_module, "swap_coldkey_announced_extrinsic"
+    )
+
+    # call
+    response = subtensor.swap_coldkey_announced(
+        wallet=wallet,
+        new_coldkey_ss58=new_coldkey_ss58,
+    )
+
+    # asserts
+    mocked_swap_coldkey_announced_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        new_coldkey_ss58=new_coldkey_ss58,
+        mev_protection=DEFAULT_MEV_PROTECTION,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+    )
+    assert response == mocked_swap_coldkey_announced_extrinsic.return_value
+
+
 def test_remove_proxies(mocker, subtensor):
     """Tests `remove_proxies` extrinsic call method."""
     # preps
