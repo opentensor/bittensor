@@ -52,6 +52,10 @@ from bittensor.core.extrinsics.asyncex.children import (
     root_set_pending_childkey_cooldown_extrinsic,
     set_children_extrinsic,
 )
+from bittensor.core.extrinsics.asyncex.coldkey_swap import (
+    announce_coldkey_swap_extrinsic,
+    swap_coldkey_announced_extrinsic,
+)
 from bittensor.core.extrinsics.asyncex.crowdloan import (
     contribute_crowdloan_extrinsic,
     create_crowdloan_extrinsic,
@@ -62,10 +66,6 @@ from bittensor.core.extrinsics.asyncex.crowdloan import (
     update_end_crowdloan_extrinsic,
     update_min_contribution_crowdloan_extrinsic,
     withdraw_crowdloan_extrinsic,
-)
-from bittensor.core.extrinsics.asyncex.coldkey_swap import (
-    announce_coldkey_swap_extrinsic,
-    swap_coldkey_announced_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.liquidity import (
     add_liquidity_extrinsic,
@@ -1968,26 +1968,14 @@ class AsyncSubtensor(SubtensorMixin):
             - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        account_id = self.substrate.ss58_decode(coldkey_ss58)
-
         query = await self.substrate.query(
             module="SubtensorModule",
             storage_function="ColdkeySwapAnnouncements",
-            params=[account_id],
+            params=[coldkey_ss58],
             block_hash=block_hash,
-            reuse_block_hash=reuse_block,
         )
-
-        if query.value is None:
-            return None
-
-        execution_block = query.value[0]
-        new_coldkey_hash = "0x" + bytes(query.value[1]).hex()
-
-        return ColdkeySwapAnnouncementInfo(
-            coldkey=coldkey_ss58,
-            execution_block=execution_block,
-            new_coldkey_hash=new_coldkey_hash,
+        return ColdkeySwapAnnouncementInfo.from_query(
+            coldkey_ss58=coldkey_ss58, query=query
         )
 
     async def get_coldkey_swap_announcements(
@@ -1995,7 +1983,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> dict[str, "ColdkeySwapAnnouncementInfo"]:
+    ) -> list["ColdkeySwapAnnouncementInfo"]:
         """
         Retrieves all coldkey swap announcements from the chain.
 
@@ -2022,13 +2010,76 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
+        return [
+            ColdkeySwapAnnouncementInfo.from_record(record)
+            async for record in query_map
+        ]
 
-        announcements = {}
-        async for record in query_map:
-            coldkey, info = ColdkeySwapAnnouncementInfo.from_query_map_record(record)
-            announcements[coldkey] = info
+    async def get_coldkey_swap_announcement_delay(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> int:
+        """
+        Retrieves the ColdkeySwapAnnouncementDelay storage value.
 
-        return announcements
+        This method queries the SubtensorModule.ColdkeySwapAnnouncementDelay storage value, which defines the number
+        of blocks that must elapse after making an announcement before the swap can be executed.
+
+        Parameters:
+            block: The blockchain block number for the query. If `None`, queries the latest block.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
+
+        Returns:
+            The number of blocks that must elapse before swap execution (integer).
+
+        Notes:
+            - This is a storage value (can be changed via admin extrinsics), not a runtime constant.
+            - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="ColdkeySwapAnnouncementDelay",
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+        return query.value if query.value is not None else 0
+
+    async def get_coldkey_swap_reannouncement_delay(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> int:
+        """
+        Retrieves the ColdkeySwapReannouncementDelay storage value.
+
+        This method queries the SubtensorModule.ColdkeySwapReannouncementDelay storage value, which defines the number
+        of blocks that must elapse between the original announcement and a reannouncement.
+
+        Parameters:
+            block: The blockchain block number for the query. If `None`, queries the latest block.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
+
+        Returns:
+            The number of blocks that must elapse before reannouncement (integer).
+
+        Notes:
+            - This is a storage value (can be changed via admin extrinsics), not a runtime constant.
+            - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="ColdkeySwapReannouncementDelay",
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+        return query.value if query.value is not None else 0
 
     async def get_coldkey_swap_constants(
         self,
@@ -2041,13 +2092,14 @@ class AsyncSubtensor(SubtensorMixin):
         """
         Fetches runtime configuration constants for coldkey swap operations.
 
-        This method retrieves on-chain configuration constants that define delay periods and cost requirements for
-        coldkey swap operations. These constants govern how coldkey swap announcements work within the Subtensor network.
+        This method retrieves on-chain runtime constants that define cost requirements for coldkey swap operations.
+        Note: For delay values (ColdkeySwapAnnouncementDelay and ColdkeySwapReannouncementDelay), use the dedicated
+        query methods `get_coldkey_swap_announcement_delay()` and `get_coldkey_swap_reannouncement_delay()` instead,
+        as these are storage values, not runtime constants.
 
         Parameters:
             constants: Optional list of specific constant names to fetch. If omitted, all constants defined in
-                `ColdkeySwapConstants.constants_names()` are queried. Valid constant names include:
-                "ColdkeySwapAnnouncementDelay", "ColdkeySwapReannouncementDelay", "KeySwapCost".
+                `ColdkeySwapConstants.constants_names()` are queried. Valid constant names include: "KeySwapCost".
             as_dict: If True, returns the constants as a dictionary instead of a `ColdkeySwapConstants` object.
             block: The blockchain block number for the query. If `None`, queries the latest block.
             block_hash: The hash of the block at which to check the parameter. Do not set if using `block` or `reuse_block`.
@@ -2055,18 +2107,20 @@ class AsyncSubtensor(SubtensorMixin):
 
         Returns:
             If `as_dict` is False: ColdkeySwapConstants object containing all requested constants.
-            If `as_dict` is True: Dictionary mapping constant names to their values (integers for delay constants,
-                integers for cost in RAO).
+            If `as_dict` is True: Dictionary mapping constant names to their values (integers for cost in RAO).
 
         Notes:
-            - All amounts are returned in RAO. Constants reflect the current chain configuration at the specified block.
+            - All amounts are returned in RAO. Values reflect the current chain configuration at the specified block.
+            - KeySwapCost is a runtime constant (queryable via constants).
             - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
         """
         result = {}
         const_names = constants or ColdkeySwapConstants.constants_names()
 
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+
         for const_name in const_names:
+            # Query as runtime constant
             query = await self.query_constant(
                 module_name="SubtensorModule",
                 constant_name=const_name,
@@ -2074,7 +2128,6 @@ class AsyncSubtensor(SubtensorMixin):
                 block_hash=block_hash,
                 reuse_block=reuse_block,
             )
-
             if query is not None:
                 result[const_name] = query.value
 
