@@ -1973,6 +1973,7 @@ class AsyncSubtensor(SubtensorMixin):
             storage_function="ColdkeySwapAnnouncements",
             params=[coldkey_ss58],
             block_hash=block_hash,
+            reuse_block_hash=reuse_block,
         )
         return ColdkeySwapAnnouncementInfo.from_query(
             coldkey_ss58=coldkey_ss58, query=query
