@@ -19,6 +19,9 @@ class Wallets:
         self.get_balances = subtensor.get_balances
         self.get_children = subtensor.get_children
         self.get_children_pending = subtensor.get_children_pending
+        self.get_coldkey_swap_announcement = subtensor.get_coldkey_swap_announcement
+        self.get_coldkey_swap_announcements = subtensor.get_coldkey_swap_announcements
+        self.get_coldkey_swap_constants = subtensor.get_coldkey_swap_constants
         self.get_delegate_by_hotkey = subtensor.get_delegate_by_hotkey
         self.get_delegate_take = subtensor.get_delegate_take
         self.get_delegated = subtensor.get_delegated
