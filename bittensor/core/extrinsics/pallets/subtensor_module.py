@@ -75,6 +75,20 @@ class SubtensorModule(_BasePallet):
             allow_partial=allow_partial,
         )
 
+    def announce_coldkey_swap(
+        self,
+        new_coldkey_hash: str,
+    ) -> Call:
+        """Returns GenericCall instance for Subtensor function SubtensorModule.announce_coldkey_swap.
+
+        Parameters:
+            new_coldkey_hash: The BlakeTwo256 hash of the new coldkey AccountId (hex string with 0x prefix).
+
+        Returns:
+            GenericCall instance.
+        """
+        return self.create_composed_call(new_coldkey_hash=new_coldkey_hash)
+
     def burned_register(
         self,
         netuid: int,
@@ -313,6 +327,22 @@ class SubtensorModule(_BasePallet):
         return self.create_composed_call(
             netuid=netuid, hotkey=hotkey, limit_price=limit_price
         )
+
+    def remove_coldkey_swap_announcement(
+        self,
+        coldkey: str,
+    ) -> Call:
+        """Returns GenericCall instance for Subtensor function SubtensorModule.remove_coldkey_swap_announcement.
+
+        Only callable by root.
+
+        Parameters:
+            coldkey: SS58 address of the coldkey to remove the swap announcement for.
+
+        Returns:
+            GenericCall instance.
+        """
+        return self.create_composed_call(coldkey=coldkey)
 
     def reveal_mechanism_weights(
         self,
@@ -632,6 +662,21 @@ class SubtensorModule(_BasePallet):
             limit_price=limit_price,
             allow_partial=allow_partial,
         )
+
+    def swap_coldkey_announced(
+        self,
+        new_coldkey: str,
+    ) -> Call:
+        """Returns GenericCall instance for Subtensor function SubtensorModule.swap_coldkey_announced.
+
+        Parameters:
+            new_coldkey: SS58 address of the new coldkey to swap to. The BlakeTwo256 hash of this coldkey must match
+                the hash that was announced.
+
+        Returns:
+            GenericCall instance.
+        """
+        return self.create_composed_call(new_coldkey=new_coldkey)
 
     def transfer_stake(
         self,
