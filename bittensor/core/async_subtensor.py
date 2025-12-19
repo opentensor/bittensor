@@ -1989,7 +1989,7 @@ class AsyncSubtensor(SubtensorMixin):
         Retrieves all coldkey swap announcements from the chain.
 
         This method queries the SubtensorModule.ColdkeySwapAnnouncements storage map across all coldkeys and returns a
-        dictionary mapping each coldkey to its announcement.
+        list of all active announcements.
 
         Parameters:
             block: The blockchain block number for the query. If `None`, queries the latest block.
@@ -1997,7 +1997,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            Dictionary mapping coldkey SS58 addresses to their ColdkeySwapAnnouncementInfo objects.
+            List of ColdkeySwapAnnouncementInfo objects representing all active coldkey swap announcements on the chain.
 
         Notes:
             - This method queries all announcements on the chain, which may be resource-intensive for large networks.

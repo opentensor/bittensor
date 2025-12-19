@@ -67,9 +67,7 @@ class ColdkeySwapAnnouncementInfo:
                 [key, value] where key is the coldkey AccountId and value contains (BlockNumber, Hash) tuple.
 
         Returns:
-            Tuple containing:
-                - SS58 address of the coldkey that made the announcement.
-                - ColdkeySwapAnnouncementInfo object with announcement details.
+            ColdkeySwapAnnouncementInfo object with announcement details for the coldkey from the record.
         """
         coldkey_ss58 = decode_account_id(record[0])
         announcement_data = record[1]

@@ -6,6 +6,7 @@ from async_substrate_interface.types import ScaleObj
 
 
 def test_coldkey_swap_announcement_info_from_query_none(mocker):
+    """Test from_query returns None when query has no value."""
     # Prep
     coldkey_ss58 = mocker.Mock(spec=str)
     query = mocker.Mock(spec=ScaleObj)
@@ -18,6 +19,7 @@ def test_coldkey_swap_announcement_info_from_query_none(mocker):
 
 
 def test_coldkey_swap_announcement_info_from_query_happy_path(mocker):
+    """Test from_query returns ColdkeySwapAnnouncementInfo when query has valid data."""
     # Prep
     coldkey_ss58 = mocker.Mock(spec=str)
     fake_block = mocker.Mock(spec=int)
