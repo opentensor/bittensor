@@ -1167,7 +1167,26 @@ class Subtensor(SubtensorMixin):
 
         Example:
 
-            # TODO add example of how to handle realistic commitment data
+            # Get all commitments for subnet 1
+            import bittensor as bt
+            subtensor = bt.Subtensor()
+            commitments = subtensor.get_all_commitments(netuid=1)
+            
+            # commitments is a dict mapping hotkey SS58 addresses to commitment strings
+            # Example output: {
+            #     "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY": "0x1234abcd...",
+            #     "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty": "0x5678ef01..."
+            # }
+            
+            for hotkey, commitment in commitments.items():
+                print(f"Hotkey: {hotkey}")
+                print(f"Commitment: {commitment}")
+                
+            # To check if a specific neuron has committed:
+            target_hotkey = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+            if target_hotkey in commitments:
+                print(f"Neuron {target_hotkey} has commitment: {commitments[target_hotkey]}")
+
         """
         query = self.query_map(
             module="Commitments",
@@ -1664,7 +1683,6 @@ class Subtensor(SubtensorMixin):
     def get_commitment_metadata(
         self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
     ) -> Union[str, dict]:
-        # TODO: how to handle return data? need good example @roman
         """Fetches raw commitment metadata from specific subnet for given hotkey.
 
         Parameters:
@@ -1673,10 +1691,34 @@ class Subtensor(SubtensorMixin):
             block: The blockchain block number for the query.
 
         Returns:
-            The raw commitment metadata. Returns a dict when commitment data exists,
-            or an empty string when no commitment is found for the given hotkey on the subnet.
+            The commitment metadata as a string (hex-encoded) or decoded dict if possible.
+
+        Example:
+
+            # Get commitment for a specific neuron
+            import bittensor as bt
+            subtensor = bt.Subtensor()
+            
+            hotkey = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+            commitment = subtensor.get_commitment_metadata(
+                netuid=1,
+                hotkey_ss58=hotkey
+            )
+            
+            # commitment will be a hex string like "0x1234abcd..."
+            print(f"Raw commitment: {commitment}")
+            
+            # Check if neuron has committed
+            if commitment:
+                print(f"Neuron {hotkey} has active commitment")
+            else:
+                print(f"Neuron {hotkey} has no commitment")
 
         Notes:
+            - Returns empty string if no commitment exists for the hotkey
+            - Commitment data is hex-encoded metadata
+            - Used in commit-reveal weight submission mechanism
+
             - <https://docs.learnbittensor.org/glossary#commit-reveal>
         """
         commit_data = self.substrate.query(
@@ -3106,15 +3148,29 @@ class Subtensor(SubtensorMixin):
             block: The block number to retrieve the commitment from. If `None`, queries the current chain head.
 
         Returns:
-            A tuple of reveal block and commitment message.
+            A tuple of (reveal_block, commitment_message) tuples in chronological order (oldest first).
+            Each reveal_block is an integer block number when the commitment was revealed.
+            Each commitment_message is a string containing the revealed data.
+            Returns empty tuple if neuron has no revealed commitments.
 
         Example:
 
-            # sample return value
-
-            ( (12, "Alice message 1"), (152, "Alice message 2") )
-
-            ( (12, "Bob message 1"), (147, "Bob message 2") )
+            # Get revealed commitments for neuron with UID 5 in subnet 1
+            import bittensor as bt
+            subtensor = bt.Subtensor()
+            
+            revealed = subtensor.get_revealed_commitments_by_uid(netuid=1, uid=5)
+            
+            # revealed is a tuple of (block_number, message) pairs
+            # Example: ( (12, "weights commitment 1"), (152, "weights commitment 2") )
+            
+            for block_num, message in revealed:
+                print(f"Block {block_num}: {message}")
+                
+            # Check if neuron has any revealed commitments
+            if revealed:
+                latest_block, latest_message = revealed[-1]  # Most recent is last
+                print(f"Latest commitment at block {latest_block}: {latest_message}")
 
         Notes:
             - <https://docs.learnbittensor.org/glossary#commit-reveal>
