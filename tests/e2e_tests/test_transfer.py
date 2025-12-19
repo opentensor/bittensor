@@ -23,9 +23,7 @@ def test_transfer(subtensor, alice_wallet):
     dest_coldkey = "5GpzQgpiAKHMWNSH3RN4GLf96GVTDct9QxYEFAY7LWcVzTbx"
 
     # Account balance before any transfer
-    balance_before = subtensor.wallets.get_balance(
-        alice_wallet.coldkeypub.ss58_address
-    )
+    balance_before = subtensor.wallets.get_balance(alice_wallet.coldkeypub.ss58_address)
 
     # --- Insufficient balance case (NEW) ---
     insufficient_amount = balance_before + Balance.from_tao(1)
@@ -38,7 +36,6 @@ def test_transfer(subtensor, alice_wallet):
         wait_for_inclusion=True,
     )
     assert response.success, response.message
-
 
     # --- Successful transfer (EXISTING FLOW) ---
     transfer_value = Balance.from_tao(2)
@@ -53,9 +50,7 @@ def test_transfer(subtensor, alice_wallet):
 
     assert response.success, response.message
 
-    balance_after = subtensor.wallets.get_balance(
-        alice_wallet.coldkeypub.ss58_address
-    )
+    balance_after = subtensor.wallets.get_balance(alice_wallet.coldkeypub.ss58_address)
 
     assert balance_before - response.extrinsic_fee - transfer_value == balance_after, (
         f"Expected {balance_before - transfer_value - response.extrinsic_fee}, got {balance_after}"

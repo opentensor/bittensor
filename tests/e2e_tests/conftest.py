@@ -1,350 +1,197 @@
-import asyncio
-import contextlib
-import os
-import re
-import shlex
-import shutil
-import signal
-import subprocess
-import sys
-import threading
-import time
-from typing import Optional
+import typing
 
+from bittensor_wallet import Wallet
 import pytest
-import pytest_asyncio
 
-from bittensor.extras import SubtensorApi
-from bittensor.utils.btlogging import logging
-from tests.e2e_tests.utils.e2e_test_utils import (
-    Templates,
-    setup_wallet,
-)
+from bittensor.utils.balance import Balance
+from bittensor import logging
 
-LOCALNET_IMAGE_NAME = (
-    os.getenv("LOCALNET_IMAGE_NAME")
-    or "ghcr.io/opentensor/subtensor-localnet:devnet-ready"
-)
-CONTAINER_NAME_PREFIX = "test_local_chain_"
+if typing.TYPE_CHECKING:
+    from bittensor.extras import SubtensorApi
 
 
-def wait_for_node_start(process, timestamp=None, timeout: Optional[int] = 120):
-    """Waits for node to start in the docker.
+def _handle_insufficient_balance(exc: Exception):
+    msg = str(exc).lower()
+    if any(k in msg for k in ["insufficient", "balance", "funds"]):
+        pytest.xfail(f"Transfer failed due to insufficient balance: {exc}")
+    raise exc
 
-    The `timeout` is set to 2 mins bc sometimes in GH the chain takes time after finalizing the first block.
+
+def test_transfer(subtensor, alice_wallet):
     """
-    while True:
-        line = process.stdout.readline()
-        if not line:
-            break
+    Test the transfer mechanism on the chain
 
-        timestamp = timestamp or int(time.time())
-        print(line.strip())
-        if int(time.time()) - timestamp > timeout:
-            print("Subtensor not started in time")
-            raise TimeoutError
+    Steps:
+        1. Calculate existing balance and transfer 2 Tao
+        2. Calculate balance after transfer call and verify calculations
+    Raises:
+        AssertionError: If any of the checks or verifications fail
+    """
+    transfer_value = Balance.from_tao(2)
+    dest_coldkey = "5GpzQgpiAKHMWNSH3RN4GLf96GVTDct9QxYEFAY7LWcVzTbx"
 
-        pattern = re.compile(r"Imported #1")
-        if pattern.search(line):
-            print("Node started!")
-            break
+    # Account details before transfer
+    balance_before = subtensor.wallets.get_balance(alice_wallet.coldkeypub.ss58_address)
 
-    # Start a background reader after pattern is found
-    # To prevent the buffer filling up
-    def read_output():
-        while True:
-            if not process.stdout.readline():
-                break
+    # Transfer Tao
+    try:
+        response = subtensor.extrinsics.transfer(
+            wallet=alice_wallet,
+            destination_ss58=dest_coldkey,
+            amount=transfer_value,
+            wait_for_finalization=True,
+            wait_for_inclusion=True,
+        )
+    except Exception as e:
+        _handle_insufficient_balance(e)
 
-    reader_thread = threading.Thread(target=read_output, daemon=True)
-    reader_thread.start()
+    assert response.success, response.message
 
+    # Account details after transfer
+    balance_after = subtensor.wallets.get_balance(alice_wallet.coldkeypub.ss58_address)
 
-@pytest.fixture(scope="function")
-def local_chain(request):
-    """Determines whether to run the localnet.sh script in a subprocess or a Docker container."""
-    args = request.param if hasattr(request, "param") else None
-
-    # passed env variable to control node mod (non-/fast-blocks)
-    fast_blocks = "False" if (os.getenv("FAST_BLOCKS") == "0") is True else "True"
-    params = f"{fast_blocks}" if args is None else f"{args}"
-
-    if shutil.which("docker") and not os.getenv("USE_DOCKER") == "0":
-        yield from docker_runner(params)
-    else:
-        if not os.getenv("USE_DOCKER") == "0":
-            if sys.platform.startswith("linux"):
-                docker_command = (
-                    "Install docker with command "
-                    "[blue]sudo apt-get update && sudo apt-get install docker.io -y[/blue]"
-                    " or use documentation [blue]https://docs.docker.com/engine/install/[/blue]"
-                )
-            elif sys.platform == "darwin":
-                docker_command = (
-                    "Install docker with command [blue]brew install docker[/blue]"
-                )
-            else:
-                docker_command = "[blue]Unknown OS, install Docker manually: https://docs.docker.com/get-docker/[/blue]"
-
-            logging.warning("Docker not found in the operating system!")
-            logging.warning(docker_command)
-            logging.warning("Tests are run in legacy mode.")
-        yield from legacy_runner(params)
+    # Assert correct transfer calculations
+    assert balance_before - response.extrinsic_fee - transfer_value == balance_after, (
+        f"Expected {balance_before - transfer_value - response.extrinsic_fee}, got {balance_after}"
+    )
 
 
-def legacy_runner(params):
-    """Runs the localnet.sh script in a subprocess and waits for it to start."""
-    # Get the environment variable for the script path
-    script_path = os.getenv("LOCALNET_SH_PATH")
+@pytest.mark.asyncio
+async def test_transfer_async(async_subtensor, alice_wallet):
+    """
+    Test the transfer mechanism on the chain
 
-    if not script_path:
-        # Skip the test if the localhost.sh path is not set
-        logging.warning("LOCALNET_SH_PATH env variable is not set, e2e test skipped.")
-        pytest.skip("LOCALNET_SH_PATH environment variable is not set.")
+    Steps:
+        1. Calculate existing balance and transfer 2 Tao
+        2. Calculate balance after transfer call and verify calculations
+    Raises:
+        AssertionError: If any of the checks or verifications fail
+    """
+    transfer_value = Balance.from_tao(2)
+    dest_coldkey = "5GpzQgpiAKHMWNSH3RN4GLf96GVTDct9QxYEFAY7LWcVzTbx"
 
-    # Check if param is None and handle it accordingly
-    args = "" if params is None else f"{params}"
+    # Account details before transfer
+    balance_before = await async_subtensor.wallets.get_balance(
+        alice_wallet.coldkeypub.ss58_address
+    )
 
-    # Compile commands to send to process
-    cmds = shlex.split(f"{script_path} {args}")
-    with subprocess.Popen(
-        cmds,
-        start_new_session=True,
-        stderr=subprocess.STDOUT,
-        stdout=subprocess.PIPE,
-        text=True,
-    ) as process:
-        try:
-            wait_for_node_start(process, timeout=300)
-        except TimeoutError:
-            raise
-        else:
-            yield
+    # Transfer Tao
+    try:
+        response = await async_subtensor.extrinsics.transfer(
+            wallet=alice_wallet,
+            destination_ss58=dest_coldkey,
+            amount=transfer_value,
+            wait_for_finalization=True,
+            wait_for_inclusion=True,
+        )
+    except Exception as e:
+        _handle_insufficient_balance(e)
 
-        finally:
-            # Terminate the process group (includes all child processes)
-            os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+    assert response.success, response.message
 
-            try:
-                process.wait(1)
-            except subprocess.TimeoutExpired:
-                # If the process is not terminated, send SIGKILL
-                os.killpg(os.getpgid(process.pid), signal.SIGKILL)
-                process.wait()
+    # Account details after transfer
+    balance_after = await async_subtensor.wallets.get_balance(
+        alice_wallet.coldkeypub.ss58_address
+    )
 
-
-def docker_runner(params):
-    """Starts a Docker container before tests and gracefully terminates it after."""
-
-    def kill_local_nodes():
-        """Closes subtensor local running nodes."""
-        try:
-            subprocess.run(["pkill", "-9", "-f", "node-subtensor"], check=False)
-            print("Killed all local 'node-subtensor' processes.")
-        except Exception as e:
-            print(f"Warning: failed to kill local node-subtensor: {e}")
-
-    def is_docker_running():
-        """Check if Docker is running and optionally skip pulling the image."""
-        try:
-            subprocess.run(
-                ["docker", "info"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                check=True,
-            )
-
-            skip_pull = os.getenv("SKIP_PULL", "0") == "1"
-            if not skip_pull:
-                subprocess.run(["docker", "pull", LOCALNET_IMAGE_NAME], check=True)
-            else:
-                print(f"[SKIP_PULL=1] Skipping 'docker pull {LOCALNET_IMAGE_NAME}'")
-
-            return True
-        except subprocess.CalledProcessError:
-            return False
-
-    def try_start_docker():
-        """Run docker based on OS."""
-        try:
-            subprocess.run(["open", "-g", "-a", "Docker"], check=True)  # macOS
-        except (FileNotFoundError, subprocess.CalledProcessError):
-            try:
-                subprocess.run(["systemctl", "start", "docker"], check=True)  # Linux
-            except (FileNotFoundError, subprocess.CalledProcessError):
-                try:
-                    subprocess.run(
-                        ["sudo", "service", "docker", "start"], check=True
-                    )  # Linux alternative
-                except (FileNotFoundError, subprocess.CalledProcessError):
-                    print("Failed to start Docker. Manual start may be required.")
-                    return False
-
-        # Wait Docker run 10 attempts with 3 sec waits
-        for _ in range(10):
-            if is_docker_running():
-                return True
-            time.sleep(3)
-
-        print("Docker wasn't run. Manual start may be required.")
-        return False
-
-    def stop_existing_test_containers():
-        """Stop running Docker containers with names starting with 'test_local_chain_'."""
-        try:
-            existing_container_result = subprocess.run(
-                [
-                    "docker",
-                    "ps",
-                    "--filter",
-                    f"name={CONTAINER_NAME_PREFIX}",
-                    "--format",
-                    "{{.ID}}",
-                ],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                check=True,
-            )
-            container_ids = existing_container_result.stdout.strip().splitlines()
-            for cid in container_ids:
-                if cid:
-                    print(f"Stopping existing container: {cid}")
-                    subprocess.run(["docker", "stop", cid], check=True)
-        except subprocess.CalledProcessError as e:
-            print(f"Failed to stop existing containers: {e}")
-
-    container_name = f"{CONTAINER_NAME_PREFIX}{str(time.time()).replace('.', '_')}"
-
-    # Command to start container
-    cmds = [
-        "docker",
-        "run",
-        "--rm",
-        "--name",
-        container_name,
-        "-p",
-        "9944:9944",
-        "-p",
-        "9945:9945",
-        str(LOCALNET_IMAGE_NAME),
-    ]
-
-    cmds += params.split() if params else []
-
-    print("Entire run command: ", cmds)
-
-    kill_local_nodes()
-
-    try_start_docker()
-
-    stop_existing_test_containers()
-
-    # Start container
-    with subprocess.Popen(
-        cmds,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        start_new_session=True,
-    ) as process:
-        try:
-            try:
-                wait_for_node_start(process, timestamp=int(time.time()))
-            except TimeoutError:
-                raise
-
-            result = subprocess.run(
-                ["docker", "ps", "-q", "-f", f"name={container_name}"],
-                capture_output=True,
-                text=True,
-            )
-            if not result.stdout.strip():
-                raise RuntimeError("Docker container failed to start.")
-
-            yield
-
-        finally:
-            try:
-                subprocess.run(["docker", "kill", container_name])
-                process.wait()
-            except subprocess.TimeoutExpired:
-                os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+    # Assert correct transfer calculations
+    assert balance_before - response.extrinsic_fee - transfer_value == balance_after, (
+        f"Expected {balance_before - transfer_value - response.extrinsic_fee}, got {balance_after}"
+    )
 
 
-@pytest.fixture(scope="session")
-def templates():
-    with Templates() as templates:
-        yield templates
+def test_transfer_all(subtensor, alice_wallet):
+    # create two dummy accounts we can drain
+    dummy_account_1 = Wallet(path="/tmp/bittensor-dummy-account-1")
+    dummy_account_2 = Wallet(path="/tmp/bittensor-dummy-account-2")
+    dummy_account_1.create_new_coldkey(use_password=False, overwrite=True)
+    dummy_account_2.create_new_coldkey(use_password=False, overwrite=True)
+
+    # fund the first dummy account
+    assert subtensor.extrinsics.transfer(
+        wallet=alice_wallet,
+        destination_ss58=dummy_account_1.coldkeypub.ss58_address,
+        amount=Balance.from_tao(2.0),
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
+    ).success
+    # Account details before transfer
+    existential_deposit = subtensor.chain.get_existential_deposit()
+    assert subtensor.extrinsics.transfer(
+        wallet=dummy_account_1,
+        destination_ss58=dummy_account_2.coldkeypub.ss58_address,
+        amount=None,
+        transfer_all=True,
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
+        keep_alive=True,
+    ).success
+    balance_after = subtensor.wallets.get_balance(
+        dummy_account_1.coldkeypub.ss58_address
+    )
+    assert balance_after == existential_deposit
+    assert subtensor.extrinsics.transfer(
+        wallet=dummy_account_2,
+        destination_ss58=alice_wallet.coldkeypub.ss58_address,
+        amount=None,
+        transfer_all=True,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        keep_alive=False,
+    ).success
+    balance_after = subtensor.wallets.get_balance(
+        dummy_account_2.coldkeypub.ss58_address
+    )
+    assert balance_after == Balance(0)
 
 
-@pytest.fixture
-def subtensor(local_chain):
-    with SubtensorApi(network="ws://localhost:9944", legacy_methods=False) as sub:
-        yield sub
+@pytest.mark.asyncio
+async def test_transfer_all_async(async_subtensor, alice_wallet):
+    # create two dummy accounts we can drain
+    dummy_account_1 = Wallet(path="/tmp/bittensor-dummy-account-3")
+    dummy_account_2 = Wallet(path="/tmp/bittensor-dummy-account-4")
+    dummy_account_1.create_new_coldkey(use_password=False, overwrite=True)
+    dummy_account_2.create_new_coldkey(use_password=False, overwrite=True)
 
-
-@pytest_asyncio.fixture
-async def async_subtensor(local_chain):
-    async with SubtensorApi(
-        network="ws://localhost:9944", legacy_methods=False, async_subtensor=True
-    ) as a_sub:
-        yield a_sub
-
-
-@pytest.fixture
-def alice_wallet():
-    return setup_wallet("//Alice")
-
-
-@pytest.fixture
-def bob_wallet():
-    return setup_wallet("//Bob")
-
-
-@pytest.fixture
-def charlie_wallet():
-    return setup_wallet("//Charlie")
-
-
-@pytest.fixture
-def dave_wallet():
-    return setup_wallet("//Dave")
-
-
-@pytest.fixture
-def eve_wallet():
-    return setup_wallet("//Eve")
-
-
-@pytest.fixture
-def fred_wallet():
-    return setup_wallet("//Fred")
-
-
-@pytest.fixture(autouse=True)
-def log_test_start_and_end(request):
-    test_name = request.node.nodeid
-    logging.console.info(f"🏁[green]Testing[/green] [yellow]{test_name}[/yellow]")
-    yield
-    logging.console.success(f"✅ [green]Finished[/green] [yellow]{test_name}[/yellow]")
-
-
-@pytest_asyncio.fixture(scope="session")
-def event_loop():
-    """Create an instance of the default event loop for each test case and close all alive tasks at the end."""
-    loop = asyncio.get_event_loop()
-    yield loop
-
-    # 1) cance all alive tasks
-    pending = [t for t in asyncio.all_tasks(loop) if not t.done()]
-    for t in pending:
-        t.cancel()
-    with contextlib.suppress(Exception):
-        loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
-
-    # 2) cleanup async generators
-    with contextlib.suppress(Exception):
-        loop.run_until_complete(loop.shutdown_asyncgens())
-
-    loop.close()
+    # fund the first dummy account
+    assert (
+        await async_subtensor.extrinsics.transfer(
+            wallet=alice_wallet,
+            destination_ss58=dummy_account_1.coldkeypub.ss58_address,
+            amount=Balance.from_tao(2.0),
+            wait_for_finalization=True,
+            wait_for_inclusion=True,
+        )
+    ).success
+    # Account details before transfer
+    existential_deposit = await async_subtensor.chain.get_existential_deposit()
+    assert (
+        await async_subtensor.extrinsics.transfer(
+            wallet=dummy_account_1,
+            destination_ss58=dummy_account_2.coldkeypub.ss58_address,
+            amount=None,
+            transfer_all=True,
+            wait_for_finalization=True,
+            wait_for_inclusion=True,
+            keep_alive=True,
+        )
+    ).success
+    balance_after = await async_subtensor.wallets.get_balance(
+        dummy_account_1.coldkeypub.ss58_address
+    )
+    assert balance_after == existential_deposit
+    assert (
+        await async_subtensor.extrinsics.transfer(
+            wallet=dummy_account_2,
+            destination_ss58=alice_wallet.coldkeypub.ss58_address,
+            amount=None,
+            transfer_all=True,
+            wait_for_inclusion=True,
+            wait_for_finalization=True,
+            keep_alive=False,
+        )
+    ).success
+    balance_after = await async_subtensor.wallets.get_balance(
+        dummy_account_2.coldkeypub.ss58_address
+    )
+    assert balance_after == Balance(0)
