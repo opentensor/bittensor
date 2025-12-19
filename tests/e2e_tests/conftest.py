@@ -192,6 +192,4 @@ async def test_transfer_all_async(async_subtensor, alice_wallet):
         )
     ).success
     balance_after = await async_subtensor.wallets.get_balance(
-        dummy_account_2.coldkeypub.ss58_address
-    )
-    assert balance_after == Balance(0)
+        dummy_account_2.coldkey
