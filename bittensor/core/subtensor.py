@@ -1651,7 +1651,7 @@ class Subtensor(SubtensorMixin):
             storage_function="ColdkeySwapAnnouncementDelay",
             block_hash=block_hash,
         )
-        return query.value if query.value is not None else 0
+        return query.value if getattr(query, "value", None) else 0
 
     def get_coldkey_swap_constants(
         self,
@@ -1725,7 +1725,7 @@ class Subtensor(SubtensorMixin):
             storage_function="ColdkeySwapReannouncementDelay",
             block_hash=block_hash,
         )
-        return query.value if query.value is not None else 0
+        return query.value if getattr(query, "value", None) else 0
 
     def get_commitment(self, netuid: int, uid: int, block: Optional[int] = None) -> str:
         """Retrieves the on-chain commitment for a specific neuron in the Bittensor network.

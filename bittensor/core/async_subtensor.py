@@ -2047,7 +2047,7 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        return query.value if query.value is not None else 0
+        return query.value if getattr(query, "value", None) else 0
 
     async def get_coldkey_swap_reannouncement_delay(
         self,
@@ -2080,7 +2080,7 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        return query.value if query.value is not None else 0
+        return query.value if getattr(query, "value", None) else 0
 
     async def get_coldkey_swap_constants(
         self,
