@@ -31,7 +31,7 @@ DENDRITE_ERROR_MAPPING: dict[Type[Exception], tuple] = {
 DENDRITE_DEFAULT_ERROR = ("422", "Failed to parse response")
 
 
-def event_loop_is_running():
+def event_loop_is_running() -> bool:
     try:
         asyncio.get_running_loop()
         return True
@@ -218,7 +218,7 @@ class DendriteMixin:
             await self._session.close()
             self._session = None
 
-    def _get_endpoint_url(self, target_axon, request_name):
+    def _get_endpoint_url(self, target_axon, request_name) -> str:
         """
         Constructs the endpoint URL for a network request to a target axon.
 
@@ -240,7 +240,7 @@ class DendriteMixin:
         )
         return f"http://{endpoint}/{request_name}"
 
-    def log_exception(self, exception: Exception):
+    def log_exception(self, exception: Exception) -> None:
         """
         Logs an exception with a unique identifier.
 
@@ -305,7 +305,7 @@ class DendriteMixin:
 
         return synapse
 
-    def _log_outgoing_request(self, synapse: "Synapse"):
+    def _log_outgoing_request(self, synapse: "Synapse") -> None:
         """
         Logs information about outgoing requests for debugging purposes.
 
@@ -329,7 +329,7 @@ class DendriteMixin:
                 f"dendrite | --> | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | 0 | Success"
             )
 
-    def _log_incoming_response(self, synapse: "Synapse"):
+    def _log_incoming_response(self, synapse: "Synapse") -> None:
         """
         Logs information about incoming responses for debugging and monitoring.
 
@@ -728,7 +728,7 @@ class DendriteMixin:
         server_response: "aiohttp.ClientResponse",
         json_response: dict,
         local_synapse: "Synapse",
-    ):
+    ) -> None:
         """
         Processes the server response, updates the local synapse state with the server's state and merges headers set
         by the server.
@@ -803,7 +803,7 @@ class DendriteMixin:
         """
         return self.__str__()
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> "DendriteMixin":
         """
         Asynchronous context manager entry method.
 
@@ -819,7 +819,7 @@ class DendriteMixin:
         """
         return self
 
-    async def __aexit__(self, exc_type, exc_value, traceback):
+    async def __aexit__(self, exc_type, exc_value, traceback) -> None:
         """
         Asynchronous context manager exit method.
 
@@ -843,7 +843,7 @@ class DendriteMixin:
         """
         await self.aclose_session()
 
-    def __del__(self):
+    def __del__(self) -> None:
         """
         Dendrite destructor.
 
