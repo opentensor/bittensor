@@ -1460,7 +1460,27 @@ class AsyncSubtensor(SubtensorMixin):
 
         Example:
 
-            # TODO add example of how to handle realistic commitment data
+            # Get all commitments for subnet 1 (async version)
+            import bittensor as bt
+            subtensor = bt.AsyncSubtensor()
+            commitments = await subtensor.get_all_commitments(netuid=1)
+            
+            # commitments is a dict mapping hotkey SS58 addresses to commitment strings
+            # Example output: {
+            #     "5GrwvaEf5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY": "0x1234abcd...",
+            #     "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty": "0x5678ef01..."
+            # }
+            
+            for hotkey, commitment in commitments.items():
+                print(f"Hotkey: {hotkey}")
+                print(f"Commitment: {commitment}")
+                
+            # To check if a specific neuron has committed:
+            target_hotkey = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+            if target_hotkey in commitments:
+                print(f"Neuron {target_hotkey} has commitment: {commitments[target_hotkey]}")
+
+
         """
         query = await self.query_map(
             module="Commitments",
@@ -2061,21 +2081,43 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Union[str, dict]:
-        # TODO: how to handle return data? need good example @roman
         """Fetches raw commitment metadata from specific subnet for given hotkey.
 
         Parameters:
             netuid: The unique subnet identifier.
             hotkey_ss58: The hotkey ss58 address.
             block: The blockchain block number for the query.
-            block_hash: The hash of the block at which to check the hotkey ownership.
-            reuse_block: Whether to reuse the last-used blockchain hash.
+            block_hash: The hash of the blockchain block at which to perform the query.
+            reuse_block: Whether to reuse the last-used block hash when retrieving info.
 
         Returns:
-            The raw commitment metadata. Returns a dict when commitment data exists,
-            or an empty string when no commitment is found for the given hotkey on the subnet.
+            The commitment metadata as a string (hex-encoded) or decoded dict if possible.
+
+        Example:
+
+            # Get commitment for a specific neuron (async)
+            import bittensor as bt
+            subtensor = bt.AsyncSubtensor()
+            
+            hotkey = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+            commitment = await subtensor.get_commitment_metadata(
+                netuid=1,
+                hotkey_ss58=hotkey
+            )
+            
+            # commitment will be a hex string like "0x1234abcd..."
+            print(f"Raw commitment: {commitment}")
+            
+            # Check if neuron has committed
+            if commitment:
+                print(f"Neuron {hotkey} has active commitment")
+            else:
+                print(f"Neuron {hotkey} has no commitment")
 
         Notes:
+            - Returns empty string if no commitment exists for the hotkey
+            - Commitment data is hex-encoded metadata
+            - Used in commit-reveal weight submission mechanism
             - <https://docs.learnbittensor.org/glossary#commit-reveal>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
