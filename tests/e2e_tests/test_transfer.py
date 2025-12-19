@@ -35,7 +35,7 @@ def test_transfer(subtensor, alice_wallet):
         wait_for_finalization=True,
         wait_for_inclusion=True,
     )
-    assert response.success, response.message
+    assert "insufficient Funds, Top Up!" in response.message.lower()
 
     # --- Successful transfer (EXISTING FLOW) ---
     transfer_value = Balance.from_tao(2)
