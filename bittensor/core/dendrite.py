@@ -15,6 +15,7 @@ from bittensor.core.settings import version_as_int
 from bittensor.core.stream import StreamingSynapse
 from bittensor.core.synapse import Synapse, TerminalInfo
 from bittensor.utils import networking
+from bittensor.utils.retry import retry_async
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
 
@@ -575,16 +576,29 @@ class DendriteMixin:
             self._log_outgoing_request(synapse)
 
             # Make the HTTP POST request
-            async with (await self.session).post(
-                url=url,
-                headers=synapse.to_headers(),
-                json=synapse.model_dump(),
-                timeout=aiohttp.ClientTimeout(total=timeout),
-            ) as response:
-                # Extract the JSON response from the server
-                json_response = await response.json()
-                # Process the server response and fill synapse
-                self.process_server_response(response, json_response, synapse)
+            async def _make_request():
+                async with (await self.session).post(
+                    url=url,
+                    headers=synapse.to_headers(),
+                    json=synapse.model_dump(),
+                    timeout=aiohttp.ClientTimeout(total=timeout),
+                ) as response:
+                    # Extract the JSON response from the server
+                    json_response = await response.json()
+                    # Process the server response and fill synapse
+                    self.process_server_response(response, json_response, synapse)
+
+            # Retry the request if enabled
+            await retry_async(
+                _make_request,
+                retry_exceptions=(
+                    aiohttp.ClientConnectorError,
+                    asyncio.TimeoutError,
+                    aiohttp.ServerDisconnectedError,
+                    aiohttp.ServerConnectionError,
+                    aiohttp.ClientError,
+                ),
+            )
 
             # Set process time and log the response
             synapse.dendrite.process_time = str(time.time() - start_time)  # type: ignore
@@ -650,6 +664,27 @@ class DendriteMixin:
             self._log_outgoing_request(synapse)
 
             # Make the HTTP POST request
+            async def _make_stream_request():
+                async with (await self.session).post(
+                    url,
+                    headers=synapse.to_headers(),
+                    json=synapse.model_dump(),
+                    timeout=aiohttp.ClientTimeout(total=timeout),
+                ) as response:
+                    # Use synapse subclass' process_streaming_response method to yield the response chunks
+                    async for chunk in synapse.process_streaming_response(response):  # type: ignore
+                        yield chunk  # Yield each chunk as it's processed
+                    json_response = synapse.extract_response_json(response)
+
+                    # Process the server response
+                    self.process_server_response(response, json_response, synapse)
+            
+            # NOTE: streaming requests (`call_stream`) are intentionally NOT retried here.
+            # Async generators cannot be safely retried once they start yielding data without buffering
+            # or complex replay logic, which risks protocol side effects.
+            # To enable retries for streaming, the higher-level caller must handle the restart logic.
+
+            
             async with (await self.session).post(
                 url,
                 headers=synapse.to_headers(),
