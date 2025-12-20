@@ -564,7 +564,7 @@ class Subtensor(SubtensorMixin):
             logging.error(f"subnet {netuid} does not exist")
             return None
 
-        return retry_call(
+        result = retry_call(
             self.substrate.query,
             module="SubtensorModule",
             storage_function=param_name,
@@ -577,7 +577,15 @@ class Subtensor(SubtensorMixin):
                 BrokenPipeError,
                 ConnectionResetError,
             ),
-        ).value
+        )
+
+        if result is None:
+            return None
+
+        if hasattr(result, "value"):
+            return result.value
+
+        return result
 
     @property
     def block(self) -> int:
