@@ -127,8 +127,7 @@ jobs:
 
           echo "Reading labels ..."
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            # Use GitHub CLI to read labels (works for forks too)
-            labels=$(gh pr view ${{ github.event.pull_request.number }} -R ${{ github.repository }} --json labels --jq '.labels[].name' || echo "")
+            labels=$(jq -r '.pull_request.labels[]?.name' "$GITHUB_EVENT_PATH" | tr '\n' ' ' || echo "")
             echo "Found labels: $labels"
           else
             labels=""
