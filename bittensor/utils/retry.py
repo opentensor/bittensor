@@ -7,6 +7,10 @@ from typing import Type, Tuple, Optional, Callable, Any, Union
 
 logger = logging.getLogger(__name__)
 
+# Note: This utility is not used internally by the SDK.
+# It is provided as an optional helper for users who wish
+# to implement consistent retry behavior themselves.
+
 
 # Helpers for runtime environment variable access
 def _retry_enabled() -> bool:

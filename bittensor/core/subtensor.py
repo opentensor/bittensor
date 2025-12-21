@@ -163,7 +163,7 @@ from bittensor.utils.liquidity import (
     price_to_tick,
     tick_to_price,
 )
-from bittensor.utils.retry import retry_call
+
 
 if TYPE_CHECKING:
     from async_substrate_interface.sync_substrate import QueryMapResult
@@ -564,19 +564,11 @@ class Subtensor(SubtensorMixin):
             logging.error(f"subnet {netuid} does not exist")
             return None
 
-        result = retry_call(
-            self.substrate.query,
+        result = self.substrate.query(
             module="SubtensorModule",
             storage_function=param_name,
             params=[netuid],
             block_hash=block_hash,
-            retry_exceptions=(
-                SubstrateRequestException,
-                ConnectionRefusedError,
-                TimeoutError,
-                BrokenPipeError,
-                ConnectionResetError,
-            ),
         )
 
         if result is None:
@@ -719,18 +711,10 @@ class Subtensor(SubtensorMixin):
             Common types include int (for counts/blocks), Balance objects (for amounts in Rao), and booleans.
 
         """
-        return retry_call(
-            self.substrate.get_constant,
+        return self.substrate.get_constant(
             module_name=module_name,
             constant_name=constant_name,
             block_hash=self.determine_block_hash(block),
-            retry_exceptions=(
-                SubstrateRequestException,
-                ConnectionRefusedError,
-                TimeoutError,
-                BrokenPipeError,
-                ConnectionResetError,
-            ),
         )
 
     def query_map(
@@ -754,19 +738,11 @@ class Subtensor(SubtensorMixin):
         Returns:
             QueryMapResult: A data structure representing the map storage if found, None otherwise.
         """
-        result = retry_call(
-            self.substrate.query_map,
+        result = self.substrate.query_map(
             module=module,
             storage_function=name,
             params=params,
             block_hash=self.determine_block_hash(block=block),
-            retry_exceptions=(
-                SubstrateRequestException,
-                ConnectionRefusedError,
-                TimeoutError,
-                BrokenPipeError,
-                ConnectionResetError,
-            ),
         )
         return result
 
@@ -789,19 +765,11 @@ class Subtensor(SubtensorMixin):
         Returns:
             An object containing the map-like data structure, or `None` if not found.
         """
-        return retry_call(
-            self.substrate.query_map,
+        return self.substrate.query_map(
             module="SubtensorModule",
             storage_function=name,
             params=params,
             block_hash=self.determine_block_hash(block),
-            retry_exceptions=(
-                SubstrateRequestException,
-                ConnectionRefusedError,
-                TimeoutError,
-                BrokenPipeError,
-                ConnectionResetError,
-            ),
         )
 
     def query_module(
@@ -826,21 +794,12 @@ class Subtensor(SubtensorMixin):
             An object containing the requested data if found, `None` otherwise.
 
         """
-        return retry_call(
-            self.substrate.query,
+        return self.substrate.query(
             module=module,
             storage_function=name,
             params=params,
             block_hash=self.determine_block_hash(block),
-            retry_exceptions=(
-                SubstrateRequestException,
-                ConnectionRefusedError,
-                TimeoutError,
-                BrokenPipeError,
-                ConnectionResetError,
-            ),
         )
-
 
     def query_runtime_api(
         self,
@@ -864,20 +823,12 @@ class Subtensor(SubtensorMixin):
 
         """
         block_hash = self.determine_block_hash(block)
-        
-        return retry_call(
-            self.substrate.runtime_call,
+
+        return self.substrate.runtime_call(
             api=runtime_api,
             method=method,
             params=params,
             block_hash=block_hash,
-            retry_exceptions=(
-                SubstrateRequestException,
-                ConnectionRefusedError,
-                TimeoutError,
-                BrokenPipeError,
-                ConnectionResetError,
-            ),
         ).value
 
     def query_subtensor(
@@ -899,19 +850,11 @@ class Subtensor(SubtensorMixin):
         Returns:
             query_response: An object containing the requested data.
         """
-        return retry_call(
-            self.substrate.query,
+        return self.substrate.query(
             module="SubtensorModule",
             storage_function=name,
             params=params,
             block_hash=self.determine_block_hash(block),
-            retry_exceptions=(
-                SubstrateRequestException,
-                ConnectionRefusedError,
-                TimeoutError,
-                BrokenPipeError,
-                ConnectionResetError,
-            ),
         )
 
     def state_call(
