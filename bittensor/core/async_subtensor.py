@@ -5901,9 +5901,44 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_finalization: bool = False,
         calling_function: Optional[str] = None,
     ) -> ExtrinsicResponse:
-        # TODO: Full clear example of sending extrinsic flow
         """
         Helper method to sign and submit an extrinsic call to chain.
+
+        Example:
+            import asyncio
+            import bittensor as bt
+
+            async def main():
+                # Setup
+                wallet = bt.Wallet()
+                subtensor = await bt.AsyncSubtensor(network="test").initialize()
+
+                # Compose the call
+                # For example, a transfer call
+                call = await subtensor.compose_call(
+                    call_module='Balances',
+                    call_function='transfer_keep_alive',
+                    call_params={
+                        'dest': '5Dest...',
+                        'value': 1000000
+                    }
+                )
+
+                # Sign and send
+                response = await subtensor.sign_and_send_extrinsic(
+                    call=call,
+                    wallet=wallet,
+                    sign_with='coldkey', # signing with coldkey
+                    wait_for_inclusion=True,
+                    wait_for_finalization=True
+                )
+
+                if response.is_success:
+                    print("Transaction success:", response.extrinsic_hash)
+                else:
+                    print("Transaction failed:", response.error_message)
+
+            asyncio.run(main())
 
         Parameters:
             call: A prepared Call object
