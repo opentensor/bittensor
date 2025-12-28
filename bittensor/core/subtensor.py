@@ -1571,6 +1571,40 @@ class Subtensor(SubtensorMixin):
 
 
             # TODO: add a real example of how to handle realistic commitment data, or chop example
+        
+        Example:
+            import bittensor as bt
+            import json
+
+            wallet = bt.Wallet()
+            subtensor = bt.Subtensor(network="test")
+            netuid = 1
+
+            # Realistic commitment data often includes versioning and content hashes
+            commitment_data = {
+                "version": "1.0.0",
+                "model_hash": "QmX...", # IPFS hash or similar
+                "timestamp": 1234567890
+            }
+
+            # Convert to string for storage
+            data_str = json.dumps(commitment_data)
+
+            # Set commitment
+            # Note: This requires the wallet to be a registered neuron on the subnet
+            subtensor.set_commitment(wallet=wallet, netuid=netuid, data=data_str)
+
+            # Retrieve commitment
+            uid = 123
+            retrieved_data_str = subtensor.get_commitment(netuid=netuid, uid=uid)
+
+            if retrieved_data_str:
+                try:
+                    # Parse back to dictionary
+                    retrieved_data = json.loads(retrieved_data_str)
+                    print(f"Retrieved version: {retrieved_data.get('version')}")
+                except json.JSONDecodeError:
+                    print("Failed to decode commitment data")
 
         Notes:
             - <https://docs.learnbittensor.org/glossary#commit-reveal>
