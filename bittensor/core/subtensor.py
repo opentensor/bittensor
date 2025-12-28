@@ -1568,10 +1568,7 @@ class Subtensor(SubtensorMixin):
 
         Returns:
             The commitment data as a string.
-
-
-            # TODO: add a real example of how to handle realistic commitment data, or chop example
-        
+            
         Example:
             import bittensor as bt
             import json
