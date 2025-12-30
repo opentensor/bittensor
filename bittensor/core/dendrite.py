@@ -648,6 +648,7 @@ class DendriteMixin:
             # Log outgoing request
             self._log_outgoing_request(synapse)
 
+            # Make the HTTP POST request
             async with (await self.session).post(
                 url,
                 headers=synapse.to_headers(),
