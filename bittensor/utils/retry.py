@@ -83,8 +83,8 @@ def _retry_backoff_factor() -> float:
 def _get_backoff_time(attempt: int, base_delay: float, max_delay: float) -> float:
     """Calculates backoff time with exponential backoff and jitter."""
     delay = min(max_delay, base_delay * (_retry_backoff_factor() ** attempt))
-    # Add jitter: random value between 0 and delay
-    return delay * (0.5 + random.random())
+    # Add jitter while ensuring the final backoff does not exceed max_delay
+    return min(max_delay, delay * (0.5 + random.random()))
 
 
 def retry_call(
