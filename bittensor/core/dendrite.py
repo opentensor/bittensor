@@ -8,14 +8,12 @@ from typing import Any, AsyncGenerator, Optional, Union, Type
 
 import aiohttp
 from bittensor_wallet import Keypair, Wallet
-
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import AxonInfo
 from bittensor.core.settings import version_as_int
 from bittensor.core.stream import StreamingSynapse
 from bittensor.core.synapse import Synapse, TerminalInfo
 from bittensor.utils import networking
-
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
 
