@@ -570,15 +570,8 @@ class Subtensor(SubtensorMixin):
             params=[netuid],
             block_hash=block_hash,
         )
-
-        if result is None:
-            return None
-
-        if hasattr(result, "value"):
-            return result.value
-
-        return result
-
+        return getattr(result, "value", result)
+        
     @property
     def block(self) -> int:
         """Provides an asynchronous getter to retrieve the current block number.
