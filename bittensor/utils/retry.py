@@ -23,15 +23,54 @@ def _retry_enabled() -> bool:
 
 
 def _retry_max_attempts() -> int:
-    return int(os.environ.get("BT_RETRY_MAX_ATTEMPTS", 3))
+    """Get the maximum number of retry attempts from the environment, with validation."""
+    default = 3
+    raw = os.environ.get("BT_RETRY_MAX_ATTEMPTS")
+    if raw is None or raw == "":
+        return default
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        logger.warning(
+            "Invalid value for BT_RETRY_MAX_ATTEMPTS=%r; falling back to default %d",
+            raw,
+            default,
+        )
+        return default
 
 
 def _retry_base_delay() -> float:
-    return float(os.environ.get("BT_RETRY_BASE_DELAY", 1.0))
+    """Get the base delay (in seconds) for retries from the environment, with validation."""
+    default = 1.0
+    raw = os.environ.get("BT_RETRY_BASE_DELAY")
+    if raw is None or raw == "":
+        return default
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        logger.warning(
+            "Invalid value for BT_RETRY_BASE_DELAY=%r; falling back to default %.2f",
+            raw,
+            default,
+        )
+        return default
 
 
 def _retry_max_delay() -> float:
-    return float(os.environ.get("BT_RETRY_MAX_DELAY", 60.0))
+    """Get the maximum delay (in seconds) for retries from the environment, with validation."""
+    default = 60.0
+    raw = os.environ.get("BT_RETRY_MAX_DELAY")
+    if raw is None or raw == "":
+        return default
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        logger.warning(
+            "Invalid value for BT_RETRY_MAX_DELAY=%r; falling back to default %.2f",
+            raw,
+            default,
+        )
+        return default
 
 
 _RETRY_BACKOFF_FACTOR = 2.0
