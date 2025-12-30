@@ -207,9 +207,9 @@ def retry_call(
 
     for attempt in range(1, _max_attempts + 1):
         try:
-            return func(*args, **kwargs)
+            return await func(*args, **kwargs)
         except retry_exceptions as e:
-            if attempt == _max_attempts:
+            if attempt == _max_attempts: 
                 logger.debug(
                     f"Retry exhausted after {_max_attempts} attempts. Last error: {e}"
                 )
