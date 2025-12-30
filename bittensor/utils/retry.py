@@ -1,19 +1,19 @@
-"""Retry utilities for handling transient failures with exponential backoff.
+"""Retry utilities for handling transient failures with exponential backoff. 
 
 This module provides optional retry wrappers for both synchronous and asynchronous
 functions.  Retry behavior is controlled via environment variables and is disabled
 by default. 
 
 Environment Variables:
-    BT_RETRY_ENABLED: Enable retry behavior ("true", "1", "yes", "on")
-    BT_RETRY_MAX_ATTEMPTS: Maximum retry attempts (default:  3)
-    BT_RETRY_BASE_DELAY:  Base delay in seconds (default: 1.0)
-    BT_RETRY_MAX_DELAY: Maximum delay in seconds (default:  60.0)
+    BT_RETRY_ENABLED:  Enable retry behavior ("true", "1", "yes", "on")
+    BT_RETRY_MAX_ATTEMPTS: Maximum retry attempts (default: 3)
+    BT_RETRY_BASE_DELAY: Base delay in seconds (default: 1.0)
+    BT_RETRY_MAX_DELAY: Maximum delay in seconds (default: 60.0)
     BT_RETRY_BACKOFF_FACTOR: Exponential backoff multiplier (default: 2.0)
 
-Note:
+Note: 
     This utility is not used internally by the SDK.  It is provided as an
-    optional helper for users who wish to implement consistent retry behavior.
+    optional helper for users who wish to implement consistent retry behavior. 
 
 For more information on retry strategies, see:
     https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
@@ -94,9 +94,9 @@ def _retry_max_delay() -> float:
     """Get the maximum delay (in seconds) for retries from the environment, with validation."""
     default = 60.0
     raw = os.environ.get("BT_RETRY_MAX_DELAY")
-    if raw is None or raw == "":
+    if raw is None or raw == "": 
         return default
-    try:
+    try: 
         value = float(raw)
         if value < 0:
             logger.warning(
@@ -136,7 +136,7 @@ def _retry_backoff_factor() -> float:
         return value
     except (TypeError, ValueError):
         logger.warning(
-            "Invalid value for BT_RETRY_BACKOFF_FACTOR=%r; falling back to default %.2f",
+            "Invalid value for BT_RETRY_BACKOFF_FACTOR=%r (must be positive); falling back to default %.2f",
             raw,
             default,
         )
@@ -158,20 +158,20 @@ def retry_call(
         TimeoutError,
     ),
     max_attempts: Optional[int] = None,
-    base_delay:  Optional[float] = None,
+    base_delay: Optional[float] = None,
     max_delay: Optional[float] = None,
     **kwargs,
 ) -> Any:
     """Synchronous retry wrapper with optional exponential backoff.
 
-    Retries are only enabled when BT_RETRY_ENABLED is set to a truthy value.
-    When disabled, the function executes exactly once.
+    Retries are only enabled when BT_RETRY_ENABLED is set to a truthy value. 
+    When disabled, the function executes exactly once. 
 
     Args:
-        func: The callable to be executed and potentially retried.
+        func:  The callable to be executed and potentially retried.
         *args: Positional arguments forwarded to func.
-        retry_exceptions: Exception type(s) that trigger a retry. Any exception
-            not matching these types is raised immediately. Defaults to
+        retry_exceptions: Exception type(s) that trigger a retry.  Any exception
+            not matching these types is raised immediately.  Defaults to
             (OSError, TimeoutError).
         max_attempts: Maximum number of attempts. If None, uses
             BT_RETRY_MAX_ATTEMPTS environment variable (default: 3).
@@ -179,21 +179,21 @@ def retry_call(
             uses BT_RETRY_BASE_DELAY environment variable (default: 1.0).
         max_delay: Maximum delay in seconds between attempts. If None, uses
             BT_RETRY_MAX_DELAY environment variable (default: 60.0).
-        **kwargs: Keyword arguments forwarded to func.
+        **kwargs:  Keyword arguments forwarded to func. 
 
     Returns:
-        The return value from the first successful func execution.
+        The return value from the first successful func execution. 
 
     Raises:
-        TypeError: If func is an async function.  Use async_retry_call instead. 
+        TypeError: If func is an async function.  Use async_retry_call instead.
         Exception: Any exception raised by func when retries are disabled, or
             when the exception type doesn't match retry_exceptions, or after
-            all retry attempts are exhausted. 
+            all retry attempts are exhausted.
     """
     # Validate that func is not async
     if inspect.iscoroutinefunction(func):
         raise TypeError(
-            f"retry_call() cannot be used with async functions.  "
+            f"retry_call() cannot be used with async functions. "
             f"Use async_retry_call() instead for {func.__name__}."
         )
 
@@ -211,13 +211,13 @@ def retry_call(
         except retry_exceptions as e:
             if attempt == _max_attempts:
                 logger.debug(
-                    f"Retry exhausted after {_max_attempts} attempts. Last error: {e}"
+                    f"Retry exhausted after {_max_attempts} attempts.  Last error: {e}"
                 )
                 raise
 
             backoff = _get_backoff_time(attempt - 1, _base_delay, _max_delay)
             logger.debug(
-                f"Retry attempt {attempt}/{_max_attempts} failed with {e}.  Retrying in {backoff:.2f}s..."
+                f"Retry attempt {attempt}/{_max_attempts} failed with {e}.  Retrying in {backoff:. 2f}s..."
             )
             time.sleep(backoff)
 
@@ -239,13 +239,13 @@ async def async_retry_call(
 ) -> Any:
     """Asynchronous retry wrapper with optional exponential backoff.
 
-    Retries are only enabled when BT_RETRY_ENABLED is set to a truthy value. 
+    Retries are only enabled when BT_RETRY_ENABLED is set to a truthy value.
     When disabled, the function executes exactly once.
 
     Args:
-        func: The async callable to be executed and potentially retried. 
-        *args: Positional arguments forwarded to func on each attempt. 
-        retry_exceptions: Exception type(s) that trigger a retry.  Any exception
+        func: The async callable to be executed and potentially retried.
+        *args: Positional arguments forwarded to func on each attempt.
+        retry_exceptions: Exception type(s) that trigger a retry. Any exception
             not matching these types is raised immediately. Defaults to
             (OSError, TimeoutError).
         max_attempts: Maximum number of attempts. If None, uses
@@ -253,7 +253,7 @@ async def async_retry_call(
         base_delay: Base delay in seconds for exponential backoff. If None,
             uses BT_RETRY_BASE_DELAY environment variable (default: 1.0).
         max_delay: Maximum delay in seconds between attempts. If None, uses
-            BT_RETRY_MAX_DELAY environment variable (default:  60.0).
+            BT_RETRY_MAX_DELAY environment variable (default: 60.0).
         **kwargs: Keyword arguments forwarded to func on each attempt.
 
     Returns:
@@ -283,10 +283,10 @@ async def async_retry_call(
     for attempt in range(1, _max_attempts + 1):
         try:
             return await func(*args, **kwargs)
-        except retry_exceptions as e:
-            if attempt == _max_attempts: 
+        except retry_exceptions as e: 
+            if attempt == _max_attempts:
                 logger.debug(
-                    f"Retry exhausted after {_max_attempts} attempts.  Last error: {e}"
+                    f"Retry exhausted after {_max_attempts} attempts. Last error: {e}"
                 )
                 raise
 
