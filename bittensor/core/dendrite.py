@@ -650,22 +650,6 @@ class DendriteMixin:
             # Log outgoing request
             self._log_outgoing_request(synapse)
 
-            # Make the HTTP POST request
-            async def _make_stream_request():
-                async with (await self.session).post(
-                    url,
-                    headers=synapse.to_headers(),
-                    json=synapse.model_dump(),
-                    timeout=aiohttp.ClientTimeout(total=timeout),
-                ) as response:
-                    # Use synapse subclass' process_streaming_response method to yield the response chunks
-                    async for chunk in synapse.process_streaming_response(response):  # type: ignore
-                        yield chunk  # Yield each chunk as it's processed
-                    json_response = synapse.extract_response_json(response)
-
-                    # Process the server response
-                    self.process_server_response(response, json_response, synapse)
-
             async with (await self.session).post(
                 url,
                 headers=synapse.to_headers(),
