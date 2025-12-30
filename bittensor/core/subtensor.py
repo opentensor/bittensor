@@ -164,12 +164,10 @@ from bittensor.utils.liquidity import (
     tick_to_price,
 )
 
-
 if TYPE_CHECKING:
     from async_substrate_interface.sync_substrate import QueryMapResult
     from bittensor_wallet import Keypair, Wallet
     from scalecodec.types import GenericCall
-
 
 class Subtensor(SubtensorMixin):
     """Synchronous interface for interacting with the Bittensor blockchain.
