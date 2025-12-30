@@ -151,7 +151,7 @@ def _get_backoff_time(attempt: int, base_delay: float, max_delay: float) -> floa
 
 
 def retry_call(
-    func:  Callable,
+    func: Callable,
     *args,
     retry_exceptions: Union[Type[Exception], Tuple[Type[Exception], ...]] = (
         OSError,
@@ -211,7 +211,7 @@ def retry_call(
         except retry_exceptions as e:
             if attempt == _max_attempts:
                 logger.debug(
-                    f"Retry exhausted after {_max_attempts} attempts.  Last error: {e}"
+                    f"Retry exhausted after {_max_attempts} attempts. Last error: {e}"
                 )
                 raise
 
@@ -282,7 +282,7 @@ async def async_retry_call(
 
     for attempt in range(1, _max_attempts + 1):
         try:
-            return await func(*args, **kwargs)
+            return await func(*args, **kwargs) 
         except retry_exceptions as e: 
             if attempt == _max_attempts:
                 logger.debug(
