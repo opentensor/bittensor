@@ -5,7 +5,7 @@ import random
 import logging
 from typing import Type, Tuple, Optional, Callable, Any, Union
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("bittensor.utils.retry")
 
 # Note: This utility is not used internally by the SDK.
 # It is provided as an optional helper for users who wish
