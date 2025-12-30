@@ -570,10 +570,10 @@ async def test_query_runtime_api(subtensor, mocker):
 
     # Asserts
     mocked_runtime_call.assert_called_once_with(
-        fake_runtime_api,
-        fake_method,
-        fake_params,
-        fake_block_hash,
+        api=fake_runtime_api,
+        method=fake_method,
+        params=fake_params,
+        block_hash=fake_block_hash,
     )
 
     assert result == mocked_runtime_call.return_value.value
