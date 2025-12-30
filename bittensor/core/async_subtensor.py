@@ -965,10 +965,12 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not block_hash and reuse_block:
             block_hash = self.substrate.last_block_hash
-        result = await self.substrate.runtime_call(
-            runtime_api, method, params, block_hash
-        )
-        return result.value
+        return (await self.substrate.runtime_call(
+            api=runtime_api,
+            method=method,
+            params=params,
+            block_hash=block_hash,
+        )).value
 
     async def query_subtensor(
         self,
