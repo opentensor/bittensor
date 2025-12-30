@@ -1,5 +1,4 @@
 import pytest
-import time
 import asyncio
 from unittest.mock import Mock, patch, AsyncMock
 from bittensor.utils.retry import retry_call, retry_async
