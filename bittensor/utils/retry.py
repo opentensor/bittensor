@@ -29,7 +29,15 @@ def _retry_max_attempts() -> int:
     if raw is None or raw == "":
         return default
     try:
-        return int(raw)
+        value = int(raw)
+        if value <= 0:
+            logger.warning(
+                "Invalid value for BT_RETRY_MAX_ATTEMPTS=%r (must be positive); falling back to default %d",
+                raw,
+                default,
+            )
+            return default
+        return value
     except (TypeError, ValueError):
         logger.warning(
             "Invalid value for BT_RETRY_MAX_ATTEMPTS=%r; falling back to default %d",
@@ -46,7 +54,15 @@ def _retry_base_delay() -> float:
     if raw is None or raw == "":
         return default
     try:
-        return float(raw)
+        value = float(raw)
+        if value < 0:
+            logger.warning(
+                "Invalid value for BT_RETRY_BASE_DELAY=%r (must be non-negative); falling back to default %. 2f",
+                raw,
+                default,
+            )
+            return default
+        return value
     except (TypeError, ValueError):
         logger.warning(
             "Invalid value for BT_RETRY_BASE_DELAY=%r; falling back to default %.2f",
@@ -59,11 +75,19 @@ def _retry_base_delay() -> float:
 def _retry_max_delay() -> float:
     """Get the maximum delay (in seconds) for retries from the environment, with validation."""
     default = 60.0
-    raw = os.environ.get("BT_RETRY_MAX_DELAY")
+    raw = os. environ.get("BT_RETRY_MAX_DELAY")
     if raw is None or raw == "":
         return default
     try:
-        return float(raw)
+        value = float(raw)
+        if value < 0:
+            logger.warning(
+                "Invalid value for BT_RETRY_MAX_DELAY=%r (must be non-negative); falling back to default %.2f",
+                raw,
+                default,
+            )
+            return default
+        return value
     except (TypeError, ValueError):
         logger.warning(
             "Invalid value for BT_RETRY_MAX_DELAY=%r; falling back to default %.2f",
