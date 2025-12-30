@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import os
 import time
 import random
@@ -26,9 +27,9 @@ def _retry_max_attempts() -> int:
     """Get the maximum number of retry attempts from the environment, with validation."""
     default = 3
     raw = os.environ.get("BT_RETRY_MAX_ATTEMPTS")
-    if raw is None or raw == "":
+    if raw is None or raw == "": 
         return default
-    try:
+    try: 
         value = int(raw)
         if value <= 0:
             logger.warning(
@@ -57,7 +58,7 @@ def _retry_base_delay() -> float:
         value = float(raw)
         if value < 0:
             logger.warning(
-                "Invalid value for BT_RETRY_BASE_DELAY=%r (must be non-negative); falling back to default %. 2f",
+                "Invalid value for BT_RETRY_BASE_DELAY=%r (must be non-negative); falling back to default %.2f",
                 raw,
                 default,
             )
@@ -75,7 +76,7 @@ def _retry_base_delay() -> float:
 def _retry_max_delay() -> float:
     """Get the maximum delay (in seconds) for retries from the environment, with validation."""
     default = 60.0
-    raw = os. environ.get("BT_RETRY_MAX_DELAY")
+    raw = os.environ.get("BT_RETRY_MAX_DELAY")
     if raw is None or raw == "":
         return default
     try:
@@ -101,7 +102,28 @@ _RETRY_BACKOFF_FACTOR = 2.0
 
 
 def _retry_backoff_factor() -> float:
-    return float(os.environ.get("BT_RETRY_BACKOFF_FACTOR", _RETRY_BACKOFF_FACTOR))
+    """Get the backoff factor for exponential backoff from the environment, with validation."""
+    default = _RETRY_BACKOFF_FACTOR
+    raw = os.environ.get("BT_RETRY_BACKOFF_FACTOR")
+    if raw is None or raw == "":
+        return default
+    try:
+        value = float(raw)
+        if value <= 0:
+            logger.warning(
+                "Invalid value for BT_RETRY_BACKOFF_FACTOR=%r (must be positive); falling back to default %.2f",
+                raw,
+                default,
+            )
+            return default
+        return value
+    except (TypeError, ValueError):
+        logger.warning(
+            "Invalid value for BT_RETRY_BACKOFF_FACTOR=%r; falling back to default %.2f",
+            raw,
+            default,
+        )
+        return default
 
 
 def _get_backoff_time(attempt: int, base_delay: float, max_delay: float) -> float:
@@ -112,14 +134,14 @@ def _get_backoff_time(attempt: int, base_delay: float, max_delay: float) -> floa
 
 
 def retry_call(
-    func: Callable,
+    func:  Callable,
     *args,
     retry_exceptions: Union[Type[Exception], Tuple[Type[Exception], ...]] = (
         OSError,
         TimeoutError,
     ),
     max_attempts: Optional[int] = None,
-    base_delay: Optional[float] = None,
+    base_delay:  Optional[float] = None,
     max_delay: Optional[float] = None,
     **kwargs,
 ) -> Any:
@@ -139,7 +161,7 @@ def retry_call(
     *args
         Positional arguments forwarded to ``func``.
     retry_exceptions : Exception type or tuple of Exception types, optional
-        Exception type(s) that should trigger a retry. Any exception that is
+        Exception type(s) that should trigger a retry.  Any exception that is
         not an instance of these types is raised immediately without further
         retry attempts. Defaults to ``(OSError, TimeoutError)``.
     max_attempts : int, optional
@@ -164,6 +186,8 @@ def retry_call(
 
     Raises
     ------
+    TypeError
+        If ``func`` is an async function.  Use ``async_retry_call`` instead.
     Exception
         Any exception raised by ``func`` when retries are disabled
         (``BT_RETRY_ENABLED`` is falsey), or when the exception type is not
@@ -193,6 +217,13 @@ def retry_call(
     falsey value such as ``"false"`` or ``"0"``. In that case ``retry_call``
     simply calls ``func(*args, **kwargs)`` once and propagates any exception.
     """
+    # Validate that func is not async
+    if inspect.iscoroutinefunction(func):
+        raise TypeError(
+            f"retry_call() cannot be used with async functions.  "
+            f"Use async_retry_call() instead for {func.__name__}."
+        )
+
     if not _retry_enabled():
         return func(*args, **kwargs)
 
@@ -201,18 +232,15 @@ def retry_call(
     _base_delay = base_delay if base_delay is not None else _retry_base_delay()
     _max_delay = max_delay if max_delay is not None else _retry_max_delay()
 
-    last_exception = None
-
     for attempt in range(1, _max_attempts + 1):
         try:
             return func(*args, **kwargs)
         except retry_exceptions as e:
-            last_exception = e
-            if attempt == _max_attempts:
+            if attempt == _max_attempts: 
                 logger.debug(
                     f"Retry exhausted after {_max_attempts} attempts. Last error: {e}"
                 )
-                raise e
+                raise
 
             backoff = _get_backoff_time(attempt - 1, _base_delay, _max_delay)
             logger.debug(
@@ -220,12 +248,11 @@ def retry_call(
             )
             time.sleep(backoff)
 
-    if last_exception:
-        raise last_exception
-    return None  # Should not be reached
+    # This should never be reached due to the logic above
+    assert False, "Unreachable code"
 
 
-async def retry_async(
+async def async_retry_call(
     func: Callable,
     *args,
     retry_exceptions: Union[Type[Exception], Tuple[Type[Exception], ...]] = (
@@ -274,7 +301,7 @@ async def retry_async(
         the value is taken from the ``BT_RETRY_MAX_ATTEMPTS`` environment
         variable (default 3 when unset).
     base_delay : float, optional
-        Base delay in seconds before the first retry. If ``None``, the value is
+        Base delay in seconds before the first retry.  If ``None``, the value is
         taken from the ``BT_RETRY_BASE_DELAY`` environment variable (default
         1.0 when unset).
     max_delay : float, optional
@@ -291,6 +318,8 @@ async def retry_async(
 
     Raises
     ------
+    TypeError
+        If ``func`` is not an async function. Use ``retry_call`` instead.
     Exception
         Any exception raised by ``func`` when retries are disabled.
     retry_exceptions
@@ -307,14 +336,14 @@ async def retry_async(
         async def fetch():
             ...
 
-        result = await retry_async(fetch)
+        result = await async_retry_call(fetch)
 
-    Overriding retry configuration and the set of retryable exceptions::
+    Overriding retry configuration and the set of retryable exceptions:: 
 
         async def fetch_with_timeout():
             ...
 
-        result = await retry_async(
+        result = await async_retry_call(
             fetch_with_timeout,
             retry_exceptions=(OSError, TimeoutError, ConnectionError),
             max_attempts=5,
@@ -322,6 +351,13 @@ async def retry_async(
             max_delay=10.0,
         )
     """
+    # Validate that func is async
+    if not inspect.iscoroutinefunction(func):
+        raise TypeError(
+            f"async_retry_call() requires an async function.  "
+            f"Use retry_call() instead for {func.__name__}."
+        )
+
     if not _retry_enabled():
         return await func(*args, **kwargs)
 
@@ -330,18 +366,15 @@ async def retry_async(
     _base_delay = base_delay if base_delay is not None else _retry_base_delay()
     _max_delay = max_delay if max_delay is not None else _retry_max_delay()
 
-    last_exception = None
-
     for attempt in range(1, _max_attempts + 1):
         try:
             return await func(*args, **kwargs)
         except retry_exceptions as e:
-            last_exception = e
             if attempt == _max_attempts:
                 logger.debug(
                     f"Retry exhausted after {_max_attempts} attempts. Last error: {e}"
                 )
-                raise e
+                raise
 
             backoff = _get_backoff_time(attempt - 1, _base_delay, _max_delay)
             logger.debug(
@@ -349,6 +382,5 @@ async def retry_async(
             )
             await asyncio.sleep(backoff)
 
-    if last_exception:
-        raise last_exception
-    return None  # Should not be reached
+    # This should never be reached due to the logic above
+    assert False, "Unreachable code"
