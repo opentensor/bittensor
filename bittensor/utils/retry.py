@@ -100,9 +100,74 @@ def retry_call(
     **kwargs,
 ) -> Any:
     """
-    Synchronous retry wrapper.
+    Synchronous retry wrapper around ``func`` with optional exponential backoff.
 
-    If BT_RETRY_ENABLED is False, executes the function exactly once.
+    When the environment variable ``BT_RETRY_ENABLED`` is set to a truthy value
+    (e.g. ``"true"``, ``"1"``, ``"yes"``, ``"on"``), the call to ``func`` will be
+    retried on failure up to ``max_attempts`` times using exponential backoff with
+    jitter. When ``BT_RETRY_ENABLED`` is false or unset, ``func`` is executed
+    exactly once and any exception it raises is propagated immediately.
+
+    Parameters
+    ----------
+    func : Callable
+        The callable to be executed and potentially retried.
+    *args
+        Positional arguments forwarded to ``func``.
+    retry_exceptions : Exception type or tuple of Exception types, optional
+        Exception type(s) that should trigger a retry. Any exception that is
+        not an instance of these types is raised immediately without further
+        retry attempts. Defaults to ``(OSError, TimeoutError)``.
+    max_attempts : int, optional
+        Maximum number of attempts (initial attempt + retries) that will be
+        made before giving up. If ``None``, the value is taken from the
+        ``BT_RETRY_MAX_ATTEMPTS`` environment variable (default ``3``).
+    base_delay : float, optional
+        Base delay, in seconds, used for exponential backoff before applying
+        jitter. If ``None``, the value is taken from the
+        ``BT_RETRY_BASE_DELAY`` environment variable (default ``1.0``).
+    max_delay : float, optional
+        Maximum delay, in seconds, between attempts. The computed backoff
+        value will not exceed this. If ``None``, the value is taken from the
+        ``BT_RETRY_MAX_DELAY`` environment variable (default ``60.0``).
+    **kwargs
+        Keyword arguments forwarded to ``func``.
+
+    Returns
+    -------
+    Any
+        The return value of ``func`` from the first successful attempt.
+
+    Raises
+    ------
+    Exception
+        Any exception raised by ``func`` when retries are disabled
+        (``BT_RETRY_ENABLED`` is falsey), or when the exception type is not
+        included in ``retry_exceptions``. When retries are enabled and all
+        attempts fail with a ``retry_exceptions`` type, the last such
+        exception is re-raised after the final attempt.
+
+    Examples
+    --------
+    Basic usage with defaults::
+
+        result = retry_call(do_network_request, url, timeout=5)
+
+    Custom retry configuration::
+
+        result = retry_call(
+            do_network_request,
+            url,
+            timeout=5,
+            max_attempts=5,
+            base_delay=0.5,
+            max_delay=10.0,
+            retry_exceptions=(OSError, TimeoutError, ConnectionError),
+        )
+
+    To disable retries entirely, unset ``BT_RETRY_ENABLED`` or set it to a
+    falsey value such as ``"false"`` or ``"0"``. In that case ``retry_call``
+    simply calls ``func(*args, **kwargs)`` once and propagates any exception.
     """
     if not _retry_enabled():
         return func(*args, **kwargs)
