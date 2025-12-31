@@ -9481,5 +9481,9 @@ async def get_async_subtensor(
     sub = AsyncSubtensor(
         network=network, config=config, mock=mock, log_verbose=log_verbose
     )
-    await sub.initialize()
-    return sub
+    try:
+        await sub.initialize()
+        return sub
+    except Exception as e:
+        await sub.close()
+        raise e
