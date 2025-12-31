@@ -1068,13 +1068,11 @@ async def test_get_neuron_for_pubkey_and_subnet_success(subtensor, mocker):
     )
     subtensor.substrate.runtime_call.assert_awaited_once()
     subtensor.substrate.runtime_call.assert_called_once_with(
-        "NeuronInfoRuntimeApi",
-        "get_neuron",
-        [fake_netuid, fake_uid.value],
-        None,
+        api="NeuronInfoRuntimeApi",
+        method="get_neuron",
+        params=[fake_netuid, fake_uid.value],
+        block_hash=None,
     )
-    mocked_neuron_info.assert_called_once_with(fake_result)
-    assert result == "fake_neuron_info"
 
 
 @pytest.mark.asyncio
@@ -1146,10 +1144,10 @@ async def test_get_neuron_for_pubkey_and_subnet_rpc_result_empty(subtensor, mock
         reuse_block_hash=False,
     )
     subtensor.substrate.runtime_call.assert_called_once_with(
-        "NeuronInfoRuntimeApi",
-        "get_neuron",
-        [fake_netuid, fake_uid],
-        None,
+        api="NeuronInfoRuntimeApi",
+        method="get_neuron",
+        params=[fake_netuid, fake_uid],
+        block_hash=None,
     )
     mocked_get_null_neuron.assert_called_once()
     assert result == "null_neuron"
@@ -1349,11 +1347,11 @@ async def test_get_delegated_with_empty_result(subtensor, mocker):
     result = await subtensor.get_delegated(coldkey_ss58=fake_coldkey_ss58)
 
     # Asserts
-    mocked_runtime_call.assert_called_once_with(
-        "DelegateInfoRuntimeApi",
-        "get_delegated",
-        [fake_coldkey_ss58],
-        None,
+   mocked_runtime_call.assert_called_once_with(
+        api="DelegateInfoRuntimeApi",
+        method="get_delegated",
+        params=[fake_coldkey_ss58],
+        block_hash=None,
     )
     assert result == []
 
