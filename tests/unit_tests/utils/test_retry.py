@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import Mock, patch, AsyncMock
-from bittensor.utils.retry import retry_call, retry_async
+from bittensor.utils.retry import retry_call, async_retry_call
 
 # Create custom exception for testing
 class NetworkError(Exception):
@@ -76,14 +76,14 @@ def test_sync_default_retry_exceptions_do_not_retry_non_network_error(enable_ret
 @pytest.mark.asyncio
 async def test_async_retry_success(enable_retries):
     mock_func = AsyncMock(return_value="success")
-    result = await retry_async(mock_func, retry_exceptions=(NetworkError,), max_attempts=3)
+    result = await async_retry_call(mock_func, retry_exceptions=(NetworkError,), max_attempts=3)
     assert result == "success"
     assert mock_func.call_count == 1
 
 @pytest.mark.asyncio
 async def test_async_retry_eventual_success(enable_retries, mock_async_sleep):
     mock_func = AsyncMock(side_effect=[NetworkError("Fail 1"), NetworkError("Fail 2"), "success"])
-    result = await retry_async(mock_func, retry_exceptions=(NetworkError,), max_attempts=3)
+    result = await async_retry_call(mock_func, retry_exceptions=(NetworkError,), max_attempts=3)
     assert result == "success"
     assert mock_func.call_count == 3
 
@@ -91,20 +91,20 @@ async def test_async_retry_eventual_success(enable_retries, mock_async_sleep):
 async def test_async_retry_exhaustion(enable_retries, mock_async_sleep):
     mock_func = AsyncMock(side_effect=NetworkError("Persistent Fail"))
     with pytest.raises(NetworkError, match="Persistent Fail"):
-        await retry_async(mock_func, retry_exceptions=(NetworkError,), max_attempts=3)
+        await async_retry_call(mock_func, retry_exceptions=(NetworkError,), max_attempts=3)
     assert mock_func.call_count == 3
 
 @pytest.mark.asyncio
 async def test_async_no_retry_on_wrong_exception(enable_retries):
     mock_func = AsyncMock(side_effect=NonRetryableError("Fatal"))
     with pytest.raises(NonRetryableError, match="Fatal"):
-        await retry_async(mock_func, retry_exceptions=(NetworkError,), max_attempts=3)
+        await async_retry_call(mock_func, retry_exceptions=(NetworkError,), max_attempts=3)
     assert mock_func.call_count == 1
 
 @pytest.mark.asyncio
 async def test_async_disabled_retries_executes_once(disable_retries):
     mock_func = AsyncMock(side_effect=NetworkError("Fail"))
     with pytest.raises(NetworkError, match="Fail"):
-        await retry_async(mock_func, retry_exceptions=(NetworkError,), max_attempts=3)
+        await async_retry_call(mock_func, retry_exceptions=(NetworkError,), max_attempts=3)
     assert mock_func.call_count == 1
 
