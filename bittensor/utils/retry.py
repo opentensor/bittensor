@@ -75,7 +75,7 @@ def _retry_base_delay() -> float:
         value = float(raw)
         if value < 0:
             logger.warning(
-                "Invalid value for BT_RETRY_BASE_DELAY=%r (must be non-negative); falling back to default %. 2f",
+                "Invalid value for BT_RETRY_BASE_DELAY=%r (must be non-negative); falling back to default %.2f",
                 raw,
                 default,
             )
@@ -217,7 +217,7 @@ def retry_call(
 
             backoff = _get_backoff_time(attempt - 1, _base_delay, _max_delay)
             logger.debug(
-                f"Retry attempt {attempt}/{_max_attempts} failed with {e}.  Retrying in {backoff:. 2f}s..."
+                f"Retry attempt {attempt}/{_max_attempts} failed with {e}.  Retrying in {backoff:.2f}s..."
             )
             time.sleep(backoff)
 
