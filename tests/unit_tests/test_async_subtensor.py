@@ -1347,7 +1347,7 @@ async def test_get_delegated_with_empty_result(subtensor, mocker):
     result = await subtensor.get_delegated(coldkey_ss58=fake_coldkey_ss58)
 
     # Asserts
-   mocked_runtime_call.assert_called_once_with(
+    mocked_runtime_call.assert_called_once_with(
         api="DelegateInfoRuntimeApi",
         method="get_delegated",
         params=[fake_coldkey_ss58],
