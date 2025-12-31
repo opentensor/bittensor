@@ -9486,4 +9486,4 @@ async def get_async_subtensor(
         return sub
     except Exception as e:
         await sub.close()
-        raise e
+        raise
