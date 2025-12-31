@@ -169,6 +169,7 @@ if TYPE_CHECKING:
     from bittensor_wallet import Keypair, Wallet
     from scalecodec.types import GenericCall
 
+
 class Subtensor(SubtensorMixin):
     """Synchronous interface for interacting with the Bittensor blockchain.
 
@@ -569,7 +570,7 @@ class Subtensor(SubtensorMixin):
             block_hash=block_hash,
         )
         return getattr(result, "value", result)
-        
+
     @property
     def block(self) -> int:
         """Provides an asynchronous getter to retrieve the current block number.
