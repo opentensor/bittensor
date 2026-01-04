@@ -14,7 +14,10 @@ class WeakMethodCallable:
     async def __call__(self, *args, **kwargs):
         method = self._weak_method()
         if method is None:
-            raise ReferenceError("Method instance has been garbage collected")
+            # The underlying method/instance has been garbage collected.
+            # Return None gracefully instead of raising, so callers of
+            # CachedFetcher do not see a low-level ReferenceError.
+            return None
         return await method(*args, **kwargs)
 
 
