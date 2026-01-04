@@ -12,8 +12,9 @@ Environment Variables:
     BT_RETRY_BACKOFF_FACTOR: Exponential backoff multiplier (default: 2.0)
 
 Note:
-    This utility is not used internally by the SDK.  It is provided as an
-    optional helper for users who wish to implement consistent retry behavior.
+    This utility may be used internally by the SDK at outbound network boundaries
+    (e.g., Dendrite and Subtensor) and is also provided as an optional helper for
+    users who wish to implement consistent retry behavior.
 
 For more information on retry strategies, see:
     https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
