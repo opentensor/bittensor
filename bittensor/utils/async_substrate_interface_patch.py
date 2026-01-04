@@ -39,8 +39,10 @@ def _new_get(self, instance, owner):
     if instance not in self._instances:
         bound_method = self.method.__get__(instance, owner)
 
-        # Use WeakMethodCallable to avoid strong ref cycle:
-        # _CachedFetcherMethod (class attr) -> WeakKeyDictionary -> CachedFetcher -> WeakMethodCallable -> instance
+        # Use WeakMethodCallable to avoid a strong reference cycle that would otherwise be:
+        # _CachedFetcherMethod (class attr) -> WeakKeyDictionary -> CachedFetcher -> bound method -> instance.
+        # WeakMethodCallable stores a weakref.WeakMethod instead of the bound method itself, so it does not
+        # keep a strong reference to the instance and thus breaks this potential cycle.
         wrapped_method = WeakMethodCallable(bound_method)
 
         self._instances[instance] = cache.CachedFetcher(
