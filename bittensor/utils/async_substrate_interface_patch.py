@@ -23,8 +23,30 @@ class WeakMethodCallable:
 
 def _new_get(self, instance, owner):
     """
-    Patched __get__ method for _CachedFetcherMethod to use WeakKeyDictionary
-    and WeakMethodCallable, preventing memory leaks.
+    Patched __get__ method for async_substrate_interface.utils.cache._CachedFetcherMethod.
+
+    The original implementation stored a cached *bound* method in a per-instance
+    cache on _CachedFetcherMethod. Because bound methods hold a strong reference
+    to their instance, this created a reference cycle:
+
+        AsyncSubstrateInterface instance
+            -> _CachedFetcherMethod (as a descriptor on the class)
+            -> per-instance cache (a dict keyed by instance)
+            -> cached bound method
+            -> AsyncSubstrateInterface instance
+
+    As a result, AsyncSubstrateInterface instances could not be garbage-collected
+    even when no external references remained.
+
+    This patched __get__ breaks that cycle in two ways:
+      * _instances is a weakref.WeakKeyDictionary, so it does not keep instances
+        alive just because they are used as keys.
+      * The cached bound method is wrapped in WeakMethodCallable, which stores
+        only a weak reference to the underlying bound method/instance.
+
+    Combined, these changes ensure that _CachedFetcherMethod no longer holds
+    strong references that would prevent AsyncSubstrateInterface instances from
+    being garbage-collected, thereby preventing memory leaks.
     """
     if instance is None:
         return self
