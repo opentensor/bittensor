@@ -30,9 +30,10 @@ def _new_get(self, instance, owner):
         return self
 
     # Migration/Safety: Ensure _instances is a WeakKeyDictionary.
-    # If it's the original dict (from before patching), replace it.
+    # If it's the original dict (from before patching), replace it,
+    # preserving any existing cached instances.
     if not isinstance(self._instances, weakref.WeakKeyDictionary):
-        self._instances = weakref.WeakKeyDictionary()
+        self._instances = weakref.WeakKeyDictionary(self._instances)
 
     # Cache per-instance
     if instance not in self._instances:
