@@ -95,7 +95,7 @@ classifiers = [
 package-dir = {"bittensor" = "bittensor"}
 script-files = ["bittensor/utils/certifi.sh"]
 
-[tool.pytest. ini_options]
+[tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
