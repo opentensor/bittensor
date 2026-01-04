@@ -28,7 +28,7 @@ import random
 import logging
 from typing import Type, Tuple, Optional, Callable, Any, Union
 
-logger = logging.getLogger("bittensor. utils.retry")
+logger = logging.getLogger("bittensor.utils.retry")
 
 
 # Helpers for runtime environment variable access
