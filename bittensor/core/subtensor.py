@@ -569,6 +569,7 @@ class Subtensor(SubtensorMixin):
             params=[netuid],
             block_hash=block_hash,
         )
+
         return getattr(result, "value", result)
 
     @property
