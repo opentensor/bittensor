@@ -94,14 +94,3 @@ classifiers = [
 [tool.setuptools]
 package-dir = {"bittensor" = "bittensor"}
 script-files = ["bittensor/utils/certifi.sh"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-filterwarnings = [
-    "ignore::DeprecationWarning:pkg_resources.*:",
-]
-asyncio_default_fixture_loop_scope = "session"
-addopts = "-s"
