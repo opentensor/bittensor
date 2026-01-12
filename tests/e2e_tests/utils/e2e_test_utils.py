@@ -53,7 +53,7 @@ def setup_wallet(
     return wallet
 
 
-def clone_or_update_templates(specific_commit=None):
+def clone_or_update_templates(specific_commit="fff71b4b90f76758c6a0d8c35465efcd4d1d0baf"):
     """
     Clones or updates the Bittensor subnet template repository.
 
