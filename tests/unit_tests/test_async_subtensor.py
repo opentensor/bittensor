@@ -3947,32 +3947,44 @@ async def test_get_unstake_fee(subtensor, mocker):
 async def test_get_stake_movement_fee(subtensor, mocker):
     """Verify that `get_stake_movement_fee` calls proper methods and returns the correct value."""
     # Preps
-    origin_netuid = mocker.Mock()
-    destination_netuid = mocker.Mock()
-    amount = mocker.Mock(spec=Balance)
+    origin_netuid = mocker.Mock(spec=int)
+    destination_netuid = mocker.Mock(spec=int)
+    origin_hotkey_ss58 = mocker.Mock(spec=str)
+    destination_hotkey_ss58 = mocker.Mock(spec=str)
+    amount = mocker.Mock(rao=mocker.Mock(spec=int), spec=Balance)
+    placeholder_key = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
 
-    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
-    mocked_sim_swap = mocker.patch.object(
-        subtensor,
-        "sim_swap",
-        return_value=mocker.MagicMock(alpha_fee=mocker.MagicMock()),
-    )
+    mocked_query_runtime_api = mocker.patch.object(subtensor, "query_runtime_api")
+    mocked_balance_from_rao = mocker.patch.object(async_subtensor.Balance, "from_rao")
 
     # Call
     result = await subtensor.get_stake_movement_fee(
         origin_netuid=origin_netuid,
         destination_netuid=destination_netuid,
         amount=amount,
+        origin_hotkey_ss58=origin_hotkey_ss58,
+        destination_hotkey_ss58=destination_hotkey_ss58,
     )
 
     # Asserts
-    mocked_sim_swap.assert_awaited_once_with(
-        origin_netuid=origin_netuid,
-        destination_netuid=destination_netuid,
-        amount=amount,
-        block_hash=mocked_determine_block_hash.return_value,
+    mocked_query_runtime_api.assert_awaited_once_with(
+        runtime_api="StakeInfoRuntimeApi",
+        method="get_stake_fee",
+        params=[
+            (origin_hotkey_ss58, origin_netuid),
+            placeholder_key,
+            (destination_hotkey_ss58, destination_netuid),
+            placeholder_key,
+            amount.rao,
+        ],
+        block=None,
+        block_hash=None,
+        reuse_block=False,
     )
-    assert result == mocked_sim_swap.return_value.tao_fee
+    mocked_balance_from_rao.assert_called_once_with(
+        mocked_query_runtime_api.return_value
+    )
+    assert result == mocked_balance_from_rao.return_value
 
 
 @pytest.mark.asyncio
