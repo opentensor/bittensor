@@ -4064,11 +4064,11 @@ class AsyncSubtensor(SubtensorMixin):
         reuse_block: bool = False,
     ) -> Balance:
         """
-        Calculates the fee for adding new stake to a hotkey.
+        Calculates the swap fee for adding new stake to a hotkey.
 
         Parameters:
-            amount: Amount of stake to add in TAO
-            netuid: Netuid of subnet
+            amount: Amount of stake to add in TAO.
+            netuid: Netuid of subnet.
             block: The block number for which the children are to be retrieved.
             block_hash: The hash of the block to retrieve the subnet unique identifiers from.
             reuse_block: Whether to reuse the last-used block hash.
@@ -4094,6 +4094,8 @@ class AsyncSubtensor(SubtensorMixin):
         origin_netuid: int,
         destination_netuid: int,
         amount: Balance,
+        origin_hotkey_ss58: Optional[str] = None,
+        destination_hotkey_ss58: Optional[str] = None,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
@@ -4101,29 +4103,54 @@ class AsyncSubtensor(SubtensorMixin):
         """
         Calculates the fee for moving stake between hotkeys/subnets/coldkeys.
 
-        Parameters:
-            origin_netuid: Netuid of source subnet.
-            destination_netuid: Netuid of the destination subnet.
-            amount: Amount of stake to move.
-            block: The block number for which the children are to be retrieved.
+        Args:
+            origin_netuid: Netuid of origin subnet.
+            destination_netuid: Netuid of destination subnet.
+            amount: Amount of stake to move in TAO.
+            origin_hotkey_ss58: SS58 address of origin hotkey. None for adding new stake.
+            destination_hotkey_ss58: SS58 address of destination hotkey. None for removing stake.
+            block: Block number at which to perform the calculation.
             block_hash: The hash of the block to retrieve the subnet unique identifiers from.
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            The calculated stake fee as a Balance object
+            The calculated stake fee as a Balance object.
 
         Notes:
-            - <https://docs.learnbittensor.org/learn/fees>
+            This method returns only the stake movement fee. The extrinsic fee and swap fee are separate.
+            Root validator (no swap): total fee = get_extrinsic_fee + get_stake_movement_fee.
+            Subnet validator (swap required): total fee = get_extrinsic_fee + get_stake_movement_fee + sim_swap (swap
+                fee).
+            More details <https://docs.learnbittensor.org/learn/fees>
         """
         check_balance_amount(amount)
-        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        sim_swap_result = await self.sim_swap(
-            origin_netuid=origin_netuid,
-            destination_netuid=destination_netuid,
-            amount=amount,
-            block_hash=block_hash,
+
+        origin = (origin_hotkey_ss58, origin_netuid) if origin_hotkey_ss58 else None
+        destination = (
+            (destination_hotkey_ss58, destination_netuid)
+            if destination_hotkey_ss58
+            else None
         )
-        return sim_swap_result.tao_fee
+
+        # orig and destination coldkeys are ignored in Rust implementation, but ASI raise the error is empty string.
+        placeholder_ss58 = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        result = await self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_stake_fee",
+            params=[
+                origin,
+                placeholder_ss58,
+                destination,
+                placeholder_ss58,
+                amount.rao,
+            ],
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        return Balance.from_rao(result)
 
     async def get_stake_for_coldkey_and_hotkey(
         self,
@@ -4769,7 +4796,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Balance:
-        """Calculates the fee for unstaking from a hotkey.
+        """Calculates the swap fee for unstaking from a hotkey.
 
         Parameters:
             netuid: The unique identifier of the subnet.

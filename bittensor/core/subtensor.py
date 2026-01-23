@@ -3476,12 +3476,12 @@ class Subtensor(SubtensorMixin):
         block: Optional[int] = None,
     ) -> Balance:
         """
-        Calculates the fee for adding new stake to a hotkey.
+        Calculates the swap fee for adding new stake to a hotkey.
 
         Parameters:
-            amount: Amount of stake to add in TAO
-            netuid: Netuid of subnet
-            block: Block number at which to perform the calculation
+            amount: Amount of stake to add in TAO.
+            netuid: Netuid of subnet.
+            block: Block number at which to perform the calculation.
 
         Returns:
             The calculated stake fee as a Balance object in TAO.
@@ -3497,28 +3497,56 @@ class Subtensor(SubtensorMixin):
         origin_netuid: int,
         destination_netuid: int,
         amount: Balance,
+        origin_hotkey_ss58: Optional[str] = None,
+        destination_hotkey_ss58: Optional[str] = None,
         block: Optional[int] = None,
     ) -> Balance:
         """
-        Calculates the fee for moving stake between hotkeys/subnets/coldkeys.
+        Calculates the fee for moving stake between hotkeys/subnets.
 
-        Parameters:
-            origin_netuid: Netuid of source subnet.
-            destination_netuid: Netuid of the destination subnet.
-            amount: Amount of stake to move.
-            block: The block number for which the children are to be retrieved.
+        Args:
+            origin_netuid: Netuid of origin subnet.
+            destination_netuid: Netuid of destination subnet.
+            amount: Amount of stake to move in TAO.
+            origin_hotkey_ss58: SS58 address of origin hotkey. None for adding new stake.
+            destination_hotkey_ss58: SS58 address of destination hotkey. None for removing stake.
+            block: Block number at which to perform the calculation.
 
         Returns:
-            The calculated stake fee as a Balance object
+            The calculated stake fee as a Balance object.
+
+        Notes:
+            This method returns only the stake movement fee. The extrinsic fee and swap fee are separate.
+            Root validator (no swap): total fee = get_extrinsic_fee + get_stake_movement_fee.
+            Subnet validator (swap required): total fee = get_extrinsic_fee + get_stake_movement_fee + sim_swap (swap
+                fee).
+            More details <https://docs.learnbittensor.org/learn/fees>
         """
         check_balance_amount(amount)
-        sim_swap_result = self.sim_swap(
-            origin_netuid=origin_netuid,
-            destination_netuid=destination_netuid,
-            amount=amount,
+
+        origin = (origin_hotkey_ss58, origin_netuid) if origin_hotkey_ss58 else None
+        destination = (
+            (destination_hotkey_ss58, destination_netuid)
+            if destination_hotkey_ss58
+            else None
+        )
+
+        # orig and destination coldkeys are ignored in Rust implementation, but ASI raise the error is empty string.
+        placeholder_ss58 = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+
+        result = self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_stake_fee",
+            params=[
+                origin,
+                placeholder_ss58,
+                destination,
+                placeholder_ss58,
+                amount.rao,
+            ],
             block=block,
         )
-        return sim_swap_result.tao_fee
+        return Balance.from_rao(result)
 
     def get_stake_weight(self, netuid: int, block: Optional[int] = None) -> list[float]:
         """
@@ -3896,7 +3924,7 @@ class Subtensor(SubtensorMixin):
         amount: Balance,
         block: Optional[int] = None,
     ) -> Balance:
-        """Calculates the fee for unstaking from a hotkey.
+        """Calculates the swap fee for unstaking from a hotkey.
 
         Parameters:
             netuid: The unique identifier of the subnet.
