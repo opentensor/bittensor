@@ -140,7 +140,7 @@ def strtobool(val: str) -> Union[bool, Literal["==SUPRESS=="]]:
 
 def _get_explorer_root_url_by_network_from_map(
     network: str, network_map: dict[str, dict[str, str]]
-) -> Optional[dict[str, str]]:
+) -> dict[str, str]:
     """
     Returns the explorer root url for the given network name from the given network map.
 
@@ -151,7 +151,7 @@ def _get_explorer_root_url_by_network_from_map(
     Returns:
         The explorer url for the given network. Or None if the network is not in the network map.
     """
-    explorer_urls: Optional[dict[str, str]] = {}
+    explorer_urls: dict[str, str] = {}
     for entity_nm, entity_network_map in network_map.items():
         if network in entity_network_map:
             explorer_urls[entity_nm] = entity_network_map[network]
@@ -161,7 +161,7 @@ def _get_explorer_root_url_by_network_from_map(
 
 def get_explorer_url_for_network(
     network: str, block_hash: str, network_map: dict[str, dict[str, str]]
-) -> Optional[dict[str, str]]:
+) -> dict[str, str]:
     """
     Returns the explorer url for the given block hash and network.
 
@@ -174,10 +174,10 @@ def get_explorer_url_for_network(
         The explorer url for the given block hash and network. Or None if the network is not known.
     """
 
-    explorer_urls: Optional[dict[str, str]] = {}
-    # Will be None if the network is not known. i.e. not in network_map
-    explorer_root_urls: Optional[dict[str, str]] = (
-        _get_explorer_root_url_by_network_from_map(network, network_map)
+    explorer_urls: dict[str, str] = {}
+
+    explorer_root_urls: dict[str, str] = _get_explorer_root_url_by_network_from_map(
+        network, network_map
     )
 
     if explorer_root_urls != {}:

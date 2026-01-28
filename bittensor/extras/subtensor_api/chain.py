@@ -14,6 +14,7 @@ class Chain:
         self.get_delegate_identities = subtensor.get_delegate_identities
         self.get_existential_deposit = subtensor.get_existential_deposit
         self.get_minimum_required_stake = subtensor.get_minimum_required_stake
+        self.get_start_call_delay = subtensor.get_start_call_delay
         self.get_timestamp = subtensor.get_timestamp
         self.get_vote_data = subtensor.get_vote_data
         self.is_fast_blocks = subtensor.is_fast_blocks

@@ -3712,6 +3712,24 @@ class Subtensor(SubtensorMixin):
         )
         return [u16_normalized_float(w) for w in result]
 
+    def get_start_call_delay(self, block: Optional[int] = None) -> int:
+        """
+        Retrieves the start call delay in blocks.
+
+        Parameters:
+            block: The blockchain block number for the query.
+
+        Return:
+            Amount of blocks after the start call can be executed.
+        """
+        return cast(
+            int,
+            self.query_subtensor(
+                name="StartCallDelay",
+                block=block,
+            ),
+        )
+
     def get_subnet_burn_cost(self, block: Optional[int] = None) -> Optional[Balance]:
         """
         Retrieves the burn cost for registering a new subnet within the Bittensor network. This cost represents the
@@ -4247,17 +4265,18 @@ class Subtensor(SubtensorMixin):
     def is_fast_blocks(self) -> bool:
         """Checks if the node is running with fast blocks enabled.
 
-        Fast blocks have a block time of 10 seconds, compared to the standard 12-second block time. This affects
+        Fast blocks have a block time of 0.25 seconds, compared to the standard 12-second block time. This affects
         transaction timing and network synchronization.
 
         Returns:
-            `True` if fast blocks are enabled (10-second block time), `False` otherwise (12-second block time).
+            `True` if fast blocks are enabled, `False` otherwise.
 
         Notes:
             - <https://docs.learnbittensor.org/resources/glossary#fast-blocks>
 
         """
-        return self.query_constant("SubtensorModule", "DurationOfStartCall") == 10
+        slot_duration_obj = cast(ScaleObj, self.query_constant("Aura", "SlotDuration"))
+        return slot_duration_obj.value == 250
 
     def is_hotkey_delegate(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         """
@@ -6075,7 +6094,7 @@ class Subtensor(SubtensorMixin):
                 have successfully decrypted and executed the inner call. If True, the function will poll subsequent
                 blocks for the event matching this submission's commitment.
             blocks_for_revealed_execution: Maximum number of blocks to poll for the executed event after inclusion. The
-                function checks blocks from start_block+1 to start_block + blocks_for_revealed_execution. Returns
+                function checks blocks from start_block to start_block + blocks_for_revealed_execution. Returns
                 immediately if the event is found before the block limit is reached.
 
         Returns:

@@ -6432,6 +6432,42 @@ def test_mev_submit_encrypted_default_params(subtensor, fake_wallet, mocker):
     assert result == mocked_submit_encrypted_extrinsic.return_value
 
 
+@pytest.mark.parametrize(
+    "fast_or_not, expected_result",
+    [
+        (250, True),
+        (12000, False),
+    ],
+)
+def test_is_fast_blocks(subtensor, mocker, fast_or_not, expected_result):
+    """Verifies that `is_fast_blocks` calls proper method with proper parameters."""
+    # Preps
+    return_obj = mocker.Mock(value=fast_or_not)
+    mocked_query_constant = mocker.patch.object(
+        subtensor, "query_constant", return_value=return_obj
+    )
+
+    # Call
+    result = subtensor.is_fast_blocks()
+
+    # Asserts
+    mocked_query_constant.assert_called_once()
+    assert result == expected_result
+
+
+def test_get_start_call_delay(subtensor, mocker):
+    """Verifies that `get_start_call_delay` calls proper method with proper parameters."""
+    # Preps
+    mocked_query_subtensor = mocker.patch.object(subtensor, "query_subtensor")
+
+    # Call
+    result = subtensor.get_start_call_delay()
+
+    # Asserts
+    mocked_query_subtensor.assert_called_once_with(name="StartCallDelay", block=None)
+    assert result == mocked_query_subtensor.return_value
+
+
 def test_get_coldkey_swap_announcement(subtensor, mocker):
     """Test get_coldkey_swap_announcement returns correct data when announcement information is found."""
     # Prep

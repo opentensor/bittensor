@@ -8,6 +8,7 @@ import asyncstdlib as a
 import scalecodec
 from async_substrate_interface import AsyncSubstrateInterface
 from async_substrate_interface.substrate_addons import RetryAsyncSubstrate
+from async_substrate_interface.types import ScaleObj
 from async_substrate_interface.utils.storage import StorageKey
 from bittensor_drand import get_encrypted_commitment
 from bittensor_wallet.utils import SS58_FORMAT
@@ -171,7 +172,6 @@ from bittensor.utils.liquidity import (
 
 if TYPE_CHECKING:
     from async_substrate_interface import AsyncQueryMapResult
-    from async_substrate_interface.types import ScaleObj
     from bittensor_wallet import Keypair, Wallet
 
     from bittensor.core.axon import Axon
@@ -4509,6 +4509,35 @@ class AsyncSubtensor(SubtensorMixin):
         )
         return [u16_normalized_float(w) for w in result]
 
+    async def get_start_call_delay(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> int:
+        """
+        Retrieves the start call delay in blocks.
+
+        Parameters:
+            block: The blockchain block number for the query.
+            block_hash: The blockchain block_hash of the block id.
+            reuse_block: Whether to reuse the last-used block hash.
+
+        Return:
+            Amount of blocks after the start call can be executed.
+        """
+        return cast(
+            int,
+            (
+                await self.query_subtensor(
+                    name="StartCallDelay",
+                    block=block,
+                    block_hash=block_hash,
+                    reuse_block=reuse_block,
+                )
+            ),
+        )
+
     async def get_subnet_burn_cost(
         self,
         block: Optional[int] = None,
@@ -5188,19 +5217,20 @@ class AsyncSubtensor(SubtensorMixin):
     async def is_fast_blocks(self) -> bool:
         """Checks if the node is running with fast blocks enabled.
 
-        Fast blocks have a block time of 10 seconds, compared to the standard 12-second block time. This affects
+        Fast blocks have a block time of 0.25 seconds, compared to the standard 12-second block time. This affects
         transaction timing and network synchronization.
 
         Returns:
-            `True` if fast blocks are enabled (10-second block time), `False` otherwise (12-second block time).
+            `True` if fast blocks are enabled, `False` otherwise.
 
         Notes:
             - <https://docs.learnbittensor.org/resources/glossary#fast-blocks>
 
         """
-        return (
-            await self.query_constant("SubtensorModule", "DurationOfStartCall")
-        ) == 10
+        slot_duration_obj = cast(
+            ScaleObj, await self.query_constant("Aura", "SlotDuration")
+        )
+        return slot_duration_obj.value == 250
 
     async def is_hotkey_delegate(
         self,
@@ -7261,7 +7291,7 @@ class AsyncSubtensor(SubtensorMixin):
                 have successfully decrypted and executed the inner call. If True, the function will poll subsequent
                 blocks for the event matching this submission's commitment.
             blocks_for_revealed_execution: Maximum number of blocks to poll for the executed event after
-                inclusion. The function checks blocks from start_block+1 to start_block + blocks_for_revealed_execution.
+                inclusion. The function checks blocks from start_block to start_block + blocks_for_revealed_execution.
                 Returns immediately if the event is found before the block limit is reached.
 
         Returns:

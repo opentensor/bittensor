@@ -1391,7 +1391,7 @@ class AsyncMetagraph(NumpyOrTorch):
         await self._apply_extra_info(block=block)
 
     async def _initialize_subtensor(
-        self, subtensor: "AsyncSubtensor"
+        self, subtensor: Optional["AsyncSubtensor"]
     ) -> "AsyncSubtensor":
         """
         Initializes the subtensor to be used for syncing the metagraph.
@@ -1422,8 +1422,8 @@ class AsyncMetagraph(NumpyOrTorch):
             # Lazy import due to circular import (subtensor -> metagraph, metagraph -> subtensor)
             from bittensor.core.async_subtensor import AsyncSubtensor
 
-            self.subtensor = AsyncSubtensor(network=self.chain_endpoint)
-            await self.subtensor.initialize()
+            subtensor = AsyncSubtensor(network=self.chain_endpoint)
+            await subtensor.initialize()
             self.subtensor = subtensor
         return subtensor
 
@@ -1720,7 +1720,7 @@ class Metagraph(NumpyOrTorch):
         # apply MetagraphInfo data to instance
         self._apply_extra_info(block=block)
 
-    def _initialize_subtensor(self, subtensor: "Subtensor") -> "Subtensor":
+    def _initialize_subtensor(self, subtensor: Optional["Subtensor"]) -> "Subtensor":
         """
         Initializes the subtensor to be used for syncing the metagraph.
 
@@ -1939,6 +1939,17 @@ async def async_metagraph(
 ) -> "AsyncMetagraph":
     """
     Factory function to create an instantiated AsyncMetagraph, mainly for the ability to use sync at instantiation.
+
+    Parameters:
+        netuid: The netuid of the subnet for which to create the AsyncMetagraph.
+        mechid: The mechid of the subnet for which to create the AsyncMetagraph.
+        network: The network to use for the AsyncMetagraph.
+        lite: Whether to use a lite version of the AsyncMetagraph.
+        sync: Whether to sync the AsyncMetagraph.
+        subtensor: The subtensor to use for the AsyncMetagraph.
+
+    Returns:
+        AsyncMetagraph: The instantiated AsyncMetagraph.
     """
     metagraph_ = AsyncMetagraph(
         netuid=netuid,

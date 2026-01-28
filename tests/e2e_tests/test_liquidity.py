@@ -9,6 +9,7 @@ from tests.e2e_tests.utils import (
 )
 
 
+@pytest.mark.skip("Skips user liquidity e2e test pending the rework")
 def test_liquidity(subtensor, alice_wallet, bob_wallet):
     """
     Tests the liquidity mechanism
@@ -281,6 +282,7 @@ def test_liquidity(subtensor, alice_wallet, bob_wallet):
     logging.console.info("✅ Passed [blue]test_liquidity[/blue]")
 
 
+@pytest.mark.skip("Skips user liquidity e2e test pending the rework")
 @pytest.mark.asyncio
 async def test_liquidity_async(async_subtensor, alice_wallet, bob_wallet):
     """

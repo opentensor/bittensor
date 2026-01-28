@@ -1,5 +1,36 @@
 # Changelog
 
+## 10.1.0 /2026-01-15
+
+## What's Changed
+* Fix for async metagraph initialization by @basfroman in https://github.com/opentensor/bittensor/pull/3236
+* Clarify return ordering and units for `get_revealed_commitment_by_hotkey` by @Dairus01 in https://github.com/opentensor/bittensor/pull/3231
+* Skips user liquidity e2e test pending the rework by @basfroman in https://github.com/opentensor/bittensor/pull/3239
+* chore: fix incorrect Optional type annotation in utils by @Olexandr88 in https://github.com/opentensor/bittensor/pull/3238
+* chore: remove unused test helper by @Olexandr88 in https://github.com/opentensor/bittensor/pull/3241
+* Add `start_call_delay_hyperparameter` support by @basfroman in https://github.com/opentensor/bittensor/pull/3234
+* Improve `is_fast_blocks` by @basfroman in https://github.com/opentensor/bittensor/pull/3243
+* Adds note about block 5611654 decoding by @thewhaleking in https://github.com/opentensor/bittensor/pull/3246
+
+## New Contributors
+* @Dairus01 made their first contribution in https://github.com/opentensor/bittensor/pull/3231
+* @Olexandr88 made their first contribution in https://github.com/opentensor/bittensor/pull/3238
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v10.1.0...v10.0.2
+
+## 10.0.1 /2025-12-22
+
+## What's Changed
+* Improve GH workflows by @basfroman in https://github.com/opentensor/bittensor/pull/3207
+* Small but still important changes by @basfroman in https://github.com/opentensor/bittensor/pull/3210
+* Refactor neuron and metagraph by @basfroman in https://github.com/opentensor/bittensor/pull/3214
+* Fix docstrings by @basfroman in https://github.com/opentensor/bittensor/pull/3217
+* Fix nightly workflow by @basfroman in https://github.com/opentensor/bittensor/pull/3225
+* update contrib by @thewhaleking in https://github.com/opentensor/bittensor/pull/3209
+* MeV: fix for weird edge case by @basfroman in https://github.com/opentensor/bittensor/pull/3228
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v10.0.0...v10.0.1
+
 ## 10.0.0 /2025-12-09
 
 ## What's Changed

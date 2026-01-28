@@ -11,7 +11,7 @@ For developers:
 
 Note:
     Any manual changes will be overwritten the next time the generator is run.
-    Subtensor spec version: 331
+    Subtensor spec version: 365
 """
 
 from collections import namedtuple
@@ -149,6 +149,9 @@ SUDO_SET_MIN_DELEGATE_TAKE = namedtuple(
 SUDO_SET_MIN_DIFFICULTY = namedtuple(
     "SUDO_SET_MIN_DIFFICULTY", ["wallet", "pallet", "sudo", "netuid", "min_difficulty"]
 )  # args: [netuid: NetUid, min_difficulty: u64]  | Pallet: AdminUtils
+SUDO_SET_MIN_NON_IMMUNE_UIDS = namedtuple(
+    "SUDO_SET_MIN_NON_IMMUNE_UIDS", ["wallet", "pallet", "sudo", "netuid", "min"]
+)  # args: [netuid: NetUid, min: u16]  | Pallet: AdminUtils
 SUDO_SET_NETWORK_IMMUNITY_PERIOD = namedtuple(
     "SUDO_SET_NETWORK_IMMUNITY_PERIOD", ["wallet", "pallet", "sudo", "immunity_period"]
 )  # args: [immunity_period: u64]  | Pallet: AdminUtils
@@ -202,6 +205,9 @@ SUDO_SET_SN_OWNER_HOTKEY = namedtuple(
 SUDO_SET_STAKE_THRESHOLD = namedtuple(
     "SUDO_SET_STAKE_THRESHOLD", ["wallet", "pallet", "sudo", "min_stake"]
 )  # args: [min_stake: u64]  | Pallet: AdminUtils
+SUDO_SET_START_CALL_DELAY = namedtuple(
+    "SUDO_SET_START_CALL_DELAY", ["wallet", "pallet", "sudo", "delay"]
+)  # args: [delay: u64]  | Pallet: AdminUtils
 SUDO_SET_SUBNET_LIMIT = namedtuple(
     "SUDO_SET_SUBNET_LIMIT", ["wallet", "pallet", "sudo", "max_subnets"]
 )  # args: [max_subnets: u16]  | Pallet: AdminUtils
@@ -218,6 +224,16 @@ SUDO_SET_SUBTOKEN_ENABLED = namedtuple(
     "SUDO_SET_SUBTOKEN_ENABLED",
     ["wallet", "pallet", "sudo", "netuid", "subtoken_enabled"],
 )  # args: [netuid: NetUid, subtoken_enabled: bool]  | Pallet: AdminUtils
+SUDO_SET_TAO_FLOW_CUTOFF = namedtuple(
+    "SUDO_SET_TAO_FLOW_CUTOFF", ["wallet", "pallet", "sudo", "flow_cutoff"]
+)  # args: [flow_cutoff: I64F64]  | Pallet: AdminUtils
+SUDO_SET_TAO_FLOW_NORMALIZATION_EXPONENT = namedtuple(
+    "SUDO_SET_TAO_FLOW_NORMALIZATION_EXPONENT", ["wallet", "pallet", "sudo", "exponent"]
+)  # args: [exponent: U64F64]  | Pallet: AdminUtils
+SUDO_SET_TAO_FLOW_SMOOTHING_FACTOR = namedtuple(
+    "SUDO_SET_TAO_FLOW_SMOOTHING_FACTOR",
+    ["wallet", "pallet", "sudo", "smoothing_factor"],
+)  # args: [smoothing_factor: u64]  | Pallet: AdminUtils
 SUDO_SET_TARGET_REGISTRATIONS_PER_INTERVAL = namedtuple(
     "SUDO_SET_TARGET_REGISTRATIONS_PER_INTERVAL",
     ["wallet", "pallet", "sudo", "netuid", "target_registrations_per_interval"],

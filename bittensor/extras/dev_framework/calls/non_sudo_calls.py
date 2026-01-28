@@ -11,7 +11,7 @@ For developers:
 
 Note:
     Any manual changes will be overwritten the next time the generator is run.
-    Subtensor spec version: 331
+    Subtensor spec version: 365
 """
 
 from collections import namedtuple
@@ -42,6 +42,9 @@ ADD_STAKE_LIMIT = namedtuple(
 ANNOUNCE = namedtuple(
     "ANNOUNCE", ["wallet", "pallet", "real", "call_hash"]
 )  # args: [real: AccountIdLookupOf<T>, call_hash: CallHashOf<T>]  | Pallet: Proxy
+ANNOUNCE_NEXT_KEY = namedtuple(
+    "ANNOUNCE_NEXT_KEY", ["wallet", "pallet", "public_key"]
+)  # args: [public_key: BoundedVec<u8, ConstU32<2048>>]  | Pallet: MevShield
 APPLY_AUTHORIZED_UPGRADE = namedtuple(
     "APPLY_AUTHORIZED_UPGRADE", ["wallet", "pallet", "code"]
 )  # args: [code: Vec<u8>]  | Pallet: System
@@ -120,6 +123,10 @@ BURN_ALPHA = namedtuple(
 )  # args: [hotkey: T::AccountId, amount: AlphaCurrency, netuid: NetUid]  | Pallet: SubtensorModule
 CALL = namedtuple(
     "CALL",
+    ["wallet", "pallet", "dest", "value", "gas_limit", "storage_deposit_limit", "data"],
+)  # args: [dest: AccountIdLookupOf<T>, value: BalanceOf<T>, gas_limit: Weight, storage_deposit_limit: Option<<BalanceOf<T> as codec::HasCompact>::Type>, data: Vec<u8>]  | Pallet: Contracts
+CALL = namedtuple(
+    "CALL",
     [
         "wallet",
         "pallet",
@@ -135,6 +142,10 @@ CALL = namedtuple(
         "authorization_list",
     ],
 )  # args: [source: H160, target: H160, input: Vec<u8>, value: U256, gas_limit: u64, max_fee_per_gas: U256, max_priority_fee_per_gas: Option<U256>, nonce: Option<U256>, access_list: Vec<(H160, Vec<H256>)>, authorization_list: AuthorizationList]  | Pallet: EVM
+CALL_OLD_WEIGHT = namedtuple(
+    "CALL_OLD_WEIGHT",
+    ["wallet", "pallet", "dest", "value", "gas_limit", "storage_deposit_limit", "data"],
+)  # args: [dest: AccountIdLookupOf<T>, value: BalanceOf<T>, gas_limit: OldWeight, storage_deposit_limit: Option<<BalanceOf<T> as codec::HasCompact>::Type>, data: Vec<u8>]  | Pallet: Contracts
 CANCEL = namedtuple(
     "CANCEL", ["wallet", "pallet", "when", "index"]
 )  # args: [when: BlockNumberFor<T>, index: u32]  | Pallet: Scheduler
@@ -152,12 +163,8 @@ CANCEL_RETRY_NAMED = namedtuple(
     "CANCEL_RETRY_NAMED", ["wallet", "pallet", "id"]
 )  # args: [id: TaskName]  | Pallet: Scheduler
 CLAIM_ROOT = namedtuple(
-    "CLAIM_ROOT",
-    [
-        "wallet",
-        "pallet",
-    ],
-)  # args: []  | Pallet: SubtensorModule
+    "CLAIM_ROOT", ["wallet", "pallet", "subnets"]
+)  # args: [subnets: BTreeSet<NetUid>]  | Pallet: SubtensorModule
 CLEAR_IDENTITY = namedtuple(
     "CLEAR_IDENTITY", ["wallet", "pallet", "identified"]
 )  # args: [identified: T::AccountId]  | Pallet: Registry
@@ -242,6 +249,13 @@ CREATE_PURE = namedtuple(
 DECREASE_TAKE = namedtuple(
     "DECREASE_TAKE", ["wallet", "pallet", "hotkey", "take"]
 )  # args: [hotkey: T::AccountId, take: u16]  | Pallet: SubtensorModule
+DISABLE_LP = namedtuple(
+    "DISABLE_LP",
+    [
+        "wallet",
+        "pallet",
+    ],
+)  # args: []  | Pallet: Swap
 DISABLE_WHITELIST = namedtuple(
     "DISABLE_WHITELIST", ["wallet", "pallet", "disabled"]
 )  # args: [disabled: bool]  | Pallet: EVM
@@ -328,6 +342,58 @@ IF_ELSE = namedtuple(
 INCREASE_TAKE = namedtuple(
     "INCREASE_TAKE", ["wallet", "pallet", "hotkey", "take"]
 )  # args: [hotkey: T::AccountId, take: u16]  | Pallet: SubtensorModule
+INSTANTIATE = namedtuple(
+    "INSTANTIATE",
+    [
+        "wallet",
+        "pallet",
+        "value",
+        "gas_limit",
+        "storage_deposit_limit",
+        "code_hash",
+        "data",
+        "salt",
+    ],
+)  # args: [value: BalanceOf<T>, gas_limit: Weight, storage_deposit_limit: Option<<BalanceOf<T> as codec::HasCompact>::Type>, code_hash: CodeHash<T>, data: Vec<u8>, salt: Vec<u8>]  | Pallet: Contracts
+INSTANTIATE_OLD_WEIGHT = namedtuple(
+    "INSTANTIATE_OLD_WEIGHT",
+    [
+        "wallet",
+        "pallet",
+        "value",
+        "gas_limit",
+        "storage_deposit_limit",
+        "code_hash",
+        "data",
+        "salt",
+    ],
+)  # args: [value: BalanceOf<T>, gas_limit: OldWeight, storage_deposit_limit: Option<<BalanceOf<T> as codec::HasCompact>::Type>, code_hash: CodeHash<T>, data: Vec<u8>, salt: Vec<u8>]  | Pallet: Contracts
+INSTANTIATE_WITH_CODE = namedtuple(
+    "INSTANTIATE_WITH_CODE",
+    [
+        "wallet",
+        "pallet",
+        "value",
+        "gas_limit",
+        "storage_deposit_limit",
+        "code",
+        "data",
+        "salt",
+    ],
+)  # args: [value: BalanceOf<T>, gas_limit: Weight, storage_deposit_limit: Option<<BalanceOf<T> as codec::HasCompact>::Type>, code: Vec<u8>, data: Vec<u8>, salt: Vec<u8>]  | Pallet: Contracts
+INSTANTIATE_WITH_CODE_OLD_WEIGHT = namedtuple(
+    "INSTANTIATE_WITH_CODE_OLD_WEIGHT",
+    [
+        "wallet",
+        "pallet",
+        "value",
+        "gas_limit",
+        "storage_deposit_limit",
+        "code",
+        "data",
+        "salt",
+    ],
+)  # args: [value: BalanceOf<T>, gas_limit: OldWeight, storage_deposit_limit: Option<<BalanceOf<T> as codec::HasCompact>::Type>, code: Vec<u8>, data: Vec<u8>, salt: Vec<u8>]  | Pallet: Contracts
 KILL_PREFIX = namedtuple(
     "KILL_PREFIX", ["wallet", "pallet", "prefix", "subkeys"]
 )  # args: [prefix: Key, subkeys: u32]  | Pallet: System
@@ -338,6 +404,12 @@ KILL_PURE = namedtuple(
 KILL_STORAGE = namedtuple(
     "KILL_STORAGE", ["wallet", "pallet", "keys"]
 )  # args: [keys: Vec<Key>]  | Pallet: System
+MARK_DECRYPTION_FAILED = namedtuple(
+    "MARK_DECRYPTION_FAILED", ["wallet", "pallet", "id", "reason"]
+)  # args: [id: T::Hash, reason: BoundedVec<u8, ConstU32<256>>]  | Pallet: MevShield
+MIGRATE = namedtuple(
+    "MIGRATE", ["wallet", "pallet", "weight_limit"]
+)  # args: [weight_limit: Weight]  | Pallet: Contracts
 MODIFY_POSITION = namedtuple(
     "MODIFY_POSITION",
     ["wallet", "pallet", "hotkey", "netuid", "position_id", "liquidity_delta"],
@@ -420,6 +492,9 @@ REMARK_WITH_EVENT = namedtuple(
 REMOVE_ANNOUNCEMENT = namedtuple(
     "REMOVE_ANNOUNCEMENT", ["wallet", "pallet", "real", "call_hash"]
 )  # args: [real: AccountIdLookupOf<T>, call_hash: CallHashOf<T>]  | Pallet: Proxy
+REMOVE_CODE = namedtuple(
+    "REMOVE_CODE", ["wallet", "pallet", "code_hash"]
+)  # args: [code_hash: CodeHash<T>]  | Pallet: Contracts
 REMOVE_KEY = namedtuple(
     "REMOVE_KEY",
     [
@@ -557,6 +632,9 @@ SET_CHILDREN = namedtuple(
 SET_CODE = namedtuple(
     "SET_CODE", ["wallet", "pallet", "code"]
 )  # args: [code: Vec<u8>]  | Pallet: System
+SET_CODE = namedtuple(
+    "SET_CODE", ["wallet", "pallet", "dest", "code_hash"]
+)  # args: [dest: AccountIdLookupOf<T>, code_hash: CodeHash<T>]  | Pallet: Contracts
 SET_CODE_WITHOUT_CHECKS = namedtuple(
     "SET_CODE_WITHOUT_CHECKS", ["wallet", "pallet", "code"]
 )  # args: [code: Vec<u8>]  | Pallet: System
@@ -645,6 +723,9 @@ SET_WHITELIST = namedtuple(
 START_CALL = namedtuple(
     "START_CALL", ["wallet", "pallet", "netuid"]
 )  # args: [netuid: NetUid]  | Pallet: SubtensorModule
+SUBMIT_ENCRYPTED = namedtuple(
+    "SUBMIT_ENCRYPTED", ["wallet", "pallet", "commitment", "ciphertext"]
+)  # args: [commitment: T::Hash, ciphertext: BoundedVec<u8, ConstU32<8192>>]  | Pallet: MevShield
 SUDO = namedtuple(
     "SUDO", ["wallet", "pallet", "call"]
 )  # args: [call: Box<<T as Config>::RuntimeCall>]  | Pallet: Sudo
@@ -742,6 +823,9 @@ UPDATE_SYMBOL = namedtuple(
 UPGRADE_ACCOUNTS = namedtuple(
     "UPGRADE_ACCOUNTS", ["wallet", "pallet", "who"]
 )  # args: [who: Vec<T::AccountId>]  | Pallet: Balances
+UPLOAD_CODE = namedtuple(
+    "UPLOAD_CODE", ["wallet", "pallet", "code", "storage_deposit_limit", "determinism"]
+)  # args: [code: Vec<u8>, storage_deposit_limit: Option<<BalanceOf<T> as codec::HasCompact>::Type>, determinism: Determinism]  | Pallet: Contracts
 WITHDRAW = namedtuple(
     "WITHDRAW", ["wallet", "pallet", "address", "value"]
 )  # args: [address: H160, value: BalanceOf<T>]  | Pallet: EVM

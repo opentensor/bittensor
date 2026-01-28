@@ -35,15 +35,59 @@ jobs:
       - name: Check-out repository under $GITHUB_WORKSPACE
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: false
+          cache-dependency-glob: '**/pyproject.toml'
+          ignore-nothing-to-cache: true
+
+      - name: Cache uv and venv
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/uv
+            .venv
+          key: uv-${{ runner.os }}-py3.10-${{ hashFiles('pyproject.toml') }}
+          restore-keys: uv-${{ runner.os }}-py3.10-
+
+      - name: Install dependencies (faster if cache hit)
+        run: uv sync --extra dev --dev
+
       - name: Find test files
         id: get-tests
-        run: |
-          test_files=$(find tests/e2e_tests -name "test*.py" | jq -R -s -c 'split("\n") | map(select(. != ""))')
-          # keep it here for future debug
-          # test_files=$(find tests/e2e_tests -type f -name "test*.py" | grep -E 'test_(hotkeys|staking)\.py$' | jq -R -s -c 'split("\n") | map(select(. != ""))')
-          echo "Found test files: $test_files"
-          echo "test-files=$test_files" >> "$GITHUB_OUTPUT"
         shell: bash
+        run: |
+          set -euo pipefail
+          test_matrix=$(
+            uv run pytest -q --collect-only tests/e2e_tests \
+            | sed -n '/^e2e_tests\//p' \
+            | sed 's|^|tests/|' \
+            | jq -R -s -c '
+                split("\n")
+                | map(select(. != ""))
+                | map({nodeid: ., label: (sub("^tests/e2e_tests/"; ""))})
+              '
+          )
+          echo "Found tests: $test_matrix"
+          echo "test-files=$test_matrix" >> "$GITHUB_OUTPUT"
+
+  # Read Python versions
+  read-python-versions:
+    runs-on: ubuntu-latest
+    outputs:
+      python-versions: ${{ steps.read-versions.outputs.versions }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: read-versions
+        run: |
+          versions=$(cat .github/supported-python-versions.json)
+          echo "versions=$versions" >> $GITHUB_OUTPUT
 
   # Pull docker images (devnet-ready and main)
   pull-docker-images:
@@ -77,343 +121,58 @@ jobs:
           name: subtensor-localnet-devnet-ready
           path: subtensor-localnet-devnet-ready.tar
 
-  # Determine the day for non-fast-blocks run
-  check-if-non-fast-blocks-run:
-    runs-on: ubuntu-latest
-    outputs:
-      non-fast-blocks-run: ${{ steps.check.outputs.non-fast-blocks-run }}
-    steps:
-      - id: check
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "🔁 Manual trigger detected. Forcing non-fast-blocks-run=true"
-            echo "non-fast-blocks-run=true" >> "$GITHUB_OUTPUT"
-          else
-            day=$(date -u +%u)
-            echo "Today is weekday $day"
-            if [ "$day" -ne 6 ]; then
-              echo "⏭️ Skipping: not Saturday"
-              echo "non-fast-blocks-run=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-            echo "✅ It is Saturday"
-            echo "non-fast-blocks-run=true" >> "$GITHUB_OUTPUT"
-          fi
-
   # Daily run of fast-blocks tests from `bittensor:master` based on `subtensor:main docker` image
   run-fast-blocks-e2e-test-master:
-    name: "FB master: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}"
+    name: "master: ${{ matrix.label }}"
     needs:
       - find-tests
       - pull-docker-images
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    outputs:
-      failed: ${{ steps.test-failed.outputs.failed }}
-
+      - read-python-versions
     strategy:
-      fail-fast: false  # Allow other matrix jobs to run even if this job fails
-      max-parallel: 32  # Set the maximum number of parallel jobs (same as we have cores in ubuntu-latest runner)
+      fail-fast: false
+      max-parallel: 64
       matrix:
-        os:
-          - ubuntu-latest
-        test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
-        python-version: ${{ fromJson(vars.SDK_SUPPORTED_PYTHON_VERSIONS) }}
-    steps:
-      - name: Check-out repository
-        uses: actions/checkout@v4
-        with:
-          ref: master
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-
-      - name: install dependencies
-        run: uv sync --extra dev --dev
-
-      - name: Download Cached Docker Image
-        uses: actions/download-artifact@v4
-        with:
-          name: subtensor-localnet-main
-
-      - name: Load Docker Image
-        run: docker load -i subtensor-localnet-main.tar
-
-      - name: Run tests with retry
-        id: test-failed
-        env:
-          FAST_BLOCKS: "1"
-          LOCALNET_IMAGE_NAME: "ghcr.io/opentensor/subtensor-localnet:main"
-        run: |
-          set +e
-          for i in 1 2 3; do
-            echo "::group::🔁 Test attempt $i"
-            uv run pytest ${{ matrix.test-file }} -s
-            status=$?
-            if [ $status -eq 0 ]; then
-              echo "✅ Tests passed on attempt $i"
-              echo "::endgroup::"
-              echo "failed=false" >> "$GITHUB_OUTPUT"
-              break
-            else
-              echo "❌ Tests failed on attempt $i"
-              echo "::endgroup::"
-              if [ $i -eq 3 ]; then
-                echo "Tests failed after 3 attempts"
-                echo "failed=true" >> "$GITHUB_OUTPUT"
-                exit 1
-              fi
-              echo "Retrying..."
-              sleep 5
-            fi
-          done
+        include: ${{ fromJson(needs.find-tests.outputs.test-files) }}
+    uses: ./.github/workflows/_run-e2e-single.yaml
+    with:
+      nodeid: ${{ matrix.nodeid }}
+      image-name: ghcr.io/opentensor/subtensor-localnet:main
+      python-versions: ${{ needs.read-python-versions.outputs.python-versions }}
+      ref: master
+      artifact-name: subtensor-localnet-main
+    secrets: inherit
 
   # Daily run of fast-blocks tests from `bittensor:staging` based on `subtensor:devnet-ready` docker image
   run-fast-blocks-e2e-test-staging:
-    name: "FB staging: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}"
+    name: "staging: ${{ matrix.label }}"
     needs:
       - find-tests
       - pull-docker-images
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    outputs:
-      failed: ${{ steps.test-failed.outputs.failed }}
-
+      - read-python-versions
     strategy:
-      fail-fast: false  # Allow other matrix jobs to run even if this job fails
-      max-parallel: 32  # Set the maximum number of parallel jobs (same as we have cores in ubuntu-latest runner)
+      fail-fast: false
+      max-parallel: 64
       matrix:
-        os:
-          - ubuntu-latest
-        test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
-        python-version: ${{ fromJson(vars.SDK_SUPPORTED_PYTHON_VERSIONS) }}
-    steps:
-      - name: Check-out repository
-        uses: actions/checkout@v4
-        with:
-          ref: staging
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-
-      - name: install dependencies
-        run: uv sync --extra dev --dev
-
-      - name: Download Cached Docker Image
-        uses: actions/download-artifact@v4
-        with:
-          name: subtensor-localnet-devnet-ready
-
-      - name: Load Docker Image
-        run: docker load -i subtensor-localnet-devnet-ready.tar
-
-      - name: Run tests with retry
-        id: test-failed
-        env:
-          FAST_BLOCKS: "1"
-          LOCALNET_IMAGE_NAME: "ghcr.io/opentensor/subtensor-localnet:devnet-ready"
-        run: |
-          set +e
-          for i in 1 2 3; do
-            echo "::group::🔁 Test attempt $i"
-            uv run pytest ${{ matrix.test-file }} -s
-            status=$?
-            if [ $status -eq 0 ]; then
-              echo "✅ Tests passed on attempt $i"
-              echo "::endgroup::"
-              echo "failed=false" >> "$GITHUB_OUTPUT"
-              break
-            else
-              echo "❌ Tests failed on attempt $i"
-              echo "::endgroup::"
-              if [ $i -eq 3 ]; then
-                echo "Tests failed after 3 attempts"
-                echo "failed=true" >> "$GITHUB_OUTPUT"
-                exit 1
-              fi
-              echo "Retrying..."
-              sleep 5
-            fi
-          done
-
-  # Saturday run of non-fast-blocks tests from `bittensor:master` based on `subtensor:main` docker image
-  run-non-fast-blocks-e2e-test-master:
-    if: needs.check-if-non-fast-blocks-run.outputs.non-fast-blocks-run == 'true'
-    name: "NFB master: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}"
-    needs:
-      - check-if-non-fast-blocks-run
-      - find-tests
-      - pull-docker-images
-    runs-on: ubuntu-latest
-    timeout-minutes: 1440
-    outputs:
-      failed: ${{ steps.test-failed.outputs.failed }}
-
-    strategy:
-      fail-fast: false  # Allow other matrix jobs to run even if this job fails
-      max-parallel: 32  # Set the maximum number of parallel jobs (same as we have cores in ubuntu-latest runner)
-      matrix:
-        os:
-          - ubuntu-latest
-        test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
-        python-version: ${{ fromJson(vars.SDK_SUPPORTED_PYTHON_VERSIONS) }}
-
-    steps:
-      - name: Check-out repository
-        uses: actions/checkout@v4
-        with:
-          ref: master
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-
-      - name: install dependencies
-        run: uv sync --extra dev --dev
-
-      - name: Download Cached Docker Image
-        uses: actions/download-artifact@v4
-        with:
-          name: subtensor-localnet-main
-
-      - name: Load Docker Image
-        run: docker load -i subtensor-localnet-main.tar
-
-      - name: Run patched E2E tests
-        id: test-failed
-        env:
-          FAST_BLOCKS: "0"
-          LOCALNET_IMAGE_NAME: "ghcr.io/opentensor/subtensor-localnet:main"
-        run: |
-          set +e
-          for i in 1 2 3; do
-            echo "::group::🔁 Test attempt $i"
-            uv run pytest ${{ matrix.test-file }} -s
-            status=$?
-            if [ $status -eq 0 ]; then
-              echo "✅ Tests passed on attempt $i"
-              echo "::endgroup::"
-              echo "failed=false" >> "$GITHUB_OUTPUT"
-              break
-            else
-              echo "❌ Tests failed on attempt $i"
-              echo "::endgroup::"
-              if [ $i -eq 3 ]; then
-                echo "Tests failed after 3 attempts"
-                echo "failed=true" >> "$GITHUB_OUTPUT"
-                exit 1
-              fi
-              echo "Retrying..."
-              sleep 5
-            fi
-          done
-
-  # Saturday run of non-fast-blocks tests from `bittensor:staging` based on `subtensor:devnet-ready` docker image
-  run-non-fast-blocks-e2e-test-staging:
-    if: needs.check-if-non-fast-blocks-run.outputs.non-fast-blocks-run == 'true'
-    name: "NFB staging: ${{ matrix.test-file }} / Python ${{ matrix.python-version }}"
-    needs:
-      - check-if-non-fast-blocks-run
-      - find-tests
-      - pull-docker-images
-    runs-on: ubuntu-latest
-    timeout-minutes: 1440
-    outputs:
-      failed: ${{ steps.test-failed.outputs.failed }}
-
-    strategy:
-      fail-fast: false  # Allow other matrix jobs to run even if this job fails
-      max-parallel: 32  # Set the maximum number of parallel jobs (same as we have cores in ubuntu-latest runner)
-      matrix:
-        os:
-          - ubuntu-latest
-        test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
-        python-version: ${{ fromJson(vars.SDK_SUPPORTED_PYTHON_VERSIONS) }}
-
-    steps:
-      - name: Check-out repository
-        uses: actions/checkout@v4
-        with:
-          ref: staging
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-
-      - name: install dependencies
-        run: uv sync --extra dev --dev
-
-      - name: Download Cached Docker Image
-        uses: actions/download-artifact@v4
-        with:
-          name: subtensor-localnet-devnet-ready
-
-      - name: Load Docker Image
-        run: docker load -i subtensor-localnet-devnet-ready.tar
-
-      - name: Run patched E2E tests
-        id: test-failed
-        env:
-          FAST_BLOCKS: "0"
-          LOCALNET_IMAGE_NAME: "ghcr.io/opentensor/subtensor-localnet:devnet-ready"
-        run: |
-          set +e
-          for i in 1 2 3; do
-            echo "::group::🔁 Test attempt $i"
-            uv run pytest ${{ matrix.test-file }} -s
-            status=$?
-            if [ $status -eq 0 ]; then
-              echo "✅ Tests passed on attempt $i"
-              echo "::endgroup::"
-              echo "failed=false" >> "$GITHUB_OUTPUT"
-              break
-            else
-              echo "❌ Tests failed on attempt $i"
-              echo "::endgroup::"
-              if [ $i -eq 3 ]; then
-                echo "Tests failed after 3 attempts"
-                echo "failed=true" >> "$GITHUB_OUTPUT"
-                exit 1
-              fi
-              echo "Retrying..."
-              sleep 5
-            fi
-          done
+        include: ${{ fromJson(needs.find-tests.outputs.test-files) }}
+    uses: ./.github/workflows/_run-e2e-single.yaml
+    with:
+      nodeid: ${{ matrix.nodeid }}
+      image-name: ghcr.io/opentensor/subtensor-localnet:devnet-ready
+      python-versions: ${{ needs.read-python-versions.outputs.python-versions }}
+      ref: staging
+      artifact-name: subtensor-localnet-devnet-ready
+    secrets: inherit
 
   # Send centralized Discord failure notification
   notify-on-failure:
     needs:
       - run-fast-blocks-e2e-test-master
       - run-fast-blocks-e2e-test-staging
-      - run-non-fast-blocks-e2e-test-master
-      - run-non-fast-blocks-e2e-test-staging
-    if: |
-      needs.run-fast-blocks-e2e-test-master.outputs.failed == 'true' ||
-      needs.run-fast-blocks-e2e-test-staging.outputs.failed == 'true' ||
-      needs.run-non-fast-blocks-e2e-test-master.outputs.failed == 'true' ||
-      needs.run-non-fast-blocks-e2e-test-staging.outputs.failed == 'true'
+    if: always() && (needs.run-fast-blocks-e2e-test-master.result == 'failure' || needs.run-fast-blocks-e2e-test-staging.result == 'failure')
     runs-on: ubuntu-latest
     steps:
       - name: Send centralized Discord failure notification
         run: |
           curl -X POST -H "Content-Type: application/json" \
-            -d "{\"username\": \"Nightly CI\", \"content\": \"❌ Nightly E2E tests failed. Check run: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}>\"}" \
+            -d "{\"username\": \"SDK\", \"content\": \"❌ Nightly E2E tests failed. Check run: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}>\"}" \
             "${{ secrets.NIGHTLY_WEBHOOK_URL }}"

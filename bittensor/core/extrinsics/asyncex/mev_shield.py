@@ -40,14 +40,14 @@ async def wait_for_extrinsic_by_hash(
         extrinsic_hash: The hash of the inner extrinsic to find.
         shield_id: The wrapper ID from EncryptedSubmitted event (for detecting decryption failures).
         submit_block_hash: Block hash where submit_encrypted was included.
-        timeout_blocks: Max blocks to wait (default 3).
+        timeout_blocks: Max blocks to wait.
 
     Returns:
         Optional ExtrinsicReceipt.
     """
 
     starting_block = await subtensor.substrate.get_block_number(submit_block_hash)
-    current_block = starting_block + 1
+    current_block = starting_block
 
     while current_block - starting_block <= timeout_blocks:
         logging.debug(
@@ -127,7 +127,7 @@ async def submit_encrypted_extrinsic(
             successfully decrypted and executed the inner call. If True, the function will poll subsequent blocks for
             the event matching this submission's commitment.
         blocks_for_revealed_execution: Maximum number of blocks to poll for the executed event after inclusion.
-            The function checks blocks from start_block + 1 to start_block + blocks_for_revealed_execution. Returns
+            The function checks blocks from start_block to start_block + blocks_for_revealed_execution. Returns
             immediately if the event is found before the block limit is reached.
 
     Returns:

@@ -15,7 +15,7 @@ async def test_wait_for_extrinsic_by_hash_success(subtensor, mocker):
     shield_id = "shield_id_123"
     submit_block_hash = "0xblockhash"
     starting_block = 100
-    current_block = 101
+    current_block = 100
 
     mocked_get_block_number = mocker.patch.object(
         subtensor.substrate,
@@ -76,7 +76,7 @@ async def test_wait_for_extrinsic_by_hash_decryption_failed(subtensor, mocker):
     shield_id = "shield_id_123"
     submit_block_hash = "0xblockhash"
     starting_block = 100
-    current_block = 101
+    current_block = 100
 
     mocked_get_block_number = mocker.patch.object(
         subtensor.substrate,
@@ -174,9 +174,9 @@ async def test_wait_for_extrinsic_by_hash_timeout(subtensor, mocker):
 
     # Asserts
     mocked_get_block_number.assert_awaited_once_with(submit_block_hash)
-    assert mocked_wait_for_block.await_count == 3
-    assert mocked_get_block_hash.await_count == 3
-    assert mocked_get_extrinsics.await_count == 3
+    assert mocked_wait_for_block.await_count == 4
+    assert mocked_get_block_hash.await_count == 4
+    assert mocked_get_extrinsics.await_count == 4
     assert result is None
 
 

@@ -28,7 +28,7 @@ Python's official style guide is PEP 8, which provides conventions for writing c
 
 - `Indentation:` Use 4 spaces per indentation level.
 
-- `Line Length:` Limit all lines to a maximum of 79 characters.
+- `Line Length:` Limit all lines to a maximum of 79 characters. This is not strict, however, and we follow ruff's default of 88 characters. 
 
 - `Blank Lines:` Surround top-level function and class definitions with two blank lines. Method definitions inside a class are surrounded by a single blank line.
 
@@ -42,7 +42,7 @@ Python's official style guide is PEP 8, which provides conventions for writing c
     - Immediately inside parentheses, brackets or braces.
     - Immediately before a comma, semicolon, or colon.
     - Immediately before the open parenthesis that starts the argument list of a function call.
-- `Comments:` Comments should be complete sentences and should be used to clarify code and are not a substitute for poorly written code.
+- `Comments:` Comments should be used to clarify code and are not a substitute for poorly written code.
 
 #### For Python
 
@@ -59,20 +59,23 @@ Python's official style guide is PEP 8, which provides conventions for writing c
 #### More details
 
 Use [`ruff` to format](https://docs.astral.sh/ruff/formatter/#the-ruff-formatter) your python code before committing for consistency across such a large pool of contributors.
-Black code [style](https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html#code-style) ensures consistent and opinionated code formatting.
-Ruff automatically formats your Python code according to the Black style guide, enhancing code readability and maintainability.
 
-Key Features of ruff & Black code style:
+Ruff automatically formats your Python code according to the style guide, enhancing code readability and maintainability.
+
+Key Features of ruff code style:
 
     Consistency: ruff enforces a single, consistent coding style across your project, eliminating style debates and allowing developers to focus on code logic.
 
-    Readability: By applying a standard formatting style, Black improves code readability, making it easier to understand and collaborate on projects.
+    Readability: By applying a standard formatting style, ruff improves code readability, making it easier to understand and collaborate on projects.
 
     Automation: ruff automates the code formatting process, saving time and effort. It eliminates the need for manual formatting and reduces the likelihood of inconsistencies.
 
+We have added a helper tool `make check` to run the ruff formatter, and all linters in the codebase.
+
 ### Naming Conventions
 
-- `Classes:` Class names should normally use the CapWords Convention.
+- `Classes:` Class names should normally use the CamelCase Convention.
+
 - `Functions and Variables:` Function names should be lowercase, with words separated by underscores as necessary to improve readability. Variable names follow the same convention as function names.
 
 - `Constants:` Constants are usually defined on a module level and written in all capital letters with underscores separating words.
@@ -159,7 +162,7 @@ Nothing more needs to be said; if the reader wonders what the typo was, she can 
 
 If you’re committing something like this at the command line, it’s easy to use the -m option to git commit:
 
-    $ git commit -m"Fix typo in introduction to user guide"
+    $ git commit -m "Fix typo in introduction to user guide"
 
 However, when a commit merits a bit of explanation and context, you need to write a body. For example:
 
@@ -317,7 +320,7 @@ The benefit of using `--fixup` and interactive rebase is that it keeps your comm
 
 #### Pull Request and Squashing Commits Caveats
 
-While atomic commits are great for development and for understanding the changes within the branch, the commit history can get messy when merging to the main branch. To keep a cleaner and more understandable commit history in our main branch, we encourage squashing all the commits of a PR into one when merging.
+While atomic commits are great for development and for understanding the changes within the branch, the commit history can get messy when merging to the master branch. To keep a cleaner and more understandable commit history in our main branch, we encourage squashing all the commits of a PR into one when merging.
 
 This single commit should provide an overview of the changes that the PR introduced. It should follow the guidelines for atomic commits (an atomic commit is complete, self-contained, and understandable) but on the scale of the entire feature, task, or fix that the PR addresses. This approach combines the benefits of atomic commits during development with a clean commit history in our main branch.
 

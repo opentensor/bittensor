@@ -1,5 +1,5 @@
 """ "
-Subtensor spec version: 331
+Subtensor spec version: 365
 """
 
 System = "System"
@@ -23,3 +23,5 @@ BaseFee = "BaseFee"
 Drand = "Drand"
 Crowdloan = "Crowdloan"
 Swap = "Swap"
+Contracts = "Contracts"
+MevShield = "MevShield"
