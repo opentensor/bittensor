@@ -17,6 +17,7 @@ from scalecodec import GenericCall
 from bittensor.core.chain_data import (
     ColdkeySwapAnnouncementInfo,
     ColdkeySwapConstants,
+    ColdkeySwapDisputeInfo,
     CrowdloanConstants,
     CrowdloanInfo,
     DelegateInfo,
@@ -55,6 +56,7 @@ from bittensor.core.extrinsics.asyncex.children import (
 )
 from bittensor.core.extrinsics.asyncex.coldkey_swap import (
     announce_coldkey_swap_extrinsic,
+    dispute_coldkey_swap_extrinsic,
     swap_coldkey_announced_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.crowdloan import (
@@ -2081,6 +2083,78 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block_hash=reuse_block,
         )
         return query.value if getattr(query, "value", None) else 0
+
+    async def get_coldkey_swap_dispute(
+        self,
+        coldkey_ss58: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional["ColdkeySwapDisputeInfo"]:
+        """
+        Retrieves coldkey swap dispute for a specific coldkey.
+
+        This method queries the SubtensorModule.ColdkeySwapDisputes storage for a dispute recorded for the given
+        coldkey. When a coldkey swap is disputed, the account is frozen until a root-only reset clears it.
+
+        Parameters:
+            coldkey_ss58: SS58 address of the coldkey whose dispute to retrieve.
+            block: The blockchain block number for the query. If `None`, queries the latest block.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
+
+        Returns:
+            ColdkeySwapDisputeInfo if dispute exists, None otherwise. Contains the disputed block number.
+
+        Notes:
+            - If the coldkey has no dispute, returns None.
+            - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="ColdkeySwapDisputes",
+            params=[coldkey_ss58],
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+        return ColdkeySwapDisputeInfo.from_query(coldkey_ss58=coldkey_ss58, query=query)
+
+    async def get_coldkey_swap_disputes(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> list["ColdkeySwapDisputeInfo"]:
+        """
+        Retrieves all coldkey swap disputes from the chain.
+
+        This method queries the SubtensorModule.ColdkeySwapDisputes storage map across all coldkeys and returns a
+        list of all active disputes.
+
+        Parameters:
+            block: The blockchain block number for the query. If `None`, queries the latest block.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
+
+        Returns:
+            List of ColdkeySwapDisputeInfo objects representing all active coldkey swap disputes on the chain.
+
+        Notes:
+            - This method queries all disputes on the chain, which may be resource-intensive for large networks.
+              Consider using :meth:`get_coldkey_swap_dispute` for querying specific coldkeys.
+            - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query_map = await self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function="ColdkeySwapDisputes",
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+        return [
+            ColdkeySwapDisputeInfo.from_record(record) async for record in query_map
+        ]
 
     async def get_coldkey_swap_constants(
         self,
@@ -7043,6 +7117,50 @@ class AsyncSubtensor(SubtensorMixin):
             proxy_type=proxy_type,
             delay=delay,
             index=index,
+            mev_protection=mev_protection,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
+        )
+
+    async def dispute_coldkey_swap(
+        self,
+        wallet: "Wallet",
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Disputes the coldkey swap announcement for the current coldkey.
+
+        Callable by the coldkey that has an active swap announcement. Marks the swap as disputed. The account is blocked
+        until root calls reset_coldkey_swap.
+
+        Parameters:
+            wallet: Bittensor wallet object (should be the current coldkey with an active announcement).
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet.
+            period: The number of blocks during which the transaction will remain valid.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution if mev_protection used.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Notes:
+            - The coldkey must have an active swap announcement.
+            - After disputing, only root can clear the state via reset_coldkey_swap.
+        """
+        return await dispute_coldkey_swap_extrinsic(
+            subtensor=self,
+            wallet=wallet,
             mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
