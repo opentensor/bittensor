@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 from typing import Literal, Optional
-
-from bittensor.core.types import UIDs, Weights, Salt
+from bittensor.utils import deprecated_message
+from bittensor.core.types import Salt, UIDs, Weights
 from bittensor.utils import Certificate
-from .base import CallBuilder as _BasePallet, Call
+
+from .base import Call
+from .base import CallBuilder as _BasePallet
 
 
 @dataclass
@@ -328,21 +330,76 @@ class SubtensorModule(_BasePallet):
             netuid=netuid, hotkey=hotkey, limit_price=limit_price
         )
 
-    def remove_coldkey_swap_announcement(
-        self,
-        coldkey: str,
-    ) -> Call:
-        """Returns GenericCall instance for Subtensor function SubtensorModule.remove_coldkey_swap_announcement.
+    def dispute_coldkey_swap(self) -> Call:
+        """Returns GenericCall instance for Subtensor function SubtensorModule.dispute_coldkey_swap.
 
-        Only callable by root.
+        Callable by the coldkey that has an active swap announcement. Marks the swap as disputed;
+        the account is blocked until root calls reset_coldkey_swap.
+
+        Returns:
+            GenericCall instance.
+        """
+        return self.create_composed_call()
+
+    def reset_coldkey_swap(self, coldkey: str) -> Call:
+        """Returns GenericCall instance for Subtensor function SubtensorModule.reset_coldkey_swap.
+
+        Only callable by root. Clears the coldkey swap announcement and dispute for the given coldkey.
 
         Parameters:
-            coldkey: SS58 address of the coldkey to remove the swap announcement for.
+            coldkey: SS58 address of the coldkey to reset the swap for.
 
         Returns:
             GenericCall instance.
         """
         return self.create_composed_call(coldkey=coldkey)
+
+    def swap_coldkey(
+        self,
+        old_coldkey: str,
+        new_coldkey: str,
+        swap_cost: int,
+    ) -> Call:
+        """Returns GenericCall instance for Subtensor function SubtensorModule.swap_coldkey.
+
+        Only callable by root. Performs a coldkey swap without an announcement; swap_cost is charged
+        from old_coldkey in RAO.
+
+        Parameters:
+            old_coldkey: SS58 address of the coldkey to swap from.
+            new_coldkey: SS58 address of the coldkey to swap to.
+            swap_cost: Cost in RAO charged from old_coldkey (use 0 for no charge).
+
+        Returns:
+            GenericCall instance.
+        """
+        return self.create_composed_call(
+            old_coldkey=old_coldkey,
+            new_coldkey=new_coldkey,
+            swap_cost=swap_cost,
+        )
+
+    def remove_coldkey_swap_announcement(
+        self,
+        coldkey: str,
+    ) -> Call:
+        """Returns GenericCall that resets coldkey swap for the given coldkey (root only).
+
+        Deprecated. Use :meth:`reset_coldkey_swap` instead. This shim exists for compatibility;
+        the runtime call is SubtensorModule.reset_coldkey_swap, which clears both announcement
+        and dispute.
+
+        Parameters:
+            coldkey: SS58 address of the coldkey to reset the swap for.
+
+        Returns:
+            GenericCall instance.
+        """
+        # TODO: remove this logic in the next major release (include all references)
+        deprecated_message()
+        return self.create_composed_call(
+            call_function="reset_coldkey_swap", coldkey=coldkey
+        )
 
     def reveal_mechanism_weights(
         self,
