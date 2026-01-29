@@ -10,10 +10,12 @@ from bittensor.core.extrinsics.utils import (
 )
 from bittensor.core.settings import DEFAULT_MEV_PROTECTION
 from bittensor.core.types import ExtrinsicResponse
+from bittensor.utils import deprecated_message
 from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
+
     from bittensor.core.subtensor import Subtensor
 
 
@@ -108,6 +110,75 @@ def announce_coldkey_swap_extrinsic(
             logging.debug("[green]Coldkey swap announced successfully.[/green]")
         else:
             logging.error(f"[red]{response.message}[/red]")
+
+        return response
+
+    except Exception as error:
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
+
+
+def dispute_coldkey_swap_extrinsic(
+    subtensor: "Subtensor",
+    wallet: "Wallet",
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
+    period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
+) -> ExtrinsicResponse:
+    """
+    Disputes the coldkey swap announcement for the current coldkey.
+
+    Callable by the coldkey that has an active swap announcement. Marks the swap as disputed. The account is blocked
+    until root calls reset_coldkey_swap.
+
+    Parameters:
+        subtensor: Subtensor instance with the connection to the chain.
+        wallet: Bittensor wallet object (should be the current coldkey with an active announcement).
+        mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet.
+        period: The number of blocks during which the transaction will remain valid.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution if mev_protection used.
+
+    Returns:
+        ExtrinsicResponse: The result object of the extrinsic execution.
+
+    Notes:
+        - The coldkey must have an active swap announcement.
+        - After disputing, only root can clear the state via reset_coldkey_swap.
+    """
+    try:
+        if not (
+            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+        ).success:
+            return unlocked
+
+        call = SubtensorModule(subtensor).dispute_coldkey_swap()
+
+        if mev_protection:
+            response = submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=wait_for_revealed_execution,
+            )
+        else:
+            response = subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                period=period,
+                raise_error=raise_error,
+            )
 
         return response
 
@@ -289,6 +360,8 @@ def remove_coldkey_swap_announcement_extrinsic(
         - This function can only called by root.
         - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
     """
+    # TODO: remove this logic in the next major release (include all references)
+    deprecated_message()
     try:
         if not (
             unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
