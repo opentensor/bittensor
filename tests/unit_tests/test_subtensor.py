@@ -6651,3 +6651,72 @@ def test_swap_coldkey_announced(mocker, subtensor):
         wait_for_revealed_execution=True,
     )
     assert response == mocked_swap_coldkey_announced_extrinsic.return_value
+
+
+def test_get_coldkey_swap_dispute(subtensor, mocker):
+    """Test get_coldkey_swap_dispute returns correct data when dispute information is found."""
+    fake_coldkey_ss58 = mocker.Mock(spec=str)
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query = mocker.patch.object(subtensor.substrate, "query")
+    mocked_from_query = mocker.patch.object(
+        subtensor_module.ColdkeySwapDisputeInfo, "from_query"
+    )
+
+    result = subtensor.get_coldkey_swap_dispute(coldkey_ss58=fake_coldkey_ss58)
+
+    mocked_determine_block_hash.assert_called_once_with(None)
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="ColdkeySwapDisputes",
+        params=[fake_coldkey_ss58],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    mocked_from_query.assert_called_once_with(
+        coldkey_ss58=fake_coldkey_ss58, query=mocked_query.return_value
+    )
+    assert result == mocked_from_query.return_value
+
+
+def test_get_coldkey_swap_disputes(subtensor, mocker):
+    """Test get_coldkey_swap_disputes returns correct data when dispute information is found."""
+    fake_record = mocker.Mock()
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate, "query_map", return_value=(fake_record,)
+    )
+    mocked_from_record = mocker.patch.object(
+        subtensor_module.ColdkeySwapDisputeInfo, "from_record"
+    )
+
+    result = subtensor.get_coldkey_swap_disputes()
+
+    mocked_determine_block_hash.assert_called_once_with(None)
+    mocked_query_map.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="ColdkeySwapDisputes",
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    mocked_from_record.assert_called_once_with(fake_record)
+    assert result == [mocked_from_record.return_value]
+
+
+def test_dispute_coldkey_swap(mocker, subtensor):
+    """Tests `dispute_coldkey_swap` extrinsic call method."""
+    wallet = mocker.Mock(spec=Wallet)
+    mocked_dispute_coldkey_swap_extrinsic = mocker.patch.object(
+        subtensor_module, "dispute_coldkey_swap_extrinsic"
+    )
+
+    response = subtensor.dispute_coldkey_swap(wallet=wallet)
+
+    mocked_dispute_coldkey_swap_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        mev_protection=DEFAULT_MEV_PROTECTION,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+    )
+    assert response == mocked_dispute_coldkey_swap_extrinsic.return_value
