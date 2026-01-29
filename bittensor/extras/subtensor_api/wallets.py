@@ -1,6 +1,7 @@
 from typing import Union
-from bittensor.core.subtensor import Subtensor as _Subtensor
+
 from bittensor.core.async_subtensor import AsyncSubtensor as _AsyncSubtensor
+from bittensor.core.subtensor import Subtensor as _Subtensor
 
 
 class Wallets:
@@ -28,6 +29,8 @@ class Wallets:
         self.get_coldkey_swap_reannouncement_delay = (
             subtensor.get_coldkey_swap_reannouncement_delay
         )
+        self.get_coldkey_swap_dispute = subtensor.get_coldkey_swap_dispute
+        self.get_coldkey_swap_disputes = subtensor.get_coldkey_swap_disputes
         self.get_delegate_by_hotkey = subtensor.get_delegate_by_hotkey
         self.get_delegate_take = subtensor.get_delegate_take
         self.get_delegated = subtensor.get_delegated
