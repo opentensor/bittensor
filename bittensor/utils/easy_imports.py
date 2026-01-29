@@ -36,6 +36,7 @@ from bittensor.core.axon import Axon
 from bittensor.core.chain_data import (
     AxonInfo,
     ChainIdentity,
+    ColdkeySwapDisputeInfo,
     DelegateInfo,
     DelegateInfoLite,
     DynamicInfo,
@@ -153,6 +154,7 @@ __all__ = [
     "Axon",
     "AxonInfo",
     "ChainIdentity",
+    "ColdkeySwapDisputeInfo",
     "DelegateInfo",
     "DelegateInfoLite",
     "DynamicInfo",
