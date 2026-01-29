@@ -480,8 +480,14 @@ def determine_chain_endpoint_and_network(
     return "unknown", network
 
 
-def deprecated_message(message: str) -> None:
+def deprecated_message(message: str = False, replacement_message: str = False) -> None:
     """Shows a deprecation warning message with the given message."""
+    message = (
+        message
+        if message
+        else f"The called object ({get_caller_name()}) is deprecated and will be removed in a future release."
+    )
+    message = f"{message} {replacement_message}" if replacement_message else message
     warnings.simplefilter("default", DeprecationWarning)
     warnings.warn(message=message, category=DeprecationWarning, stacklevel=2)
 
