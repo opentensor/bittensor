@@ -75,6 +75,66 @@ class ColdkeySwapAnnouncementInfo:
 
 
 @dataclass
+class ColdkeySwapDisputeInfo:
+    """
+    Information about a coldkey swap dispute.
+
+    This class contains information about a disputed coldkey swap. When a coldkey swap is disputed,
+    the account is frozen until the triumvirate resolves it via a root-only reset.
+
+    Attributes:
+        coldkey: The SS58 address of the coldkey that was disputed.
+        disputed_block: The block number when the dispute was recorded.
+
+    Notes:
+        - The dispute is stored on-chain in ColdkeySwapDisputes storage.
+        - While disputed, the coldkey can only perform announce_coldkey_swap, swap_coldkey_announced,
+          or dispute_coldkey_swap (or MEV-protected calls).
+        - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
+    """
+
+    coldkey: str
+    disputed_block: int
+
+    @classmethod
+    def from_query(
+        cls, coldkey_ss58: str, query: "ScaleObj"
+    ) -> Optional["ColdkeySwapDisputeInfo"]:
+        """
+        Creates a ColdkeySwapDisputeInfo object from a Substrate query result.
+
+        Parameters:
+            coldkey_ss58: The SS58 address of the coldkey that was disputed.
+            query: Query result from Substrate `query()` call to `ColdkeySwapDisputes` storage function.
+
+        Returns:
+            ColdkeySwapDisputeInfo if dispute exists, None otherwise.
+        """
+        if not getattr(query, "value", None):
+            return None
+        return cls(coldkey=coldkey_ss58, disputed_block=int(query.value))
+
+    @classmethod
+    def from_record(cls, record: tuple) -> "ColdkeySwapDisputeInfo":
+        """
+        Creates a ColdkeySwapDisputeInfo object from a query_map record.
+
+        Parameters:
+            record: Data item from query_map records call to ColdkeySwapDisputes storage function. Structure is
+                [key, value] where key is the coldkey AccountId and value is the disputed block number.
+
+        Returns:
+            ColdkeySwapDisputeInfo object with dispute details for the coldkey from the record.
+        """
+        coldkey_ss58 = decode_account_id(record[0])
+        val = record[1]
+        disputed_block = (
+            int(val.value) if getattr(val, "value", None) is not None else int(val)
+        )
+        return cls(coldkey=coldkey_ss58, disputed_block=disputed_block)
+
+
+@dataclass
 class ColdkeySwapConstants:
     """
     Represents runtime constants for coldkey swap operations in the SubtensorModule.
