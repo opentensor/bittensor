@@ -1,6 +1,7 @@
 from typing import Union
-from bittensor.core.subtensor import Subtensor as _Subtensor
+
 from bittensor.core.async_subtensor import AsyncSubtensor as _AsyncSubtensor
+from bittensor.core.subtensor import Subtensor as _Subtensor
 
 
 class Extrinsics:
@@ -10,6 +11,8 @@ class Extrinsics:
         self.add_liquidity = subtensor.add_liquidity
         self.add_stake = subtensor.add_stake
         self.add_stake_multiple = subtensor.add_stake_multiple
+        self.announce_coldkey_swap = subtensor.announce_coldkey_swap
+        self.dispute_coldkey_swap = subtensor.dispute_coldkey_swap
         self.burned_register = subtensor.burned_register
         self.claim_root = subtensor.claim_root
         self.commit_weights = subtensor.commit_weights
@@ -36,6 +39,7 @@ class Extrinsics:
         self.set_commitment = subtensor.set_commitment
         self.set_root_claim_type = subtensor.set_root_claim_type
         self.start_call = subtensor.start_call
+        self.swap_coldkey_announced = subtensor.swap_coldkey_announced
         self.swap_stake = subtensor.swap_stake
         self.toggle_user_liquidity = subtensor.toggle_user_liquidity
         self.transfer = subtensor.transfer

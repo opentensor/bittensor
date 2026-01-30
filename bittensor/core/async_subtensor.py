@@ -15,6 +15,9 @@ from bittensor_wallet.utils import SS58_FORMAT
 from scalecodec import GenericCall
 
 from bittensor.core.chain_data import (
+    ColdkeySwapAnnouncementInfo,
+    ColdkeySwapConstants,
+    ColdkeySwapDisputeInfo,
     CrowdloanConstants,
     CrowdloanInfo,
     DelegateInfo,
@@ -50,6 +53,11 @@ from bittensor.core.errors import ChainError, SubstrateRequestException
 from bittensor.core.extrinsics.asyncex.children import (
     root_set_pending_childkey_cooldown_extrinsic,
     set_children_extrinsic,
+)
+from bittensor.core.extrinsics.asyncex.coldkey_swap import (
+    announce_coldkey_swap_extrinsic,
+    dispute_coldkey_swap_extrinsic,
+    swap_coldkey_announced_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.crowdloan import (
     contribute_crowdloan_extrinsic,
@@ -1932,6 +1940,275 @@ class AsyncSubtensor(SubtensorMixin):
             ],
             cooldown,
         )
+
+    async def get_coldkey_swap_announcement(
+        self,
+        coldkey_ss58: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional["ColdkeySwapAnnouncementInfo"]:
+        """
+        Retrieves coldkey swap announcement for a specific coldkey.
+
+        This method queries the SubtensorModule.ColdkeySwapAnnouncements storage for an announcement made by the given
+        coldkey. Announcements allow a coldkey to declare its intention to swap to a new coldkey address after a delay
+        period.
+
+        Parameters:
+            coldkey_ss58: SS58 address of the coldkey whose announcement to retrieve.
+            block: The blockchain block number for the query. If `None`, queries the latest block.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
+
+        Returns:
+            ColdkeySwapAnnouncementInfo if announcement exists, None otherwise. Contains the execution block and
+                new coldkey hash.
+
+        Notes:
+            - If the coldkey has no announcement, returns None.
+            - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="ColdkeySwapAnnouncements",
+            params=[coldkey_ss58],
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+        return ColdkeySwapAnnouncementInfo.from_query(
+            coldkey_ss58=coldkey_ss58, query=query
+        )
+
+    async def get_coldkey_swap_announcements(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> list["ColdkeySwapAnnouncementInfo"]:
+        """
+        Retrieves all coldkey swap announcements from the chain.
+
+        This method queries the SubtensorModule.ColdkeySwapAnnouncements storage map across all coldkeys and returns a
+        list of all active announcements.
+
+        Parameters:
+            block: The blockchain block number for the query. If `None`, queries the latest block.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
+
+        Returns:
+            List of ColdkeySwapAnnouncementInfo objects representing all active coldkey swap announcements on the chain.
+
+        Notes:
+            - This method queries all announcements on the chain, which may be resource-intensive for large networks.
+              Consider using :meth:`get_coldkey_swap_announcement` for querying specific coldkeys.
+            - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query_map = await self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function="ColdkeySwapAnnouncements",
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+        return [
+            ColdkeySwapAnnouncementInfo.from_record(record)
+            async for record in query_map
+        ]
+
+    async def get_coldkey_swap_announcement_delay(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> int:
+        """
+        Retrieves the ColdkeySwapAnnouncementDelay storage value.
+
+        This method queries the SubtensorModule.ColdkeySwapAnnouncementDelay storage value, which defines the number
+        of blocks that must elapse after making an announcement before the swap can be executed.
+
+        Parameters:
+            block: The blockchain block number for the query. If `None`, queries the latest block.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
+
+        Returns:
+            The number of blocks that must elapse before swap execution (integer).
+
+        Notes:
+            - This is a storage value (can be changed via admin extrinsics), not a runtime constant.
+            - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="ColdkeySwapAnnouncementDelay",
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+        return query.value if getattr(query, "value", None) else 0
+
+    async def get_coldkey_swap_reannouncement_delay(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> int:
+        """
+        Retrieves the ColdkeySwapReannouncementDelay storage value.
+
+        This method queries the SubtensorModule.ColdkeySwapReannouncementDelay storage value, which defines the number
+        of blocks that must elapse between the original announcement and a reannouncement.
+
+        Parameters:
+            block: The blockchain block number for the query. If `None`, queries the latest block.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
+
+        Returns:
+            The number of blocks that must elapse before reannouncement (integer).
+
+        Notes:
+            - This is a storage value (can be changed via admin extrinsics), not a runtime constant.
+            - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="ColdkeySwapReannouncementDelay",
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+        return query.value if getattr(query, "value", None) else 0
+
+    async def get_coldkey_swap_dispute(
+        self,
+        coldkey_ss58: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional["ColdkeySwapDisputeInfo"]:
+        """
+        Retrieves coldkey swap dispute for a specific coldkey.
+
+        This method queries the SubtensorModule.ColdkeySwapDisputes storage for a dispute recorded for the given
+        coldkey. When a coldkey swap is disputed, the account is frozen until a root-only reset clears it.
+
+        Parameters:
+            coldkey_ss58: SS58 address of the coldkey whose dispute to retrieve.
+            block: The blockchain block number for the query. If `None`, queries the latest block.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
+
+        Returns:
+            ColdkeySwapDisputeInfo if dispute exists, None otherwise. Contains the disputed block number.
+
+        Notes:
+            - If the coldkey has no dispute, returns None.
+            - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="ColdkeySwapDisputes",
+            params=[coldkey_ss58],
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+        return ColdkeySwapDisputeInfo.from_query(coldkey_ss58=coldkey_ss58, query=query)
+
+    async def get_coldkey_swap_disputes(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> list["ColdkeySwapDisputeInfo"]:
+        """
+        Retrieves all coldkey swap disputes from the chain.
+
+        This method queries the SubtensorModule.ColdkeySwapDisputes storage map across all coldkeys and returns a
+        list of all active disputes.
+
+        Parameters:
+            block: The blockchain block number for the query. If `None`, queries the latest block.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
+
+        Returns:
+            List of ColdkeySwapDisputeInfo objects representing all active coldkey swap disputes on the chain.
+
+        Notes:
+            - This method queries all disputes on the chain, which may be resource-intensive for large networks.
+              Consider using :meth:`get_coldkey_swap_dispute` for querying specific coldkeys.
+            - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query_map = await self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function="ColdkeySwapDisputes",
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+        return [
+            ColdkeySwapDisputeInfo.from_record(record) async for record in query_map
+        ]
+
+    async def get_coldkey_swap_constants(
+        self,
+        constants: Optional[list[str]] = None,
+        as_dict: bool = False,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Union["ColdkeySwapConstants", dict]:
+        """
+        Fetches runtime configuration constants for coldkey swap operations.
+
+        This method retrieves on-chain runtime constants that define cost requirements for coldkey swap operations.
+        Note: For delay values (ColdkeySwapAnnouncementDelay and ColdkeySwapReannouncementDelay), use the dedicated
+        query methods `get_coldkey_swap_announcement_delay()` and `get_coldkey_swap_reannouncement_delay()` instead,
+        as these are storage values, not runtime constants.
+
+        Parameters:
+            constants: Optional list of specific constant names to fetch. If omitted, all constants defined in
+                `ColdkeySwapConstants.constants_names()` are queried. Valid constant names include: "KeySwapCost".
+            as_dict: If True, returns the constants as a dictionary instead of a `ColdkeySwapConstants` object.
+            block: The blockchain block number for the query. If `None`, queries the latest block.
+            block_hash: The hash of the block at which to check the parameter. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
+
+        Returns:
+            If `as_dict` is False: ColdkeySwapConstants object containing all requested constants.
+            If `as_dict` is True: Dictionary mapping constant names to their values (integers for cost in RAO).
+
+        Notes:
+            - All amounts are returned in RAO. Values reflect the current chain configuration at the specified block.
+            - KeySwapCost is a runtime constant (queryable via constants).
+            - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
+        """
+        result = {}
+        const_names = constants or ColdkeySwapConstants.constants_names()
+
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+
+        for const_name in const_names:
+            # Query as runtime constant
+            query = await self.query_constant(
+                module_name="SubtensorModule",
+                constant_name=const_name,
+                block=block,
+                block_hash=block_hash,
+                reuse_block=reuse_block,
+            )
+            if query is not None:
+                result[const_name] = query.value
+
+        constants_obj = ColdkeySwapConstants.from_dict(result)
+
+        return constants_obj.to_dict() if as_dict else constants_obj
 
     async def get_commitment(
         self,
@@ -6204,6 +6481,62 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
+    async def announce_coldkey_swap(
+        self,
+        wallet: "Wallet",
+        new_coldkey_ss58: str,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Announces a coldkey swap by submitting the BlakeTwo256 hash of the new coldkey.
+
+        This method allows a coldkey to declare its intention to swap to a new coldkey address. The announcement must be
+        made before the actual swap can be executed, and a delay period must pass before execution is allowed.
+        After making an announcement, all transactions from the coldkey are blocked except for `swap_coldkey_announced`.
+
+        Parameters:
+            wallet: Bittensor wallet object (should be the current coldkey wallet).
+            new_coldkey_ss58: SS58 address of the new coldkey that will replace the current one.
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Notes:
+            - A swap cost is charged when making the first announcement (not when reannouncing).
+            - After making an announcement, all transactions from the coldkey are blocked except for
+                `swap_coldkey_announced`.
+            - The swap can only be executed after the delay period has passed (check via
+                `get_coldkey_swap_announcement`).
+            - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
+        """
+        return await announce_coldkey_swap_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            new_coldkey_ss58=new_coldkey_ss58,
+            mev_protection=mev_protection,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
+        )
+
     async def add_stake_multiple(
         self,
         wallet: "Wallet",
@@ -6784,6 +7117,50 @@ class AsyncSubtensor(SubtensorMixin):
             proxy_type=proxy_type,
             delay=delay,
             index=index,
+            mev_protection=mev_protection,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
+        )
+
+    async def dispute_coldkey_swap(
+        self,
+        wallet: "Wallet",
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Disputes the coldkey swap announcement for the current coldkey.
+
+        Callable by the coldkey that has an active swap announcement. Marks the swap as disputed. The account is blocked
+        until root calls reset_coldkey_swap.
+
+        Parameters:
+            wallet: Bittensor wallet object (should be the current coldkey with an active announcement).
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet.
+            period: The number of blocks during which the transaction will remain valid.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution if mev_protection used.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Notes:
+            - The coldkey must have an active swap announcement.
+            - After disputing, only root can clear the state via reset_coldkey_swap.
+        """
+        return await dispute_coldkey_swap_extrinsic(
+            subtensor=self,
+            wallet=wallet,
             mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
@@ -8954,6 +9331,59 @@ class AsyncSubtensor(SubtensorMixin):
             amount=amount,
             transfer_all=transfer_all,
             keep_alive=keep_alive,
+            mev_protection=mev_protection,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
+        )
+
+    async def swap_coldkey_announced(
+        self,
+        wallet: "Wallet",
+        new_coldkey_ss58: str,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Executes a previously announced coldkey swap.
+
+        This method executes a coldkey swap that was previously announced via `announce_coldkey_swap`. The new coldkey
+        address must match the hash that was announced, and the delay period must have passed.
+
+        Parameters:
+            wallet: Bittensor wallet object (should be the current coldkey wallet that made the announcement).
+            new_coldkey_ss58: SS58 address of the new coldkey to swap to. This must match the hash that was announced.
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Notes:
+            - The new coldkey hash must match the hash that was announced.
+            - The delay period must have passed (check via `get_coldkey_swap_announcement`).
+            - All assets, stakes, subnet ownerships, and hotkey associations are transferred from the old coldkey to the new one.
+            - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
+        """
+        return await swap_coldkey_announced_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            new_coldkey_ss58=new_coldkey_ss58,
             mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,

@@ -5,11 +5,11 @@ import logging
 from typing import TYPE_CHECKING, Optional, Union
 
 from bittensor_drand import encrypt_mlkem768
+from bittensor_wallet import Keypair
 
 from bittensor.core.extrinsics.pallets import Sudo
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.balance import Balance
-
 
 # TODO: Michael/Roman add the link to the docs once it's ready.'
 MEV_HOTKEY_USAGE_WARNING = (
@@ -287,3 +287,47 @@ def get_event_data_by_event_name(events: list, event_name: str) -> Optional[dict
         ):
             return event
     return None
+
+
+def compute_coldkey_hash(keypair: "Keypair") -> str:
+    """
+    Computes BlakeTwo256 hash of a coldkey AccountId.
+
+    This function extracts the AccountId (32-byte public key) from an SS58 address and computes its BlakeTwo256 hash.
+    The hash is used in coldkey swap announcements to verify the new coldkey address when executing the swap.
+
+    Parameters:
+        keypair: keypair for getting hash.
+
+    Returns:
+        Hex string with 0x prefix representing the BlakeTwo256 hash of the AccountId.
+
+    Notes:
+        - The hash is computed from the AccountId (public key bytes), not from the SS58 string.
+        - This matches the hash computation used in the Subtensor runtime.
+        - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
+    """
+    hash_bytes = hashlib.blake2b(keypair.public_key, digest_size=32).digest()
+    return "0x" + hash_bytes.hex()
+
+
+def verify_coldkey_hash(keypair: "Keypair", expected_hash: str) -> bool:
+    """
+    Verifies that a coldkey SS58 address matches the expected BlakeTwo256 hash.
+
+    This function computes the hash of the coldkey AccountId and compares it with the expected hash. Used to verify that
+    the new coldkey address in a swap announcement matches the announced hash.
+
+    Parameters:
+        keypair: keypair whose hash needs to be verified.
+        expected_hash: Expected BlakeTwo256 hash (hex string with 0x prefix).
+
+    Returns:
+        True if the computed hash matches the expected hash, False otherwise.
+
+    Notes:
+        - Both hashes are compared in lowercase to handle case differences.
+        - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
+    """
+    computed_hash = compute_coldkey_hash(keypair)
+    return computed_hash.lower() == expected_hash.lower()
