@@ -4,7 +4,7 @@ import hashlib
 import inspect
 import warnings
 from collections import namedtuple
-from typing import Any, Literal, Union, Optional, TYPE_CHECKING
+from typing import Any, Literal, Union, Optional, Type, TYPE_CHECKING
 from urllib.parse import urlparse
 
 import scalecodec
@@ -41,6 +41,14 @@ U64_MAX = 18446744073709551615
 GLOBAL_MAX_SUBNET_COUNT = 4096
 
 UnlockStatus = namedtuple("UnlockStatus", ["success", "message"])
+
+
+class ChainFeatureDisabledWarning(UserWarning):
+    """Warning indicating that a feature is currently disabled on the chain side.
+
+    This warning is issued when SDK functionality depends on chain feats that are temporarily unavailable or disabled.
+    """
+
 
 # redundant aliases
 logging = logging
@@ -480,16 +488,29 @@ def determine_chain_endpoint_and_network(
     return "unknown", network
 
 
-def deprecated_message(message: str = False, replacement_message: str = False) -> None:
-    """Shows a deprecation warning message with the given message."""
+def deprecated_message(
+    message: Optional[str] = None,
+    replacement_message: Optional[str] = None,
+    category: Type[Warning] = DeprecationWarning,
+    stacklevel: int = 2,
+) -> None:
+    """Shows a warning message with the given message.
+
+    Parameters:
+        message: The warning message to display. If None, a default deprecation message is generated.
+        replacement_message: An optional additional message suggesting a replacement.
+        category: The warning category to use. Defaults to DeprecationWarning.
+        stacklevel: The stack level for the warning. Defaults to 2 (points to the caller of deprecated_message).
+            Increase this value if deprecated_message is called from within another wrapper function.
+    """
     message = (
         message
         if message
         else f"The called object ({get_caller_name()}) is deprecated and will be removed in a future release."
     )
     message = f"{message} {replacement_message}" if replacement_message else message
-    warnings.simplefilter("default", DeprecationWarning)
-    warnings.warn(message=message, category=DeprecationWarning, stacklevel=2)
+    warnings.simplefilter("default", category)
+    warnings.warn(message=message, category=category, stacklevel=stacklevel)
 
 
 def get_function_name() -> str:
