@@ -4802,26 +4802,23 @@ class AsyncSubtensor(SubtensorMixin):
         Notes:
             Subnet 0 (root network) always has a price of 1 TAO since it uses TAO directly rather than Alpha.
         """
-        block_hash = await self.determine_block_hash(
+        # TODO: we will maintain this logic until we receive a function that returns all subnet prices in the chain as a
+        #  single call.
+        block_hash = await self.determine_block_hash(block, block_hash)
+        prices = {0: Balance.from_tao(1)}
+        netuids = await self.get_all_subnets_netuid(
             block=block, block_hash=block_hash, reuse_block=reuse_block
         )
 
-        current_sqrt_prices = await self.substrate.query_map(
-            module="Swap",
-            storage_function="AlphaSqrtPrice",
-            block_hash=block_hash,
-            page_size=129,  # total number of subnets
-        )
+        tasks = [
+            self.get_subnet_price(
+                netuid, block=block, block_hash=block_hash, reuse_block=reuse_block
+            )
+            for netuid in netuids
+        ]
 
-        prices = {}
-        async for id_, current_sqrt_price in current_sqrt_prices:
-            current_sqrt_price = fixed_to_float(current_sqrt_price)
-            current_price = current_sqrt_price * current_sqrt_price
-            current_price_in_tao = Balance.from_rao(int(current_price * 1e9))
-            prices.update({id_: current_price_in_tao})
-
-        # SN0 price is always 1 TAO
-        prices.update({0: Balance.from_tao(1)})
+        prices_list = await asyncio.gather(*tasks)
+        prices.update(dict(zip(netuids, prices_list)))
         return prices
 
     async def get_subnet_reveal_period_epochs(
