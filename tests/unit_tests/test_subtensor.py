@@ -4056,28 +4056,28 @@ def test_get_subnet_price(subtensor, mocker):
 
 def test_get_subnet_prices(subtensor, mocker):
     """Test get_subnet_prices returns the correct value."""
-    # preps
-    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
-    fake_prices = [
-        [0, {"bits": 0}],
-        [1, {"bits": 3155343338053956962}],
-    ]
-    expected_prices = {0: Balance.from_tao(1), 1: Balance.from_tao(0.029258617)}
-    mocked_query_map = mocker.patch.object(
-        subtensor.substrate, "query_map", return_value=fake_prices
+    # Preps
+    fake_netuids = [1, 2]
+    fake_price_1 = Balance.from_tao(0.5)
+    fake_price_2 = Balance.from_tao(1.5)
+
+    mocked_get_all_subnets_netuid = mocker.patch.object(
+        subtensor, "get_all_subnets_netuid", return_value=fake_netuids
     )
+    mocked_get_subnet_price = mocker.patch.object(
+        subtensor, "get_subnet_price", side_effect=[fake_price_1, fake_price_2]
+    )
+
+    expected_prices = {0: Balance.from_tao(1), 1: fake_price_1, 2: fake_price_2}
 
     # Call
     result = subtensor.get_subnet_prices()
 
     # Asserts
-    mocked_determine_block_hash.assert_called_once_with(block=None)
-    mocked_query_map.assert_called_once_with(
-        module="Swap",
-        storage_function="AlphaSqrtPrice",
-        block_hash=mocked_determine_block_hash.return_value,
-        page_size=129,  # total number of subnets
-    )
+    mocked_get_all_subnets_netuid.assert_called_once_with(block=None)
+    assert mocked_get_subnet_price.call_count == 2
+    mocked_get_subnet_price.assert_any_call(1, block=None)
+    mocked_get_subnet_price.assert_any_call(2, block=None)
     assert result == expected_prices
 
 
