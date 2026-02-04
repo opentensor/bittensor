@@ -34,16 +34,17 @@ import bittensor
 
 def test_some_functionality():
     # Setup any necessary objects or state.
-    wallet = bittensor.Wallet()
+    wallet = bittensor.Wallet(name="test_wallet", hotkey="test_hotkey")
+    
+    # Create a new coldkey with required parameters
+    wallet.create_new_coldkey(use_password=False, overwrite=True)
 
-    # Call the function you're testing.
-    result = wallet.create_new_coldkey()
-
-    # Assert that the function behaved as expected.
-    assert result is not None
+    # Assert that the wallet was created successfully
+    assert wallet.coldkey is not None
+    assert wallet.coldkeypub is not None
 ```
 
-In this example, we're testing the `create_new_coldkey` function of the `wallet` object. We assert that the result is not `None`, which is the expected behavior.
+In this example, we're testing the wallet creation functionality. We create a wallet with a name and hotkey, then create a new coldkey with the required parameters. The `use_password=False` parameter disables password protection for testing purposes, and `overwrite=True` allows overwriting existing keys.
 
 ## Mocking
 
