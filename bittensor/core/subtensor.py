@@ -3939,24 +3939,13 @@ class Subtensor(SubtensorMixin):
         Notes:
             Subnet 0 (root network) always has a price of 1 TAO since it uses TAO directly rather than Alpha.
         """
-        block_hash = self.determine_block_hash(block=block)
-
-        current_sqrt_prices = self.substrate.query_map(
-            module="Swap",
-            storage_function="AlphaSqrtPrice",
-            block_hash=block_hash,
-            page_size=129,  # total number of subnets
+        # TODO: we will maintain this logic until we receive a function that returns all subnet prices in the chain as a
+        #  single call.
+        prices = {0: Balance.from_tao(1)}
+        netuids = self.get_all_subnets_netuid(block=block)
+        prices.update(
+            {netuid: self.get_subnet_price(netuid, block=block) for netuid in netuids}
         )
-
-        prices = {}
-        for id_, current_sqrt_price in current_sqrt_prices:
-            current_sqrt_price = fixed_to_float(current_sqrt_price)
-            current_price = current_sqrt_price * current_sqrt_price
-            current_price_in_tao = Balance.from_rao(int(current_price * 1e9))
-            prices.update({id_: current_price_in_tao})
-
-        # SN0 price is always 1 TAO
-        prices.update({0: Balance.from_tao(1)})
         return prices
 
     def get_subnet_reveal_period_epochs(
