@@ -3845,31 +3845,40 @@ async def test_get_subnet_price(subtensor, mocker):
 @pytest.mark.asyncio
 async def test_get_subnet_prices(subtensor, mocker):
     """Test get_subnet_prices returns the correct value."""
-    # preps
-    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    # Preps
+    fake_netuids = [1, 2]
+    fake_price_1 = Balance.from_tao(0.5)
+    fake_price_2 = Balance.from_tao(1.5)
+    fake_block_hash = "fake_block_hash"
 
-    async def fake_current_sqrt_prices():
-        yield [0, {"bits": 0}]
-        yield [1, {"bits": 3155343338053956962}]
-
-    expected_prices = {0: Balance.from_tao(1), 1: Balance.from_tao(0.029258617)}
-    mocked_query_map = mocker.patch.object(
-        subtensor.substrate, "query_map", return_value=fake_current_sqrt_prices()
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value=fake_block_hash
     )
+    mocked_get_all_subnets_netuid = mocker.patch.object(
+        subtensor, "get_all_subnets_netuid", return_value=fake_netuids
+    )
+
+    async def fake_get_subnet_price(netuid, **kwargs):
+        if netuid == 1:
+            return fake_price_1
+        elif netuid == 2:
+            return fake_price_2
+
+    mocked_get_subnet_price = mocker.patch.object(
+        subtensor, "get_subnet_price", side_effect=fake_get_subnet_price
+    )
+
+    expected_prices = {0: Balance.from_tao(1), 1: fake_price_1, 2: fake_price_2}
 
     # Call
     result = await subtensor.get_subnet_prices()
 
     # Asserts
-    mocked_determine_block_hash.assert_awaited_once_with(
-        block=None, block_hash=None, reuse_block=False
+    mocked_determine_block_hash.assert_awaited_once_with(None, None)
+    mocked_get_all_subnets_netuid.assert_awaited_once_with(
+        block=None, block_hash=fake_block_hash, reuse_block=False
     )
-    mocked_query_map.assert_awaited_once_with(
-        module="Swap",
-        storage_function="AlphaSqrtPrice",
-        block_hash=mocked_determine_block_hash.return_value,
-        page_size=129,  # total number of subnets
-    )
+    assert mocked_get_subnet_price.call_count == 2
     assert result == expected_prices
 
 

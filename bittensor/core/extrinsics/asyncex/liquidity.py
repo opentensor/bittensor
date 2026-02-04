@@ -4,6 +4,7 @@ from bittensor.core.extrinsics.asyncex.mev_shield import submit_encrypted_extrin
 from bittensor.core.extrinsics.pallets import Swap
 from bittensor.core.settings import DEFAULT_MEV_PROTECTION
 from bittensor.core.types import ExtrinsicResponse
+from bittensor.utils import ChainFeatureDisabledWarning, deprecated_message
 from bittensor.utils.balance import Balance
 from bittensor.utils.liquidity import price_to_tick
 
@@ -56,6 +57,12 @@ async def add_liquidity_extrinsic(
     Note: Adding is allowed even when user liquidity is enabled in specified subnet. Call
     `toggle_user_liquidity_extrinsic` to enable/disable user liquidity.
     """
+    deprecated_message(
+        message="User liquidity is currently disabled on the chain. "
+        "Calling this method will result in a 'UserLiquidityDisabled' error.",
+        category=ChainFeatureDisabledWarning,
+        stacklevel=3,
+    )
     try:
         unlock_type = "coldkey" if hotkey_ss58 else "both"
         if not (
@@ -138,6 +145,12 @@ async def modify_liquidity_extrinsic(
     Note: Modifying is allowed even when user liquidity is enabled in specified subnet.
         Call `toggle_user_liquidity_extrinsic` to enable/disable user liquidity.
     """
+    deprecated_message(
+        message="User liquidity is currently disabled on the chain. "
+        "Calling this method will result in a 'UserLiquidityDisabled' error.",
+        category=ChainFeatureDisabledWarning,
+        stacklevel=3,
+    )
     try:
         unlock_type = "coldkey" if hotkey_ss58 else "both"
         if not (
@@ -217,6 +230,12 @@ async def remove_liquidity_extrinsic(
     Note: Adding is allowed even when user liquidity is enabled in specified subnet. Call
     `toggle_user_liquidity_extrinsic` to enable/disable user liquidity.
     """
+    deprecated_message(
+        message="User liquidity is currently disabled on the chain. "
+        "Calling this method will result in a 'UserLiquidityDisabled' error.",
+        category=ChainFeatureDisabledWarning,
+        stacklevel=3,
+    )
     try:
         unlock_type = "coldkey" if hotkey_ss58 else "both"
         if not (
@@ -290,6 +309,12 @@ async def toggle_user_liquidity_extrinsic(
     Returns:
         ExtrinsicResponse: The result object of the extrinsic execution.
     """
+    deprecated_message(
+        message="User liquidity is currently disabled on the chain. "
+        "Calling this method will result in a 'UserLiquidityDisabled' error.",
+        category=ChainFeatureDisabledWarning,
+        stacklevel=3,
+    )
     try:
         if not (
             unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
