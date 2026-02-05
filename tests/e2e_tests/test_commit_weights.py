@@ -45,7 +45,9 @@ def test_commit_and_reveal_weights_legacy(subtensor, alice_wallet):
     steps = [
         SUDO_SET_ADMIN_FREEZE_WINDOW(alice_wallet, AdminUtils, True, 0),
         REGISTER_SUBNET(alice_wallet),
-        SUDO_SET_MAX_ALLOWED_UIDS(alice_wallet, AdminUtils, True, NETUID, int(256 / TESTED_MECHANISMS)),
+        SUDO_SET_MAX_ALLOWED_UIDS(
+            alice_wallet, AdminUtils, True, NETUID, int(256 / TESTED_MECHANISMS)
+        ),
         SUDO_SET_MECHANISM_COUNT(
             alice_wallet, AdminUtils, True, NETUID, TESTED_MECHANISMS
         ),
@@ -431,7 +433,9 @@ async def test_commit_weights_uses_next_nonce_async(async_subtensor, alice_walle
     steps = [
         SUDO_SET_ADMIN_FREEZE_WINDOW(alice_wallet, AdminUtils, True, 0),
         REGISTER_SUBNET(alice_wallet),
-        SUDO_SET_MAX_ALLOWED_UIDS(alice_wallet, AdminUtils, True, NETUID, int(256 / TESTED_MECHANISMS)),
+        SUDO_SET_MAX_ALLOWED_UIDS(
+            alice_wallet, AdminUtils, True, NETUID, int(256 / TESTED_MECHANISMS)
+        ),
         ACTIVATE_SUBNET(alice_wallet),
         SUDO_SET_TEMPO(alice_wallet, AdminUtils, True, NETUID, TEMPO_TO_SET),
         SUDO_SET_COMMIT_REVEAL_WEIGHTS_ENABLED(
