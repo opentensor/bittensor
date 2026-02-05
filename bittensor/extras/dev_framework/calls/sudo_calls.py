@@ -11,7 +11,7 @@ For developers:
 
 Note:
     Any manual changes will be overwritten the next time the generator is run.
-    Subtensor spec version: 365
+    Subtensor spec version: 375
 """
 
 from collections import namedtuple
@@ -56,8 +56,12 @@ SUDO_SET_BONDS_RESET_ENABLED = namedtuple(
 SUDO_SET_CK_BURN = namedtuple(
     "SUDO_SET_CK_BURN", ["wallet", "pallet", "sudo", "burn"]
 )  # args: [burn: u64]  | Pallet: AdminUtils
-SUDO_SET_COLDKEY_SWAP_SCHEDULE_DURATION = namedtuple(
-    "SUDO_SET_COLDKEY_SWAP_SCHEDULE_DURATION", ["wallet", "pallet", "sudo", "duration"]
+SUDO_SET_COLDKEY_SWAP_ANNOUNCEMENT_DELAY = namedtuple(
+    "SUDO_SET_COLDKEY_SWAP_ANNOUNCEMENT_DELAY", ["wallet", "pallet", "sudo", "duration"]
+)  # args: [duration: BlockNumberFor<T>]  | Pallet: AdminUtils
+SUDO_SET_COLDKEY_SWAP_REANNOUNCEMENT_DELAY = namedtuple(
+    "SUDO_SET_COLDKEY_SWAP_REANNOUNCEMENT_DELAY",
+    ["wallet", "pallet", "sudo", "duration"],
 )  # args: [duration: BlockNumberFor<T>]  | Pallet: AdminUtils
 SUDO_SET_COMMIT_REVEAL_VERSION = namedtuple(
     "SUDO_SET_COMMIT_REVEAL_VERSION", ["wallet", "pallet", "sudo", "version"]
@@ -117,6 +121,9 @@ SUDO_SET_MAX_CHILDKEY_TAKE = namedtuple(
 SUDO_SET_MAX_DIFFICULTY = namedtuple(
     "SUDO_SET_MAX_DIFFICULTY", ["wallet", "pallet", "sudo", "netuid", "max_difficulty"]
 )  # args: [netuid: NetUid, max_difficulty: u64]  | Pallet: AdminUtils
+SUDO_SET_MAX_MECHANISM_COUNT = namedtuple(
+    "SUDO_SET_MAX_MECHANISM_COUNT", ["wallet", "pallet", "sudo", "max_mechanism_count"]
+)  # args: [max_mechanism_count: MechId]  | Pallet: AdminUtils
 SUDO_SET_MAX_REGISTRATIONS_PER_BLOCK = namedtuple(
     "SUDO_SET_MAX_REGISTRATIONS_PER_BLOCK",
     ["wallet", "pallet", "sudo", "netuid", "max_registrations_per_block"],
@@ -258,6 +265,9 @@ SUDO_SET_TX_DELEGATE_TAKE_RATE_LIMIT = namedtuple(
 SUDO_SET_TX_RATE_LIMIT = namedtuple(
     "SUDO_SET_TX_RATE_LIMIT", ["wallet", "pallet", "sudo", "tx_rate_limit"]
 )  # args: [tx_rate_limit: u64]  | Pallet: AdminUtils
+SUDO_SET_VOTING_POWER_EMA_ALPHA = namedtuple(
+    "SUDO_SET_VOTING_POWER_EMA_ALPHA", ["wallet", "pallet", "sudo", "netuid", "alpha"]
+)  # args: [netuid: NetUid, alpha: u64]  | Pallet: SubtensorModule
 SUDO_SET_WEIGHTS_SET_RATE_LIMIT = namedtuple(
     "SUDO_SET_WEIGHTS_SET_RATE_LIMIT",
     ["wallet", "pallet", "sudo", "netuid", "weights_set_rate_limit"],
