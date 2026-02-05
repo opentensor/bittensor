@@ -2921,6 +2921,71 @@ async def test_start_call(subtensor, mocker):
 
 
 @pytest.mark.asyncio
+async def test_subnet_buyback(subtensor, mocker):
+    """Test subnet_buyback extrinsic calls properly."""
+    # Preps
+    wallet_name = mocker.Mock(spec=Wallet)
+    netuid = 123
+    hotkey_ss58 = "hotkey"
+    amount = Balance.from_tao(1.0)
+    mocked_extrinsic = mocker.patch.object(async_subtensor, "subnet_buyback_extrinsic")
+
+    # Call
+    result = await subtensor.subnet_buyback(wallet_name, netuid, hotkey_ss58, amount)
+
+    # Asserts
+    mocked_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet_name,
+        netuid=netuid,
+        hotkey_ss58=hotkey_ss58,
+        amount=amount,
+        limit_price=None,
+        mev_protection=DEFAULT_MEV_PROTECTION,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+    )
+    assert result == mocked_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_subnet_buyback_with_limit_price(subtensor, mocker):
+    """Test subnet_buyback extrinsic passes limit price."""
+    # Preps
+    wallet_name = mocker.Mock(spec=Wallet)
+    netuid = 123
+    hotkey_ss58 = "hotkey"
+    amount = Balance.from_tao(1.0)
+    limit_price = Balance.from_tao(2.0)
+    mocked_extrinsic = mocker.patch.object(async_subtensor, "subnet_buyback_extrinsic")
+
+    # Call
+    result = await subtensor.subnet_buyback(
+        wallet_name, netuid, hotkey_ss58, amount, limit_price=limit_price
+    )
+
+    # Asserts
+    mocked_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet_name,
+        netuid=netuid,
+        hotkey_ss58=hotkey_ss58,
+        amount=amount,
+        limit_price=limit_price,
+        mev_protection=DEFAULT_MEV_PROTECTION,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+    )
+    assert result == mocked_extrinsic.return_value
+
+
+@pytest.mark.asyncio
 async def test_get_metagraph_info_all_fields(subtensor, mocker):
     """Test get_metagraph_info with all fields (default behavior)."""
     # Preps

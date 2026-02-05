@@ -3182,6 +3182,76 @@ def test_start_call(subtensor, mocker):
     assert result == mocked_extrinsic.return_value
 
 
+def test_subnet_buyback(subtensor, fake_wallet, mocker):
+    """Test subnet_buyback extrinsic calls properly."""
+    # Preps
+    netuid = 123
+    hotkey_ss58 = "hotkey"
+    amount = Balance.from_tao(1.0)
+    mocked_extrinsic = mocker.patch.object(subtensor_module, "subnet_buyback_extrinsic")
+
+    # Call
+    result = subtensor.subnet_buyback(
+        wallet=fake_wallet,
+        netuid=netuid,
+        hotkey_ss58=hotkey_ss58,
+        amount=amount,
+    )
+
+    # Asserts
+    mocked_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=netuid,
+        hotkey_ss58=hotkey_ss58,
+        amount=amount,
+        limit_price=None,
+        mev_protection=DEFAULT_MEV_PROTECTION,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+    )
+    assert result == mocked_extrinsic.return_value
+
+
+def test_subnet_buyback_with_limit_price(subtensor, fake_wallet, mocker):
+    """Test subnet_buyback extrinsic passes limit price."""
+    # Preps
+    netuid = 123
+    hotkey_ss58 = "hotkey"
+    amount = Balance.from_tao(1.0)
+    limit_price = Balance.from_tao(2.0)
+    mocked_extrinsic = mocker.patch.object(subtensor_module, "subnet_buyback_extrinsic")
+
+    # Call
+    result = subtensor.subnet_buyback(
+        wallet=fake_wallet,
+        netuid=netuid,
+        hotkey_ss58=hotkey_ss58,
+        amount=amount,
+        limit_price=limit_price,
+    )
+
+    # Asserts
+    mocked_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=netuid,
+        hotkey_ss58=hotkey_ss58,
+        amount=amount,
+        limit_price=limit_price,
+        mev_protection=DEFAULT_MEV_PROTECTION,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+    )
+    assert result == mocked_extrinsic.return_value
+
+
 def test_get_metagraph_info_all_fields(subtensor, mocker):
     """Test get_metagraph_info with all fields (default behavior)."""
     # Preps
