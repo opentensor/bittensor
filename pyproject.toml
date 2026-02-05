@@ -72,6 +72,9 @@ cli = [
 homepage = "https://github.com/opentensor/bittensor"
 Repository = "https://github.com/opentensor/bittensor"
 
+[tool.setuptools.package-data]
+bittensor = ["py.typed"]
+
 [tool.flit.metadata]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
