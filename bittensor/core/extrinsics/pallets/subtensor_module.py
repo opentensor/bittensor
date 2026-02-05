@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import Literal, Optional
-from bittensor.utils import deprecated_message
+
 from bittensor.core.types import Salt, UIDs, Weights
-from bittensor.utils import Certificate
+from bittensor.utils import Certificate, deprecated_message
 
 from .base import Call
 from .base import CallBuilder as _BasePallet
@@ -662,6 +662,31 @@ class SubtensorModule(_BasePallet):
             GenericCall instance.
         """
         return self.create_composed_call(netuid=netuid)
+
+    def subnet_buyback(
+        self,
+        netuid: int,
+        hotkey: str,
+        amount: int,
+        limit: Optional[int] = None,
+    ) -> Call:
+        """Returns GenericCall instance for Subtensor function SubtensorModule.subnet_buyback.
+
+        Parameters:
+            netuid: The netuid of the subnet to buy back on.
+            hotkey: The hotkey SS58 address associated with the buyback.
+            amount: Amount of TAO in RAO to use for the buyback.
+            limit: Optional limit price expressed in units of RAO per one Alpha.
+
+        Returns:
+            GenericCall instance.
+        """
+        return self.create_composed_call(
+            netuid=netuid,
+            hotkey=hotkey,
+            amount=amount,
+            limit=limit,
+        )
 
     def swap_stake(
         self,

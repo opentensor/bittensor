@@ -3182,6 +3182,76 @@ def test_start_call(subtensor, mocker):
     assert result == mocked_extrinsic.return_value
 
 
+def test_subnet_buyback(subtensor, fake_wallet, mocker):
+    """Test subnet_buyback extrinsic calls properly."""
+    # Preps
+    netuid = 123
+    hotkey_ss58 = "hotkey"
+    amount = Balance.from_tao(1.0)
+    mocked_extrinsic = mocker.patch.object(subtensor_module, "subnet_buyback_extrinsic")
+
+    # Call
+    result = subtensor.subnet_buyback(
+        wallet=fake_wallet,
+        netuid=netuid,
+        hotkey_ss58=hotkey_ss58,
+        amount=amount,
+    )
+
+    # Asserts
+    mocked_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=netuid,
+        hotkey_ss58=hotkey_ss58,
+        amount=amount,
+        limit_price=None,
+        mev_protection=DEFAULT_MEV_PROTECTION,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+    )
+    assert result == mocked_extrinsic.return_value
+
+
+def test_subnet_buyback_with_limit_price(subtensor, fake_wallet, mocker):
+    """Test subnet_buyback extrinsic passes limit price."""
+    # Preps
+    netuid = 123
+    hotkey_ss58 = "hotkey"
+    amount = Balance.from_tao(1.0)
+    limit_price = Balance.from_tao(2.0)
+    mocked_extrinsic = mocker.patch.object(subtensor_module, "subnet_buyback_extrinsic")
+
+    # Call
+    result = subtensor.subnet_buyback(
+        wallet=fake_wallet,
+        netuid=netuid,
+        hotkey_ss58=hotkey_ss58,
+        amount=amount,
+        limit_price=limit_price,
+    )
+
+    # Asserts
+    mocked_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=netuid,
+        hotkey_ss58=hotkey_ss58,
+        amount=amount,
+        limit_price=limit_price,
+        mev_protection=DEFAULT_MEV_PROTECTION,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+    )
+    assert result == mocked_extrinsic.return_value
+
+
 def test_get_metagraph_info_all_fields(subtensor, mocker):
     """Test get_metagraph_info with all fields (default behavior)."""
     # Preps
@@ -4056,28 +4126,28 @@ def test_get_subnet_price(subtensor, mocker):
 
 def test_get_subnet_prices(subtensor, mocker):
     """Test get_subnet_prices returns the correct value."""
-    # preps
-    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
-    fake_prices = [
-        [0, {"bits": 0}],
-        [1, {"bits": 3155343338053956962}],
-    ]
-    expected_prices = {0: Balance.from_tao(1), 1: Balance.from_tao(0.029258617)}
-    mocked_query_map = mocker.patch.object(
-        subtensor.substrate, "query_map", return_value=fake_prices
+    # Preps
+    fake_netuids = [1, 2]
+    fake_price_1 = Balance.from_tao(0.5)
+    fake_price_2 = Balance.from_tao(1.5)
+
+    mocked_get_all_subnets_netuid = mocker.patch.object(
+        subtensor, "get_all_subnets_netuid", return_value=fake_netuids
     )
+    mocked_get_subnet_price = mocker.patch.object(
+        subtensor, "get_subnet_price", side_effect=[fake_price_1, fake_price_2]
+    )
+
+    expected_prices = {0: Balance.from_tao(1), 1: fake_price_1, 2: fake_price_2}
 
     # Call
     result = subtensor.get_subnet_prices()
 
     # Asserts
-    mocked_determine_block_hash.assert_called_once_with(block=None)
-    mocked_query_map.assert_called_once_with(
-        module="Swap",
-        storage_function="AlphaSqrtPrice",
-        block_hash=mocked_determine_block_hash.return_value,
-        page_size=129,  # total number of subnets
-    )
+    mocked_get_all_subnets_netuid.assert_called_once_with(block=None)
+    assert mocked_get_subnet_price.call_count == 2
+    mocked_get_subnet_price.assert_any_call(1, block=None)
+    mocked_get_subnet_price.assert_any_call(2, block=None)
     assert result == expected_prices
 
 

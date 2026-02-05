@@ -2921,6 +2921,71 @@ async def test_start_call(subtensor, mocker):
 
 
 @pytest.mark.asyncio
+async def test_subnet_buyback(subtensor, mocker):
+    """Test subnet_buyback extrinsic calls properly."""
+    # Preps
+    wallet_name = mocker.Mock(spec=Wallet)
+    netuid = 123
+    hotkey_ss58 = "hotkey"
+    amount = Balance.from_tao(1.0)
+    mocked_extrinsic = mocker.patch.object(async_subtensor, "subnet_buyback_extrinsic")
+
+    # Call
+    result = await subtensor.subnet_buyback(wallet_name, netuid, hotkey_ss58, amount)
+
+    # Asserts
+    mocked_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet_name,
+        netuid=netuid,
+        hotkey_ss58=hotkey_ss58,
+        amount=amount,
+        limit_price=None,
+        mev_protection=DEFAULT_MEV_PROTECTION,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+    )
+    assert result == mocked_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_subnet_buyback_with_limit_price(subtensor, mocker):
+    """Test subnet_buyback extrinsic passes limit price."""
+    # Preps
+    wallet_name = mocker.Mock(spec=Wallet)
+    netuid = 123
+    hotkey_ss58 = "hotkey"
+    amount = Balance.from_tao(1.0)
+    limit_price = Balance.from_tao(2.0)
+    mocked_extrinsic = mocker.patch.object(async_subtensor, "subnet_buyback_extrinsic")
+
+    # Call
+    result = await subtensor.subnet_buyback(
+        wallet_name, netuid, hotkey_ss58, amount, limit_price=limit_price
+    )
+
+    # Asserts
+    mocked_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet_name,
+        netuid=netuid,
+        hotkey_ss58=hotkey_ss58,
+        amount=amount,
+        limit_price=limit_price,
+        mev_protection=DEFAULT_MEV_PROTECTION,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+    )
+    assert result == mocked_extrinsic.return_value
+
+
+@pytest.mark.asyncio
 async def test_get_metagraph_info_all_fields(subtensor, mocker):
     """Test get_metagraph_info with all fields (default behavior)."""
     # Preps
@@ -3780,31 +3845,40 @@ async def test_get_subnet_price(subtensor, mocker):
 @pytest.mark.asyncio
 async def test_get_subnet_prices(subtensor, mocker):
     """Test get_subnet_prices returns the correct value."""
-    # preps
-    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    # Preps
+    fake_netuids = [1, 2]
+    fake_price_1 = Balance.from_tao(0.5)
+    fake_price_2 = Balance.from_tao(1.5)
+    fake_block_hash = "fake_block_hash"
 
-    async def fake_current_sqrt_prices():
-        yield [0, {"bits": 0}]
-        yield [1, {"bits": 3155343338053956962}]
-
-    expected_prices = {0: Balance.from_tao(1), 1: Balance.from_tao(0.029258617)}
-    mocked_query_map = mocker.patch.object(
-        subtensor.substrate, "query_map", return_value=fake_current_sqrt_prices()
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value=fake_block_hash
     )
+    mocked_get_all_subnets_netuid = mocker.patch.object(
+        subtensor, "get_all_subnets_netuid", return_value=fake_netuids
+    )
+
+    async def fake_get_subnet_price(netuid, **kwargs):
+        if netuid == 1:
+            return fake_price_1
+        elif netuid == 2:
+            return fake_price_2
+
+    mocked_get_subnet_price = mocker.patch.object(
+        subtensor, "get_subnet_price", side_effect=fake_get_subnet_price
+    )
+
+    expected_prices = {0: Balance.from_tao(1), 1: fake_price_1, 2: fake_price_2}
 
     # Call
     result = await subtensor.get_subnet_prices()
 
     # Asserts
-    mocked_determine_block_hash.assert_awaited_once_with(
-        block=None, block_hash=None, reuse_block=False
+    mocked_determine_block_hash.assert_awaited_once_with(None, None)
+    mocked_get_all_subnets_netuid.assert_awaited_once_with(
+        block=None, block_hash=fake_block_hash, reuse_block=False
     )
-    mocked_query_map.assert_awaited_once_with(
-        module="Swap",
-        storage_function="AlphaSqrtPrice",
-        block_hash=mocked_determine_block_hash.return_value,
-        page_size=129,  # total number of subnets
-    )
+    assert mocked_get_subnet_price.call_count == 2
     assert result == expected_prices
 
 

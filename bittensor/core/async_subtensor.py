@@ -114,6 +114,7 @@ from bittensor.core.extrinsics.asyncex.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
     set_auto_stake_extrinsic,
+    subnet_buyback_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.start_call import start_call_extrinsic
 from bittensor.core.extrinsics.asyncex.take import set_take_extrinsic
@@ -4802,26 +4803,23 @@ class AsyncSubtensor(SubtensorMixin):
         Notes:
             Subnet 0 (root network) always has a price of 1 TAO since it uses TAO directly rather than Alpha.
         """
-        block_hash = await self.determine_block_hash(
+        # TODO: we will maintain this logic until we receive a function that returns all subnet prices in the chain as a
+        #  single call.
+        block_hash = await self.determine_block_hash(block, block_hash)
+        prices = {0: Balance.from_tao(1)}
+        netuids = await self.get_all_subnets_netuid(
             block=block, block_hash=block_hash, reuse_block=reuse_block
         )
 
-        current_sqrt_prices = await self.substrate.query_map(
-            module="Swap",
-            storage_function="AlphaSqrtPrice",
-            block_hash=block_hash,
-            page_size=129,  # total number of subnets
-        )
+        tasks = [
+            self.get_subnet_price(
+                netuid, block=block, block_hash=block_hash, reuse_block=reuse_block
+            )
+            for netuid in netuids
+        ]
 
-        prices = {}
-        async for id_, current_sqrt_price in current_sqrt_prices:
-            current_sqrt_price = fixed_to_float(current_sqrt_price)
-            current_price = current_sqrt_price * current_sqrt_price
-            current_price_in_tao = Balance.from_rao(int(current_price * 1e9))
-            prices.update({id_: current_price_in_tao})
-
-        # SN0 price is always 1 TAO
-        prices.update({0: Balance.from_tao(1)})
+        prices_list = await asyncio.gather(*tasks)
+        prices.update(dict(zip(netuids, prices_list)))
         return prices
 
     async def get_subnet_reveal_period_epochs(
@@ -9120,6 +9118,64 @@ class AsyncSubtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             netuid=netuid,
+            mev_protection=mev_protection,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
+        )
+
+    async def subnet_buyback(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        hotkey_ss58: str,
+        amount: Balance,
+        limit_price: Optional[Balance] = None,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Executes a subnet buyback by staking TAO and immediately burning the resulting Alpha.
+
+        Only the subnet owner can call this method, and it is rate-limited to one call per subnet tempo.
+
+        Parameters:
+            wallet: The wallet used to sign the extrinsic (must be the subnet owner).
+            netuid: The unique identifier of the subnet.
+            hotkey_ss58: The `SS58` address of the hotkey account to stake to.
+            amount: The amount of TAO to use for the buyback.
+            limit_price: Optional limit price expressed in units of RAO per one Alpha.
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+        """
+        check_balance_amount(amount)
+        if limit_price is not None:
+            check_balance_amount(limit_price)
+        return await subnet_buyback_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            hotkey_ss58=hotkey_ss58,
+            amount=amount,
+            limit_price=limit_price,
             mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,

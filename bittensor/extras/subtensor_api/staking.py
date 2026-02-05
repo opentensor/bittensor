@@ -35,6 +35,7 @@ class Staking:
         self.set_auto_stake = subtensor.set_auto_stake
         self.set_root_claim_type = subtensor.set_root_claim_type
         self.sim_swap = subtensor.sim_swap
+        self.subnet_buyback = subtensor.subnet_buyback
         self.swap_stake = subtensor.swap_stake
         self.transfer_stake = subtensor.transfer_stake
         self.unstake = subtensor.unstake

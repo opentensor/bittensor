@@ -17,6 +17,7 @@ from tests.e2e_tests.utils import (
     SUDO_SET_ADMIN_FREEZE_WINDOW,
     SUDO_SET_COMMIT_REVEAL_WEIGHTS_ENABLED,
     SUDO_SET_LOCK_REDUCTION_INTERVAL,
+    SUDO_SET_MAX_ALLOWED_UIDS,
     SUDO_SET_MECHANISM_COUNT,
     SUDO_SET_NETWORK_RATE_LIMIT,
     SUDO_SET_TEMPO,
@@ -57,6 +58,9 @@ def test_set_weights_uses_next_nonce(subtensor, alice_wallet):
 
     sns_steps = [
         REGISTER_SUBNET(alice_wallet),
+        SUDO_SET_MAX_ALLOWED_UIDS(
+            alice_wallet, AdminUtils, True, NETUID, int(256 / TESTED_MECHANISMS)
+        ),
         SUDO_SET_TEMPO(alice_wallet, AdminUtils, True, NETUID, subnet_tempo),
         SUDO_SET_MECHANISM_COUNT(
             alice_wallet, AdminUtils, True, NETUID, TESTED_MECHANISMS
@@ -199,6 +203,9 @@ async def test_set_weights_uses_next_nonce_async(async_subtensor, alice_wallet):
 
     sns_steps = [
         REGISTER_SUBNET(alice_wallet),
+        SUDO_SET_MAX_ALLOWED_UIDS(
+            alice_wallet, AdminUtils, True, NETUID, int(256 / TESTED_MECHANISMS)
+        ),
         SUDO_SET_TEMPO(alice_wallet, AdminUtils, True, NETUID, subnet_tempo),
         SUDO_SET_MECHANISM_COUNT(
             alice_wallet, AdminUtils, True, NETUID, TESTED_MECHANISMS
