@@ -1395,8 +1395,25 @@ class AsyncSubtensor(SubtensorMixin):
             A mapping of the ss58:commitment with the commitment as a string.
 
         Example:
+            Retrieve and process commitment data for all neurons in a subnet::
 
-            # TODO add example of how to handle realistic commitment data
+                from bittensor import AsyncSubtensor
+
+                async with AsyncSubtensor(network="finney") as subtensor:
+                    netuid = 1  # Target subnet
+
+                    # Get all commitments for the subnet
+                    commitments = await subtensor.get_all_commitments(netuid=netuid)
+
+                    # Process the commitment data
+                    for hotkey_ss58, commitment_data in commitments.items():
+                        if commitment_data:
+                            print(f"Hotkey: {hotkey_ss58[:16]}...")
+                            print(f"Commitment: {commitment_data}")
+
+                    # Check how many neurons have active commitments
+                    active_commitments = {k: v for k, v in commitments.items() if v}
+                    print(f"Active commitments: {len(active_commitments)}/{len(commitments)}")
         """
         query = await self.query_map(
             module="Commitments",
@@ -1955,10 +1972,24 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            The commitment data as a string.
+            The commitment data as a string, or empty string if no commitment exists or decoding fails.
 
+        Example:
+            Retrieve commitment data for a specific neuron::
 
-            # TODO: add a real example of how to handle realistic commitment data, or chop example
+                from bittensor import AsyncSubtensor
+
+                async with AsyncSubtensor(network="finney") as subtensor:
+                    netuid = 1  # Target subnet
+                    uid = 0     # Neuron UID
+
+                    # Get the commitment for this neuron
+                    commitment = await subtensor.get_commitment(netuid=netuid, uid=uid)
+
+                    if commitment:
+                        print(f"Neuron {uid} has commitment: {commitment}")
+                    else:
+                        print(f"Neuron {uid} has no active commitment")
 
         Notes:
             - <https://docs.learnbittensor.org/glossary#commit-reveal>
@@ -1992,7 +2023,6 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Union[str, dict]:
-        # TODO: how to handle return data? need good example @roman
         """Fetches raw commitment metadata from specific subnet for given hotkey.
 
         Parameters:
@@ -2005,6 +2035,25 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             The raw commitment metadata. Returns a dict when commitment data exists,
             or an empty string when no commitment is found for the given hotkey on the subnet.
+
+        Example:
+            Fetch and handle raw commitment metadata::
+
+                from bittensor import AsyncSubtensor
+
+                async with AsyncSubtensor(network="finney") as subtensor:
+                    netuid = 1
+                    hotkey_ss58 = "5D..."  # Replace with actual hotkey
+
+                    metadata = await subtensor.get_commitment_metadata(netuid, hotkey_ss58)
+
+                    # Handle the return type
+                    if isinstance(metadata, dict) and metadata:
+                        # Commitment exists - metadata contains raw blockchain data
+                        print(f"Raw metadata: {metadata}")
+                    else:
+                        # No commitment found for this hotkey
+                        print("No commitment found")
 
         Notes:
             - <https://docs.learnbittensor.org/glossary#commit-reveal>
