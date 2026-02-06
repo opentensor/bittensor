@@ -11,7 +11,7 @@ For developers:
 
 Note:
     Any manual changes will be overwritten the next time the generator is run.
-    Subtensor spec version: 375
+    Subtensor spec version: 376
 """
 
 from collections import namedtuple
@@ -27,6 +27,9 @@ ADD_PROXY = namedtuple(
 ADD_STAKE = namedtuple(
     "ADD_STAKE", ["wallet", "pallet", "hotkey", "netuid", "amount_staked"]
 )  # args: [hotkey: T::AccountId, netuid: NetUid, amount_staked: TaoCurrency]  | Pallet: SubtensorModule
+ADD_STAKE_BURN = namedtuple(
+    "ADD_STAKE_BURN", ["wallet", "pallet", "hotkey", "netuid", "amount", "limit"]
+)  # args: [hotkey: T::AccountId, netuid: NetUid, amount: TaoCurrency, limit: Option<TaoCurrency>]  | Pallet: SubtensorModule
 ADD_STAKE_LIMIT = namedtuple(
     "ADD_STAKE_LIMIT",
     [
@@ -745,9 +748,6 @@ START_CALL = namedtuple(
 SUBMIT_ENCRYPTED = namedtuple(
     "SUBMIT_ENCRYPTED", ["wallet", "pallet", "commitment", "ciphertext"]
 )  # args: [commitment: T::Hash, ciphertext: BoundedVec<u8, ConstU32<8192>>]  | Pallet: MevShield
-SUBNET_BUYBACK = namedtuple(
-    "SUBNET_BUYBACK", ["wallet", "pallet", "hotkey", "netuid", "amount", "limit"]
-)  # args: [hotkey: T::AccountId, netuid: NetUid, amount: TaoCurrency, limit: Option<TaoCurrency>]  | Pallet: SubtensorModule
 SUDO = namedtuple(
     "SUDO", ["wallet", "pallet", "call"]
 )  # args: [call: Box<<T as Config>::RuntimeCall>]  | Pallet: Sudo
