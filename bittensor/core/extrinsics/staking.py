@@ -17,6 +17,185 @@ if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
 
 
+def add_stake_burn_extrinsic(
+    subtensor: "Subtensor",
+    wallet: "Wallet",
+    netuid: int,
+    hotkey_ss58: str,
+    amount: Balance,
+    limit_price: Optional[Balance] = None,
+    *,
+    mev_protection: bool = DEFAULT_MEV_PROTECTION,
+    period: Optional[int] = None,
+    raise_error: bool = False,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = True,
+    wait_for_revealed_execution: bool = True,
+) -> ExtrinsicResponse:
+    """
+    Executes a subnet buyback by staking TAO and immediately burning the resulting Alpha.
+
+    Parameters:
+        subtensor: Subtensor instance with the connection to the chain.
+        wallet: Bittensor wallet object.
+        netuid: The unique identifier of the subnet.
+        hotkey_ss58: The `ss58` address of the hotkey account to stake to.
+        amount: Amount to stake as Bittensor balance in TAO always.
+        limit_price: Optional limit price expressed in units of RAO per one Alpha.
+        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
+            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+            decrypt and execute it. If False, submits the transaction directly without encryption.
+        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
+            think of it as an expiration date for the transaction.
+        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+        wait_for_finalization: Whether to wait for the finalization of the transaction.
+        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
+
+    Returns:
+        ExtrinsicResponse: The result object of the extrinsic execution.
+
+    Raises:
+        SubstrateRequestException: Raised if the extrinsic fails to be included in the block within the timeout.
+
+    Notes:
+        The `data` field in the returned `ExtrinsicResponse` contains extra information about the extrinsic execution.
+    """
+    try:
+        if not (
+            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
+        ).success:
+            return unlocked
+
+        if not isinstance(amount, Balance):
+            raise BalanceTypeError("`amount` must be an instance of Balance.")
+
+        if limit_price is not None and not isinstance(limit_price, Balance):
+            raise BalanceTypeError("`limit_price` must be an instance of Balance.")
+
+        old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
+        block = subtensor.get_current_block()
+
+        # Get current stake and existential deposit
+        old_stake = subtensor.get_stake(
+            hotkey_ss58=hotkey_ss58,
+            coldkey_ss58=wallet.coldkeypub.ss58_address,
+            netuid=netuid,
+            block=block,
+        )
+        existential_deposit = subtensor.get_existential_deposit(block=block)
+
+        # Leave existential balance to keep key alive.
+        if old_balance <= existential_deposit:
+            return ExtrinsicResponse(
+                False,
+                f"Balance ({old_balance}) is not enough to cover existential deposit `{existential_deposit}`.",
+            ).with_log()
+
+        # Leave existential balance to keep key alive.
+        if amount > old_balance - existential_deposit:
+            # If we are staking all, we need to leave at least the existential deposit.
+            amount = old_balance - existential_deposit
+
+        # Check enough to stake.
+        if amount > old_balance:
+            message = "Not enough stake"
+            logging.debug(f":cross_mark: [red]{message}:[/red]")
+            logging.debug(f"\t\tbalance:{old_balance}")
+            logging.debug(f"\t\tamount: {amount}")
+            logging.debug(f"\t\twallet: {wallet.name}")
+            return ExtrinsicResponse(False, f"{message}.").with_log()
+
+        if limit_price is None:
+            logging.debug(
+                f"Subnet buyback on: [blue]netuid: [green]{netuid}[/green], amount: [green]{amount}[/green], "
+                f"hotkey: [green]{hotkey_ss58}[/green] on [blue]{subtensor.network}[/blue]."
+            )
+        else:
+            logging.debug(
+                f"Subnet buyback with limit: [blue]netuid: [green]{netuid}[/green], "
+                f"amount: [green]{amount}[/green], "
+                f"limit price: [green]{limit_price}[/green], "
+                f"hotkey: [green]{hotkey_ss58}[/green] on [blue]{subtensor.network}[/blue]."
+            )
+
+        call = SubtensorModule(subtensor).add_stake_burn(
+            netuid=netuid,
+            hotkey=hotkey_ss58,
+            amount=amount.rao,
+            limit=None if limit_price is None else limit_price.rao,
+        )
+
+        block_before = subtensor.block
+        if mev_protection:
+            response = submit_encrypted_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                call=call,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=wait_for_revealed_execution,
+            )
+        else:
+            response = subtensor.sign_and_send_extrinsic(
+                call=call,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                use_nonce=True,
+                nonce_key="coldkeypub",
+                period=period,
+                raise_error=raise_error,
+            )
+        if response.success:
+            sim_swap = subtensor.sim_swap(
+                origin_netuid=0,
+                destination_netuid=netuid,
+                amount=amount,
+                block=block_before,
+            )
+            response.transaction_tao_fee = sim_swap.tao_fee
+            response.transaction_alpha_fee = sim_swap.alpha_fee.set_unit(netuid)
+
+            if not wait_for_finalization and not wait_for_inclusion:
+                return response
+            logging.debug("[green]Finalized.[/green]")
+
+            new_block = subtensor.get_current_block()
+            new_balance = subtensor.get_balance(
+                wallet.coldkeypub.ss58_address, block=new_block
+            )
+            new_stake = subtensor.get_stake(
+                coldkey_ss58=wallet.coldkeypub.ss58_address,
+                hotkey_ss58=hotkey_ss58,
+                netuid=netuid,
+                block=new_block,
+            )
+
+            logging.debug(
+                f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
+            )
+            logging.debug(
+                f"Stake: [blue]{old_stake}[/blue] :arrow_right: [green]{new_stake}[/green]"
+            )
+            response.data = {
+                "balance_before": old_balance,
+                "balance_after": new_balance,
+                "stake_before": old_stake,
+                "stake_after": new_stake,
+            }
+            return response
+
+        logging.error(f"[red]{response.message}[/red]")
+        return response
+
+    except Exception as error:
+        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
+
+
 def add_stake_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
@@ -438,185 +617,6 @@ def add_stake_multiple_extrinsic(
         if response.success:
             return response
         return response.with_log()
-
-    except Exception as error:
-        return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
-
-
-def subnet_buyback_extrinsic(
-    subtensor: "Subtensor",
-    wallet: "Wallet",
-    netuid: int,
-    hotkey_ss58: str,
-    amount: Balance,
-    limit_price: Optional[Balance] = None,
-    *,
-    mev_protection: bool = DEFAULT_MEV_PROTECTION,
-    period: Optional[int] = None,
-    raise_error: bool = False,
-    wait_for_inclusion: bool = True,
-    wait_for_finalization: bool = True,
-    wait_for_revealed_execution: bool = True,
-) -> ExtrinsicResponse:
-    """
-    Executes a subnet buyback by staking TAO and immediately burning the resulting Alpha.
-
-    Parameters:
-        subtensor: Subtensor instance with the connection to the chain.
-        wallet: Bittensor wallet object.
-        netuid: The unique identifier of the subnet.
-        hotkey_ss58: The `ss58` address of the hotkey account to stake to.
-        amount: Amount to stake as Bittensor balance in TAO always.
-        limit_price: Optional limit price expressed in units of RAO per one Alpha.
-        mev_protection: If True, encrypts and submits the transaction through the MEV Shield pallet to protect
-            against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-            decrypt and execute it. If False, submits the transaction directly without encryption.
-        period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-            transaction is not included in a block within that number of blocks, it will expire and be rejected. You can
-            think of it as an expiration date for the transaction.
-        raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
-        wait_for_inclusion: Whether to wait for the inclusion of the transaction.
-        wait_for_finalization: Whether to wait for the finalization of the transaction.
-        wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
-
-    Returns:
-        ExtrinsicResponse: The result object of the extrinsic execution.
-
-    Raises:
-        SubstrateRequestException: Raised if the extrinsic fails to be included in the block within the timeout.
-
-    Notes:
-        The `data` field in the returned `ExtrinsicResponse` contains extra information about the extrinsic execution.
-    """
-    try:
-        if not (
-            unlocked := ExtrinsicResponse.unlock_wallet(wallet, raise_error)
-        ).success:
-            return unlocked
-
-        if not isinstance(amount, Balance):
-            raise BalanceTypeError("`amount` must be an instance of Balance.")
-
-        if limit_price is not None and not isinstance(limit_price, Balance):
-            raise BalanceTypeError("`limit_price` must be an instance of Balance.")
-
-        old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
-        block = subtensor.get_current_block()
-
-        # Get current stake and existential deposit
-        old_stake = subtensor.get_stake(
-            hotkey_ss58=hotkey_ss58,
-            coldkey_ss58=wallet.coldkeypub.ss58_address,
-            netuid=netuid,
-            block=block,
-        )
-        existential_deposit = subtensor.get_existential_deposit(block=block)
-
-        # Leave existential balance to keep key alive.
-        if old_balance <= existential_deposit:
-            return ExtrinsicResponse(
-                False,
-                f"Balance ({old_balance}) is not enough to cover existential deposit `{existential_deposit}`.",
-            ).with_log()
-
-        # Leave existential balance to keep key alive.
-        if amount > old_balance - existential_deposit:
-            # If we are staking all, we need to leave at least the existential deposit.
-            amount = old_balance - existential_deposit
-
-        # Check enough to stake.
-        if amount > old_balance:
-            message = "Not enough stake"
-            logging.debug(f":cross_mark: [red]{message}:[/red]")
-            logging.debug(f"\t\tbalance:{old_balance}")
-            logging.debug(f"\t\tamount: {amount}")
-            logging.debug(f"\t\twallet: {wallet.name}")
-            return ExtrinsicResponse(False, f"{message}.").with_log()
-
-        if limit_price is None:
-            logging.debug(
-                f"Subnet buyback on: [blue]netuid: [green]{netuid}[/green], amount: [green]{amount}[/green], "
-                f"hotkey: [green]{hotkey_ss58}[/green] on [blue]{subtensor.network}[/blue]."
-            )
-        else:
-            logging.debug(
-                f"Subnet buyback with limit: [blue]netuid: [green]{netuid}[/green], "
-                f"amount: [green]{amount}[/green], "
-                f"limit price: [green]{limit_price}[/green], "
-                f"hotkey: [green]{hotkey_ss58}[/green] on [blue]{subtensor.network}[/blue]."
-            )
-
-        call = SubtensorModule(subtensor).subnet_buyback(
-            netuid=netuid,
-            hotkey=hotkey_ss58,
-            amount=amount.rao,
-            limit=None if limit_price is None else limit_price.rao,
-        )
-
-        block_before = subtensor.block
-        if mev_protection:
-            response = submit_encrypted_extrinsic(
-                subtensor=subtensor,
-                wallet=wallet,
-                call=call,
-                period=period,
-                raise_error=raise_error,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-                wait_for_revealed_execution=wait_for_revealed_execution,
-            )
-        else:
-            response = subtensor.sign_and_send_extrinsic(
-                call=call,
-                wallet=wallet,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-                use_nonce=True,
-                nonce_key="coldkeypub",
-                period=period,
-                raise_error=raise_error,
-            )
-        if response.success:
-            sim_swap = subtensor.sim_swap(
-                origin_netuid=0,
-                destination_netuid=netuid,
-                amount=amount,
-                block=block_before,
-            )
-            response.transaction_tao_fee = sim_swap.tao_fee
-            response.transaction_alpha_fee = sim_swap.alpha_fee.set_unit(netuid)
-
-            if not wait_for_finalization and not wait_for_inclusion:
-                return response
-            logging.debug("[green]Finalized.[/green]")
-
-            new_block = subtensor.get_current_block()
-            new_balance = subtensor.get_balance(
-                wallet.coldkeypub.ss58_address, block=new_block
-            )
-            new_stake = subtensor.get_stake(
-                coldkey_ss58=wallet.coldkeypub.ss58_address,
-                hotkey_ss58=hotkey_ss58,
-                netuid=netuid,
-                block=new_block,
-            )
-
-            logging.debug(
-                f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
-            )
-            logging.debug(
-                f"Stake: [blue]{old_stake}[/blue] :arrow_right: [green]{new_stake}[/green]"
-            )
-            response.data = {
-                "balance_before": old_balance,
-                "balance_after": new_balance,
-                "stake_before": old_stake,
-                "stake_after": new_stake,
-            }
-            return response
-
-        logging.error(f"[red]{response.message}[/red]")
-        return response
 
     except Exception as error:
         return ExtrinsicResponse.from_exception(raise_error=raise_error, error=error)
