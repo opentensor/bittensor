@@ -11,7 +11,7 @@ For developers:
 
 Note:
     Any manual changes will be overwritten the next time the generator is run.
-    Subtensor spec version: 375
+    Subtensor spec version: 376
 """
 
 from collections import namedtuple

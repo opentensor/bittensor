@@ -65,8 +65,8 @@ def test_add_stake_extrinsic(mocker):
     )
 
 
-def test_subnet_buyback_extrinsic(mocker):
-    """Verify that sync `subnet_buyback_extrinsic` method calls proper methods."""
+def test_add_stake_burn_extrinsic(mocker):
+    """Verify that sync `add_stake_burn_extrinsic` method calls proper methods."""
     # Preps
     fake_subtensor = mocker.Mock(
         **{
@@ -87,7 +87,7 @@ def test_subnet_buyback_extrinsic(mocker):
     amount = Balance.from_tao(2)
 
     # Call
-    result = staking.subnet_buyback_extrinsic(
+    result = staking.add_stake_burn_extrinsic(
         subtensor=fake_subtensor,
         wallet=fake_wallet,
         hotkey_ss58=hotkey_ss58,
@@ -103,7 +103,7 @@ def test_subnet_buyback_extrinsic(mocker):
     assert result.success is True
     fake_subtensor.compose_call.assert_called_once_with(
         call_module="SubtensorModule",
-        call_function="subnet_buyback",
+        call_function="add_stake_burn",
         call_params={
             "hotkey": hotkey_ss58,
             "netuid": netuid,
@@ -123,8 +123,8 @@ def test_subnet_buyback_extrinsic(mocker):
     )
 
 
-def test_subnet_buyback_extrinsic_with_limit(mocker):
-    """Verify that sync `subnet_buyback_extrinsic` passes limit price."""
+def test_add_stake_burn_extrinsic_with_limit(mocker):
+    """Verify that sync `add_stake_burn_extrinsic` passes limit price."""
     # Preps
     fake_subtensor = mocker.Mock(
         **{
@@ -146,7 +146,7 @@ def test_subnet_buyback_extrinsic_with_limit(mocker):
     limit_price = Balance.from_tao(2)
 
     # Call
-    result = staking.subnet_buyback_extrinsic(
+    result = staking.add_stake_burn_extrinsic(
         subtensor=fake_subtensor,
         wallet=fake_wallet,
         hotkey_ss58=hotkey_ss58,
@@ -163,7 +163,7 @@ def test_subnet_buyback_extrinsic_with_limit(mocker):
     assert result.success is True
     fake_subtensor.compose_call.assert_called_once_with(
         call_module="SubtensorModule",
-        call_function="subnet_buyback",
+        call_function="add_stake_burn",
         call_params={
             "hotkey": hotkey_ss58,
             "netuid": netuid,
@@ -181,9 +181,7 @@ def test_add_stake_multiple_extrinsic(subtensor, mocker, fake_wallet):
         "get_stake_info_for_coldkey",
         return_value=[Balance(1.1), Balance(0.3)],
     )
-    mocked_get_balance = mocker.patch.object(
-        subtensor, "get_balance", return_value=Balance.from_tao(10)
-    )
+    mocker.patch.object(subtensor, "get_balance", return_value=Balance.from_tao(10))
     mocker.patch.object(
         staking, "get_old_stakes", return_value=[Balance(1.1), Balance(0.3)]
     )

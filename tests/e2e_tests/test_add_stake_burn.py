@@ -9,7 +9,7 @@ from tests.e2e_tests.utils import (
 )
 
 
-def test_subnet_buyback(subtensor, alice_wallet, bob_wallet):
+def test_add_stake_burn(subtensor, alice_wallet, bob_wallet):
     """Tests subnet buyback without limit price.
 
     Steps:
@@ -39,7 +39,7 @@ def test_subnet_buyback(subtensor, alice_wallet, bob_wallet):
         address=alice_wallet.coldkeypub.ss58_address
     )
 
-    response = subtensor.staking.subnet_buyback(
+    response = subtensor.staking.add_stake_burn(
         wallet=alice_wallet,
         netuid=alice_sn.netuid,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
@@ -64,7 +64,7 @@ def test_subnet_buyback(subtensor, alice_wallet, bob_wallet):
 
 
 @pytest.mark.asyncio
-async def test_subnet_buyback_async(async_subtensor, alice_wallet, bob_wallet):
+async def test_add_stake_burn_async(async_subtensor, alice_wallet, bob_wallet):
     """Tests subnet buyback without limit price (async).
 
     Steps:
@@ -94,7 +94,7 @@ async def test_subnet_buyback_async(async_subtensor, alice_wallet, bob_wallet):
         address=alice_wallet.coldkeypub.ss58_address
     )
 
-    response = await async_subtensor.staking.subnet_buyback(
+    response = await async_subtensor.staking.add_stake_burn(
         wallet=alice_wallet,
         netuid=alice_sn.netuid,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
@@ -118,7 +118,7 @@ async def test_subnet_buyback_async(async_subtensor, alice_wallet, bob_wallet):
     assert balance_after < balance_before
 
 
-def test_subnet_buyback_with_limit_price(subtensor, alice_wallet, bob_wallet):
+def test_add_stake_burn_with_limit_price(subtensor, alice_wallet, bob_wallet):
     """Tests subnet buyback with limit price.
 
     Steps:
@@ -148,7 +148,7 @@ def test_subnet_buyback_with_limit_price(subtensor, alice_wallet, bob_wallet):
         address=alice_wallet.coldkeypub.ss58_address
     )
 
-    response = subtensor.staking.subnet_buyback(
+    response = subtensor.staking.add_stake_burn(
         wallet=alice_wallet,
         netuid=alice_sn.netuid,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
@@ -174,7 +174,7 @@ def test_subnet_buyback_with_limit_price(subtensor, alice_wallet, bob_wallet):
 
 
 @pytest.mark.asyncio
-async def test_subnet_buyback_with_limit_price_async(
+async def test_add_stake_burn_with_limit_price_async(
     async_subtensor, alice_wallet, bob_wallet
 ):
     """Tests subnet buyback with limit price (async).
@@ -206,7 +206,7 @@ async def test_subnet_buyback_with_limit_price_async(
         address=alice_wallet.coldkeypub.ss58_address
     )
 
-    response = await async_subtensor.staking.subnet_buyback(
+    response = await async_subtensor.staking.add_stake_burn(
         wallet=alice_wallet,
         netuid=alice_sn.netuid,
         hotkey_ss58=bob_wallet.hotkey.ss58_address,

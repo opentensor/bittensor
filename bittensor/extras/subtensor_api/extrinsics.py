@@ -10,6 +10,7 @@ class Extrinsics:
     def __init__(self, subtensor: Union["_Subtensor", "_AsyncSubtensor"]):
         self.add_liquidity = subtensor.add_liquidity
         self.add_stake = subtensor.add_stake
+        self.add_stake_burn = subtensor.add_stake_burn
         self.add_stake_multiple = subtensor.add_stake_multiple
         self.announce_coldkey_swap = subtensor.announce_coldkey_swap
         self.dispute_coldkey_swap = subtensor.dispute_coldkey_swap
@@ -39,7 +40,6 @@ class Extrinsics:
         self.set_commitment = subtensor.set_commitment
         self.set_root_claim_type = subtensor.set_root_claim_type
         self.start_call = subtensor.start_call
-        self.subnet_buyback = subtensor.subnet_buyback
         self.swap_coldkey_announced = subtensor.swap_coldkey_announced
         self.swap_stake = subtensor.swap_stake
         self.toggle_user_liquidity = subtensor.toggle_user_liquidity

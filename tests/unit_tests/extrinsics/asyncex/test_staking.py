@@ -79,14 +79,14 @@ async def test_subnet_buyback_extrinsic(fake_wallet, mocker):
 
     mocked_pallet_compose_call = mocker.AsyncMock()
     mocker.patch.object(
-        staking.SubtensorModule, "subnet_buyback", new=mocked_pallet_compose_call
+        staking.SubtensorModule, "add_stake_burn", new=mocked_pallet_compose_call
     )
     fake_subtensor.sim_swap = mocker.AsyncMock(
         return_value=mocker.Mock(tao_fee=Balance.from_rao(1), alpha_fee=mocker.Mock())
     )
 
     # Call
-    result = await staking.subnet_buyback_extrinsic(
+    result = await staking.add_stake_burn_extrinsic(
         subtensor=fake_subtensor,
         wallet=fake_wallet,
         hotkey_ss58=hotkey_ss58,
@@ -141,14 +141,14 @@ async def test_subnet_buyback_extrinsic_with_limit(fake_wallet, mocker):
 
     mocked_pallet_compose_call = mocker.AsyncMock()
     mocker.patch.object(
-        staking.SubtensorModule, "subnet_buyback", new=mocked_pallet_compose_call
+        staking.SubtensorModule, "add_stake_burn", new=mocked_pallet_compose_call
     )
     fake_subtensor.sim_swap = mocker.AsyncMock(
         return_value=mocker.Mock(tao_fee=Balance.from_rao(1), alpha_fee=mocker.Mock())
     )
 
     # Call
-    result = await staking.subnet_buyback_extrinsic(
+    result = await staking.add_stake_burn_extrinsic(
         subtensor=fake_subtensor,
         wallet=fake_wallet,
         hotkey_ss58=hotkey_ss58,

@@ -3182,16 +3182,16 @@ def test_start_call(subtensor, mocker):
     assert result == mocked_extrinsic.return_value
 
 
-def test_subnet_buyback(subtensor, fake_wallet, mocker):
-    """Test subnet_buyback extrinsic calls properly."""
+def test_add_stake_burn(subtensor, fake_wallet, mocker):
+    """Test add_stake_burn extrinsic calls properly."""
     # Preps
     netuid = 123
     hotkey_ss58 = "hotkey"
     amount = Balance.from_tao(1.0)
-    mocked_extrinsic = mocker.patch.object(subtensor_module, "subnet_buyback_extrinsic")
+    mocked_extrinsic = mocker.patch.object(subtensor_module, "add_stake_burn_extrinsic")
 
     # Call
-    result = subtensor.subnet_buyback(
+    result = subtensor.add_stake_burn(
         wallet=fake_wallet,
         netuid=netuid,
         hotkey_ss58=hotkey_ss58,
@@ -3216,17 +3216,17 @@ def test_subnet_buyback(subtensor, fake_wallet, mocker):
     assert result == mocked_extrinsic.return_value
 
 
-def test_subnet_buyback_with_limit_price(subtensor, fake_wallet, mocker):
-    """Test subnet_buyback extrinsic passes limit price."""
+def test_add_stake_burn_with_limit_price(subtensor, fake_wallet, mocker):
+    """Test add_stake_burn extrinsic passes limit price."""
     # Preps
     netuid = 123
     hotkey_ss58 = "hotkey"
     amount = Balance.from_tao(1.0)
     limit_price = Balance.from_tao(2.0)
-    mocked_extrinsic = mocker.patch.object(subtensor_module, "subnet_buyback_extrinsic")
+    mocked_extrinsic = mocker.patch.object(subtensor_module, "add_stake_burn_extrinsic")
 
     # Call
-    result = subtensor.subnet_buyback(
+    result = subtensor.add_stake_burn(
         wallet=fake_wallet,
         netuid=netuid,
         hotkey_ss58=hotkey_ss58,

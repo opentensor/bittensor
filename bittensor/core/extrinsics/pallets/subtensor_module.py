@@ -49,6 +49,31 @@ class SubtensorModule(_BasePallet):
             amount_staked=amount_staked,
         )
 
+    def add_stake_burn(
+        self,
+        netuid: int,
+        hotkey: str,
+        amount: int,
+        limit: Optional[int] = None,
+    ) -> Call:
+        """Returns GenericCall instance for Subtensor function SubtensorModule.add_stake_burn.
+
+        Parameters:
+            netuid: The netuid of the subnet to buy back on.
+            hotkey: The hotkey SS58 address associated with the buyback.
+            amount: Amount of TAO in RAO to use for the buyback.
+            limit: Optional limit price expressed in units of RAO per one Alpha.
+
+        Returns:
+            GenericCall instance.
+        """
+        return self.create_composed_call(
+            netuid=netuid,
+            hotkey=hotkey,
+            amount=amount,
+            limit=limit,
+        )
+
     def add_stake_limit(
         self,
         netuid: int,
@@ -662,31 +687,6 @@ class SubtensorModule(_BasePallet):
             GenericCall instance.
         """
         return self.create_composed_call(netuid=netuid)
-
-    def subnet_buyback(
-        self,
-        netuid: int,
-        hotkey: str,
-        amount: int,
-        limit: Optional[int] = None,
-    ) -> Call:
-        """Returns GenericCall instance for Subtensor function SubtensorModule.subnet_buyback.
-
-        Parameters:
-            netuid: The netuid of the subnet to buy back on.
-            hotkey: The hotkey SS58 address associated with the buyback.
-            amount: Amount of TAO in RAO to use for the buyback.
-            limit: Optional limit price expressed in units of RAO per one Alpha.
-
-        Returns:
-            GenericCall instance.
-        """
-        return self.create_composed_call(
-            netuid=netuid,
-            hotkey=hotkey,
-            amount=amount,
-            limit=limit,
-        )
 
     def swap_stake(
         self,

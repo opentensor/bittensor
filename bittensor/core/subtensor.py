@@ -110,10 +110,10 @@ from bittensor.core.extrinsics.serving import (
     serve_axon_extrinsic,
 )
 from bittensor.core.extrinsics.staking import (
+    add_stake_burn_extrinsic,
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
     set_auto_stake_extrinsic,
-    subnet_buyback_extrinsic,
 )
 from bittensor.core.extrinsics.start_call import start_call_extrinsic
 from bittensor.core.extrinsics.take import set_take_extrinsic
@@ -5225,14 +5225,13 @@ class Subtensor(SubtensorMixin):
             wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
-    def add_liquidity(
+    def add_stake_burn(
         self,
         wallet: "Wallet",
         netuid: int,
-        liquidity: Balance,
-        price_low: Balance,
-        price_high: Balance,
-        hotkey_ss58: Optional[str] = None,
+        hotkey_ss58: str,
+        amount: Balance,
+        limit_price: Optional[Balance] = None,
         *,
         mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
@@ -5242,70 +5241,16 @@ class Subtensor(SubtensorMixin):
         wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
-        Adds liquidity to the specified price range.
+        Executes a subnet buyback by staking TAO and immediately burning the resulting Alpha.
+
+        Only the subnet owner can call this method, and it is rate-limited to one call per subnet tempo.
 
         Parameters:
-            wallet: The wallet used to sign the extrinsic (must be unlocked).
-            netuid: The UID of the target subnet for which the call is being initiated.
-            liquidity: The amount of liquidity to be added.
-            price_low: The lower bound of the price tick range. In TAO.
-            price_high: The upper bound of the price tick range. In TAO.
-            hotkey_ss58: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
-            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
-                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If `False`, submits the transaction directly without encryption.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If
-                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
-                You can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
-            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
-            wait_for_finalization: Whether to wait for finalization of the extrinsic.
-            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
-
-        Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
-
-        Note: Adding is allowed even when user liquidity is enabled in specified subnet. Call `toggle_user_liquidity`
-        method to enable/disable user liquidity.
-        """
-        return add_liquidity_extrinsic(
-            subtensor=self,
-            wallet=wallet,
-            netuid=netuid,
-            liquidity=liquidity,
-            price_low=price_low,
-            price_high=price_high,
-            hotkey_ss58=hotkey_ss58,
-            mev_protection=mev_protection,
-            period=period,
-            raise_error=raise_error,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            wait_for_revealed_execution=wait_for_revealed_execution,
-        )
-
-    def announce_coldkey_swap(
-        self,
-        wallet: "Wallet",
-        new_coldkey_ss58: str,
-        *,
-        mev_protection: bool = DEFAULT_MEV_PROTECTION,
-        period: Optional[int] = DEFAULT_PERIOD,
-        raise_error: bool = False,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = True,
-        wait_for_revealed_execution: bool = True,
-    ) -> ExtrinsicResponse:
-        """
-        Announces a coldkey swap by submitting the BlakeTwo256 hash of the new coldkey.
-
-        This method allows a coldkey to declare its intention to swap to a new coldkey address. The announcement must be
-        made before the actual swap can be executed, and a delay period must pass before execution is allowed.
-        After making an announcement, all transactions from the coldkey are blocked except for `swap_coldkey_announced`.
-
-        Parameters:
-            wallet: Bittensor wallet object (should be the current coldkey wallet).
-            new_coldkey_ss58: SS58 address of the new coldkey that will replace the current one.
+            wallet: The wallet used to sign the extrinsic (must be the subnet owner).
+            netuid: The unique identifier of the subnet.
+            hotkey_ss58: The `SS58` address of the hotkey account to stake to.
+            amount: The amount of TAO to use for the buyback.
+            limit_price: Optional limit price expressed in units of RAO per one Alpha.
             mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
                 decrypt and execute it. If `False`, submits the transaction directly without encryption.
@@ -5319,19 +5264,17 @@ class Subtensor(SubtensorMixin):
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
-
-        Notes:
-            - A swap cost is charged when making the first announcement (not when reannouncing).
-            - After making an announcement, all transactions from the coldkey are blocked except for `
-                swap_coldkey_announced`.
-            - The swap can only be executed after the delay period has passed (check via
-                `get_coldkey_swap_announcement`).
-            - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
         """
-        return announce_coldkey_swap_extrinsic(
+        check_balance_amount(amount)
+        if limit_price is not None:
+            check_balance_amount(limit_price)
+        return add_stake_burn_extrinsic(
             subtensor=self,
             wallet=wallet,
-            new_coldkey_ss58=new_coldkey_ss58,
+            netuid=netuid,
+            hotkey_ss58=hotkey_ss58,
+            amount=amount,
+            limit_price=limit_price,
             mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
@@ -5395,6 +5338,65 @@ class Subtensor(SubtensorMixin):
             wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
+    def add_liquidity(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        liquidity: Balance,
+        price_low: Balance,
+        price_high: Balance,
+        hotkey_ss58: Optional[str] = None,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Adds liquidity to the specified price range.
+
+        Parameters:
+            wallet: The wallet used to sign the extrinsic (must be unlocked).
+            netuid: The UID of the target subnet for which the call is being initiated.
+            liquidity: The amount of liquidity to be added.
+            price_low: The lower bound of the price tick range. In TAO.
+            price_high: The upper bound of the price tick range. In TAO.
+            hotkey_ss58: The hotkey with staked TAO in Alpha. If not passed then the wallet hotkey is used.
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If
+                the transaction is not included in a block within that number of blocks, it will expire and be rejected.
+                You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the extrinsic to be included in a block.
+            wait_for_finalization: Whether to wait for finalization of the extrinsic.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Note: Adding is allowed even when user liquidity is enabled in specified subnet. Call `toggle_user_liquidity`
+        method to enable/disable user liquidity.
+        """
+        return add_liquidity_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            liquidity=liquidity,
+            price_low=price_low,
+            price_high=price_high,
+            hotkey_ss58=hotkey_ss58,
+            mev_protection=mev_protection,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
+        )
+
     def add_proxy(
         self,
         wallet: "Wallet",
@@ -5447,6 +5449,62 @@ class Subtensor(SubtensorMixin):
             delegate_ss58=delegate_ss58,
             proxy_type=proxy_type,
             delay=delay,
+            mev_protection=mev_protection,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
+        )
+
+    def announce_coldkey_swap(
+        self,
+        wallet: "Wallet",
+        new_coldkey_ss58: str,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Announces a coldkey swap by submitting the BlakeTwo256 hash of the new coldkey.
+
+        This method allows a coldkey to declare its intention to swap to a new coldkey address. The announcement must be
+        made before the actual swap can be executed, and a delay period must pass before execution is allowed.
+        After making an announcement, all transactions from the coldkey are blocked except for `swap_coldkey_announced`.
+
+        Parameters:
+            wallet: Bittensor wallet object (should be the current coldkey wallet).
+            new_coldkey_ss58: SS58 address of the new coldkey that will replace the current one.
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
+            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
+                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
+                can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
+            wait_for_finalization: Whether to wait for the finalization of the transaction.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+
+        Notes:
+            - A swap cost is charged when making the first announcement (not when reannouncing).
+            - After making an announcement, all transactions from the coldkey are blocked except for `
+                swap_coldkey_announced`.
+            - The swap can only be executed after the delay period has passed (check via
+                `get_coldkey_swap_announcement`).
+            - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
+        """
+        return announce_coldkey_swap_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            new_coldkey_ss58=new_coldkey_ss58,
             mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
@@ -7826,64 +7884,6 @@ class Subtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             netuid=netuid,
-            mev_protection=mev_protection,
-            period=period,
-            raise_error=raise_error,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            wait_for_revealed_execution=wait_for_revealed_execution,
-        )
-
-    def subnet_buyback(
-        self,
-        wallet: "Wallet",
-        netuid: int,
-        hotkey_ss58: str,
-        amount: Balance,
-        limit_price: Optional[Balance] = None,
-        *,
-        mev_protection: bool = DEFAULT_MEV_PROTECTION,
-        period: Optional[int] = DEFAULT_PERIOD,
-        raise_error: bool = False,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = True,
-        wait_for_revealed_execution: bool = True,
-    ) -> ExtrinsicResponse:
-        """
-        Executes a subnet buyback by staking TAO and immediately burning the resulting Alpha.
-
-        Only the subnet owner can call this method, and it is rate-limited to one call per subnet tempo.
-
-        Parameters:
-            wallet: The wallet used to sign the extrinsic (must be the subnet owner).
-            netuid: The unique identifier of the subnet.
-            hotkey_ss58: The `SS58` address of the hotkey account to stake to.
-            amount: The amount of TAO to use for the buyback.
-            limit_price: Optional limit price expressed in units of RAO per one Alpha.
-            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
-                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If `False`, submits the transaction directly without encryption.
-            period: The number of blocks during which the transaction will remain valid after it's submitted. If the
-                transaction is not included in a block within that number of blocks, it will expire and be rejected. You
-                can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
-            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
-            wait_for_finalization: Whether to wait for the finalization of the transaction.
-            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
-
-        Returns:
-            ExtrinsicResponse: The result object of the extrinsic execution.
-        """
-        check_balance_amount(amount)
-        if limit_price is not None:
-            check_balance_amount(limit_price)
-        return subnet_buyback_extrinsic(
-            subtensor=self,
-            wallet=wallet,
-            netuid=netuid,
-            hotkey_ss58=hotkey_ss58,
-            amount=amount,
-            limit_price=limit_price,
             mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
