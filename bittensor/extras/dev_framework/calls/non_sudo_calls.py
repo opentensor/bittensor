@@ -11,7 +11,7 @@ For developers:
 
 Note:
     Any manual changes will be overwritten the next time the generator is run.
-    Subtensor spec version: 365
+    Subtensor spec version: 376
 """
 
 from collections import namedtuple
@@ -27,6 +27,9 @@ ADD_PROXY = namedtuple(
 ADD_STAKE = namedtuple(
     "ADD_STAKE", ["wallet", "pallet", "hotkey", "netuid", "amount_staked"]
 )  # args: [hotkey: T::AccountId, netuid: NetUid, amount_staked: TaoCurrency]  | Pallet: SubtensorModule
+ADD_STAKE_BURN = namedtuple(
+    "ADD_STAKE_BURN", ["wallet", "pallet", "hotkey", "netuid", "amount", "limit"]
+)  # args: [hotkey: T::AccountId, netuid: NetUid, amount: TaoCurrency, limit: Option<TaoCurrency>]  | Pallet: SubtensorModule
 ADD_STAKE_LIMIT = namedtuple(
     "ADD_STAKE_LIMIT",
     [
@@ -42,6 +45,9 @@ ADD_STAKE_LIMIT = namedtuple(
 ANNOUNCE = namedtuple(
     "ANNOUNCE", ["wallet", "pallet", "real", "call_hash"]
 )  # args: [real: AccountIdLookupOf<T>, call_hash: CallHashOf<T>]  | Pallet: Proxy
+ANNOUNCE_COLDKEY_SWAP = namedtuple(
+    "ANNOUNCE_COLDKEY_SWAP", ["wallet", "pallet", "new_coldkey_hash"]
+)  # args: [new_coldkey_hash: T::Hash]  | Pallet: SubtensorModule
 ANNOUNCE_NEXT_KEY = namedtuple(
     "ANNOUNCE_NEXT_KEY", ["wallet", "pallet", "public_key"]
 )  # args: [public_key: BoundedVec<u8, ConstU32<2048>>]  | Pallet: MevShield
@@ -256,6 +262,9 @@ DISABLE_LP = namedtuple(
         "pallet",
     ],
 )  # args: []  | Pallet: Swap
+DISABLE_VOTING_POWER_TRACKING = namedtuple(
+    "DISABLE_VOTING_POWER_TRACKING", ["wallet", "pallet", "netuid"]
+)  # args: [netuid: NetUid]  | Pallet: SubtensorModule
 DISABLE_WHITELIST = namedtuple(
     "DISABLE_WHITELIST", ["wallet", "pallet", "disabled"]
 )  # args: [disabled: bool]  | Pallet: EVM
@@ -265,12 +274,22 @@ DISPATCH_AS = namedtuple(
 DISPATCH_AS_FALLIBLE = namedtuple(
     "DISPATCH_AS_FALLIBLE", ["wallet", "pallet", "as_origin", "call"]
 )  # args: [as_origin: Box<T::PalletsOrigin>, call: Box<<T as Config>::RuntimeCall>]  | Pallet: Utility
+DISPUTE_COLDKEY_SWAP = namedtuple(
+    "DISPUTE_COLDKEY_SWAP",
+    [
+        "wallet",
+        "pallet",
+    ],
+)  # args: []  | Pallet: SubtensorModule
 DISSOLVE = namedtuple(
     "DISSOLVE", ["wallet", "pallet", "crowdloan_id"]
 )  # args: [crowdloan_id: CrowdloanId]  | Pallet: Crowdloan
 DISSOLVE_NETWORK = namedtuple(
     "DISSOLVE_NETWORK", ["wallet", "pallet", "coldkey", "netuid"]
 )  # args: [coldkey: T::AccountId, netuid: NetUid]  | Pallet: SubtensorModule
+ENABLE_VOTING_POWER_TRACKING = namedtuple(
+    "ENABLE_VOTING_POWER_TRACKING", ["wallet", "pallet", "netuid"]
+)  # args: [netuid: NetUid]  | Pallet: SubtensorModule
 ENSURE_UPDATED = namedtuple(
     "ENSURE_UPDATED", ["wallet", "pallet", "hashes"]
 )  # args: [hashes: Vec<T::Hash>]  | Pallet: Preimage
@@ -543,6 +562,9 @@ REPORT_EQUIVOCATION_UNSIGNED = namedtuple(
 REQUEST_PREIMAGE = namedtuple(
     "REQUEST_PREIMAGE", ["wallet", "pallet", "hash"]
 )  # args: [hash: T::Hash]  | Pallet: Preimage
+RESET_COLDKEY_SWAP = namedtuple(
+    "RESET_COLDKEY_SWAP", ["wallet", "pallet", "coldkey"]
+)  # args: [coldkey: T::AccountId]  | Pallet: SubtensorModule
 REVEAL_MECHANISM_WEIGHTS = namedtuple(
     "REVEAL_MECHANISM_WEIGHTS",
     ["wallet", "pallet", "netuid", "mecid", "uids", "values", "salt", "version_key"],
@@ -735,6 +757,9 @@ SWAP_AUTHORITIES = namedtuple(
 SWAP_COLDKEY = namedtuple(
     "SWAP_COLDKEY", ["wallet", "pallet", "old_coldkey", "new_coldkey", "swap_cost"]
 )  # args: [old_coldkey: T::AccountId, new_coldkey: T::AccountId, swap_cost: TaoCurrency]  | Pallet: SubtensorModule
+SWAP_COLDKEY_ANNOUNCED = namedtuple(
+    "SWAP_COLDKEY_ANNOUNCED", ["wallet", "pallet", "new_coldkey"]
+)  # args: [new_coldkey: T::AccountId]  | Pallet: SubtensorModule
 SWAP_HOTKEY = namedtuple(
     "SWAP_HOTKEY", ["wallet", "pallet", "hotkey", "new_hotkey", "netuid"]
 )  # args: [hotkey: T::AccountId, new_hotkey: T::AccountId, netuid: Option<NetUid>]  | Pallet: SubtensorModule

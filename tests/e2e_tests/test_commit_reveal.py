@@ -12,6 +12,7 @@ from tests.e2e_tests.utils import (
     REGISTER_SUBNET,
     SUDO_SET_ADMIN_FREEZE_WINDOW,
     SUDO_SET_TEMPO,
+    SUDO_SET_MAX_ALLOWED_UIDS,
     SUDO_SET_MECHANISM_COUNT,
     SUDO_SET_COMMIT_REVEAL_WEIGHTS_ENABLED,
     SUDO_SET_WEIGHTS_SET_RATE_LIMIT,
@@ -49,6 +50,9 @@ def test_commit_and_reveal_weights_cr4(subtensor, alice_wallet):
     steps = [
         SUDO_SET_ADMIN_FREEZE_WINDOW(alice_wallet, AdminUtils, True, 0),
         REGISTER_SUBNET(alice_wallet),
+        SUDO_SET_MAX_ALLOWED_UIDS(
+            alice_wallet, AdminUtils, True, NETUID, int(256 / TESTED_MECHANISMS)
+        ),
         SUDO_SET_MECHANISM_COUNT(
             alice_wallet, AdminUtils, True, NETUID, TESTED_MECHANISMS
         ),
@@ -121,6 +125,7 @@ def test_commit_and_reveal_weights_cr4(subtensor, alice_wallet):
             wait_for_finalization=True,
             block_time=BLOCK_TIME,
             period=16,
+            raise_error=True,
         )
 
         # Assert committing was a success
@@ -236,6 +241,9 @@ async def test_commit_and_reveal_weights_cr4_async(async_subtensor, alice_wallet
     steps = [
         SUDO_SET_ADMIN_FREEZE_WINDOW(alice_wallet, AdminUtils, True, 0),
         REGISTER_SUBNET(alice_wallet),
+        SUDO_SET_MAX_ALLOWED_UIDS(
+            alice_wallet, AdminUtils, True, NETUID, int(256 / TESTED_MECHANISMS)
+        ),
         SUDO_SET_MECHANISM_COUNT(
             alice_wallet, AdminUtils, True, NETUID, TESTED_MECHANISMS
         ),

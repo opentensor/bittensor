@@ -2,8 +2,8 @@ import pytest
 
 from bittensor.core.extrinsics import staking
 from bittensor.core.settings import DEFAULT_MEV_PROTECTION
-from bittensor.utils.balance import Balance
 from bittensor.core.types import ExtrinsicResponse
+from bittensor.utils.balance import Balance
 
 
 def test_add_stake_extrinsic(mocker):
@@ -65,6 +65,114 @@ def test_add_stake_extrinsic(mocker):
     )
 
 
+def test_add_stake_burn_extrinsic(mocker):
+    """Verify that sync `add_stake_burn_extrinsic` method calls proper methods."""
+    # Preps
+    fake_subtensor = mocker.Mock(
+        **{
+            "get_balance.return_value": Balance.from_tao(10),
+            "get_existential_deposit.return_value": Balance.from_tao(1),
+            "get_current_block.return_value": 123,
+            "get_stake.return_value": Balance.from_tao(0),
+            "sign_and_send_extrinsic.return_value": ExtrinsicResponse(True, "Success"),
+        }
+    )
+    fake_wallet = mocker.Mock(
+        **{
+            "coldkeypub.ss58_address": "coldkey",
+        }
+    )
+    hotkey_ss58 = "hotkey"
+    netuid = 1
+    amount = Balance.from_tao(2)
+
+    # Call
+    result = staking.add_stake_burn_extrinsic(
+        subtensor=fake_subtensor,
+        wallet=fake_wallet,
+        hotkey_ss58=hotkey_ss58,
+        netuid=netuid,
+        amount=amount,
+        mev_protection=DEFAULT_MEV_PROTECTION,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+    )
+
+    # Asserts
+    assert result.success is True
+    fake_subtensor.compose_call.assert_called_once_with(
+        call_module="SubtensorModule",
+        call_function="add_stake_burn",
+        call_params={
+            "hotkey": hotkey_ss58,
+            "netuid": netuid,
+            "amount": amount.rao,
+            "limit": None,
+        },
+    )
+    fake_subtensor.sign_and_send_extrinsic.assert_called_once_with(
+        call=fake_subtensor.compose_call.return_value,
+        wallet=fake_wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        nonce_key="coldkeypub",
+        use_nonce=True,
+        period=None,
+        raise_error=False,
+    )
+
+
+def test_add_stake_burn_extrinsic_with_limit(mocker):
+    """Verify that sync `add_stake_burn_extrinsic` passes limit price."""
+    # Preps
+    fake_subtensor = mocker.Mock(
+        **{
+            "get_balance.return_value": Balance.from_tao(10),
+            "get_existential_deposit.return_value": Balance.from_tao(1),
+            "get_current_block.return_value": 123,
+            "get_stake.return_value": Balance.from_tao(0),
+            "sign_and_send_extrinsic.return_value": ExtrinsicResponse(True, "Success"),
+        }
+    )
+    fake_wallet = mocker.Mock(
+        **{
+            "coldkeypub.ss58_address": "coldkey",
+        }
+    )
+    hotkey_ss58 = "hotkey"
+    netuid = 1
+    amount = Balance.from_tao(2)
+    limit_price = Balance.from_tao(2)
+
+    # Call
+    result = staking.add_stake_burn_extrinsic(
+        subtensor=fake_subtensor,
+        wallet=fake_wallet,
+        hotkey_ss58=hotkey_ss58,
+        netuid=netuid,
+        amount=amount,
+        limit_price=limit_price,
+        mev_protection=DEFAULT_MEV_PROTECTION,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+    )
+
+    # Asserts
+    assert result.success is True
+    fake_subtensor.compose_call.assert_called_once_with(
+        call_module="SubtensorModule",
+        call_function="add_stake_burn",
+        call_params={
+            "hotkey": hotkey_ss58,
+            "netuid": netuid,
+            "amount": amount.rao,
+            "limit": limit_price.rao,
+        },
+    )
+
+
 def test_add_stake_multiple_extrinsic(subtensor, mocker, fake_wallet):
     """Verify that sync `add_stake_multiple_extrinsic` method calls proper async method."""
     # Preps
@@ -73,9 +181,7 @@ def test_add_stake_multiple_extrinsic(subtensor, mocker, fake_wallet):
         "get_stake_info_for_coldkey",
         return_value=[Balance(1.1), Balance(0.3)],
     )
-    mocked_get_balance = mocker.patch.object(
-        subtensor, "get_balance", return_value=Balance.from_tao(10)
-    )
+    mocker.patch.object(subtensor, "get_balance", return_value=Balance.from_tao(10))
     mocker.patch.object(
         staking, "get_old_stakes", return_value=[Balance(1.1), Balance(0.3)]
     )

@@ -8,6 +8,7 @@ class Staking:
 
     def __init__(self, subtensor: Union["_Subtensor", "_AsyncSubtensor"]):
         self.add_stake = subtensor.add_stake
+        self.add_stake_burn = subtensor.add_stake_burn
         self.add_stake_multiple = subtensor.add_stake_multiple
         self.claim_root = subtensor.claim_root
         self.get_auto_stakes = subtensor.get_auto_stakes
