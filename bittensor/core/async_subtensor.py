@@ -4803,24 +4803,45 @@ class AsyncSubtensor(SubtensorMixin):
         Notes:
             Subnet 0 (root network) always has a price of 1 TAO since it uses TAO directly rather than Alpha.
         """
-        # TODO: we will maintain this logic until we receive a function that returns all subnet prices in the chain as a
-        #  single call.
+        api = "SwapRuntimeApi"
+        method = "current_alpha_price_all"
         block_hash = await self.determine_block_hash(block, block_hash)
-        prices = {0: Balance.from_tao(1)}
-        netuids = await self.get_all_subnets_netuid(
-            block=block, block_hash=block_hash, reuse_block=reuse_block
-        )
+        try:
+            prices_rao = (
+                await self.substrate.runtime_call(
+                    api=api,
+                    method=method,
+                    block_hash=block_hash,
+                )
+            ).value
+            return {p["netuid"]: Balance.from_rao(p["price"]) for p in prices_rao}
 
-        tasks = [
-            self.get_subnet_price(
-                netuid, block=block, block_hash=block_hash, reuse_block=reuse_block
-            )
-            for netuid in netuids
-        ]
+        except ValueError as err:
+            msg = str(err)
+            if f"{api}.{method}" in msg and "not found in registry" in msg:
+                logging.warning(
+                    f"Runtime ([blue]{self})[/blue] at block=[blue]{block or self.block}[/blue] is missing `[red]{api}."
+                    f"{method}[/red]` runtime API. Using deprecated subnet price retrieval method as a fallback."
+                )
+                prices = {0: Balance.from_tao(1)}
+                netuids = await self.get_all_subnets_netuid(
+                    block=block, block_hash=block_hash, reuse_block=reuse_block
+                )
 
-        prices_list = await asyncio.gather(*tasks)
-        prices.update(dict(zip(netuids, prices_list)))
-        return prices
+                tasks = [
+                    self.get_subnet_price(
+                        netuid,
+                        block=block,
+                        block_hash=block_hash,
+                        reuse_block=reuse_block,
+                    )
+                    for netuid in netuids
+                ]
+
+                prices_list = await asyncio.gather(*tasks)
+                prices.update(dict(zip(netuids, prices_list)))
+                return prices
+            raise
 
     async def get_subnet_reveal_period_epochs(
         self, netuid: int, block: Optional[int] = None, block_hash: Optional[str] = None
