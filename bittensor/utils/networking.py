@@ -21,6 +21,9 @@ def int_to_ip(int_val: int) -> str:
 
     Returns:
         str_val: The string representation of an ip. Of form *.*.*.* for ipv4 or *::*:*:*:* for ipv6
+
+    Raises:
+        netaddr.AddrFormatError: If the integer value is out of valid IP range.
     """
     return str(netaddr.IPAddress(int_val))
 
@@ -33,6 +36,9 @@ def ip_to_int(str_val: str) -> int:
 
     Returns:
         int_val: The integer representation of an ip. Must be in the range (0, 3.4028237e+38).
+
+    Raises:
+        netaddr.AddrFormatError: If the string is not a valid IP address.
     """
     return int(netaddr.IPAddress(str_val))
 
@@ -45,30 +51,63 @@ def ip_version(str_val: str) -> int:
 
     Returns:
         int_val: The ip version (Either 4 or 6 for IPv4/IPv6)
+
+    Raises:
+        netaddr.AddrFormatError: If the string is not a valid IP address.
     """
     return int(netaddr.IPAddress(str_val).version)
 
 
-def ip__str__(ip_type: int, ip_str: str, port: int):
-    """Return a formatted ip string"""
+def ip__str__(ip_type: int, ip_str: str, port: int) -> str:
+    """Return a formatted ip string
+
+    Parameters:
+        ip_type: The IP version (4 or 6).
+        ip_str: The IP address as a string.
+        port: The port number.
+
+    Returns:
+        A formatted string of form /ipv<version>/<ip>:<port>
+    """
     return "/ipv%i/%s:%i" % (ip_type, ip_str, port)
+
+
+def _validate_ip_response(ip_str: str) -> str:
+    """Validate and normalize an IP address string obtained from an external service.
+
+    Parameters:
+        ip_str: The IP address string to validate.
+
+    Returns:
+        The validated IP address as a string.
+
+    Raises:
+        ValueError: If the string is not a valid IP address.
+    """
+    ip_str = ip_str.strip()
+    ip_to_int(ip_str)  # raises netaddr.AddrFormatError if invalid
+    return ip_str
 
 
 def get_external_ip() -> str:
     """Checks CURL/URLLIB/IPIFY/AWS for your external ip.
 
+    Tries multiple external services in sequence. If one fails (due to network
+    errors, invalid responses, timeouts, etc.), it falls through to the next.
+
     Returns:
         external_ip (str): Your routers external facing ip as a string.
 
     Raises:
-        ExternalIPNotFound(Exception): Raised if all external ip attempts fail.
+        ExternalIPNotFound: Raised if all external ip attempts fail.
     """
     # --- Try AWS
     try:
-        external_ip = requests.get("https://checkip.amazonaws.com").text.strip()
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except ExternalIPNotFound:
+        external_ip = requests.get(
+            "https://checkip.amazonaws.com", timeout=5
+        ).text.strip()
+        return _validate_ip_response(external_ip)
+    except Exception:
         pass
 
     # --- Try ipconfig.
@@ -76,9 +115,8 @@ def get_external_ip() -> str:
         process = os.popen("curl -s ifconfig.me")
         external_ip = process.readline()
         process.close()
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except ExternalIPNotFound:
+        return _validate_ip_response(external_ip)
+    except Exception:
         pass
 
     # --- Try ipinfo.
@@ -86,9 +124,8 @@ def get_external_ip() -> str:
         process = os.popen("curl -s https://ipinfo.io")
         external_ip = json.loads(process.read())["ip"]
         process.close()
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except ExternalIPNotFound:
+        return _validate_ip_response(external_ip)
+    except Exception:
         pass
 
     # --- Try myip.dnsomatic
@@ -96,25 +133,26 @@ def get_external_ip() -> str:
         process = os.popen("curl -s myip.dnsomatic.com")
         external_ip = process.readline()
         process.close()
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except ExternalIPNotFound:
+        return _validate_ip_response(external_ip)
+    except Exception:
         pass
 
     # --- Try urllib ipv6
     try:
-        external_ip = urllib_request.urlopen("https://ident.me").read().decode("utf8")
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except ExternalIPNotFound:
+        external_ip = urllib_request.urlopen(
+            "https://ident.me", timeout=5
+        ).read().decode("utf8")
+        return _validate_ip_response(external_ip)
+    except Exception:
         pass
 
     # --- Try Wikipedia
     try:
-        external_ip = requests.get("https://www.wikipedia.org").headers["X-Client-IP"]
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except ExternalIPNotFound:
+        external_ip = requests.get(
+            "https://www.wikipedia.org", timeout=5
+        ).headers["X-Client-IP"]
+        return _validate_ip_response(external_ip)
+    except Exception:
         pass
 
     raise ExternalIPNotFound
