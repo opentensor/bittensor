@@ -11,7 +11,7 @@
 
 ## Internet-scale Neural Networks <!-- omit in toc -->
 
-[Discord](https://discord.gg/qasY3HA9F9) • [Network](https://taostats.io/) • [Research](https://bittensor.com/whitepaper) • [Documentation](https://docs.bittensor.com)
+[Discord](https://discord.gg/qasY3HA9F9) • [Network](https://taostats.io/) • [Research](https://bittensor.com/whitepaper) • [Documentation](https://docs.learnbittensor.org)
 
 </div>
 
@@ -45,8 +45,8 @@ Welcome! Bittensor is an open source platform on which you can produce competiti
 
 The Opentensor Foundation (OTF) provides all the open source tools, including this Bittensor SDK, the codebase and the documentation, with step-by-step tutorials and guides, to enable you to participate in the Bittensor ecosystem. 
 
-- **Developer documentation**: https://docs.bittensor.com.
-- **A Beginner's Q and A on Bittensor**: https://docs.bittensor.com/questions-and-answers.
+- **Developer documentation**: https://docs.learnbittensor.org.
+- **A Beginner's Q and A on Bittensor**: https://docs.learnbittensor.org/questions-and-answers.
 - **Bittensor whitepaper**: https://bittensor.com/whitepaper.
 
 This Bittensor SDK contains ready-to-use Python packages for interacting with the Bittensor ecosystem, writing subnet incentive mechanisms, subnet miners, subnet validators and querying the subtensor (the blockchain part of the Bittensor network). 
@@ -74,7 +74,7 @@ This Bittensor SDK codebase is for the Bittensor platform only, designed to help
 
 ## Release Notes
 
-See [Bittensor SDK Release Notes](https://docs.bittensor.com/bittensor-rel-notes).
+See [Bittensor SDK Release Notes](https://docs.learnbittensor.org/bittensor-rel-notes).
 
 ---
 
