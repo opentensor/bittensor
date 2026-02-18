@@ -200,7 +200,7 @@ Imperative mood just means “spoken or written as if giving a command or instru
     Close the door
     Take out the trash
 
-Each of the seven rules you’re reading about right now is written in the imperative (“Wrap the body at 72 characters”, etc.).
+Each of the six rules you’re reading about right now is written in the imperative (“Wrap the body at 72 characters”, etc.).
 
 The imperative can sound a little rude; that’s why we don’t often use it. But it’s perfect for Git commit subject lines. One reason for this is that Git itself uses the imperative whenever it creates a commit on your behalf.
 
