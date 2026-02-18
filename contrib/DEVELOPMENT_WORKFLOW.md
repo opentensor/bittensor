@@ -136,7 +136,7 @@ Finishing a hotfix branch involves merging the bugfix into both `master` and `st
 8. Push changes to origin/staging: `git push origin staging`
 9. Delete hotfix branch: `git branch -d hotfix/3.3.4/optional-descriptive-message`
 
-The one exception to the rule here is that, **when a release branch currently exists, the hotfix changes need to be merged into that release branch, instead of** `staging`. Back-merging the bugfix into the __release__ branch will eventually result in the bugfix being merged into `develop` too, when the release branch is finished. (If work in develop immediately requires this bugfix and cannot wait for the release branch to be finished, you may safely merge the bugfix into develop now already as well.)
+The one exception to the rule here is that, **when a release branch currently exists, the hotfix changes need to be merged into that release branch, instead of** `staging`. Back-merging the bugfix into the __release__ branch will eventually result in the bugfix being merged into `staging` too, when the release branch is finished. (If work in staging immediately requires this bugfix and cannot wait for the release branch to be finished, you may safely merge the bugfix into staging now already as well.)
 
 Finally, we remove the temporary branch:
 
