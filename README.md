@@ -253,7 +253,7 @@ pytest tests/unit_tests
 - `LOCALNET_SH_PATH` - path to `localnet.sh` script in cloned subtensor repository (for legacy runner);
 - `BUILD_BINARY` - (`=0` or `=1`) - used with `LOCALNET_SH_PATH` for build or not before start localnet node (for legacy runner);
 - `USE_DOCKER` - (`=0` or `=1`) - used if you want to use specific runner to run e2e tests (for docker runner);
-- `FAST_BLOCKS` - (`=0` or `=1`) - allows you to run a localnet node in fast or non-fast blocks mode (for both types of runers).
+- `FAST_BLOCKS` - (`=0` or `=1`) - allows you to run a localnet node in fast or non-fast blocks mode (for both types of runners).
 - `SKIP_PULL` - used if you are using a Docker image, but for some reason you want to temporarily limit the logic of updating the image from the repository.
 
 #### Using `docker runner` (default for now):
