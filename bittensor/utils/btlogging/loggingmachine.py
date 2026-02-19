@@ -120,13 +120,21 @@ class LoggingMachine(StateMachine, Logger):
         | Info.to(Warning)
     )
 
-    disable_trace = Trace.to(Default)
+    def disable_trace(self):
+        """Disables trace logging by transitioning back to Default."""
+        self.enable_default()
 
-    disable_debug = Debug.to(Default)
+    def disable_debug(self):
+        """Disables debug logging by transitioning back to Default."""
+        self.enable_default()
 
-    disable_warning = Warning.to(Default)
+    def disable_warning(self):
+        """Disables warning logging by transitioning back to Default."""
+        self.enable_default()
 
-    disable_info = Info.to(Default)
+    def disable_info(self):
+        """Disables info logging by transitioning back to Default."""
+        self.enable_default()
 
     disable_logging = (
         Trace.to(Disabled)
@@ -405,6 +413,7 @@ class LoggingMachine(StateMachine, Logger):
         """Logs status before enable Default."""
         self._logger.info("Enabling default logging (Warning level)")
         self._logger.setLevel(stdlogging.WARNING)
+        self._stream_formatter.set_trace(False)
         for logger in all_loggers():
             if logger.name in self._primary_loggers:
                 continue
@@ -417,6 +426,7 @@ class LoggingMachine(StateMachine, Logger):
     def before_enable_warning(self):
         """Logs status before enable Warning."""
         self._logger.info("Enabling warning.")
+        self._logger.setLevel(stdlogging.WARNING)
         self._stream_formatter.set_trace(True)
         for logger in all_loggers():
             logger.setLevel(stdlogging.WARNING)
@@ -430,6 +440,7 @@ class LoggingMachine(StateMachine, Logger):
         """Logs status before enable info."""
         self._logger.info("Enabling info logging.")
         self._logger.setLevel(stdlogging.INFO)
+        self._stream_formatter.set_trace(True)
         for logger in all_loggers():
             if logger.name in self._primary_loggers:
                 continue
@@ -443,6 +454,7 @@ class LoggingMachine(StateMachine, Logger):
     def before_enable_trace(self):
         """Logs status before enable Trace."""
         self._logger.info("Enabling trace.")
+        self._logger.setLevel(stdlogging.TRACE)
         self._stream_formatter.set_trace(True)
         for logger in all_loggers():
             logger.setLevel(stdlogging.TRACE)
@@ -465,12 +477,14 @@ class LoggingMachine(StateMachine, Logger):
     def before_enable_debug(self):
         """Logs status before enable Debug."""
         self._logger.info("Enabling debug.")
+        self._logger.setLevel(stdlogging.DEBUG)
         self._stream_formatter.set_trace(True)
         for logger in all_loggers():
             logger.setLevel(stdlogging.DEBUG)
 
     def before_enable_console(self):
         """Logs status before enable Console."""
+        self._logger.setLevel(stdlogging.DEBUG)
         self._stream_formatter.set_trace(True)
         for logger in all_loggers():
             logger.setLevel(stdlogging.DEBUG)
