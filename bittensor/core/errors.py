@@ -57,6 +57,7 @@ __all__ = [
     "TxRateLimitExceeded",
     "UnknownSynapseError",
     "UnstakeError",
+    "SHIELD_VALIDATION_ERRORS",
 ]
 
 
@@ -263,3 +264,14 @@ class SynapseDendriteNoneException(SynapseException):
     ):
         self.message = message
         super().__init__(self.message, synapse)
+
+
+SHIELD_VALIDATION_ERRORS = {
+    "Custom error: 0": (
+        "Failed to parse shielded transaction: the ciphertext has an invalid format."
+    ),
+    "Custom error: 1": (
+        "Invalid encryption key: the key_hash in the ciphertext does not match any known key. "
+        "The key may have rotated between reading NextKey and submitting the transaction."
+    ),
+}
