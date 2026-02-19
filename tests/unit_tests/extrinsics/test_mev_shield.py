@@ -10,7 +10,6 @@ def test_wait_for_extrinsic_by_hash_success(subtensor, mocker):
     """Verify that wait_for_extrinsic_by_hash finds the extrinsic by hash."""
     # Preps
     extrinsic_hash = "0x1234567890abcdef"
-    shield_id = "shield_id_123"
     submit_block_hash = "0xblockhash"
     starting_block = 100
     current_block = 100
@@ -41,67 +40,6 @@ def test_wait_for_extrinsic_by_hash_success(subtensor, mocker):
     result = mev_shield.wait_for_extrinsic_by_hash(
         subtensor=subtensor,
         extrinsic_hash=extrinsic_hash,
-        shield_id=shield_id,
-        submit_block_hash=submit_block_hash,
-        timeout_blocks=3,
-    )
-
-    # Asserts
-    mocked_get_block_number.assert_called_once_with(submit_block_hash)
-    mocked_wait_for_block.assert_called_once()
-    mocked_get_block_hash.assert_called_once_with(current_block)
-    mocked_get_extrinsics.assert_called_once_with("0xblockhash101")
-    mocked_extrinsic_receipt.assert_called_once_with(
-        substrate=subtensor.substrate,
-        block_hash="0xblockhash101",
-        block_number=current_block,
-        extrinsic_idx=0,
-    )
-    assert result == mock_receipt
-
-
-def test_wait_for_extrinsic_by_hash_decryption_failed(subtensor, mocker):
-    """Verify that wait_for_extrinsic_by_hash finds mark_decryption_failed extrinsic."""
-    # Preps
-    extrinsic_hash = "0x1234567890abcdef"
-    shield_id = "shield_id_123"
-    submit_block_hash = "0xblockhash"
-    starting_block = 100
-    current_block = 100
-
-    mocked_get_block_number = mocker.patch.object(
-        subtensor.substrate, "get_block_number", return_value=starting_block
-    )
-    mocked_wait_for_block = mocker.patch.object(subtensor, "wait_for_block")
-    mocked_get_block_hash = mocker.patch.object(
-        subtensor.substrate, "get_block_hash", return_value="0xblockhash101"
-    )
-
-    mock_extrinsic = mocker.MagicMock()
-    mock_extrinsic.value = {
-        "call": {
-            "call_module": "MevShield",
-            "call_function": "mark_decryption_failed",
-            "call_args": [{"name": "id", "value": shield_id}],
-        }
-    }
-    mocked_get_extrinsics = mocker.patch.object(
-        subtensor.substrate,
-        "get_extrinsics",
-        return_value=[mock_extrinsic],
-    )
-
-    mock_receipt = mocker.MagicMock(spec=ExtrinsicReceipt)
-    mocked_extrinsic_receipt = mocker.patch(
-        "bittensor.core.extrinsics.mev_shield.ExtrinsicReceipt",
-        return_value=mock_receipt,
-    )
-
-    # Call
-    result = mev_shield.wait_for_extrinsic_by_hash(
-        subtensor=subtensor,
-        extrinsic_hash=extrinsic_hash,
-        shield_id=shield_id,
         submit_block_hash=submit_block_hash,
         timeout_blocks=3,
     )
@@ -124,7 +62,6 @@ def test_wait_for_extrinsic_by_hash_timeout(subtensor, mocker):
     """Verify that wait_for_extrinsic_by_hash returns None on timeout."""
     # Preps
     extrinsic_hash = "0x1234567890abcdef"
-    shield_id = "shield_id_123"
     submit_block_hash = "0xblockhash"
     starting_block = 100
 
@@ -145,7 +82,6 @@ def test_wait_for_extrinsic_by_hash_timeout(subtensor, mocker):
     result = mev_shield.wait_for_extrinsic_by_hash(
         subtensor=subtensor,
         extrinsic_hash=extrinsic_hash,
-        shield_id=shield_id,
         submit_block_hash=submit_block_hash,
         timeout_blocks=3,
     )
@@ -169,14 +105,11 @@ def test_submit_encrypted_extrinsic_success_with_revealed_execution(
     )
 
     ml_kem_768_public_key = b"fake_ml_kem_key" * 74  # 1184 bytes
-    mev_commitment = "0xcommitment"
     mev_ciphertext = b"fake_ciphertext"
-    payload_core = b"fake_payload"
     signed_extrinsic_hash_hex = "abcdef123456"
     signed_extrinsic_hash = f"0x{signed_extrinsic_hash_hex}"
     current_nonce = 5
     next_nonce = 6
-    shield_id = "shield_id_123"
     block_hash = "0xblockhash"
 
     mocked_unlock_wallet = mocker.patch.object(
@@ -199,9 +132,9 @@ def test_submit_encrypted_extrinsic_success_with_revealed_execution(
         "create_signed_extrinsic",
         return_value=mock_signed_extrinsic,
     )
-    mocked_get_mev_commitment = mocker.patch(
-        "bittensor.core.extrinsics.mev_shield.get_mev_commitment_and_ciphertext",
-        return_value=(mev_commitment, mev_ciphertext, payload_core),
+    mocked_get_mev_shielded_ciphertext = mocker.patch(
+        "bittensor.core.extrinsics.mev_shield.get_mev_shielded_ciphertext",
+        return_value=mev_ciphertext,
     )
     mocked_mev_shield = mocker.patch("bittensor.core.extrinsics.mev_shield.MevShield")
     mock_mev_shield_instance = mocker.MagicMock()
@@ -217,7 +150,7 @@ def test_submit_encrypted_extrinsic_success_with_revealed_execution(
         {
             "module_id": "mevShield",
             "event_id": "EncryptedSubmitted",
-            "attributes": {"id": shield_id},
+            "attributes": {"id": "shield_id_123"},
         }
     ]
 
@@ -232,7 +165,7 @@ def test_submit_encrypted_extrinsic_success_with_revealed_execution(
         return_value={
             "module_id": "mevShield",
             "event_id": "EncryptedSubmitted",
-            "attributes": {"id": shield_id},
+            "attributes": {"id": "shield_id_123"},
         },
     )
 
@@ -264,13 +197,12 @@ def test_submit_encrypted_extrinsic_success_with_revealed_execution(
         nonce=next_nonce,
         era="00",
     )
-    mocked_get_mev_commitment.assert_called_once_with(
+    mocked_get_mev_shielded_ciphertext.assert_called_once_with(
         signed_ext=mock_signed_extrinsic,
         ml_kem_768_public_key=ml_kem_768_public_key,
     )
     mocked_mev_shield.assert_called_once_with(subtensor)
     mock_mev_shield_instance.submit_encrypted.assert_called_once_with(
-        commitment=mev_commitment,
         ciphertext=mev_ciphertext,
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
@@ -290,16 +222,13 @@ def test_submit_encrypted_extrinsic_success_with_revealed_execution(
     mocked_wait_for_extrinsic.assert_called_once_with(
         subtensor=subtensor,
         extrinsic_hash=signed_extrinsic_hash,
-        shield_id=shield_id,
         submit_block_hash=block_hash,
         timeout_blocks=3,
     )
     assert result == mock_response
     assert result.mev_extrinsic == mock_mev_extrinsic
-    assert result.data["commitment"] == mev_commitment
     assert result.data["ciphertext"] == mev_ciphertext
     assert result.data["ml_kem_768_public_key"] == ml_kem_768_public_key
-    assert result.data["payload_core"] == payload_core
     assert result.data["signed_extrinsic_hash"] == signed_extrinsic_hash
 
 
@@ -314,9 +243,7 @@ def test_submit_encrypted_extrinsic_success_without_revealed_execution(
     )
 
     ml_kem_768_public_key = b"fake_ml_kem_key" * 74
-    mev_commitment = "0xcommitment"
     mev_ciphertext = b"fake_ciphertext"
-    payload_core = b"fake_payload"
     signed_extrinsic_hash_hex = "abcdef123456"
     signed_extrinsic_hash = f"0x{signed_extrinsic_hash_hex}"
     current_nonce = 5
@@ -342,9 +269,9 @@ def test_submit_encrypted_extrinsic_success_without_revealed_execution(
         "create_signed_extrinsic",
         return_value=mock_signed_extrinsic,
     )
-    mocked_get_mev_commitment = mocker.patch(
-        "bittensor.core.extrinsics.mev_shield.get_mev_commitment_and_ciphertext",
-        return_value=(mev_commitment, mev_ciphertext, payload_core),
+    mocked_get_mev_shielded_ciphertext = mocker.patch(
+        "bittensor.core.extrinsics.mev_shield.get_mev_shielded_ciphertext",
+        return_value=mev_ciphertext,
     )
     mocked_mev_shield = mocker.patch("bittensor.core.extrinsics.mev_shield.MevShield")
     mock_mev_shield_instance = mocker.MagicMock()
@@ -382,13 +309,12 @@ def test_submit_encrypted_extrinsic_success_without_revealed_execution(
         nonce=next_nonce,
         era="00",
     )
-    mocked_get_mev_commitment.assert_called_once_with(
+    mocked_get_mev_shielded_ciphertext.assert_called_once_with(
         signed_ext=mock_signed_extrinsic,
         ml_kem_768_public_key=ml_kem_768_public_key,
     )
     mocked_mev_shield.assert_called_once_with(subtensor)
     mock_mev_shield_instance.submit_encrypted.assert_called_once_with(
-        commitment=mev_commitment,
         ciphertext=mev_ciphertext,
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
@@ -402,10 +328,8 @@ def test_submit_encrypted_extrinsic_success_without_revealed_execution(
         wait_for_finalization=False,
     )
     assert result == mock_response
-    assert result.data["commitment"] == mev_commitment
     assert result.data["ciphertext"] == mev_ciphertext
     assert result.data["ml_kem_768_public_key"] == ml_kem_768_public_key
-    assert result.data["payload_core"] == payload_core
     assert result.data["signed_extrinsic_hash"] == signed_extrinsic_hash
 
 
@@ -517,9 +441,7 @@ def test_submit_encrypted_extrinsic_encrypted_submitted_event_not_found(
     )
 
     ml_kem_768_public_key = b"fake_ml_kem_key" * 74
-    mev_commitment = "0xcommitment"
     mev_ciphertext = b"fake_ciphertext"
-    payload_core = b"fake_payload"
     current_nonce = 5
     next_nonce = 6
 
@@ -543,9 +465,9 @@ def test_submit_encrypted_extrinsic_encrypted_submitted_event_not_found(
         "create_signed_extrinsic",
         return_value=mock_signed_extrinsic,
     )
-    mocked_get_mev_commitment = mocker.patch(
-        "bittensor.core.extrinsics.mev_shield.get_mev_commitment_and_ciphertext",
-        return_value=(mev_commitment, mev_ciphertext, payload_core),
+    mocked_get_mev_shielded_ciphertext = mocker.patch(
+        "bittensor.core.extrinsics.mev_shield.get_mev_shielded_ciphertext",
+        return_value=mev_ciphertext,
     )
     mocked_mev_shield = mocker.patch("bittensor.core.extrinsics.mev_shield.MevShield")
     mock_mev_shield_instance = mocker.MagicMock()
@@ -589,13 +511,12 @@ def test_submit_encrypted_extrinsic_encrypted_submitted_event_not_found(
         nonce=next_nonce,
         era="00",
     )
-    mocked_get_mev_commitment.assert_called_once_with(
+    mocked_get_mev_shielded_ciphertext.assert_called_once_with(
         signed_ext=mock_signed_extrinsic,
         ml_kem_768_public_key=ml_kem_768_public_key,
     )
     mocked_mev_shield.assert_called_once_with(subtensor)
     mock_mev_shield_instance.submit_encrypted.assert_called_once_with(
-        commitment=mev_commitment,
         ciphertext=mev_ciphertext,
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
@@ -628,14 +549,11 @@ def test_submit_encrypted_extrinsic_failed_to_find_outcome(
     )
 
     ml_kem_768_public_key = b"fake_ml_kem_key" * 74
-    mev_commitment = "0xcommitment"
     mev_ciphertext = b"fake_ciphertext"
-    payload_core = b"fake_payload"
     signed_extrinsic_hash_hex = "abcdef123456"
     signed_extrinsic_hash = f"0x{signed_extrinsic_hash_hex}"
     current_nonce = 5
     next_nonce = 6
-    shield_id = "shield_id_123"
     block_hash = "0xblockhash"
 
     mocked_unlock_wallet = mocker.patch.object(
@@ -658,9 +576,9 @@ def test_submit_encrypted_extrinsic_failed_to_find_outcome(
         "create_signed_extrinsic",
         return_value=mock_signed_extrinsic,
     )
-    mocked_get_mev_commitment = mocker.patch(
-        "bittensor.core.extrinsics.mev_shield.get_mev_commitment_and_ciphertext",
-        return_value=(mev_commitment, mev_ciphertext, payload_core),
+    mocked_get_mev_shielded_ciphertext = mocker.patch(
+        "bittensor.core.extrinsics.mev_shield.get_mev_shielded_ciphertext",
+        return_value=mev_ciphertext,
     )
     mocked_mev_shield = mocker.patch("bittensor.core.extrinsics.mev_shield.MevShield")
     mock_mev_shield_instance = mocker.MagicMock()
@@ -676,7 +594,7 @@ def test_submit_encrypted_extrinsic_failed_to_find_outcome(
         {
             "module_id": "mevShield",
             "event_id": "EncryptedSubmitted",
-            "attributes": {"id": shield_id},
+            "attributes": {"id": "shield_id_123"},
         }
     ]
 
@@ -685,7 +603,7 @@ def test_submit_encrypted_extrinsic_failed_to_find_outcome(
         return_value={
             "module_id": "mevShield",
             "event_id": "EncryptedSubmitted",
-            "attributes": {"id": shield_id},
+            "attributes": {"id": "shield_id_123"},
         },
     )
     mocked_wait_for_extrinsic = mocker.patch(
@@ -719,13 +637,12 @@ def test_submit_encrypted_extrinsic_failed_to_find_outcome(
         nonce=next_nonce,
         era="00",
     )
-    mocked_get_mev_commitment.assert_called_once_with(
+    mocked_get_mev_shielded_ciphertext.assert_called_once_with(
         signed_ext=mock_signed_extrinsic,
         ml_kem_768_public_key=ml_kem_768_public_key,
     )
     mocked_mev_shield.assert_called_once_with(subtensor)
     mock_mev_shield_instance.submit_encrypted.assert_called_once_with(
-        commitment=mev_commitment,
         ciphertext=mev_ciphertext,
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
@@ -745,7 +662,6 @@ def test_submit_encrypted_extrinsic_failed_to_find_outcome(
     mocked_wait_for_extrinsic.assert_called_once_with(
         subtensor=subtensor,
         extrinsic_hash=signed_extrinsic_hash,
-        shield_id=shield_id,
         submit_block_hash=block_hash,
         timeout_blocks=3,
     )
@@ -763,14 +679,11 @@ def test_submit_encrypted_extrinsic_execution_failure(subtensor, fake_wallet, mo
     )
 
     ml_kem_768_public_key = b"fake_ml_kem_key" * 74
-    mev_commitment = "0xcommitment"
     mev_ciphertext = b"fake_ciphertext"
-    payload_core = b"fake_payload"
     signed_extrinsic_hash_hex = "abcdef123456"
     signed_extrinsic_hash = f"0x{signed_extrinsic_hash_hex}"
     current_nonce = 5
     next_nonce = 6
-    shield_id = "shield_id_123"
     block_hash = "0xblockhash"
     error_message = "Execution failed"
     formatted_error = "Formatted error: Execution failed"
@@ -795,9 +708,9 @@ def test_submit_encrypted_extrinsic_execution_failure(subtensor, fake_wallet, mo
         "create_signed_extrinsic",
         return_value=mock_signed_extrinsic,
     )
-    mocked_get_mev_commitment = mocker.patch(
-        "bittensor.core.extrinsics.mev_shield.get_mev_commitment_and_ciphertext",
-        return_value=(mev_commitment, mev_ciphertext, payload_core),
+    mocked_get_mev_shielded_ciphertext = mocker.patch(
+        "bittensor.core.extrinsics.mev_shield.get_mev_shielded_ciphertext",
+        return_value=mev_ciphertext,
     )
     mocked_mev_shield = mocker.patch("bittensor.core.extrinsics.mev_shield.MevShield")
     mock_mev_shield_instance = mocker.MagicMock()
@@ -813,7 +726,7 @@ def test_submit_encrypted_extrinsic_execution_failure(subtensor, fake_wallet, mo
         {
             "module_id": "mevShield",
             "event_id": "EncryptedSubmitted",
-            "attributes": {"id": shield_id},
+            "attributes": {"id": "shield_id_123"},
         }
     ]
 
@@ -829,7 +742,7 @@ def test_submit_encrypted_extrinsic_execution_failure(subtensor, fake_wallet, mo
         return_value={
             "module_id": "mevShield",
             "event_id": "EncryptedSubmitted",
-            "attributes": {"id": shield_id},
+            "attributes": {"id": "shield_id_123"},
         },
     )
     mocked_format_error_message = mocker.patch(
@@ -863,13 +776,12 @@ def test_submit_encrypted_extrinsic_execution_failure(subtensor, fake_wallet, mo
         nonce=next_nonce,
         era="00",
     )
-    mocked_get_mev_commitment.assert_called_once_with(
+    mocked_get_mev_shielded_ciphertext.assert_called_once_with(
         signed_ext=mock_signed_extrinsic,
         ml_kem_768_public_key=ml_kem_768_public_key,
     )
     mocked_mev_shield.assert_called_once_with(subtensor)
     mock_mev_shield_instance.submit_encrypted.assert_called_once_with(
-        commitment=mev_commitment,
         ciphertext=mev_ciphertext,
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
@@ -889,7 +801,6 @@ def test_submit_encrypted_extrinsic_execution_failure(subtensor, fake_wallet, mo
     mocked_wait_for_extrinsic.assert_called_once_with(
         subtensor=subtensor,
         extrinsic_hash=signed_extrinsic_hash,
-        shield_id=shield_id,
         submit_block_hash=block_hash,
         timeout_blocks=3,
     )
@@ -910,9 +821,7 @@ def test_submit_encrypted_extrinsic_sign_and_send_failure(
     )
 
     ml_kem_768_public_key = b"fake_ml_kem_key" * 74
-    mev_commitment = "0xcommitment"
     mev_ciphertext = b"fake_ciphertext"
-    payload_core = b"fake_payload"
     current_nonce = 5
     next_nonce = 6
 
@@ -936,9 +845,9 @@ def test_submit_encrypted_extrinsic_sign_and_send_failure(
         "create_signed_extrinsic",
         return_value=mock_signed_extrinsic,
     )
-    mocked_get_mev_commitment = mocker.patch(
-        "bittensor.core.extrinsics.mev_shield.get_mev_commitment_and_ciphertext",
-        return_value=(mev_commitment, mev_ciphertext, payload_core),
+    mocked_get_mev_shielded_ciphertext = mocker.patch(
+        "bittensor.core.extrinsics.mev_shield.get_mev_shielded_ciphertext",
+        return_value=mev_ciphertext,
     )
     mocked_mev_shield = mocker.patch("bittensor.core.extrinsics.mev_shield.MevShield")
     mock_mev_shield_instance = mocker.MagicMock()
@@ -975,13 +884,12 @@ def test_submit_encrypted_extrinsic_sign_and_send_failure(
         nonce=next_nonce,
         era="00",
     )
-    mocked_get_mev_commitment.assert_called_once_with(
+    mocked_get_mev_shielded_ciphertext.assert_called_once_with(
         signed_ext=mock_signed_extrinsic,
         ml_kem_768_public_key=ml_kem_768_public_key,
     )
     mocked_mev_shield.assert_called_once_with(subtensor)
     mock_mev_shield_instance.submit_encrypted.assert_called_once_with(
-        commitment=mev_commitment,
         ciphertext=mev_ciphertext,
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
@@ -1006,9 +914,7 @@ def test_submit_encrypted_extrinsic_with_hotkey(subtensor, fake_wallet, mocker):
     fake_wallet.hotkey.ss58_address = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
 
     ml_kem_768_public_key = b"fake_ml_kem_key" * 74
-    mev_commitment = "0xcommitment"
     mev_ciphertext = b"fake_ciphertext"
-    payload_core = b"fake_payload"
     current_nonce = 5
     next_nonce = 6
 
@@ -1032,9 +938,9 @@ def test_submit_encrypted_extrinsic_with_hotkey(subtensor, fake_wallet, mocker):
         "create_signed_extrinsic",
         return_value=mock_signed_extrinsic,
     )
-    mocked_get_mev_commitment = mocker.patch(
-        "bittensor.core.extrinsics.mev_shield.get_mev_commitment_and_ciphertext",
-        return_value=(mev_commitment, mev_ciphertext, payload_core),
+    mocked_get_mev_shielded_ciphertext = mocker.patch(
+        "bittensor.core.extrinsics.mev_shield.get_mev_shielded_ciphertext",
+        return_value=mev_ciphertext,
     )
     mocked_mev_shield = mocker.patch("bittensor.core.extrinsics.mev_shield.MevShield")
     mock_mev_shield_instance = mocker.MagicMock()
@@ -1072,13 +978,12 @@ def test_submit_encrypted_extrinsic_with_hotkey(subtensor, fake_wallet, mocker):
         nonce=next_nonce,
         era="00",
     )
-    mocked_get_mev_commitment.assert_called_once_with(
+    mocked_get_mev_shielded_ciphertext.assert_called_once_with(
         signed_ext=mock_signed_extrinsic,
         ml_kem_768_public_key=ml_kem_768_public_key,
     )
     mocked_mev_shield.assert_called_once_with(subtensor)
     mock_mev_shield_instance.submit_encrypted.assert_called_once_with(
-        commitment=mev_commitment,
         ciphertext=mev_ciphertext,
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
@@ -1103,9 +1008,7 @@ def test_submit_encrypted_extrinsic_with_period(subtensor, fake_wallet, mocker):
     )
 
     ml_kem_768_public_key = b"fake_ml_kem_key" * 74
-    mev_commitment = "0xcommitment"
     mev_ciphertext = b"fake_ciphertext"
-    payload_core = b"fake_payload"
     current_nonce = 5
     next_nonce = 6
     period = 64
@@ -1130,9 +1033,9 @@ def test_submit_encrypted_extrinsic_with_period(subtensor, fake_wallet, mocker):
         "create_signed_extrinsic",
         return_value=mock_signed_extrinsic,
     )
-    mocked_get_mev_commitment = mocker.patch(
-        "bittensor.core.extrinsics.mev_shield.get_mev_commitment_and_ciphertext",
-        return_value=(mev_commitment, mev_ciphertext, payload_core),
+    mocked_get_mev_shielded_ciphertext = mocker.patch(
+        "bittensor.core.extrinsics.mev_shield.get_mev_shielded_ciphertext",
+        return_value=mev_ciphertext,
     )
     mocked_mev_shield = mocker.patch("bittensor.core.extrinsics.mev_shield.MevShield")
     mock_mev_shield_instance = mocker.MagicMock()
@@ -1170,13 +1073,12 @@ def test_submit_encrypted_extrinsic_with_period(subtensor, fake_wallet, mocker):
         nonce=next_nonce,
         era={"period": period},
     )
-    mocked_get_mev_commitment.assert_called_once_with(
+    mocked_get_mev_shielded_ciphertext.assert_called_once_with(
         signed_ext=mock_signed_extrinsic,
         ml_kem_768_public_key=ml_kem_768_public_key,
     )
     mocked_mev_shield.assert_called_once_with(subtensor)
     mock_mev_shield_instance.submit_encrypted.assert_called_once_with(
-        commitment=mev_commitment,
         ciphertext=mev_ciphertext,
     )
     mocked_sign_and_send_extrinsic.assert_called_once_with(
