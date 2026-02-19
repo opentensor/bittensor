@@ -2,6 +2,8 @@
 
 import pytest
 
+from bittensor_drand import encrypt_mlkem768
+
 from bittensor.core.extrinsics import pallets
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -169,3 +171,102 @@ async def test_mev_shield_happy_path_async(
     )
     logging.console.info(f"Stake after: {stake_after}")
     assert stake_after > stake_before
+
+
+@pytest.mark.parametrize("local_chain", [False], indirect=True)
+def test_mev_shield_invalid_ciphertext(subtensor, alice_wallet, local_chain):
+    """Submitting garbage bytes as ciphertext should be rejected by CheckShieldedTxValidity (Custom(0))."""
+    extrinsic_call = pallets.MevShield(subtensor.inner_subtensor).submit_encrypted(
+        ciphertext=b"\x00",
+    )
+
+    logging.console.info(f"Extrinsic call: {extrinsic_call}")
+
+    response = subtensor.sign_and_send_extrinsic(
+        wallet=alice_wallet,
+        call=extrinsic_call,
+        raise_error=False,
+    )
+    assert not response.success
+
+
+@pytest.mark.parametrize("local_chain", [False], indirect=True)
+@pytest.mark.asyncio
+async def test_mev_shield_invalid_ciphertext_async(
+    async_subtensor, alice_wallet, local_chain
+):
+    """Async: submitting garbage ciphertext should be rejected by CheckShieldedTxValidity (Custom(0))."""
+    extrinsic_call = await pallets.MevShield(
+        async_subtensor.inner_subtensor
+    ).submit_encrypted(
+        ciphertext=b"\x00",
+    )
+
+    logging.console.info(f"Extrinsic call: {extrinsic_call}")
+
+    response = await async_subtensor.sign_and_send_extrinsic(
+        wallet=alice_wallet,
+        call=extrinsic_call,
+        raise_error=False,
+    )
+    assert not response.success
+
+
+@pytest.mark.parametrize("local_chain", [False], indirect=True)
+def test_mev_shield_invalid_key_hash(subtensor, alice_wallet, local_chain):
+    """Submitting ciphertext with a corrupted key_hash should be rejected by CheckShieldedTxValidity (Custom(1))."""
+
+    # need to wait to have `get_mev_shield_next_key` available
+    subtensor.wait_for_block(2)
+
+    pk = subtensor.mev_shield.get_mev_shield_next_key()
+    assert pk is not None, "NextKey must be available for this test"
+    logging.console.info(f"NextKey: {pk}")
+
+    ciphertext = encrypt_mlkem768(pk, b"dummy_payload", include_key_hash=True)
+    corrupted = b"\xff" * 16 + ciphertext[16:]
+    logging.console.info(f"Corrupted: {corrupted}")
+
+    extrinsic_call = pallets.MevShield(subtensor.inner_subtensor).submit_encrypted(
+        ciphertext=corrupted,
+    )
+    logging.console.info(f"Extrinsic call: {extrinsic_call}")
+    response = subtensor.sign_and_send_extrinsic(
+        wallet=alice_wallet,
+        call=extrinsic_call,
+        raise_error=False,
+    )
+    assert not response.success
+
+
+@pytest.mark.parametrize("local_chain", [False], indirect=True)
+@pytest.mark.asyncio
+async def test_mev_shield_invalid_key_hash_async(
+    async_subtensor, alice_wallet, local_chain
+):
+    """Async: submitting ciphertext with corrupted key_hash should be rejected (Custom(1))."""
+
+    # need to wait to have `get_mev_shield_next_key` available
+    await async_subtensor.wait_for_block(2)
+
+    pk = await async_subtensor.mev_shield.get_mev_shield_next_key()
+    assert pk is not None, "NextKey must be available for this test"
+    logging.console.info(f"NextKey: {pk}")
+
+    ciphertext = encrypt_mlkem768(pk, b"dummy_payload", include_key_hash=True)
+    corrupted = b"\xff" * 16 + ciphertext[16:]
+    logging.console.info(f"Corrupted: {corrupted}")
+
+    extrinsic_call = await pallets.MevShield(
+        async_subtensor.inner_subtensor
+    ).submit_encrypted(
+        ciphertext=corrupted,
+    )
+    logging.console.info(f"Extrinsic call: {extrinsic_call}")
+
+    response = await async_subtensor.sign_and_send_extrinsic(
+        wallet=alice_wallet,
+        call=extrinsic_call,
+        raise_error=True,
+    )
+    assert not response.success
