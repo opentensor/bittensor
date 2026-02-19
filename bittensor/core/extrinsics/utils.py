@@ -223,40 +223,25 @@ def apply_pure_proxy_data(
     return response.with_log("warning")
 
 
-def get_mev_commitment_and_ciphertext(
+def get_mev_shielded_ciphertext(
     signed_ext: "GenericExtrinsic",
     ml_kem_768_public_key: bytes,
-) -> tuple[str, bytes, bytes]:
+) -> bytes:
     """
-    Builds MEV Shield payload and encrypts it using ML-KEM-768 + XChaCha20Poly1305.
+    Encrypts a signed extrinsic for MEV Shield submission.
 
-    This function constructs the payload structure required for MEV Shield encryption and performs the encryption
-    process. The payload binds the transaction to a specific key epoch using the key_hash, which replaces nonce-based
-    replay protection.
+    This function extracts the raw extrinsic bytes and encrypts them using ML-KEM-768 + XChaCha20Poly1305 with the
+    twox_128 key hash prepended for on-chain validation.
 
     Parameters:
         signed_ext: The signed GenericExtrinsic object representing the inner call to be encrypted and executed.
-        ml_kem_768_public_key: The ML-KEM-768 public key bytes (1184 bytes) from NextKey storage. This key is used for
-            encryption and its hash binds the transaction to the key epoch.
+        ml_kem_768_public_key: The ML-KEM-768 public key bytes (1184 bytes) from NextKey storage.
 
     Returns:
-        A tuple containing:
-            - commitment_hex: Hex string of the Blake2-256 hash of payload_core (32 bytes).
-            - ciphertext: Encrypted blob containing plaintext.
-            - payload_core: Raw payload bytes before encryption.
+        The encrypted ciphertext bytes in wire format: [key_hash(16)][u16 kem_len LE][kem_ct][nonce24][aead_ct]
     """
-    payload_core = signed_ext.data.data
-
-    plaintext = bytes(payload_core)
-
-    # Getting ciphertext (encrypting plaintext using ML-KEM-768)
-    ciphertext = encrypt_mlkem768(ml_kem_768_public_key, plaintext)
-
-    # Compute commitment: blake2_256(payload_core)
-    commitment_hash = hashlib.blake2b(payload_core, digest_size=32).digest()
-    commitment_hex = "0x" + commitment_hash.hex()
-
-    return commitment_hex, ciphertext, payload_core
+    plaintext = bytes(signed_ext.data.data)
+    return encrypt_mlkem768(ml_kem_768_public_key, plaintext, include_key_hash=True)
 
 
 def get_event_data_by_event_name(events: list, event_name: str) -> Optional[dict]:
