@@ -15,14 +15,12 @@ class MevShield(_BasePallet):
     Example:
         # Sync usage
         call = MevShield(subtensor).submit_encrypted(
-            commitment="0x1234...",
             ciphertext=b"encrypted_data..."
         )
         response = subtensor.sign_and_send_extrinsic(call=call, ...)
 
         # Async usage
         call = await MevShield(async_subtensor).submit_encrypted(
-            commitment="0x1234...",
             ciphertext=b"encrypted_data..."
         )
         response = await async_subtensor.sign_and_send_extrinsic(call=call, ...)
@@ -30,7 +28,6 @@ class MevShield(_BasePallet):
 
     def submit_encrypted(
         self,
-        commitment: str,
         ciphertext: bytes,
     ) -> Call:
         """Returns GenericCall instance for MevShield function submit_encrypted.
@@ -39,21 +36,18 @@ class MevShield(_BasePallet):
         transaction pool until it is included in a block and decrypted by validators.
 
         Parameters:
-            commitment: The blake2_256 hash of the payload_core (signer + nonce + SCALE(call)). Must be a hex string
-                with "0x" prefix.
             ciphertext: The encrypted blob containing the payload and signature.
-                Format: [u16 kem_len LE][kem_ct][nonce24][aead_ct]
+                Format: [key_hash(16)][u16 kem_len LE][kem_ct][nonce24][aead_ct]
                 Maximum size: 8192 bytes.
 
         Returns:
             GenericCall instance ready for extrinsic submission.
 
         Note:
-            The commitment is used to verify the ciphertext's content at decryption time. The ciphertext is encrypted
-            using ML-KEM-768 + XChaCha20Poly1305 with the public key from the NextKey storage item, which rotates every
-            block.
+            The ciphertext is encrypted using ML-KEM-768 + XChaCha20Poly1305 with the public key from the NextKey
+            storage item, which rotates every block. The key_hash prefix (twox_128 of the public key) is validated
+            on-chain by CheckShieldedTxValidity.
         """
         return self.create_composed_call(
-            commitment=commitment,
             ciphertext=ciphertext,
         )
