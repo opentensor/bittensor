@@ -6,7 +6,7 @@ from async_substrate_interface import ExtrinsicReceipt
 from async_substrate_interface.errors import SubstrateRequestException
 
 from bittensor.utils import format_error_message
-from bittensor.core.errors import SHIELD_VALIDATION_ERRORS
+from bittensor.core.errors import map_shield_error
 from bittensor.core.extrinsics.pallets import MevShield
 from bittensor.core.extrinsics.utils import (
     get_mev_shielded_ciphertext,
@@ -214,19 +214,19 @@ def submit_encrypted_extrinsic(
                     response.message = format_error_message(
                         response.mev_extrinsic.error_message  # type: ignore
                     )
-                    response.error = RuntimeError(response.message)
+                    response.error = SubstrateRequestException(response.message)
                     response.success = False
                     if raise_error:
-                        raise SubstrateRequestException(response.error)
+                        raise response.error
                 else:
                     logging.debug(
                         "[green]Encrypted extrinsic submitted successfully.[/green]"
                     )
         else:
-            for marker, description in SHIELD_VALIDATION_ERRORS.items():
-                if marker in str(response.message):
-                    response.message = description
-                    break
+            response.message = map_shield_error(str(response.message))
+            response.error = SubstrateRequestException(response.message)
+            if raise_error:
+                raise response.error
             logging.error(f"[red]{response.message}[/red]")
 
         return response
