@@ -1,6 +1,7 @@
 from bittensor_wallet import Wallet
 from scalecodec.types import GenericCall
 from async_substrate_interface import ExtrinsicReceipt
+from async_substrate_interface.errors import SubstrateRequestException
 
 from bittensor.core.extrinsics import mev_shield
 from bittensor.core.types import ExtrinsicResponse
@@ -806,7 +807,7 @@ def test_submit_encrypted_extrinsic_execution_failure(subtensor, fake_wallet, mo
     )
     mocked_format_error_message.assert_called_once_with(error_message)
     assert result.success is False
-    assert isinstance(result.error, RuntimeError)
+    assert isinstance(result.error, SubstrateRequestException)
     assert result.message == formatted_error
 
 
