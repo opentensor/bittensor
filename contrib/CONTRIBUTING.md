@@ -10,7 +10,7 @@ These are mostly guidelines, not rules. Use your best judgment, and feel free to
    1. [Good First Issue Label](#good-first-issue-label)
    1. [Beginner and Help-wanted Issues Label](#beginner-and-help-wanted-issues-label)
 1. [How Can I Contribute?](#how-can-i-contribute)
-   1. [Code Contribution General Guideline](#code-contribution-general-guidelines)
+   1. [Code Contribution General Guidelines](#code-contribution-general-guidelines)
    1. [Pull Request Philosophy](#pull-request-philosophy)
    1. [Pull Request Process](#pull-request-process)
    1. [Testing](#testing)
