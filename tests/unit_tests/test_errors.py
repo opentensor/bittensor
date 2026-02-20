@@ -54,7 +54,10 @@ class TestMapShieldError:
     def test_custom_error_23_maps_to_parsing_failure(self):
         msg = "Subtensor returned `SubstrateRequestException(Verification Error)` error. This means: `Custom error: 23 | Please consult docs`."
         result = map_shield_error(msg)
-        assert result == "Failed to parse shielded transaction: the ciphertext has an invalid format."
+        assert (
+            result
+            == "Failed to parse shielded transaction: the ciphertext has an invalid format."
+        )
 
     def test_custom_error_24_maps_to_invalid_key_hash(self):
         msg = "Subtensor returned `SubstrateRequestException(Verification Error)` error. This means: `Custom error: 24 | Please consult docs`."
