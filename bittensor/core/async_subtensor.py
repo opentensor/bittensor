@@ -1935,11 +1935,7 @@ class AsyncSubtensor(SubtensorMixin):
             ),
             reuse_block_hash=reuse_block,
         )
-        pending_value = (
-            response.value
-            if response is not None and hasattr(response, "value")
-            else response
-        )
+        pending_value = getattr(response, "value", response)
         children, cooldown = cast(
             tuple[list[tuple[int, Any]], int],
             pending_value,
