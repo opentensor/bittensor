@@ -1067,7 +1067,7 @@ class AsyncSubtensor(SubtensorMixin):
         )
         return cast(
             Optional[int],
-            query.value if query is not None and hasattr(query, "value") else query,
+            getattr(query, "value", query)
         )
 
     async def blocks_since_last_update(
