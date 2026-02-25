@@ -1339,7 +1339,7 @@ class AsyncSubtensor(SubtensorMixin):
         )
         return cast(
             int,
-            query.value if query is not None and hasattr(query, "value") else query,
+            getattr(query, "value", query)
         )
 
     async def get_all_subnets_info(
