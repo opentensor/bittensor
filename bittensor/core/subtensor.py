@@ -4075,7 +4075,7 @@ class Subtensor(SubtensorMixin):
         )
         return cast(
             Optional[list[bool]],
-            query.value if query is not None and hasattr(query, "value") else query,
+            getattr(query, "value", query)
         )
 
     def get_timelocked_weight_commits(
