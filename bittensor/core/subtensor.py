@@ -871,7 +871,7 @@ class Subtensor(SubtensorMixin):
         )
         return cast(
             Optional[int],
-            query.value if query is not None and hasattr(query, "value") else query,
+            getattr(query, "value", query)
         )
 
     def blocks_since_last_update(
@@ -1070,7 +1070,7 @@ class Subtensor(SubtensorMixin):
         )
         return cast(
             int,
-            query.value if query is not None and hasattr(query, "value") else query,
+            getattr(query, "value", query)
         )
 
     def get_all_subnets_info(self, block: Optional[int] = None) -> list["SubnetInfo"]:
@@ -1561,9 +1561,7 @@ class Subtensor(SubtensorMixin):
         )
         children, cooldown = cast(
             tuple[list[tuple[int, Any]], int],
-            pending_query.value
-            if pending_query is not None and hasattr(pending_query, "value")
-            else pending_query,
+            getattr(pending_query, "value", pending_query)
         )
 
         return (
@@ -1669,7 +1667,7 @@ class Subtensor(SubtensorMixin):
             storage_function="ColdkeySwapAnnouncementDelay",
             block_hash=block_hash,
         )
-        value = query.value if query is not None and hasattr(query, "value") else query
+        value = getattr(query, "value", query)
         return cast(int, value) if value is not None else 0
 
     def get_coldkey_swap_constants(
@@ -1744,7 +1742,7 @@ class Subtensor(SubtensorMixin):
             storage_function="ColdkeySwapReannouncementDelay",
             block_hash=block_hash,
         )
-        value = query.value if query is not None and hasattr(query, "value") else query
+        value = getattr(query, "value", query)
         return cast(int, value) if value is not None else 0
 
     def get_coldkey_swap_dispute(
@@ -1875,7 +1873,7 @@ class Subtensor(SubtensorMixin):
             return ""
         return cast(
             Union[str, dict],
-            commit_data.value if hasattr(commit_data, "value") else commit_data,
+            getattr(commit_data, "value, commit_data)
         )
 
     def get_crowdloan_constants(
@@ -2018,9 +2016,7 @@ class Subtensor(SubtensorMixin):
             storage_function="NextCrowdloanId",
             block_hash=block_hash,
         )
-        value = (
-            result.value if result is not None and hasattr(result, "value") else result
-        )
+        value = getattr(result, "value", result)
         return int(value or 0)
 
     def get_crowdloans(
@@ -2311,9 +2307,7 @@ class Subtensor(SubtensorMixin):
         hotkey_owner = hk_owner_query if exists else None
         return cast(
             Optional[str],
-            hotkey_owner.value
-            if hotkey_owner is not None and hasattr(hotkey_owner, "value")
-            else hotkey_owner,
+            getattr(hotkey_owner, "value", hotkey_owner)
         )
 
     def get_last_bonds_reset(
@@ -2827,9 +2821,7 @@ class Subtensor(SubtensorMixin):
             block_hash=block_hash,
         )
 
-        query_value = (
-            query.value if query is not None and hasattr(query, "value") else query
-        )
+        query_value = getattr(query, "value", query)
         if query_value is None or not isinstance(query_value, dict):
             return None
 
@@ -3208,9 +3200,7 @@ class Subtensor(SubtensorMixin):
             params=[delegate_account_ss58],
             block_hash=block_hash,
         )
-        query_value = (
-            query.value if query is not None and hasattr(query, "value") else query
-        )
+        query_value = getattr(query, "value", query)
         return ProxyAnnouncementInfo.from_dict(cast(list[Any], query_value)[0])
 
     def get_proxy_announcements(
@@ -3401,9 +3391,7 @@ class Subtensor(SubtensorMixin):
             params=[coldkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
-        query_value = (
-            query.value if query is not None and hasattr(query, "value") else query
-        )
+        query_value = getattr(query, "value", query)
         claim_type = cast(dict[str, Any], query_value)
         # Query returns enum as dict: {"Swap": ()} or {"Keep": ()} or {"KeepSubnets": {"subnets": [1, 2, 3]}}
         variant_name = next(iter(claim_type.keys()))
@@ -3447,7 +3435,7 @@ class Subtensor(SubtensorMixin):
             params=[netuid, hotkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
-        value = query.value if query is not None and hasattr(query, "value") else query
+        value = getattr(query, "value", query)
         return Balance.from_rao(cast(int, value)).set_unit(netuid=netuid)
 
     def get_root_claimable_rate(

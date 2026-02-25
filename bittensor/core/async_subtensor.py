@@ -2487,9 +2487,7 @@ class AsyncSubtensor(SubtensorMixin):
             storage_function="NextCrowdloanId",
             block_hash=block_hash,
         )
-        value = (
-            result.value if result is not None and hasattr(result, "value") else result
-        )
+        value = getattr(result, "value", result)
         return int(value or 0)
 
     async def get_crowdloans(
@@ -2854,9 +2852,7 @@ class AsyncSubtensor(SubtensorMixin):
         hotkey_owner = hk_owner_query if exists else None
         return cast(
             Optional[str],
-            hotkey_owner.value
-            if hotkey_owner is not None and hasattr(hotkey_owner, "value")
-            else hotkey_owner,
+            getattr(hotkey_owner, "value", hotkey_owner)
         )
 
     async def get_last_bonds_reset(
@@ -3424,9 +3420,7 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
         )
 
-        query_value = (
-            query.value if query is not None and hasattr(query, "value") else query
-        )
+        query_value = getattr(query, "value", query)
         if query_value is None or not isinstance(query_value, dict):
             return None
 
@@ -3879,9 +3873,7 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        query_value = (
-            query.value if query is not None and hasattr(query, "value") else query
-        )
+        query_value = getattr(query, "value", query)
         return ProxyAnnouncementInfo.from_dict(cast(list[Any], query_value)[0])
 
     async def get_proxy_announcements(
@@ -4098,9 +4090,7 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        query_value = (
-            query.value if query is not None and hasattr(query, "value") else query
-        )
+        query_value = getattr(query, "value", query)
         claim_type = cast(dict[str, Any], query_value)
         # Query returns enum as dict: {"Swap": ()} or {"Keep": ()} or {"KeepSubnets": {"subnets": [1, 2, 3]}}
         variant_name = next(iter(claim_type.keys()))
@@ -4150,7 +4140,7 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        value = query.value if query is not None and hasattr(query, "value") else query
+        value = getattr(query, "value", query)
         return Balance.from_rao(cast(int, value)).set_unit(netuid=netuid)
 
     async def get_root_claimable_rate(
@@ -4219,8 +4209,7 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        query_value = (
-            query.value if query is not None and hasattr(query, "value") else query
+        query_value = getattr(query, "value", query)
         )
         bits_list = next(iter(cast(list[list[tuple[int, FixedPoint]]], query_value)))
         return {bits[0]: fixed_to_float(bits[1], frac_bits=32) for bits in bits_list}
@@ -4321,7 +4310,7 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        value = query.value if query is not None and hasattr(query, "value") else query
+        value = getattr(query, "value", query)
         return Balance.from_rao(cast(int, value)).set_unit(netuid=netuid)
 
     async def get_stake(
@@ -4372,11 +4361,7 @@ class AsyncSubtensor(SubtensorMixin):
             params=[hotkey_ss58, netuid],
         )
 
-        hotkey_alpha = (
-            hotkey_alpha_result.value
-            if hotkey_alpha_result is not None and hasattr(hotkey_alpha_result, "value")
-            else hotkey_alpha_result
-        )
+        hotkey_alpha = getattr(hotkey_alpha_result, "value", hotkey_alpha_result)
         alpha_shares_as_float = fixed_to_float(alpha_shares)
         hotkey_shares_as_float = fixed_to_float(hotkey_shares)
 
@@ -4804,7 +4789,7 @@ class AsyncSubtensor(SubtensorMixin):
         )
         return cast(
             Optional[str],
-            query.value if query is not None and hasattr(query, "value") else query,
+            getattr(query, "value", query)
         )
 
     async def get_subnet_price(
@@ -4954,7 +4939,7 @@ class AsyncSubtensor(SubtensorMixin):
         )
         return cast(
             Optional[list[bool]],
-            query.value if query is not None and hasattr(query, "value") else query,
+            getattr(query, "value", query)
         )
 
     async def get_timelocked_weight_commits(
@@ -5226,7 +5211,7 @@ class AsyncSubtensor(SubtensorMixin):
         )
         return cast(
             Optional[int],
-            result.value if result is not None and hasattr(result, "value") else result,
+            getattr(result, "value", result)
         )
 
     async def filter_netuids_by_registered_hotkeys(
@@ -5838,11 +5823,7 @@ class AsyncSubtensor(SubtensorMixin):
             return None
 
         try:
-            identity_data = (
-                identity_info.value
-                if hasattr(identity_info, "value")
-                else identity_info
-            )
+            identity_data = getattr(identity_info, "value", identity_info)
             return ChainIdentity.from_dict(
                 decode_hex_identity_dict(cast(dict[str, Any], identity_data)),
             )
