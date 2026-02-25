@@ -2317,7 +2317,7 @@ class AsyncSubtensor(SubtensorMixin):
             return ""
         return cast(
             Union[str, dict],
-            commit_data.value if hasattr(commit_data, "value") else commit_data,
+           getattr(commit_data, "value", commit_data)
         )
 
     async def get_crowdloan_constants(
