@@ -3950,7 +3950,7 @@ class Subtensor(SubtensorMixin):
         )
         return cast(
             Optional[str],
-            query.value if query is not None and hasattr(query, "value") else query,
+            getattr(query, "value", query)
         )
 
     def get_subnet_price(
