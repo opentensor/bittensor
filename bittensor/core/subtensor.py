@@ -3505,9 +3505,7 @@ class Subtensor(SubtensorMixin):
             params=[hotkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
-        query_value = (
-            query.value if query is not None and hasattr(query, "value") else query
-        )
+        query_value = getattr(query, "value", query)
         bits_list = next(iter(cast(list[list[tuple[int, FixedPoint]]], query_value)))
         return {bits[0]: fixed_to_float(bits[1], frac_bits=32) for bits in bits_list}
 
