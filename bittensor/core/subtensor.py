@@ -5196,8 +5196,8 @@ class Subtensor(SubtensorMixin):
                 raise ChainError.from_error(response_error_message)
 
             extrinsic_response.success = False
-            extrinsic_response.message = format_error_message(response_error_message)
-            extrinsic_response.error = response_error_message
+            extrinsic_response.message = format_error_message(response_error_message)  # type: ignore
+            extrinsic_response.error = response_error_message  # type: ignore
             return extrinsic_response
 
         except SubstrateRequestException as error:
