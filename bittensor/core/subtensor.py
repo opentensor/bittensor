@@ -869,10 +869,7 @@ class Subtensor(SubtensorMixin):
         query = self.query_subtensor(
             name="BlocksSinceLastStep", block=block, params=[netuid]
         )
-        return cast(
-            Optional[int],
-            getattr(query, "value", query)
-        )
+        return cast(Optional[int], getattr(query, "value", query))
 
     def blocks_since_last_update(
         self, netuid: int, uid: int, block: Optional[int] = None
@@ -1068,10 +1065,7 @@ class Subtensor(SubtensorMixin):
             storage_function="AdminFreezeWindow",
             block_hash=self.determine_block_hash(block),
         )
-        return cast(
-            int,
-            getattr(query, "value", query)
-        )
+        return cast(int, getattr(query, "value", query))
 
     def get_all_subnets_info(self, block: Optional[int] = None) -> list["SubnetInfo"]:
         """Retrieves detailed information about all subnets within the Bittensor network.
@@ -1561,7 +1555,7 @@ class Subtensor(SubtensorMixin):
         )
         children, cooldown = cast(
             tuple[list[tuple[int, Any]], int],
-            getattr(pending_query, "value", pending_query)
+            getattr(pending_query, "value", pending_query),
         )
 
         return (
@@ -1871,10 +1865,7 @@ class Subtensor(SubtensorMixin):
         )
         if commit_data is None:
             return ""
-        return cast(
-            Union[str, dict],
-            getattr(commit_data, "value, commit_data)
-        )
+        return cast(Union[str, dict], getattr(commit_data, "value", commit_data))
 
     def get_crowdloan_constants(
         self,
@@ -2016,8 +2007,8 @@ class Subtensor(SubtensorMixin):
             storage_function="NextCrowdloanId",
             block_hash=block_hash,
         )
-        value = getattr(result, "value", result)
-        return int(value or 0)
+        value = cast(int, getattr(result, "value", result))
+        return int(value) or 0
 
     def get_crowdloans(
         self,
@@ -2305,10 +2296,7 @@ class Subtensor(SubtensorMixin):
         if hk_owner_query:
             exists = self.does_hotkey_exist(hotkey_ss58, block=block)
         hotkey_owner = hk_owner_query if exists else None
-        return cast(
-            Optional[str],
-            getattr(hotkey_owner, "value", hotkey_owner)
-        )
+        return cast(Optional[str], getattr(hotkey_owner, "value", hotkey_owner))
 
     def get_last_bonds_reset(
         self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
@@ -3936,10 +3924,7 @@ class Subtensor(SubtensorMixin):
         query = self.query_subtensor(
             name="SubnetOwnerHotkey", params=[netuid], block=block
         )
-        return cast(
-            Optional[str],
-            getattr(query, "value", query)
-        )
+        return cast(Optional[str], getattr(query, "value", query))
 
     def get_subnet_price(
         self,
@@ -4059,10 +4044,7 @@ class Subtensor(SubtensorMixin):
             params=[netuid],
             block=block,
         )
-        return cast(
-            Optional[list[bool]],
-            getattr(query, "value", query)
-        )
+        return cast(Optional[list[bool]], getattr(query, "value", query))
 
     def get_timelocked_weight_commits(
         self,
@@ -4267,10 +4249,7 @@ class Subtensor(SubtensorMixin):
             params=[netuid, hotkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
-        return cast(
-            Optional[int],
-            getattr(result, "value", result)
-        )
+        return cast(Optional[int], getattr(result, "value", result))
 
     def filter_netuids_by_registered_hotkeys(
         self,

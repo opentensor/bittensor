@@ -1065,10 +1065,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block=reuse_block,
             params=[netuid],
         )
-        return cast(
-            Optional[int],
-            getattr(query, "value", query)
-        )
+        return cast(Optional[int], getattr(query, "value", query))
 
     async def blocks_since_last_update(
         self,
@@ -1337,10 +1334,7 @@ class AsyncSubtensor(SubtensorMixin):
             storage_function="AdminFreezeWindow",
             block_hash=block_hash,
         )
-        return cast(
-            int,
-            getattr(query, "value", query)
-        )
+        return cast(int, getattr(query, "value", query))
 
     async def get_all_subnets_info(
         self,
@@ -2315,10 +2309,7 @@ class AsyncSubtensor(SubtensorMixin):
         )
         if commit_data is None:
             return ""
-        return cast(
-            Union[str, dict],
-           getattr(commit_data, "value", commit_data)
-        )
+        return cast(Union[str, dict], getattr(commit_data, "value", commit_data))
 
     async def get_crowdloan_constants(
         self,
@@ -2850,10 +2841,7 @@ class AsyncSubtensor(SubtensorMixin):
         if hk_owner_query:
             exists = await self.does_hotkey_exist(hotkey_ss58, block_hash=block_hash)
         hotkey_owner = hk_owner_query if exists else None
-        return cast(
-            Optional[str],
-            getattr(hotkey_owner, "value", hotkey_owner)
-        )
+        return cast(Optional[str], getattr(hotkey_owner, "value", hotkey_owner))
 
     async def get_last_bonds_reset(
         self,
@@ -4210,7 +4198,6 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block_hash=reuse_block,
         )
         query_value = getattr(query, "value", query)
-        )
         bits_list = next(iter(cast(list[list[tuple[int, FixedPoint]]], query_value)))
         return {bits[0]: fixed_to_float(bits[1], frac_bits=32) for bits in bits_list}
 
@@ -4787,10 +4774,7 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
             reuse_block=reuse_block,
         )
-        return cast(
-            Optional[str],
-            getattr(query, "value", query)
-        )
+        return cast(Optional[str], getattr(query, "value", query))
 
     async def get_subnet_price(
         self,
@@ -4937,10 +4921,7 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
             reuse_block=reuse_block,
         )
-        return cast(
-            Optional[list[bool]],
-            getattr(query, "value", query)
-        )
+        return cast(Optional[list[bool]], getattr(query, "value", query))
 
     async def get_timelocked_weight_commits(
         self,
@@ -5209,10 +5190,7 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        return cast(
-            Optional[int],
-            getattr(result, "value", result)
-        )
+        return cast(Optional[int], getattr(result, "value", result))
 
     async def filter_netuids_by_registered_hotkeys(
         self,
