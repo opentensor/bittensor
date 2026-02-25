@@ -5196,14 +5196,8 @@ class Subtensor(SubtensorMixin):
                 raise ChainError.from_error(response_error_message)
 
             extrinsic_response.success = False
-            if response_error_message is None:
-                extrinsic_response.message = "Unknown error"
-                extrinsic_response.error = None
-            else:
-                extrinsic_response.message = format_error_message(
-                    response_error_message
-                )
-                extrinsic_response.error = ChainError.from_error(response_error_message)
+            extrinsic_response.message = format_error_message(response_error_message)
+            extrinsic_response.error = response_error_message
             return extrinsic_response
 
         except SubstrateRequestException as error:
