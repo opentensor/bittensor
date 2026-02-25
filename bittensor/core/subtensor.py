@@ -3588,7 +3588,7 @@ class Subtensor(SubtensorMixin):
             params=[netuid, hotkey_ss58, coldkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
-        value = query.value if query is not None and hasattr(query, "value") else query
+        value = getattr(query, "value", query)
         return Balance.from_rao(cast(int, value)).set_unit(netuid=netuid)
 
     def get_stake(
