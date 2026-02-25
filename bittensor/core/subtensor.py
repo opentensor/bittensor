@@ -4283,7 +4283,7 @@ class Subtensor(SubtensorMixin):
         )
         return cast(
             Optional[int],
-            result.value if result is not None and hasattr(result, "value") else result,
+            getattr(result, "value", result)
         )
 
     def filter_netuids_by_registered_hotkeys(
