@@ -3844,96 +3844,35 @@ async def test_get_subnet_price(subtensor, mocker):
 
 @pytest.mark.asyncio
 async def test_get_subnet_prices(subtensor, mocker):
-    """Test get_subnet_prices returns prices from runtime API."""
-    # Preps
-    fake_block_hash = "fake_block_hash"
-    fake_prices_rao = [
-        {"netuid": 0, "price": 1_000_000_000},
-        {"netuid": 1, "price": 29258617},
-    ]
-    mocked_determine_block_hash = mocker.patch.object(
-        subtensor, "determine_block_hash", return_value=fake_block_hash
-    )
-    mocker.patch.object(
-        subtensor.substrate,
-        "runtime_call",
-        return_value=mocker.Mock(value=fake_prices_rao),
+    """Test get_subnet_prices returns the correct value."""
+    # preps
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+
+    async def fake_current_sqrt_prices():
+        yield [0, {"bits": 0}]
+        yield [1, {"bits": 3155343338053956962}]
+
+    expected_prices = {0: Balance.from_tao(1), 1: Balance.from_tao(0.029258617)}
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate, "query_map", return_value=fake_current_sqrt_prices()
     )
 
     # Call
     result = await subtensor.get_subnet_prices()
 
     # Asserts
-    mocked_determine_block_hash.assert_awaited_once_with(None, None)
-    subtensor.substrate.runtime_call.assert_awaited_once_with(
-        api="SwapRuntimeApi",
-        method="current_alpha_price_all",
-        block_hash=fake_block_hash,
+    mocked_determine_block_hash.assert_awaited_once_with(
+        block=None, block_hash=None, reuse_block=False
     )
-    assert result == {
-        0: Balance.from_rao(1_000_000_000),
-        1: Balance.from_rao(29258617),
-    }
-
-
-@pytest.mark.asyncio
-async def test_get_subnet_prices_fallback(subtensor, mocker):
-    """Test get_subnet_prices falls back to per-subnet price retrieval when runtime API is missing."""
-    # Preps
-    fake_block_hash = "fake_block_hash"
-    fake_netuids = [1, 2]
-    fake_price_1 = Balance.from_tao(0.5)
-    fake_price_2 = Balance.from_tao(1.5)
-    mocked_determine_block_hash = mocker.patch.object(
-        subtensor, "determine_block_hash", return_value=fake_block_hash
-    )
-    mocker.patch.object(
-        subtensor.substrate,
-        "runtime_call",
-        side_effect=ValueError(
-            "SwapRuntimeApi.current_alpha_price_all not found in registry"
-        ),
-    )
-    mocked_get_all_subnets_netuid = mocker.patch.object(
-        subtensor, "get_all_subnets_netuid", return_value=fake_netuids
+    mocked_query_map.assert_awaited_once_with(
+        module="Swap",
+        storage_function="AlphaSqrtPrice",
+        block_hash=mocked_determine_block_hash.return_value,
+        page_size=129,  # total number of subnets
     )
 
-    async def fake_get_subnet_price(netuid, **kwargs):
-        if netuid == 1:
-            return fake_price_1
-        elif netuid == 2:
-            return fake_price_2
+    assert result == expected_prices
 
-    mocked_get_subnet_price = mocker.patch.object(
-        subtensor, "get_subnet_price", side_effect=fake_get_subnet_price
-    )
-
-    # Call
-    result = await subtensor.get_subnet_prices()
-
-    # Asserts
-    mocked_determine_block_hash.assert_awaited_once_with(None, None)
-    mocked_get_all_subnets_netuid.assert_awaited_once_with(
-        block=None, block_hash=fake_block_hash, reuse_block=False
-    )
-    assert mocked_get_subnet_price.call_count == 2
-    assert result == {0: Balance.from_tao(1), 1: fake_price_1, 2: fake_price_2}
-
-
-@pytest.mark.asyncio
-async def test_get_subnet_prices_raises_unrelated_value_error(subtensor, mocker):
-    """Test get_subnet_prices re-raises ValueError when it's not about missing runtime API."""
-    # Preps
-    mocker.patch.object(subtensor, "determine_block_hash", return_value="fake_hash")
-    mocker.patch.object(
-        subtensor.substrate,
-        "runtime_call",
-        side_effect=ValueError("something else went wrong"),
-    )
-
-    # Call & Assert
-    with pytest.raises(ValueError, match="something else went wrong"):
-        await subtensor.get_subnet_prices()
 
 
 @pytest.mark.asyncio
