@@ -4125,20 +4125,16 @@ def test_get_subnet_price(subtensor, mocker):
 
 
 def test_get_subnet_prices(subtensor, mocker):
-    """Test get_subnet_prices returns prices from runtime API."""
-    # Preps
-    fake_block_hash = "fake_block_hash"
-    fake_prices_rao = [
-        {"netuid": 0, "price": 1_000_000_000},
-        {"netuid": 1, "price": 29258617},
+    """Test get_subnet_prices returns the correct value."""
+    # preps
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    fake_prices = [
+        [0, {"bits": 0}],
+        [1, {"bits": 3155343338053956962}],
     ]
-    mocked_determine_block_hash = mocker.patch.object(
-        subtensor, "determine_block_hash", return_value=fake_block_hash
-    )
-    mocker.patch.object(
-        subtensor.substrate,
-        "runtime_call",
-        return_value=mocker.Mock(value=fake_prices_rao),
+    expected_prices = {0: Balance.from_tao(1), 1: Balance.from_tao(0.029258617)}
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate, "query_map", return_value=fake_prices
     )
 
     # Call
@@ -4146,15 +4142,13 @@ def test_get_subnet_prices(subtensor, mocker):
 
     # Asserts
     mocked_determine_block_hash.assert_called_once_with(block=None)
-    subtensor.substrate.runtime_call.assert_called_once_with(
-        api="SwapRuntimeApi",
-        method="current_alpha_price_all",
-        block_hash=fake_block_hash,
+    mocked_query_map.assert_called_once_with(
+        module="Swap",
+        storage_function="AlphaSqrtPrice",
+        block_hash=mocked_determine_block_hash.return_value,
+        page_size=129,  # total number of subnets
     )
-    assert result == {
-        0: Balance.from_rao(1_000_000_000),
-        1: Balance.from_rao(29258617),
-    }
+    assert result == expected_prices
 
 
 def test_get_subnet_prices_fallback(subtensor, mocker):
