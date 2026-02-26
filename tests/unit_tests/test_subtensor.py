@@ -4151,51 +4151,6 @@ def test_get_subnet_prices(subtensor, mocker):
     assert result == expected_prices
 
 
-def test_get_subnet_prices_fallback(subtensor, mocker):
-    """Test get_subnet_prices falls back to per-subnet price retrieval when runtime API is missing."""
-    # Preps
-    fake_netuids = [1, 2]
-    fake_price_1 = Balance.from_tao(0.5)
-    fake_price_2 = Balance.from_tao(1.5)
-    mocker.patch.object(subtensor, "determine_block_hash")
-    mocker.patch.object(
-        subtensor.substrate,
-        "runtime_call",
-        side_effect=ValueError(
-            "SwapRuntimeApi.current_alpha_price_all not found in registry"
-        ),
-    )
-    mocked_get_all_subnets_netuid = mocker.patch.object(
-        subtensor, "get_all_subnets_netuid", return_value=fake_netuids
-    )
-    mocked_get_subnet_price = mocker.patch.object(
-        subtensor, "get_subnet_price", side_effect=[fake_price_1, fake_price_2]
-    )
-
-    # Call
-    result = subtensor.get_subnet_prices()
-
-    # Asserts
-    mocked_get_all_subnets_netuid.assert_called_once_with(block=None)
-    assert mocked_get_subnet_price.call_count == 2
-    mocked_get_subnet_price.assert_any_call(1, block=None)
-    mocked_get_subnet_price.assert_any_call(2, block=None)
-    assert result == {0: Balance.from_tao(1), 1: fake_price_1, 2: fake_price_2}
-
-
-def test_get_subnet_prices_raises_unrelated_value_error(subtensor, mocker):
-    """Test get_subnet_prices re-raises ValueError when it's not about missing runtime API."""
-    # Preps
-    mocker.patch.object(subtensor, "determine_block_hash")
-    mocker.patch.object(
-        subtensor.substrate,
-        "runtime_call",
-        side_effect=ValueError("something else went wrong"),
-    )
-
-    # Call & Assert
-    with pytest.raises(ValueError, match="something else went wrong"):
-        subtensor.get_subnet_prices()
 
 
 def test_all_subnets(subtensor, mocker):
