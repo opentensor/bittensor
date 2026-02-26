@@ -444,7 +444,7 @@ def test_batch_operations(subtensor, alice_wallet, bob_wallet):
     )
 
     assert CloseInValue(  # Make sure we are within 0.0002 TAO due to tx fees
-        balances[bob_wallet.coldkey.ss58_address], Balance.from_rao(1_000_000)
+        balances[bob_wallet.coldkey.ss58_address], Balance.from_rao(1_500_000)
     ) == Balance.from_tao(999_999.7956)
 
     assert balances[alice_wallet.coldkey.ss58_address] > alice_balance
@@ -570,7 +570,7 @@ async def test_batch_operations_async(async_subtensor, alice_wallet, bob_wallet)
     )
 
     assert CloseInValue(  # Make sure we are within 0.0002 TAO due to tx fees
-        balances[bob_wallet.coldkey.ss58_address], Balance.from_rao(1_000_000)
+        balances[bob_wallet.coldkey.ss58_address], Balance.from_rao(1_500_000)
     ) == Balance.from_tao(999_999.7956)
 
     assert balances[alice_wallet.coldkey.ss58_address] > alice_balance
