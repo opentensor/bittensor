@@ -4830,45 +4830,27 @@ class AsyncSubtensor(SubtensorMixin):
         Notes:
             Subnet 0 (root network) always has a price of 1 TAO since it uses TAO directly rather than Alpha.
         """
-        api = "SwapRuntimeApi"
-        method = "current_alpha_price_all"
-        block_hash = await self.determine_block_hash(block, block_hash)
-        try:
-            prices_rao = (
-                await self.substrate.runtime_call(
-                    api=api,
-                    method=method,
-                    block_hash=block_hash,
-                )
-            ).value
-            return {p["netuid"]: Balance.from_rao(p["price"]) for p in prices_rao}
+        block_hash = await self.determine_block_hash(
+            block=block, block_hash=block_hash, reuse_block=reuse_block
+        )
 
-        except ValueError as err:
-            msg = str(err)
-            if f"{api}.{method}" in msg and "not found in registry" in msg:
-                logging.warning(
-                    f"Runtime ([blue]{self})[/blue] at block=[blue]{block or self.block}[/blue] is missing `[red]{api}."
-                    f"{method}[/red]` runtime API. Using deprecated subnet price retrieval method as a fallback."
-                )
-                prices = {0: Balance.from_tao(1)}
-                netuids = await self.get_all_subnets_netuid(
-                    block=block, block_hash=block_hash, reuse_block=reuse_block
-                )
+        current_sqrt_prices = await self.substrate.query_map(
+            module="Swap",
+            storage_function="AlphaSqrtPrice",
+            block_hash=block_hash,
+            page_size=129,  # total number of subnets
+        )
 
-                tasks = [
-                    self.get_subnet_price(
-                        netuid,
-                        block=block,
-                        block_hash=block_hash,
-                        reuse_block=reuse_block,
-                    )
-                    for netuid in netuids
-                ]
+        prices = {}
+        async for id_, current_sqrt_price in current_sqrt_prices:
+            current_sqrt_price = fixed_to_float(current_sqrt_price)
+            current_price = current_sqrt_price * current_sqrt_price
+            current_price_in_tao = Balance.from_rao(int(current_price * 1e9))
+            prices.update({id_: current_price_in_tao})
 
-                prices_list = await asyncio.gather(*tasks)
-                prices.update(dict(zip(netuids, prices_list)))
-                return prices
-            raise
+        # SN0 price is always 1 TAO
+        prices.update({0: Balance.from_tao(1)})
+        return prices
 
     async def get_subnet_reveal_period_epochs(
         self, netuid: int, block: Optional[int] = None, block_hash: Optional[str] = None
