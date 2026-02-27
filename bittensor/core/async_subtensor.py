@@ -1014,24 +1014,31 @@ class AsyncSubtensor(SubtensorMixin):
         if not block_hash and reuse_block:
             block_hash = self.substrate.last_block_hash
 
-        query = await self.substrate.runtime_call(
-            api="SubnetInfoRuntimeApi",
-            method="get_all_dynamic_info",
-            block_hash=block_hash,
+        async def _safe_get_prices():
+            try:
+                return await self.get_subnet_prices(block_hash=block_hash)
+            except (SubstrateRequestException, ValueError) as e:
+                logging.warning(
+                    f"Unable to fetch subnet prices for block {block}, block hash {block_hash}: {e}"
+                )
+                return None
+
+        query, subnet_prices = await asyncio.gather(
+            self.substrate.runtime_call(
+                api="SubnetInfoRuntimeApi",
+                method="get_all_dynamic_info",
+                block_hash=block_hash,
+            ),
+            _safe_get_prices(),
         )
-        subnet_prices = await self.get_subnet_prices(block_hash=block_hash)
 
         decoded = query.decode()
 
-        if not isinstance(subnet_prices, (SubstrateRequestException, ValueError)):
+        if subnet_prices is not None:
             for sn in decoded:
                 sn.update(
                     {"price": subnet_prices.get(sn["netuid"], Balance.from_tao(0))}
                 )
-        else:
-            logging.warning(
-                f"Unable to fetch subnet prices for block {block}, block hash {block_hash}: {subnet_prices}"
-            )
         return DynamicInfo.list_from_dicts(decoded)
 
     async def blocks_since_last_step(
@@ -1087,14 +1094,18 @@ class AsyncSubtensor(SubtensorMixin):
             The number of blocks since the last update, or None if the subnetwork or UID does not exist.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        block = block or await self.substrate.get_block_number(block_hash)
-        call = await self.get_hyperparameter(
+        if block_hash is None:
+            block_hash = await self.get_block_hash()
+        block_coro = self.substrate.get_block_number(block_hash) if block is None else None
+        call_coro = self.get_hyperparameter(
             param_name="LastUpdate",
             netuid=netuid,
-            block=block,
             block_hash=block_hash,
-            reuse_block=reuse_block,
         )
+        if block_coro is not None:
+            block, call = await asyncio.gather(block_coro, call_coro)
+        else:
+            call = await call_coro
         return None if call is None else (block - int(call[uid]))
 
     async def blocks_until_next_epoch(
@@ -1118,8 +1129,17 @@ class AsyncSubtensor(SubtensorMixin):
             The number of blocks until the next epoch of the subnet with provided netuid.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        block = block or await self.substrate.get_block_number(block_hash=block_hash)
-        tempo = tempo or await self.tempo(netuid=netuid, block_hash=block_hash)
+        tasks = {}
+        if block is None:
+            tasks["block"] = self.substrate.get_block_number(block_hash=block_hash)
+        if tempo is None:
+            tasks["tempo"] = self.tempo(netuid=netuid, block_hash=block_hash)
+        if tasks:
+            results = dict(
+                zip(tasks.keys(), await asyncio.gather(*tasks.values()))
+            )
+            block = results.get("block", block)
+            tempo = results.get("tempo", tempo)
 
         if not tempo:
             return None
