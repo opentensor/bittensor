@@ -98,7 +98,7 @@ python3 -m pip install --upgrade bittensor
 The macOS preinstalled CPython installation is compiled with LibreSSL instead of OpenSSL. There are a number
 of issues with LibreSSL, and as such is not fully supported by the libraries used by bittensor. Thus we highly recommend, if 
 you are using a Mac, to first install Python from [Homebrew](https://brew.sh/). Additionally, the Rust FFI bindings 
-[if installing from precompiled wheels (default)] require the Homebrew-installed OpenSSL pacakge. If you choose to use
+[if installing from precompiled wheels (default)] require the Homebrew-installed OpenSSL package. If you choose to use
 the preinstalled Python version from macOS, things may not work completely.
 
 ### Installation

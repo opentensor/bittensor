@@ -214,7 +214,8 @@ async def test_root_claim_swap_async(
                 netuid=root_sn.netuid
             )
         )
-        await async_subtensor.wait_for_block(block=next_epoch_start_block)
+        await async_subtensor.wait_for_block(block=next_epoch_start_block + 4)
+
         charlie_root_stake = await async_subtensor.staking.get_stake(
             coldkey_ss58=charlie_wallet.coldkey.ss58_address,
             hotkey_ss58=alice_wallet.hotkey.ss58_address,
@@ -533,6 +534,8 @@ async def test_root_claim_keep_with_zero_num_root_auto_claims_async(
         wallet=charlie_wallet, netuids=[sn2.netuid]
     )
     assert response.success, response.message
+
+    await async_subtensor.wait_for_block(await async_subtensor.block + 4)
 
     # === Check Charlie after manual claim ===
     claimed_after_charlie = await async_subtensor.staking.get_root_claimed(
