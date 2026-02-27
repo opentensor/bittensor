@@ -17,7 +17,7 @@ on:
   workflow_dispatch:
     inputs:
       docker_image_tag:
-        description: "Docker image tag"
+        description: "Standard docker image tag (ignored if custom tag is set below)"
         required: false
         type: choice
         default: "devnet-ready"
@@ -26,6 +26,11 @@ on:
           - testnet
           - devnet
           - devnet-ready
+      custom_image_tag:
+        description: "Custom docker image tag — overrides selection above (e.g. pr-2441)"
+        required: false
+        type: string
+        default: ""
 
 # job to run tests in parallel
 jobs:
@@ -109,16 +114,25 @@ jobs:
         id: set-image
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_CUSTOM_TAG: ${{ github.event.inputs.custom_image_tag }}
+          INPUT_CHOICE_TAG: ${{ github.event.inputs.docker_image_tag }}
         run: |
           echo "Event: $GITHUB_EVENT_NAME"
           echo "Branch: $GITHUB_REF_NAME"
 
-          # Check if docker_image_tag input is provided (for workflow_dispatch)
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            docker_tag_input="${{ github.event.inputs.docker_image_tag }}"
-            if [[ -n "$docker_tag_input" ]]; then
-              image="ghcr.io/opentensor/subtensor-localnet:${docker_tag_input}"
-              echo "Using Docker image tag from workflow_dispatch input: ${docker_tag_input}"
+            custom_tag=$(echo "$INPUT_CUSTOM_TAG" | xargs)
+            if [[ -n "$custom_tag" ]]; then
+              image="ghcr.io/opentensor/subtensor-localnet:${custom_tag}"
+              echo "Using custom docker image tag: ${custom_tag}"
+              echo "✅ Final selected image: $image"
+              echo "image=$image" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            if [[ -n "$INPUT_CHOICE_TAG" ]]; then
+              image="ghcr.io/opentensor/subtensor-localnet:${INPUT_CHOICE_TAG}"
+              echo "Using standard docker image tag: ${INPUT_CHOICE_TAG}"
               echo "✅ Final selected image: $image"
               echo "image=$image" >> "$GITHUB_OUTPUT"
               exit 0
