@@ -16,7 +16,7 @@
 * @Dairus01 made their first contribution in https://github.com/opentensor/bittensor/pull/3231
 * @Olexandr88 made their first contribution in https://github.com/opentensor/bittensor/pull/3238
 
-**Full Changelog**: https://github.com/opentensor/bittensor/compare/v10.1.0...v10.0.2
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v10.0.1...v10.1.0
 
 ## 10.0.1 /2025-12-22
 

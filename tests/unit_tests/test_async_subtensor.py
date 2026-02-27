@@ -2921,6 +2921,71 @@ async def test_start_call(subtensor, mocker):
 
 
 @pytest.mark.asyncio
+async def test_add_stake_burn(subtensor, mocker):
+    """Test add_stake_burn extrinsic calls properly."""
+    # Preps
+    wallet_name = mocker.Mock(spec=Wallet)
+    netuid = 123
+    hotkey_ss58 = "hotkey"
+    amount = Balance.from_tao(1.0)
+    mocked_extrinsic = mocker.patch.object(async_subtensor, "add_stake_burn_extrinsic")
+
+    # Call
+    result = await subtensor.add_stake_burn(wallet_name, netuid, hotkey_ss58, amount)
+
+    # Asserts
+    mocked_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet_name,
+        netuid=netuid,
+        hotkey_ss58=hotkey_ss58,
+        amount=amount,
+        limit_price=None,
+        mev_protection=DEFAULT_MEV_PROTECTION,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+    )
+    assert result == mocked_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_add_stake_burn_with_limit_price(subtensor, mocker):
+    """Test add_stake_burn extrinsic passes limit price."""
+    # Preps
+    wallet_name = mocker.Mock(spec=Wallet)
+    netuid = 123
+    hotkey_ss58 = "hotkey"
+    amount = Balance.from_tao(1.0)
+    limit_price = Balance.from_tao(2.0)
+    mocked_extrinsic = mocker.patch.object(async_subtensor, "add_stake_burn_extrinsic")
+
+    # Call
+    result = await subtensor.add_stake_burn(
+        wallet_name, netuid, hotkey_ss58, amount, limit_price=limit_price
+    )
+
+    # Asserts
+    mocked_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet_name,
+        netuid=netuid,
+        hotkey_ss58=hotkey_ss58,
+        amount=amount,
+        limit_price=limit_price,
+        mev_protection=DEFAULT_MEV_PROTECTION,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+    )
+    assert result == mocked_extrinsic.return_value
+
+
+@pytest.mark.asyncio
 async def test_get_metagraph_info_all_fields(subtensor, mocker):
     """Test get_metagraph_info with all fields (default behavior)."""
     # Preps
@@ -3805,7 +3870,9 @@ async def test_get_subnet_prices(subtensor, mocker):
         block_hash=mocked_determine_block_hash.return_value,
         page_size=129,  # total number of subnets
     )
+
     assert result == expected_prices
+
 
 
 @pytest.mark.asyncio
@@ -6358,3 +6425,291 @@ async def test_get_start_call_delay(subtensor, mocker):
         reuse_block=False,
     )
     assert result == mocked_query_subtensor.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_coldkey_swap_announcement(subtensor, mocker):
+    """Test get_coldkey_swap_announcement returns correct data when announcement information is found."""
+    # Prep
+    fake_coldkey_ss58 = mocker.Mock(spec=str)
+
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query = mocker.patch.object(subtensor.substrate, "query")
+    mocked_from_query = mocker.patch.object(
+        async_subtensor.ColdkeySwapAnnouncementInfo, "from_query"
+    )
+
+    # Call
+    result = await subtensor.get_coldkey_swap_announcement(
+        coldkey_ss58=fake_coldkey_ss58
+    )
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(None, None, False)
+    mocked_query.assert_awaited_once_with(
+        module="SubtensorModule",
+        storage_function="ColdkeySwapAnnouncements",
+        params=[fake_coldkey_ss58],
+        block_hash=mocked_determine_block_hash.return_value,
+        reuse_block_hash=False,
+    )
+    mocked_from_query.assert_called_once_with(
+        coldkey_ss58=fake_coldkey_ss58, query=mocked_query.return_value
+    )
+    assert result == mocked_from_query.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_coldkey_swap_announcements(subtensor, mocker):
+    """Test get_coldkey_swap_announcements returns correct data when announcement information is found."""
+    # Prep
+    fake_record = mocker.Mock()
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    fake_query_result = mocker.AsyncMock()
+    fake_query_result.__aiter__.return_value = iter((fake_record,))
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate, "query_map", return_value=fake_query_result
+    )
+    mocked_from_record = mocker.patch.object(
+        async_subtensor.ColdkeySwapAnnouncementInfo, "from_record"
+    )
+
+    # Call
+    result = await subtensor.get_coldkey_swap_announcements()
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(None, None, False)
+    mocked_query_map.assert_awaited_once_with(
+        module="SubtensorModule",
+        storage_function="ColdkeySwapAnnouncements",
+        block_hash=mocked_determine_block_hash.return_value,
+        reuse_block_hash=False,
+    )
+    mocked_from_record.assert_called_once_with(fake_record)
+    assert result == [mocked_from_record.return_value]
+
+
+@pytest.mark.asyncio
+async def test_get_coldkey_swap_announcement_delay(subtensor, mocker):
+    """Test get_coldkey_swap_announcement_delay returns correct value when found."""
+    # Prep
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query = mocker.patch.object(subtensor.substrate, "query")
+
+    # Call
+    result = await subtensor.get_coldkey_swap_announcement_delay()
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(None, None, False)
+    mocked_query.assert_awaited_once_with(
+        module="SubtensorModule",
+        storage_function="ColdkeySwapAnnouncementDelay",
+        block_hash=mocked_determine_block_hash.return_value,
+        reuse_block_hash=False,
+    )
+    assert result == mocked_query.return_value.value
+
+
+@pytest.mark.asyncio
+async def test_get_coldkey_swap_reannouncement_delay(subtensor, mocker):
+    """Test get_coldkey_swap_reannouncement_delay returns correct value when found."""
+    # Prep
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query = mocker.patch.object(subtensor.substrate, "query")
+
+    # Call
+    result = await subtensor.get_coldkey_swap_reannouncement_delay()
+
+    # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(None, None, False)
+    mocked_query.assert_awaited_once_with(
+        module="SubtensorModule",
+        storage_function="ColdkeySwapReannouncementDelay",
+        block_hash=mocked_determine_block_hash.return_value,
+        reuse_block_hash=False,
+    )
+    assert result == mocked_query.return_value.value
+
+
+@pytest.mark.asyncio
+async def test_get_coldkey_swap_constants(subtensor, mocker):
+    """Test get_coldkey_swap_constants returns correct data when constants are found."""
+    # Prep
+    fake_name = mocker.Mock(spec=str)
+    fake_value = mocker.Mock(value=mocker.Mock(spec=int))
+    mocked_constants_names = mocker.patch.object(
+        async_subtensor.ColdkeySwapConstants,
+        "constants_names",
+        return_value=[fake_name],
+    )
+    mocked_query_constant = mocker.patch.object(
+        subtensor,
+        "query_constant",
+        side_effect=[fake_value],
+    )
+    mocked_from_dict = mocker.patch.object(
+        async_subtensor.ColdkeySwapConstants, "from_dict"
+    )
+
+    # Call
+    result = await subtensor.get_coldkey_swap_constants()
+
+    # Asserts
+    mocked_constants_names.assert_called_once_with()
+    mocked_query_constant.assert_awaited_once_with(
+        module_name="SubtensorModule",
+        constant_name=fake_name,
+        block=None,
+        block_hash=None,
+        reuse_block=False,
+    )
+    mocked_from_dict.assert_called_once_with({fake_name: fake_value.value})
+    assert result == mocked_from_dict.return_value
+
+
+@pytest.mark.asyncio
+async def test_announce_coldkey_swap(mocker, subtensor):
+    """Tests `announce_coldkey_swap` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    new_coldkey_ss58 = mocker.Mock(spec=str)
+    mocked_announce_coldkey_swap_extrinsic = mocker.patch.object(
+        async_subtensor, "announce_coldkey_swap_extrinsic"
+    )
+
+    # call
+    response = await subtensor.announce_coldkey_swap(
+        wallet=wallet,
+        new_coldkey_ss58=new_coldkey_ss58,
+    )
+
+    # asserts
+    mocked_announce_coldkey_swap_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        new_coldkey_ss58=new_coldkey_ss58,
+        mev_protection=DEFAULT_MEV_PROTECTION,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+    )
+    assert response == mocked_announce_coldkey_swap_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_swap_coldkey_announced(mocker, subtensor):
+    """Tests `swap_coldkey_announced` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    new_coldkey_ss58 = mocker.Mock(spec=str)
+    mocked_swap_coldkey_announced_extrinsic = mocker.patch.object(
+        async_subtensor, "swap_coldkey_announced_extrinsic"
+    )
+
+    # call
+    response = await subtensor.swap_coldkey_announced(
+        wallet=wallet,
+        new_coldkey_ss58=new_coldkey_ss58,
+    )
+
+    # asserts
+    mocked_swap_coldkey_announced_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        new_coldkey_ss58=new_coldkey_ss58,
+        mev_protection=DEFAULT_MEV_PROTECTION,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+    )
+    assert response == mocked_swap_coldkey_announced_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_coldkey_swap_dispute(subtensor, mocker):
+    """Test get_coldkey_swap_dispute returns correct data when dispute information is found."""
+    # prep
+    fake_coldkey_ss58 = mocker.Mock(spec=str)
+
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query = mocker.patch.object(subtensor.substrate, "query")
+    mocked_from_query = mocker.patch.object(
+        async_subtensor.ColdkeySwapDisputeInfo, "from_query"
+    )
+
+    # call
+    result = await subtensor.get_coldkey_swap_dispute(coldkey_ss58=fake_coldkey_ss58)
+
+    # asserts
+    mocked_determine_block_hash.assert_awaited_once_with(None, None, False)
+    mocked_query.assert_awaited_once_with(
+        module="SubtensorModule",
+        storage_function="ColdkeySwapDisputes",
+        params=[fake_coldkey_ss58],
+        block_hash=mocked_determine_block_hash.return_value,
+        reuse_block_hash=False,
+    )
+    mocked_from_query.assert_called_once_with(
+        coldkey_ss58=fake_coldkey_ss58, query=mocked_query.return_value
+    )
+    assert result == mocked_from_query.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_coldkey_swap_disputes(subtensor, mocker):
+    """Test get_coldkey_swap_disputes returns correct data when dispute information is found."""
+    # prep
+    fake_record = mocker.Mock()
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    fake_query_result = mocker.AsyncMock()
+    fake_query_result.__aiter__.return_value = iter((fake_record,))
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate, "query_map", return_value=fake_query_result
+    )
+    mocked_from_record = mocker.patch.object(
+        async_subtensor.ColdkeySwapDisputeInfo, "from_record"
+    )
+
+    # call
+    result = await subtensor.get_coldkey_swap_disputes()
+
+    # asserts
+    mocked_determine_block_hash.assert_awaited_once_with(None, None, False)
+    mocked_query_map.assert_awaited_once_with(
+        module="SubtensorModule",
+        storage_function="ColdkeySwapDisputes",
+        block_hash=mocked_determine_block_hash.return_value,
+        reuse_block_hash=False,
+    )
+    mocked_from_record.assert_called_once_with(fake_record)
+    assert result == [mocked_from_record.return_value]
+
+
+@pytest.mark.asyncio
+async def test_dispute_coldkey_swap(mocker, subtensor):
+    """Tests `dispute_coldkey_swap` extrinsic call method."""
+    # prep
+    wallet = mocker.Mock(spec=Wallet)
+    mocked_dispute_coldkey_swap_extrinsic = mocker.patch.object(
+        async_subtensor, "dispute_coldkey_swap_extrinsic"
+    )
+
+    # call
+    response = await subtensor.dispute_coldkey_swap(wallet=wallet)
+
+    # asserts
+    mocked_dispute_coldkey_swap_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        mev_protection=DEFAULT_MEV_PROTECTION,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+    )
+    assert response == mocked_dispute_coldkey_swap_extrinsic.return_value
