@@ -57,6 +57,8 @@ __all__ = [
     "TxRateLimitExceeded",
     "UnknownSynapseError",
     "UnstakeError",
+    "SHIELD_VALIDATION_ERRORS",
+    "map_shield_error",
 ]
 
 
@@ -263,3 +265,32 @@ class SynapseDendriteNoneException(SynapseException):
     ):
         self.message = message
         super().__init__(self.message, synapse)
+
+
+SHIELD_VALIDATION_ERRORS = {
+    "Custom error: 23": (
+        "Failed to parse shielded transaction: the ciphertext has an invalid format."
+    ),
+    "Custom error: 24": (
+        "Invalid encryption key: the key_hash in the ciphertext does not match any known key. "
+        "The key may have rotated between reading NextKey and submitting the transaction."
+    ),
+}
+
+
+def map_shield_error(raw_message: str) -> str:
+    """Map a raw shield validation error to a human-readable description.
+
+    Checks the message against known Custom error codes from CheckShieldedTxValidity,
+    then falls back to detecting a generic ``"invalid"`` subscription status.
+    Returns the original message unchanged if nothing matches.
+    """
+    for marker, description in SHIELD_VALIDATION_ERRORS.items():
+        if marker in raw_message:
+            return description
+    if "'result': 'invalid'" in raw_message.lower():
+        return (
+            "MEV Shield extrinsic rejected as invalid. "
+            "The key may have rotated between reading NextKey and submission."
+        )
+    return raw_message

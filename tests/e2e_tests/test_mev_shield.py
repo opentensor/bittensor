@@ -169,3 +169,42 @@ async def test_mev_shield_happy_path_async(
     )
     logging.console.info(f"Stake after: {stake_after}")
     assert stake_after > stake_before
+
+
+@pytest.mark.parametrize("local_chain", [False], indirect=True)
+def test_mev_shield_invalid_ciphertext(subtensor, alice_wallet, local_chain):
+    """Submitting garbage bytes as ciphertext should be rejected by CheckShieldedTxValidity (Custom(23))."""
+    extrinsic_call = pallets.MevShield(subtensor.inner_subtensor).submit_encrypted(
+        ciphertext=b"\x00",
+    )
+
+    logging.console.info(f"Extrinsic call: {extrinsic_call}")
+
+    response = subtensor.sign_and_send_extrinsic(
+        wallet=alice_wallet,
+        call=extrinsic_call,
+        raise_error=False,
+    )
+    assert not response.success
+
+
+@pytest.mark.parametrize("local_chain", [False], indirect=True)
+@pytest.mark.asyncio
+async def test_mev_shield_invalid_ciphertext_async(
+    async_subtensor, alice_wallet, local_chain
+):
+    """Async: submitting garbage ciphertext should be rejected by CheckShieldedTxValidity (Custom(23))."""
+    extrinsic_call = await pallets.MevShield(
+        async_subtensor.inner_subtensor
+    ).submit_encrypted(
+        ciphertext=b"\x00",
+    )
+
+    logging.console.info(f"Extrinsic call: {extrinsic_call}")
+
+    response = await async_subtensor.sign_and_send_extrinsic(
+        wallet=alice_wallet,
+        call=extrinsic_call,
+        raise_error=False,
+    )
+    assert not response.success
