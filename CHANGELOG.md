@@ -1,5 +1,33 @@
 # Changelog
 
+## 10.2.0rc1 /2026-03-03
+
+## What's Changed
+* Rework coldkey swap by @basfroman in https://github.com/opentensor/bittensor/pull/3218
+* Make SDK consistent with new `Balancer swap` logic by @basfroman in https://github.com/opentensor/bittensor/pull/3250
+* Fixes for many chain changes by @basfroman in https://github.com/opentensor/bittensor/pull/3254
+* Add subnet buyback extrinsic support to SDK by @basfroman in https://github.com/opentensor/bittensor/pull/3249
+* Add py.typed and pkg tools by @thewhaleking in https://github.com/opentensor/bittensor/pull/3253
+* Rename `subnet_buyback` extrinsic `to add_stake_burn` by @basfroman in https://github.com/opentensor/bittensor/pull/3256
+* fixed fee assumption by @basfroman in https://github.com/opentensor/bittensor/pull/3258
+* `get_subnet_prices` uses new runtime api call + fallback by @basfroman in https://github.com/opentensor/bittensor/pull/3259
+* docs: update documentation URLs to docs.learnbittensor.org by @droppingbeans in https://github.com/opentensor/bittensor/pull/3257
+* docs: fix broken changelog URL and typo in README by @droppingbeans in https://github.com/opentensor/bittensor/pull/3263
+* docs: fix branch name 'develop' to 'staging' in hotfix workflow by @droppingbeans in https://github.com/opentensor/bittensor/pull/3266
+* Handle scaleobj from asi in fixed_to_float by @thewhaleking in https://github.com/opentensor/bittensor/pull/3265
+* fix batching test by @basfroman in https://github.com/opentensor/bittensor/pull/3267
+* Technical debt by @basfroman in https://github.com/opentensor/bittensor/pull/3274
+* Revert/balancer update by @ibraheem-abe in https://github.com/opentensor/bittensor/pull/3276
+* Update e2e gh workflow by @basfroman in https://github.com/opentensor/bittensor/pull/3277
+* Fix typo: pacakge → package in README by @droppingbeans in https://github.com/opentensor/bittensor/pull/3272
+* docs: fix typos in contrib documentation by @droppingbeans in https://github.com/opentensor/bittensor/pull/3271
+* Rework shielded transactions by @basfroman in https://github.com/opentensor/bittensor/pull/3269
+
+## New Contributors
+* @droppingbeans made their first contribution in https://github.com/opentensor/bittensor/pull/3257
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v10.1.0...v10.2.0rc1
+
 ## 10.1.0 /2026-01-15
 
 ## What's Changed
