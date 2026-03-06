@@ -402,7 +402,7 @@ class LoggingMachine(StateMachine, Logger):
 
     # Default Logging
     def before_enable_default(self):
-                        self.set_trace(False)
+        self.set_trace(False)
         """Logs status before enable Default."""
         self._logger.info("Enabling default logging (Warning level)")
         self._logger.setLevel(stdlogging.WARNING)
