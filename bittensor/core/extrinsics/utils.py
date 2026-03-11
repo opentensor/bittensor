@@ -8,6 +8,7 @@ from bittensor_drand import encrypt_mlkem768
 from bittensor_wallet import Keypair
 
 from bittensor.core.extrinsics.pallets import Sudo
+from bittensor.core.settings import MAX_MEV_SHIELD_PERIOD
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.balance import Balance
 
@@ -17,6 +18,24 @@ MEV_HOTKEY_USAGE_WARNING = (
     "the required extrinsic deposit fee. If you still want to use the hot key, please top up your balance before making"
     " the transaction."
 )
+
+
+def resolve_mev_shield_period(period: Optional[int]) -> int:
+    """Return effective era period for MEV Shield extrinsics.
+
+    MEV Shield extrinsics must use a short-lived era. If period is omitted or
+    exceeds the MEV limit, the maximum allowed MEV period is applied.
+
+    Parameters:
+        period: The period to resolve.
+
+    Returns:
+        The effective period (in blocks).
+    """
+    if period is None or period > MAX_MEV_SHIELD_PERIOD:
+        return MAX_MEV_SHIELD_PERIOD
+    return period
+
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
