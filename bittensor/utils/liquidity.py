@@ -132,6 +132,26 @@ def calculate_fees(
     alpha_fees_above_high: float,
     netuid: int,
 ) -> tuple[Balance, Balance]:
+    """Calculate the accrued TAO and Alpha fees for a liquidity position.
+
+    Computes the net fees earned by a position by aggregating global fee
+    accumulators and subtracting out-of-range portions, then scaling by
+    the position's liquidity share.
+
+    Args:
+        position: A dictionary describing the liquidity position, must contain
+            ``"liquidity"``, ``"fees_owed_tao"``, and ``"fees_owed_alpha"`` keys.
+        global_fees_tao: The global TAO fee accumulator value.
+        global_fees_alpha: The global Alpha fee accumulator value.
+        tao_fees_below_low: TAO fees accumulated below the position's lower tick.
+        tao_fees_above_high: TAO fees accumulated above the position's upper tick.
+        alpha_fees_below_low: Alpha fees accumulated below the position's lower tick.
+        alpha_fees_above_high: Alpha fees accumulated above the position's upper tick.
+        netuid: The subnet identifier used for Balance unit tagging.
+
+    Returns:
+        A tuple of ``(tao_fees, alpha_fees)`` as :class:`Balance` instances.
+    """
     fee_tao_agg = get_fees_in_range(
         quote=True,
         global_fees_tao=global_fees_tao,

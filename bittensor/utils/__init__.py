@@ -115,6 +115,14 @@ def decode_hex_identity_dict(info_dictionary: dict[str, Any]) -> dict[str, Any]:
 
 
 def ss58_to_vec_u8(ss58_address: str) -> list[int]:
+    """Convert an SS58-encoded address to a list of unsigned 8-bit integers.
+
+    Args:
+        ss58_address: The SS58-encoded Substrate address string.
+
+    Returns:
+        A list of integers representing the raw bytes of the decoded address.
+    """
     ss58_bytes: bytes = ss58_address_to_bytes(ss58_address)
     encoded_address: list[int] = [int(byte) for byte in ss58_bytes]
     return encoded_address
@@ -201,10 +209,26 @@ def ss58_address_to_bytes(ss58_address: str) -> bytes:
 
 
 def u16_normalized_float(x: int) -> float:
+    """Normalize an unsigned 16-bit integer to a float in the range [0, 1].
+
+    Args:
+        x: An integer in the range [0, 65535].
+
+    Returns:
+        The normalized float value (x / 65535).
+    """
     return float(x) / float(U16_MAX)
 
 
 def u64_normalized_float(x: int) -> float:
+    """Normalize an unsigned 64-bit integer to a float in the range [0, 1].
+
+    Args:
+        x: An integer in the range [0, 2^64 - 1].
+
+    Returns:
+        The normalized float value (x / (2^64 - 1)).
+    """
     return float(x) / float(U64_MAX)
 
 
@@ -220,6 +244,16 @@ def float_to_u64(value: float) -> int:
 
 
 def get_hash(content, encoding="utf-8"):
+    """Compute the SHA-256 hash of the given content.
+
+    Args:
+        content: The input data to hash. Can be bytes or a string.
+        encoding: The character encoding to use when the content is a string.
+            Defaults to ``"utf-8"``.
+
+    Returns:
+        The hex-encoded SHA-256 digest string.
+    """
     sha3 = hashlib.sha3_256()
 
     # Update the hash object with the concatenated string
