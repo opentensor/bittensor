@@ -382,7 +382,7 @@ def test_root_claim_keep_with_zero_num_root_auto_claims(
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
         netuid=sn2.netuid,
     )
-    assert stake_after_charlie >= claimable_stake_before_charlie - Balance.from_rao(1)
+    assert stake_after_charlie >= claimable_stake_before_charlie - Balance.from_rao(1, sn2.netuid)
 
     logging.console.info(f"[blue]Charlie after:[/blue]")
     logging.console.info(f"RootClaimed: {claimed_after_charlie}")
@@ -559,7 +559,7 @@ async def test_root_claim_keep_with_zero_num_root_auto_claims_async(
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
         netuid=sn2.netuid,
     )
-    assert stake_after_charlie >= claimable_stake_before_charlie - Balance.from_rao(1)
+    assert stake_after_charlie >= claimable_stake_before_charlie - Balance.from_rao(1, sn2.netuid)
 
     logging.console.info(f"[blue]Charlie after:[/blue]")
     logging.console.info(f"RootClaimed: {claimed_after_charlie}")
