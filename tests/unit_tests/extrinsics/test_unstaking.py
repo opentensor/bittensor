@@ -119,7 +119,8 @@ def test_unstake_multiple_extrinsic(subtensor, fake_wallet, mocker):
     mocked_balance = mocker.patch.object(
         subtensor, "get_balance", return_value=Balance.from_tao(1.0)
     )
-    mocked_get_stake_for_coldkey_and_hotkey = mocker.patch.object(
+    mocker.patch.object(subtensor, "get_stake", return_value=Balance.from_tao(8.9))
+    mocker.patch.object(
         subtensor, "get_stake_for_coldkey_and_hotkey", return_value=[Balance(10.0)]
     )
     mocked_unstake_extrinsic = mocker.patch.object(
