@@ -3465,11 +3465,10 @@ class Subtensor(SubtensorMixin):
     ) -> Balance:
         """
         Returns the amount of Alpha staked by a specific coldkey to a specific hotkey within a given subnet.
-        This function retrieves the delegated stake balance, referred to as the 'Alpha' value.
 
         Parameters:
             coldkey_ss58: The SS58 address of the coldkey that delegated the stake. This address owns the stake.
-            hotkey_ss58: The ss58 address of the hotkey which the stake is on.
+            hotkey_ss58: The SS58 address of the hotkey which the stake is on.
             netuid: The unique identifier of the subnet to query.
             block: The specific block number at which to retrieve the stake information.
 
@@ -3477,41 +3476,13 @@ class Subtensor(SubtensorMixin):
             An object representing the amount of Alpha (TAO ONLY if the subnet's netuid is 0) currently staked from the
                 specified coldkey to the specified hotkey within the given subnet.
         """
-        alpha_shares_query = self.query_module(
-            module="SubtensorModule",
-            name="Alpha",
-            block=block,
+        result = self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_stake_info_for_hotkey_coldkey_netuid",
             params=[hotkey_ss58, coldkey_ss58, netuid],
-        )
-        alpha_shares = alpha_shares_query
-
-        hotkey_alpha_obj = cast(
-            ScaleObj,
-            self.query_module(
-                module="SubtensorModule",
-                name="TotalHotkeyAlpha",
-                block=block,
-                params=[hotkey_ss58, netuid],
-            ),
-        )
-        hotkey_alpha = hotkey_alpha_obj.value
-
-        hotkey_shares = self.query_module(
-            module="SubtensorModule",
-            name="TotalHotkeyShares",
             block=block,
-            params=[hotkey_ss58, netuid],
         )
-
-        alpha_shares_as_float = fixed_to_float(alpha_shares)
-        hotkey_shares_as_float = fixed_to_float(hotkey_shares)
-
-        if hotkey_shares_as_float == 0:
-            return Balance.from_rao(0).set_unit(netuid=netuid)
-
-        stake = alpha_shares_as_float / hotkey_shares_as_float * hotkey_alpha
-
-        return Balance.from_rao(int(stake)).set_unit(netuid=netuid)
+        return StakeInfo.from_dict(result).stake
 
     def get_stake_for_coldkey_and_hotkey(
         self,

@@ -4191,54 +4191,30 @@ class AsyncSubtensor(SubtensorMixin):
         reuse_block: bool = False,
     ) -> Balance:
         """
-        Returns the stake under a coldkey - hotkey pairing.
+        Returns the amount of Alpha staked by a specific coldkey to a specific hotkey within a given subnet.
 
         Parameters:
-            hotkey_ss58: The SS58 address of the hotkey.
-            coldkey_ss58: The SS58 address of the coldkey.
-            netuid: The subnet ID.
-            block: The block number at which to query the stake information.
-            block_hash: The hash of the block to retrieve the stake from. Do not specify if using block
-                or reuse_block
-            reuse_block: Whether to use the last-used block. Do not set if using `block_hash` or `block`.
+            coldkey_ss58: The SS58 address of the coldkey that delegated the stake. This address owns the stake.
+            hotkey_ss58: The SS58 address of the hotkey which the stake is on.
+            netuid: The unique identifier of the subnet to query.
+            block: The specific block number at which to retrieve the stake information.
+                or `reuse_block`.
+            block_hash: The hash of the block to retrieve the stake from. Do not specify if using `block`
+                or `reuse_block`.
+            reuse_block: Whether to use the last-used block hash. Do not set if using `block_hash` or `block`.
 
         Returns:
-            Balance: The stake under the coldkey - hotkey pairing.
+            An object representing the amount of Alpha (TAO ONLY if the subnet's netuid is 0) currently staked from the
+                specified coldkey to the specified hotkey within the given subnet.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-
-        alpha_shares = await self.query_subtensor(
-            name="Alpha",
-            block=block,
-            block_hash=block_hash,
-            reuse_block=reuse_block,
+        result = await self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_stake_info_for_hotkey_coldkey_netuid",
             params=[hotkey_ss58, coldkey_ss58, netuid],
-        )
-        hotkey_alpha_result = await self.query_subtensor(
-            name="TotalHotkeyAlpha",
-            block=block,
             block_hash=block_hash,
-            reuse_block=reuse_block,
-            params=[hotkey_ss58, netuid],
         )
-        hotkey_shares = await self.query_subtensor(
-            name="TotalHotkeyShares",
-            block=block,
-            block_hash=block_hash,
-            reuse_block=reuse_block,
-            params=[hotkey_ss58, netuid],
-        )
-
-        hotkey_alpha = getattr(hotkey_alpha_result, "value", hotkey_alpha_result)
-        alpha_shares_as_float = fixed_to_float(alpha_shares)
-        hotkey_shares_as_float = fixed_to_float(hotkey_shares)
-
-        if hotkey_shares_as_float == 0:
-            return Balance.from_rao(0).set_unit(netuid=netuid)
-
-        stake = alpha_shares_as_float / hotkey_shares_as_float * cast(int, hotkey_alpha)
-
-        return Balance.from_rao(int(stake)).set_unit(netuid=netuid)
+        return StakeInfo.from_dict(result).stake
 
     async def get_stake_add_fee(
         self,
