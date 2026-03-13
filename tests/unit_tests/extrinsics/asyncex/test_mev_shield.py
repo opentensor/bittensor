@@ -4,6 +4,7 @@ from async_substrate_interface.errors import SubstrateRequestException
 from scalecodec.types import GenericCall
 
 from bittensor.core.extrinsics.asyncex import mev_shield
+from bittensor.core.settings import MAX_MEV_SHIELD_PERIOD
 from bittensor.core.types import ExtrinsicResponse
 
 
@@ -220,7 +221,7 @@ async def test_submit_encrypted_extrinsic_success_with_revealed_execution(
         call=call,
         keypair=fake_wallet.coldkey,
         nonce=next_nonce,
-        era="00",
+        era={"period": 8},
     )
     mocked_get_mev_shielded_ciphertext.assert_called_once_with(
         signed_ext=mock_signed_extrinsic,
@@ -235,7 +236,7 @@ async def test_submit_encrypted_extrinsic_success_with_revealed_execution(
         sign_with="coldkey",
         call=mock_extrinsic_call,
         nonce=current_nonce,
-        period=None,
+        period=8,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=False,
@@ -337,7 +338,7 @@ async def test_submit_encrypted_extrinsic_success_without_revealed_execution(
         call=call,
         keypair=fake_wallet.coldkey,
         nonce=next_nonce,
-        era="00",
+        era={"period": 8},
     )
     mocked_get_mev_shielded_ciphertext.assert_called_once_with(
         signed_ext=mock_signed_extrinsic,
@@ -352,7 +353,7 @@ async def test_submit_encrypted_extrinsic_success_without_revealed_execution(
         sign_with="coldkey",
         call=mock_extrinsic_call,
         nonce=current_nonce,
-        period=None,
+        period=8,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=False,
@@ -557,7 +558,7 @@ async def test_submit_encrypted_extrinsic_encrypted_submitted_event_not_found(
         call=call,
         keypair=fake_wallet.coldkey,
         nonce=next_nonce,
-        era="00",
+        era={"period": 8},
     )
     mocked_get_mev_shielded_ciphertext.assert_called_once_with(
         signed_ext=mock_signed_extrinsic,
@@ -572,7 +573,7 @@ async def test_submit_encrypted_extrinsic_encrypted_submitted_event_not_found(
         sign_with="coldkey",
         call=mock_extrinsic_call,
         nonce=current_nonce,
-        period=None,
+        period=8,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=False,
@@ -694,7 +695,7 @@ async def test_submit_encrypted_extrinsic_failed_to_find_outcome(
         call=call,
         keypair=fake_wallet.coldkey,
         nonce=next_nonce,
-        era="00",
+        era={"period": 8},
     )
     mocked_get_mev_shielded_ciphertext.assert_called_once_with(
         signed_ext=mock_signed_extrinsic,
@@ -709,7 +710,7 @@ async def test_submit_encrypted_extrinsic_failed_to_find_outcome(
         sign_with="coldkey",
         call=mock_extrinsic_call,
         nonce=current_nonce,
-        period=None,
+        period=8,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=False,
@@ -846,7 +847,7 @@ async def test_submit_encrypted_extrinsic_execution_failure(
         call=call,
         keypair=fake_wallet.coldkey,
         nonce=next_nonce,
-        era="00",
+        era={"period": 8},
     )
     mocked_get_mev_shielded_ciphertext.assert_called_once_with(
         signed_ext=mock_signed_extrinsic,
@@ -861,7 +862,7 @@ async def test_submit_encrypted_extrinsic_execution_failure(
         sign_with="coldkey",
         call=mock_extrinsic_call,
         nonce=current_nonce,
-        period=None,
+        period=8,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=False,
@@ -962,7 +963,7 @@ async def test_submit_encrypted_extrinsic_sign_and_send_failure(
         call=call,
         keypair=fake_wallet.coldkey,
         nonce=next_nonce,
-        era="00",
+        era={"period": 8},
     )
     mocked_get_mev_shielded_ciphertext.assert_called_once_with(
         signed_ext=mock_signed_extrinsic,
@@ -977,7 +978,7 @@ async def test_submit_encrypted_extrinsic_sign_and_send_failure(
         sign_with="coldkey",
         call=mock_extrinsic_call,
         nonce=current_nonce,
-        period=None,
+        period=8,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=False,
@@ -1064,7 +1065,7 @@ async def test_submit_encrypted_extrinsic_with_hotkey(subtensor, fake_wallet, mo
         call=call,
         keypair=fake_wallet.hotkey,
         nonce=next_nonce,
-        era="00",
+        era={"period": 8},
     )
     mocked_get_mev_shielded_ciphertext.assert_called_once_with(
         signed_ext=mock_signed_extrinsic,
@@ -1079,7 +1080,7 @@ async def test_submit_encrypted_extrinsic_with_hotkey(subtensor, fake_wallet, mo
         sign_with="hotkey",
         call=mock_extrinsic_call,
         nonce=current_nonce,
-        period=None,
+        period=8,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=False,
@@ -1167,7 +1168,7 @@ async def test_submit_encrypted_extrinsic_with_period(subtensor, fake_wallet, mo
         call=call,
         keypair=fake_wallet.coldkey,
         nonce=next_nonce,
-        era={"period": period},
+        era={"period": MAX_MEV_SHIELD_PERIOD},
     )
     mocked_get_mev_shielded_ciphertext.assert_called_once_with(
         signed_ext=mock_signed_extrinsic,
@@ -1182,7 +1183,7 @@ async def test_submit_encrypted_extrinsic_with_period(subtensor, fake_wallet, mo
         sign_with="coldkey",
         call=mock_extrinsic_call,
         nonce=current_nonce,
-        period=period,
+        period=MAX_MEV_SHIELD_PERIOD,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=False,

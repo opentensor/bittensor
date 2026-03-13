@@ -4151,8 +4151,6 @@ def test_get_subnet_prices(subtensor, mocker):
     assert result == expected_prices
 
 
-
-
 def test_all_subnets(subtensor, mocker):
     """Verify that `all_subnets` calls proper methods and returns the correct value."""
     # Preps
