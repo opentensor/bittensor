@@ -12,6 +12,12 @@ from bittensor.core.settings import MAX_MEV_SHIELD_PERIOD
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.balance import Balance
 
+if TYPE_CHECKING:
+    from bittensor_wallet import Wallet
+    from bittensor.core.chain_data import StakeInfo
+    from bittensor.core.subtensor import Subtensor
+    from scalecodec.types import GenericExtrinsic
+
 # TODO: Michael/Roman add the link to the docs once it's ready.'
 MEV_HOTKEY_USAGE_WARNING = (
     "MeV Shield cannot be used with hotkey-signed extrinsics. The transaction will fail because the hotkey cannot pay "
@@ -35,13 +41,6 @@ def resolve_mev_shield_period(period: Optional[int]) -> int:
     if period is None or period > MAX_MEV_SHIELD_PERIOD:
         return MAX_MEV_SHIELD_PERIOD
     return period
-
-
-if TYPE_CHECKING:
-    from bittensor_wallet import Wallet
-    from bittensor.core.chain_data import StakeInfo
-    from bittensor.core.subtensor import Subtensor
-    from scalecodec.types import GenericExtrinsic
 
 
 def get_old_stakes(
