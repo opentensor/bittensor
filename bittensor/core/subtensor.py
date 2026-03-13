@@ -25,7 +25,6 @@ from bittensor.core.chain_data import (
     MetagraphInfo,
     NeuronInfo,
     NeuronInfoLite,
-    ProposalVoteData,
     ProxyAnnouncementInfo,
     ProxyConstants,
     ProxyInfo,
@@ -4073,38 +4072,6 @@ class Subtensor(SubtensorMixin):
         )
         return sim_swap_result.alpha_fee.set_unit(netuid=netuid)
 
-    def get_vote_data(
-        self, proposal_hash: str, block: Optional[int] = None
-    ) -> Optional["ProposalVoteData"]:
-        # TODO: is this all deprecated? Didn't subtensor senate stuff get removed?
-        """
-        Retrieves the voting data for a specific proposal on the Bittensor blockchain. This data includes information
-        about how senate members have voted on the proposal.
-
-        Parameters:
-            proposal_hash: The hash of the proposal for which voting data is requested.
-            block: The blockchain block number for the query. If `None`, queries the current chain head.
-
-        Returns:
-            An object containing the proposal's voting data, or `None` if not found.
-
-        This function is important for tracking and understanding the decision-making processes within the Bittensor
-        network, particularly how proposals are received and acted upon by the governing body.
-        """
-        vote_data = cast(
-            Optional[dict[str, Any]],
-            self.substrate.query(
-                module="Triumvirate",
-                storage_function="Voting",
-                params=[proposal_hash],
-                block_hash=self.determine_block_hash(block),
-            ),
-        )
-
-        if vote_data is None:
-            return None
-
-        return ProposalVoteData.from_dict(vote_data)
 
     def get_uid_for_hotkey_on_subnet(
         self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
