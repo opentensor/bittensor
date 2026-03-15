@@ -111,7 +111,7 @@ class FastAPIThreadedServer(uvicorn.Server):
     should_exit: bool = False
     is_running: bool = False
 
-    def install_signal_handlers(self):
+    def install_signal_handlers(self) -> None:
         """
         Overrides the default signal handlers provided by ``uvicorn.Server``. This method is essential to ensure that
         the signal handling in the threaded server does not interfere with the main application's flow, especially in a
@@ -138,7 +138,7 @@ class FastAPIThreadedServer(uvicorn.Server):
             self.should_exit = True
             thread.join()
 
-    def _wrapper_run(self):
+    def _wrapper_run(self) -> None:
         """
         A wrapper method for the :func:`run_in_thread` context manager. This method is used internally by the ``start``
         method to initiate the server's execution in a separate thread.
@@ -147,7 +147,7 @@ class FastAPIThreadedServer(uvicorn.Server):
             while not self.should_exit:
                 time.sleep(1e-3)
 
-    def start(self):
+    def start(self) -> None:
         """
         Starts the FastAPI server in a separate thread if it is not already running. This method sets up the server to
         handle HTTP requests concurrently, enabling the Axon server to efficiently manage incoming network requests.
@@ -161,7 +161,7 @@ class FastAPIThreadedServer(uvicorn.Server):
             thread.start()
             self.is_running = True
 
-    def stop(self):
+    def stop(self) -> None:
         """
         Signals the FastAPI server to stop running. This method sets the :func:`should_exit` flag to ``True``,
         indicating that the server should cease its operations and exit the running thread.
@@ -218,7 +218,7 @@ class Axon:
             return synapse
 
         # Define a custom request verification function
-        def verify_my_synapse( synapse: MySynapse ):
+        def verify_my_synapse( synapse: MySynapse ) -> None:
             # Apply custom verification logic to synapse
             # Optionally raise Exception
             assert synapse.input == 1
@@ -478,7 +478,7 @@ class Axon:
             def priority_custom(synapse: MyCustomSynapse) -> float:
                 return 1.0
 
-            def verify_custom(synapse: MyCustomSynapse):
+            def verify_custom(synapse: MyCustomSynapse) -> None:
                 # Custom logic for verifying the request
                 pass
 
@@ -614,7 +614,7 @@ class Axon:
         return Config(parser)
 
     @classmethod
-    def help(cls):
+    def help(cls) -> None:
         """Prints the help text (list of command-line arguments and their descriptions) to stdout."""
         parser = argparse.ArgumentParser()
         Axon.add_args(parser)  # Add specific axon-related arguments
@@ -622,7 +622,7 @@ class Axon:
         parser.print_help()  # Print parser's help text
 
     @classmethod
-    def add_args(cls, parser: argparse.ArgumentParser, prefix: Optional[str] = None):
+    def add_args(cls, parser: argparse.ArgumentParser, prefix: Optional[str] = None) -> None:
         """
         Adds AxonServer-specific command-line arguments to the argument parser.
 
@@ -733,7 +733,7 @@ class Axon:
         return body_dict
 
     @classmethod
-    def check_config(cls, config: "Config"):
+    def check_config(cls, config: "Config") -> None:
         """
         This method checks the configuration for the axon's port and wallet.
 
