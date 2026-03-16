@@ -2514,19 +2514,15 @@ class Subtensor(SubtensorMixin):
 
             positions.append(
                 LiquidityPosition(
-                    **{
-                        "id": position.get("id")[0],
-                        "price_low": Balance.from_tao(
-                            tick_to_price(position.get("tick_low")[0])
-                        ),
-                        "price_high": Balance.from_tao(
-                            tick_to_price(position.get("tick_high")[0])
-                        ),
-                        "liquidity": Balance.from_rao(position.get("liquidity")),
-                        "fees_tao": fees_tao,
-                        "fees_alpha": fees_alpha,
-                        "netuid": position.get("netuid"),
-                    }
+                    id=position["id"][0],
+                    price_low=Balance.from_tao(tick_to_price(position["tick_low"][0])),
+                    price_high=Balance.from_tao(
+                        tick_to_price(position["tick_high"][0])
+                    ),
+                    liquidity=Balance.from_rao(position["liquidity"]),
+                    fees_tao=fees_tao,
+                    fees_alpha=fees_alpha,
+                    netuid=position["netuid"],
                 )
             )
 
