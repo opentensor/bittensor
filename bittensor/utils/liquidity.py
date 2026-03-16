@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from async_substrate_interface.types import ScaleObj
 
 from bittensor.utils.balance import Balance, fixed_to_float, FixedPoint
+from bittensor.utils import ChainFeatureDisabledWarning, deprecated_message
 
 # These three constants are unchangeable at the level of Uniswap math
 MIN_TICK = -887272
@@ -27,6 +28,14 @@ class LiquidityPosition:
     fees_tao: Balance  # RAO
     fees_alpha: Balance  # RAO
     netuid: int
+
+    def __post_init__(self):
+        deprecated_message(
+            message="LiquidityPosition is deprecated. User liquidity functionality has been "
+            "disabled on the chain after migration from Uniswap V3 to PalSwap.",
+            category=ChainFeatureDisabledWarning,
+            stacklevel=3,
+        )
 
     def to_token_amounts(
         self, current_subnet_price: Balance
@@ -75,6 +84,12 @@ class Position(TypedDict, total=True):
 
 def price_to_tick(price: float) -> int:
     """Converts a float price to the nearest Uniswap V3 tick index."""
+    deprecated_message(
+        message="price_to_tick() is deprecated. The chain has migrated from Uniswap V3 "
+        "to PalSwap which does not use tick-based pricing.",
+        category=ChainFeatureDisabledWarning,
+        stacklevel=3,
+    )
     if price <= 0:
         raise ValueError(f"Price must be positive, got `{price}`.")
 
@@ -89,6 +104,12 @@ def price_to_tick(price: float) -> int:
 
 def tick_to_price(tick: int) -> float:
     """Convert an integer Uniswap V3 tick index to float price."""
+    deprecated_message(
+        message="tick_to_price() is deprecated. The chain has migrated from Uniswap V3 "
+        "to PalSwap which does not use tick-based pricing.",
+        category=ChainFeatureDisabledWarning,
+        stacklevel=3,
+    )
     if not (MIN_TICK <= tick <= MAX_TICK):
         raise ValueError("Tick is out of allowed range")
     return PRICE_STEP**tick
@@ -104,6 +125,12 @@ def get_fees(
     above: bool,
 ) -> float:
     """Returns the liquidity fee."""
+    deprecated_message(
+        message="get_fees() is deprecated. The chain has migrated from Uniswap V3 "
+        "to PalSwap which uses a different fee calculation mechanism.",
+        category=ChainFeatureDisabledWarning,
+        stacklevel=3,
+    )
     tick_fee_key = "fees_out_tao" if quote else "fees_out_alpha"
     tick_fee_value = fixed_to_float(tick.get(tick_fee_key))
     global_fee_value = global_fees_tao if quote else global_fees_alpha
@@ -129,11 +156,16 @@ def get_fees_in_range(
     fees_above_high: float,
 ) -> float:
     """Returns the liquidity fee value in a range."""
+    deprecated_message(
+        message="get_fees_in_range() is deprecated. The chain has migrated from Uniswap V3 "
+        "to PalSwap which uses a different fee calculation mechanism.",
+        category=ChainFeatureDisabledWarning,
+        stacklevel=3,
+    )
     global_fees = global_fees_tao if quote else global_fees_alpha
     return global_fees - fees_below_low - fees_above_high
 
 
-# Calculate fees for a position
 def calculate_fees(
     position: Position,
     global_fees_tao: float,
@@ -163,6 +195,13 @@ def calculate_fees(
     Returns:
         A tuple of (tao_fees, alpha_fees) as `Balance` instances.
     """
+    """Calculate fees for a position."""
+    deprecated_message(
+        message="calculate_fees() is deprecated. The chain has migrated from Uniswap V3 "
+        "to PalSwap which uses a different fee calculation mechanism.",
+        category=ChainFeatureDisabledWarning,
+        stacklevel=3,
+    )
     fee_tao_agg = get_fees_in_range(
         quote=True,
         global_fees_tao=global_fees_tao,

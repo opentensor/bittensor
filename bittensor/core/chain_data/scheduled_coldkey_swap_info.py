@@ -5,7 +5,8 @@ from bittensor_wallet.utils import SS58_FORMAT
 from scalecodec.utils.ss58 import ss58_encode
 
 from bittensor.core.chain_data.info_base import InfoBase
-from bittensor.core.chain_data.utils import from_scale_encoding, ChainDataType
+from bittensor.core.chain_data.utils import ChainDataType, from_scale_encoding
+from bittensor.utils import deprecated_message
 
 
 @dataclass
@@ -26,6 +27,8 @@ class ScheduledColdkeySwapInfo(InfoBase):
     @classmethod
     def _from_dict(cls, decoded: dict) -> "ScheduledColdkeySwapInfo":
         """Returns a ScheduledColdkeySwapInfo object from decoded chain data."""
+        # TODO: remove this logic in the next major release (include all references)
+        deprecated_message()
         return cls(
             arbitration_block=decoded["arbitration_block"],
             new_coldkey=ss58_encode(decoded["new_coldkey"], SS58_FORMAT),
@@ -35,6 +38,8 @@ class ScheduledColdkeySwapInfo(InfoBase):
     @classmethod
     def decode_account_id_list(cls, vec_u8: list[int]) -> Optional[list[str]]:
         """Decodes a list of AccountIds from vec_u8."""
+        # TODO: remove this logic in the next major release (include all references)
+        deprecated_message()
         decoded = from_scale_encoding(
             vec_u8, ChainDataType.ScheduledColdkeySwapInfo.AccountId, is_vec=True
         )

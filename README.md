@@ -11,7 +11,7 @@
 
 ## Internet-scale Neural Networks <!-- omit in toc -->
 
-[Discord](https://discord.gg/qasY3HA9F9) • [Network](https://taostats.io/) • [Research](https://bittensor.com/whitepaper) • [Documentation](https://docs.bittensor.com)
+[Discord](https://discord.gg/qasY3HA9F9) • [Network](https://taostats.io/) • [Research](https://bittensor.com/whitepaper) • [Documentation](https://docs.learnbittensor.org)
 
 </div>
 
@@ -45,8 +45,8 @@ Welcome! Bittensor is an open source platform on which you can produce competiti
 
 The Opentensor Foundation (OTF) provides all the open source tools, including this Bittensor SDK, the codebase and the documentation, with step-by-step tutorials and guides, to enable you to participate in the Bittensor ecosystem. 
 
-- **Developer documentation**: https://docs.bittensor.com.
-- **A Beginner's Q and A on Bittensor**: https://docs.bittensor.com/questions-and-answers.
+- **Developer documentation**: https://docs.learnbittensor.org.
+- **A Beginner's Q and A on Bittensor**: https://docs.learnbittensor.org/questions-and-answers.
 - **Bittensor whitepaper**: https://bittensor.com/whitepaper.
 
 This Bittensor SDK contains ready-to-use Python packages for interacting with the Bittensor ecosystem, writing subnet incentive mechanisms, subnet miners, subnet validators and querying the subtensor (the blockchain part of the Bittensor network). 
@@ -74,7 +74,7 @@ This Bittensor SDK codebase is for the Bittensor platform only, designed to help
 
 ## Release Notes
 
-See [Bittensor SDK Release Notes](https://docs.bittensor.com/bittensor-rel-notes).
+See [Bittensor SDK Release Notes](https://docs.learnbittensor.org/bittensor-rel-notes).
 
 ---
 
@@ -98,7 +98,7 @@ python3 -m pip install --upgrade bittensor
 The macOS preinstalled CPython installation is compiled with LibreSSL instead of OpenSSL. There are a number
 of issues with LibreSSL, and as such is not fully supported by the libraries used by bittensor. Thus we highly recommend, if 
 you are using a Mac, to first install Python from [Homebrew](https://brew.sh/). Additionally, the Rust FFI bindings 
-[if installing from precompiled wheels (default)] require the Homebrew-installed OpenSSL pacakge. If you choose to use
+[if installing from precompiled wheels (default)] require the Homebrew-installed OpenSSL package. If you choose to use
 the preinstalled Python version from macOS, things may not work completely.
 
 ### Installation
@@ -253,7 +253,7 @@ pytest tests/unit_tests
 - `LOCALNET_SH_PATH` - path to `localnet.sh` script in cloned subtensor repository (for legacy runner);
 - `BUILD_BINARY` - (`=0` or `=1`) - used with `LOCALNET_SH_PATH` for build or not before start localnet node (for legacy runner);
 - `USE_DOCKER` - (`=0` or `=1`) - used if you want to use specific runner to run e2e tests (for docker runner);
-- `FAST_BLOCKS` - (`=0` or `=1`) - allows you to run a localnet node in fast or non-fast blocks mode (for both types of runers).
+- `FAST_BLOCKS` - (`=0` or `=1`) - allows you to run a localnet node in fast or non-fast blocks mode (for both types of runners).
 - `SKIP_PULL` - used if you are using a Docker image, but for some reason you want to temporarily limit the logic of updating the image from the repository.
 
 #### Using `docker runner` (default for now):

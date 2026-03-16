@@ -2,6 +2,7 @@ from typing import Optional, TypedDict, Union
 
 from async_substrate_interface.types import ScaleObj
 from scalecodec import ScaleType
+from async_substrate_interface.types import ScaleObj
 
 from bittensor.core import settings
 from bittensor.core.errors import BalanceTypeError, BalanceUnitMismatchError
