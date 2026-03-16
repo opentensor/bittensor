@@ -5,10 +5,12 @@ provisioning and fee distribution.
 """
 
 import math
-from typing import Any
+from typing import Any, TypedDict
 from dataclasses import dataclass
 
-from bittensor.utils.balance import Balance, fixed_to_float
+from async_substrate_interface.types import ScaleObj
+
+from bittensor.utils.balance import Balance, fixed_to_float, FixedPoint
 
 # These three constants are unchangeable at the level of Uniswap math
 MIN_TICK = -887272
@@ -59,6 +61,16 @@ class LiquidityPosition:
         return Balance.from_rao(int(amount_alpha), self.netuid), Balance.from_rao(
             int(amount_tao)
         )
+
+
+class Position(TypedDict, total=True):
+    liquidity: int
+    fees_tao: FixedPoint | ScaleObj
+    fees_alpha: FixedPoint | ScaleObj
+    id: tuple[int,]
+    tick_low: tuple[int,]
+    tick_high: tuple[int,]
+    netuid: int
 
 
 def price_to_tick(price: float) -> int:
@@ -123,7 +135,7 @@ def get_fees_in_range(
 
 # Calculate fees for a position
 def calculate_fees(
-    position: dict[str, Any],
+    position: Position,
     global_fees_tao: float,
     global_fees_alpha: float,
     tao_fees_below_low: float,
@@ -139,8 +151,7 @@ def calculate_fees(
     the position's liquidity share.
 
     Args:
-        position: A dictionary describing the liquidity position, must contain
-            ``"liquidity"``, ``"fees_owed_tao"``, and ``"fees_owed_alpha"`` keys.
+        position: A dictionary describing the liquidity position.
         global_fees_tao: The global TAO fee accumulator value.
         global_fees_alpha: The global Alpha fee accumulator value.
         tao_fees_below_low: TAO fees accumulated below the position's lower tick.
@@ -150,7 +161,7 @@ def calculate_fees(
         netuid: The subnet identifier used for Balance unit tagging.
 
     Returns:
-        A tuple of ``(tao_fees, alpha_fees)`` as :class:`Balance` instances.
+        A tuple of (tao_fees, alpha_fees) as `Balance` instances.
     """
     fee_tao_agg = get_fees_in_range(
         quote=True,

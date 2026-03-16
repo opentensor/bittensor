@@ -10,6 +10,7 @@ from bittensor.utils.liquidity import (
     get_fees,
     get_fees_in_range,
     calculate_fees,
+    Position,
 )
 
 
@@ -97,7 +98,7 @@ def test_get_fees_in_range():
 def test_calculate_fees():
     """Test calculation of fees for a position."""
     # Preps
-    position = {
+    position: Position = {
         "id": (2,),
         "netuid": 2,
         "tick_low": (206189,),

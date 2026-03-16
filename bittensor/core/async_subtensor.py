@@ -162,6 +162,7 @@ from bittensor.utils.liquidity import (
     get_fees,
     price_to_tick,
     tick_to_price,
+    Position,
 )
 
 if TYPE_CHECKING:
@@ -2712,8 +2713,10 @@ class AsyncSubtensor(SubtensorMixin):
         current_tick = price_to_tick(sqrt_price**2)
 
         # Fetch positions
-        positions_values: list[tuple[dict, int, int]] = []
+        positions_values: list[tuple[Position, int, int]] = []
         positions_storage_keys: list[StorageKey] = []
+        position: Position
+
         async for _, p in positions_response:
             position = p.value
 
