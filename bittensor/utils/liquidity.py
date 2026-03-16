@@ -5,7 +5,7 @@ provisioning and fee distribution.
 """
 
 import math
-from typing import Any, TypedDict
+from typing import TypedDict
 from dataclasses import dataclass
 
 from async_substrate_interface.types import ScaleObj
