@@ -195,7 +195,6 @@ def calculate_fees(
     Returns:
         A tuple of (tao_fees, alpha_fees) as `Balance` instances.
     """
-    """Calculate fees for a position."""
     deprecated_message(
         message="calculate_fees() is deprecated. The chain has migrated from Uniswap V3 "
         "to PalSwap which uses a different fee calculation mechanism.",
