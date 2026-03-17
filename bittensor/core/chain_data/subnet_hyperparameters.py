@@ -12,8 +12,8 @@ class SubnetHyperparameters(InfoBase):
         rho: The rate of decay of some value.
         kappa: A constant multiplier used in calculations.
         immunity_period: The period during which immunity is active.
-        min_allowed_weights: Minimum allowed weights.
-        max_weight_limit: Maximum weight limit.
+        min_allowed_weights: The minimum number of weights allowed to be set by a validator.
+        max_weight_limit: The maximum weight that can be assigned to a single neuron.
         tempo: The tempo or rate of operation.
         min_difficulty: Minimum difficulty for some operations.
         max_difficulty: Maximum difficulty for some operations.
