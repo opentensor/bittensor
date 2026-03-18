@@ -257,7 +257,7 @@ def get_hash(content, encoding="utf-8"):
     Args:
         content: The input data to hash. Can be bytes or a string.
         encoding: The character encoding to use when the content is a string.
-            Defaults to ``"utf-8"``.
+            Defaults to `"utf-8"`.
 
     Returns:
         The hex-encoded SHA-256 digest string.
@@ -495,11 +495,11 @@ def determine_chain_endpoint_and_network(
     """Determines the chain endpoint and network from the passed network or chain_endpoint.
 
     Parameters:
-        network: The network flag. The choices are: ``finney`` (main network), ``archive`` (archive network +300 blocks),
-             ``local`` (local running network), ``test`` (test network).
+        network: The network flag. The choices are: `finney` (main network), `archive` (archive network +300 blocks),
+             `local` (local running network), `test` (test network).
 
     Returns:
-        The network and chain endpoint flag. If passed, overrides the ``network`` argument.
+        The network and chain endpoint flag. If passed, overrides the `network` argument.
     """
 
     if network is None:

@@ -193,7 +193,7 @@ def calculate_fees(
         netuid: The subnet identifier used for Balance unit tagging.
 
     Returns:
-        A tuple of (tao_fees, alpha_fees) as `Balance` instances.
+        A tuple of `(tao_fees, alpha_fees)` as `Balance` instances.
     """
     deprecated_message(
         message="calculate_fees() is deprecated. The chain has migrated from Uniswap V3 "
