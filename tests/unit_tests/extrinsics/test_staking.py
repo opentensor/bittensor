@@ -181,6 +181,7 @@ def test_add_stake_multiple_extrinsic(subtensor, mocker, fake_wallet):
         "get_stake_info_for_coldkey",
         return_value=[Balance(1.1), Balance(0.3)],
     )
+    mocker.patch.object(subtensor, "get_stake", return_value=Balance.from_tao(2.2))
     mocker.patch.object(subtensor, "get_balance", return_value=Balance.from_tao(10))
     mocker.patch.object(
         staking, "get_old_stakes", return_value=[Balance(1.1), Balance(0.3)]

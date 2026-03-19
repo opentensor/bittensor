@@ -3,11 +3,14 @@
 from typing import TYPE_CHECKING, Optional
 
 from async_substrate_interface import AsyncExtrinsicReceipt
+from async_substrate_interface.errors import SubstrateRequestException
 
+from bittensor.core.errors import map_shield_error
 from bittensor.core.extrinsics.pallets import MevShield
 from bittensor.core.extrinsics.utils import (
-    get_mev_commitment_and_ciphertext,
+    get_mev_shielded_ciphertext,
     get_event_data_by_event_name,
+    resolve_mev_shield_period,
 )
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils import format_error_message
@@ -22,7 +25,6 @@ if TYPE_CHECKING:
 async def wait_for_extrinsic_by_hash(
     subtensor: "AsyncSubtensor",
     extrinsic_hash: str,
-    shield_id: str,
     submit_block_hash: str,
     timeout_blocks: int = 3,
 ) -> Optional["AsyncExtrinsicReceipt"]:
@@ -30,15 +32,11 @@ async def wait_for_extrinsic_by_hash(
     Wait for the result of a MeV Shield encrypted extrinsic.
 
     After submit_encrypted succeeds, the block author will decrypt and submit the inner extrinsic directly. This
-    function polls subsequent blocks looking for either:
-    - an extrinsic matching the provided hash (success)
-    OR
-    - a markDecryptionFailed extrinsic with matching shield ID (failure)
+    function polls subsequent blocks looking for an extrinsic matching the provided hash.
 
     Args:
         subtensor: SubtensorInterface instance.
         extrinsic_hash: The hash of the inner extrinsic to find.
-        shield_id: The wrapper ID from EncryptedSubmitted event (for detecting decryption failures).
         submit_block_hash: Block hash where submit_encrypted was included.
         timeout_blocks: Max blocks to wait.
 
@@ -59,34 +57,14 @@ async def wait_for_extrinsic_by_hash(
         block_hash = await subtensor.substrate.get_block_hash(current_block)
         extrinsics = await subtensor.substrate.get_extrinsics(block_hash)
 
-        result_idx = None
         for idx, extrinsic in enumerate(extrinsics):
-            # Success: Inner extrinsic executed
             if f"0x{extrinsic.extrinsic_hash.hex()}" == extrinsic_hash:
-                result_idx = idx
-                break
-
-            # Failure: Decryption failed
-            call = extrinsic.value.get("call", {})
-            if (
-                call.get("call_module") == "MevShield"
-                and call.get("call_function") == "mark_decryption_failed"
-            ):
-                call_args = call.get("call_args", [])
-                for arg in call_args:
-                    if arg.get("name") == "id" and arg.get("value") == shield_id:
-                        result_idx = idx
-                        break
-                if result_idx is not None:
-                    break
-
-        if result_idx is not None:
-            return AsyncExtrinsicReceipt(
-                substrate=subtensor.substrate,
-                block_hash=block_hash,
-                block_number=current_block,
-                extrinsic_idx=result_idx,
-            )
+                return AsyncExtrinsicReceipt(
+                    substrate=subtensor.substrate,
+                    block_hash=block_hash,
+                    block_number=current_block,
+                    extrinsic_idx=idx,
+                )
 
         current_block += 1
 
@@ -125,7 +103,7 @@ async def submit_encrypted_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction.
         wait_for_revealed_execution: Whether to wait for the executed event, indicating that validators have
             successfully decrypted and executed the inner call. If True, the function will poll subsequent blocks for
-            the event matching this submission's commitment.
+            the extrinsic matching this submission.
         blocks_for_revealed_execution: Maximum number of blocks to poll for the executed event after inclusion.
             The function checks blocks from start_block to start_block + blocks_for_revealed_execution. Returns
             immediately if the event is found before the block limit is reached.
@@ -138,13 +116,8 @@ async def submit_encrypted_extrinsic(
         SubstrateRequestException: If the extrinsic fails to be submitted or included.
 
     Note:
-        The encryption uses the public key from NextKey storage, which rotates every block. The payload structure is:
-        payload_core = signer_bytes (32B) + key_hash (32B Blake2-256 hash of NextKey) + SCALE(call)
-        plaintext = payload_core + b"\\x01" + signature (64B for sr25519)
-        commitment = blake2_256(payload_core)
-
-        The key_hash binds the transaction to the key epoch at submission time and replaces nonce-based replay
-        protection.
+        The encryption uses the public key from NextKey storage, which rotates every block. The ciphertext wire format
+        is: [key_hash(16)][u16 kem_len LE][kem_ct][nonce24][aead_ct], where key_hash = twox_128(NextKey).
     """
     try:
         if sign_with not in ("coldkey", "hotkey"):
@@ -174,7 +147,8 @@ async def submit_encrypted_extrinsic(
 
         inner_signing_keypair = getattr(wallet, sign_with)
 
-        era = "00" if period is None else {"period": period}
+        effective_period = resolve_mev_shield_period(period)
+        era = {"period": effective_period}
 
         current_nonce = await subtensor.substrate.get_account_next_index(
             account_address=inner_signing_keypair.ss58_address
@@ -186,15 +160,12 @@ async def submit_encrypted_extrinsic(
             call=call, keypair=inner_signing_keypair, nonce=next_nonce, era=era
         )
 
-        mev_commitment, mev_ciphertext, payload_core = (
-            get_mev_commitment_and_ciphertext(
-                signed_ext=signed_extrinsic,
-                ml_kem_768_public_key=ml_kem_768_public_key,
-            )
+        mev_ciphertext = get_mev_shielded_ciphertext(
+            signed_ext=signed_extrinsic,
+            ml_kem_768_public_key=ml_kem_768_public_key,
         )
 
         extrinsic_call = await MevShield(subtensor).submit_encrypted(
-            commitment=mev_commitment,
             ciphertext=mev_ciphertext,
         )
 
@@ -203,7 +174,7 @@ async def submit_encrypted_extrinsic(
             sign_with=sign_with,
             call=extrinsic_call,
             nonce=current_nonce,
-            period=period,
+            period=effective_period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
@@ -211,10 +182,8 @@ async def submit_encrypted_extrinsic(
 
         if response.success:
             response.data = {
-                "commitment": mev_commitment,
                 "ciphertext": mev_ciphertext,
                 "ml_kem_768_public_key": ml_kem_768_public_key,
-                "payload_core": payload_core,
                 "signed_extrinsic_hash": f"0x{signed_extrinsic.extrinsic_hash.hex()}",
             }
             if wait_for_revealed_execution:
@@ -230,12 +199,9 @@ async def submit_encrypted_extrinsic(
                         error=RuntimeError("EncryptedSubmitted event not found."),
                     )
 
-                shield_id = event["attributes"]["id"]
-
                 response.mev_extrinsic = await wait_for_extrinsic_by_hash(
                     subtensor=subtensor,
                     extrinsic_hash=f"0x{signed_extrinsic.extrinsic_hash.hex()}",
-                    shield_id=shield_id,
                     submit_block_hash=response.extrinsic_receipt.block_hash,
                     timeout_blocks=blocks_for_revealed_execution,
                 )
@@ -251,7 +217,7 @@ async def submit_encrypted_extrinsic(
                     response.message = format_error_message(
                         await response.mev_extrinsic.error_message
                     )
-                    response.error = RuntimeError(response.message)
+                    response.error = SubstrateRequestException(response.message)
                     response.success = False
                     if raise_error:
                         raise response.error
@@ -260,6 +226,10 @@ async def submit_encrypted_extrinsic(
                         "[green]Encrypted extrinsic submitted successfully.[/green]"
                     )
         else:
+            response.message = map_shield_error(str(response.message))
+            response.error = SubstrateRequestException(response.message)
+            if raise_error:
+                raise response.error
             logging.error(f"[red]{response.message}[/red]")
 
         return response

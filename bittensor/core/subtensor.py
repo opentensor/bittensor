@@ -2766,117 +2766,6 @@ class Subtensor(SubtensorMixin):
 
         return public_key_bytes
 
-    def get_mev_shield_submission(
-        self,
-        submission_id: str,
-        block: Optional[int] = None,
-    ) -> Optional[dict[str, str | int | bytes]]:
-        """
-        Retrieves Submission from the MevShield pallet storage.
-
-        If submission_id is provided, returns a single submission. If submission_id is None, returns all submissions from
-        the storage map.
-
-        Parameters:
-            submission_id: The hash ID of the submission. Can be a hex string with "0x" prefix or bytes. If None,
-                returns all submissions.
-            block: The blockchain block number at which to perform the query. If None, uses the current block.
-
-        Returns:
-            If submission_id is provided: A dictionary containing the submission data if found, None otherwise. The
-                dictionary contains:
-                - author: The SS58 address of the account that submitted the encrypted extrinsic
-                - commitment: The blake2_256 hash of the payload_core (as hex string with "0x" prefix)
-                - ciphertext: The encrypted blob as bytes (format: [u16 kem_len][kem_ct][nonce24][aead_ct])
-                - submitted_in: The block number when the submission was created
-
-            If submission_id is None: A dictionary mapping submission IDs (as hex strings) to submission dictionaries.
-
-        Note:
-            If a specific submission does not exist in storage, this function returns None. If querying all submissions
-            and none exist, returns an empty dictionary.
-        """
-        block_hash = self.determine_block_hash(block=block)
-        submission_id = (
-            submission_id[2:] if submission_id.startswith("0x") else submission_id
-        )
-        submission_id_bytes = bytes.fromhex(submission_id)
-
-        query = self.substrate.query(
-            module="MevShield",
-            storage_function="Submissions",
-            params=[submission_id_bytes],
-            block_hash=block_hash,
-        )
-
-        query_value = getattr(query, "value", query)
-        if query_value is None or not isinstance(query_value, dict):
-            return None
-
-        author_raw = cast(Union[bytes, str], query_value.get("author"))
-        commitment_raw = cast(list[bytes], query_value.get("commitment"))
-        ciphertext_raw = cast(list[bytes], query_value.get("ciphertext"))
-        submitted_in = cast(int, query_value.get("submitted_in"))
-
-        autor = decode_account_id(author_raw)
-        commitment = bytes(commitment_raw[0])
-        ciphertext = bytes(ciphertext_raw[0])
-
-        return {
-            "author": autor,
-            "commitment": commitment,
-            "ciphertext": ciphertext,
-            "submitted_in": submitted_in,
-        }
-
-    def get_mev_shield_submissions(
-        self,
-        block: Optional[int] = None,
-    ) -> Optional[dict[str, dict[str, str | int]]]:
-        """
-        Retrieves all encrypted submissions from the MevShield pallet storage.
-
-        This function queries the MevShield.Submissions storage map and returns all pending encrypted submissions that
-        have been submitted via submit_encrypted but not yet executed via execute_revealed.
-
-        Parameters:
-            block: The blockchain block number for the query. If None, uses the current block.
-
-        Returns:
-            A dictionary mapping wrapper_id (as hex string with "0x" prefix) to submission data dictionaries. Each
-            submission dictionary contains:
-            - author: The SS58 address of the account that submitted the encrypted extrinsic
-            - commitment: The blake2_256 hash of the payload_core as bytes (32 bytes)
-            - ciphertext: The encrypted blob as bytes (format: [u16 kem_len][kem_ct][nonce24][aead_ct])
-            - submitted_in: The block number when the submission was created
-
-            Returns None if no submissions exist in storage at the specified block.
-
-        Note:
-            Submissions are automatically pruned after KEY_EPOCH_HISTORY blocks (100 blocks) by the pallet's
-            on_initialize hook. Only submissions that have been submitted but not yet executed will be present in
-            storage.
-        """
-        block_hash = self.determine_block_hash(block=block)
-        query = self.substrate.query_map(
-            module="MevShield",
-            storage_function="Submissions",
-            block_hash=block_hash,
-        )
-
-        result = {}
-        for q in query:
-            key, value = q
-            value = value.value
-            result["0x" + bytes(key[0]).hex()] = {
-                "author": decode_account_id(value.get("author")),
-                "commitment": bytes(value.get("commitment")[0]),
-                "ciphertext": bytes(value.get("ciphertext")[0]),
-                "submitted_in": value.get("submitted_in"),
-            }
-
-        return result if result else None
-
     def get_minimum_required_stake(self) -> Balance:
         """Returns the minimum required stake threshold for nominator cleanup operations.
 
@@ -3576,11 +3465,10 @@ class Subtensor(SubtensorMixin):
     ) -> Balance:
         """
         Returns the amount of Alpha staked by a specific coldkey to a specific hotkey within a given subnet.
-        This function retrieves the delegated stake balance, referred to as the 'Alpha' value.
 
         Parameters:
             coldkey_ss58: The SS58 address of the coldkey that delegated the stake. This address owns the stake.
-            hotkey_ss58: The ss58 address of the hotkey which the stake is on.
+            hotkey_ss58: The SS58 address of the hotkey which the stake is on.
             netuid: The unique identifier of the subnet to query.
             block: The specific block number at which to retrieve the stake information.
 
@@ -3588,41 +3476,13 @@ class Subtensor(SubtensorMixin):
             An object representing the amount of Alpha (TAO ONLY if the subnet's netuid is 0) currently staked from the
                 specified coldkey to the specified hotkey within the given subnet.
         """
-        alpha_shares_query = self.query_module(
-            module="SubtensorModule",
-            name="Alpha",
-            block=block,
+        result = self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_stake_info_for_hotkey_coldkey_netuid",
             params=[hotkey_ss58, coldkey_ss58, netuid],
-        )
-        alpha_shares = alpha_shares_query
-
-        hotkey_alpha_obj = cast(
-            ScaleObj,
-            self.query_module(
-                module="SubtensorModule",
-                name="TotalHotkeyAlpha",
-                block=block,
-                params=[hotkey_ss58, netuid],
-            ),
-        )
-        hotkey_alpha = hotkey_alpha_obj.value
-
-        hotkey_shares = self.query_module(
-            module="SubtensorModule",
-            name="TotalHotkeyShares",
             block=block,
-            params=[hotkey_ss58, netuid],
         )
-
-        alpha_shares_as_float = fixed_to_float(alpha_shares)
-        hotkey_shares_as_float = fixed_to_float(hotkey_shares)
-
-        if hotkey_shares_as_float == 0:
-            return Balance.from_rao(0).set_unit(netuid=netuid)
-
-        stake = alpha_shares_as_float / hotkey_shares_as_float * hotkey_alpha
-
-        return Balance.from_rao(int(stake)).set_unit(netuid=netuid)
+        return StakeInfo.from_dict(result).stake
 
     def get_stake_for_coldkey_and_hotkey(
         self,
