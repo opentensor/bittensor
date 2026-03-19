@@ -52,6 +52,7 @@ dev = [
     "flake8==7.0.0",
     "mypy==1.8.0",
     "types-retry==0.9.9.4",
+    "typing_extensions>= 4.0.0; python_version<'3.11'",
     "freezegun==1.5.0",
     "httpx==0.27.0",
     "ruff==0.11.5",
