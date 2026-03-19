@@ -11,6 +11,7 @@ from bittensor.core.extrinsics.pallets import MevShield
 from bittensor.core.extrinsics.utils import (
     get_mev_shielded_ciphertext,
     get_event_data_by_event_name,
+    resolve_mev_shield_period,
 )
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.btlogging import logging
@@ -146,7 +147,8 @@ def submit_encrypted_extrinsic(
 
         inner_signing_keypair = getattr(wallet, sign_with)
 
-        era = "00" if period is None else {"period": period}
+        effective_period = resolve_mev_shield_period(period)
+        era = {"period": effective_period}
 
         current_nonce = subtensor.substrate.get_account_next_index(
             account_address=inner_signing_keypair.ss58_address
@@ -170,7 +172,7 @@ def submit_encrypted_extrinsic(
             sign_with=sign_with,
             call=extrinsic_call,
             nonce=current_nonce,
-            period=period,
+            period=effective_period,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
