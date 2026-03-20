@@ -5,11 +5,18 @@ import logging
 from typing import TYPE_CHECKING, Optional, Union
 
 from bittensor_drand import encrypt_mlkem768
+from bittensor_wallet import Keypair
 
 from bittensor.core.extrinsics.pallets import Sudo
+from bittensor.core.settings import MAX_MEV_SHIELD_PERIOD
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils.balance import Balance
 
+if TYPE_CHECKING:
+    from bittensor_wallet import Wallet
+    from bittensor.core.chain_data import StakeInfo
+    from bittensor.core.subtensor import Subtensor
+    from scalecodec.types import GenericExtrinsic
 
 # TODO: Michael/Roman add the link to the docs once it's ready.'
 MEV_HOTKEY_USAGE_WARNING = (
@@ -18,11 +25,22 @@ MEV_HOTKEY_USAGE_WARNING = (
     " the transaction."
 )
 
-if TYPE_CHECKING:
-    from bittensor_wallet import Wallet
-    from bittensor.core.chain_data import StakeInfo
-    from bittensor.core.subtensor import Subtensor
-    from scalecodec.types import GenericExtrinsic
+
+def resolve_mev_shield_period(period: Optional[int]) -> int:
+    """Return effective era period for MEV Shield extrinsics.
+
+    MEV Shield extrinsics must use a short-lived era. If period is omitted or
+    exceeds the MEV limit, the maximum allowed MEV period is applied.
+
+    Parameters:
+        period: The period to resolve.
+
+    Returns:
+        The effective period (in blocks).
+    """
+    if period is None or period > MAX_MEV_SHIELD_PERIOD:
+        return MAX_MEV_SHIELD_PERIOD
+    return period
 
 
 def get_old_stakes(
@@ -223,40 +241,25 @@ def apply_pure_proxy_data(
     return response.with_log("warning")
 
 
-def get_mev_commitment_and_ciphertext(
+def get_mev_shielded_ciphertext(
     signed_ext: "GenericExtrinsic",
     ml_kem_768_public_key: bytes,
-) -> tuple[str, bytes, bytes]:
+) -> bytes:
     """
-    Builds MEV Shield payload and encrypts it using ML-KEM-768 + XChaCha20Poly1305.
+    Encrypts a signed extrinsic for MEV Shield submission.
 
-    This function constructs the payload structure required for MEV Shield encryption and performs the encryption
-    process. The payload binds the transaction to a specific key epoch using the key_hash, which replaces nonce-based
-    replay protection.
+    This function extracts the raw extrinsic bytes and encrypts them using ML-KEM-768 + XChaCha20Poly1305 with the
+    twox_128 key hash prepended for on-chain validation.
 
     Parameters:
         signed_ext: The signed GenericExtrinsic object representing the inner call to be encrypted and executed.
-        ml_kem_768_public_key: The ML-KEM-768 public key bytes (1184 bytes) from NextKey storage. This key is used for
-            encryption and its hash binds the transaction to the key epoch.
+        ml_kem_768_public_key: The ML-KEM-768 public key bytes (1184 bytes) from NextKey storage.
 
     Returns:
-        A tuple containing:
-            - commitment_hex: Hex string of the Blake2-256 hash of payload_core (32 bytes).
-            - ciphertext: Encrypted blob containing plaintext.
-            - payload_core: Raw payload bytes before encryption.
+        The encrypted ciphertext bytes in wire format: [key_hash(16)][u16 kem_len LE][kem_ct][nonce24][aead_ct]
     """
-    payload_core = signed_ext.data.data
-
-    plaintext = bytes(payload_core)
-
-    # Getting ciphertext (encrypting plaintext using ML-KEM-768)
-    ciphertext = encrypt_mlkem768(ml_kem_768_public_key, plaintext)
-
-    # Compute commitment: blake2_256(payload_core)
-    commitment_hash = hashlib.blake2b(payload_core, digest_size=32).digest()
-    commitment_hex = "0x" + commitment_hash.hex()
-
-    return commitment_hex, ciphertext, payload_core
+    plaintext = bytes(signed_ext.data.data)
+    return encrypt_mlkem768(ml_kem_768_public_key, plaintext, include_key_hash=True)
 
 
 def get_event_data_by_event_name(events: list, event_name: str) -> Optional[dict]:
@@ -287,3 +290,47 @@ def get_event_data_by_event_name(events: list, event_name: str) -> Optional[dict
         ):
             return event
     return None
+
+
+def compute_coldkey_hash(keypair: "Keypair") -> str:
+    """
+    Computes BlakeTwo256 hash of a coldkey AccountId.
+
+    This function extracts the AccountId (32-byte public key) from an SS58 address and computes its BlakeTwo256 hash.
+    The hash is used in coldkey swap announcements to verify the new coldkey address when executing the swap.
+
+    Parameters:
+        keypair: keypair for getting hash.
+
+    Returns:
+        Hex string with 0x prefix representing the BlakeTwo256 hash of the AccountId.
+
+    Notes:
+        - The hash is computed from the AccountId (public key bytes), not from the SS58 string.
+        - This matches the hash computation used in the Subtensor runtime.
+        - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
+    """
+    hash_bytes = hashlib.blake2b(keypair.public_key, digest_size=32).digest()
+    return "0x" + hash_bytes.hex()
+
+
+def verify_coldkey_hash(keypair: "Keypair", expected_hash: str) -> bool:
+    """
+    Verifies that a coldkey SS58 address matches the expected BlakeTwo256 hash.
+
+    This function computes the hash of the coldkey AccountId and compares it with the expected hash. Used to verify that
+    the new coldkey address in a swap announcement matches the announced hash.
+
+    Parameters:
+        keypair: keypair whose hash needs to be verified.
+        expected_hash: Expected BlakeTwo256 hash (hex string with 0x prefix).
+
+    Returns:
+        True if the computed hash matches the expected hash, False otherwise.
+
+    Notes:
+        - Both hashes are compared in lowercase to handle case differences.
+        - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
+    """
+    computed_hash = compute_coldkey_hash(keypair)
+    return computed_hash.lower() == expected_hash.lower()

@@ -70,6 +70,10 @@ SS58_ADDRESS_LENGTH = 48
 # details https://paritytech.github.io/polkadot-sdk/master/src/sp_runtime/generic/era.rs.html#65-72
 DEFAULT_PERIOD = 128
 
+# Maximum period (in blocks) for MEV Shield-protected extrinsics Era.
+# This keeps encrypted submissions short-lived in the mempool.
+MAX_MEV_SHIELD_PERIOD = 8
+
 # Default MEV Shield protection setting for extrinsics.
 # When enabled, transactions are encrypted to protect against Miner Extractable Value (MEV) attacks.
 DEFAULT_MEV_PROTECTION = os.getenv("BT_MEV_PROTECTION", "").lower() in (

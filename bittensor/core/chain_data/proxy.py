@@ -31,14 +31,12 @@ class ProxyType(str, Enum):
         NonTransfer: Allows all operations except those involving token transfers. Prohibited operations:
             - All Balances module calls
             - transfer_stake
-            - schedule_swap_coldkey
-            - swap_coldkey
 
         NonFungible: Allows all operations except token-related operations and registrations. Prohibited operations:
             - All Balances module calls
             - All staking operations (add_stake, remove_stake, unstake_all, swap_stake, move_stake, transfer_stake)
             - Registration operations (burned_register, root_register)
-            - Key swap operations (schedule_swap_coldkey, swap_coldkey, swap_hotkey)
+            - Key swap operations (announce_coldkey_swap, swap_coldkey_announced, swap_hotkey)
 
         Staking: Allows only staking-related operations. Permitted operations:
             - add_stake, add_stake_limit

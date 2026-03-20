@@ -1,6 +1,6 @@
 # Style Guide
 
-A project’s long-term success rests (among other things) on its maintainability, and a maintainer has few tools more powerful than his or her project’s log. It’s worth taking the time to learn how to care for one properly. What may be a hassle at first soon becomes habit, and eventually a source of pride and productivity for all involved.
+A project's long-term success rests (among other things) on its maintainability, and a maintainer has few tools more powerful than his or her project's log. It's worth taking the time to learn how to care for one properly. What may be a hassle at first soon becomes habit, and eventually a source of pride and productivity for all involved.
 
 Most programming languages have well-established conventions as to what constitutes idiomatic style, i.e. naming, formatting and so on. There are variations on these conventions, of course, but most developers agree that picking one and sticking to it is far better than the chaos that ensues when everybody does their own thing.
 
@@ -28,7 +28,7 @@ Python's official style guide is PEP 8, which provides conventions for writing c
 
 - `Indentation:` Use 4 spaces per indentation level.
 
-- `Line Length:` Limit all lines to a maximum of 79 characters. This is not strict, however, and we follow ruff's default of 88 characters. 
+- `Line Length:` Limit all lines to a maximum of 79 characters. This is not strict, however, and we follow ruff's default of 88 characters.
 
 - `Blank Lines:` Surround top-level function and class definitions with two blank lines. Method definitions inside a class are surrounded by a single blank line.
 
@@ -87,7 +87,7 @@ We have added a helper tool `make check` to run the ruff formatter, and all lint
 
 ### Git commit style
 
-Here’s a model Git commit message when contributing:
+Here's a model Git commit message when contributing:
 ```
 Summarize changes in around 50 characters or less
 
@@ -122,7 +122,7 @@ See also: #456, #789
 ## The six rules of a great commit.
 
 #### 1. Atomic Commits
-An “atomic” change revolves around one task or one fix.
+An "atomic" change revolves around one task or one fix.
 
 Atomic Approach
  - Commit each fix or task as a separate change
@@ -140,7 +140,7 @@ Benefits
 
 Commit messages like "fix", "fix2", or "fix3" don't provide any context or clear understanding of what changes the commit introduces. Here are some examples of good vs. bad commit messages:
 
-**Bad Commit Message:** 
+**Bad Commit Message:**
 
     $ git commit -m "fix"
 
@@ -148,11 +148,11 @@ Commit messages like "fix", "fix2", or "fix3" don't provide any context or clear
 
     $ git commit -m "Fix typo in README file"
 
-> **Caveat**: When working with new features, an atomic commit will often consist of multiple files, since a layout file, code behind file, and additional resources may have been added/modified. You don’t want to commit all of these separately, because if you had to roll back the application to a state before the feature was added, it would involve multiple commit entries, and that can get confusing
+> **Caveat**: When working with new features, an atomic commit will often consist of multiple files, since a layout file, code behind file, and additional resources may have been added/modified. You don't want to commit all of these separately, because if you had to roll back the application to a state before the feature was added, it would involve multiple commit entries, and that can get confusing
 
 #### 2. Separate subject from body with a blank line
 
-Not every commit requires both a subject and a body. Sometimes a single line is fine, especially when the change is so simple that no further context is necessary. 
+Not every commit requires both a subject and a body. Sometimes a single line is fine, especially when the change is so simple that no further context is necessary.
 
 For example:
 
@@ -160,7 +160,7 @@ For example:
 
 Nothing more needs to be said; if the reader wonders what the typo was, she can simply take a look at the change itself, i.e. use     git show or git diff or git log -p.
 
-If you’re committing something like this at the command line, it’s easy to use the -m option to git commit:
+If you're committing something like this at the command line, it's easy to use the -m option to git commit:
 
     $ git commit -m "Fix typo in introduction to user guide"
 
@@ -172,37 +172,37 @@ However, when a commit merits a bit of explanation and context, you need to writ
     This commit throws Tron's disc into MCP (causing its deresolution)
     and turns it back into a chess game.
 
-Commit messages with bodies are not so easy to write with the -m option. You’re better off writing the message in a proper text editor. [See Pro Git](https://git-scm.com/book/en/v2/Customizing-Git-Git-Configuration).
+Commit messages with bodies are not so easy to write with the -m option. You're better off writing the message in a proper text editor. [See Pro Git](https://git-scm.com/book/en/v2/Customizing-Git-Git-Configuration).
 
-In any case, the separation of subject from body pays off when browsing the log. Here’s the full log entry:
+In any case, the separation of subject from body pays off when browsing the log. Here's the full log entry:
 
     $ git log
     commit 42e769bdf4894310333942ffc5a15151222a87be
     Author: Kevin Flynn <kevin@flynnsarcade.com>
     Date:   Fri Jan 01 00:00:00 1982 -0200
-    
+
      Derezz the master control program
-    
+
      MCP turned out to be evil and had become intent on world domination.
      This commit throws Tron's disc into MCP (causing its deresolution)
      and turns it back into a chess game.
 
 
 #### 3. Limit the subject line to 50 characters
-50 characters is not a hard limit, just a rule of thumb. Keeping subject lines at this length ensures that they are readable, and forces the author to think for a moment about the most concise way to explain what’s going on.
+50 characters is not a hard limit, just a rule of thumb. Keeping subject lines at this length ensures that they are readable, and forces the author to think for a moment about the most concise way to explain what's going on.
 
-GitHub’s UI is fully aware of these conventions. It will warn you if you go past the 50 character limit. Git will truncate any subject line longer than 72 characters with an ellipsis, thus keeping it to 50 is best practice.
+GitHub's UI is fully aware of these conventions. It will warn you if you go past the 50 character limit. Git will truncate any subject line longer than 72 characters with an ellipsis, thus keeping it to 50 is best practice.
 
 #### 4. Use the imperative mood in the subject line
-Imperative mood just means “spoken or written as if giving a command or instruction”. A few examples:
+Imperative mood just means "spoken or written as if giving a command or instruction". A few examples:
 
     Clean your room
     Close the door
     Take out the trash
 
-Each of the seven rules you’re reading about right now is written in the imperative (“Wrap the body at 72 characters”, etc.).
+Each of the six rules you're reading about right now is written in the imperative ("Wrap the body at 72 characters", etc.).
 
-The imperative can sound a little rude; that’s why we don’t often use it. But it’s perfect for Git commit subject lines. One reason for this is that Git itself uses the imperative whenever it creates a commit on your behalf.
+The imperative can sound a little rude; that's why we don't often use it. But it's perfect for Git commit subject lines. One reason for this is that Git itself uses the imperative whenever it creates a commit on your behalf.
 
 For example, the default message created when using git merge reads:
 
@@ -214,18 +214,18 @@ And when using git revert:
 
     This reverts commit cc87791524aedd593cff5a74532befe7ab69ce9d.
 
-Or when clicking the “Merge” button on a GitHub pull request:
+Or when clicking the "Merge" button on a GitHub pull request:
 
     Merge pull request #123 from someuser/somebranch
 
-So when you write your commit messages in the imperative, you’re following Git’s own built-in conventions. For example:
+So when you write your commit messages in the imperative, you're following Git's own built-in conventions. For example:
 
     Refactor subsystem X for readability
     Update getting started documentation
     Remove deprecated methods
     Release version 1.0.0
 
-Writing this way can be a little awkward at first. We’re more used to speaking in the indicative mood, which is all about reporting facts. That’s why commit messages often end up reading like this:
+Writing this way can be a little awkward at first. We're more used to speaking in the indicative mood, which is all about reporting facts. That's why commit messages often end up reading like this:
 
     Fixed bug with Y
     Changing behavior of X
@@ -235,7 +235,7 @@ And sometimes commit messages get written as a description of their contents:
     More fixes for broken stuff
     Sweet new API methods
 
-To remove any confusion, here’s a simple rule to get it right every time.
+To remove any confusion, here's a simple rule to get it right every time.
 
 **A properly formed Git commit subject line should always be able to complete the following sentence:**
 
@@ -254,7 +254,7 @@ Git never wraps text automatically. When you write the body of a commit message,
 
 The recommendation is to do this at 72 characters, so that Git has plenty of room to indent text while still keeping everything under 80 characters overall.
 
-A good text editor can help here. It’s easy to configure Vim, for example, to wrap text at 72 characters when you’re writing a Git commit.
+A good text editor can help here. It's easy to configure Vim, for example, to wrap text at 72 characters when you're writing a Git commit.
 
 #### 6. Use the body to explain what and why vs. how
 This [commit](https://github.com/bitcoin/bitcoin/commit/eb0b56b19017ab5c16c745e6da39c53126924ed6) from Bitcoin Core is a great example of explaining what changed and why:
@@ -283,9 +283,9 @@ Date:   Fri Aug 1 22:57:55 2014 +0200
    them.
 ```
 
-Take a look at the [full diff](https://github.com/bitcoin/bitcoin/commit/eb0b56b19017ab5c16c745e6da39c53126924ed6) and just think how much time the author is saving fellow and future committers by taking the time to provide this context here and now. If he didn’t, it would probably be lost forever.
+Take a look at the [full diff](https://github.com/bitcoin/bitcoin/commit/eb0b56b19017ab5c16c745e6da39c53126924ed6) and just think how much time the author is saving fellow and future committers by taking the time to provide this context here and now. If he didn't, it would probably be lost forever.
 
-In most cases, you can leave out details about how a change has been made. Code is generally self-explanatory in this regard (and if the code is so complex that it needs to be explained in prose, that’s what source comments are for). Just focus on making clear the reasons why you made the change in the first place—the way things worked before the change (and what was wrong with that), the way they work now, and why you decided to solve it the way you did.
+In most cases, you can leave out details about how a change has been made. Code is generally self-explanatory in this regard (and if the code is so complex that it needs to be explained in prose, that's what source comments are for). Just focus on making clear the reasons why you made the change in the first place-the way things worked before the change (and what was wrong with that), the way they work now, and why you decided to solve it the way you did.
 
 The future maintainer that thanks you may be yourself!
 
@@ -295,7 +295,7 @@ The future maintainer that thanks you may be yourself!
 
 ##### Using `--fixup`
 
-If you've made a commit and then realize you've missed something or made a minor mistake, you can use the `--fixup` option. 
+If you've made a commit and then realize you've missed something or made a minor mistake, you can use the `--fixup` option.
 
 For example, suppose you've made a commit with a hash `9fceb02`. Later, you realize you've left a debug statement in your code. Instead of making a new commit titled "remove debug statement" or "fix", you can do the following:
 
@@ -337,10 +337,10 @@ In this context, an atomic commit message could look like:
 ```
 Add feature X
 
-This commit introduces feature X which does A, B, and C. It adds 
+This commit introduces feature X which does A, B, and C. It adds
 new files for layout, updates the code behind the file, and introduces
-new resources. This change is important because it allows users to 
-perform task Y more efficiently. 
+new resources. This change is important because it allows users to
+perform task Y more efficiently.
 
 It includes:
 - Creation of new layout file
@@ -350,4 +350,4 @@ It includes:
 Resolves: #123
 ```
 
-In your PRs, remember to detail what the PR is introducing or fixing. This will be helpful for reviewers to understand the context and the reason behind the changes. 
+In your PRs, remember to detail what the PR is introducing or fixing. This will be helpful for reviewers to understand the context and the reason behind the changes.

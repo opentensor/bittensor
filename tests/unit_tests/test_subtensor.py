@@ -3182,6 +3182,76 @@ def test_start_call(subtensor, mocker):
     assert result == mocked_extrinsic.return_value
 
 
+def test_add_stake_burn(subtensor, fake_wallet, mocker):
+    """Test add_stake_burn extrinsic calls properly."""
+    # Preps
+    netuid = 123
+    hotkey_ss58 = "hotkey"
+    amount = Balance.from_tao(1.0)
+    mocked_extrinsic = mocker.patch.object(subtensor_module, "add_stake_burn_extrinsic")
+
+    # Call
+    result = subtensor.add_stake_burn(
+        wallet=fake_wallet,
+        netuid=netuid,
+        hotkey_ss58=hotkey_ss58,
+        amount=amount,
+    )
+
+    # Asserts
+    mocked_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=netuid,
+        hotkey_ss58=hotkey_ss58,
+        amount=amount,
+        limit_price=None,
+        mev_protection=DEFAULT_MEV_PROTECTION,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+    )
+    assert result == mocked_extrinsic.return_value
+
+
+def test_add_stake_burn_with_limit_price(subtensor, fake_wallet, mocker):
+    """Test add_stake_burn extrinsic passes limit price."""
+    # Preps
+    netuid = 123
+    hotkey_ss58 = "hotkey"
+    amount = Balance.from_tao(1.0)
+    limit_price = Balance.from_tao(2.0)
+    mocked_extrinsic = mocker.patch.object(subtensor_module, "add_stake_burn_extrinsic")
+
+    # Call
+    result = subtensor.add_stake_burn(
+        wallet=fake_wallet,
+        netuid=netuid,
+        hotkey_ss58=hotkey_ss58,
+        amount=amount,
+        limit_price=limit_price,
+    )
+
+    # Asserts
+    mocked_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=netuid,
+        hotkey_ss58=hotkey_ss58,
+        amount=amount,
+        limit_price=limit_price,
+        mev_protection=DEFAULT_MEV_PROTECTION,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+    )
+    assert result == mocked_extrinsic.return_value
+
+
 def test_get_metagraph_info_all_fields(subtensor, mocker):
     """Test get_metagraph_info with all fields (default behavior)."""
     # Preps
@@ -6133,234 +6203,6 @@ def test_get_mev_shield_next_key_invalid_size(subtensor, mocker):
     )
 
 
-def test_get_mev_shield_submission_success(subtensor, mocker):
-    """Test get_mev_shield_submission returns correct submission when found."""
-    # Prep
-    fake_submission_id = "0x1234567890abcdef"
-    fake_block = 123
-    fake_block_hash = "0x123abc"
-    fake_author = b"\x01" * 32
-    fake_commitment = b"\x02" * 32
-    fake_ciphertext = b"\x03" * 100
-    fake_submitted_in = 100
-
-    fake_query_result = {
-        "author": [fake_author],
-        "commitment": [fake_commitment],
-        "ciphertext": [fake_ciphertext],
-        "submitted_in": fake_submitted_in,
-    }
-
-    mocked_determine_block_hash = mocker.patch.object(
-        subtensor, "determine_block_hash", return_value=fake_block_hash
-    )
-    mocked_query = mocker.patch.object(
-        subtensor.substrate, "query", return_value=fake_query_result
-    )
-    mocked_decode_account_id = mocker.patch.object(
-        subtensor_module,
-        "decode_account_id",
-        return_value="5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-    )
-
-    # Call
-    result = subtensor.get_mev_shield_submission(
-        submission_id=fake_submission_id, block=fake_block
-    )
-
-    # Asserts
-    mocked_determine_block_hash.assert_called_once_with(block=fake_block)
-    mocked_query.assert_called_once_with(
-        module="MevShield",
-        storage_function="Submissions",
-        params=[bytes.fromhex("1234567890abcdef")],
-        block_hash=fake_block_hash,
-    )
-    mocked_decode_account_id.assert_called_once_with([fake_author])
-    assert result == {
-        "author": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-        "commitment": fake_commitment,
-        "ciphertext": fake_ciphertext,
-        "submitted_in": fake_submitted_in,
-    }
-
-
-def test_get_mev_shield_submission_without_0x_prefix(subtensor, mocker):
-    """Test get_mev_shield_submission handles submission_id without 0x prefix."""
-    # Prep
-    fake_submission_id = "1234567890abcdef"
-    fake_block = 123
-    fake_block_hash = "0x123abc"
-    fake_query_result = {
-        "author": [b"\x01" * 32],
-        "commitment": [b"\x02" * 32],
-        "ciphertext": [b"\x03" * 100],
-        "submitted_in": 100,
-    }
-
-    mocked_determine_block_hash = mocker.patch.object(
-        subtensor, "determine_block_hash", return_value=fake_block_hash
-    )
-    mocked_query = mocker.patch.object(
-        subtensor.substrate, "query", return_value=fake_query_result
-    )
-    mocked_decode_account_id = mocker.patch.object(
-        subtensor_module,
-        "decode_account_id",
-        return_value="5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-    )
-
-    # Call
-    result = subtensor.get_mev_shield_submission(
-        submission_id=fake_submission_id, block=fake_block
-    )
-
-    # Asserts
-    mocked_determine_block_hash.assert_called_once_with(block=fake_block)
-    mocked_query.assert_called_once_with(
-        module="MevShield",
-        storage_function="Submissions",
-        params=[bytes.fromhex("1234567890abcdef")],
-        block_hash=fake_block_hash,
-    )
-    mocked_decode_account_id.assert_called_once_with([b"\x01" * 32])
-    assert result is not None
-
-
-def test_get_mev_shield_submission_none(subtensor, mocker):
-    """Test get_mev_shield_submission returns None when submission not found."""
-    # Prep
-    fake_submission_id = "0x1234567890abcdef"
-    fake_block = 123
-    fake_block_hash = "0x123abc"
-
-    mocked_determine_block_hash = mocker.patch.object(
-        subtensor, "determine_block_hash", return_value=fake_block_hash
-    )
-    mocked_query = mocker.patch.object(subtensor.substrate, "query", return_value=None)
-
-    # Call
-    result = subtensor.get_mev_shield_submission(
-        submission_id=fake_submission_id, block=fake_block
-    )
-
-    # Asserts
-    mocked_determine_block_hash.assert_called_once_with(block=fake_block)
-    mocked_query.assert_called_once_with(
-        module="MevShield",
-        storage_function="Submissions",
-        params=[bytes.fromhex("1234567890abcdef")],
-        block_hash=fake_block_hash,
-    )
-    assert result is None
-
-
-def test_get_mev_shield_submissions_success(subtensor, mocker):
-    """Test get_mev_shield_submissions returns all submissions when found."""
-    # Prep
-    fake_block = 123
-    fake_block_hash = "0x123abc"
-    fake_submission_id_1 = b"\x01" * 32
-    fake_submission_id_2 = b"\x02" * 32
-    fake_author_1 = b"\x03" * 32
-    fake_author_2 = b"\x04" * 32
-    fake_commitment_1 = b"\x05" * 32
-    fake_commitment_2 = b"\x06" * 32
-    fake_ciphertext_1 = b"\x07" * 100
-    fake_ciphertext_2 = b"\x08" * 100
-
-    fake_query_result = mocker.MagicMock()
-    fake_query_result.__iter__.return_value = iter(
-        [
-            (
-                [fake_submission_id_1],
-                mocker.MagicMock(
-                    value={
-                        "author": [fake_author_1],
-                        "commitment": [fake_commitment_1],
-                        "ciphertext": [fake_ciphertext_1],
-                        "submitted_in": 100,
-                    }
-                ),
-            ),
-            (
-                [fake_submission_id_2],
-                mocker.MagicMock(
-                    value={
-                        "author": [fake_author_2],
-                        "commitment": [fake_commitment_2],
-                        "ciphertext": [fake_ciphertext_2],
-                        "submitted_in": 101,
-                    }
-                ),
-            ),
-        ]
-    )
-
-    mocked_determine_block_hash = mocker.patch.object(
-        subtensor, "determine_block_hash", return_value=fake_block_hash
-    )
-    mocked_query_map = mocker.patch.object(
-        subtensor.substrate, "query_map", return_value=fake_query_result
-    )
-    mocked_decode_account_id = mocker.patch.object(
-        subtensor_module,
-        "decode_account_id",
-        side_effect=[
-            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-            "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
-        ],
-    )
-
-    # Call
-    result = subtensor.get_mev_shield_submissions(block=fake_block)
-
-    # Asserts
-    mocked_determine_block_hash.assert_called_once_with(block=fake_block)
-    mocked_query_map.assert_called_once_with(
-        module="MevShield",
-        storage_function="Submissions",
-        block_hash=fake_block_hash,
-    )
-    assert result is not None
-    assert len(result) == 2
-    assert "0x" + fake_submission_id_1.hex() in result
-    assert "0x" + fake_submission_id_2.hex() in result
-    assert result["0x" + fake_submission_id_1.hex()]["submitted_in"] == 100
-    assert result["0x" + fake_submission_id_2.hex()]["submitted_in"] == 101
-    # Verify decode_account_id was called for both submissions
-    assert mocked_decode_account_id.call_count == 2
-
-
-def test_get_mev_shield_submissions_none(subtensor, mocker):
-    """Test get_mev_shield_submissions returns None when no submissions found."""
-    # Prep
-    fake_block = 123
-    fake_block_hash = "0x123abc"
-
-    fake_query_result = mocker.MagicMock()
-    fake_query_result.__iter__.return_value = iter([])
-
-    mocked_determine_block_hash = mocker.patch.object(
-        subtensor, "determine_block_hash", return_value=fake_block_hash
-    )
-    mocked_query_map = mocker.patch.object(
-        subtensor.substrate, "query_map", return_value=fake_query_result
-    )
-
-    # Call
-    result = subtensor.get_mev_shield_submissions(block=fake_block)
-
-    # Asserts
-    mocked_determine_block_hash.assert_called_once_with(block=fake_block)
-    mocked_query_map.assert_called_once_with(
-        module="MevShield",
-        storage_function="Submissions",
-        block_hash=fake_block_hash,
-    )
-    assert result is None
-
-
 def test_mev_submit_encrypted_success(subtensor, fake_wallet, mocker):
     """Test mev_submit_encrypted calls submit_encrypted_extrinsic correctly."""
     # Prep
@@ -6466,3 +6308,257 @@ def test_get_start_call_delay(subtensor, mocker):
     # Asserts
     mocked_query_subtensor.assert_called_once_with(name="StartCallDelay", block=None)
     assert result == mocked_query_subtensor.return_value
+
+
+def test_get_coldkey_swap_announcement(subtensor, mocker):
+    """Test get_coldkey_swap_announcement returns correct data when announcement information is found."""
+    # Prep
+    fake_coldkey_ss58 = mocker.Mock(spec=str)
+
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query = mocker.patch.object(subtensor.substrate, "query")
+    mocked_from_query = mocker.patch.object(
+        subtensor_module.ColdkeySwapAnnouncementInfo, "from_query"
+    )
+
+    # Call
+    result = subtensor.get_coldkey_swap_announcement(coldkey_ss58=fake_coldkey_ss58)
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(None)
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="ColdkeySwapAnnouncements",
+        params=[fake_coldkey_ss58],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    mocked_from_query.assert_called_once_with(
+        coldkey_ss58=fake_coldkey_ss58, query=mocked_query.return_value
+    )
+    assert result == mocked_from_query.return_value
+
+
+def test_get_coldkey_swap_announcements(subtensor, mocker):
+    """Test get_coldkey_swap_announcements returns correct data when announcement information is found."""
+    # Prep
+    fake_record = mocker.Mock()
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate, "query_map", return_value=(fake_record,)
+    )
+    mocked_from_record = mocker.patch.object(
+        subtensor_module.ColdkeySwapAnnouncementInfo, "from_record"
+    )
+
+    # Call
+    result = subtensor.get_coldkey_swap_announcements()
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(None)
+    mocked_query_map.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="ColdkeySwapAnnouncements",
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    mocked_from_record.assert_called_once_with(fake_record)
+    assert result == [mocked_from_record.return_value]
+
+
+def test_get_coldkey_swap_announcement_delay(subtensor, mocker):
+    """Test get_coldkey_swap_announcement_delay returns correct value when found."""
+    # Prep
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query = mocker.patch.object(subtensor.substrate, "query")
+
+    # Call
+    result = subtensor.get_coldkey_swap_announcement_delay()
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(None)
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="ColdkeySwapAnnouncementDelay",
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    assert result == mocked_query.return_value.value
+
+
+def test_get_coldkey_swap_reannouncement_delay(subtensor, mocker):
+    """Test get_coldkey_swap_reannouncement_delay returns correct value when found."""
+    # Prep
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query = mocker.patch.object(subtensor.substrate, "query")
+
+    # Call
+    result = subtensor.get_coldkey_swap_reannouncement_delay()
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(None)
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="ColdkeySwapReannouncementDelay",
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    assert result == mocked_query.return_value.value
+
+
+def test_get_coldkey_swap_constants(subtensor, mocker):
+    """Test get_coldkey_swap_constants returns correct data when constants are found."""
+    # Prep
+    fake_name = mocker.Mock(spec=str)
+    fake_value = mocker.Mock(value=mocker.Mock(spec=int))
+    mocked_constants_names = mocker.patch.object(
+        subtensor_module.ColdkeySwapConstants,
+        "constants_names",
+        return_value=[fake_name],
+    )
+    mocked_query_constant = mocker.patch.object(
+        subtensor,
+        "query_constant",
+        side_effect=[fake_value],
+    )
+    mocked_from_dict = mocker.patch.object(
+        subtensor_module.ColdkeySwapConstants, "from_dict"
+    )
+
+    # Call
+    result = subtensor.get_coldkey_swap_constants()
+
+    # Asserts
+    mocked_constants_names.assert_called_once()
+    mocked_query_constant.assert_called_once_with(
+        module_name="SubtensorModule",
+        constant_name=fake_name,
+        block=None,
+    )
+    mocked_from_dict.assert_called_once_with({fake_name: fake_value.value})
+    assert result == mocked_from_dict.return_value
+
+
+def test_announce_coldkey_swap(mocker, subtensor):
+    """Tests `announce_coldkey_swap` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    new_coldkey_ss58 = mocker.Mock(spec=str)
+    mocked_announce_coldkey_swap_extrinsic = mocker.patch.object(
+        subtensor_module, "announce_coldkey_swap_extrinsic"
+    )
+
+    # call
+    response = subtensor.announce_coldkey_swap(
+        wallet=wallet,
+        new_coldkey_ss58=new_coldkey_ss58,
+    )
+
+    # asserts
+    mocked_announce_coldkey_swap_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        new_coldkey_ss58=new_coldkey_ss58,
+        mev_protection=DEFAULT_MEV_PROTECTION,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+    )
+    assert response == mocked_announce_coldkey_swap_extrinsic.return_value
+
+
+def test_swap_coldkey_announced(mocker, subtensor):
+    """Tests `swap_coldkey_announced` extrinsic call method."""
+    # preps
+    wallet = mocker.Mock(spec=Wallet)
+    new_coldkey_ss58 = mocker.Mock(spec=str)
+    mocked_swap_coldkey_announced_extrinsic = mocker.patch.object(
+        subtensor_module, "swap_coldkey_announced_extrinsic"
+    )
+
+    # call
+    response = subtensor.swap_coldkey_announced(
+        wallet=wallet,
+        new_coldkey_ss58=new_coldkey_ss58,
+    )
+
+    # asserts
+    mocked_swap_coldkey_announced_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        new_coldkey_ss58=new_coldkey_ss58,
+        mev_protection=DEFAULT_MEV_PROTECTION,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+    )
+    assert response == mocked_swap_coldkey_announced_extrinsic.return_value
+
+
+def test_get_coldkey_swap_dispute(subtensor, mocker):
+    """Test get_coldkey_swap_dispute returns correct data when dispute information is found."""
+    fake_coldkey_ss58 = mocker.Mock(spec=str)
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query = mocker.patch.object(subtensor.substrate, "query")
+    mocked_from_query = mocker.patch.object(
+        subtensor_module.ColdkeySwapDisputeInfo, "from_query"
+    )
+
+    result = subtensor.get_coldkey_swap_dispute(coldkey_ss58=fake_coldkey_ss58)
+
+    mocked_determine_block_hash.assert_called_once_with(None)
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="ColdkeySwapDisputes",
+        params=[fake_coldkey_ss58],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    mocked_from_query.assert_called_once_with(
+        coldkey_ss58=fake_coldkey_ss58, query=mocked_query.return_value
+    )
+    assert result == mocked_from_query.return_value
+
+
+def test_get_coldkey_swap_disputes(subtensor, mocker):
+    """Test get_coldkey_swap_disputes returns correct data when dispute information is found."""
+    fake_record = mocker.Mock()
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_query_map = mocker.patch.object(
+        subtensor.substrate, "query_map", return_value=(fake_record,)
+    )
+    mocked_from_record = mocker.patch.object(
+        subtensor_module.ColdkeySwapDisputeInfo, "from_record"
+    )
+
+    result = subtensor.get_coldkey_swap_disputes()
+
+    mocked_determine_block_hash.assert_called_once_with(None)
+    mocked_query_map.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="ColdkeySwapDisputes",
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    mocked_from_record.assert_called_once_with(fake_record)
+    assert result == [mocked_from_record.return_value]
+
+
+def test_dispute_coldkey_swap(mocker, subtensor):
+    """Tests `dispute_coldkey_swap` extrinsic call method."""
+    wallet = mocker.Mock(spec=Wallet)
+    mocked_dispute_coldkey_swap_extrinsic = mocker.patch.object(
+        subtensor_module, "dispute_coldkey_swap_extrinsic"
+    )
+
+    response = subtensor.dispute_coldkey_swap(wallet=wallet)
+
+    mocked_dispute_coldkey_swap_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=wallet,
+        mev_protection=DEFAULT_MEV_PROTECTION,
+        period=DEFAULT_PERIOD,
+        raise_error=False,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        wait_for_revealed_execution=True,
+    )
+    assert response == mocked_dispute_coldkey_swap_extrinsic.return_value
