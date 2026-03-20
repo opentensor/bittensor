@@ -2,7 +2,6 @@ import pytest
 
 from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.delegate_info import DelegatedInfo, DelegateInfo
-from bittensor.core.chain_data.proposal_vote_data import ProposalVoteData
 from bittensor.core.errors import (
     DelegateTakeTooHigh,
     DelegateTxRateLimitExceeded,

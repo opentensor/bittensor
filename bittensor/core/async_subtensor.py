@@ -25,7 +25,6 @@ from bittensor.core.chain_data import (
     MetagraphInfo,
     NeuronInfo,
     NeuronInfoLite,
-    ProposalVoteData,
     ProxyAnnouncementInfo,
     ProxyConstants,
     ProxyInfo,
@@ -4956,46 +4955,6 @@ class AsyncSubtensor(SubtensorMixin):
         )
         return sim_swap_result.alpha_fee.set_unit(netuid=netuid)
 
-    async def get_vote_data(
-        self,
-        proposal_hash: str,
-        block: Optional[int] = None,
-        block_hash: Optional[str] = None,
-        reuse_block: bool = False,
-    ) -> Optional["ProposalVoteData"]:
-        # TODO: is this all deprecated? Didn't subtensor senate stuff get removed?
-        """
-        Retrieves the voting data for a specific proposal on the Bittensor blockchain. This data includes information
-        about how senate members have voted on the proposal.
-
-        Parameters:
-            proposal_hash: The hash of the proposal for which voting data is requested.
-            block: The blockchain block number for the query.
-            block_hash: The hash of the blockchain block number to query the voting data.
-            reuse_block: Whether to reuse the last-used blockchain block hash.
-
-        Returns:
-            An object containing the proposal's voting data, or `None` if not found.
-
-        This function is important for tracking and understanding the decision-making processes within the Bittensor
-        network, particularly how proposals are received and acted upon by the governing body.
-        """
-        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        vote_data = cast(
-            Optional[dict[str, Any]],
-            await self.substrate.query(
-                module="Triumvirate",
-                storage_function="Voting",
-                params=[proposal_hash],
-                block_hash=block_hash,
-                reuse_block_hash=reuse_block,
-            ),
-        )
-
-        if vote_data is None:
-            return None
-
-        return ProposalVoteData.from_dict(vote_data)
 
     async def get_uid_for_hotkey_on_subnet(
         self,
