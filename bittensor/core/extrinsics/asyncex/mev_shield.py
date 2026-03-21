@@ -153,9 +153,7 @@ async def submit_encrypted_extrinsic(
         current_nonce = await subtensor.substrate.get_account_next_index(
             account_address=inner_signing_keypair.ss58_address
         )
-        next_nonce = await subtensor.substrate.get_account_next_index(
-            account_address=inner_signing_keypair.ss58_address
-        )
+        next_nonce = current_nonce + 1
         signed_extrinsic = await subtensor.substrate.create_signed_extrinsic(
             call=call, keypair=inner_signing_keypair, nonce=next_nonce, era=era
         )
