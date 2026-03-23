@@ -53,7 +53,7 @@ from bittensor.core.chain_data import (
     ProxyType,
     PrometheusInfo,
     ProposalCallData,
-    ProposalVoteData,
+
     ScheduledColdkeySwapInfo,
     SelectiveMetagraphIndex,
     StakeInfo,
@@ -167,7 +167,7 @@ __all__ = [
     "NeuronInfoLite",
     "PrometheusInfo",
     "ProposalCallData",
-    "ProposalVoteData",
+
     "ScheduledColdkeySwapInfo",
     "SelectiveMetagraphIndex",
     "StakeInfo",
