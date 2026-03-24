@@ -16,7 +16,6 @@ class Chain:
         self.get_minimum_required_stake = subtensor.get_minimum_required_stake
         self.get_start_call_delay = subtensor.get_start_call_delay
         self.get_timestamp = subtensor.get_timestamp
-        self.get_vote_data = subtensor.get_vote_data
         self.is_fast_blocks = subtensor.is_fast_blocks
         self.is_in_admin_freeze_window = subtensor.is_in_admin_freeze_window
         self.last_drand_round = subtensor.last_drand_round
