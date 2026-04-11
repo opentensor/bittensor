@@ -134,31 +134,22 @@ def test_get_external_ip_os_broken(mocker):
 
 
 def test_get_external_ip_os_request_urllib_broken():
-    """Test getting the external IP address when os.popen and requests.get/urllib.request are broken."""
+    """Test getting the external IP address when subprocess.run, requests.get, and urllib.request are broken."""
 
-    class FakeReadline:
-        def readline(self):
-            return 1
-
-    def mock_call():
-        return FakeReadline()
+    def mock_subprocess_run(*args, **kwargs):
+        raise OSError("subprocess.run mocked to fail")
 
     class FakeResponse:
-        def text(self):
-            return 1
+        text = "not-an-ip"
 
-    def mock_call_two():
-        return FakeResponse()
+    def mock_requests_get(*args, **kwargs):
+        raise requests.exceptions.ConnectionError("requests.get mocked to fail")
 
-    class FakeRequest:
-        def urlopen(self):
-            return 1
-
-    with mock.patch.object(os, "popen", new=mock_call):
-        with mock.patch.object(requests, "get", new=mock_call_two):
-            urllib.request = MagicMock(return_value=FakeRequest())
-            with pytest.raises(Exception):
-                assert utils.networking.get_external_ip()
+    with mock.patch("subprocess.run", new=mock_subprocess_run):
+        with mock.patch.object(requests, "get", new=mock_requests_get):
+            with mock.patch("bittensor.utils.networking.urllib_request.urlopen", side_effect=OSError("urlopen mocked to fail")):
+                with pytest.raises(Exception):
+                    assert utils.networking.get_external_ip()
 
 
 # Test formatting WebSocket endpoint URL
