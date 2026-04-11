@@ -1,6 +1,7 @@
 """Utils for handling local network with ip and ports."""
 
 import os
+import subprocess
 from typing import Optional
 from urllib import request as urllib_request
 
@@ -66,55 +67,58 @@ def get_external_ip() -> str:
     # --- Try AWS
     try:
         external_ip = requests.get("https://checkip.amazonaws.com").text.strip()
-        assert isinstance(ip_to_int(external_ip), int)
+        ip_to_int(external_ip)
         return str(external_ip)
-    except ExternalIPNotFound:
+    except Exception:
         pass
 
-    # --- Try ipconfig.
+    # --- Try ifconfig.me
     try:
-        process = os.popen("curl -s ifconfig.me")
-        external_ip = process.readline()
-        process.close()
-        assert isinstance(ip_to_int(external_ip), int)
+        result = subprocess.run(
+            ["curl", "-s", "ifconfig.me"], capture_output=True, text=True, timeout=10
+        )
+        external_ip = result.stdout.strip()
+        ip_to_int(external_ip)
         return str(external_ip)
-    except ExternalIPNotFound:
+    except Exception:
         pass
 
     # --- Try ipinfo.
     try:
-        process = os.popen("curl -s https://ipinfo.io")
-        external_ip = json.loads(process.read())["ip"]
-        process.close()
-        assert isinstance(ip_to_int(external_ip), int)
+        result = subprocess.run(
+            ["curl", "-s", "https://ipinfo.io"], capture_output=True, text=True, timeout=10
+        )
+        external_ip = json.loads(result.stdout)["ip"]
+        ip_to_int(external_ip)
         return str(external_ip)
-    except ExternalIPNotFound:
+    except Exception:
         pass
 
     # --- Try myip.dnsomatic
     try:
-        process = os.popen("curl -s myip.dnsomatic.com")
-        external_ip = process.readline()
-        process.close()
-        assert isinstance(ip_to_int(external_ip), int)
+        result = subprocess.run(
+            ["curl", "-s", "myip.dnsomatic.com"], capture_output=True, text=True, timeout=10
+        )
+        external_ip = result.stdout.strip()
+        ip_to_int(external_ip)
         return str(external_ip)
-    except ExternalIPNotFound:
+    except Exception:
         pass
 
     # --- Try urllib ipv6
     try:
         external_ip = urllib_request.urlopen("https://ident.me").read().decode("utf8")
-        assert isinstance(ip_to_int(external_ip), int)
+        ip_to_int(external_ip)
         return str(external_ip)
-    except ExternalIPNotFound:
+    except Exception:
         pass
 
     # --- Try Wikipedia
     try:
         external_ip = requests.get("https://www.wikipedia.org").headers["X-Client-IP"]
-        assert isinstance(ip_to_int(external_ip), int)
+        ip_to_int(external_ip)
         return str(external_ip)
-    except ExternalIPNotFound:
+    except Exception:
         pass
 
     raise ExternalIPNotFound
