@@ -2,6 +2,7 @@
 
 import os
 from typing import Optional
+from urllib import error as urllib_error
 from urllib import request as urllib_request
 
 import netaddr
@@ -11,6 +12,22 @@ from async_substrate_interface.utils import json
 
 class ExternalIPNotFound(Exception):
     """Raised if we cannot attain your external ip from CURL/URLLIB/IPIFY/AWS"""
+
+
+# Exceptions each provider in `get_external_ip` can raise on failure. Caught per
+# provider so that a single failing lookup falls through to the next one instead
+# of crashing the whole function. Kept as a tuple so the list stays consistent
+# across providers.
+_IP_LOOKUP_EXCEPTIONS = (
+    requests.exceptions.RequestException,
+    netaddr.core.AddrFormatError,
+    OSError,
+    urllib_error.URLError,
+    ValueError,
+    KeyError,
+    AssertionError,
+    ExternalIPNotFound,
+)
 
 
 def int_to_ip(int_val: int) -> str:
@@ -68,7 +85,7 @@ def get_external_ip() -> str:
         external_ip = requests.get("https://checkip.amazonaws.com").text.strip()
         assert isinstance(ip_to_int(external_ip), int)
         return str(external_ip)
-    except ExternalIPNotFound:
+    except _IP_LOOKUP_EXCEPTIONS:
         pass
 
     # --- Try ipconfig.
@@ -78,7 +95,7 @@ def get_external_ip() -> str:
         process.close()
         assert isinstance(ip_to_int(external_ip), int)
         return str(external_ip)
-    except ExternalIPNotFound:
+    except _IP_LOOKUP_EXCEPTIONS:
         pass
 
     # --- Try ipinfo.
@@ -88,7 +105,7 @@ def get_external_ip() -> str:
         process.close()
         assert isinstance(ip_to_int(external_ip), int)
         return str(external_ip)
-    except ExternalIPNotFound:
+    except _IP_LOOKUP_EXCEPTIONS:
         pass
 
     # --- Try myip.dnsomatic
@@ -98,7 +115,7 @@ def get_external_ip() -> str:
         process.close()
         assert isinstance(ip_to_int(external_ip), int)
         return str(external_ip)
-    except ExternalIPNotFound:
+    except _IP_LOOKUP_EXCEPTIONS:
         pass
 
     # --- Try urllib ipv6
@@ -106,7 +123,7 @@ def get_external_ip() -> str:
         external_ip = urllib_request.urlopen("https://ident.me").read().decode("utf8")
         assert isinstance(ip_to_int(external_ip), int)
         return str(external_ip)
-    except ExternalIPNotFound:
+    except _IP_LOOKUP_EXCEPTIONS:
         pass
 
     # --- Try Wikipedia
@@ -114,7 +131,7 @@ def get_external_ip() -> str:
         external_ip = requests.get("https://www.wikipedia.org").headers["X-Client-IP"]
         assert isinstance(ip_to_int(external_ip), int)
         return str(external_ip)
-    except ExternalIPNotFound:
+    except _IP_LOOKUP_EXCEPTIONS:
         pass
 
     raise ExternalIPNotFound
