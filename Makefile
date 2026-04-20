@@ -35,4 +35,4 @@ check: ruff
 	@mypy --ignore-missing-imports bittensor/ --python-version=3.12
 	@mypy --ignore-missing-imports bittensor/ --python-version=3.13
 	@mypy --ignore-missing-imports bittensor/ --python-version=3.14
-	@flake8 bittensor/ --count
+	@python -m ruff check bittensor/
