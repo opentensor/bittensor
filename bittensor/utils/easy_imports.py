@@ -28,7 +28,8 @@ from bittensor_wallet.keyfile import (
     Keyfile,
 )
 from bittensor_wallet.keypair import Keypair
-from bittensor_wallet.wallet import Wallet
+
+from bittensor.utils.remote_signer import RemoteKeypair, Wallet
 
 from bittensor.core import settings, extrinsics
 from bittensor.core.async_subtensor import AsyncSubtensor, get_async_subtensor
@@ -148,6 +149,7 @@ __all__ = [
     "decrypt_keyfile_data",
     "Keyfile",
     "Wallet",
+    "RemoteKeypair",
     "settings",
     "timelock",
     "AsyncSubtensor",
