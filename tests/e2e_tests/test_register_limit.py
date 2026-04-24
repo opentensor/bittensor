@@ -103,3 +103,40 @@ async def test_register_limit_price_exceeded_async(
     assert not result.success, (
         "register_limit should fail with limit_price=1 (below burn)"
     )
+
+
+def test_register_auto_limit_price(subtensor, alice_wallet, bob_wallet):
+    """Tests successful registration via register() with auto-calculated limit_price."""
+    alice_sn = TestSubnet(subtensor)
+    alice_sn.execute_steps(
+        [
+            REGISTER_SUBNET(alice_wallet),
+            ACTIVATE_SUBNET(alice_wallet),
+        ]
+    )
+
+    logging.console.info(
+        f"Registering Bob with register (auto limit_price) on SN #{alice_sn.netuid}"
+    )
+    result = subtensor.subnets.register(bob_wallet, alice_sn.netuid)
+    assert result.success, "register should succeed with auto-calculated limit_price"
+
+
+@pytest.mark.asyncio
+async def test_register_auto_limit_price_async(
+    async_subtensor, alice_wallet, bob_wallet
+):
+    """Tests successful async registration via register() with auto-calculated limit_price."""
+    alice_sn = TestSubnet(async_subtensor)
+    await alice_sn.async_execute_steps(
+        [
+            REGISTER_SUBNET(alice_wallet),
+            ACTIVATE_SUBNET(alice_wallet),
+        ]
+    )
+
+    logging.console.info(
+        f"Registering Bob with register (auto limit_price) on SN #{alice_sn.netuid}"
+    )
+    result = await async_subtensor.subnets.register(bob_wallet, alice_sn.netuid)
+    assert result.success, "register should succeed with auto-calculated limit_price"

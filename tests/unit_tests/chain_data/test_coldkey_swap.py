@@ -1,4 +1,4 @@
-from async_substrate_interface.types import ScaleObj
+from scalecodec.base import ScaleType
 
 from bittensor.core.chain_data.coldkey_swap import (
     ColdkeySwapAnnouncementInfo,
@@ -10,7 +10,7 @@ def test_coldkey_swap_announcement_info_from_query_none(mocker):
     """Test from_query returns None when query has no value."""
     # Prep
     coldkey_ss58 = mocker.Mock(spec=str)
-    query = mocker.Mock(spec=ScaleObj)
+    query = mocker.Mock(spec=ScaleType, value=None)
 
     # Call
     from_query = ColdkeySwapAnnouncementInfo.from_query(coldkey_ss58, query)
@@ -24,29 +24,23 @@ def test_coldkey_swap_announcement_info_from_query_happy_path(mocker):
     # Prep
     coldkey_ss58 = mocker.Mock(spec=str)
     fake_block = mocker.Mock(spec=int)
-    fake_hash_data = mocker.Mock(spec=list)
-    query = mocker.Mock(value=(fake_block, (fake_hash_data,)))
-
-    mocked_bytes = mocker.patch("bittensor.core.chain_data.coldkey_swap.bytes")
+    fake_hash_data = mocker.Mock(spec=str)
+    query = mocker.Mock(value=(fake_block, fake_hash_data))
 
     # Call
     from_query = ColdkeySwapAnnouncementInfo.from_query(coldkey_ss58, query)
 
     # Asserts
-    mocked_bytes.assert_called_once_with(fake_hash_data)
     assert from_query is not None, "Should return ColdkeySwapAnnouncementInfo object"
     assert from_query.coldkey == coldkey_ss58
     assert from_query.execution_block == fake_block
-    assert (
-        from_query.new_coldkey_hash
-        == mocked_bytes.return_value.hex.return_value.__radd__.return_value
-    )
+    assert from_query.new_coldkey_hash == fake_hash_data
 
 
 def test_coldkey_swap_dispute_info_from_query_none(mocker):
     """Test from_query returns None when query has no value."""
     coldkey_ss58 = mocker.Mock(spec=str)
-    query = mocker.Mock(spec=ScaleObj)
+    query = mocker.Mock(spec=ScaleType)
     query.value = None
 
     from_query = ColdkeySwapDisputeInfo.from_query(coldkey_ss58, query)
@@ -58,7 +52,7 @@ def test_coldkey_swap_dispute_info_from_query_happy_path(mocker):
     """Test from_query returns ColdkeySwapDisputeInfo when query has valid data."""
     coldkey_ss58 = mocker.Mock(spec=str)
     fake_block = 12345
-    query = mocker.Mock(spec=ScaleObj, value=fake_block)
+    query = mocker.Mock(spec=ScaleType, value=fake_block)
 
     from_query = ColdkeySwapDisputeInfo.from_query(coldkey_ss58, query)
 
@@ -71,11 +65,7 @@ def test_coldkey_swap_dispute_info_from_record(mocker):
     """Test from_record returns ColdkeySwapDisputeInfo from query_map record."""
     decoded_coldkey = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
     disputed_block = 999
-    record = (mocker.Mock(), mocker.Mock(value=disputed_block))
-    mocker.patch(
-        "bittensor.core.chain_data.coldkey_swap.decode_account_id",
-        return_value=decoded_coldkey,
-    )
+    record = (decoded_coldkey, disputed_block)
 
     from_record = ColdkeySwapDisputeInfo.from_record(record)
 

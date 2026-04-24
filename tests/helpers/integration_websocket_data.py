@@ -12427,4 +12427,119 @@ WEBSOCKET_RESPONSES = {
             }
         },
     },
+    "decode_crowdloan_entry": {
+        "chain_getHead": {
+            "[]": {
+                "result": "0x8563f9d378caf2943368320b79ab5a90ec51ffb2ba7ab23002a811819297316d"
+            }
+        },
+        "chain_getHeader": {
+            '["0xe0abc804366b36f9293c2a00fbc7a911c19247885f39a99a20f5c06389a4093e"]': {
+                "result": {
+                    "parentHash": "0xf287b6afbb10dd480373d62a6d47f2b8f7c0419cc6ac5d61ba0c0b7f189d17ba",
+                    "number": "0x79ccc2",
+                    "stateRoot": "0x3247e495b19698fae0064a9bc61c7723d28adbb8c6806f8605ec7bab74bde028",
+                    "extrinsicsRoot": "0xb79368ee28d3ca69081559d11928b9c718d4a9df865e2e49861ecd9d64e67b41",
+                    "digest": {
+                        "logs": [
+                            "0x066175726120c6c1d20800000000",
+                            "0x0466726f6e890201f2206a7ea2500ddf7de73fb26e223298f68422086014b3a76e93b43af11fd8c410a39ff5f50fa3b06912db770e3dc5345aeb4e8e1811918362aa52268c2d508411d7058ab4599ff651cc7af3e46d62305f8cc0fc7cfe9010cad57b0456df620d42858bd66a675981f36caab57b5d45466a0dcddfd0447a83231dfdf38c70a34dc6247105ed2a0dfb4c02614ce6b405fd600cfe7a3f5d4dd578a8e0f87c712fec81",
+                            "0x0561757261010114610206165bf247c62abbec8218aadf695afe1df9894195795d510eae5a2b1241a93d5e8f8262a6bb6a4d6d1eacd408609b2d925d770adbfa47f78f7efb0985",
+                        ]
+                    },
+                }
+            },
+            '["0x8563f9d378caf2943368320b79ab5a90ec51ffb2ba7ab23002a811819297316d"]': {
+                "result": {
+                    "parentHash": "0xe0abc804366b36f9293c2a00fbc7a911c19247885f39a99a20f5c06389a4093e",
+                    "number": "0x79ccc3",
+                    "stateRoot": "0xf79f46321b59ee29fdb69327bf18e3d6bb7886ffdb972ba4a862a666c4d5ced6",
+                    "extrinsicsRoot": "0xd4b2304c575e1d6d0a1e2baf6d7a1288415121e0b30d37319d182e95358565cf",
+                    "digest": {
+                        "logs": [
+                            "0x066175726120c7c1d20800000000",
+                            "0x0466726f6e890201a781ed2bf8f8c5a308a7c69e1a2c1668c07fa1fd6105f57df141b282f34fb6b510a2973c5c0c1949c76e622fab9f33c8a31e63a16773ae1b7917babc0fc916304483ecd3e5ba88ad18abbee85b43ab2952d3ee8823dc7357db4cb2c20f2612b4fc29e6837aa829a90e91b78a072a91208f66b06d388347cc250e1475b9470f3c71bb26aa52583dca3f6f258fe1440fdac6044c6e6e3c3971c5e3cabbc75cb86790",
+                            "0x05617572610101e059e901febcad1547d1f1809f6f663f56e6e14e2eac77e6899387b43ade5b023f0c4fc1bc7153be4c725b6c34fae5397ac994980550638ea480b0095294f08d",
+                        ]
+                    },
+                }
+            },
+        },
+        "state_getRuntimeVersion": {
+            '["0xf287b6afbb10dd480373d62a6d47f2b8f7c0419cc6ac5d61ba0c0b7f189d17ba"]': {
+                "result": {
+                    "specName": "node-subtensor",
+                    "implName": "node-subtensor",
+                    "authoringVersion": 1,
+                    "specVersion": 393,
+                    "implVersion": 1,
+                    "apis": [
+                        ["0xdf6acb689907609b", 5],
+                        ["0x37e397fc7c91f5e4", 2],
+                        ["0x40fe3ad401f8959a", 6],
+                        ["0xfbc577b9d747efd6", 1],
+                        ["0xd2bc9897eed08f15", 3],
+                        ["0xf78b278be53f454c", 2],
+                        ["0xdd718d5cc53262d4", 1],
+                        ["0xab3c0572291feb8b", 1],
+                        ["0xed99c5acb25eedf5", 3],
+                        ["0xbc9d89904f5b923f", 1],
+                        ["0x37c8bb1350a9a2a8", 4],
+                        ["0xf3ff14d5ab527059", 3],
+                        ["0x582211f65bb14b89", 6],
+                        ["0xe65b00e46cedd0aa", 2],
+                        ["0x68b66ba122c93fa7", 2],
+                        ["0x42e62be4a39e5b60", 1],
+                        ["0x806df4ccaa9ed485", 1],
+                        ["0x8375104b299b74c5", 1],
+                        ["0x5d1fbfbe852f2807", 1],
+                        ["0xc6886e2f8e598b0a", 1],
+                        ["0xcbca25e39f142387", 2],
+                        ["0xa8b093e6508d9e9c", 1],
+                        ["0x1c4585bd5c707202", 1],
+                    ],
+                    "transactionVersion": 1,
+                    "systemVersion": 1,
+                    "stateVersion": 1,
+                }
+            },
+            '["0xe0abc804366b36f9293c2a00fbc7a911c19247885f39a99a20f5c06389a4093e"]': {
+                "result": {
+                    "specName": "node-subtensor",
+                    "implName": "node-subtensor",
+                    "authoringVersion": 1,
+                    "specVersion": 393,
+                    "implVersion": 1,
+                    "apis": [
+                        ["0xdf6acb689907609b", 5],
+                        ["0x37e397fc7c91f5e4", 2],
+                        ["0x40fe3ad401f8959a", 6],
+                        ["0xfbc577b9d747efd6", 1],
+                        ["0xd2bc9897eed08f15", 3],
+                        ["0xf78b278be53f454c", 2],
+                        ["0xdd718d5cc53262d4", 1],
+                        ["0xab3c0572291feb8b", 1],
+                        ["0xed99c5acb25eedf5", 3],
+                        ["0xbc9d89904f5b923f", 1],
+                        ["0x37c8bb1350a9a2a8", 4],
+                        ["0xf3ff14d5ab527059", 3],
+                        ["0x582211f65bb14b89", 6],
+                        ["0xe65b00e46cedd0aa", 2],
+                        ["0x68b66ba122c93fa7", 2],
+                        ["0x42e62be4a39e5b60", 1],
+                        ["0x806df4ccaa9ed485", 1],
+                        ["0x8375104b299b74c5", 1],
+                        ["0x5d1fbfbe852f2807", 1],
+                        ["0xc6886e2f8e598b0a", 1],
+                        ["0xcbca25e39f142387", 2],
+                        ["0xa8b093e6508d9e9c", 1],
+                        ["0x1c4585bd5c707202", 1],
+                    ],
+                    "transactionVersion": 1,
+                    "systemVersion": 1,
+                    "stateVersion": 1,
+                }
+            },
+        },
+    },
 }

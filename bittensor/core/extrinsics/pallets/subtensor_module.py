@@ -243,37 +243,6 @@ class SubtensorModule(_BasePallet):
             alpha_amount=alpha_amount,
         )
 
-    def register(
-        self,
-        netuid: int,
-        coldkey: str,
-        hotkey: str,
-        block_number: int,
-        nonce: int,
-        work: list[int],
-    ) -> Call:
-        """Returns GenericCall instance for Subtensor function SubtensorModule.register.
-
-        Parameters:
-            netuid: The netuid of the subnet to register on.
-            coldkey: The coldkey SS58 address associated with the neuron.
-            hotkey: The hotkey SS58 address associated with the neuron.
-            block_number: POW block number.
-            nonce: POW nonce.
-            work: List representation of POW seal.
-
-        Returns:
-            GenericCall instance.
-        """
-        return self.create_composed_call(
-            netuid=netuid,
-            coldkey=coldkey,
-            hotkey=hotkey,
-            block_number=block_number,
-            nonce=nonce,
-            work=work,
-        )
-
     def register_limit(
         self,
         netuid: int,

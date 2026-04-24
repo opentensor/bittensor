@@ -14,7 +14,7 @@ from async_substrate_interface.utils import (
 from bittensor_wallet import Keypair
 from bittensor_wallet.errors import KeyFileError, PasswordError
 from bittensor_wallet.utils import SS58_FORMAT
-from scalecodec import (
+from scalecodec.utils.ss58 import (
     ss58_decode,
     ss58_encode,
     is_valid_ss58_address as _is_valid_ss58_address,
@@ -27,7 +27,7 @@ from .version import check_version, VersionCheckError
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
-    from bittensor.core.types import ExtrinsicResponse
+    from bittensor.core.types import ExtrinsicResponse, NeuronCertificateResponse
 
 # keep save from import analyzer as obvious aliases
 hex_to_ss58 = ss58_encode
@@ -93,32 +93,28 @@ def get_netuid_and_mechid_by_storage_index(storage_index: int) -> tuple[int, int
 
 
 class Certificate(str):
-    def __new__(cls, data: Union[str, dict]):
+    def __new__(cls, data: "str | NeuronCertificateResponse"):
         if isinstance(data, dict):
-            tuple_ascii = data["public_key"][0]
-            string = chr(data["algorithm"]) + "".join(chr(i) for i in tuple_ascii)
+            pubkey: str = data["public_key"]
+            string = chr(data["algorithm"]) + pubkey
         else:
             string = data
         return str.__new__(cls, string)
 
 
-def decode_hex_identity_dict(info_dictionary: dict[str, Any]) -> dict[str, Any]:
+def decode_hex_identity_dict(info_dictionary: dict[str, dict | str]) -> dict[str, Any]:
     """Decodes a dictionary of hexadecimal identities."""
-    decoded_info = {}
-    for k, v in info_dictionary.items():
-        if isinstance(v, dict):
-            item = next(iter(v.values()))
-        else:
-            item = v
 
-        if isinstance(item, tuple):
-            try:
-                decoded_info[k] = bytes(item).decode()
-            except UnicodeDecodeError:
-                print(f"Could not decode: {k}: {item}")
+    for key, value in info_dictionary.items():
+        if isinstance(value, dict):
+            item = list(value.values())[0]
         else:
-            decoded_info[k] = item
-    return decoded_info
+            item = value
+        if isinstance(item, str) and item.startswith("0x"):
+            info_dictionary[key] = hex_to_bytes(item.removeprefix("0x")).decode()
+        else:
+            info_dictionary[key] = item
+    return info_dictionary
 
 
 def ss58_to_vec_u8(ss58_address: str) -> list[int]:

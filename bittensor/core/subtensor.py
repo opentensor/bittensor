@@ -7,10 +7,12 @@ import scalecodec
 from async_substrate_interface.errors import SubstrateRequestException
 from async_substrate_interface.substrate_addons import RetrySyncSubstrate
 from async_substrate_interface.sync_substrate import SubstrateInterface
-from async_substrate_interface.types import ScaleObj
 from async_substrate_interface.utils.storage import StorageKey
 from bittensor_drand import get_encrypted_commitment
 from bittensor_wallet.utils import SS58_FORMAT
+from scalecodec import ScaleValue
+from scalecodec.base import ScaleType
+from scalecodec.utils.math import FixedPoint, fixed_to_decimal
 
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import (
@@ -38,11 +40,9 @@ from bittensor.core.chain_data import (
     SubnetIdentity,
     SubnetInfo,
     WeightCommitInfo,
-    decode_account_id,
 )
 from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.utils import (
-    decode_block,
     decode_metadata,
     decode_revealed_commitment,
     decode_revealed_commitment_with_hotkey,
@@ -97,7 +97,6 @@ from bittensor.core.extrinsics.proxy import (
 )
 from bittensor.core.extrinsics.registration import (
     burned_register_extrinsic,
-    register_extrinsic,
     register_limit_extrinsic,
     register_subnet_extrinsic,
     set_subnet_identity_extrinsic,
@@ -148,6 +147,11 @@ from bittensor.core.types import (
     SubtensorMixin,
     UIDs,
     Weights,
+    PositionResponse,
+    NeuronCertificateResponse,
+    CommitmentOfResponse,
+    CrowdloansResponse,
+    DynamicInfoResponse,
 )
 from bittensor.utils import (
     Certificate,
@@ -162,7 +166,6 @@ from bittensor.utils import (
 )
 from bittensor.utils.balance import (
     Balance,
-    FixedPoint,
     check_balance_amount,
     fixed_to_float,
 )
@@ -289,7 +292,7 @@ class Subtensor(SubtensorMixin):
     def _decode_crowdloan_entry(
         self,
         crowdloan_id: int,
-        data: dict,
+        data: CrowdloansResponse,
         block_hash: Optional[str] = None,
     ) -> "CrowdloanInfo":
         """
@@ -300,13 +303,13 @@ class Subtensor(SubtensorMixin):
         call_data = data.get("call")
         if call_data and "Inline" in call_data:
             try:
-                inline_bytes = bytes(call_data["Inline"][0][0])
-                decoded_call = self.substrate.create_scale_object(
-                    type_string="Call",
-                    data=scalecodec.ScaleBytes(inline_bytes),
+                call_obj = self.substrate.create_scale_object(
+                    "Call",
+                    data=scalecodec.ScaleBytes(call_data["Inline"]),
                     block_hash=block_hash,
-                ).decode()
-                data["call"] = decoded_call
+                )
+                call_value = call_obj.decode()
+                data["call"] = call_value
             except Exception as e:
                 data["call"] = {"decode_error": str(e), "raw": call_data}
 
@@ -397,12 +400,8 @@ class Subtensor(SubtensorMixin):
         """
         runtime = self.substrate.init_runtime(block_hash=block_hash)
         if runtime.metadata_v15 is not None:
-            metadata_v15_value = runtime.metadata_v15.value()
-            apis = {entry["name"]: entry for entry in metadata_v15_value["apis"]}
             try:
-                api_entry = apis[api]
-                methods = {entry["name"]: entry for entry in api_entry["methods"]}
-                _ = methods[method]
+                _ = runtime.runtime_api_map[api][method]
                 return True
             except KeyError:
                 return False
@@ -526,8 +525,7 @@ class Subtensor(SubtensorMixin):
             params=[netuid],
             block_hash=block_hash,
         )
-
-        return getattr(result, "value", result)
+        return result.value
 
     @property
     def block(self) -> int:
@@ -639,7 +637,7 @@ class Subtensor(SubtensorMixin):
 
     def query_constant(
         self, module_name: str, constant_name: str, block: Optional[int] = None
-    ) -> Optional["ScaleObj"]:
+    ) -> Optional[ScaleType[ScaleValue]]:
         """Retrieves a constant from the specified module on the Bittensor blockchain.
 
         Use this function for nonstandard queries to constants defined within the Bittensor blockchain, if these cannot
@@ -722,7 +720,7 @@ class Subtensor(SubtensorMixin):
         name: str,
         params: Optional[list] = None,
         block: Optional[int] = None,
-    ) -> Optional[Union["ScaleObj", Any, FixedPoint]]:
+    ) -> ScaleType:
         """Queries any module storage on the Bittensor blockchain with the specified parameters and block number.
         This function is a generic query interface that allows for flexible and diverse data retrieval from various
         blockchain modules. Use this function for nonstandard queries to storage defined within the Bittensor
@@ -769,14 +767,14 @@ class Subtensor(SubtensorMixin):
         block_hash = self.determine_block_hash(block)
         result = self.substrate.runtime_call(runtime_api, method, params, block_hash)
 
-        return result.value
+        return result
 
     def query_subtensor(
         self,
         name: str,
         params: Optional[list] = None,
         block: Optional[int] = None,
-    ) -> Optional[Union["ScaleObj", Any]]:
+    ) -> ScaleType[ScaleValue]:
         """Queries named storage from the Subtensor module on the Bittensor blockchain.
 
         Use this function for nonstandard queries to constants defined within the Bittensor blockchain, if these cannot
@@ -835,12 +833,14 @@ class Subtensor(SubtensorMixin):
             a subnet, or None if the query fails.
         """
         block_hash = self.determine_block_hash(block=block)
-        query = self.substrate.runtime_call(
-            api="SubnetInfoRuntimeApi",
-            method="get_all_dynamic_info",
-            block_hash=block_hash,
+        decoded = cast(
+            list[DynamicInfoResponse],
+            self.substrate.runtime_call(
+                api="SubnetInfoRuntimeApi",
+                method="get_all_dynamic_info",
+                block_hash=block_hash,
+            ),
         )
-        decoded = query.decode()
         try:
             subnet_prices = self.get_subnet_prices(block=block)
             for sn in decoded:
@@ -868,10 +868,10 @@ class Subtensor(SubtensorMixin):
         Notes:
             - <https://docs.learnbittensor.org/glossary#epoch>
         """
-        query = self.query_subtensor(
+        query: ScaleType[int] = self.query_subtensor(  # type: ignore[assignment]
             name="BlocksSinceLastStep", block=block, params=[netuid]
         )
-        return cast(Optional[int], getattr(query, "value", query))
+        return query.value
 
     def blocks_since_last_update(
         self, netuid: int, uid: int, block: Optional[int] = None
@@ -887,10 +887,11 @@ class Subtensor(SubtensorMixin):
             The number of blocks since the last update, or None if the subnetwork or UID does not exist.
         """
         block = block or self.get_current_block()
-        call = self.get_hyperparameter(
+        call: Optional[list[int]] = self.get_hyperparameter(
             param_name="LastUpdate", netuid=netuid, block=block
         )
-        return None if not call else (block - int(call[uid]))
+        assert call is not None
+        return None if len(call) == 0 else (block - int(call[uid]))
 
     def blocks_until_next_epoch(
         self, netuid: int, tempo: Optional[int] = None, block: Optional[int] = None
@@ -959,12 +960,13 @@ class Subtensor(SubtensorMixin):
             params=[storage_index],
             block_hash=self.determine_block_hash(block),
         )
-        b_map = []
-        for uid, b in b_map_encoded:
-            if b.value is not None:
-                b_map.append((uid, b.value))
+        bond_map = []
+        uid: int
+        bond: list[tuple[int, int]]
+        for uid, bond in b_map_encoded:
+            bond_map.append((uid, bond))
 
-        return b_map
+        return bond_map
 
     def commit_reveal_enabled(self, netuid: int, block: Optional[int] = None) -> bool:
         """Check if commit-reveal mechanism is enabled for a given subnet at a specific block.
@@ -980,12 +982,13 @@ class Subtensor(SubtensorMixin):
             - <https://docs.learnbittensor.org/glossary#commit-reveal>
             - <https://docs.learnbittensor.org/subnets/subnet-hyperparameters>
         """
-        call = self.get_hyperparameter(
+        call: Optional[bool] = self.get_hyperparameter(
             param_name="CommitRevealWeightsEnabled", block=block, netuid=netuid
         )
-        return True if call is True else False
+        assert call is not None
+        return call
 
-    def difficulty(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
+    def difficulty(self, netuid: int, block: Optional[int] = None) -> int:
         """Retrieves the 'Difficulty' hyperparameter for a specified subnet in the Bittensor network.
 
         This parameter determines the computational challenge required for neurons to participate in consensus and
@@ -1005,11 +1008,10 @@ class Subtensor(SubtensorMixin):
             - <https://docs.learnbittensor.org/validators#validator-registration>
             - <https://docs.learnbittensor.org/miners#miner-registration>
         """
-        call = self.get_hyperparameter(
+        call: Optional[int] = self.get_hyperparameter(
             param_name="Difficulty", netuid=netuid, block=block
         )
-        if call is None:
-            return None
+        assert call is not None
         return int(call)
 
     def does_hotkey_exist(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
@@ -1031,19 +1033,13 @@ class Subtensor(SubtensorMixin):
         Notes:
             - <https://docs.learnbittensor.org/glossary#hotkey>
         """
-        result = self.substrate.query(
+        result: ScaleType[str] = self.substrate.query(
             module="SubtensorModule",
             storage_function="Owner",
             params=[hotkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
-        return_val = (
-            False
-            if result is None
-            # not the default key (0x0)
-            else result != "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
-        )
-        return return_val
+        return result.value != "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
 
     def get_admin_freeze_window(self, block: Optional[int] = None) -> int:
         """Returns the duration, in blocks, of the administrative freeze window at the end of each epoch.
@@ -1062,14 +1058,14 @@ class Subtensor(SubtensorMixin):
             - <https://docs.learnbittensor.org/learn/chain-rate-limits#administrative-freeze-window>
         """
 
-        query = self.substrate.query(
+        query: ScaleType[int] = self.substrate.query(
             module="SubtensorModule",
             storage_function="AdminFreezeWindow",
             block_hash=self.determine_block_hash(block),
         )
-        return cast(int, getattr(query, "value", query))
+        return query.value
 
-    def get_all_subnets_info(self, block: Optional[int] = None) -> list["SubnetInfo"]:
+    def get_all_subnets_info(self, block: Optional[int] = None) -> list[SubnetInfo]:
         """Retrieves detailed information about all subnets within the Bittensor network.
 
         Parameters:
@@ -1123,9 +1119,11 @@ class Subtensor(SubtensorMixin):
             block=block,
         )
         result = {}
+        id_: str
+        value: CommitmentOfResponse
         for id_, value in query:
             try:
-                result[decode_account_id(id_[0])] = decode_metadata(value)
+                result[id_] = decode_metadata(value)
             except Exception as error:
                 logging.error(
                     f"Error decoding [red]{id_}[/red] and [red]{value}[/red]: {error}"
@@ -1195,10 +1193,10 @@ class Subtensor(SubtensorMixin):
             method=method,
             block_hash=block_hash,
         )
-        if query is None or not hasattr(query, "value"):
+        if query is None:
             return None
-
-        return MetagraphInfo.list_from_dicts(query.value)
+        assert isinstance(query, list)
+        return MetagraphInfo.list_from_dicts(query)
 
     def get_all_neuron_certificates(
         self, netuid: int, block: Optional[int] = None
@@ -1227,7 +1225,7 @@ class Subtensor(SubtensorMixin):
         )
         output = {}
         for key, item in query_certificates:
-            output[decode_account_id(key)] = Certificate(item.value)
+            output[key] = Certificate(item)
         return output
 
     def get_all_revealed_commitments(
@@ -1328,8 +1326,7 @@ class Subtensor(SubtensorMixin):
         )
 
         pairs = {}
-        for netuid, destination in query:
-            hotkey_ss58 = decode_account_id(destination.value[0])
+        for netuid, hotkey_ss58 in query:
             if hotkey_ss58:
                 pairs[int(netuid)] = hotkey_ss58
 
@@ -1348,13 +1345,13 @@ class Subtensor(SubtensorMixin):
         Returns:
             Balance: The balance object containing the account's TAO balance.
         """
-        balance = self.substrate.query(
+        balance: ScaleType[dict[str, Any]] = self.substrate.query(
             module="System",
             storage_function="Account",
             params=[address],
             block_hash=self.determine_block_hash(block),
         )
-        return Balance(cast(dict[str, Any], balance)["data"]["free"])
+        return Balance(balance.value["data"]["free"])
 
     def get_balances(
         self,
@@ -1384,11 +1381,17 @@ class Subtensor(SubtensorMixin):
             )
             for address in addresses
         ]
-        batch_call = self.substrate.query_multi(calls, block_hash=block_hash)
+        batch_call: list[tuple[StorageKey, dict]] = self.substrate.query_multi(  # type: ignore[assignment]
+            calls, block_hash=block_hash
+        )
         results = {}
+        key: StorageKey
+        val: dict
         for item in batch_call:
-            value = item[1] or {"data": {"free": 0}}
-            results.update({item[0].params[0]: Balance(value["data"]["free"])})
+            key, val = item
+            value = val or {"data": {"free": 0}}
+            assert key.params is not None
+            results.update({key.params[0]: Balance(value["data"]["free"])})
         return results
 
     def get_current_block(self) -> int:
@@ -1510,9 +1513,8 @@ class Subtensor(SubtensorMixin):
             )
             if children:
                 formatted_children = []
-                for proportion, child in children.value:
+                for proportion, formatted_child in children.value:
                     # Convert U64 to int
-                    formatted_child = decode_account_id(child[0])
                     normalized_proportion = u64_normalized_float(proportion)
                     formatted_children.append((normalized_proportion, formatted_child))
                 return True, formatted_children, ""
@@ -1556,15 +1558,14 @@ class Subtensor(SubtensorMixin):
             block_hash=self.determine_block_hash(block),
         )
         children, cooldown = cast(
-            tuple[list[tuple[int, Any]], int],
-            getattr(pending_query, "value", pending_query),
+            tuple[list[tuple[int, Any]], int], pending_query.value
         )
 
         return (
             [
                 (
                     u64_normalized_float(proportion),
-                    decode_account_id(child[0]),
+                    child,
                 )
                 for proportion, child in children
             ],
@@ -1596,16 +1597,16 @@ class Subtensor(SubtensorMixin):
             - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
         """
         block_hash = self.determine_block_hash(block)
-        query = self.substrate.query(
+        query: ScaleType[Optional[tuple[int, str]]] = self.substrate.query(
             module="SubtensorModule",
             storage_function="ColdkeySwapAnnouncements",
             params=[coldkey_ss58],
             block_hash=block_hash,
         )
-        if query is None:
+        if query.value is None:
             return None
         return ColdkeySwapAnnouncementInfo.from_query(
-            coldkey_ss58=coldkey_ss58, query=cast(ScaleObj, query)
+            coldkey_ss58=coldkey_ss58, query=query
         )
 
     def get_coldkey_swap_announcements(
@@ -1663,8 +1664,7 @@ class Subtensor(SubtensorMixin):
             storage_function="ColdkeySwapAnnouncementDelay",
             block_hash=block_hash,
         )
-        value = getattr(query, "value", query)
-        return cast(int, value) if value is not None else 0
+        return cast(int, query.value) or 0
 
     def get_coldkey_swap_constants(
         self,
@@ -1733,13 +1733,12 @@ class Subtensor(SubtensorMixin):
             - See: <https://docs.learnbittensor.org/keys/coldkey-swap>
         """
         block_hash = self.determine_block_hash(block)
-        query = self.substrate.query(
+        query: ScaleType[Optional[int]] = self.substrate.query(
             module="SubtensorModule",
             storage_function="ColdkeySwapReannouncementDelay",
             block_hash=block_hash,
         )
-        value = getattr(query, "value", query)
-        return cast(int, value) if value is not None else 0
+        return query.value or 0
 
     def get_coldkey_swap_dispute(
         self,
@@ -1772,9 +1771,7 @@ class Subtensor(SubtensorMixin):
         )
         if query is None:
             return None
-        return ColdkeySwapDisputeInfo.from_query(
-            coldkey_ss58=coldkey_ss58, query=cast(ScaleObj, query)
-        )
+        return ColdkeySwapDisputeInfo.from_query(coldkey_ss58=coldkey_ss58, query=query)
 
     def get_coldkey_swap_disputes(
         self,
@@ -1834,8 +1831,9 @@ class Subtensor(SubtensorMixin):
             )
             return ""
 
-        metadata = cast(dict, self.get_commitment_metadata(netuid, hotkey, block))
+        metadata = self.get_commitment_metadata(netuid, hotkey, block)
         try:
+            assert not isinstance(metadata, str)
             return decode_metadata(metadata)
         except Exception as error:
             logging.error(error)
@@ -1843,7 +1841,7 @@ class Subtensor(SubtensorMixin):
 
     def get_commitment_metadata(
         self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
-    ) -> Union[str, dict]:
+    ) -> str | CommitmentOfResponse:
         # TODO: how to handle return data? need good example @roman
         """Fetches raw commitment metadata from specific subnet for given hotkey.
 
@@ -1859,21 +1857,21 @@ class Subtensor(SubtensorMixin):
         Notes:
             - <https://docs.learnbittensor.org/glossary#commit-reveal>
         """
-        commit_data = self.substrate.query(
+        commit_data: ScaleType[Optional[CommitmentOfResponse]] = self.substrate.query(
             module="Commitments",
             storage_function="CommitmentOf",
             params=[netuid, hotkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
-        if commit_data is None:
+        if commit_data.value is None:
             return ""
-        return cast(Union[str, dict], getattr(commit_data, "value", commit_data))
+        return commit_data.value
 
     def get_crowdloan_constants(
         self,
         constants: Optional[list[str]] = None,
         block: Optional[int] = None,
-    ) -> "CrowdloanConstants":
+    ) -> CrowdloanConstants:
         """Retrieves runtime configuration constants governing crowdloan behavior and limits on the Bittensor blockchain.
 
         If a list of constant names is provided, only those constants will be queried.
@@ -1920,7 +1918,7 @@ class Subtensor(SubtensorMixin):
         self,
         crowdloan_id: int,
         block: Optional[int] = None,
-    ) -> dict[str, "Balance"]:
+    ) -> dict[str, Balance]:
         """Retrieves all contributions made to a specific crowdloan campaign.
 
         Returns a mapping of contributor coldkey addresses to their contribution amounts in Rao.
@@ -1947,14 +1945,16 @@ class Subtensor(SubtensorMixin):
             block_hash=block_hash,
         )
         result = {}
-        for record in query.records:
-            if record[1].value:
-                result[decode_account_id(record[0])] = Balance.from_rao(record[1].value)
+        contributor: str
+        amount: int
+        for contributor, amount in query:
+            if amount:
+                result[contributor] = Balance.from_rao(amount)
         return result
 
     def get_crowdloan_by_id(
         self, crowdloan_id: int, block: Optional[int] = None
-    ) -> Optional["CrowdloanInfo"]:
+    ) -> Optional[CrowdloanInfo]:
         """Retrieves detailed information about a specific crowdloan campaign.
 
         Parameters:
@@ -1972,13 +1972,13 @@ class Subtensor(SubtensorMixin):
             - Crowdloans Overview: <https://docs.learnbittensor.org/subnets/crowdloans>
         """
         block_hash = self.determine_block_hash(block)
-        query = self.substrate.query(
+        query: ScaleType[Optional[CrowdloansResponse]] = self.substrate.query(
             module="Crowdloan",
             storage_function="Crowdloans",
             params=[crowdloan_id],
             block_hash=block_hash,
         )
-        if not query:
+        if not query.value:
             return None
         return self._decode_crowdloan_entry(
             crowdloan_id=crowdloan_id, data=query.value, block_hash=block_hash
@@ -2004,13 +2004,12 @@ class Subtensor(SubtensorMixin):
             - Crowdloan Tutorial: <https://docs.learnbittensor.org/subnets/crowdloans/crowdloans-tutorial#get-the-crowdloan-id>
         """
         block_hash = self.determine_block_hash(block)
-        result = self.substrate.query(
+        result: ScaleType[int] = self.substrate.query(
             module="Crowdloan",
             storage_function="NextCrowdloanId",
             block_hash=block_hash,
         )
-        value = cast(int, getattr(result, "value", result))
-        return int(value) or 0
+        return result.value
 
     def get_crowdloans(
         self,
@@ -2042,11 +2041,9 @@ class Subtensor(SubtensorMixin):
         )
 
         crowdloans = []
-
-        for c_id, value_obj in getattr(query, "records", []):
-            data = value_obj.value
-            if not data:
-                continue
+        c_id: int
+        data: CrowdloansResponse
+        for c_id, data in query:
             crowdloans.append(
                 self._decode_crowdloan_entry(
                     crowdloan_id=c_id, data=data, block_hash=block_hash
@@ -2112,8 +2109,8 @@ class Subtensor(SubtensorMixin):
         )
 
         return {
-            decode_account_id(ss58_address[0]): ChainIdentity.from_dict(
-                decode_hex_identity_dict(identity.value),
+            ss58_address: ChainIdentity.from_dict(
+                decode_hex_identity_dict(identity),
             )
             for ss58_address, identity in identities
         }
@@ -2133,13 +2130,13 @@ class Subtensor(SubtensorMixin):
         Notes:
             - <https://docs.learnbittensor.org/staking-and-delegation/delegation>
         """
-        result = self.query_subtensor(
+        result: ScaleType[int] = self.query_subtensor(  # type: ignore[assignment]
             name="Delegates",
             block=block,
             params=[hotkey_ss58],
         )
 
-        return u16_normalized_float(result.value)  # type: ignore
+        return u16_normalized_float(result.value)
 
     def get_delegated(
         self, coldkey_ss58: str, block: Optional[int] = None
@@ -2174,7 +2171,7 @@ class Subtensor(SubtensorMixin):
 
         return DelegatedInfo.list_from_dicts(result)
 
-    def get_delegates(self, block: Optional[int] = None) -> list["DelegateInfo"]:
+    def get_delegates(self, block: Optional[int] = None) -> list[DelegateInfo]:
         """Fetches all delegates registered on the chain.
 
         Delegates are validators that accept stake from other TAO holders (nominators/delegators). This method
@@ -2202,7 +2199,7 @@ class Subtensor(SubtensorMixin):
         else:
             return []
 
-    def get_existential_deposit(self, block: Optional[int] = None) -> Optional[Balance]:
+    def get_existential_deposit(self, block: Optional[int] = None) -> Balance:
         """Retrieves the existential deposit amount for the Bittensor blockchain.
 
         The existential deposit is the minimum amount of TAO required for an account to exist on the blockchain.
@@ -2218,7 +2215,7 @@ class Subtensor(SubtensorMixin):
         Notes:
             - <https://docs.learnbittensor.org/glossary#existential-deposit>
         """
-        result = self.substrate.get_constant(
+        result: Optional[ScaleType[int]] = self.substrate.get_constant(  # type: ignore[assignment]
             module_name="Balances",
             constant_name="ExistentialDeposit",
             block_hash=self.determine_block_hash(block),
@@ -2227,7 +2224,7 @@ class Subtensor(SubtensorMixin):
         if result is None:
             raise Exception("Unable to retrieve existential deposit amount.")
 
-        return Balance.from_rao(getattr(result, "value", 0))
+        return Balance.from_rao(result.value)
 
     def get_ema_tao_inflow(
         self,
@@ -2271,6 +2268,7 @@ class Subtensor(SubtensorMixin):
 
         block_updated, tao_bits = query.value
         ema_value = int(fixed_to_float(tao_bits))
+        # TODO verify this from rao, seems like we're just rounding down
         return block_updated, Balance.from_rao(ema_value)
 
     def get_hotkey_owner(
@@ -2288,21 +2286,22 @@ class Subtensor(SubtensorMixin):
         Returns:
             The SS58 address of the owner if the hotkey exists, or `None` if it doesn't.
         """
-        hk_owner_query = self.substrate.query(
+        hk_owner: ScaleType[str] = self.substrate.query(
             module="SubtensorModule",
             storage_function="Owner",
             params=[hotkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
-        exists = False
-        if hk_owner_query:
+        if hk_owner.value != "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM":
             exists = self.does_hotkey_exist(hotkey_ss58, block=block)
-        hotkey_owner = hk_owner_query if exists else None
-        return cast(Optional[str], getattr(hotkey_owner, "value", hotkey_owner))
+        else:
+            exists = False
+        hotkey_owner = hk_owner.value if exists else None
+        return hotkey_owner
 
     def get_last_bonds_reset(
         self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
-    ):
+    ) -> ScaleType[Optional[int]]:
         """Retrieves the block number when bonds were last reset for a specific hotkey on a subnet.
 
         Parameters:
@@ -2311,18 +2310,20 @@ class Subtensor(SubtensorMixin):
             block: The block number to query. If `None`, queries the current chain head.
 
         Returns:
-            The block number when bonds were last reset, or `None` if no bonds reset has occurred.
+            A ScaleType object containing the block number when bonds were last reset, or `None` if no bonds reset
+            has occurred.
 
         Notes:
             - <https://docs.learnbittensor.org/resources/glossary#validator-miner-bonds>
             - <https://docs.learnbittensor.org/resources/glossary#commit-reveal>
         """
-        return self.substrate.query(
+        block_: ScaleType[Optional[int]] = self.substrate.query(
             module="Commitments",
             storage_function="LastBondsReset",
             params=[netuid, hotkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
+        return block_
 
     def get_last_commitment_bonds_reset_block(
         self,
@@ -2351,10 +2352,7 @@ class Subtensor(SubtensorMixin):
             )
             return None
         block_data = self.get_last_bonds_reset(netuid, hotkey_ss58, block)
-        try:
-            return decode_block(block_data)
-        except TypeError:
-            return None
+        return block_data.value
 
     def get_liquidity_list(
         self,
@@ -2424,18 +2422,20 @@ class Subtensor(SubtensorMixin):
             )
         )
 
-        fee_global_tao = fixed_to_float(fee_global_tao_query[1])
-        fee_global_alpha = fixed_to_float(fee_global_alpha_query[1])
-        sqrt_price = fixed_to_float(sqrt_price_query[1])
+        fee_global_tao_raw: FixedPoint = fee_global_tao_query[1]  # type: ignore[assignment]
+        fee_global_alpha_raw: FixedPoint = fee_global_alpha_query[1]  # type: ignore[assignment]
+        sqrt_price_raw: FixedPoint = sqrt_price_query[1]  # type: ignore[assignment]
+        fee_global_tao = fixed_to_float(fee_global_tao_raw)
+        fee_global_alpha = fixed_to_float(fee_global_alpha_raw)
+        sqrt_price = fixed_to_float(sqrt_price_raw)
         current_tick = price_to_tick(sqrt_price**2)
 
-        positions_values: list[tuple[dict, int, int]] = []
+        positions_values: list[tuple[PositionResponse, int, int]] = []
         positions_storage_keys: list[StorageKey] = []
-        for _, p in positions_response:
-            position = p.value
-
-            tick_low_idx = position["tick_low"][0]
-            tick_high_idx = position["tick_high"][0]
+        position: PositionResponse
+        for _, position in positions_response:
+            tick_low_idx = position["tick_low"]
+            tick_high_idx = position["tick_high"]
 
             tick_low_sk = self.substrate.create_storage_key(
                 pallet="Swap",
@@ -2456,8 +2456,9 @@ class Subtensor(SubtensorMixin):
             positions_storage_keys, block_hash=block_hash
         )
         # iterator with just the values
-        ticks = iter([x[1] for x in ticks_query])
-        positions = []
+        tick_values: list[dict] = [x[1] for x in ticks_query]  # type: ignore
+        ticks = iter(tick_values)
+        positions: list[LiquidityPosition] = []
         for position, tick_low_idx, tick_high_idx in positions_values:
             tick_low = next(ticks)
             tick_high = next(ticks)
@@ -2514,19 +2515,15 @@ class Subtensor(SubtensorMixin):
 
             positions.append(
                 LiquidityPosition(
-                    **{
-                        "id": position.get("id")[0],
-                        "price_low": Balance.from_tao(
-                            tick_to_price(position.get("tick_low")[0])
-                        ),
-                        "price_high": Balance.from_tao(
-                            tick_to_price(position.get("tick_high")[0])
-                        ),
-                        "liquidity": Balance.from_rao(position.get("liquidity")),
-                        "fees_tao": fees_tao,
-                        "fees_alpha": fees_alpha,
-                        "netuid": position.get("netuid"),
-                    }
+                    id=position.get("id"),
+                    price_low=Balance.from_tao(tick_to_price(position.get("tick_low"))),
+                    price_high=Balance.from_tao(
+                        tick_to_price(position.get("tick_high"))
+                    ),
+                    liquidity=Balance.from_rao(position.get("liquidity")),
+                    fees_tao=fees_tao,
+                    fees_alpha=fees_alpha,
+                    netuid=position.get("netuid"),
                 )
             )
 
@@ -2552,16 +2549,16 @@ class Subtensor(SubtensorMixin):
             module, storage_function, block_hash=block_hash
         ):
             return None
-        result = self.substrate.query(
+        result: ScaleType[Optional[list[int]]] = self.substrate.query(
             module="SubtensorModule",
             storage_function="MechanismEmissionSplit",
             params=[netuid],
             block_hash=block_hash,
         )
-        if result is None or not hasattr(result, "value"):
+        if result.value is None:
             return None
-
-        return [round(i / sum(result.value) * 100) for i in result.value]
+        total = sum(result.value)
+        return [round(i / total * 100) for i in result.value]
 
     def get_mechanism_count(
         self,
@@ -2587,13 +2584,13 @@ class Subtensor(SubtensorMixin):
             module, storage_function, block_hash=block_hash
         ):
             return 1
-        query = self.substrate.query(
+        query: ScaleType[Optional[int]] = self.substrate.query(
             module=module,
             storage_function=storage_function,
             params=[netuid],
             block_hash=block_hash,
         )
-        return query.value if query is not None and hasattr(query, "value") else 1
+        return query.value or 1
 
     def get_metagraph_info(
         self,
@@ -2682,13 +2679,13 @@ class Subtensor(SubtensorMixin):
                 default_value=None,
             )
 
-        if query is None or not hasattr(query, "value") or query.value is None:
+        if query is None:
             logging.error(
                 f"Subnet mechanism {netuid}.{mechid if mechid else 0} does not exist."
             )
             return None
 
-        return MetagraphInfo.from_dict(query.value)
+        return MetagraphInfo.from_dict(query)
 
     def get_mev_shield_current_key(
         self, block: Optional[int] = None
@@ -2710,16 +2707,18 @@ class Subtensor(SubtensorMixin):
             announced a key yet.
         """
         block_hash = self.determine_block_hash(block=block)
-        query = self.substrate.query(
+        query: ScaleType[Optional[bytearray]] = self.substrate.query(
             module="MevShield",
             storage_function="CurrentKey",
             block_hash=block_hash,
         )
 
-        if query is None:
+        if query.value_object is None:
             return None
 
-        public_key_bytes = bytes(next(iter(query)))
+        value: bytearray = query.value_object
+
+        public_key_bytes = bytes(value)
 
         # Validate public_key size for ML-KEM-768
         if len(public_key_bytes) != MLKEM768_PUBLIC_KEY_SIZE:
@@ -2748,16 +2747,18 @@ class Subtensor(SubtensorMixin):
             announced the next key yet.
         """
         block_hash = self.determine_block_hash(block=block)
-        query = self.substrate.query(
+        query: ScaleType[Optional[bytearray]] = self.substrate.query(
             module="MevShield",
             storage_function="NextKey",
             block_hash=block_hash,
         )
 
-        if query is None:
+        if query.value_object is None:
             return None
 
-        public_key_bytes = bytes(next(iter(query)))
+        value: bytearray = query.value_object
+
+        public_key_bytes = bytes(value)
 
         # Validate public_key size for ML-KEM-768 (must be exactly 1184 bytes)
         if len(public_key_bytes) != MLKEM768_PUBLIC_KEY_SIZE:
@@ -2789,7 +2790,7 @@ class Subtensor(SubtensorMixin):
             module="SubtensorModule", storage_function="NominatorMinRequiredStake"
         )
 
-        return Balance.from_rao(getattr(result, "value", 0))
+        return Balance.from_rao(result.value or 0)
 
     def get_netuids_for_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
@@ -2814,10 +2815,12 @@ class Subtensor(SubtensorMixin):
             block_hash=self.determine_block_hash(block),
         )
         netuids = []
+        netuid: int
+        is_member: bool
         if result.records:
-            for record in result:
-                if record[1].value:
-                    netuids.append(record[0])
+            for netuid, is_member in result:
+                if is_member:
+                    netuids.append(netuid)
         return netuids
 
     def get_neuron_certificate(
@@ -2838,23 +2841,22 @@ class Subtensor(SubtensorMixin):
 
         This function is used for certificate discovery for setting up mutual tls communication between neurons.
         """
-        certificate_query = self.query_module(
-            module="SubtensorModule",
-            name="NeuronCertificates",
-            block=block,
-            params=[netuid, hotkey_ss58],
+        certificate_query: ScaleType[Optional[str | NeuronCertificateResponse]] = (
+            self.query_module(
+                module="SubtensorModule",
+                name="NeuronCertificates",
+                block=block,
+                params=[netuid, hotkey_ss58],
+            )
         )
-        try:
-            if certificate_query:
-                certificate = cast(dict, certificate_query)
-                return Certificate(certificate)
-        except AttributeError:
-            return None
+        certificate: Optional[str | NeuronCertificateResponse] = certificate_query.value
+        if certificate is not None:
+            return Certificate(certificate)
         return None
 
     def get_neuron_for_pubkey_and_subnet(
         self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
-    ) -> Optional["NeuronInfo"]:
+    ) -> NeuronInfo:
         """
         Retrieves information about a neuron based on its public key (hotkey SS58 address) and the specific subnet UID
         (netuid). This function provides detailed neuron information for a particular subnet within the Bittensor
@@ -2878,7 +2880,7 @@ class Subtensor(SubtensorMixin):
             params=[netuid, hotkey_ss58],
             block_hash=block_hash,
         )
-        if (uid := getattr(uid_query, "value", None)) is None:
+        if (uid := uid_query.value) is None:
             return NeuronInfo.get_null_neuron()
 
         return self.neuron_for_uid(
@@ -2943,7 +2945,7 @@ class Subtensor(SubtensorMixin):
             params=[coldkey_ss58],
             block_hash=block_hash,
         )
-        return [decode_account_id(hotkey[0]) for hotkey in owned_hotkeys or []]
+        return owned_hotkeys.value or []
 
     def get_parents(
         self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
@@ -2970,11 +2972,10 @@ class Subtensor(SubtensorMixin):
             params=[hotkey_ss58, netuid],
             block_hash=self.determine_block_hash(block),
         )
-        if parents:
+        if parents.value:
             formatted_parents = []
-            for proportion, parent in parents.value:
+            for proportion, formatted_child in parents.value:
                 # Convert U64 to int
-                formatted_child = decode_account_id(parent[0])
                 normalized_proportion = u64_normalized_float(proportion)
                 formatted_parents.append((normalized_proportion, formatted_child))
             return formatted_parents
@@ -3073,14 +3074,13 @@ class Subtensor(SubtensorMixin):
             - See: <https://docs.learnbittensor.org/keys/proxies>
         """
         block_hash = self.determine_block_hash(block)
-        query = self.substrate.query(
+        query: ScaleType[tuple[list[dict], int]] = self.substrate.query(
             module="Proxy",
             storage_function="Announcements",
             params=[delegate_account_ss58],
             block_hash=block_hash,
         )
-        query_value = getattr(query, "value", query)
-        return ProxyAnnouncementInfo.from_dict(cast(list[Any], query_value)[0])
+        return ProxyAnnouncementInfo.from_dict(query.value)
 
     def get_proxy_announcements(
         self,
@@ -3232,15 +3232,17 @@ class Subtensor(SubtensorMixin):
             params=[netuid, hotkey_ss58],
             block=block,
         )
-        if query is None:
+        if query.value_serialized is None:
             return None
-        return tuple(decode_revealed_commitment(pair) for pair in query)
+        return tuple(
+            decode_revealed_commitment(pair) for pair in query.value_serialized
+        )
 
     def get_root_claim_type(
         self,
         coldkey_ss58: str,
         block: Optional[int] = None,
-    ) -> Union[str, dict]:
+    ) -> str | dict[str, dict[str, list[int]]]:
         """Return the configured root claim type for a given coldkey.
 
         The root claim type controls how dividends from staking to the Root Subnet (subnet 0) are processed when they
@@ -3251,7 +3253,7 @@ class Subtensor(SubtensorMixin):
 
         Parameters:
             coldkey_ss58: The SS58 address of the coldkey whose root claim preference to query.
-            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block: The block number to query.
 
         Returns:
 
@@ -3270,24 +3272,7 @@ class Subtensor(SubtensorMixin):
             params=[coldkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
-        query_value = getattr(query, "value", query)
-        claim_type = cast(dict[str, Any], query_value)
-        # Query returns enum as dict: {"Swap": ()} or {"Keep": ()} or {"KeepSubnets": {"subnets": [1, 2, 3]}}
-        variant_name = next(iter(claim_type.keys()))
-        variant_value = claim_type[variant_name]
-
-        # For simple variants (Swap, Keep), value is empty tuple, return string
-        if not variant_value or variant_value == ():
-            return variant_name
-
-        # For KeepSubnets, value contains the data, return full dict structure
-        if isinstance(variant_value, dict) and "subnets" in variant_value:
-            subnets_raw = variant_value["subnets"]
-            subnets = list(subnets_raw[0])
-
-            return {variant_name: {"subnets": subnets}}
-
-        return {variant_name: variant_value}
+        return query.value
 
     def get_root_alpha_dividends_per_subnet(
         self,
@@ -3308,14 +3293,13 @@ class Subtensor(SubtensorMixin):
         Returns:
             Balance: The root alpha dividends for this hotkey on this subnet in Rao, with unit set to netuid.
         """
-        query = self.substrate.query(
+        query: ScaleType[int] = self.substrate.query(
             module="SubtensorModule",
             storage_function="RootAlphaDividendsPerSubnet",
             params=[netuid, hotkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
-        value = getattr(query, "value", query)
-        return Balance.from_rao(cast(int, value)).set_unit(netuid=netuid)
+        return Balance.from_rao(query.value, netuid=netuid)
 
     def get_root_claimable_rate(
         self,
@@ -3366,15 +3350,15 @@ class Subtensor(SubtensorMixin):
         Notes:
             - See: <https://docs.learnbittensor.org/staking-and-delegation/root-claims/managing-root-claims>
         """
-        query = self.substrate.query(
+        query: ScaleType[list[tuple[int, FixedPoint]]] = self.substrate.query(
             module="SubtensorModule",
             storage_function="RootClaimable",
             params=[hotkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
-        query_value = getattr(query, "value", query)
-        bits_list = next(iter(cast(list[list[tuple[int, FixedPoint]]], query_value)))
-        return {bits[0]: fixed_to_float(bits[1], frac_bits=32) for bits in bits_list}
+        return {
+            netuid: fixed_to_float(bits, frac_bits=32) for (netuid, bits) in query.value
+        }
 
     def get_root_claimable_stake(
         self,
@@ -3449,14 +3433,13 @@ class Subtensor(SubtensorMixin):
         Notes:
             - See: <https://docs.learnbittensor.org/staking-and-delegation/root-claims/managing-root-claims>
         """
-        query = self.substrate.query(
+        query: ScaleType[int] = self.substrate.query(
             module="SubtensorModule",
             storage_function="RootClaimed",
             params=[netuid, hotkey_ss58, coldkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
-        value = getattr(query, "value", query)
-        return Balance.from_rao(cast(int, value)).set_unit(netuid=netuid)
+        return Balance.from_rao(query.value, netuid=netuid)
 
     def get_stake(
         self,
@@ -3525,7 +3508,7 @@ class Subtensor(SubtensorMixin):
 
     def get_stake_info_for_coldkey(
         self, coldkey_ss58: str, block: Optional[int] = None
-    ) -> list["StakeInfo"]:
+    ) -> list[StakeInfo]:
         """
         Retrieves the stake information for a given coldkey.
 
@@ -3549,7 +3532,7 @@ class Subtensor(SubtensorMixin):
 
     def get_stake_info_for_coldkeys(
         self, coldkey_ss58s: list[str], block: Optional[int] = None
-    ) -> dict[str, list["StakeInfo"]]:
+    ) -> dict[str, list[StakeInfo]]:
         """
         Retrieves the stake information for multiple coldkeys.
 
@@ -3570,10 +3553,7 @@ class Subtensor(SubtensorMixin):
         if query is None:
             return {}
 
-        return {
-            decode_account_id(ck): StakeInfo.list_from_dicts(st_info)
-            for ck, st_info in query
-        }
+        return {ck: StakeInfo.list_from_dicts(st_info) for ck, st_info in query}
 
     def get_stake_for_hotkey(
         self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
@@ -3586,13 +3566,10 @@ class Subtensor(SubtensorMixin):
             netuid: The subnet ID to query for.
             block: The block number at which to query the stake information.
         """
-        hotkey_alpha_query = self.query_subtensor(
+        hotkey_alpha_query: ScaleType[int] = self.query_subtensor(  # type: ignore[assignment]
             name="TotalHotkeyAlpha", params=[hotkey_ss58, netuid], block=block
         )
-        hotkey_alpha = cast(ScaleObj, hotkey_alpha_query)
-        balance = Balance.from_rao(hotkey_alpha.value)
-        balance.set_unit(netuid=netuid)
-        return balance
+        return Balance.from_rao(hotkey_alpha_query.value, netuid=netuid)
 
     get_hotkey_stake = get_stake_for_hotkey
 
@@ -3686,7 +3663,7 @@ class Subtensor(SubtensorMixin):
             params=[coldkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
-        return [decode_account_id(hotkey[0]) for hotkey in result or []]
+        return result.value or []
 
     def get_start_call_delay(self, block: Optional[int] = None) -> int:
         """
@@ -3698,13 +3675,11 @@ class Subtensor(SubtensorMixin):
         Return:
             Amount of blocks after the start call can be executed.
         """
-        return cast(
-            int,
-            self.query_subtensor(
-                name="StartCallDelay",
-                block=block,
-            ),
+        query: ScaleType[int] = self.query_subtensor(  # type: ignore[assignment]
+            name="StartCallDelay",
+            block=block,
         )
+        return query.value
 
     def get_subnet_burn_cost(self, block: Optional[int] = None) -> Optional[Balance]:
         """
@@ -3831,12 +3806,12 @@ class Subtensor(SubtensorMixin):
             return Balance.from_tao(1)
 
         block_hash = self.determine_block_hash(block=block)
-        price_rao = self.substrate.runtime_call(
+        price_rao: int = self.substrate.runtime_call(  # type: ignore[assignment]
             api="SwapRuntimeApi",
             method="current_alpha_price",
             params=[netuid],
             block_hash=block_hash,
-        ).value
+        )
         return Balance.from_rao(price_rao)
 
     def get_subnet_prices(
@@ -3864,10 +3839,10 @@ class Subtensor(SubtensorMixin):
         )
 
         prices = {}
-        for id_, current_sqrt_price in current_sqrt_prices:
-            current_sqrt_price = fixed_to_float(current_sqrt_price)
+        for id_, current_sqrt_price_bits in current_sqrt_prices:
+            current_sqrt_price = fixed_to_decimal(current_sqrt_price_bits)
             current_price = current_sqrt_price * current_sqrt_price
-            current_price_in_tao = Balance.from_rao(int(current_price * 1e9))
+            current_price_in_tao = Balance.from_tao(float(current_price))
             prices.update({id_: current_price_in_tao})
 
         # SN0 price is always 1 TAO
@@ -3955,10 +3930,11 @@ class Subtensor(SubtensorMixin):
             storage_function="TimelockedWeightCommits",
             params=[storage_index],
             block_hash=self.determine_block_hash(block=block),
+            page_size=1,
         )
 
         commits = result.records[0][1] if result.records else []
-        return [WeightCommitInfo.from_vec_u8_v2(commit) for commit in commits]
+        return [WeightCommitInfo.from_vec_u8_v2(commit) for commit in commits]  # type: ignore[arg-type,union-attr]
 
     def get_timestamp(self, block: Optional[int] = None) -> datetime:
         """
@@ -3970,8 +3946,8 @@ class Subtensor(SubtensorMixin):
         Returns:
             datetime object for the timestamp of the block
         """
-        unix = cast(ScaleObj, self.query_module("Timestamp", "Now", block=block)).value
-        return datetime.fromtimestamp(unix / 1000, tz=timezone.utc)
+        unix = self.query_module("Timestamp", "Now", block=block)
+        return datetime.fromtimestamp(unix.value / 1000, tz=timezone.utc)
 
     def get_total_subnets(self, block: Optional[int] = None) -> Optional[int]:
         """Retrieves the total number of subnets within the Bittensor network as of a specific blockchain block.
@@ -4069,7 +4045,7 @@ class Subtensor(SubtensorMixin):
 
     def get_vote_data(
         self, proposal_hash: str, block: Optional[int] = None
-    ) -> Optional["ProposalVoteData"]:
+    ) -> Optional[ProposalVoteData]:
         # TODO: is this all deprecated? Didn't subtensor senate stuff get removed?
         """
         Retrieves the voting data for a specific proposal on the Bittensor blockchain. This data includes information
@@ -4085,20 +4061,17 @@ class Subtensor(SubtensorMixin):
         This function is important for tracking and understanding the decision-making processes within the Bittensor
         network, particularly how proposals are received and acted upon by the governing body.
         """
-        vote_data = cast(
-            Optional[dict[str, Any]],
-            self.substrate.query(
-                module="Triumvirate",
-                storage_function="Voting",
-                params=[proposal_hash],
-                block_hash=self.determine_block_hash(block),
-            ),
+        vote_data: ScaleType[Optional[dict[str, Any]]] = self.substrate.query(
+            module="Triumvirate",
+            storage_function="Voting",
+            params=[proposal_hash],
+            block_hash=self.determine_block_hash(block),
         )
 
-        if vote_data is None:
+        if vote_data.value is None:
             return None
 
-        return ProposalVoteData.from_dict(vote_data)
+        return ProposalVoteData.from_dict(vote_data.value)
 
     def get_uid_for_hotkey_on_subnet(
         self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
@@ -4255,7 +4228,8 @@ class Subtensor(SubtensorMixin):
             - <https://docs.learnbittensor.org/resources/glossary#fast-blocks>
 
         """
-        slot_duration_obj = cast(ScaleObj, self.query_constant("Aura", "SlotDuration"))
+        slot_duration_obj = self.query_constant("Aura", "SlotDuration")
+        assert slot_duration_obj is not None
         return slot_duration_obj.value == 250
 
     def is_hotkey_delegate(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
@@ -4368,7 +4342,11 @@ class Subtensor(SubtensorMixin):
             block=block,
             params=[netuid],
         )
-        return True if query and query.value > 0 else False
+        qv: Optional[int] = query.value  # type: ignore[assignment]
+        if qv is None or qv <= 0:
+            return False
+        else:
+            return True
 
     def last_drand_round(self) -> Optional[int]:
         """Retrieves the last drand round emitted in Bittensor.
@@ -4587,27 +4565,17 @@ class Subtensor(SubtensorMixin):
             See the `Bittensor CLI documentation <https://docs.bittensor.com/reference/btcli>`_ for supported identity
             parameters.
         """
+        print(coldkey_ss58)
         identity_info = self.substrate.query(
             module="SubtensorModule",
             storage_function="IdentitiesV2",
             params=[coldkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
-
-        if not identity_info:
+        identity_data: Optional[dict[str, dict[Any, Any] | str]] = identity_info.value
+        if identity_data is None:
             return None
-
-        try:
-            identity_data = (
-                identity_info.value
-                if hasattr(identity_info, "value")
-                else identity_info
-            )
-            return ChainIdentity.from_dict(
-                decode_hex_identity_dict(cast(dict[str, Any], identity_data)),
-            )
-        except TypeError:
-            return None
+        return ChainIdentity.from_dict(decode_hex_identity_dict(identity_data))
 
     def recycle(self, netuid: int, block: Optional[int] = None) -> Optional[Balance]:
         """Retrieves the 'Burn' hyperparameter for a specified subnet.
@@ -4642,14 +4610,17 @@ class Subtensor(SubtensorMixin):
         """
         block_hash = self.determine_block_hash(block=block)
 
-        query = self.substrate.runtime_call(
-            api="SubnetInfoRuntimeApi",
-            method="get_dynamic_info",
-            params=[netuid],
-            block_hash=block_hash,
+        decoded = cast(
+            Optional[DynamicInfoResponse],
+            self.substrate.runtime_call(
+                api="SubnetInfoRuntimeApi",
+                method="get_dynamic_info",
+                params=[netuid],
+                block_hash=block_hash,
+            ),
         )
 
-        if isinstance(decoded := query.decode(), dict):
+        if isinstance(decoded, dict):
             try:
                 price = self.get_subnet_price(netuid=netuid, block=block)
             except (SubstrateRequestException, ValueError):
@@ -4803,7 +4774,7 @@ class Subtensor(SubtensorMixin):
             params=[storage_index],
             block_hash=self.determine_block_hash(block),
         )
-        w_map = [(uid, w.value or []) for uid, w in w_map_encoded]
+        w_map = [(uid, w or []) for uid, w in w_map_encoded]
 
         return w_map
 
@@ -4876,7 +4847,7 @@ class Subtensor(SubtensorMixin):
             )
 
         # Expected params from metadata
-        expected_params = func_meta.get_param_info()
+        expected_params = func_meta.get_param_info()  # type: ignore
         provided_params = {}
 
         # Validate and filter parameters
@@ -5023,6 +4994,7 @@ class Subtensor(SubtensorMixin):
             extrinsic_response.extrinsic_receipt = response
 
             if response.is_success:
+                assert response.total_fee_amount is not None
                 extrinsic_response.extrinsic_fee = Balance.from_rao(
                     response.total_fee_amount
                 )
@@ -6687,14 +6659,7 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         netuid: int,
-        max_allowed_attempts: int = 3,
-        output_in_place: bool = True,
-        cuda: bool = False,
-        dev_id: Union[list[int], int] = 0,
-        tpb: int = 256,
-        num_processes: Optional[int] = None,
-        update_interval: Optional[int] = None,
-        log_verbose: bool = False,
+        limit_price: Optional[Balance] = None,
         *,
         mev_protection: bool = DEFAULT_MEV_PROTECTION,
         period: Optional[int] = DEFAULT_PERIOD,
@@ -6703,56 +6668,63 @@ class Subtensor(SubtensorMixin):
         wait_for_finalization: bool = True,
         wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
-        """
-        Registers a neuron on the Bittensor subnet with provided netuid using the provided wallet.
+        """Registers a neuron on the Bittensor network by recycling TAO, with automatic price protection.
 
-        Registration is a critical step for a neuron to become an active participant in the network, enabling it to
-        stake, set weights, and receive incentives.
+        Uses ``register_limit`` under the hood. If ``limit_price`` is not provided, it is automatically
+        calculated as the current recycle (burn) cost plus a 0.5% tolerance to protect against price fluctuations.
+
+        For root subnet (``netuid == 0``), delegates to ``root_register_extrinsic``.
 
         Parameters:
             wallet: The wallet associated with the neuron to be registered.
             netuid: The unique identifier of the subnet.
-            max_allowed_attempts: Maximum number of attempts to register the wallet.
-            output_in_place: If `True`, prints the progress of the proof of work to the console in-place. Meaning the
-                progress is printed on the same lines.
-            cuda: If `true`, the wallet should be registered using CUDA device(s).
-            dev_id: The CUDA device id to use, or a list of device ids.
-            tpb: The number of threads per block (CUDA).
-            num_processes: The number of processes to use to register.
-            update_interval: The number of nonces to solve between updates.
-            log_verbose: If `true`, the registration process will log more information.
-            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
+            limit_price: Maximum acceptable burn price as a Balance instance. If ``None``, automatically calculated
+                as ``recycle * 1.005`` (0.5% tolerance). If the on-chain burn price exceeds this value, the
+                transaction will fail with RegistrationPriceLimitExceeded.
+            mev_protection: If ``True``, encrypts and submits the transaction through the MEV Shield pallet to protect
                 against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
-                decrypt and execute it. If `False`, submits the transaction directly without encryption.
+                decrypt and execute it. If ``False``, submits the transaction directly without encryption.
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
-            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
-            wait_for_inclusion: Whether to wait for the inclusion of the transaction.
-            wait_for_finalization: Whether to wait for the finalization of the transaction.
+            raise_error: Raises a relevant exception rather than returning ``False`` if unsuccessful.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
             wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
 
         Returns:
             ExtrinsicResponse: The result object of the extrinsic execution.
 
-        This function facilitates the entry of new neurons into the network, supporting the decentralized growth and
-        scalability of the Bittensor ecosystem.
-
         Notes:
             - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#registration-rate-limits>
         """
-        return register_extrinsic(
+        if netuid == 0:
+            return root_register_extrinsic(
+                subtensor=self,
+                wallet=wallet,
+                mev_protection=mev_protection,
+                period=period,
+                raise_error=raise_error,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_revealed_execution=wait_for_revealed_execution,
+            )
+
+        if limit_price is not None:
+            check_balance_amount(limit_price)
+        else:
+            recycle = self.recycle(netuid=netuid)
+            if recycle is None:
+                return ExtrinsicResponse(
+                    False, f"Subnet {netuid} does not exist."
+                ).with_log()
+            limit_price = Balance.from_rao(recycle.rao * 1005 // 1000)
+
+        return register_limit_extrinsic(
             subtensor=self,
             wallet=wallet,
             netuid=netuid,
-            max_allowed_attempts=max_allowed_attempts,
-            tpb=tpb,
-            update_interval=update_interval,
-            num_processes=num_processes,
-            cuda=cuda,
-            dev_id=dev_id,
-            output_in_place=output_in_place,
-            log_verbose=log_verbose,
+            limit_price=limit_price,
             mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,

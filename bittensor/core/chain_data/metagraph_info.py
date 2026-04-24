@@ -6,11 +6,11 @@ from bittensor.core.chain_data.axon_info import AxonInfo
 from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.info_base import InfoBase
 from bittensor.core.chain_data.subnet_identity import SubnetIdentity
-from bittensor.core.chain_data.utils import decode_account_id
 from bittensor.utils import (
     get_netuid_and_mechid_by_storage_index,
     u64_normalized_float as u64tf,
     u16_normalized_float as u16tf,
+    deprecated_message,
 )
 from bittensor.utils.balance import Balance, fixed_to_float
 
@@ -25,8 +25,7 @@ def get_selective_metagraph_commitments(
     if commitments := decoded.get("commitments"):
         result = []
         for commitment in commitments:
-            account_id_bytes, commitment_bytes = commitment
-            hotkey = decode_account_id(account_id_bytes)
+            hotkey, commitment_bytes = commitment
             commitment = bytes(
                 commitment_bytes[SELECTIVE_METAGRAPH_COMMITMENTS_OFFSET:]
             ).decode("utf-8", errors="ignore")
@@ -52,6 +51,9 @@ def process_nested(
     data: Union[tuple, dict], chr_transform
 ) -> Optional[Union[list, dict]]:
     """Processes nested data structures by applying a transformation function to their elements."""
+    deprecated_message(
+        "This function is deprecated as it is no longer needed with the new decoding."
+    )
     if isinstance(data, (list, tuple)):
         if len(data) > 0:
             return [
@@ -194,11 +196,6 @@ class MetagraphInfo(InfoBase):
         if decoded.get("identities") is not None:
             ii_list.append("identities")
 
-        for key in ii_list:
-            raw_data = decoded.get(key)
-            processed = process_nested(raw_data, _chr_str)
-            decoded.update({key: processed})
-
         return cls(
             # Subnet index
             netuid=_netuid,
@@ -209,16 +206,8 @@ class MetagraphInfo(InfoBase):
             identity=decoded["identity"],
             network_registered_at=decoded["network_registered_at"],
             # Keys for owner.
-            owner_hotkey=(
-                decode_account_id(decoded["owner_hotkey"][0])
-                if decoded.get("owner_hotkey") is not None
-                else None
-            ),
-            owner_coldkey=(
-                decode_account_id(decoded["owner_coldkey"][0])
-                if decoded.get("owner_coldkey") is not None
-                else None
-            ),
+            owner_hotkey=decoded.get("owner_hotkey"),
+            owner_coldkey=decoded.get("owner_coldkey"),
             # Tempo terms.
             block=decoded["block"],
             tempo=decoded["tempo"],
@@ -312,16 +301,8 @@ class MetagraphInfo(InfoBase):
                 else None
             ),
             # Metagraph info.
-            hotkeys=(
-                [decode_account_id(ck) for ck in decoded.get("hotkeys", [])]
-                if decoded.get("hotkeys") is not None
-                else None
-            ),
-            coldkeys=(
-                [decode_account_id(hk) for hk in decoded.get("coldkeys", [])]
-                if decoded.get("coldkeys") is not None
-                else None
-            ),
+            hotkeys=decoded.get("hotkeys"),
+            coldkeys=decoded.get("coldkeys"),
             identities=decoded["identities"],
             axons=decoded.get("axons", []),
             active=decoded["active"],
@@ -383,19 +364,13 @@ class MetagraphInfo(InfoBase):
             ),
             # Dividend break down
             tao_dividends_per_hotkey=(
-                [
-                    (decode_account_id(alpha[0]), _tbwu(alpha[1]))
-                    for alpha in decoded["tao_dividends_per_hotkey"]
-                ]
-                if decoded.get("tao_dividends_per_hotkey") is not None
+                [(ss58, _tbwu(alpha)) for (ss58, alpha) in tdph]
+                if (tdph := decoded.get("tao_dividends_per_hotkey")) is not None
                 else None
             ),
             alpha_dividends_per_hotkey=(
-                [
-                    (decode_account_id(adphk[0]), _tbwu(adphk[1], _netuid))
-                    for adphk in decoded["alpha_dividends_per_hotkey"]
-                ]
-                if decoded.get("alpha_dividends_per_hotkey") is not None
+                [(ss58, _tbwu(adphk, _netuid)) for (ss58, adphk) in adph]
+                if (adph := decoded.get("alpha_dividends_per_hotkey")) is not None
                 else None
             ),
             validators=[v for v in decoded["validators"]]

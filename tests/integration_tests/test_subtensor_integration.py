@@ -1,7 +1,8 @@
 import pytest
 
-from bittensor.core.chain_data import AxonInfo, NeuronInfo
+from bittensor.core.chain_data import AxonInfo, NeuronInfo, CrowdloanInfo
 from bittensor.core.subtensor import Subtensor
+from bittensor.core.types import CrowdloansResponse
 from bittensor.utils.balance import Balance
 from tests.helpers.helpers import FakeWebsocket
 from bittensor.utils.mock.subtensor_mock import MockSubtensor
@@ -161,3 +162,54 @@ async def test_archive_node_retry(mocker):
     current_block = subtensor.substrate.get_block_number()
     old_block = current_block - 1000
     assert isinstance((subtensor.substrate.get_block(block_number=old_block)), dict)
+
+
+@pytest.mark.asyncio
+async def test_decode_crowdloan_entry(mocker):
+    entry = CrowdloansResponse(
+        **{
+            "creator": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+            "deposit": 10000000000,
+            "min_contribution": 1000000000,
+            "end": 10055,
+            "cap": 100000000000,
+            "funds_account": "5EYCAe5fvncWtwXjyNBBHFPvNVDH5LPQ2harKS7KdAGbezkb",
+            "raised": 10000000000,
+            "target_address": None,
+            "call": {
+                "Inline": "0x0500008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a4802286bee"
+            },
+            "finalized": False,
+            "contributors_count": 1,
+        }
+    )
+    subtensor = await prepare_test(mocker, "decode_crowdloan_entry")
+    actual = subtensor._decode_crowdloan_entry(17, entry)
+    expected = CrowdloanInfo(
+        id=17,
+        creator="5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        deposit=Balance.from_tao(10.0),
+        min_contribution=Balance.from_tao(1.0),
+        end=10055,
+        cap=Balance.from_tao(100.0),
+        funds_account="5EYCAe5fvncWtwXjyNBBHFPvNVDH5LPQ2harKS7KdAGbezkb",
+        raised=Balance.from_tao(10.0),
+        target_address=None,
+        call={
+            "call_index": "0x0500",
+            "call_function": "transfer_allow_death",
+            "call_module": "Balances",
+            "call_args": [
+                {
+                    "name": "dest",
+                    "type": "AccountIdLookupOf",
+                    "value": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+                },
+                {"name": "value", "type": "Balance", "value": 1000000000},
+            ],
+            "call_hash": "0x117349ae93488150fa503b1ff7a0a94bfaa3ba193950a3d812ce32b9bb69fb02",
+        },
+        finalized=False,
+        contributors_count=1,
+    )
+    assert actual == expected

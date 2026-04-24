@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 
 from bittensor.core.chain_data.info_base import InfoBase
-from bittensor.core.chain_data.utils import decode_account_id
 from bittensor.utils.balance import Balance
 
 
@@ -30,8 +29,8 @@ class StakeInfo(InfoBase):
         """Returns a StakeInfo object from decoded chain data."""
         netuid = decoded["netuid"]
         return cls(
-            hotkey_ss58=decode_account_id(decoded["hotkey"]),
-            coldkey_ss58=decode_account_id(decoded["coldkey"]),
+            hotkey_ss58=decoded["hotkey"],
+            coldkey_ss58=decoded["coldkey"],
             netuid=int(netuid),
             stake=Balance.from_rao(decoded["stake"]).set_unit(netuid),
             locked=Balance.from_rao(decoded["locked"]).set_unit(netuid),

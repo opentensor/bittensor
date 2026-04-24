@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from typing import Any
 
 from bittensor.core.chain_data.info_base import InfoBase
-from bittensor.core.chain_data.utils import decode_account_id
 from bittensor.utils import u16_normalized_float
 from bittensor.utils.balance import Balance
 
@@ -50,7 +49,7 @@ class SubnetInfo(InfoBase):
             min_allowed_weights=decoded["min_allowed_weights"],
             modality=decoded["network_modality"],
             netuid=decoded["netuid"],
-            owner_ss58=decode_account_id(decoded["owner"]),
+            owner_ss58=decoded["owner"],
             rho=decoded["rho"],
             scaling_law_power=decoded["scaling_law_power"],
             subnetwork_n=decoded["subnetwork_n"],

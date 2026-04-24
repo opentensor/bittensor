@@ -5,9 +5,9 @@ provisioning and fee distribution.
 """
 
 import math
-from typing import Any
 from dataclasses import dataclass
 
+from bittensor.core.types import PositionResponse
 from bittensor.utils import ChainFeatureDisabledWarning, deprecated_message
 from bittensor.utils.balance import Balance, fixed_to_float
 
@@ -155,7 +155,7 @@ def get_fees_in_range(
 
 
 def calculate_fees(
-    position: dict[str, Any],
+    position: PositionResponse,
     global_fees_tao: float,
     global_fees_alpha: float,
     tao_fees_below_low: float,

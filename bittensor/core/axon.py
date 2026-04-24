@@ -21,6 +21,7 @@ from fastapi import APIRouter, Depends, FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.routing import serialize_response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.types import ASGIApp
 from starlette.requests import Request
 from starlette.responses import Response
 
@@ -1097,7 +1098,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
     such as response header updating and logging.
     """
 
-    def __init__(self, app: "AxonMiddleware", axon: "Axon"):
+    def __init__(self, app: ASGIApp, axon: "Axon"):
         """
         Initialize the AxonMiddleware class.
 

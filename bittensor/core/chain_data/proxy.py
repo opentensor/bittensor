@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, Sequence
 
-from bittensor.core.chain_data.utils import decode_account_id
 from bittensor.utils.balance import Balance
 
 
@@ -193,7 +192,7 @@ class ProxyInfo:
     delay: int
 
     @classmethod
-    def from_tuple(cls, data: tuple) -> list["ProxyInfo"]:
+    def from_tuple(cls, data: Sequence[dict[str, str | int]]) -> list["ProxyInfo"]:
         """Creates a list of ProxyInfo objects from chain proxy data.
 
         This method decodes the raw proxy data returned from the Proxy.Proxies storage function and creates
@@ -210,8 +209,8 @@ class ProxyInfo:
         """
         return [
             cls(
-                delegate=decode_account_id(proxy["delegate"]),
-                proxy_type=next(iter(proxy["proxy_type"].keys())),
+                delegate=proxy["delegate"],
+                proxy_type=proxy["proxy_type"],
                 delay=proxy["delay"],
             )
             for proxy in data
@@ -239,13 +238,15 @@ class ProxyInfo:
             See: <https://docs.learnbittensor.org/keys/proxies>
         """
         # proxies data is always in that path
-        proxies = query.value[0][0]
+        proxies = query.value[0]
         # balance data is always in that path
         balance = query.value[1]
         return cls.from_tuple(proxies), Balance.from_rao(balance)
 
     @classmethod
-    def from_query_map_record(cls, record: list) -> tuple[str, list["ProxyInfo"]]:
+    def from_query_map_record(
+        cls, record: tuple[str, tuple[list[dict[str, str | int]], int]]
+    ) -> tuple[str, list["ProxyInfo"]]:
         """Creates a dictionary mapping delegate addresses to their ProxyInfo lists from a query_map record.
 
         Processes a single record from a query_map call to the Proxy.Proxies storage function. Each record represents
@@ -262,9 +263,9 @@ class ProxyInfo:
         """
         # record[0] is the real account (key from storage)
         # record[1] is the value containing proxies data
-        real_account_ss58 = decode_account_id(record[0])
+        real_account_ss58 = record[0]
         # list with proxies data is always in that path
-        proxy_data = cls.from_tuple(record[1].value[0][0])
+        proxy_data = cls.from_tuple(record[1][0])
         return real_account_ss58, proxy_data
 
 
@@ -295,7 +296,9 @@ class ProxyAnnouncementInfo:
     height: int
 
     @classmethod
-    def from_dict(cls, data: tuple) -> list["ProxyAnnouncementInfo"]:
+    def from_dict(
+        cls, data: tuple[list[dict[str, str | int]], int]
+    ) -> list["ProxyAnnouncementInfo"]:
         """Creates a list of ProxyAnnouncementInfo objects from chain announcement data.
 
         This method decodes the raw announcement data returned from the Proxy.Announcements storage function.
@@ -311,8 +314,8 @@ class ProxyAnnouncementInfo:
         """
         return [
             cls(
-                real=decode_account_id(next(iter(annt["real"]))),
-                call_hash="0x" + bytes(next(iter(annt["call_hash"]))).hex(),
+                real=annt["real"],
+                call_hash=annt["call_hash"],
                 height=annt["height"],
             )
             for annt in data[0]
@@ -320,7 +323,7 @@ class ProxyAnnouncementInfo:
 
     @classmethod
     def from_query_map_record(
-        cls, record: tuple
+        cls, record: tuple[str, tuple[list[dict[str, str | int]], int]]
     ) -> tuple[str, list["ProxyAnnouncementInfo"]]:
         """Returns a list of ProxyAnnouncementInfo objects from a tuple of announcements data.
 
@@ -335,9 +338,9 @@ class ProxyAnnouncementInfo:
         """
         # record[0] is the real account (key from storage)
         # record[1] is the value containing announcements data
-        delegate = decode_account_id(record[0])
+        delegate = record[0]
         # list with proxies data is always in that path
-        announcements_data = cls.from_dict(record[1].value[0])
+        announcements_data = cls.from_dict(record[1])
         return delegate, announcements_data
 
 

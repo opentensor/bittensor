@@ -1,7 +1,9 @@
-from typing import Optional, TypedDict, Union
+from typing import Optional, Union
 
-from scalecodec import ScaleType
-from async_substrate_interface.types import ScaleObj
+from scalecodec.utils.math import (
+    fixed_to_float as fixed_to_float,
+    FixedPoint as FixedPoint,
+)
 
 from bittensor.core import settings
 from bittensor.core.errors import BalanceTypeError, BalanceUnitMismatchError
@@ -361,37 +363,6 @@ class Balance:
         self.unit = Balance.get_unit(netuid)
         self.rao_unit = Balance.get_unit(netuid)
         return self
-
-
-class FixedPoint(TypedDict):
-    """
-    Represents a fixed point ``U64F64`` number.
-    Where ``bits`` is a U128 representation of the fixed point number.
-
-    This matches the type of the Alpha shares.
-    """
-
-    bits: int
-
-
-def fixed_to_float(
-    fixed: FixedPoint | ScaleType | ScaleObj, frac_bits: int = 64, total_bits: int = 128
-) -> float:
-    """Converts a fixed-point value (e.g., U64F64) into a floating-point number."""
-    # By default, this is a U64F64
-    # which is 64 bits of integer and 64 bits of fractional
-    data: int = (
-        fb.value if isinstance((fb := fixed["bits"]), (ScaleType, ScaleObj)) else fb
-    )
-
-    # Logical and to get the fractional part; remaining is the integer part
-    fractional_part = data & (2**frac_bits - 1)
-    # Shift to get the integer part from the remaining bits
-    integer_part = data >> (total_bits - frac_bits)
-
-    frac_float = fractional_part / (2**frac_bits)
-
-    return integer_part + frac_float
 
 
 # lowercase is added for backwards compatibility to not break API

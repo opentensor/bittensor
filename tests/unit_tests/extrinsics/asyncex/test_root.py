@@ -95,7 +95,6 @@ async def test_root_register_extrinsic_success(subtensor, fake_wallet, mocker):
         storage_function="Uids",
         params=[0, "fake_hotkey_address"],
         block_hash=None,
-        reuse_block_hash=False,
     )
     assert result.success is True
     assert result.message == "Success"
@@ -329,7 +328,6 @@ async def test_root_register_extrinsic_uid_not_found(subtensor, fake_wallet, moc
         storage_function="Uids",
         params=[0, "fake_hotkey_address"],
         block_hash=None,
-        reuse_block_hash=False,
     )
     assert result.success is False
 
