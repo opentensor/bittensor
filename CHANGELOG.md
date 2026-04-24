@@ -1,6 +1,6 @@
 # Changelog
 
-## 10.3.0 /2026-0-21
+## 10.3.0 /2026-0-24
 
 ## What's Changed
 * Fix logging.info and state transitions in LoggingMachine by @ionodeionode in https://github.com/latent-to/bittensor/pull/3270
@@ -30,6 +30,13 @@
 * @okradze made their first contribution in https://github.com/latent-to/bittensor/pull/3323
 
 **Full Changelog**: https://github.com/latent-to/bittensor/compare/v10.2.1...v10.3.0
+
+## 10.2.1 /2026-04-22
+
+## What's Changed
+* Pins async-substrate-interface under 2.0 to avoid complications
+
+**Full Changelog**: https://github.com/latent-to/bittensor/compare/v10.2.0...v10.2.1
 
 ## 10.2.0 /2026-03-19
 
