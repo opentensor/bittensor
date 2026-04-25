@@ -1,5 +1,36 @@
 # Changelog
 
+## 10.3.0 /2026-0-21
+
+## What's Changed
+* Fix logging.info and state transitions in LoggingMachine by @ionodeionode in https://github.com/latent-to/bittensor/pull/3270
+* Feat/coldkey swap clear by @ibraheem-abe in https://github.com/latent-to/bittensor/pull/3296
+* Removes munch by @thewhaleking in https://github.com/latent-to/bittensor/pull/3298
+* Ensures we don't accidentally install ASI 2.0 on this by @thewhaleking in https://github.com/latent-to/bittensor/pull/3302
+* There is not Balances.transfer by @thewhaleking in https://github.com/latent-to/bittensor/pull/3300
+* Bumps all workflows versions by @thewhaleking in https://github.com/latent-to/bittensor/pull/3301
+* Fix: Updates exception check for Commitment Pallet extension by @ibraheem-abe in https://github.com/latent-to/bittensor/pull/3303
+* Fix and extend incentive e2e test by @basfroman in https://github.com/latent-to/bittensor/pull/3304
+* Fix/e2e tests for stake lock owner alpha by @ibraheem-abe in https://github.com/latent-to/bittensor/pull/3305
+* Update/staking hotkeys limitation for coldkey swap by @ibraheem-abe in https://github.com/latent-to/bittensor/pull/3306
+* Update: Log SHA & update perms of workflow  by @ibraheem-abe in https://github.com/latent-to/bittensor/pull/3307
+* Fix e2e tests (metagraph_info) by @basfroman in https://github.com/latent-to/bittensor/pull/3310
+* Removes flake8, uses ruff for linter check by @thewhaleking in https://github.com/latent-to/bittensor/pull/3313
+* Adds note to httpx in dev reqs by @thewhaleking in https://github.com/latent-to/bittensor/pull/3315
+* Add `register_limit` extrinsic by @basfroman in https://github.com/latent-to/bittensor/pull/3316
+* ASI 2.0 & cyscale by @thewhaleking in https://github.com/latent-to/bittensor/pull/3314
+* Bump ASI req by @thewhaleking in https://github.com/latent-to/bittensor/pull/3324
+* Remove PoW registration, refactor `register()` to use `register_limit` by @basfroman in https://github.com/latent-to/bittensor/pull/3325
+* hoist get_required_fields out of to_headers by @okradze in https://github.com/latent-to/bittensor/pull/3323
+* Adds CODEOWNERS file by @thewhaleking in https://github.com/latent-to/bittensor/pull/3327
+* Bump ASI + cyscale by @thewhaleking in https://github.com/latent-to/bittensor/pull/3326
+
+## New Contributors
+* @ionodeionode made their first contribution in https://github.com/latent-to/bittensor/pull/3270
+* @okradze made their first contribution in https://github.com/latent-to/bittensor/pull/3323
+
+**Full Changelog**: https://github.com/latent-to/bittensor/compare/v10.2.1...v10.3.0
+
 ## 10.2.0 /2026-03-19
 
 ## What's Changed
