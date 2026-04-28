@@ -3660,10 +3660,9 @@ def test_get_liquidity_list_happy_path(subtensor, fake_wallet, mocker):
     mocker.patch.object(
         subtensor.substrate,
         "create_storage_key",
-        side_effect=lambda pallet,
-        storage_function,
-        params,
-        block_hash=None: f"{pallet}:{storage_function}:{params}",
+        side_effect=lambda pallet, storage_function, params, block_hash=None: (
+            f"{pallet}:{storage_function}:{params}"
+        ),
     )
 
     # Mock query_multi for fee + sqrt_price + tick data
