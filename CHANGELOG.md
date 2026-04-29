@@ -31,6 +31,13 @@
 
 **Full Changelog**: https://github.com/latent-to/bittensor/compare/v10.2.1...v10.3.0
 
+## 10.2.1 /2026-04-22
+
+## What's Changed
+
+* Pins async-substrate-interface under 2.0 to avoid complications
+
+
 ## 10.2.0 /2026-03-19
 
 ## What's Changed
