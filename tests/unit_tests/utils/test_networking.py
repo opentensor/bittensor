@@ -161,6 +161,79 @@ def test_get_external_ip_os_request_urllib_broken():
                 assert utils.networking.get_external_ip()
 
 
+# Regression for https://github.com/latent-to/bittensor/issues/3309:
+# providers that raise their real-world exceptions (not `ExternalIPNotFound`)
+# must be caught and allow the fallback chain to continue.
+def test_get_external_ip_aws_connection_error_falls_through_to_curl(mocker):
+    """AWS requests.ConnectionError should fall through to the curl provider."""
+    mocked_requests_get = mock.Mock(
+        side_effect=requests.exceptions.ConnectionError("no network"),
+    )
+    mocker.patch.object(requests, "get", mocked_requests_get)
+
+    class FakeProcess:
+        def readline(self):
+            return "203.0.113.7"
+
+        def close(self):
+            return None
+
+        def read(self):
+            return '{"ip": "203.0.113.7"}'
+
+    mocker.patch.object(os, "popen", mock.Mock(return_value=FakeProcess()))
+
+    assert utils.networking.get_external_ip() == "203.0.113.7"
+
+
+def test_get_external_ip_malformed_ip_falls_through(mocker):
+    """Malformed IP from AWS should raise AddrFormatError, not propagate."""
+    mocked_requests_get = mock.Mock(
+        return_value=mock.Mock(
+            **{"text": "not-an-ip"},
+        ),
+    )
+    mocker.patch.object(requests, "get", mocked_requests_get)
+
+    class FakeProcess:
+        def readline(self):
+            return "198.51.100.42"
+
+        def close(self):
+            return None
+
+        def read(self):
+            return '{"ip": "198.51.100.42"}'
+
+    mocker.patch.object(os, "popen", mock.Mock(return_value=FakeProcess()))
+
+    assert utils.networking.get_external_ip() == "198.51.100.42"
+
+
+def test_get_external_ip_all_providers_exhausted_raises(mocker):
+    """If every provider fails, the function must raise ExternalIPNotFound
+    (not the last underlying exception)."""
+    mocker.patch.object(
+        requests,
+        "get",
+        mock.Mock(side_effect=requests.exceptions.ConnectionError("no network")),
+    )
+    mocker.patch.object(
+        os,
+        "popen",
+        mock.Mock(side_effect=OSError("popen disabled")),
+    )
+    # Patch through the module's own imported name to avoid interference from
+    # other tests in this file that rebind `urllib.request` at module scope.
+    mocker.patch(
+        "bittensor.utils.networking.urllib_request.urlopen",
+        mock.Mock(side_effect=urllib.error.URLError("urlopen disabled")),
+    )
+
+    with pytest.raises(utils.networking.ExternalIPNotFound):
+        utils.networking.get_external_ip()
+
+
 # Test formatting WebSocket endpoint URL
 @pytest.mark.parametrize(
     "url, expected",
