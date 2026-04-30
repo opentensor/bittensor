@@ -1118,8 +1118,21 @@ class AsyncSubtensor(SubtensorMixin):
             The number of blocks until the next epoch of the subnet with provided netuid.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        block = block or await self.substrate.get_block_number(block_hash=block_hash)
-        tempo = tempo or await self.tempo(netuid=netuid, block_hash=block_hash)
+
+        # Resolve `block` and `tempo` concurrently when both still need
+        # fetching — the common case for callers that pass only `netuid`.
+        # Both lookups are gated on the now-known `block_hash` and don't
+        # depend on each other, so the prior sequential `await`s doubled
+        # the user-perceived latency to ~2× substrate roundtrip per call.
+        if block is None and tempo is None:
+            block, tempo = await asyncio.gather(
+                self.substrate.get_block_number(block_hash=block_hash),
+                self.tempo(netuid=netuid, block_hash=block_hash),
+            )
+        elif block is None:
+            block = await self.substrate.get_block_number(block_hash=block_hash)
+        elif tempo is None:
+            tempo = await self.tempo(netuid=netuid, block_hash=block_hash)
 
         if not tempo:
             return None

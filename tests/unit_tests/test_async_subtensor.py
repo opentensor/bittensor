@@ -5657,6 +5657,90 @@ async def test_blocks_until_next_epoch_uses_default_tempo(subtensor, mocker):
 
 
 @pytest.mark.asyncio
+async def test_blocks_until_next_epoch_resolves_block_and_tempo_in_parallel(
+    subtensor, mocker
+):
+    """When neither block nor tempo is supplied, both lookups run via a
+    single ``asyncio.gather`` instead of two sequential awaits. Pins down
+    the optimization called out in latent-to/bittensor#3129 ("apply
+    asyncio.gather where this can improve performance")."""
+    # Prep
+    netuid = 0
+    fake_block_hash = "0xdeadbeef"
+    resolved_block = 21
+    resolved_tempo = 50
+
+    mocker.patch.object(subtensor, "determine_block_hash", return_value=fake_block_hash)
+    subtensor.substrate.get_block_number = mocker.AsyncMock(return_value=resolved_block)
+    mocker.patch.object(subtensor, "tempo", return_value=resolved_tempo)
+    gather_spy = mocker.spy(async_subtensor.asyncio, "gather")
+
+    # Call
+    result = await subtensor.blocks_until_next_epoch(netuid=netuid)
+
+    # Assert — gather called once with both lookups; result reflects them
+    assert gather_spy.call_count == 1
+    subtensor.substrate.get_block_number.assert_awaited_once_with(
+        block_hash=fake_block_hash
+    )
+    subtensor.tempo.assert_awaited_once_with(netuid=netuid, block_hash=fake_block_hash)
+    netuid_plus_one = netuid + 1
+    tempo_plus_one = resolved_tempo + 1
+    adjusted = (resolved_block + netuid_plus_one) % (2**64)
+    expected = resolved_tempo - (adjusted % tempo_plus_one)
+    assert result == expected
+
+
+@pytest.mark.asyncio
+async def test_blocks_until_next_epoch_only_block_missing_skips_gather(
+    subtensor, mocker
+):
+    """When tempo is supplied and block isn't, only the block lookup runs
+    — no ``asyncio.gather`` (would just wrap a single coroutine)."""
+    netuid = 0
+    tempo = 100
+    fake_block_hash = "0xabc"
+    resolved_block = 7
+
+    mocker.patch.object(subtensor, "determine_block_hash", return_value=fake_block_hash)
+    subtensor.substrate.get_block_number = mocker.AsyncMock(return_value=resolved_block)
+    spy_tempo = mocker.spy(subtensor, "tempo")
+    gather_spy = mocker.spy(async_subtensor.asyncio, "gather")
+
+    result = await subtensor.blocks_until_next_epoch(netuid=netuid, tempo=tempo)
+
+    gather_spy.assert_not_called()
+    subtensor.substrate.get_block_number.assert_awaited_once_with(
+        block_hash=fake_block_hash
+    )
+    spy_tempo.assert_not_awaited()
+    assert isinstance(result, int)
+
+
+@pytest.mark.asyncio
+async def test_blocks_until_next_epoch_only_tempo_missing_skips_gather(
+    subtensor, mocker
+):
+    """When block is supplied and tempo isn't, only the tempo lookup runs."""
+    netuid = 0
+    block = 12
+    fake_block_hash = "0xabc"
+    resolved_tempo = 80
+
+    mocker.patch.object(subtensor, "determine_block_hash", return_value=fake_block_hash)
+    subtensor.substrate.get_block_number = mocker.AsyncMock()
+    mocker.patch.object(subtensor, "tempo", return_value=resolved_tempo)
+    gather_spy = mocker.spy(async_subtensor.asyncio, "gather")
+
+    result = await subtensor.blocks_until_next_epoch(netuid=netuid, block=block)
+
+    gather_spy.assert_not_called()
+    subtensor.substrate.get_block_number.assert_not_awaited()
+    subtensor.tempo.assert_awaited_once_with(netuid=netuid, block_hash=fake_block_hash)
+    assert isinstance(result, int)
+
+
+@pytest.mark.asyncio
 async def test_get_stake_info_for_coldkeys_none(subtensor, mocker):
     """Tests get_stake_info_for_coldkeys method when query_runtime_api returns None."""
     # Preps
