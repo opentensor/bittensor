@@ -1,6 +1,22 @@
 # Changelog
 
-## 10.3.0 /2026-0-21
+## 10.3.1 /2026-05-06
+
+## What's Changed
+* Bumps cyscale and ASI by @thewhaleking in https://github.com/latent-to/bittensor/pull/3336
+* fix(networking): catch real exceptions in get_external_ip fallback chain by @ArtificialXai in https://github.com/latent-to/bittensor/pull/3318
+* Updates packages with CVEs by @thewhaleking in https://github.com/latent-to/bittensor/pull/3339
+* Should fix the change to pytest-asyncio 1.3 by @thewhaleking in https://github.com/latent-to/bittensor/pull/3340
+* Bumping deps versions by @basfroman in https://github.com/latent-to/bittensor/pull/3337
+* Updated error link to point to new docs page by @chideraao in https://github.com/latent-to/bittensor/pull/3341
+
+## New Contributors
+* @ArtificialXai made their first contribution in https://github.com/latent-to/bittensor/pull/3318
+* @chideraao made their first contribution in https://github.com/latent-to/bittensor/pull/3341
+
+**Full Changelog**: https://github.com/latent-to/bittensor/compare/v10.3.0...v10.3.1
+
+## 10.3.0 /2026-04-21
 
 ## What's Changed
 * Fix logging.info and state transitions in LoggingMachine by @ionodeionode in https://github.com/latent-to/bittensor/pull/3270
