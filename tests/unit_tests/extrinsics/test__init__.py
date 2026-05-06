@@ -24,7 +24,7 @@ def test_format_error_message_with_right_error_message():
     assert (
         result == "Subtensor returned `SomeErrorName(SomeType)` error. "
         "This means: `Some error description. I'm second part. Hah, I'm the last one."
-        f" | Please consult {BT_DOCS_LINK}/errors/subtensor#someerrorname`."
+        f" | Please consult {BT_DOCS_LINK}/subtensor-api/error#someerrorname`."
     )
 
 
@@ -119,5 +119,5 @@ def test_format_error_with_string_docs():
     assert (
         result == "Subtensor returned `SomeErrorName(SomeType)` error. "
         "This means: `Some error description."
-        f" | Please consult {BT_DOCS_LINK}/errors/subtensor#someerrorname`."
+        f" | Please consult {BT_DOCS_LINK}/subtensor-api/error#someerrorname`."
     )
