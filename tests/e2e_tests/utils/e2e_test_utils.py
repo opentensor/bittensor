@@ -196,6 +196,7 @@ class Templates:
         async def __aenter__(self):
             env = os.environ.copy()
             env["BT_LOGGING_DEBUG"] = "1"
+            env["BT_NO_PARSE_CLI_ARGS"] = "false"
             self.process = await asyncio.create_subprocess_exec(
                 sys.executable,
                 f"{self.dir}/validator.py",
