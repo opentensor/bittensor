@@ -1737,6 +1737,9 @@ def test_unstaking_with_limit(
                 rate_tolerance=rate_tolerance,
             ).success
 
+        # time for chain update
+        subtensor.wait_for_block()
+
         # Make sure both unstake were successful.
         bob_stakes = subtensor.staking.get_stake_info_for_coldkey(
             bob_wallet.coldkey.ss58_address
@@ -1834,6 +1837,9 @@ async def test_unstaking_with_limit_async(
                     rate_tolerance=rate_tolerance,
                 )
             ).success
+
+        # time for chain update
+        await async_subtensor.wait_for_block()
 
         # Make sure both unstake were successful.
         bob_stakes = await async_subtensor.staking.get_stake_info_for_coldkey(
