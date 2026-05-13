@@ -1,8 +1,8 @@
 import argparse
 import sys
-
+import subprocess
 import pytest
-
+import os
 import bittensor as bt
 from bittensor.core.config import InvalidConfigFile
 
@@ -32,6 +32,7 @@ TEST_ARGS = [
 def test_bittensor_cli_parser_enabled(monkeypatch):
     """Tests that the bt cli args are processed."""
 
+    monkeypatch.setenv("BT_NO_PARSE_CLI_ARGS", "false")
     monkeypatch.setattr(sys, "argv", TEST_ARGS)
 
     with pytest.raises(InvalidConfigFile) as error:
@@ -42,7 +43,6 @@ def test_bittensor_cli_parser_enabled(monkeypatch):
 
 def test_bittensor_cli_parser_disabled(monkeypatch):
     """Tests that the bt cli args are not processed."""
-    monkeypatch.setenv("BT_NO_PARSE_CLI_ARGS", "true")
     monkeypatch.setattr(sys, "argv", TEST_ARGS)
 
     config = _config_call()
@@ -50,3 +50,23 @@ def test_bittensor_cli_parser_disabled(monkeypatch):
     assert config.config is False
     assert config.strict is False
     assert config.no_version_checking is False
+
+
+def test_import_does_not_hijack_help():
+    """Importing bittensor should not intercept --help."""
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import bittensor; import argparse; "
+            "p = argparse.ArgumentParser('user_script'); "
+            "p.add_argument('--my-arg', default=1); "
+            "p.parse_args()",
+            "--help",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0
+    assert "--my-arg" in result.stdout
+    assert "--logging" not in result.stdout
