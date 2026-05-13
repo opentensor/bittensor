@@ -2,7 +2,7 @@ import argparse
 import sys
 import subprocess
 import pytest
-import os
+
 import bittensor as bt
 from bittensor.core.config import InvalidConfigFile
 
