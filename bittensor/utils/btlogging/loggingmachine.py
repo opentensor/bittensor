@@ -686,7 +686,7 @@ class LoggingMachine(StateMachine, Logger):
         Return:
             Configuration object with settings from command-line arguments.
         """
-        if no_parse_cli:
+        if no_parse_cli():
             return Config()
         parser = argparse.ArgumentParser()
         cls.add_args(parser)

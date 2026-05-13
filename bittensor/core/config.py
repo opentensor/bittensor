@@ -148,8 +148,9 @@ class Config(DefaultMunch):
 
         self.__is_set = {}
 
+        print(">>> no_parse_cli", no_parse_cli())
         # If CLI parsing disabled, stop here
-        if no_parse_cli or parser is None:
+        if no_parse_cli() or parser is None:
             return
 
         self._add_default_arguments(parser)

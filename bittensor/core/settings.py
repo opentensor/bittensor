@@ -167,10 +167,12 @@ version_as_int: int = sum(
 )
 assert version_as_int < 2**31  # fits in int32
 
+
 # used for backwards compatibility in config.py and loggingmachine.py
-no_parse_cli = os.getenv("BT_NO_PARSE_CLI_ARGS", "true").lower() in (
-    "1",
-    "true",
-    "yes",
-    "on",
-)
+def no_parse_cli():
+    return os.getenv("BT_NO_PARSE_CLI_ARGS", "true").lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
