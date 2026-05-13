@@ -21,8 +21,10 @@ import os
 import sys
 from copy import deepcopy
 from typing import Any, Optional
-from bittensor.core.settings import DEFAULTS
+
 import yaml
+
+from bittensor.core.settings import DEFAULTS, no_parse_cli
 
 
 class DefaultMunch(dict):
@@ -130,12 +132,6 @@ class Config(DefaultMunch):
         strict: bool = False,
         default: Any = DEFAULTS,
     ) -> None:
-        no_parse_cli = os.getenv("BT_NO_PARSE_CLI_ARGS", "").lower() in (
-            "1",
-            "true",
-            "yes",
-            "on",
-        )
 
         # Fallback to defaults if not provided
         default = deepcopy(default or DEFAULTS)

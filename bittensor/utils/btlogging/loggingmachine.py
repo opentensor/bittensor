@@ -17,7 +17,7 @@ from typing import NamedTuple, Union
 from statemachine import State, StateMachine
 
 from bittensor.core.config import Config
-from bittensor.core.settings import DEFAULTS
+from bittensor.core.settings import DEFAULTS, no_parse_cli
 from bittensor.utils.btlogging.console import BittensorConsole
 from .defines import (
     BITTENSOR_LOGGER_NAME,
@@ -686,6 +686,8 @@ class LoggingMachine(StateMachine, Logger):
         Return:
             Configuration object with settings from command-line arguments.
         """
+        if no_parse_cli:
+            return Config()
         parser = argparse.ArgumentParser()
         cls.add_args(parser)
         return Config(parser)
