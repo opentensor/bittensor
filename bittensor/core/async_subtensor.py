@@ -48,7 +48,11 @@ from bittensor.core.chain_data.utils import (
     decode_revealed_commitment_with_hotkey,
 )
 from bittensor.core.config import Config
-from bittensor.core.errors import ChainError, SubstrateRequestException
+from bittensor.core.errors import (
+    ChainError,
+    SubstrateRequestException,
+    chain_error_from_substrate_exception,
+)
 from bittensor.core.extrinsics.asyncex.children import (
     root_set_pending_childkey_cooldown_extrinsic,
     set_children_extrinsic,
@@ -6145,8 +6149,11 @@ class AsyncSubtensor(SubtensorMixin):
             return extrinsic_response
 
         except SubstrateRequestException as error:
+            typed = chain_error_from_substrate_exception(error)
+            if typed is not None:
+                error = typed
             if raise_error:
-                raise
+                raise error from None
 
             extrinsic_response.success = False
             extrinsic_response.message = format_error_message(error)
