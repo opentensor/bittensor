@@ -151,7 +151,7 @@ def submit_encrypted_extrinsic(
         era = {"period": effective_period}
 
         current_nonce = subtensor.substrate.get_account_next_index(
-            account_address=inner_signing_keypair.ss58_address
+            account_address=inner_signing_keypair.ss58_address, use_cache=False
         )
         next_nonce = current_nonce + 1
         signed_extrinsic = subtensor.substrate.create_signed_extrinsic(

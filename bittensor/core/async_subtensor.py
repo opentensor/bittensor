@@ -6096,10 +6096,13 @@ class AsyncSubtensor(SubtensorMixin):
                 raise AttributeError(
                     f"'nonce_key' must be either 'coldkey', 'hotkey' or 'coldkeypub', not '{nonce_key}'"
                 )
-            next_nonce = await self.substrate.get_account_next_index(
-                getattr(wallet, nonce_key).ss58_address
+            extrinsic_data["nonce"] = await self.substrate.get_account_next_index(
+                getattr(wallet, nonce_key).ss58_address, use_cache=False
             )
-            extrinsic_data["nonce"] = next_nonce
+        else:
+            extrinsic_data["nonce"] = await self.substrate.get_account_next_index(
+                signing_keypair.ss58_address, use_cache=False
+            )
 
         if period is not None:
             extrinsic_data["era"] = {"period": period}
