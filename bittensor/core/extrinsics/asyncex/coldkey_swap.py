@@ -392,6 +392,11 @@ async def swap_coldkey_announced_extrinsic(
             )
 
         if response.success:
+            # The swap may reap the old coldkey's account on chain (resetting its
+            # nonce). Drop the in-process nonce cache entry so the next extrinsic
+            # signed by this ss58 re-fetches from the chain instead of incrementing
+            # a stale value.
+            subtensor.substrate._nonces.pop(wallet.coldkeypub.ss58_address, None)
             logging.debug("[green]Coldkey swap executed successfully.[/green]")
         else:
             logging.error(f"[red]{response.message}[/red]")

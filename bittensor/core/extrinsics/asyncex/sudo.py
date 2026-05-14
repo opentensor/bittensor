@@ -93,7 +93,7 @@ async def swap_coldkey_extrinsic(
     Notes:
         - This function can only called by root.
     """
-    return await sudo_call_extrinsic(
+    response = await sudo_call_extrinsic(
         subtensor=subtensor,
         wallet=wallet,
         call_module="SubtensorModule",
@@ -108,6 +108,13 @@ async def swap_coldkey_extrinsic(
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
     )
+    if response.success:
+        # The swap may reap the old coldkey's account on chain (resetting its
+        # nonce). Drop the in-process nonce cache entry so the next extrinsic
+        # signed by this ss58 re-fetches from the chain instead of incrementing
+        # a stale value.
+        subtensor.substrate._nonces.pop(old_coldkey_ss58, None)
+    return response
 
 
 async def sudo_set_admin_freeze_window_extrinsic(
