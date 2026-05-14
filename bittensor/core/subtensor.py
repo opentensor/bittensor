@@ -4962,13 +4962,10 @@ class Subtensor(SubtensorMixin):
                 raise AttributeError(
                     f"'nonce_key' must be either 'coldkey', 'hotkey' or 'coldkeypub', not '{nonce_key}'"
                 )
-            extrinsic_data["nonce"] = self.substrate.get_account_next_index(
-                getattr(wallet, nonce_key).ss58_address, use_cache=False
+            next_nonce = self.substrate.get_account_next_index(
+                getattr(wallet, nonce_key).ss58_address
             )
-        else:
-            extrinsic_data["nonce"] = self.substrate.get_account_next_index(
-                signing_keypair.ss58_address, use_cache=False
-            )
+            extrinsic_data["nonce"] = next_nonce
 
         if period is not None:
             extrinsic_data["era"] = {"period": period}
