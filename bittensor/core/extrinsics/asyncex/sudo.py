@@ -113,7 +113,7 @@ async def swap_coldkey_extrinsic(
         # nonce). Drop the in-process nonce cache entry so the next extrinsic
         # signed by this ss58 re-fetches from the chain instead of incrementing
         # a stale value.
-        subtensor.substrate._nonces.pop(old_coldkey_ss58, None)
+        subtensor.substrate.clear_nonce_cache_for_account(old_coldkey_ss58)
     return response
 
 
