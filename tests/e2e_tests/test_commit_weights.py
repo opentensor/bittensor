@@ -245,6 +245,11 @@ async def test_commit_and_reveal_weights_legacy_async(async_subtensor, alice_wal
         > 0
     ), "Invalid RevealPeriodEpochs"
 
+    # Wait until the reveal block range
+    await async_subtensor.wait_for_block(
+        await async_subtensor.subnets.get_next_epoch_start_block(alice_sn.netuid) + 1
+    )
+
     # Reveal weights
     success, message = await async_subtensor.extrinsics.reveal_weights(
         wallet=alice_wallet,

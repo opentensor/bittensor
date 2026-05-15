@@ -507,6 +507,50 @@ class TestAxonMiddleware(IsolatedAsyncioTestCase):
         # Check if the preprocess function sets the request name correctly
         assert synapse.name == "request_name"
 
+    @pytest.mark.asyncio
+    async def test_preprocess_wraps_validation_error_with_cause(self):
+        # Regression: pydantic ValidationError from `from_headers` is wrapped
+        # as SynapseParsingError, but `__cause__` preserves the original so
+        # the field-level validation failure remains debuggable.
+        class ValidationFailingSynapse(Synapse):
+            @classmethod
+            def from_headers(cls, headers):
+                raise pydantic.ValidationError.from_exception_data(
+                    "Synapse", [{"type": "missing", "loc": ("name",), "input": {}}]
+                )
+
+        self.mock_axon.forward_class_types = {"vfail": ValidationFailingSynapse}
+
+        request = MagicMock(spec=Request)
+        request.url.path = "/vfail"
+        request.headers = {}
+
+        from bittensor.core.errors import SynapseParsingError
+
+        with pytest.raises(SynapseParsingError) as exc_info:
+            await self.axon_middleware.preprocess(request)
+
+        assert isinstance(exc_info.value.__cause__, pydantic.ValidationError)
+
+    @pytest.mark.asyncio
+    async def test_preprocess_does_not_swallow_unrelated_errors(self):
+        # Regression: `preprocess` no longer catches every `Exception` from
+        # `from_headers`. Unrelated infrastructure errors propagate unchanged
+        # instead of being relabeled as a malformed request.
+        class BoomSynapse(Synapse):
+            @classmethod
+            def from_headers(cls, headers):
+                raise RuntimeError("infra exploded")
+
+        self.mock_axon.forward_class_types = {"boom": BoomSynapse}
+
+        request = MagicMock(spec=Request)
+        request.url.path = "/boom"
+        request.headers = {}
+
+        with pytest.raises(RuntimeError, match="infra exploded"):
+            await self.axon_middleware.preprocess(request)
+
 
 class SynapseHTTPClient(TestClient):
     def post_synapse(self, synapse: Synapse):

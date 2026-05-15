@@ -1,3 +1,4 @@
+import ast
 from typing import Optional, TYPE_CHECKING
 
 from async_substrate_interface.errors import (
@@ -58,6 +59,7 @@ __all__ = [
     "UnknownSynapseError",
     "UnstakeError",
     "SHIELD_VALIDATION_ERRORS",
+    "chain_error_from_substrate_exception",
     "map_shield_error",
 ]
 
@@ -276,6 +278,57 @@ SHIELD_VALIDATION_ERRORS = {
         "The key may have rotated between reading NextKey and submitting the transaction."
     ),
 }
+
+
+_CUSTOM_ERROR_CODE_TO_EXCEPTION: dict[int, type["ChainError"]] = {
+    3: SubnetNotExists,
+    4: HotKeyAccountNotExists,
+    6: TxRateLimitExceeded,
+    25: NonAssociatedColdKey,
+}
+
+
+def _extract_custom_error_code(error: Exception) -> Optional[int]:
+    """Walk a SubstrateRequestException's args looking for a transaction-pool
+    validity error like ``{'error': {'code': 1010, ..., 'data': 'Custom error: N'}}``
+    and return ``N``. Returns ``None`` if the shape doesn't match."""
+    for arg in getattr(error, "args", ()):
+        parsed = arg
+        if isinstance(parsed, str):
+            try:
+                parsed = ast.literal_eval(parsed)
+            except (ValueError, SyntaxError, MemoryError, RecursionError, TypeError):
+                continue
+        if not isinstance(parsed, dict):
+            continue
+        inner = parsed.get("error", parsed)
+        if not isinstance(inner, dict):
+            continue
+        data = inner.get("data")
+        if isinstance(data, str) and data.startswith("Custom error:"):
+            try:
+                return int(data.split(":", 1)[1].strip())
+            except ValueError:
+                continue
+    return None
+
+
+def chain_error_from_substrate_exception(
+    error: SubstrateRequestException,
+) -> Optional["ChainError"]:
+    """Translate a transaction-pool validation error into a typed
+    :class:`ChainError`. Returns ``None`` when the exception doesn't carry a
+    recognised ``Custom error: N`` code from subtensor's
+    ``CustomTransactionError`` enum, so callers can keep the original."""
+    if isinstance(error, ChainError):
+        return None
+    code = _extract_custom_error_code(error)
+    if code is None:
+        return None
+    exc_cls = _CUSTOM_ERROR_CODE_TO_EXCEPTION.get(code)
+    if exc_cls is None:
+        return None
+    return exc_cls(*error.args)
 
 
 def map_shield_error(raw_message: str) -> str:

@@ -1,6 +1,12 @@
+from async_substrate_interface.errors import SubstrateRequestException
+
 from bittensor.core.errors import (
     ChainError,
     HotKeyAccountNotExists,
+    NonAssociatedColdKey,
+    SubnetNotExists,
+    TxRateLimitExceeded,
+    chain_error_from_substrate_exception,
     map_shield_error,
 )
 
@@ -74,3 +80,45 @@ class TestMapShieldError:
         msg = "Something completely unrelated went wrong"
         result = map_shield_error(msg)
         assert result == msg
+
+
+def _validity_error(code: int) -> SubstrateRequestException:
+    payload = {
+        "jsonrpc": "2.0",
+        "id": "Xc18",
+        "error": {
+            "code": 1010,
+            "message": "Invalid Transaction",
+            "data": f"Custom error: {code}",
+        },
+    }
+    return SubstrateRequestException(str(payload))
+
+
+class TestChainErrorFromSubstrateException:
+    def test_maps_hotkey_account_not_exists(self):
+        exc = chain_error_from_substrate_exception(_validity_error(4))
+        assert isinstance(exc, HotKeyAccountNotExists)
+
+    def test_maps_non_associated_coldkey(self):
+        exc = chain_error_from_substrate_exception(_validity_error(25))
+        assert isinstance(exc, NonAssociatedColdKey)
+
+    def test_maps_rate_limit_exceeded(self):
+        exc = chain_error_from_substrate_exception(_validity_error(6))
+        assert isinstance(exc, TxRateLimitExceeded)
+
+    def test_maps_subnet_not_exists(self):
+        exc = chain_error_from_substrate_exception(_validity_error(3))
+        assert isinstance(exc, SubnetNotExists)
+
+    def test_unmapped_code_returns_none(self):
+        assert chain_error_from_substrate_exception(_validity_error(255)) is None
+
+    def test_non_validity_error_returns_none(self):
+        err = SubstrateRequestException("not a validity error")
+        assert chain_error_from_substrate_exception(err) is None
+
+    def test_already_typed_returns_none(self):
+        err = HotKeyAccountNotExists("already typed")
+        assert chain_error_from_substrate_exception(err) is None

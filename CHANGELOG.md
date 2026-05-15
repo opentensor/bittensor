@@ -1,5 +1,21 @@
 # Changelog
 
+## 10.3.2 /2026-05-15
+
+## What's Changed
+* Fix `--help` hijacking on import bittensor by @basfroman in https://github.com/latent-to/bittensor/pull/3347
+* Hopefully, this is a fix for the flaky e2e test by @basfroman in https://github.com/latent-to/bittensor/pull/3348
+* fix(axon): narrow preprocess exception handling and chain causes by @RUNECTZ33 in https://github.com/latent-to/bittensor/pull/3346
+* run do_take_checks at pool validation by @thewhaleking in https://github.com/latent-to/bittensor/pull/3350
+* Mev Shield Nonce Increment Fix by @thewhaleking in https://github.com/latent-to/bittensor/pull/3349
+* Test Fixes by @thewhaleking in https://github.com/latent-to/bittensor/pull/3352
+* Use the public API for clearing nonce cache by @thewhaleking in https://github.com/latent-to/bittensor/pull/3351
+
+## New Contributors
+* @RUNECTZ33 made their first contribution in https://github.com/latent-to/bittensor/pull/3346
+
+**Full Changelog**: https://github.com/latent-to/bittensor/compare/v10.3.1...v10.3.2
+
 ## 10.3.1 /2026-05-06
 
 ## What's Changed
