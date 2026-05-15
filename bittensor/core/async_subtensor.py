@@ -6149,6 +6149,10 @@ class AsyncSubtensor(SubtensorMixin):
             return extrinsic_response
 
         except SubstrateRequestException as error:
+            # The extrinsic was rejected before inclusion (pool validation, dropped,
+            # invalid, etc.), so the nonce was not consumed on-chain. Clear the cached
+            # next-index so the next call refetches the true on-chain value.
+            self.substrate.clear_nonce_cache_for_account(signing_keypair.ss58_address)
             typed = chain_error_from_substrate_exception(error)
             if typed is not None:
                 error = typed
