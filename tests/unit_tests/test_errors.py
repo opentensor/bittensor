@@ -2,6 +2,8 @@ from async_substrate_interface.errors import SubstrateRequestException
 
 from bittensor.core.errors import (
     ChainError,
+    DelegateTakeTooHigh,
+    DelegateTakeTooLow,
     HotKeyAccountNotExists,
     NonAssociatedColdKey,
     SubnetNotExists,
@@ -111,6 +113,14 @@ class TestChainErrorFromSubstrateException:
     def test_maps_subnet_not_exists(self):
         exc = chain_error_from_substrate_exception(_validity_error(3))
         assert isinstance(exc, SubnetNotExists)
+
+    def test_maps_delegate_take_too_low(self):
+        exc = chain_error_from_substrate_exception(_validity_error(26))
+        assert isinstance(exc, DelegateTakeTooLow)
+
+    def test_maps_delegate_take_too_high(self):
+        exc = chain_error_from_substrate_exception(_validity_error(27))
+        assert isinstance(exc, DelegateTakeTooHigh)
 
     def test_unmapped_code_returns_none(self):
         assert chain_error_from_substrate_exception(_validity_error(255)) is None
