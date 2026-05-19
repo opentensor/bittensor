@@ -1738,7 +1738,7 @@ def test_unstaking_with_limit(
             ).success
 
         # time for chain update
-        subtensor.wait_for_block()
+        subtensor.wait_for_block(subtensor.block + 5)
 
         # Make sure both unstake were successful.
         bob_stakes = subtensor.staking.get_stake_info_for_coldkey(
@@ -1839,7 +1839,7 @@ async def test_unstaking_with_limit_async(
             ).success
 
         # time for chain update
-        await async_subtensor.wait_for_block()
+        await async_subtensor.wait_for_block(await async_subtensor.block + 5)
 
         # Make sure both unstake were successful.
         bob_stakes = await async_subtensor.staking.get_stake_info_for_coldkey(
