@@ -1,18 +1,17 @@
-# This workflow measures the disk size of a virtual environment
-# after installing the Bittensor SDK across multiple Python versions.
-# It runs only when a new pull request targets the master branch,
-# and posts a comment with the results.
+# This workflow measures the disk size of a virtual environment after
+# installing the Bittensor SDK across multiple Python versions, for both
+# the PR base ref and the PR head ref. It posts (or updates) a single
+# sticky comment on the PR comparing Before / After / Δ per Python version.
 name: Monitor SDK Requirements Size
 
 on:
   pull_request:
-    types: [opened, labeled]
+    types: [opened, labeled, synchronize]
     branches: [master, staging]
 
 permissions:
   pull-requests: write
   contents: read
-  issues: write
 
 jobs:
   read-python-versions:
@@ -28,19 +27,20 @@ jobs:
 
   measure-venv:
     needs: read-python-versions
-    if: github.event_name == 'pull_request' && github.base_ref == 'master' || contains( github.event.pull_request.labels.*.name, 'show-venv-size')
+    if: github.event_name == 'pull_request' && (github.base_ref == 'master' || contains(github.event.pull_request.labels.*.name, 'show-venv-size'))
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ${{ fromJson(needs.read-python-versions.outputs.python-versions) }}
-    outputs:
-      py310: ${{ steps.set-output.outputs.py310 }}
-      py311: ${{ steps.set-output.outputs.py311 }}
-      py312: ${{ steps.set-output.outputs.py312 }}
-      py313: ${{ steps.set-output.outputs.py313 }}
+        ref: [base, head]
 
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout ${{ matrix.ref }}
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ matrix.ref == 'base' && github.event.pull_request.base.sha || github.event.pull_request.head.sha }}
+
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
@@ -53,46 +53,99 @@ jobs:
           pip install .
 
       - name: Measure venv size
-        id: set-output
         run: |
           SIZE=$(du -sm venv | cut -f1)
-          VERSION=${{ matrix.python-version }}
-          echo "Detected size: $SIZE MB for Python $VERSION"
-          case "$VERSION" in
-            3.10) echo "py310=$SIZE" >> $GITHUB_OUTPUT ;;
-            3.11) echo "py311=$SIZE" >> $GITHUB_OUTPUT ;;
-            3.12) echo "py312=$SIZE" >> $GITHUB_OUTPUT ;;
-            3.13) echo "py313=$SIZE" >> $GITHUB_OUTPUT ;;
-          esac
+          echo "Detected size: $SIZE MB for Python ${{ matrix.python-version }} (${{ matrix.ref }})"
+          echo "$SIZE" > size.txt
+
+      - name: Upload size artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: size-${{ matrix.ref }}-py${{ matrix.python-version }}
+          path: size.txt
+          retention-days: 1
 
   comment-on-pr:
     needs: measure-venv
+    if: always() && needs.measure-venv.result != 'skipped'
     runs-on: ubuntu-latest
     steps:
+      - name: Download size artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: sizes
+          pattern: size-*
+
       - name: Post venv size summary to PR
         uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const sizes = {
-              "3.10": "${{ needs.measure-venv.outputs.py310 || 'N/A' }}",
-              "3.11": "${{ needs.measure-venv.outputs.py311 || 'N/A' }}",
-              "3.12": "${{ needs.measure-venv.outputs.py312 || 'N/A' }}",
-              "3.13": "${{ needs.measure-venv.outputs.py313 || 'N/A' }}",
+            const fs = require('fs');
+            const path = require('path');
+
+            const rows = {};
+            for (const entry of fs.readdirSync('sizes')) {
+              const m = entry.match(/^size-(base|head)-py(.+)$/);
+              if (!m) continue;
+              const [, ref, version] = m;
+              const size = parseInt(
+                fs.readFileSync(path.join('sizes', entry, 'size.txt'), 'utf8').trim(),
+                10,
+              );
+              rows[version] ??= {};
+              rows[version][ref] = Number.isFinite(size) ? size : null;
+            }
+
+            const versions = Object.keys(rows).sort((a, b) =>
+              a.localeCompare(b, undefined, { numeric: true }),
+            );
+
+            const fmt = (n) => (n == null ? 'N/A' : `${n} MB`);
+            const fmtDelta = (before, after) => {
+              if (before == null || after == null) return 'N/A';
+              const d = after - before;
+              if (d === 0) return '0 MB';
+              return `${d > 0 ? '+' : ''}${d} MB`;
             };
 
+            const lines = versions.map((v) => {
+              const { base, head } = rows[v];
+              return `| ${v} | ${fmt(base)} | ${fmt(head)} | ${fmtDelta(base, head)} |`;
+            });
+
+            const marker = '<!-- venv-size-comment -->';
             const body = [
+              marker,
               '**Bittensor SDK virtual environment sizes by Python version:**',
               '',
-              '```'
-            ]
-              .concat(Object.entries(sizes).map(([v, s]) => `Python ${v}: ${s} MB`))
-              .concat(['```'])
-              .join('\n');
+              `Comparing \`${context.payload.pull_request.base.sha.slice(0, 7)}\` (before) → \`${context.payload.pull_request.head.sha.slice(0, 7)}\` (after).`,
+              '',
+              '| Python | Before | After | Δ |',
+              '|---|---|---|---|',
+              ...lines,
+            ].join('\n');
 
-            github.rest.issues.createComment({
+            const { data: comments } = await github.rest.issues.listComments({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body
+              per_page: 100,
             });
+            const existing = comments.find((c) => c.body && c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                comment_id: existing.id,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body,
+              });
+            }
