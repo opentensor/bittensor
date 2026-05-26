@@ -658,3 +658,18 @@ class DynamicInfoResponse(TypedDict):
     subnet_identity: SubnetIdentityResponse
     moving_price: FixedPoint
     price: NotRequired["Balance"]
+
+
+class LockState(TypedDict):
+    """
+    Exponential lock state for a coldkey on a subnet.
+
+    Attributes:
+        locked_mass: Exponentially decaying locked amount (Balance in subnet Alpha).
+        conviction: Matured decaying score (integral of locked_mass over time).
+        last_update: Block number of last roll-forward.
+    """
+
+    locked_mass: "Balance"
+    conviction: float
+    last_update: int
