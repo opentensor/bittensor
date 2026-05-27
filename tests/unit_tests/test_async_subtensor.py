@@ -3367,193 +3367,6 @@ async def test_unstake_all(subtensor, fake_wallet, mocker):
 
 
 @pytest.mark.asyncio
-async def test_get_liquidity_list_subnet_does_not_exits(subtensor, mocker):
-    """Test get_liquidity_list returns None when subnet doesn't exist."""
-    # Preps
-    mocker.patch.object(subtensor, "subnet_exists", return_value=False)
-
-    # Call
-    result = await subtensor.get_liquidity_list(wallet=mocker.Mock(), netuid=1)
-
-    # Asserts
-    subtensor.subnet_exists.assert_awaited_once_with(netuid=1)
-    assert result is None
-
-
-@pytest.mark.asyncio
-async def test_get_liquidity_list_subnet_is_not_active(subtensor, mocker):
-    """Test get_liquidity_list returns None when subnet is not active."""
-    # Preps
-    mocker.patch.object(subtensor, "subnet_exists", return_value=True)
-    mocker.patch.object(subtensor, "is_subnet_active", return_value=False)
-
-    # Call
-    result = await subtensor.get_liquidity_list(wallet=mocker.Mock(), netuid=1)
-
-    # Asserts
-    subtensor.subnet_exists.assert_awaited_once_with(netuid=1)
-    subtensor.is_subnet_active.assert_awaited_once_with(netuid=1)
-    assert result is None
-
-
-@pytest.mark.asyncio
-async def test_get_liquidity_list_happy_path(subtensor, fake_wallet, mocker):
-    """Tests `get_liquidity_list` returns the correct value."""
-    # Preps
-    netuid = 2
-
-    mocker.patch.object(subtensor, "subnet_exists", return_value=True)
-    mocker.patch.object(subtensor, "is_subnet_active", return_value=True)
-    mocker.patch.object(subtensor, "determine_block_hash")
-
-    mocker.patch.object(
-        async_subtensor, "price_to_tick", return_value=Balance.from_tao(1.0, netuid)
-    )
-    mocker.patch.object(
-        async_subtensor,
-        "calculate_fees",
-        return_value=(Balance.from_tao(0.0), Balance.from_tao(0.0, netuid)),
-    )
-
-    mocked_substrate_query_multi = mocker.AsyncMock(
-        side_effect=[
-            [
-                (None, {"bits": 0}),
-                (None, {"bits": 0}),
-                (None, {"bits": 18446744073709551616}),
-            ],
-            [
-                (
-                    None,
-                    {
-                        "liquidity_net": 1000000000000,
-                        "liquidity_gross": 1000000000000,
-                        "fees_out_tao": {"bits": 0},
-                        "fees_out_alpha": {"bits": 0},
-                    },
-                ),
-                (
-                    None,
-                    {
-                        "liquidity_net": -1000000000000,
-                        "liquidity_gross": 1000000000000,
-                        "fees_out_tao": {"bits": 0},
-                        "fees_out_alpha": {"bits": 0},
-                    },
-                ),
-                (
-                    None,
-                    {
-                        "liquidity_net": 1000000000000,
-                        "liquidity_gross": 1000000000000,
-                        "fees_out_tao": {"bits": 0},
-                        "fees_out_alpha": {"bits": 0},
-                    },
-                ),
-                (
-                    None,
-                    {
-                        "liquidity_net": -1000000000000,
-                        "liquidity_gross": 1000000000000,
-                        "fees_out_tao": {"bits": 0},
-                        "fees_out_alpha": {"bits": 0},
-                    },
-                ),
-                (
-                    None,
-                    {
-                        "liquidity_net": 1000000000000,
-                        "liquidity_gross": 1000000000000,
-                        "fees_out_tao": {"bits": 0},
-                        "fees_out_alpha": {"bits": 0},
-                    },
-                ),
-                (
-                    None,
-                    {
-                        "liquidity_net": -1000000000000,
-                        "liquidity_gross": 1000000000000,
-                        "fees_out_tao": {"bits": 0},
-                        "fees_out_alpha": {"bits": 0},
-                    },
-                ),
-            ],
-        ]
-    )
-
-    mocker.patch.object(
-        subtensor.substrate, "query_multi", mocked_substrate_query_multi
-    )
-
-    fake_positions = [
-        [
-            (2,),
-            {
-                "id": 2,
-                "netuid": 2,
-                "tick_low": 206189,
-                "tick_high": 208196,
-                "liquidity": 1000000000000,
-                "fees_tao": {"bits": 0},
-                "fees_alpha": {"bits": 0},
-            },
-        ],
-        [
-            2,
-            {
-                "id": 2,
-                "netuid": 2,
-                "tick_low": 216189,
-                "tick_high": 198196,
-                "liquidity": 2000000000000,
-                "fees_tao": {"bits": 0},
-                "fees_alpha": {"bits": 0},
-            },
-        ],
-        [
-            2,
-            {
-                "id": 2,
-                "netuid": 2,
-                "tick_low": 226189,
-                "tick_high": 188196,
-                "liquidity": 3000000000000,
-                "fees_tao": {"bits": 0},
-                "fees_alpha": {"bits": 0},
-            },
-        ],
-    ]
-
-    fake_result = mocker.AsyncMock(records=fake_positions, autospec=list)
-    fake_result.__aiter__.return_value = iter(fake_positions)
-
-    mocked_query_map = mocker.AsyncMock(return_value=fake_result)
-    mocker.patch.object(subtensor, "query_map", new=mocked_query_map)
-
-    # Call
-
-    result = await subtensor.get_liquidity_list(wallet=fake_wallet, netuid=netuid)
-
-    # Asserts
-    subtensor.determine_block_hash.assert_awaited_once_with(
-        block=None, block_hash=None, reuse_block=False
-    )
-    assert async_subtensor.price_to_tick.call_count == 1
-    assert async_subtensor.calculate_fees.call_count == len(fake_positions)
-
-    mocked_query_map.assert_awaited_once_with(
-        module="Swap",
-        name="Positions",
-        params=[netuid, fake_wallet.coldkeypub.ss58_address],
-        block=None,
-        block_hash=None,
-        reuse_block=False,
-    )
-    assert len(result) == len(fake_positions)
-    assert all([isinstance(p, async_subtensor.LiquidityPosition) for p in result])
-
-
-@pytest.mark.asyncio
 async def test_add_liquidity(subtensor, fake_wallet, mocker):
     """Test add_liquidity extrinsic calls properly."""
     # preps
@@ -3722,34 +3535,68 @@ async def test_get_subnet_price(subtensor, mocker):
 
 @pytest.mark.asyncio
 async def test_get_subnet_prices(subtensor, mocker):
-    """Test get_subnet_prices returns the correct value."""
-    # preps
-    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
-
-    async def fake_current_sqrt_prices():
-        yield [0, {"bits": 0}]
-        yield [1, {"bits": 3155343338053956962}]
-
-    expected_prices = {0: Balance.from_tao(1), 1: Balance.from_tao(0.029258617)}
-    mocked_query_map = mocker.patch.object(
-        subtensor.substrate, "query_map", return_value=fake_current_sqrt_prices()
+    """Test get_subnet_prices returns the correct value via runtime API."""
+    # Preps
+    fake_block_hash = "0xabc"
+    mocker.patch.object(subtensor, "determine_block_hash", return_value=fake_block_hash)
+    mocker.patch.object(subtensor, "_runtime_method_exists", return_value=True)
+    fake_prices_rao = [
+        {"netuid": 0, "price": 1_000_000_000},
+        {"netuid": 1, "price": 29_258_617},
+    ]
+    expected_prices = {
+        0: Balance.from_rao(1_000_000_000),
+        1: Balance.from_rao(29_258_617),
+    }
+    mocked_runtime_call = mocker.patch.object(
+        subtensor.substrate, "runtime_call", return_value=fake_prices_rao
     )
 
     # Call
     result = await subtensor.get_subnet_prices()
 
     # Asserts
-    mocked_determine_block_hash.assert_awaited_once_with(
-        block=None, block_hash=None, reuse_block=False
+    subtensor._runtime_method_exists.assert_awaited_once_with(
+        api="SwapRuntimeApi",
+        method="current_alpha_price_all",
+        block_hash=fake_block_hash,
     )
-    mocked_query_map.assert_awaited_once_with(
-        module="Swap",
-        storage_function="AlphaSqrtPrice",
-        block_hash=mocked_determine_block_hash.return_value,
-        page_size=129,  # total number of subnets
+    mocked_runtime_call.assert_awaited_once_with(
+        api="SwapRuntimeApi",
+        method="current_alpha_price_all",
+        block_hash=fake_block_hash,
+    )
+    assert result == expected_prices
+
+
+@pytest.mark.asyncio
+async def test_get_subnet_prices_fallback(subtensor, mocker):
+    """Test get_subnet_prices falls back to per-subnet calls when runtime API is missing."""
+    # Preps
+    fake_block_hash = "0xabc"
+    mocker.patch.object(subtensor, "determine_block_hash", return_value=fake_block_hash)
+    mocker.patch.object(subtensor, "_runtime_method_exists", return_value=False)
+    mocker.patch.object(subtensor, "get_all_subnets_netuid", return_value=[0, 1, 2])
+    mocker.patch.object(
+        subtensor,
+        "get_subnet_price",
+        side_effect=[
+            Balance.from_tao(1),
+            Balance.from_rao(29_258_617),
+            Balance.from_rao(50_000_000),
+        ],
     )
 
-    assert result == expected_prices
+    # Call
+    result = await subtensor.get_subnet_prices()
+
+    # Asserts
+    assert result == {
+        0: Balance.from_tao(1),
+        1: Balance.from_rao(29_258_617),
+        2: Balance.from_rao(50_000_000),
+    }
+    assert subtensor.get_subnet_price.await_count == 3
 
 
 @pytest.mark.asyncio
