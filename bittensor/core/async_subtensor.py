@@ -5482,7 +5482,8 @@ class AsyncSubtensor(SubtensorMixin):
         Checks whether a coldkey's lock on a subnet is perpetual (non-decaying).
 
         Locks decay by default. A lock becomes perpetual only when the coldkey explicitly opts in via
-        set_perpetual_lock(enabled=True), which inserts a DecayingLock entry.
+        set_perpetual_lock(enabled=True), which inserts a ``DecayingLock`` entry with value ``false``. When the entry is
+        absent, the lock decays normally.
 
         Parameters:
             coldkey_ss58: The SS58 address of the coldkey to check.
@@ -5492,7 +5493,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            True if the lock is perpetual (does not decay), False if it decays.
+            True if the lock is perpetual (does not decay), False if it decays or no lock exists.
         """
         query = await self.query_subtensor(
             name="DecayingLock",
@@ -5501,7 +5502,7 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
             reuse_block=reuse_block,
         )
-        return query.value is not None
+        return query.value is False
 
     async def is_subnet_active(
         self,
