@@ -4692,7 +4692,7 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
         ):
             prices_rao = cast(
-                dict,
+                list[dict],
                 await self.substrate.runtime_call(
                     api="SwapRuntimeApi",
                     method="current_alpha_price_all",
