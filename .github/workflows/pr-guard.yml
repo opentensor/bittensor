@@ -1,0 +1,56 @@
+name: PR guard
+
+permissions:
+  contents: read
+  pull-requests: write
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  target-branch:
+    if: github.base_ref == 'master' && !startsWith(github.head_ref, 'release')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comment and fail when targeting master from a non-release branch
+        uses: actions/github-script@v9
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: 'PRs need to be open against staging.',
+            });
+            core.setFailed('PRs need to be open against the 'staging' branch.');
+
+  signed-commits:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check that all commits in the PR are signed
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const commits = await github.paginate(
+              github.rest.pulls.listCommits,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                per_page: 100,
+              }
+            );
+
+            const unsigned = commits.filter(c => !c.commit.verification || !c.commit.verification.verified);
+
+            if (unsigned.length > 0) {
+              const list = unsigned.map(c => `- ${c.sha.substring(0, 7)} ${c.commit.message.split('\n')[0]}`).join('\n');
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `PRs must use signed commits.\n\nUnsigned commits:\n${list}`,
+              });
+              core.setFailed("PRs must use signed commits.");
+            }

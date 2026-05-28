@@ -19,6 +19,6 @@ jobs:
         id: changed
       - name: Ensure CHANGELOG.md updated
         if: contains(steps.changed.outputs.all_changed_files, 'CHANGELOG.md') == false
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: core.setFailed('CHANGELOG.md must be updated.')

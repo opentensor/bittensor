@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bittensor"
-version = "10.3.2"
+version = "10.4.0"
 description = "Bittensor SDK"
 readme = "README.md"
 authors = [
@@ -32,7 +32,7 @@ dependencies = [
     "cyscale>=0.3.3,<1.0.0",
     "uvicorn",
     "bittensor-drand>=1.3.0,<2.0.0",
-    "bittensor-wallet==4.0.1",
+    "bittensor-wallet>=4.1.0",
     "async-substrate-interface>=2.0.4,<3.0.0",
 ]
 
@@ -62,7 +62,7 @@ torch = [
     "torch>=1.13.1,<3.0"
 ]
 cli = [
-    "bittensor-cli>=9.21.1"
+    "bittensor-cli>=9.22.0"
 ]
 
 

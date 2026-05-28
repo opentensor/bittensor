@@ -215,6 +215,47 @@ class SubtensorModule(_BasePallet):
         """
         return self.create_composed_call(hotkey=hotkey, take=take)
 
+    def lock_stake(
+        self,
+        hotkey: str,
+        netuid: int,
+        amount: int,
+    ) -> Call:
+        """Returns GenericCall instance for Subtensor function SubtensorModule.lock_stake.
+
+        Parameters:
+            hotkey: The hotkey SS58 address to lock stake on.
+            netuid: The subnet UID on which to lock.
+            amount: Amount of alpha in RAO to lock.
+
+        Returns:
+            GenericCall instance.
+        """
+        return self.create_composed_call(
+            hotkey=hotkey,
+            netuid=netuid,
+            amount=amount,
+        )
+
+    def move_lock(
+        self,
+        destination_hotkey: str,
+        netuid: int,
+    ) -> Call:
+        """Returns GenericCall instance for Subtensor function SubtensorModule.move_lock.
+
+        Parameters:
+            destination_hotkey: The SS58 address of the hotkey to move the lock to.
+            netuid: The subnet UID on which the lock exists.
+
+        Returns:
+            GenericCall instance.
+        """
+        return self.create_composed_call(
+            destination_hotkey=destination_hotkey,
+            netuid=netuid,
+        )
+
     def move_stake(
         self,
         origin_netuid: int,
@@ -621,6 +662,25 @@ class SubtensorModule(_BasePallet):
             GenericCall instance.
         """
         return self.create_composed_call(cooldown=cooldown)
+
+    def set_perpetual_lock(
+        self,
+        netuid: int,
+        enabled: bool,
+    ) -> Call:
+        """Returns GenericCall instance for Subtensor function SubtensorModule.set_perpetual_lock.
+
+        Parameters:
+            netuid: The subnet UID for which to set the perpetual lock flag.
+            enabled: If True, the lock will not decay. If False, normal decay resumes.
+
+        Returns:
+            GenericCall instance.
+        """
+        return self.create_composed_call(
+            netuid=netuid,
+            enabled=enabled,
+        )
 
     def set_root_claim_type(
         self,

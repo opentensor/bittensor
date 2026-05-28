@@ -285,6 +285,8 @@ _CUSTOM_ERROR_CODE_TO_EXCEPTION: dict[int, type["ChainError"]] = {
     4: HotKeyAccountNotExists,
     6: TxRateLimitExceeded,
     25: NonAssociatedColdKey,
+    26: DelegateTakeTooLow,
+    27: DelegateTakeTooHigh,
 }
 
 

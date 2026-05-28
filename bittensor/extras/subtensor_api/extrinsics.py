@@ -13,17 +13,19 @@ class Extrinsics:
         self.add_stake_burn = subtensor.add_stake_burn
         self.add_stake_multiple = subtensor.add_stake_multiple
         self.announce_coldkey_swap = subtensor.announce_coldkey_swap
-        self.clear_coldkey_swap_announcement = subtensor.clear_coldkey_swap_announcement
-        self.dispute_coldkey_swap = subtensor.dispute_coldkey_swap
         self.burned_register = subtensor.burned_register
         self.claim_root = subtensor.claim_root
+        self.clear_coldkey_swap_announcement = subtensor.clear_coldkey_swap_announcement
         self.commit_weights = subtensor.commit_weights
         self.contribute_crowdloan = subtensor.contribute_crowdloan
         self.create_crowdloan = subtensor.create_crowdloan
+        self.dispute_coldkey_swap = subtensor.dispute_coldkey_swap
         self.dissolve_crowdloan = subtensor.dissolve_crowdloan
         self.finalize_crowdloan = subtensor.finalize_crowdloan
         self.get_extrinsic_fee = subtensor.get_extrinsic_fee
+        self.lock_stake = subtensor.lock_stake
         self.modify_liquidity = subtensor.modify_liquidity
+        self.move_lock = subtensor.move_lock
         self.move_stake = subtensor.move_stake
         self.refund_crowdloan = subtensor.refund_crowdloan
         self.register = subtensor.register
@@ -35,12 +37,16 @@ class Extrinsics:
         self.root_set_pending_childkey_cooldown = (
             subtensor.root_set_pending_childkey_cooldown
         )
+        self.serve_axon = subtensor.serve_axon
+        self.set_auto_stake = subtensor.set_auto_stake
         self.set_children = subtensor.set_children
+        self.set_commitment = subtensor.set_commitment
+        self.set_delegate_take = subtensor.set_delegate_take
+        self.set_perpetual_lock = subtensor.set_perpetual_lock
+        self.set_reveal_commitment = subtensor.set_reveal_commitment
+        self.set_root_claim_type = subtensor.set_root_claim_type
         self.set_subnet_identity = subtensor.set_subnet_identity
         self.set_weights = subtensor.set_weights
-        self.serve_axon = subtensor.serve_axon
-        self.set_commitment = subtensor.set_commitment
-        self.set_root_claim_type = subtensor.set_root_claim_type
         self.start_call = subtensor.start_call
         self.swap_coldkey_announced = subtensor.swap_coldkey_announced
         self.swap_stake = subtensor.swap_stake
