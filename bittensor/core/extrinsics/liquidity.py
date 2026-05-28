@@ -1,8 +1,9 @@
 # TODO: remove this module in the next major release (include all references)
-from typing import TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 from bittensor.core.types import ExtrinsicResponse
 from bittensor.utils import ChainFeatureDisabledWarning, deprecated_message
+from bittensor.utils.balance import Balance
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -18,6 +19,10 @@ def add_liquidity_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     netuid: int,
+    liquidity: Optional[Balance] = None,
+    price_low: Optional[Balance] = None,
+    price_high: Optional[Balance] = None,
+    hotkey_ss58: Optional[str] = None,
     **kwargs,
 ) -> ExtrinsicResponse:
     """Deprecated. User liquidity has been permanently removed from the chain."""
@@ -33,6 +38,9 @@ def modify_liquidity_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     netuid: int,
+    position_id: Optional[int] = None,
+    liquidity_delta: Optional[Balance] = None,
+    hotkey_ss58: Optional[str] = None,
     **kwargs,
 ) -> ExtrinsicResponse:
     """Deprecated. User liquidity has been permanently removed from the chain."""
@@ -48,6 +56,8 @@ def remove_liquidity_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     netuid: int,
+    position_id: Optional[int] = None,
+    hotkey_ss58: Optional[str] = None,
     **kwargs,
 ) -> ExtrinsicResponse:
     """Deprecated. User liquidity has been permanently removed from the chain."""
@@ -63,6 +73,7 @@ def toggle_user_liquidity_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     netuid: int,
+    enable: Optional[bool] = None,
     **kwargs,
 ) -> ExtrinsicResponse:
     """Deprecated. User liquidity has been permanently removed from the chain."""
