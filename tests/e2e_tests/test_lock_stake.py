@@ -12,14 +12,15 @@ from tests.e2e_tests.utils import (
 
 def test_owner_lock_lifecycle(subtensor, alice_wallet, bob_wallet):
     """
-    Tests owner lock lifecycle including auto-lock from emission.
+    Tests owner lock lifecycle.
 
-    1. After emission, owner already has an auto-lock on their own hotkey
-    2. Query lock state and verify conviction > 0 (owner gets instant conviction)
-    3. Verify get_most_convicted_hotkey_on_subnet returns owner hotkey
-    4. Fail to lock on a different hotkey (LockHotkeyMismatch)
-    5. Top-up the existing lock on the same hotkey
-    6. Unstake within available limit succeeds, lock remains unchanged
+    1. Owner has no locks initially
+    2. Owner adds stake and creates a lock on their own hotkey
+    3. Query lock state and verify conviction > 0 (owner gets instant conviction)
+    4. Verify get_most_convicted_hotkey_on_subnet returns owner hotkey
+    5. Fail to lock on a different hotkey (LockHotkeyMismatch)
+    6. Top-up the existing lock on the same hotkey
+    7. Unstake within available limit succeeds, lock remains unchanged
     """
     alice_sn = TestSubnet(subtensor)
     steps = [
@@ -29,16 +30,38 @@ def test_owner_lock_lifecycle(subtensor, alice_wallet, bob_wallet):
     ]
     alice_sn.execute_steps(steps)
 
-    # Wait for at least one epoch so that emission fires auto_lock_owner_cut
-    next_epoch = subtensor.subnets.get_next_epoch_start_block(alice_sn.netuid)
-    subtensor.wait_for_block(next_epoch + 1)
-
-    # Owner should already have an auto-lock on their own hotkey
+    # Owner has no locks initially (auto_lock_owner_cut is disabled by default)
     locks = subtensor.staking.get_stake_locks(
         coldkey_ss58=alice_wallet.coldkey.ss58_address,
         netuid=alice_sn.netuid,
     )
-    logging.console.info(f"Owner locks after emission: {locks}")
+    assert len(locks) == 0
+
+    # Add stake so owner can create a lock
+    assert subtensor.staking.add_stake(
+        wallet=alice_wallet,
+        netuid=alice_sn.netuid,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        amount=Balance.from_tao(10),
+    ).success
+
+    # Owner creates a lock on their own hotkey
+    lock_amount = Balance.from_tao(3).set_unit(alice_sn.netuid)
+    response = subtensor.staking.lock_stake(
+        wallet=alice_wallet,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        netuid=alice_sn.netuid,
+        amount=lock_amount,
+    )
+    logging.console.info(f"Owner lock response: {response}")
+    assert response.success
+
+    # Verify lock exists
+    locks = subtensor.staking.get_stake_locks(
+        coldkey_ss58=alice_wallet.coldkey.ss58_address,
+        netuid=alice_sn.netuid,
+    )
+    logging.console.info(f"Owner locks: {locks}")
     assert len(locks) == 1
     hotkey, lock_state = locks[0]
     assert hotkey == alice_wallet.hotkey.ss58_address
@@ -68,14 +91,6 @@ def test_owner_lock_lifecycle(subtensor, alice_wallet, bob_wallet):
     )
     logging.console.info(f"Lock on different hotkey response: {response}")
     assert response.success is False
-
-    # Add more stake on own hotkey so we have enough to lock
-    assert subtensor.staking.add_stake(
-        wallet=alice_wallet,
-        netuid=alice_sn.netuid,
-        hotkey_ss58=alice_wallet.hotkey.ss58_address,
-        amount=Balance.from_tao(5),
-    ).success
 
     # Record locked_mass before top-up
     lock_before = subtensor.staking.get_stake_lock(
@@ -117,7 +132,7 @@ def test_owner_lock_lifecycle(subtensor, alice_wallet, bob_wallet):
     logging.console.info(f"Unstake small amount response: {response}")
     assert response.success
 
-    # Unstake must not reduce locked_mass (may grow due to auto_lock_owner_cut between blocks)
+    # Unstake must not reduce locked_mass
     lock_unchanged = subtensor.staking.get_stake_lock(
         coldkey_ss58=alice_wallet.coldkey.ss58_address,
         netuid=alice_sn.netuid,
@@ -129,14 +144,15 @@ def test_owner_lock_lifecycle(subtensor, alice_wallet, bob_wallet):
 @pytest.mark.asyncio
 async def test_owner_lock_lifecycle_async(async_subtensor, alice_wallet, bob_wallet):
     """
-    Async version: Tests owner lock lifecycle including auto-lock from emission.
+    Async version: Tests owner lock lifecycle.
 
-    1. After emission, owner already has an auto-lock on their own hotkey
-    2. Query lock state and verify conviction > 0 (owner gets instant conviction)
-    3. Verify get_most_convicted_hotkey_on_subnet returns owner hotkey
-    4. Fail to lock on a different hotkey (LockHotkeyMismatch)
-    5. Top-up the existing lock on the same hotkey
-    6. Unstake within available limit succeeds, lock remains unchanged
+    1. Owner has no locks initially
+    2. Owner adds stake and creates a lock on their own hotkey
+    3. Query lock state and verify conviction > 0 (owner gets instant conviction)
+    4. Verify get_most_convicted_hotkey_on_subnet returns owner hotkey
+    5. Fail to lock on a different hotkey (LockHotkeyMismatch)
+    6. Top-up the existing lock on the same hotkey
+    7. Unstake within available limit succeeds, lock remains unchanged
     """
     alice_sn = TestSubnet(async_subtensor)
     steps = [
@@ -146,18 +162,40 @@ async def test_owner_lock_lifecycle_async(async_subtensor, alice_wallet, bob_wal
     ]
     await alice_sn.async_execute_steps(steps)
 
-    # Wait for at least one epoch so that emission fires auto_lock_owner_cut
-    next_epoch = await async_subtensor.subnets.get_next_epoch_start_block(
-        alice_sn.netuid
-    )
-    await async_subtensor.wait_for_block(next_epoch + 1)
-
-    # Owner should already have an auto-lock on their own hotkey
+    # Owner has no locks initially (auto_lock_owner_cut is disabled by default)
     locks = await async_subtensor.staking.get_stake_locks(
         coldkey_ss58=alice_wallet.coldkey.ss58_address,
         netuid=alice_sn.netuid,
     )
-    logging.console.info(f"Owner locks after emission: {locks}")
+    assert len(locks) == 0
+
+    # Add stake so owner can create a lock
+    assert (
+        await async_subtensor.staking.add_stake(
+            wallet=alice_wallet,
+            netuid=alice_sn.netuid,
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
+            amount=Balance.from_tao(10),
+        )
+    ).success
+
+    # Owner creates a lock on their own hotkey
+    lock_amount = Balance.from_tao(3).set_unit(alice_sn.netuid)
+    response = await async_subtensor.staking.lock_stake(
+        wallet=alice_wallet,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        netuid=alice_sn.netuid,
+        amount=lock_amount,
+    )
+    logging.console.info(f"Owner lock response: {response}")
+    assert response.success
+
+    # Verify lock exists
+    locks = await async_subtensor.staking.get_stake_locks(
+        coldkey_ss58=alice_wallet.coldkey.ss58_address,
+        netuid=alice_sn.netuid,
+    )
+    logging.console.info(f"Owner locks: {locks}")
     assert len(locks) == 1
     hotkey, lock_state = locks[0]
     assert hotkey == alice_wallet.hotkey.ss58_address
@@ -187,16 +225,6 @@ async def test_owner_lock_lifecycle_async(async_subtensor, alice_wallet, bob_wal
     )
     logging.console.info(f"Lock on different hotkey response: {response}")
     assert response.success is False
-
-    # Add more stake on own hotkey so we have enough to lock
-    assert (
-        await async_subtensor.staking.add_stake(
-            wallet=alice_wallet,
-            netuid=alice_sn.netuid,
-            hotkey_ss58=alice_wallet.hotkey.ss58_address,
-            amount=Balance.from_tao(5),
-        )
-    ).success
 
     # Record locked_mass before top-up
     lock_before = await async_subtensor.staking.get_stake_lock(
@@ -238,7 +266,7 @@ async def test_owner_lock_lifecycle_async(async_subtensor, alice_wallet, bob_wal
     logging.console.info(f"Unstake small amount response: {response}")
     assert response.success
 
-    # Unstake must not reduce locked_mass (may grow due to auto_lock_owner_cut between blocks)
+    # Unstake must not reduce locked_mass
     lock_unchanged = await async_subtensor.staking.get_stake_lock(
         coldkey_ss58=alice_wallet.coldkey.ss58_address,
         netuid=alice_sn.netuid,
@@ -539,7 +567,7 @@ def test_move_lock(subtensor, alice_wallet, bob_wallet, charlie_wallet):
     1. Fail to move when no lock exists (NoExistingLock)
     2. Create a lock for Bob, then move it to Charlie's hotkey
     3. Verify lock moved: old hotkey has None, new hotkey has lock
-    4. Owner moves their auto-lock to a different hotkey
+    4. Owner creates a lock and moves it to a different hotkey
     5. Verify owner lock moved successfully
     """
     alice_sn = TestSubnet(subtensor)
@@ -613,9 +641,20 @@ def test_move_lock(subtensor, alice_wallet, bob_wallet, charlie_wallet):
     assert new_lock["locked_mass"].rao > lock_amount.rao * 0.99
     logging.console.info(f"Bob lock after move: {new_lock}")
 
-    # Owner move: wait for emission so owner has auto-lock
-    next_epoch = subtensor.subnets.get_next_epoch_start_block(alice_sn.netuid)
-    subtensor.wait_for_block(next_epoch + 1)
+    # Owner creates a lock manually (auto_lock_owner_cut is disabled by default)
+    assert subtensor.staking.add_stake(
+        wallet=alice_wallet,
+        netuid=alice_sn.netuid,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        amount=Balance.from_tao(5),
+    ).success
+
+    assert subtensor.staking.lock_stake(
+        wallet=alice_wallet,
+        hotkey_ss58=alice_wallet.hotkey.ss58_address,
+        netuid=alice_sn.netuid,
+        amount=Balance.from_tao(2).set_unit(alice_sn.netuid),
+    ).success
 
     owner_lock = subtensor.staking.get_stake_lock(
         coldkey_ss58=alice_wallet.coldkey.ss58_address,
@@ -662,7 +701,7 @@ async def test_move_lock_async(
     1. Fail to move when no lock exists (NoExistingLock)
     2. Create a lock for Bob, then move it to Charlie's hotkey
     3. Verify lock moved: old hotkey has None, new hotkey has lock
-    4. Owner moves their auto-lock to a different hotkey
+    4. Owner creates a lock and moves it to a different hotkey
     5. Verify owner lock moved successfully
     """
     alice_sn = TestSubnet(async_subtensor)
@@ -740,11 +779,24 @@ async def test_move_lock_async(
     assert new_lock["locked_mass"].rao > lock_amount.rao * 0.99
     logging.console.info(f"Bob lock after move: {new_lock}")
 
-    # Owner move: wait for emission so owner has auto-lock
-    next_epoch = await async_subtensor.subnets.get_next_epoch_start_block(
-        alice_sn.netuid
-    )
-    await async_subtensor.wait_for_block(next_epoch + 1)
+    # Owner creates a lock manually (auto_lock_owner_cut is disabled by default)
+    assert (
+        await async_subtensor.staking.add_stake(
+            wallet=alice_wallet,
+            netuid=alice_sn.netuid,
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
+            amount=Balance.from_tao(5),
+        )
+    ).success
+
+    assert (
+        await async_subtensor.staking.lock_stake(
+            wallet=alice_wallet,
+            hotkey_ss58=alice_wallet.hotkey.ss58_address,
+            netuid=alice_sn.netuid,
+            amount=Balance.from_tao(2).set_unit(alice_sn.netuid),
+        )
+    ).success
 
     owner_lock = await async_subtensor.staking.get_stake_lock(
         coldkey_ss58=alice_wallet.coldkey.ss58_address,
