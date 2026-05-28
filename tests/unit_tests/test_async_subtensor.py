@@ -3951,6 +3951,240 @@ async def test_get_stake_weight(subtensor, mocker):
     assert result == expected_result
 
 
+# Lock / Conviction tests =====================================================================
+
+
+@pytest.mark.asyncio
+async def test_get_stake_lock_success(subtensor, mocker):
+    """Tests get_stake_lock returns LockState when lock exists."""
+    # Preps
+    coldkey = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
+    hotkey = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+    netuid = 1
+    raw_value = {"locked_mass": 1_000_000_000, "conviction": 1 << 64, "last_update": 50}
+    mock_query = mocker.MagicMock(value=raw_value)
+    subtensor.query_subtensor = mocker.AsyncMock(return_value=mock_query)
+
+    # Call
+    result = await subtensor.get_stake_lock(coldkey, netuid, hotkey)
+
+    # Asserts
+    subtensor.query_subtensor.assert_awaited_once_with(
+        "Lock",
+        params=[coldkey, netuid, hotkey],
+        block=None,
+        block_hash=None,
+        reuse_block=False,
+    )
+    assert result is not None
+    assert result["locked_mass"].rao == 1_000_000_000
+    assert isinstance(result["conviction"], float)
+    assert result["last_update"] == 50
+
+
+@pytest.mark.asyncio
+async def test_get_stake_lock_none(subtensor, mocker):
+    """Tests get_stake_lock returns None when no lock exists."""
+    # Preps
+    mock_query = mocker.MagicMock(value=None)
+    subtensor.query_subtensor = mocker.AsyncMock(return_value=mock_query)
+
+    # Call
+    result = await subtensor.get_stake_lock("coldkey", 1, "hotkey")
+
+    # Asserts
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_stake_locks_success(subtensor, mocker):
+    """Tests get_stake_locks returns list of (hotkey, LockState) tuples."""
+    # Preps
+    coldkey = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
+    netuid = 1
+    hotkey1 = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+    hotkey2 = "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y"
+    raw_locks = [
+        (hotkey1, {"locked_mass": 500, "conviction": 0, "last_update": 10}),
+        (hotkey2, {"locked_mass": 1000, "conviction": 1 << 63, "last_update": 20}),
+    ]
+
+    async def async_iter():
+        for item in raw_locks:
+            yield item
+
+    subtensor.query_map_subtensor = mocker.AsyncMock(return_value=async_iter())
+
+    # Call
+    result = await subtensor.get_stake_locks(coldkey, netuid)
+
+    # Asserts
+    subtensor.query_map_subtensor.assert_awaited_once_with(
+        "Lock",
+        params=[coldkey, netuid],
+        block=None,
+        block_hash=None,
+        reuse_block=False,
+    )
+    assert len(result) == 2
+    assert result[0][0] == hotkey1
+    assert result[0][1]["locked_mass"].rao == 500
+    assert result[1][0] == hotkey2
+    assert result[1][1]["locked_mass"].rao == 1000
+
+
+@pytest.mark.asyncio
+async def test_get_stake_locks_empty(subtensor, mocker):
+    """Tests get_stake_locks returns empty list when no locks exist."""
+
+    # Preps
+    async def async_iter():
+        return
+        yield
+
+    subtensor.query_map_subtensor = mocker.AsyncMock(return_value=async_iter())
+
+    # Call
+    result = await subtensor.get_stake_locks("coldkey", 1)
+
+    # Asserts
+    assert result == []
+
+
+@pytest.mark.parametrize(
+    "query_value, expected",
+    [(False, True), (None, False)],
+    ids=["perpetual-entry-exists", "decaying-no-entry"],
+)
+@pytest.mark.asyncio
+async def test_is_perpetual_lock(subtensor, mocker, query_value, expected):
+    """Tests is_perpetual_lock correctly distinguishes perpetual from decaying."""
+    # Preps
+    mock_query = mocker.MagicMock(value=query_value)
+    subtensor.query_subtensor = mocker.AsyncMock(return_value=mock_query)
+
+    # Call
+    result = await subtensor.is_perpetual_lock("coldkey", 1)
+
+    # Asserts
+    subtensor.query_subtensor.assert_awaited_once_with(
+        name="DecayingLock",
+        params=["coldkey", 1],
+        block=None,
+        block_hash=None,
+        reuse_block=False,
+    )
+    assert result is expected
+
+
+@pytest.mark.asyncio
+async def test_get_coldkey_lock_success(subtensor, mocker):
+    """Tests get_coldkey_lock returns LockState when lock exists."""
+    # Preps
+    raw_result = {"locked_mass": 2000, "conviction": 1 << 64, "last_update": 100}
+    subtensor.query_runtime_api = mocker.AsyncMock(return_value=raw_result)
+
+    # Call
+    result = await subtensor.get_coldkey_lock("coldkey", 1)
+
+    # Asserts
+    subtensor.query_runtime_api.assert_awaited_once_with(
+        runtime_api="StakeInfoRuntimeApi",
+        method="get_coldkey_lock",
+        params=["coldkey", 1],
+        block=None,
+        block_hash=None,
+        reuse_block=False,
+    )
+    assert result is not None
+    assert result["locked_mass"].rao == 2000
+    assert isinstance(result["conviction"], float)
+    assert result["last_update"] == 100
+
+
+@pytest.mark.asyncio
+async def test_get_coldkey_lock_none(subtensor, mocker):
+    """Tests get_coldkey_lock returns None when no lock exists."""
+    # Preps
+    subtensor.query_runtime_api = mocker.AsyncMock(return_value=None)
+
+    # Call
+    result = await subtensor.get_coldkey_lock("coldkey", 1)
+
+    # Asserts
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_hotkey_conviction_success(subtensor, mocker):
+    """Tests get_hotkey_conviction returns float conviction score."""
+    # Preps
+    subtensor.query_runtime_api = mocker.AsyncMock(return_value=(1 << 64))
+
+    # Call
+    result = await subtensor.get_hotkey_conviction("hotkey", 1)
+
+    # Asserts
+    subtensor.query_runtime_api.assert_awaited_once_with(
+        runtime_api="StakeInfoRuntimeApi",
+        method="get_hotkey_conviction",
+        params=["hotkey", 1],
+        block=None,
+        block_hash=None,
+        reuse_block=False,
+    )
+    assert isinstance(result, float)
+    assert result > 0.0
+
+
+@pytest.mark.asyncio
+async def test_get_hotkey_conviction_none(subtensor, mocker):
+    """Tests get_hotkey_conviction returns 0.0 when no data."""
+    # Preps
+    subtensor.query_runtime_api = mocker.AsyncMock(return_value=None)
+
+    # Call
+    result = await subtensor.get_hotkey_conviction("hotkey", 1)
+
+    # Asserts
+    assert result == 0.0
+
+
+@pytest.mark.asyncio
+async def test_get_most_convicted_hotkey_on_subnet_success(subtensor, mocker):
+    """Tests get_most_convicted_hotkey_on_subnet returns hotkey SS58."""
+    # Preps
+    expected_hotkey = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+    subtensor.query_runtime_api = mocker.AsyncMock(return_value=expected_hotkey)
+
+    # Call
+    result = await subtensor.get_most_convicted_hotkey_on_subnet(1)
+
+    # Asserts
+    subtensor.query_runtime_api.assert_awaited_once_with(
+        runtime_api="StakeInfoRuntimeApi",
+        method="get_most_convicted_hotkey_on_subnet",
+        params=[1],
+        block=None,
+        block_hash=None,
+        reuse_block=False,
+    )
+    assert result == expected_hotkey
+
+
+@pytest.mark.asyncio
+async def test_get_most_convicted_hotkey_on_subnet_none(subtensor, mocker):
+    """Tests get_most_convicted_hotkey_on_subnet returns None when no locks."""
+    # Preps
+    subtensor.query_runtime_api = mocker.AsyncMock(return_value=None)
+
+    # Call
+    result = await subtensor.get_most_convicted_hotkey_on_subnet(1)
+
+    # Asserts
+    assert result is None
+
+
 @pytest.mark.asyncio
 async def test_get_timelocked_weight_commits(subtensor, mocker):
     """Verify that `get_timelocked_weight_commits` method calls proper methods and returns the correct value."""

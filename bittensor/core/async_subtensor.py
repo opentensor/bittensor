@@ -81,6 +81,11 @@ from bittensor.core.extrinsics.asyncex.liquidity import (
     toggle_user_liquidity_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.mev_shield import submit_encrypted_extrinsic
+from bittensor.core.extrinsics.asyncex.lock import (
+    lock_stake_extrinsic,
+    move_lock_extrinsic,
+    set_perpetual_lock_extrinsic,
+)
 from bittensor.core.extrinsics.asyncex.move_stake import (
     move_stake_extrinsic,
     swap_stake_extrinsic,
@@ -147,6 +152,7 @@ from bittensor.core.settings import (
 from bittensor.core.types import (
     BlockInfo,
     ExtrinsicResponse,
+    LockState,
     Salt,
     SubtensorMixin,
     UIDs,
@@ -1940,6 +1946,47 @@ class AsyncSubtensor(SubtensorMixin):
             cooldown,
         )
 
+    async def get_coldkey_lock(
+        self,
+        coldkey_ss58: str,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional["LockState"]:
+        """
+        Returns the current lock for a coldkey on a subnet, rolled forward to the current block.
+
+        Unlike get_stake_lock which returns the raw stored state, this method applies decay to return the actual current
+        lock values accounting for time elapsed since last update.
+
+        Parameters:
+            coldkey_ss58: The SS58 address of the coldkey.
+            netuid: The subnet UID to query.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The block hash at which to query.
+            reuse_block: Whether to reuse the last-used block hash.
+
+        Returns:
+            LockState with current locked_mass, conviction, and last_update, or None if no lock exists.
+        """
+        result = await self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_coldkey_lock",
+            params=[coldkey_ss58, netuid],
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        if result is None:
+            return None
+
+        return LockState(
+            locked_mass=Balance.from_rao(result["locked_mass"], netuid),
+            conviction=fixed_to_float(result["conviction"]),
+            last_update=int(result["last_update"]),
+        )
+
     async def get_coldkey_swap_announcement(
         self,
         coldkey_ss58: str,
@@ -2781,6 +2828,39 @@ class AsyncSubtensor(SubtensorMixin):
         # TODO verify this from rao, seems like we're just rounding down
         return block_updated, Balance.from_rao(ema_value)
 
+    async def get_hotkey_conviction(
+        self,
+        hotkey_ss58: str,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> float:
+        """
+        Gets the total conviction score for a hotkey on a subnet.
+
+        Parameters:
+            hotkey_ss58: The SS58 address of the hotkey to query.
+            netuid: The subnet UID to query.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The block hash at which to query.
+            reuse_block: Whether to reuse the last-used block hash.
+
+        Returns:
+            The conviction score as a float.
+        """
+        result = await self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_hotkey_conviction",
+            params=[hotkey_ss58, netuid],
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        if result is None:
+            return 0.0
+        return fixed_to_float(result)
+
     async def get_hotkey_owner(
         self,
         hotkey_ss58: str,
@@ -3358,6 +3438,34 @@ class AsyncSubtensor(SubtensorMixin):
         )
 
         return Balance.from_rao(result.value or 0)
+
+    async def get_most_convicted_hotkey_on_subnet(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional[str]:
+        """
+        Gets the hotkey with the highest conviction score on a subnet (the "subnet king").
+
+        Parameters:
+            netuid: The subnet UID to query.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The block hash at which to query.
+            reuse_block: Whether to reuse the last-used block hash.
+
+        Returns:
+            The SS58 address of the most convicted hotkey, or None if no locks exist.
+        """
+        return await self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_most_convicted_hotkey_on_subnet",
+            params=[netuid],
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
 
     async def get_netuids_for_hotkey(
         self,
@@ -4193,6 +4301,88 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
         )
         return sim_swap_result.tao_fee
+
+    async def get_stake_lock(
+        self,
+        coldkey_ss58: str,
+        netuid: int,
+        hotkey_ss58: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional["LockState"]:
+        """
+        Retrieves the lock state for a specific coldkey-netuid-hotkey combination.
+
+        Parameters:
+            coldkey_ss58: The SS58 address of the coldkey that owns the lock.
+            netuid: The subnet UID on which to query.
+            hotkey_ss58: The SS58 address of the hotkey the lock is on.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The block hash at which to query.
+            reuse_block: Whether to reuse the last-used block hash.
+
+        Returns:
+            LockState dict with locked_mass, conviction, last_update, or None if no lock exists.
+        """
+        query = await self.query_subtensor(
+            "Lock",
+            params=[coldkey_ss58, netuid, hotkey_ss58],
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        if query.value is None:
+            return None
+
+        value = cast(dict, query.value)
+        return LockState(
+            locked_mass=Balance.from_rao(value["locked_mass"], netuid),
+            conviction=fixed_to_float(value["conviction"]),
+            last_update=int(value["last_update"]),
+        )
+
+    async def get_stake_locks(
+        self,
+        coldkey_ss58: str,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> "list[tuple[str, LockState]]":
+        """
+        Retrieves all lock states for a coldkey on a subnet.
+
+        Parameters:
+            coldkey_ss58: The SS58 address of the coldkey that owns the locks.
+            netuid: The subnet UID on which to query.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The block hash at which to query.
+            reuse_block: Whether to reuse the last-used block hash.
+
+        Returns:
+            List of (hotkey_ss58, LockState) tuples.
+        """
+        query_map = await self.query_map_subtensor(
+            "Lock",
+            params=[coldkey_ss58, netuid],
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        locks = []
+        async for hotkey, lock_state in query_map:
+            locks.append(
+                (
+                    hotkey,
+                    LockState(
+                        locked_mass=Balance.from_rao(lock_state["locked_mass"], netuid),
+                        conviction=fixed_to_float(lock_state["conviction"]),
+                        last_update=int(lock_state["last_update"]),
+                    ),
+                )
+            )
+        return locks
 
     async def get_stake_movement_fee(
         self,
@@ -5279,6 +5469,40 @@ class AsyncSubtensor(SubtensorMixin):
             )
             is not None
         )
+
+    async def is_perpetual_lock(
+        self,
+        coldkey_ss58: str,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> bool:
+        """
+        Checks whether a coldkey's lock on a subnet is perpetual (non-decaying).
+
+        Locks decay by default. A lock becomes perpetual only when the coldkey explicitly opts in via
+        set_perpetual_lock(enabled=True), which inserts a ``DecayingLock`` entry with value ``false``. When the entry is
+        absent, the lock decays normally.
+
+        Parameters:
+            coldkey_ss58: The SS58 address of the coldkey to check.
+            netuid: The subnet UID to check.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The block hash at which to query.
+            reuse_block: Whether to reuse the last-used block hash.
+
+        Returns:
+            True if the lock is perpetual (does not decay), False if it decays or no lock exists.
+        """
+        query = await self.query_subtensor(
+            name="DecayingLock",
+            params=[coldkey_ss58, netuid],
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        return query.value is False
 
     async def is_subnet_active(
         self,
@@ -7332,6 +7556,53 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
+    async def lock_stake(
+        self,
+        wallet: "Wallet",
+        hotkey_ss58: str,
+        netuid: int,
+        amount: Balance,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Locks alpha stake on a hotkey within a subnet, building conviction over time.
+
+        Parameters:
+            wallet: The wallet whose coldkey owns the stake to lock.
+            hotkey_ss58: The SS58 address of the hotkey to lock stake on.
+            netuid: The subnet UID on which to lock.
+            amount: Amount of alpha to lock as a Balance object.
+            mev_protection: If `True`, encrypts and submits the transaction through MEV Shield.
+            period: The number of blocks during which the transaction will remain valid after it's submitted.
+            raise_error: Raises exception rather than returning failure response.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+        """
+        check_balance_amount(amount)
+        return await lock_stake_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            hotkey_ss58=hotkey_ss58,
+            netuid=netuid,
+            amount=amount,
+            mev_protection=mev_protection,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
+        )
+
     async def mev_submit_encrypted(
         self,
         wallet: "Wallet",
@@ -7473,6 +7744,49 @@ class AsyncSubtensor(SubtensorMixin):
             position_id=position_id,
             liquidity_delta=liquidity_delta,
             hotkey_ss58=hotkey_ss58,
+            mev_protection=mev_protection,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
+        )
+
+    async def move_lock(
+        self,
+        wallet: "Wallet",
+        destination_hotkey_ss58: str,
+        netuid: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Moves an existing lock from its current hotkey to a different hotkey on the same subnet.
+
+        Parameters:
+            wallet: The wallet whose coldkey owns the lock.
+            destination_hotkey_ss58: The SS58 address of the hotkey to move the lock to.
+            netuid: The subnet UID on which the lock exists.
+            mev_protection: If `True`, encrypts and submits the transaction through MEV Shield.
+            period: The number of blocks during which the transaction will remain valid after it's submitted.
+            raise_error: Raises exception rather than returning failure response.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+        """
+        return await move_lock_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            destination_hotkey_ss58=destination_hotkey_ss58,
+            netuid=netuid,
             mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
@@ -8601,6 +8915,45 @@ class AsyncSubtensor(SubtensorMixin):
 
         logging.error(f"[red]{response.message}[/red]")
         return response
+
+    async def set_perpetual_lock(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        enabled: bool,
+        *,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Sets or clears the perpetual lock flag for the caller's lock on a subnet.
+
+        When enabled, the lock does not decay over time. When disabled, normal decay resumes.
+
+        Parameters:
+            wallet: The wallet whose coldkey owns the lock.
+            netuid: The subnet UID for which to set the perpetual lock flag.
+            enabled: If True, the lock will not decay. If False, normal decay resumes.
+            period: The number of blocks during which the transaction will remain valid after it's submitted.
+            raise_error: Raises exception rather than returning failure response.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+        """
+        return await set_perpetual_lock_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            enabled=enabled,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
 
     async def set_root_claim_type(
         self,
